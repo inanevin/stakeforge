@@ -90,7 +90,7 @@ namespace sfg
 			backend.cmd_bind_constants(cmd, {.data = constants.data(), .offset = constant_mat0, .count = static_cast<u8>(constants.size()), .param_index = 0});
 		}
 	}
-	void world_rendering_t::render_world(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	void world_rendering_t::render_world(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -148,7 +148,6 @@ namespace sfg
 		}
 
 		// culling
-		world_render_prep_data_t prep_data;
 		prep_data.draw_culls.resize(snapshot.draws.size());
 
 		const u8 main_view_index = 0;
@@ -362,8 +361,8 @@ namespace sfg
 		{
 			const world_draw_t& draw = ss.draws[i];
 
-			// if ((prep_data.draw_culls[i].cull_mask & 1 << 0llu) == 0)
-			//	continue;
+			if ((prep_data.draw_culls[i].cull_mask & (1 << 0llu)) != 0)
+				continue;
 
 			if ((draw.pass_mask & world_pass_flags_depth) == 0)
 				continue;
@@ -507,8 +506,8 @@ namespace sfg
 		{
 			const world_draw_t& draw = ss.draws[i];
 
-			// if ((prep_data.draw_culls[i].cull_mask & 1 << 0llu) == 0)
-			//	continue;
+			if ((prep_data.draw_culls[i].cull_mask & (1 << 0llu)) != 0)
+				continue;
 
 			if ((draw.pass_mask & world_pass_flags_gbuffer) == 0)
 				continue;

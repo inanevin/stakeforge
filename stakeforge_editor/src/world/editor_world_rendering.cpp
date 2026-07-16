@@ -46,7 +46,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void editor_world_rendering_t::render_outlines(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	void editor_world_rendering_t::render_outlines(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		const editor_world_snapshot_data_t& snapshot_data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
 
@@ -98,8 +98,13 @@ namespace sfg
 		gfx_handle_t bound_pipeline = {};
 		u32			 bound_material = UINT32_MAX;
 
-		for (const world_draw_t& draw : snapshot.draws)
+		const u32 draw_size = static_cast<u32>(snapshot.draws.size());
+		for (u32 i = 0; i < draw_size; i++)
 		{
+			const world_draw_t& draw = snapshot.draws[i];
+			if ((prep_data.draw_culls[i].cull_mask & (1 << 0llu)) != 0)
+				continue;
+
 			const world_render_entity_t& entity = snapshot.entities[draw.entity_index];
 			if (std::find(snapshot_data.selected_entities.begin(), snapshot_data.selected_entities.end(), entity.entity_id) == snapshot_data.selected_entities.end())
 				continue;
@@ -176,7 +181,7 @@ namespace sfg
 		backend.cmd_barrier(cmd, {.barriers = &end_barrier, .barrier_count = 1});
 	}
 
-	void editor_world_rendering_t::render_object_ids(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index)
+	void editor_world_rendering_t::render_object_ids(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -256,8 +261,13 @@ namespace sfg
 		gfx_handle_t bound_pipeline = {};
 		u32			 bound_material = UINT32_MAX;
 
-		for (const world_draw_t& draw : snapshot.draws)
+		const u32 draw_size = static_cast<u32>(snapshot.draws.size());
+		for (u32 i = 0; i < draw_size; i++)
 		{
+			const world_draw_t& draw = snapshot.draws[i];
+			if ((prep_data.draw_culls[i].cull_mask & (1 << 0llu)) != 0)
+				continue;
+
 			const world_render_material_t& mat = snapshot.materials[draw.material_index];
 
 			bitmask_t<u32> variant_flags = shader_variant_flags_id_write;
@@ -338,7 +348,7 @@ namespace sfg
 										   });
 	}
 
-	void editor_world_rendering_t::blit_world_texture(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index)
+	void editor_world_rendering_t::blit_world_texture(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index)
 	{
 		const editor_world_snapshot_data_t& snapshot_data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
 		const vec2u16_t						size		  = ctx.get_size();
@@ -364,6 +374,7 @@ namespace sfg
 			.params			  = vec4f_t(static_cast<f32>(size.x), static_cast<f32>(size.y), 2.0f, snapshot_data.selected_entities.empty() ? 0.0f : 1.0f),
 			.selection_color  = theme.color_accent2,
 		};
+
 		SFG_MEMCPY(ctx.get_mapped_composite_data(frame_index), &composite_data, sizeof(editor_world_composite_data_t));
 
 		const bool render_gizmo = snapshot_data.gizmo.control_type != editor_transform_control_type_e::invalid;
@@ -381,10 +392,12 @@ namespace sfg
 			editor_world_gizmo_gpu_data_t gizmo_data = {};
 			for (u32 i = 0; i < 3; ++i)
 				gizmo_data.models[i] = mat4x4_t::transform(position, rotation * axis_rotations[i], vec3f_t::one);
-			gizmo_data.models[3]	= mat4x4_t::transform(position, rotation, vec3f_t(editor_world_gizmo_t::CENTRAL_SIZE, editor_world_gizmo_t::CENTRAL_SIZE, editor_world_gizmo_t::CENTRAL_SIZE));
-			gizmo_data.models[4]	= mat4x4_t::transform(position, rotation, {editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_THICKNESS});
-			gizmo_data.models[5]	= mat4x4_t::transform(position, rotation, {editor_world_gizmo_t::PLANE_THICKNESS, editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_SIZE});
-			gizmo_data.models[6]	= mat4x4_t::transform(position, rotation, {editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_THICKNESS, editor_world_gizmo_t::PLANE_SIZE});
+
+			gizmo_data.models[3] = mat4x4_t::transform(position, rotation, vec3f_t(editor_world_gizmo_t::CENTRAL_SIZE, editor_world_gizmo_t::CENTRAL_SIZE, editor_world_gizmo_t::CENTRAL_SIZE));
+			gizmo_data.models[4] = mat4x4_t::transform(position, rotation, {editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_THICKNESS});
+			gizmo_data.models[5] = mat4x4_t::transform(position, rotation, {editor_world_gizmo_t::PLANE_THICKNESS, editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_SIZE});
+			gizmo_data.models[6] = mat4x4_t::transform(position, rotation, {editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_THICKNESS, editor_world_gizmo_t::PLANE_SIZE});
+
 			const vec3f_t xy_offset = rotation * vec3f_t(editor_world_gizmo_t::PLANE_CENTER, editor_world_gizmo_t::PLANE_CENTER, 0.0f);
 			const vec3f_t yz_offset = rotation * vec3f_t(0.0f, editor_world_gizmo_t::PLANE_CENTER, editor_world_gizmo_t::PLANE_CENTER);
 			const vec3f_t zx_offset = rotation * vec3f_t(editor_world_gizmo_t::PLANE_CENTER, 0.0f, editor_world_gizmo_t::PLANE_CENTER);
@@ -518,6 +531,7 @@ namespace sfg
 
 				backend.cmd_bind_vertex_buffers(cmd, {.buffer = plane_vertex_buffer, .slot = 0, .vertex_size = plane_mesh.vertex_stride, .offset = 0});
 				backend.cmd_bind_index_buffers(cmd, {.buffer = plane_index_buffer, .offset = 0, .index_size = plane_mesh.index_stride});
+
 				for (u32 plane = static_cast<u32>(editor_gizmo_axis_e::xy); plane <= static_cast<u32>(editor_gizmo_axis_e::zx); ++plane)
 				{
 					backend.cmd_bind_constants(cmd, {.data = &plane, .offset = constant_obj0, .count = 1, .param_index = 0});

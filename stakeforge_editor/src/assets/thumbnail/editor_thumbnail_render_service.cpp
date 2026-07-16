@@ -139,6 +139,7 @@ namespace sfg
 		const shader_internals_t* shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/thumbnail_capture_copy.hlsl"_hs);
 		_thumbnail_shader				 = render_resources_t::get().get_shader_hw(shader->psos[0]);
 		_snapshot.reserve(64, 0, 0, 0, 0);
+		_prep_data.reserve(10);
 		_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_available_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_pending_renders.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
@@ -572,7 +573,9 @@ namespace sfg
 
 		const global_buffer_data_t global_data = {};
 		SFG_MEMCPY(_mapped_global, &global_data, sizeof(global_buffer_data_t));
-		world_rendering_t::render_world(_render_context, _snapshot, 1.0f, 0, _global_index, render_globals_t::get_global_bind_layout());
+
+		_prep_data.reset();
+		world_rendering_t::render_world(_render_context, _snapshot, _prep_data, 1.0f, 0, _global_index, render_globals_t::get_global_bind_layout());
 
 		_semaphore_frame.value++;
 		const gfx_handle_t queue_gfx = backend.get_queue_gfx();

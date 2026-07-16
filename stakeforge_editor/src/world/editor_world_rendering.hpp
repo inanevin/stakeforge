@@ -32,12 +32,13 @@ namespace sfg
 {
 	class editor_world_render_context_t;
 	struct world_render_snapshot_t;
+	struct world_render_prep_data_t;
 
 	class editor_world_rendering_t final
 	{
 	public:
-		static void render_outlines(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
-		static void render_object_ids(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index);
-		static void blit_world_texture(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index);
+		static void render_outlines(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
+		static void render_object_ids(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index);
+		static void blit_world_texture(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index);
 	};
 }

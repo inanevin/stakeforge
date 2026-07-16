@@ -126,6 +126,7 @@ namespace sfg
 		world_init_config_t			  _world_config;
 		world_render_context_t		  _render_context;
 		world_render_snapshot_t		  _snapshot;
+		world_render_prep_data_t	  _prep_data;
 		vector_t<thumbnail_world_t>	  _worlds;
 		vector_t<pending_render_t>	  _pending_renders;
 		vector_t<thumbnail_request_t> _requests;

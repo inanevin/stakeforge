@@ -30,6 +30,7 @@ vs_output VSMain(vs_input input)
 {
 	vs_output output = (vs_output)0;
 	debug_text_data data = sfg_get_cbv<debug_text_data>(sfg_constant_rp0);
+	
 	if (input.mode < 0.5)
 	{
 		float2 pixel_position = input.anchor.xy + input.offset;
@@ -43,6 +44,7 @@ vs_output VSMain(vs_input input)
 		output.pos = clip_position;
 		output.clip_distance = clip_position.w > 0.0 ? 1.0 : -1.0;
 	}
+	
 	output.uv = input.uv;
 	output.color = input.color;
 	output.mode = input.mode;
@@ -53,14 +55,19 @@ float4 PSMain(vs_output input) : SV_TARGET
 {
 	Texture2D atlas = sfg_get_texture<Texture2D>(sfg_constant_mat0);
 	float coverage = atlas.SampleLevel(smp, input.uv, 0).r;
+	
 	clip(coverage - 0.001);
+	
 	if (input.mode > 0.5 && input.mode < 1.5)
 	{
 		debug_text_data data = sfg_get_cbv<debug_text_data>(sfg_constant_rp0);
 		Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(sfg_constant_obj0);
+		
 		float scene_depth = depth_texture.Load(int3(uint2(input.pos.xy), 0));
+		
 		if (scene_depth > 0.000001 && input.pos.z + data.params.z < scene_depth)
 			discard;
 	}
+	
 	return float4(input.color.rgb, input.color.a * coverage);
 }

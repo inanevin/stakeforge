@@ -58,7 +58,17 @@ namespace sfg
 
 	struct world_render_prep_data_t
 	{
-		frame_vector_t<world_render_prep_draw_cull_t> draw_culls = {};
+		vector_t<world_render_prep_draw_cull_t> draw_culls = {};
+
+		inline void reserve(size_t culls)
+		{
+			draw_culls.reserve(culls);
+		}
+
+		inline void reset()
+		{
+			draw_culls.resize(0);
+		}
 	};
 
 	struct world_render_snapshot_t

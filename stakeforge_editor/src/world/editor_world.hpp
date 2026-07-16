@@ -159,8 +159,10 @@ namespace sfg
 		void consume_entity_pick_result();
 
 	private:
-		world_render_snapshot_t _snapshot_slots[3] = {};
-		editor_world_camera_t*	_camera			   = nullptr;
+		world_render_snapshot_t	 _snapshot_slots[3] = {};
+		world_render_prep_data_t _render_prep_data	= {};
+
+		editor_world_camera_t* _camera = nullptr;
 
 		editor_world_render_context_t _render_context = {};
 
@@ -176,5 +178,6 @@ namespace sfg
 		bool						_object_id_readback_valid[BACK_BUFFER_COUNT] = {};
 		u8							_producer_slot								 = 0;
 		u8							_consumer_slot								 = 0;
+		u8							_latest_snapshot_slot						 = UINT8_MAX;
 	};
 }

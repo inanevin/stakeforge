@@ -30,6 +30,7 @@ vs_output VSMain(vs_input input)
 {
 	vs_output output = (vs_output)0;
 	debug_line_data data = sfg_get_cbv<debug_line_data>(sfg_constant_rp0);
+	
 	float4 current_view = mul(data.view, float4(input.position, 1.0));
 	float4 other_view = mul(data.view, float4(input.other_position, 1.0));
 	float endpoint = input.corner >= 2.0 ? 1.0 : -1.0;
@@ -37,6 +38,7 @@ vs_output VSMain(vs_input input)
 	float near_z = -data.params.z;
 	bool current_clipped = current_view.z > near_z;
 	bool other_clipped = other_view.z > near_z;
+	
 	if (current_clipped && other_clipped)
 	{
 		output.pos = float4(0.0, 0.0, 0.0, 1.0);
@@ -86,12 +88,15 @@ float4 PSMain(vs_output input) : SV_TARGET
 	float closest_x = clamp(input.line_coordinate.x, 0.0, input.line_params.x);
 	float distance_to_line = length(input.line_coordinate - float2(closest_x, 0.0));
 	float coverage = 1.0 - smoothstep(input.line_params.y - 0.75, input.line_params.y + 0.75, distance_to_line);
+	
 	clip(coverage - 0.001);
+	
 	if (input.depth_mode < 0.5)
 	{
 		debug_line_data data = sfg_get_cbv<debug_line_data>(sfg_constant_rp0);
 		Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(sfg_constant_obj0);
 		float scene_depth = depth_texture.Load(int3(uint2(input.pos.xy), 0));
+		
 		if (scene_depth > 0.000001 && input.pos.z + data.params.w < scene_depth)
 			discard;
 	}

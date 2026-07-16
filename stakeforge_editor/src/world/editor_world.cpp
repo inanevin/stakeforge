@@ -29,9 +29,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_camera_orbit.hpp"
 #include "world/editor_world_rendering.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include <sfg/data/char_util.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/math/aabb.hpp>
 #include <sfg/math/color.hpp>
+#include <sfg/math/mat4x3.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
@@ -71,8 +73,9 @@ namespace sfg
 		_edit_context.init();
 		_edit_context.set_world(handle);
 		_gizmo.init();
-		_producer_slot = 0;
-		_consumer_slot = 1;
+		_producer_slot		  = 0;
+		_consumer_slot		  = 1;
+		_latest_snapshot_slot = UINT8_MAX;
 		_snapshot_mailbox.store(2, std::memory_order_relaxed);
 		_pick_result.store(0, std::memory_order_relaxed);
 		_pending_pick_request		 = {};
@@ -90,6 +93,8 @@ namespace sfg
 			.text_vertex_max = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
 			.text_index_max	 = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
 		});
+
+		_render_prep_data.reserve(1000);
 
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
@@ -124,9 +129,10 @@ namespace sfg
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 			_object_id_readback_valid[i] = false;
 
-		_render_resolution = vec2u16_t::zero;
-		_producer_slot	   = 0;
-		_consumer_slot	   = 0;
+		_render_resolution	  = vec2u16_t::zero;
+		_producer_slot		  = 0;
+		_consumer_slot		  = 0;
+		_latest_snapshot_slot = UINT8_MAX;
 	}
 
 	void editor_world_t::resize(vec2u16_t render_resolution)
@@ -289,19 +295,33 @@ namespace sfg
 		consume_entity_pick_result();
 		_world.tick(dt_seconds);
 		_world.update_world_transforms(true);
+		if (_edit_context.is_bounding_boxes_enabled() && _latest_snapshot_slot != UINT8_MAX)
+		{
+			const world_render_snapshot_t& snapshot		= _snapshot_slots[_latest_snapshot_slot];
+			world_debug_draw_t&			   debug_draw	= _world.get_debug_draw();
+			const editor_theme_t&		   theme		= editor_theme_t::get();
+			const color_t				   bounds_color = {theme.color_highlight.x, theme.color_highlight.y, theme.color_highlight.z, theme.color_highlight.w};
+			for (const world_draw_t& draw : snapshot.draws)
+			{
+				const world_render_entity_t& entity		   = snapshot.entities[draw.entity_index];
+				const vec3f_t				 center		   = (draw.aabb.bounds_min + draw.aabb.bounds_max) * 0.5f;
+				const vec3f_t				 dimensions	   = draw.aabb.bounds_half_extent * 2.0f;
+				const mat4x3_t				 box_transform = entity.transform * mat4x3_t::translation(center);
+				const vec3f_t				 text_position = entity.transform * vec3f_t(center.x, draw.aabb.bounds_max.y, center.z);
 
-		world_debug_draw_t& debug_draw = _world.get_debug_draw();
-		debug_draw.draw_line(vec3f_t::zero, vec3f_t::right * 2.0f, color_t(1.0f, 0.1f, 0.1f, 1.0f), 3.0f, debug_draw_depth_e::always_visible);
-		debug_draw.draw_line(vec3f_t::zero, vec3f_t::up * 2.0f, color_t(0.1f, 1.0f, 0.2f, 1.0f), 3.0f, debug_draw_depth_e::always_visible);
-		debug_draw.draw_line(vec3f_t::zero, vec3f_t::forward * 2.0f, color_t(0.1f, 0.4f, 1.0f, 1.0f), 3.0f, debug_draw_depth_e::always_visible);
-		debug_draw.draw_aabb(aabb_t({-1.0f, 0.0f, -1.0f}, {1.0f, 2.0f, 1.0f}), color_t(1.0f, 0.75f, 0.1f, 1.0f), 2.0f);
-		debug_draw.draw_sphere({3.0f, 1.0f, 0.0f}, 1.0f, color_t(0.1f, 0.9f, 1.0f, 1.0f), 2.0f);
-		debug_draw.draw_capsule({-3.0f, 1.0f, 0.0f}, 0.6f, 1.0f, vec3f_t::up, color_t(0.9f, 0.2f, 1.0f, 0.85f), 2.5f, debug_draw_depth_e::always_visible);
-		debug_draw.draw_frustum({0.0f, 1.0f, 3.0f}, vec3f_t::forward, 45.0f, 1.5f, 0.5f, 2.0f, color_t(1.0f, 1.0f, 1.0f, 0.8f), 1.5f);
-		debug_draw.draw_text_2d({16.0f, 16.0f}, "Stakeforge debug text", color_t(1.0f, 1.0f, 1.0f, 1.0f), 16.0f);
-		debug_draw.draw_text_3d({0.0f, 2.25f, 0.0f}, "Depth-tested AABB", color_t(1.0f, 0.75f, 0.1f, 1.0f), 14.0f, debug_draw_depth_e::depth_tested);
-		debug_draw.draw_text_3d({3.0f, 2.25f, 0.0f}, "Billboard sphere", color_t(0.1f, 0.9f, 1.0f, 1.0f), 14.0f, debug_draw_depth_e::always_visible);
-		debug_draw.draw_text_3d({-3.0f, 2.85f, 0.0f}, "Always visible capsule", color_t(0.9f, 0.2f, 1.0f, 1.0f), 14.0f, debug_draw_depth_e::always_visible);
+				debug_draw.draw_box(box_transform, draw.aabb.bounds_half_extent, bounds_color, 2.0f, debug_draw_depth_e::always_visible);
+
+				char  dimensions_text[96] = {};
+				char* text_cur			  = dimensions_text;
+				char* text_end			  = dimensions_text + sizeof(dimensions_text);
+				char_util::append_double(text_cur, text_end, dimensions.x, 2);
+				char_util::append(text_cur, text_end, " x ");
+				char_util::append_double(text_cur, text_end, dimensions.y, 2);
+				char_util::append(text_cur, text_end, " x ");
+				char_util::append_double(text_cur, text_end, dimensions.z, 2);
+				debug_draw.draw_text_3d(text_position, dimensions_text, bounds_color, theme.text_small_px_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
+			}
+		}
 	}
 
 	void editor_world_t::update_world_transforms(bool advance_interpolation)
@@ -359,6 +379,7 @@ namespace sfg
 			}
 		}
 
+		_latest_snapshot_slot = _producer_slot;
 		publish_snapshot();
 	}
 
@@ -386,6 +407,8 @@ namespace sfg
 
 	void editor_world_t::render(const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
+		_render_prep_data.reset();
+
 		const editor_world_snapshot_data_t& data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
 		if (_object_id_readback_valid[frame_index] && data.pick_request.id != 0 && data.pick_request.id != _last_render_pick_request_id)
 		{
@@ -400,10 +423,10 @@ namespace sfg
 			_last_render_pick_request_id = data.pick_request.id;
 		}
 
-		world_rendering_t::render_world(_render_context.get_world_render_context(), snapshot, interpolation_alpha, frame_index, global_cbv_index, global_layout);
-		editor_world_rendering_t::render_outlines(_render_context, snapshot, frame_index, global_cbv_index, global_layout);
-		editor_world_rendering_t::render_object_ids(_render_context, snapshot, frame_index);
-		editor_world_rendering_t::blit_world_texture(_render_context, snapshot, interpolation_alpha, frame_index);
+		world_rendering_t::render_world(_render_context.get_world_render_context(), snapshot, _render_prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
+		editor_world_rendering_t::render_outlines(_render_context, snapshot, _render_prep_data, frame_index, global_cbv_index, global_layout);
+		editor_world_rendering_t::render_object_ids(_render_context, snapshot, _render_prep_data, frame_index);
+		editor_world_rendering_t::blit_world_texture(_render_context, snapshot, _render_prep_data, interpolation_alpha, frame_index);
 		_object_id_readback_valid[frame_index] = true;
 	}
 }
