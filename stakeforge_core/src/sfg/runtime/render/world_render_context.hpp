@@ -76,6 +76,15 @@ namespace sfg
 		vec4f_t	 forward	   = vec4f_t::zero;
 	};
 
+	struct world_render_context_config_t
+	{
+		vec2u16_t size			  = vec2u16_t::zero;
+		u32		  line_vertex_max = 0;
+		u32		  line_index_max  = 0;
+		u32		  text_vertex_max = 0;
+		u32		  text_index_max  = 0;
+	};
+
 	class world_render_context_t final
 	{
 	public:
@@ -89,7 +98,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
-		void init(vec2u16_t size);
+		void init(const world_render_context_config_t& config);
 		void uninit();
 		void resize(vec2u16_t size);
 
@@ -333,7 +342,7 @@ namespace sfg
 
 		inline vec2u16_t get_size() const
 		{
-			return _size;
+			return _config.size;
 		}
 
 	private:
@@ -399,8 +408,8 @@ namespace sfg
 		};
 
 	private:
-		per_frame_data_t _pfd[BACK_BUFFER_COUNT] = {};
-		shaders_t		 _shaders				 = {};
-		vec2u16_t		 _size					 = vec2u16_t::zero;
+		per_frame_data_t			  _pfd[BACK_BUFFER_COUNT] = {};
+		shaders_t					  _shaders				  = {};
+		world_render_context_config_t _config				  = {};
 	};
 }

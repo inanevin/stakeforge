@@ -28,13 +28,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "world_draw.hpp"
+#include "world_debug_draw_snapshot.hpp"
 #include "world_render_entity.hpp"
 #include "world_render_material.hpp"
 #include "world_render_view.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
-#include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 
 namespace sfg
@@ -71,13 +71,13 @@ namespace sfg
 		vector_t<world_render_entity_t>	  entities	 = {};
 		vector_t<world_draw_t>			  draws		 = {};
 
-		inline void reserve(size_t entity_count)
+		inline void reserve(size_t entity_count, size_t line_vertex_count, size_t line_index_count, size_t text_vertex_count, size_t text_index_count)
 		{
 			entities.reserve(entity_count);
-			debug_draw.lines.vertices.reserve(world_debug_draw_t::MAX_VERTEX_COUNT);
-			debug_draw.lines.indices.reserve(world_debug_draw_t::MAX_INDEX_COUNT);
-			debug_draw.text.vertices.reserve(world_debug_draw_t::MAX_TEXT_VERTEX_COUNT);
-			debug_draw.text.indices.reserve(world_debug_draw_t::MAX_TEXT_INDEX_COUNT);
+			debug_draw.line_vertices.reserve(line_vertex_count);
+			debug_draw.line_indices.reserve(line_index_count);
+			debug_draw.text_vertices.reserve(text_vertex_count);
+			debug_draw.text_indices.reserve(text_index_count);
 		}
 	};
 }

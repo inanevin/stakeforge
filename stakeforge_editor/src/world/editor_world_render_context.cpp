@@ -53,12 +53,12 @@ namespace sfg
 		}
 	}
 
-	void editor_world_render_context_t::init(vec2u16_t size)
+	void editor_world_render_context_t::init(const world_render_context_config_t& config)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(size.x > 0 && size.y > 0);
+		SFG_ASSERT(config.size.x > 0 && config.size.y > 0);
 
-		_world_render_context.init(size);
+		_world_render_context.init(config);
 
 		resource_desc_t composite_data_desc = {};
 		composite_data_desc.size			= static_cast<u32>(sizeof(editor_world_composite_data_t));
@@ -97,7 +97,7 @@ namespace sfg
 		_gizmo_central_meshes[0]				   = load_gizmo_mesh_render_data(DEFAULT_MESH_SPHERE_GUID);
 		_gizmo_central_meshes[1]				   = load_gizmo_mesh_render_data(DEFAULT_MESH_CUBE_GUID);
 
-		create_texture(size);
+		create_texture(config.size);
 	}
 
 	void editor_world_render_context_t::uninit()

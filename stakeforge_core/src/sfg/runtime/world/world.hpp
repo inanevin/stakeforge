@@ -2,7 +2,6 @@
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/unique.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
@@ -11,12 +10,12 @@
 #include <sfg/runtime/resources/resource_type.hpp>
 #include <sfg/runtime/world/ecs_component_type.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
+#include <sfg/runtime/world/world_debug_draw.hpp>
 
 namespace sfg
 {
 	class mat4x3_t;
 	class istream_t;
-	class world_debug_draw_t;
 	struct world_init_config_t;
 	struct component_hierarchy_t;
 	struct prefab_internals_t;
@@ -123,12 +122,12 @@ namespace sfg
 
 		inline world_debug_draw_t& get_debug_draw()
 		{
-			return *_debug_draw;
+			return _debug_draw;
 		}
 
 		inline const world_debug_draw_t& get_debug_draw() const
 		{
-			return *_debug_draw;
+			return _debug_draw;
 		}
 
 	private:
@@ -162,7 +161,7 @@ namespace sfg
 		vector_t<u32>					  _text_allocation_free_list;
 		vector_t<entity_id_t>			  _entity_free_list;
 		vector_t<world_resource_t>		  _used_resources;
-		unique_t<world_debug_draw_t>	  _debug_draw;
+		world_debug_draw_t				  _debug_draw;
 		text_allocator_t				  _text_allocator;
 		engine_components_t				  _engine_components;
 		system_components_t				  _system_components;

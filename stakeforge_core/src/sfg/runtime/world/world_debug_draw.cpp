@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/font.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/render/world_debug_draw_snapshot.hpp>
 #include <sfg/runtime/ui/vg/vg_canvas.hpp>
 
 namespace sfg
@@ -41,24 +42,31 @@ namespace sfg
 	world_debug_draw_t::world_debug_draw_t()  = default;
 	world_debug_draw_t::~world_debug_draw_t() = default;
 
-	void world_debug_draw_t::init(resource_handle_t default_font)
+	void world_debug_draw_t::init(const world_debug_draw_config_t& config)
 	{
-		_vertices.reserve(MAX_VERTEX_COUNT);
-		_indices.reserve(MAX_INDEX_COUNT);
-		_text_commands.reserve(MAX_TEXT_COMMAND_COUNT);
-		_text_bytes.reserve(MAX_TEXT_BYTE_COUNT);
-		_text_canvas = make_unique<ui::vg_canvas_t>();
+		SFG_ASSERT((config.line_vertex_reserve == 0) == (config.line_index_reserve == 0));
+		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_index_max == 0));
+		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_command_reserve == 0));
+		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_byte_reserve == 0));
+		_config = config;
+		_vertices.reserve(config.line_vertex_reserve);
+		_indices.reserve(config.line_index_reserve);
+		_text_commands.reserve(config.text_command_reserve);
+		_text_bytes.reserve(config.text_byte_reserve);
 
-		_text_canvas->init({
-			.vertex_buffer_bytes	 = MAX_TEXT_VERTEX_COUNT * sizeof(ui::vg_vertex_t),
-			.index_buffer_bytes		 = MAX_TEXT_INDEX_COUNT * sizeof(ui::vg_index_t),
-			.buffer_count			 = 1,
-			.text_cache_vertex_bytes = MAX_TEXT_VERTEX_COUNT * sizeof(ui::vg_vertex_t),
-			.text_cache_index_bytes	 = MAX_TEXT_INDEX_COUNT * sizeof(ui::vg_index_t),
-			.clip_stack_capacity	 = 1,
-		});
+		if (config.text_vertex_max > 0)
+		{
+			_text_canvas = make_unique<ui::vg_canvas_t>();
+			_text_canvas->init({
+				.vertex_buffer_bytes	 = config.text_vertex_max * sizeof(ui::vg_vertex_t),
+				.index_buffer_bytes		 = config.text_index_max * sizeof(ui::vg_index_t),
+				.buffer_count			 = 1,
+				.text_cache_vertex_bytes = config.text_vertex_max * sizeof(ui::vg_vertex_t),
+				.text_cache_index_bytes	 = config.text_index_max * sizeof(ui::vg_index_t),
+				.clip_stack_capacity	 = 1,
+			});
+		}
 
-		_default_font = default_font;
 		begin_frame();
 	}
 
@@ -72,9 +80,12 @@ namespace sfg
 		_text_commands.shrink_to_fit();
 		_text_bytes.resize(0);
 		_text_bytes.shrink_to_fit();
-		_text_canvas->uninit();
-		_text_canvas.reset();
-		_default_font		= NULL_RESOURCE_HANDLE;
+		if (_text_canvas)
+		{
+			_text_canvas->uninit();
+			_text_canvas.reset();
+		}
+		_config				= {};
 		_dropped_line_count = 0;
 		_dropped_text_count = 0;
 	}
@@ -94,7 +105,7 @@ namespace sfg
 		if (from.equals(to) || thickness_px <= 0.0f)
 			return;
 
-		if (_vertices.size() + 4 > MAX_VERTEX_COUNT || _indices.size() + 6 > MAX_INDEX_COUNT)
+		if (_vertices.size() + 4 > _config.line_vertex_reserve || _indices.size() + 6 > _config.line_index_reserve)
 		{
 			++_dropped_line_count;
 			return;
@@ -304,7 +315,7 @@ namespace sfg
 		const u32 text_length = static_cast<u32>(std::strlen(text));
 		if (text_length == 0)
 			return;
-		if (_text_commands.size() == MAX_TEXT_COMMAND_COUNT || _text_bytes.size() + text_length > MAX_TEXT_BYTE_COUNT)
+		if (_config.text_vertex_max == 0 || _text_commands.size() >= _config.text_command_reserve || _text_bytes.size() + text_length > _config.text_byte_reserve)
 		{
 			++_dropped_text_count;
 			return;
@@ -332,7 +343,7 @@ namespace sfg
 		const u32 text_length = static_cast<u32>(std::strlen(text));
 		if (text_length == 0)
 			return;
-		if (_text_commands.size() == MAX_TEXT_COMMAND_COUNT || _text_bytes.size() + text_length > MAX_TEXT_BYTE_COUNT)
+		if (_config.text_vertex_max == 0 || _text_commands.size() >= _config.text_command_reserve || _text_bytes.size() + text_length > _config.text_byte_reserve)
 		{
 			++_dropped_text_count;
 			return;
@@ -357,28 +368,31 @@ namespace sfg
 
 	void world_debug_draw_t::write_snapshot(world_debug_draw_snapshot_t& snapshot)
 	{
-		snapshot.lines.vertices.resize(_vertices.size());
+		snapshot.line_vertices.resize(_vertices.size());
 		if (!_vertices.empty())
-			SFG_MEMCPY(snapshot.lines.vertices.data(), _vertices.data(), _vertices.size() * sizeof(world_debug_line_vertex_t));
+			SFG_MEMCPY(snapshot.line_vertices.data(), _vertices.data(), _vertices.size() * sizeof(vertex_debug_line_t));
 
-		snapshot.lines.indices.resize(_indices.size());
+		snapshot.line_indices.resize(_indices.size());
 		if (!_indices.empty())
-			SFG_MEMCPY(snapshot.lines.indices.data(), _indices.data(), _indices.size() * sizeof(primitive_index));
+			SFG_MEMCPY(snapshot.line_indices.data(), _indices.data(), _indices.size() * sizeof(primitive_index));
 
-		snapshot.text.vertices.resize(0);
-		snapshot.text.indices.resize(0);
-		_text_canvas->frame_begin({0.0f, 0.0f, static_cast<f32>(MAX_TEXT_BYTE_COUNT), static_cast<f32>(MAX_TEXT_BYTE_COUNT)});
+		snapshot.text_vertices.resize(0);
+		snapshot.text_indices.resize(0);
+		if (_text_commands.empty())
+			return;
+
+		_text_canvas->frame_begin({0.0f, 0.0f, static_cast<f32>(_config.text_byte_reserve), static_cast<f32>(_config.text_byte_reserve)});
 		const ui::ui_render_state_t state = {};
 
 		for (const text_command_t& command : _text_commands)
 		{
-			if (snapshot.text.vertices.size() + command.text_length * 4 > MAX_TEXT_VERTEX_COUNT || snapshot.text.indices.size() + command.text_length * 6 > MAX_TEXT_INDEX_COUNT)
+			if (snapshot.text_vertices.size() + command.text_length * 4 > _config.text_vertex_max || snapshot.text_indices.size() + command.text_length * 6 > _config.text_index_max)
 			{
 				++_dropped_text_count;
 				continue;
 			}
 
-			const resource_handle_t font_handle = command.font == NULL_RESOURCE_HANDLE ? _default_font : command.font;
+			const resource_handle_t font_handle = command.font == NULL_RESOURCE_HANDLE ? _config.font : command.font;
 			SFG_ASSERT(font_handle != NULL_RESOURCE_HANDLE);
 
 			const font_runtime_t* font = resource_manager_t::get().find_runtime<font_runtime_t>(font_handle);
@@ -407,14 +421,14 @@ namespace sfg
 
 			const u32			  vertex_count = draw_buffer->vertex_count - vertex_start;
 			const u32			  index_count  = draw_buffer->index_count - index_start;
-			const primitive_index base_vertex  = static_cast<primitive_index>(snapshot.text.vertices.size());
+			const primitive_index base_vertex  = static_cast<primitive_index>(snapshot.text_vertices.size());
 			const f32			  mode		   = command.is_screen ? 0.0f : command.depth == debug_draw_depth_e::depth_tested ? 1.0f : 2.0f;
 
-			snapshot.text.vertices.resize(snapshot.text.vertices.size() + vertex_count);
+			snapshot.text_vertices.resize(snapshot.text_vertices.size() + vertex_count);
 			for (u32 i = 0; i < vertex_count; ++i)
 			{
 				const ui::vg_vertex_t& source			= draw_buffer->vertex_start[vertex_start + i];
-				snapshot.text.vertices[base_vertex + i] = {
+				snapshot.text_vertices[base_vertex + i] = {
 					.color	= source.color,
 					.anchor = command.anchor,
 					.offset = source.pos,
@@ -423,10 +437,10 @@ namespace sfg
 				};
 			}
 
-			snapshot.text.indices.resize(snapshot.text.indices.size() + index_count);
-			const size_t index_output_start = snapshot.text.indices.size() - index_count;
+			snapshot.text_indices.resize(snapshot.text_indices.size() + index_count);
+			const size_t index_output_start = snapshot.text_indices.size() - index_count;
 			for (u32 i = 0; i < index_count; ++i)
-				snapshot.text.indices[index_output_start + i] = base_vertex + static_cast<primitive_index>(draw_buffer->index_start[index_start + i] - vertex_start);
+				snapshot.text_indices[index_output_start + i] = base_vertex + static_cast<primitive_index>(draw_buffer->index_start[index_start + i] - vertex_start);
 		}
 
 		_text_canvas->frame_end();

@@ -35,6 +35,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/vec3f.hpp>
 #include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
+#include <sfg/runtime/resources/vertex.hpp>
+#include <sfg/runtime/world/world_debug_draw_config.hpp>
 
 namespace sfg::ui
 {
@@ -46,6 +48,7 @@ namespace sfg
 	class color_t;
 	class mat4x3_t;
 	struct aabb_t;
+	struct world_debug_draw_snapshot_t;
 
 	enum class debug_draw_depth_e : u8
 	{
@@ -66,55 +69,9 @@ namespace sfg
 		bottom_right,
 	};
 
-	struct world_debug_line_vertex_t
-	{
-		vec4f_t color				= vec4f_t::zero;
-		vec3f_t position			= vec3f_t::zero;
-		vec3f_t other_position		= vec3f_t::zero;
-		f32		corner				= 0.0f;
-		f32		signed_thickness_px = 1.0f;
-	};
-
-	struct world_debug_line_snapshot_t
-	{
-		vector_t<world_debug_line_vertex_t> vertices;
-		vector_t<primitive_index>			indices;
-	};
-
-	struct world_debug_text_vertex_t
-	{
-		vec4f_t color  = vec4f_t::zero;
-		vec3f_t anchor = vec3f_t::zero;
-		vec2f_t offset = vec2f_t::zero;
-		vec2f_t uv	   = vec2f_t::zero;
-		f32		mode   = 0.0f;
-	};
-
-	static_assert(sizeof(world_debug_text_vertex_t) == sizeof(f32) * 12);
-
-	struct world_debug_text_snapshot_t
-	{
-		vector_t<world_debug_text_vertex_t> vertices;
-		vector_t<primitive_index>			indices;
-	};
-
-	struct world_debug_draw_snapshot_t
-	{
-		world_debug_line_snapshot_t lines;
-		world_debug_text_snapshot_t text;
-	};
-
 	class world_debug_draw_t final
 	{
 	public:
-		static inline constexpr u32 MAX_LINE_COUNT		   = 8192;
-		static inline constexpr u32 MAX_VERTEX_COUNT	   = MAX_LINE_COUNT * 4;
-		static inline constexpr u32 MAX_INDEX_COUNT		   = MAX_LINE_COUNT * 6;
-		static inline constexpr u32 MAX_TEXT_COMMAND_COUNT = 256;
-		static inline constexpr u32 MAX_TEXT_BYTE_COUNT	   = 32768;
-		static inline constexpr u32 MAX_TEXT_VERTEX_COUNT  = 16384;
-		static inline constexpr u32 MAX_TEXT_INDEX_COUNT   = 24576;
-
 		world_debug_draw_t();
 		~world_debug_draw_t();
 		world_debug_draw_t(const world_debug_draw_t&)			 = delete;
@@ -124,7 +81,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(resource_handle_t default_font);
+		void init(const world_debug_draw_config_t& config);
 		void uninit();
 		void begin_frame();
 
@@ -180,13 +137,13 @@ namespace sfg
 			bool						is_screen	  = false;
 		};
 
-		vector_t<world_debug_line_vertex_t> _vertices;
-		vector_t<primitive_index>			_indices;
-		vector_t<text_command_t>			_text_commands;
-		vector_t<char>						_text_bytes;
-		unique_t<ui::vg_canvas_t>			_text_canvas;
-		resource_handle_t					_default_font		= NULL_RESOURCE_HANDLE;
-		u32									_dropped_line_count = 0;
-		u32									_dropped_text_count = 0;
+		vector_t<vertex_debug_line_t> _vertices;
+		vector_t<primitive_index>	  _indices;
+		vector_t<text_command_t>	  _text_commands;
+		vector_t<char>				  _text_bytes;
+		unique_t<ui::vg_canvas_t>	  _text_canvas;
+		world_debug_draw_config_t	  _config			  = {};
+		u32							  _dropped_line_count = 0;
+		u32							  _dropped_text_count = 0;
 	};
 }

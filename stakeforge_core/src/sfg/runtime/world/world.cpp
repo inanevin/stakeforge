@@ -44,20 +44,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define WORLD_TEXT_BYTES (64 * 1024)
-
 	world_t::world_t()	= default;
 	world_t::~world_t() = default;
 
 	void world_t::init(const world_init_config_t& config)
 	{
-		_debug_draw = make_unique<world_debug_draw_t>();
-		_debug_draw->init(config.debug_draw_font);
+		_debug_draw.init(config.debug_draw);
 		_component_tables.reserve(config.component_table_reserve);
 		_entity_free_list.reserve(config.free_list_reserve);
 		_text_allocations.reserve(config.text_allocation_reserve);
 		_text_allocation_free_list.reserve(config.text_allocation_reserve);
-		_text_allocator.init(WORLD_TEXT_BYTES);
+		_text_allocator.init(config.text_byte_reserve);
 		_used_resources.reserve(config.used_resource_reserve);
 
 		const vector_t<reflected_type_t>& types = reflection_registry_t::get().get_types();
@@ -83,8 +80,7 @@ namespace sfg
 
 	void world_t::uninit()
 	{
-		_debug_draw->uninit();
-		_debug_draw.reset();
+		_debug_draw.uninit();
 		for (ecs_component_table_t& table : _component_tables)
 			ecs_t::table_uninit(table);
 
@@ -101,7 +97,7 @@ namespace sfg
 
 	void world_t::tick(f32)
 	{
-		_debug_draw->begin_frame();
+		_debug_draw.begin_frame();
 	}
 
 	entity_guid_t world_t::generate_guid() const

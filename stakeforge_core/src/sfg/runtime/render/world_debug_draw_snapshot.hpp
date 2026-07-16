@@ -27,63 +27,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/type_id.hpp>
-#include <sfg/math/vec2f.hpp>
-#include <sfg/math/vec3f.hpp>
-#include <sfg/math/vec4f.hpp>
-#include <sfg/math/vec4u.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/runtime/resources/vertex.hpp>
 
 namespace sfg
 {
-	struct vertex_static_t
+	struct world_debug_draw_snapshot_t
 	{
-		vec3f_t pos		= vec3f_t::zero;
-		vec3f_t normal	= vec3f_t::zero;
-		vec4f_t tangent = vec4f_t::zero;
-		vec2f_t uv		= vec2f_t::zero;
-	};
-
-	struct vertex_skinned_t
-	{
-		vec3f_t pos			 = vec3f_t::zero;
-		vec3f_t normal		 = vec3f_t::zero;
-		vec4f_t tangent		 = vec4f_t::zero;
-		vec2f_t uv			 = vec2f_t::zero;
-		vec4f_t bone_weights = vec4f_t::zero;
-		vec4u_t bone_indices = vec4u_t::zero;
-	};
-
-	SFG_DEFINE_TYPE_ID(vertex_static_t);
-	SFG_DEFINE_TYPE_ID(vertex_skinned_t);
-
-	struct vertex_static_reflection_t
-	{
-		vertex_static_reflection_t();
-	};
-
-	struct vertex_skinned_reflection_t
-	{
-		vertex_skinned_reflection_t();
-	};
-
-	inline vertex_static_reflection_t  g_reflect_vertex_static;
-	inline vertex_skinned_reflection_t g_reflect_vertex_skinned;
-
-	struct vertex_debug_line_t
-	{
-		vec4f_t color				= vec4f_t::zero;
-		vec3f_t position			= vec3f_t::zero;
-		vec3f_t other_position		= vec3f_t::zero;
-		f32		corner				= 0.0f;
-		f32		signed_thickness_px = 1.0f;
-	};
-
-	struct vertex_debug_text_t
-	{
-		vec4f_t color  = vec4f_t::zero;
-		vec3f_t anchor = vec3f_t::zero;
-		vec2f_t offset = vec2f_t::zero;
-		vec2f_t uv	   = vec2f_t::zero;
-		f32		mode   = 0.0f;
+		vector_t<vertex_debug_line_t> line_vertices;
+		vector_t<primitive_index>	  line_indices;
+		vector_t<vertex_debug_text_t> text_vertices;
+		vector_t<primitive_index>	  text_indices;
 	};
 }

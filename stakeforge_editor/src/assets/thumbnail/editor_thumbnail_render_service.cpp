@@ -86,6 +86,7 @@ namespace sfg
 			.free_list_reserve		 = 16,
 			.used_resource_reserve	 = 32,
 			.text_allocation_reserve = 32,
+			.text_byte_reserve		 = 4096,
 		};
 
 		gfx_backend& backend	= gfx_backend::get();
@@ -134,10 +135,10 @@ namespace sfg
 		backend.map_resource(_thumbnail_readback, _mapped_readback);
 		_readback_pixels.reserve(readback_desc.size);
 
-		_render_context.init(_world_config.render_resolution);
+		_render_context.init({.size = _world_config.render_resolution});
 		const shader_internals_t* shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/thumbnail_capture_copy.hlsl"_hs);
 		_thumbnail_shader				 = render_resources_t::get().get_shader_hw(shader->psos[0]);
-		_snapshot.reserve(64);
+		_snapshot.reserve(64, 0, 0, 0, 0);
 		_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_available_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_pending_renders.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);

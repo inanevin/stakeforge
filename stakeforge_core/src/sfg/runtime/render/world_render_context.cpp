@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "world_render_context.hpp"
-#include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/io/assert.hpp>
@@ -34,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader.hpp>
+#include <sfg/runtime/resources/vertex.hpp>
 
 namespace sfg
 {
@@ -52,15 +52,18 @@ namespace sfg
 		}
 		_shaders	   = other._shaders;
 		other._shaders = {};
-		_size		   = other._size;
-		other._size	   = vec2u16_t::zero;
+		_config		   = other._config;
+		other._config  = {};
 		return *this;
 	}
 
-	void world_render_context_t::init(vec2u16_t size)
+	void world_render_context_t::init(const world_render_context_config_t& config)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(size.x > 0 && size.y > 0);
+		SFG_ASSERT(config.size.x > 0 && config.size.y > 0);
+		SFG_ASSERT((config.line_vertex_max == 0) == (config.line_index_max == 0));
+		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_index_max == 0));
+		_config = config;
 
 		resource_desc_t opaque_render_pass_data_desc = {};
 		opaque_render_pass_data_desc.size			 = static_cast<u32>(sizeof(render_pass_data_opaque_gpu_t));
@@ -90,12 +93,12 @@ namespace sfg
 		debug_line_data_desc.set_name("world_debug_line_data");
 
 		resource_desc_t debug_line_vertex_desc = {};
-		debug_line_vertex_desc.size			   = world_debug_draw_t::MAX_VERTEX_COUNT * static_cast<u32>(sizeof(world_debug_line_vertex_t));
+		debug_line_vertex_desc.size			   = config.line_vertex_max * static_cast<u32>(sizeof(vertex_debug_line_t));
 		debug_line_vertex_desc.flags		   = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
 		debug_line_vertex_desc.set_name("world_debug_line_vertices");
 
 		resource_desc_t debug_line_index_desc = {};
-		debug_line_index_desc.size			  = world_debug_draw_t::MAX_INDEX_COUNT * static_cast<u32>(sizeof(primitive_index));
+		debug_line_index_desc.size			  = config.line_index_max * static_cast<u32>(sizeof(primitive_index));
 		debug_line_index_desc.flags			  = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
 		debug_line_index_desc.set_name("world_debug_line_indices");
 
@@ -105,12 +108,12 @@ namespace sfg
 		debug_text_data_desc.set_name("world_debug_text_data");
 
 		resource_desc_t debug_text_vertex_desc = {};
-		debug_text_vertex_desc.size			   = world_debug_draw_t::MAX_TEXT_VERTEX_COUNT * static_cast<u32>(sizeof(world_debug_text_vertex_t));
+		debug_text_vertex_desc.size			   = config.text_vertex_max * static_cast<u32>(sizeof(vertex_debug_text_t));
 		debug_text_vertex_desc.flags		   = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
 		debug_text_vertex_desc.set_name("world_debug_text_vertices");
 
 		resource_desc_t debug_text_index_desc = {};
-		debug_text_index_desc.size			  = world_debug_draw_t::MAX_TEXT_INDEX_COUNT * static_cast<u32>(sizeof(primitive_index));
+		debug_text_index_desc.size			  = config.text_index_max * static_cast<u32>(sizeof(primitive_index));
 		debug_text_index_desc.flags			  = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
 		debug_text_index_desc.set_name("world_debug_text_indices");
 
@@ -146,30 +149,38 @@ namespace sfg
 			_pfd[i].lighting_render_pass_data	  = backend.create_resource(lighting_render_pass_data_desc);
 			_pfd[i].post_process_render_pass_data = backend.create_resource(post_process_render_pass_data_desc);
 			_pfd[i].entity_buffer				  = backend.create_resource(entity_buffer_desc);
-			_pfd[i].debug_line_data				  = backend.create_resource(debug_line_data_desc);
-			_pfd[i].debug_line_vertex_buffer	  = backend.create_resource(debug_line_vertex_desc);
-			_pfd[i].debug_line_index_buffer		  = backend.create_resource(debug_line_index_desc);
-			_pfd[i].debug_text_data				  = backend.create_resource(debug_text_data_desc);
-			_pfd[i].debug_text_vertex_buffer	  = backend.create_resource(debug_text_vertex_desc);
-			_pfd[i].debug_text_index_buffer		  = backend.create_resource(debug_text_index_desc);
 
 			backend.map_resource(_pfd[i].opaque_render_pass_data, _pfd[i].mapped_opaque_render_pass_data);
 			backend.map_resource(_pfd[i].lighting_render_pass_data, _pfd[i].mapped_lighting_render_pass_data);
 			backend.map_resource(_pfd[i].post_process_render_pass_data, _pfd[i].mapped_post_process_render_pass_data);
 			backend.map_resource(_pfd[i].entity_buffer, _pfd[i].mapped_entity_buffer);
-			backend.map_resource(_pfd[i].debug_line_data, _pfd[i].mapped_debug_line_data);
-			backend.map_resource(_pfd[i].debug_line_vertex_buffer, _pfd[i].mapped_debug_line_vertices);
-			backend.map_resource(_pfd[i].debug_line_index_buffer, _pfd[i].mapped_debug_line_indices);
-			backend.map_resource(_pfd[i].debug_text_data, _pfd[i].mapped_debug_text_data);
-			backend.map_resource(_pfd[i].debug_text_vertex_buffer, _pfd[i].mapped_debug_text_vertices);
-			backend.map_resource(_pfd[i].debug_text_index_buffer, _pfd[i].mapped_debug_text_indices);
 
 			_pfd[i].opaque_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].opaque_render_pass_data);
 			_pfd[i].lighting_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].lighting_render_pass_data);
 			_pfd[i].post_process_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].post_process_render_pass_data);
 			_pfd[i].entity_buffer_index					= backend.get_resource_gpu_index(_pfd[i].entity_buffer);
-			_pfd[i].debug_line_data_index				= backend.get_resource_gpu_index(_pfd[i].debug_line_data);
-			_pfd[i].debug_text_data_index				= backend.get_resource_gpu_index(_pfd[i].debug_text_data);
+
+			if (config.line_vertex_max > 0)
+			{
+				_pfd[i].debug_line_data			 = backend.create_resource(debug_line_data_desc);
+				_pfd[i].debug_line_vertex_buffer = backend.create_resource(debug_line_vertex_desc);
+				_pfd[i].debug_line_index_buffer	 = backend.create_resource(debug_line_index_desc);
+				backend.map_resource(_pfd[i].debug_line_data, _pfd[i].mapped_debug_line_data);
+				backend.map_resource(_pfd[i].debug_line_vertex_buffer, _pfd[i].mapped_debug_line_vertices);
+				backend.map_resource(_pfd[i].debug_line_index_buffer, _pfd[i].mapped_debug_line_indices);
+				_pfd[i].debug_line_data_index = backend.get_resource_gpu_index(_pfd[i].debug_line_data);
+			}
+
+			if (config.text_vertex_max > 0)
+			{
+				_pfd[i].debug_text_data			 = backend.create_resource(debug_text_data_desc);
+				_pfd[i].debug_text_vertex_buffer = backend.create_resource(debug_text_vertex_desc);
+				_pfd[i].debug_text_index_buffer	 = backend.create_resource(debug_text_index_desc);
+				backend.map_resource(_pfd[i].debug_text_data, _pfd[i].mapped_debug_text_data);
+				backend.map_resource(_pfd[i].debug_text_vertex_buffer, _pfd[i].mapped_debug_text_vertices);
+				backend.map_resource(_pfd[i].debug_text_index_buffer, _pfd[i].mapped_debug_text_indices);
+				_pfd[i].debug_text_data_index = backend.get_resource_gpu_index(_pfd[i].debug_text_data);
+			}
 		}
 
 		const render_resources_t& render_resources = render_resources_t::get();
@@ -182,7 +193,7 @@ namespace sfg
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/debug_text.hlsl"_hs);
 		_shaders.debug_text						   = render_resources.get_shader_hw(sh->psos[0]);
 
-		create_texture(size);
+		create_texture(config.size);
 	}
 
 	void world_render_context_t::uninit()
@@ -204,12 +215,18 @@ namespace sfg
 			backend.destroy_resource(_pfd[i].lighting_render_pass_data);
 			backend.destroy_resource(_pfd[i].post_process_render_pass_data);
 			backend.destroy_resource(_pfd[i].entity_buffer);
-			backend.destroy_resource(_pfd[i].debug_line_data);
-			backend.destroy_resource(_pfd[i].debug_line_vertex_buffer);
-			backend.destroy_resource(_pfd[i].debug_line_index_buffer);
-			backend.destroy_resource(_pfd[i].debug_text_data);
-			backend.destroy_resource(_pfd[i].debug_text_vertex_buffer);
-			backend.destroy_resource(_pfd[i].debug_text_index_buffer);
+			if (_config.line_vertex_max > 0)
+			{
+				backend.destroy_resource(_pfd[i].debug_line_data);
+				backend.destroy_resource(_pfd[i].debug_line_vertex_buffer);
+				backend.destroy_resource(_pfd[i].debug_line_index_buffer);
+			}
+			if (_config.text_vertex_max > 0)
+			{
+				backend.destroy_resource(_pfd[i].debug_text_data);
+				backend.destroy_resource(_pfd[i].debug_text_vertex_buffer);
+				backend.destroy_resource(_pfd[i].debug_text_index_buffer);
+			}
 			backend.destroy_command_buffer(_pfd[i].cmd_gfx0);
 			backend.destroy_command_buffer(_pfd[i].cmd_gfx1);
 			backend.destroy_semaphore(_pfd[i].gfx0_done_semaphore);
@@ -245,6 +262,7 @@ namespace sfg
 			_pfd[i].debug_text_data_index				 = NULL_GPU_INDEX;
 		}
 		_shaders = {};
+		_config	 = {};
 	}
 
 	void world_render_context_t::resize(vec2u16_t size)
@@ -358,7 +376,7 @@ namespace sfg
 			_pfd[i].gbuffer_emissive_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_emissive, 1);
 			_pfd[i].ao_texture_index		   = backend.get_texture_gpu_index(_pfd[i].ao_texture, 0);
 		}
-		_size = size;
+		_config.size = size;
 	}
 
 	void world_render_context_t::destroy_texture()
@@ -400,6 +418,6 @@ namespace sfg
 			_pfd[i].gbuffer_emissive_index	   = NULL_GPU_INDEX;
 			_pfd[i].ao_texture_index		   = NULL_GPU_INDEX;
 		}
-		_size = vec2u16_t::zero;
+		_config.size = vec2u16_t::zero;
 	}
 }

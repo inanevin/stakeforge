@@ -43,7 +43,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
-#include <sfg/runtime/world/world_debug_draw.hpp>
 
 namespace sfg
 {
@@ -121,13 +120,13 @@ namespace sfg
 		main_camera_view_t.calculate(snapshot.main_view, ctx.get_size(), interpolation_alpha);
 
 		// debug copy
-		const world_debug_line_snapshot_t& debug_lines = snapshot.debug_draw.lines;
-		if (!debug_lines.indices.empty())
+		const world_debug_draw_snapshot_t& debug_draw = snapshot.debug_draw;
+		if (!debug_draw.line_indices.empty())
 		{
-			SFG_ASSERT(!debug_lines.vertices.empty());
+			SFG_ASSERT(!debug_draw.line_vertices.empty());
 
-			SFG_MEMCPY(ctx.get_mapped_debug_line_vertices(frame_index), debug_lines.vertices.data(), debug_lines.vertices.size() * sizeof(world_debug_line_vertex_t));
-			SFG_MEMCPY(ctx.get_mapped_debug_line_indices(frame_index), debug_lines.indices.data(), debug_lines.indices.size() * sizeof(primitive_index));
+			SFG_MEMCPY(ctx.get_mapped_debug_line_vertices(frame_index), debug_draw.line_vertices.data(), debug_draw.line_vertices.size() * sizeof(vertex_debug_line_t));
+			SFG_MEMCPY(ctx.get_mapped_debug_line_indices(frame_index), debug_draw.line_indices.data(), debug_draw.line_indices.size() * sizeof(primitive_index));
 			const world_debug_line_gpu_data_t line_data = {
 				.view	= main_camera_view_t.view,
 				.proj	= main_camera_view_t.proj,
@@ -136,12 +135,11 @@ namespace sfg
 			SFG_MEMCPY(ctx.get_mapped_debug_line_data(frame_index), &line_data, sizeof(world_debug_line_gpu_data_t));
 		}
 
-		const world_debug_text_snapshot_t& debug_text = snapshot.debug_draw.text;
-		if (!debug_text.indices.empty())
+		if (!debug_draw.text_indices.empty())
 		{
-			SFG_ASSERT(!debug_text.vertices.empty());
-			SFG_MEMCPY(ctx.get_mapped_debug_text_vertices(frame_index), debug_text.vertices.data(), debug_text.vertices.size() * sizeof(world_debug_text_vertex_t));
-			SFG_MEMCPY(ctx.get_mapped_debug_text_indices(frame_index), debug_text.indices.data(), debug_text.indices.size() * sizeof(primitive_index));
+			SFG_ASSERT(!debug_draw.text_vertices.empty());
+			SFG_MEMCPY(ctx.get_mapped_debug_text_vertices(frame_index), debug_draw.text_vertices.data(), debug_draw.text_vertices.size() * sizeof(vertex_debug_text_t));
+			SFG_MEMCPY(ctx.get_mapped_debug_text_indices(frame_index), debug_draw.text_indices.data(), debug_draw.text_indices.size() * sizeof(primitive_index));
 			const world_debug_text_gpu_data_t text_data = {
 				.view_proj = main_camera_view_t.view_proj,
 				.params	   = vec4f_t(static_cast<f32>(ctx.get_size().x), static_cast<f32>(ctx.get_size().y), 0.00005f, 0.0f),
@@ -735,8 +733,8 @@ namespace sfg
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 
 		// debug draws
-		const world_debug_line_snapshot_t& debug_lines = snapshot.debug_draw.lines;
-		if (!debug_lines.indices.empty())
+		const world_debug_draw_snapshot_t& debug_draw = snapshot.debug_draw;
+		if (!debug_draw.line_indices.empty())
 		{
 			const gpu_index_t line_data_index	  = ctx.get_debug_line_data_index(frame_index);
 			const gpu_index_t depth_texture_index = ctx.get_depth_texture_index(frame_index);
@@ -744,11 +742,11 @@ namespace sfg
 			backend.cmd_bind_constants(cmd, {.data = &line_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
 			backend.cmd_bind_constants(cmd, {.data = &depth_texture_index, .offset = constant_obj0, .count = 1, .param_index = 0});
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_debug_line_shader()});
-			backend.cmd_bind_vertex_buffers(cmd, {.buffer = ctx.get_debug_line_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(world_debug_line_vertex_t)), .offset = 0});
+			backend.cmd_bind_vertex_buffers(cmd, {.buffer = ctx.get_debug_line_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_line_t)), .offset = 0});
 			backend.cmd_bind_index_buffers(cmd, {.buffer = ctx.get_debug_line_index_buffer(frame_index), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
 			backend.cmd_draw_indexed_instanced(cmd,
 											   {
-												   .index_count_per_instance = static_cast<u32>(debug_lines.indices.size()),
+												   .index_count_per_instance = static_cast<u32>(debug_draw.line_indices.size()),
 												   .instance_count			 = 1,
 												   .start_index_location	 = 0,
 												   .base_vertex_location	 = 0,
@@ -756,8 +754,7 @@ namespace sfg
 											   });
 		}
 
-		const world_debug_text_snapshot_t& debug_text = snapshot.debug_draw.text;
-		if (!debug_text.indices.empty())
+		if (!debug_draw.text_indices.empty())
 		{
 			const gpu_index_t text_data_index	  = ctx.get_debug_text_data_index(frame_index);
 			const gpu_index_t depth_texture_index = ctx.get_depth_texture_index(frame_index);
@@ -767,11 +764,11 @@ namespace sfg
 			backend.cmd_bind_constants(cmd, {.data = &depth_texture_index, .offset = constant_obj0, .count = 1, .param_index = 0});
 			backend.cmd_bind_constants(cmd, {.data = &glyph_atlas_index, .offset = constant_mat0, .count = 1, .param_index = 0});
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_debug_text_shader()});
-			backend.cmd_bind_vertex_buffers(cmd, {.buffer = ctx.get_debug_text_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(world_debug_text_vertex_t)), .offset = 0});
+			backend.cmd_bind_vertex_buffers(cmd, {.buffer = ctx.get_debug_text_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_text_t)), .offset = 0});
 			backend.cmd_bind_index_buffers(cmd, {.buffer = ctx.get_debug_text_index_buffer(frame_index), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
 			backend.cmd_draw_indexed_instanced(cmd,
 											   {
-												   .index_count_per_instance = static_cast<u32>(debug_text.indices.size()),
+												   .index_count_per_instance = static_cast<u32>(debug_draw.text_indices.size()),
 												   .instance_count			 = 1,
 												   .start_index_location	 = 0,
 												   .base_vertex_location	 = 0,

@@ -44,15 +44,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_WORLD_SNAPSHOT_SLOT_COUNT	   3
-#define EDITOR_WORLD_SNAPSHOT_SLOT_MASK		   0x3
-#define EDITOR_WORLD_SNAPSHOT_FRESH_FLAG	   0x80
-#define EDITOR_WORLD_PICK_RESULT_REQUEST_SHIFT 32
+#define EDITOR_WORLD_SNAPSHOT_SLOT_COUNT		3
+#define EDITOR_WORLD_SNAPSHOT_SLOT_MASK			0x3
+#define EDITOR_WORLD_SNAPSHOT_FRESH_FLAG		0x80
+#define EDITOR_WORLD_PICK_RESULT_REQUEST_SHIFT	32
+#define EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE	(8192 * 4)
+#define EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE	(8192 * 6)
+#define EDITOR_WORLD_DEBUG_TEXT_COMMAND_RESERVE 256
+#define EDITOR_WORLD_DEBUG_TEXT_BYTE_RESERVE	32768
+#define EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX		16384
+#define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX		24576
 
 	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle)
 	{
 		world_init_config_t world_config = init_config;
-		world_config.debug_draw_font	 = editor_theme_t::get().font_default;
+		world_config.debug_draw			 = {
+			.font				  = editor_theme_t::get().font_default,
+			.line_vertex_reserve  = EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
+			.line_index_reserve	  = EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
+			.text_command_reserve = EDITOR_WORLD_DEBUG_TEXT_COMMAND_RESERVE,
+			.text_byte_reserve	  = EDITOR_WORLD_DEBUG_TEXT_BYTE_RESERVE,
+			.text_vertex_max	  = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
+			.text_index_max		  = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
+		};
 		_world.init(world_config);
 		_edit_context.init();
 		_edit_context.set_world(handle);
@@ -69,11 +83,17 @@ namespace sfg
 			_object_id_readback_valid[i] = false;
 
 		_render_resolution = init_config.render_resolution;
-		_render_context.init(init_config.render_resolution);
+		_render_context.init({
+			.size			 = init_config.render_resolution,
+			.line_vertex_max = EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
+			.line_index_max	 = EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
+			.text_vertex_max = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
+			.text_index_max	 = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
+		});
 
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
-			_snapshot_slots[i].reserve(8000);
+			_snapshot_slots[i].reserve(8000, EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE, EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE, EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX, EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX);
 
 			editor_world_snapshot_data_t* data = new editor_world_snapshot_data_t();
 			data->selected_entities.reserve(256);
