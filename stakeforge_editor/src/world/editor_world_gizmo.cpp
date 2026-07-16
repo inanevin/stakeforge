@@ -131,6 +131,7 @@ namespace sfg
 		vec3f_t anchor_scale;
 		quat_t	anchor_rotation;
 		world.calculate_transform_direct(anchor).decompose(out_frame.pivot, anchor_rotation, anchor_scale);
+
 		const quat_t orientation	= context.get_transform_locality() == editor_transform_locality_e::local ? anchor_rotation : quat_t::identity;
 		const quat_t axis_models[3] = {
 			quat_t::angle_axis(-90.0f, {0.0f, 0.0f, 1.0f}),

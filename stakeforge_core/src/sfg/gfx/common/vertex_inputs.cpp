@@ -64,10 +64,20 @@ namespace sfg
 
 	void vertex_inputs_t::get_line_3d(shader_desc_t& out_desc)
 	{
-		out_desc.add_input(make_input("POSITION", 0, sizeof(f32) * 3, format_e::r32g32b32_sfloat));
-		out_desc.add_input(make_input("POSITION", sizeof(f32) * 3, sizeof(f32) * 3, format_e::r32g32b32_sfloat, 1));
-		out_desc.add_input(make_input("COLOR", sizeof(f32) * 6, sizeof(f32) * 4, format_e::r32g32b32a32_sfloat));
-		out_desc.add_input(make_input("POSITION", sizeof(f32) * 10, sizeof(f32), format_e::r32_sfloat, 2));
+		out_desc.add_input(make_input("POSITION", sizeof(f32) * 4, sizeof(f32) * 3, format_e::r32g32b32_sfloat));
+		out_desc.add_input(make_input("POSITION", sizeof(f32) * 7, sizeof(f32) * 3, format_e::r32g32b32_sfloat, 1));
+		out_desc.add_input(make_input("COLOR", 0, sizeof(f32) * 4, format_e::r32g32b32a32_sfloat));
+		out_desc.add_input(make_input("TEXCOORD", sizeof(f32) * 10, sizeof(f32), format_e::r32_sfloat));
+		out_desc.add_input(make_input("TEXCOORD", sizeof(f32) * 11, sizeof(f32), format_e::r32_sfloat, 1));
+	}
+
+	void vertex_inputs_t::get_editor_debug_text(shader_desc_t& out_desc)
+	{
+		out_desc.add_input(make_input("POSITION", sizeof(f32) * 4, sizeof(f32) * 3, format_e::r32g32b32_sfloat));
+		out_desc.add_input(make_input("POSITION", sizeof(f32) * 7, sizeof(f32) * 2, format_e::r32g32_sfloat, 1));
+		out_desc.add_input(make_input("TEXCOORD", sizeof(f32) * 9, sizeof(f32) * 2, format_e::r32g32_sfloat));
+		out_desc.add_input(make_input("COLOR", 0, sizeof(f32) * 4, format_e::r32g32b32a32_sfloat));
+		out_desc.add_input(make_input("TEXCOORD", sizeof(f32) * 11, sizeof(f32), format_e::r32_sfloat, 1));
 	}
 
 	void vertex_inputs_t::get_pos_color(shader_desc_t& out_desc)

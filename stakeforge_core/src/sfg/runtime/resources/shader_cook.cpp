@@ -424,6 +424,20 @@ namespace sfg
 				return false;
 			}
 			break;
+		case shader_type_e::editor_debug_line:
+			if (!shader_cook_variants_t::cook_editor_debug_line_shader(compile_source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook editor debug line shader variants: {0}", full_path);
+				return false;
+			}
+			break;
+		case shader_type_e::editor_debug_text:
+			if (!shader_cook_variants_t::cook_editor_debug_text_shader(compile_source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook editor debug text shader variants: {0}", full_path);
+				return false;
+			}
+			break;
 		case shader_type_e::editor_ui_default:
 			if (!shader_cook_variants_t::cook_editor_ui_default(compile_source, include_paths, compiles, psos))
 			{

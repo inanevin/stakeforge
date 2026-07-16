@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "world/editor_world_camera.hpp"
+#include "world/editor_world_debug_draw.hpp"
 #include "world/editor_world_edit_context.hpp"
 #include "world/editor_world_gizmo.hpp"
 #include "world/editor_world_handle.hpp"
@@ -69,6 +70,8 @@ namespace sfg
 	struct editor_world_snapshot_data_t
 	{
 		vector_t<entity_id_t>			   selected_entities;
+		editor_world_debug_line_snapshot_t debug_lines;
+		editor_world_debug_text_snapshot_t debug_text;
 		editor_world_gizmo_snapshot_data_t gizmo		= {};
 		editor_world_pick_request_t		   pick_request = {};
 		editor_world_grid_snapshot_data_t  grid			= {};
@@ -149,6 +152,16 @@ namespace sfg
 			return _edit_context;
 		}
 
+		inline editor_world_debug_draw_t& get_debug_draw()
+		{
+			return _debug_draw;
+		}
+
+		inline const editor_world_debug_draw_t& get_debug_draw() const
+		{
+			return _debug_draw;
+		}
+
 		inline vec2u16_t get_render_resolution() const
 		{
 			return _render_resolution;
@@ -164,6 +177,7 @@ namespace sfg
 
 		editor_world_render_context_t _render_context = {};
 
+		editor_world_debug_draw_t	_debug_draw									 = {};
 		editor_world_gizmo_t		_gizmo										 = {};
 		editor_world_edit_context_t _edit_context								 = {};
 		world_t						_world										 = {};

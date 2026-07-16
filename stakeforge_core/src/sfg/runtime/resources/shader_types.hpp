@@ -23,6 +23,8 @@ namespace sfg
 		post_combiner,
 		texture_blit,
 		editor_gizmo,
+		editor_debug_line,
+		editor_debug_text,
 		count,
 	};
 

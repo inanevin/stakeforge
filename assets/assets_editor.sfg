@@ -108,6 +108,24 @@
 				"type": 13
 			}
 		},
+		{
+			"name": "editor_world_debug_line",
+			"path": "editor/resource_pack/shaders/editor_world_debug_line.hlsl",
+			"type": 7,
+			"config": {
+				"schema": "sfg.schema.shader",
+				"type": 14
+			}
+		},
+		{
+			"name": "editor_world_debug_text",
+			"path": "editor/resource_pack/shaders/editor_world_debug_text.hlsl",
+			"type": 7,
+			"config": {
+				"schema": "sfg.schema.shader",
+				"type": 15
+			}
+		},
         {
             "name": "splash",
             "path": "editor/resource_pack/textures/splash.jpg",

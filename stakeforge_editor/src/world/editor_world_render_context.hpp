@@ -36,6 +36,19 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct editor_world_debug_line_gpu_data_t
+	{
+		mat4x4_t view	= mat4x4_t::identity;
+		mat4x4_t proj	= mat4x4_t::identity;
+		vec4f_t	 params = vec4f_t::zero;
+	};
+
+	struct editor_world_debug_text_gpu_data_t
+	{
+		mat4x4_t view_proj = mat4x4_t::identity;
+		vec4f_t	 params	   = vec4f_t::zero;
+	};
+
 	struct editor_world_composite_data_t
 	{
 		mat4x4_t proj			  = mat4x4_t::identity;
@@ -144,6 +157,16 @@ namespace sfg
 			return _pfd[frame_index].gizmo_data_index;
 		}
 
+		inline gpu_index_t get_debug_line_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_line_data_index;
+		}
+
+		inline gpu_index_t get_debug_text_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_text_data_index;
+		}
+
 		inline u8* get_mapped_composite_data(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_composite_data;
@@ -152,6 +175,36 @@ namespace sfg
 		inline u8* get_mapped_gizmo_data(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_gizmo_data;
+		}
+
+		inline u8* get_mapped_debug_line_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_line_data;
+		}
+
+		inline u8* get_mapped_debug_line_vertices(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_line_vertices;
+		}
+
+		inline u8* get_mapped_debug_line_indices(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_line_indices;
+		}
+
+		inline u8* get_mapped_debug_text_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_text_data;
+		}
+
+		inline u8* get_mapped_debug_text_vertices(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_text_vertices;
+		}
+
+		inline u8* get_mapped_debug_text_indices(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_text_indices;
 		}
 
 		inline u8* get_mapped_object_id_readback(u8 frame_index) const
@@ -169,6 +222,36 @@ namespace sfg
 		inline gfx_handle_t get_gizmo_shader() const
 		{
 			return _gizmo_shader;
+		}
+
+		inline gfx_handle_t get_debug_line_shader() const
+		{
+			return _debug_line_shader;
+		}
+
+		inline gfx_handle_t get_debug_text_shader() const
+		{
+			return _debug_text_shader;
+		}
+
+		inline gfx_handle_t get_debug_line_vertex_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_line_vertex_buffer;
+		}
+
+		inline gfx_handle_t get_debug_line_index_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_line_index_buffer;
+		}
+
+		inline gfx_handle_t get_debug_text_vertex_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_text_vertex_buffer;
+		}
+
+		inline gfx_handle_t get_debug_text_index_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_text_index_buffer;
 		}
 
 		inline const editor_world_gizmo_mesh_t& get_gizmo_mesh(u8 index) const
@@ -192,20 +275,34 @@ namespace sfg
 
 		struct per_frame_data_t
 		{
-			u8*			 mapped_composite_data	   = nullptr;
-			u8*			 mapped_gizmo_data		   = nullptr;
-			u8*			 mapped_object_id_readback = nullptr;
-			gfx_handle_t cmd_gfx				   = {};
-			gfx_handle_t world_texture			   = {};
-			gfx_handle_t selection_texture		   = {};
-			gfx_handle_t object_id_texture		   = {};
-			gfx_handle_t object_id_readback		   = {};
-			gfx_handle_t composite_data			   = {};
-			gfx_handle_t gizmo_data				   = {};
-			gpu_index_t	 world_texture_index	   = NULL_GPU_INDEX;
-			gpu_index_t	 selection_texture_index   = NULL_GPU_INDEX;
-			gpu_index_t	 composite_data_index	   = NULL_GPU_INDEX;
-			gpu_index_t	 gizmo_data_index		   = NULL_GPU_INDEX;
+			u8*			 mapped_debug_line_vertices = nullptr;
+			u8*			 mapped_debug_line_indices	= nullptr;
+			u8*			 mapped_debug_line_data		= nullptr;
+			u8*			 mapped_debug_text_vertices = nullptr;
+			u8*			 mapped_debug_text_indices	= nullptr;
+			u8*			 mapped_debug_text_data		= nullptr;
+			u8*			 mapped_composite_data		= nullptr;
+			u8*			 mapped_gizmo_data			= nullptr;
+			u8*			 mapped_object_id_readback	= nullptr;
+			gfx_handle_t cmd_gfx					= {};
+			gfx_handle_t world_texture				= {};
+			gfx_handle_t selection_texture			= {};
+			gfx_handle_t object_id_texture			= {};
+			gfx_handle_t object_id_readback			= {};
+			gfx_handle_t composite_data				= {};
+			gfx_handle_t gizmo_data					= {};
+			gfx_handle_t debug_line_data			= {};
+			gfx_handle_t debug_line_vertex_buffer	= {};
+			gfx_handle_t debug_line_index_buffer	= {};
+			gfx_handle_t debug_text_data			= {};
+			gfx_handle_t debug_text_vertex_buffer	= {};
+			gfx_handle_t debug_text_index_buffer	= {};
+			gpu_index_t	 world_texture_index		= NULL_GPU_INDEX;
+			gpu_index_t	 selection_texture_index	= NULL_GPU_INDEX;
+			gpu_index_t	 composite_data_index		= NULL_GPU_INDEX;
+			gpu_index_t	 gizmo_data_index			= NULL_GPU_INDEX;
+			gpu_index_t	 debug_line_data_index		= NULL_GPU_INDEX;
+			gpu_index_t	 debug_text_data_index		= NULL_GPU_INDEX;
 		};
 
 	private:
@@ -216,8 +313,10 @@ namespace sfg
 		editor_world_gizmo_mesh_t _gizmo_meshes[3]		   = {};
 		editor_world_gizmo_mesh_t _gizmo_central_meshes[2] = {};
 
-		gfx_handle_t _composite_shader = {};
-		gfx_handle_t _gizmo_shader	   = {};
+		gfx_handle_t _composite_shader	= {};
+		gfx_handle_t _gizmo_shader		= {};
+		gfx_handle_t _debug_line_shader = {};
+		gfx_handle_t _debug_text_shader = {};
 
 		u32		  _object_id_readback_row_pitch = 0;
 		vec2u16_t _size							= vec2u16_t::zero;

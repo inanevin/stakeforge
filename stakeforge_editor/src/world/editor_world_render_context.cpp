@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world/editor_world_render_context.hpp"
 #include "assets/editor_asset.hpp"
+#include "world/editor_world_debug_draw.hpp"
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/io/assert.hpp>
@@ -70,6 +71,36 @@ namespace sfg
 		gizmo_data_desc.flags			= resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 		gizmo_data_desc.set_name("editor_world_gizmo_data");
 
+		resource_desc_t debug_line_data_desc = {};
+		debug_line_data_desc.size			 = static_cast<u32>(sizeof(editor_world_debug_line_gpu_data_t));
+		debug_line_data_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		debug_line_data_desc.set_name("editor_world_debug_line_data");
+
+		resource_desc_t debug_line_vertex_desc = {};
+		debug_line_vertex_desc.size			   = editor_world_debug_draw_t::MAX_VERTEX_COUNT * static_cast<u32>(sizeof(editor_world_debug_line_vertex_t));
+		debug_line_vertex_desc.flags		   = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
+		debug_line_vertex_desc.set_name("editor_world_debug_line_vertices");
+
+		resource_desc_t debug_line_index_desc = {};
+		debug_line_index_desc.size			  = editor_world_debug_draw_t::MAX_INDEX_COUNT * static_cast<u32>(sizeof(primitive_index));
+		debug_line_index_desc.flags			  = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
+		debug_line_index_desc.set_name("editor_world_debug_line_indices");
+
+		resource_desc_t debug_text_data_desc = {};
+		debug_text_data_desc.size			 = static_cast<u32>(sizeof(editor_world_debug_text_gpu_data_t));
+		debug_text_data_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		debug_text_data_desc.set_name("editor_world_debug_text_data");
+
+		resource_desc_t debug_text_vertex_desc = {};
+		debug_text_vertex_desc.size			   = editor_world_debug_draw_t::MAX_TEXT_VERTEX_COUNT * static_cast<u32>(sizeof(editor_world_debug_text_vertex_t));
+		debug_text_vertex_desc.flags		   = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
+		debug_text_vertex_desc.set_name("editor_world_debug_text_vertices");
+
+		resource_desc_t debug_text_index_desc = {};
+		debug_text_index_desc.size			  = editor_world_debug_draw_t::MAX_TEXT_INDEX_COUNT * static_cast<u32>(sizeof(primitive_index));
+		debug_text_index_desc.flags			  = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
+		debug_text_index_desc.set_name("editor_world_debug_text_indices");
+
 		gfx_backend& backend = gfx_backend::get();
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
@@ -85,17 +116,39 @@ namespace sfg
 			_pfd[i].gizmo_data = backend.create_resource(gizmo_data_desc);
 			backend.map_resource(_pfd[i].gizmo_data, _pfd[i].mapped_gizmo_data);
 			_pfd[i].gizmo_data_index = backend.get_resource_gpu_index(_pfd[i].gizmo_data);
+
+			_pfd[i].debug_line_data = backend.create_resource(debug_line_data_desc);
+			backend.map_resource(_pfd[i].debug_line_data, _pfd[i].mapped_debug_line_data);
+			_pfd[i].debug_line_data_index = backend.get_resource_gpu_index(_pfd[i].debug_line_data);
+
+			_pfd[i].debug_line_vertex_buffer = backend.create_resource(debug_line_vertex_desc);
+			backend.map_resource(_pfd[i].debug_line_vertex_buffer, _pfd[i].mapped_debug_line_vertices);
+			_pfd[i].debug_line_index_buffer = backend.create_resource(debug_line_index_desc);
+			backend.map_resource(_pfd[i].debug_line_index_buffer, _pfd[i].mapped_debug_line_indices);
+
+			_pfd[i].debug_text_data = backend.create_resource(debug_text_data_desc);
+			backend.map_resource(_pfd[i].debug_text_data, _pfd[i].mapped_debug_text_data);
+			_pfd[i].debug_text_data_index = backend.get_resource_gpu_index(_pfd[i].debug_text_data);
+
+			_pfd[i].debug_text_vertex_buffer = backend.create_resource(debug_text_vertex_desc);
+			backend.map_resource(_pfd[i].debug_text_vertex_buffer, _pfd[i].mapped_debug_text_vertices);
+			_pfd[i].debug_text_index_buffer = backend.create_resource(debug_text_index_desc);
+			backend.map_resource(_pfd[i].debug_text_index_buffer, _pfd[i].mapped_debug_text_indices);
 		}
 
-		const shader_internals_t* composite_shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_render_texture.hlsl"_hs);
-		const shader_internals_t* gizmo_shader	   = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_gizmo.hlsl"_hs);
-		_composite_shader						   = render_resources_t::get().get_shader_hw(composite_shader->psos[0]);
-		_gizmo_shader							   = render_resources_t::get().get_shader_hw(gizmo_shader->psos[0]);
-		_gizmo_meshes[0]						   = load_gizmo_mesh_render_data(GIZMO_MESH_TRANSLATION);
-		_gizmo_meshes[1]						   = load_gizmo_mesh_render_data(GIZMO_MESH_ROTATION);
-		_gizmo_meshes[2]						   = load_gizmo_mesh_render_data(GIZMO_MESH_SCALE);
-		_gizmo_central_meshes[0]				   = load_gizmo_mesh_render_data(DEFAULT_MESH_SPHERE_GUID);
-		_gizmo_central_meshes[1]				   = load_gizmo_mesh_render_data(DEFAULT_MESH_CUBE_GUID);
+		const shader_internals_t* composite_shader	= resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_render_texture.hlsl"_hs);
+		const shader_internals_t* gizmo_shader		= resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_gizmo.hlsl"_hs);
+		const shader_internals_t* debug_line_shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_debug_line.hlsl"_hs);
+		const shader_internals_t* debug_text_shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_debug_text.hlsl"_hs);
+		_composite_shader							= render_resources_t::get().get_shader_hw(composite_shader->psos[0]);
+		_gizmo_shader								= render_resources_t::get().get_shader_hw(gizmo_shader->psos[0]);
+		_debug_line_shader							= render_resources_t::get().get_shader_hw(debug_line_shader->psos[0]);
+		_debug_text_shader							= render_resources_t::get().get_shader_hw(debug_text_shader->psos[0]);
+		_gizmo_meshes[0]							= load_gizmo_mesh_render_data(GIZMO_MESH_TRANSLATION);
+		_gizmo_meshes[1]							= load_gizmo_mesh_render_data(GIZMO_MESH_ROTATION);
+		_gizmo_meshes[2]							= load_gizmo_mesh_render_data(GIZMO_MESH_SCALE);
+		_gizmo_central_meshes[0]					= load_gizmo_mesh_render_data(DEFAULT_MESH_SPHERE_GUID);
+		_gizmo_central_meshes[1]					= load_gizmo_mesh_render_data(DEFAULT_MESH_CUBE_GUID);
 
 		create_texture(size);
 	}
@@ -110,21 +163,43 @@ namespace sfg
 		{
 			backend.destroy_resource(_pfd[i].composite_data);
 			backend.destroy_resource(_pfd[i].gizmo_data);
+			backend.destroy_resource(_pfd[i].debug_line_data);
+			backend.destroy_resource(_pfd[i].debug_line_vertex_buffer);
+			backend.destroy_resource(_pfd[i].debug_line_index_buffer);
+			backend.destroy_resource(_pfd[i].debug_text_data);
+			backend.destroy_resource(_pfd[i].debug_text_vertex_buffer);
+			backend.destroy_resource(_pfd[i].debug_text_index_buffer);
 			backend.destroy_command_buffer(_pfd[i].cmd_gfx);
-			_pfd[i].cmd_gfx				  = {};
-			_pfd[i].composite_data		  = {};
-			_pfd[i].gizmo_data			  = {};
-			_pfd[i].mapped_composite_data = nullptr;
-			_pfd[i].mapped_gizmo_data	  = nullptr;
-			_pfd[i].composite_data_index  = NULL_GPU_INDEX;
-			_pfd[i].gizmo_data_index	  = NULL_GPU_INDEX;
+			_pfd[i].cmd_gfx					   = {};
+			_pfd[i].composite_data			   = {};
+			_pfd[i].gizmo_data				   = {};
+			_pfd[i].debug_line_data			   = {};
+			_pfd[i].debug_line_vertex_buffer   = {};
+			_pfd[i].debug_line_index_buffer	   = {};
+			_pfd[i].debug_text_data			   = {};
+			_pfd[i].debug_text_vertex_buffer   = {};
+			_pfd[i].debug_text_index_buffer	   = {};
+			_pfd[i].mapped_composite_data	   = nullptr;
+			_pfd[i].mapped_gizmo_data		   = nullptr;
+			_pfd[i].mapped_debug_line_data	   = nullptr;
+			_pfd[i].mapped_debug_line_vertices = nullptr;
+			_pfd[i].mapped_debug_line_indices  = nullptr;
+			_pfd[i].mapped_debug_text_data	   = nullptr;
+			_pfd[i].mapped_debug_text_vertices = nullptr;
+			_pfd[i].mapped_debug_text_indices  = nullptr;
+			_pfd[i].composite_data_index	   = NULL_GPU_INDEX;
+			_pfd[i].gizmo_data_index		   = NULL_GPU_INDEX;
+			_pfd[i].debug_line_data_index	   = NULL_GPU_INDEX;
+			_pfd[i].debug_text_data_index	   = NULL_GPU_INDEX;
 		}
 		for (editor_world_gizmo_mesh_t& mesh : _gizmo_meshes)
 			mesh = {};
 		for (editor_world_gizmo_mesh_t& mesh : _gizmo_central_meshes)
 			mesh = {};
-		_composite_shader = {};
-		_gizmo_shader	  = {};
+		_composite_shader  = {};
+		_gizmo_shader	   = {};
+		_debug_line_shader = {};
+		_debug_text_shader = {};
 		_world_render_context.uninit();
 	}
 
