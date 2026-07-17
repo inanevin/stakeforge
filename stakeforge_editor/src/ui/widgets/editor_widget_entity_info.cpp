@@ -77,7 +77,16 @@ namespace sfg
 		root_in.flow			 = ui::flow_e::column;
 		root_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
-		const editor_property_row_t name_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Name");
+		_fields_root = ui.allocate_widget();
+		ui.set_widget_debug_name(_fields_root, "entity_info_fields");
+		tree.attach(_root, _fields_root);
+		ui::layout_in_t& fields_in = tree.in(_fields_root);
+		fields_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
+		fields_in.size_mode_y	   = ui::axis_mode_e::sum_children;
+		fields_in.size_value	   = {1.0f, 1.0f};
+		fields_in.flow			   = ui::flow_e::column;
+
+		const editor_property_row_t name_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _fields_root, "Name");
 		u8*							name_field	= reinterpret_cast<u8*>(_name_fallback);
 		editor_input_field_config_t name_config = {};
 		name_config.placeholder					= "Name";
@@ -91,9 +100,9 @@ namespace sfg
 		};
 		_name_input.init(ui, name_row.right, name_config);
 		fit_control(ui, _name_input.get_root());
-		editor_dividers_t::add_divider_hor(ui, _root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
+		editor_dividers_t::add_divider_hor(ui, _fields_root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
 
-		const editor_property_row_t guid_row = editor_misc_widgets_t::make_property_row_with_label(ui, _root, "GUID");
+		const editor_property_row_t guid_row = editor_misc_widgets_t::make_property_row_with_label(ui, _fields_root, "GUID");
 		_guid_label							 = ui.allocate_widget();
 		ui.set_widget_debug_name(_guid_label, "entity_info_guid_label");
 		tree.attach(guid_row.right, _guid_label);
@@ -111,9 +120,9 @@ namespace sfg
 								ui.widget_text(_guid_label),
 								ui.widget_text_len(_guid_label),
 								{.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-		editor_dividers_t::add_divider_hor(ui, _root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
+		editor_dividers_t::add_divider_hor(ui, _fields_root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
 
-		const editor_property_row_t position_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Position");
+		const editor_property_row_t position_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _fields_root, "Position");
 		editor_vec3_field_config_t	position_config = {};
 		position_config.callbacks.edit_begin		= on_edit_begin;
 		position_config.callbacks.edited			= on_position_changed;
@@ -121,9 +130,9 @@ namespace sfg
 		position_config.callbacks.user_data			= this;
 		_position_field.init(ui, position_row.right, position_config);
 		fit_control(ui, _position_field.get_root());
-		editor_dividers_t::add_divider_hor(ui, _root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
+		editor_dividers_t::add_divider_hor(ui, _fields_root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
 
-		const editor_property_row_t rotation_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Rotation");
+		const editor_property_row_t rotation_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _fields_root, "Rotation");
 		editor_quat_field_config_t	rotation_config = {};
 		rotation_config.callbacks.edit_begin		= on_edit_begin;
 		rotation_config.callbacks.edited			= on_rotation_changed;
@@ -131,9 +140,9 @@ namespace sfg
 		rotation_config.callbacks.user_data			= this;
 		_rotation_field.init(ui, rotation_row.right, rotation_config);
 		fit_control(ui, _rotation_field.get_root());
-		editor_dividers_t::add_divider_hor(ui, _root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
+		editor_dividers_t::add_divider_hor(ui, _fields_root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
 
-		const editor_property_row_t scale_row	 = editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Scale");
+		const editor_property_row_t scale_row	 = editor_misc_widgets_t::make_property_row_with_label(ui, _fields_root, "Scale");
 		editor_vec3_field_config_t	scale_config = {};
 		scale_config.callbacks.edit_begin		 = on_edit_begin;
 		scale_config.callbacks.edited			 = on_scale_changed;
@@ -141,7 +150,10 @@ namespace sfg
 		scale_config.callbacks.user_data		 = this;
 		_scale_field.init(ui, scale_row.right, scale_config);
 		fit_control(ui, _scale_field.get_root());
-		editor_dividers_t::add_divider_hor(ui, _root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
+		editor_dividers_t::add_divider_hor(ui, _fields_root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
+
+		if (config.block_edits)
+			_blocker = editor_misc_widgets_t::add_edit_blocker(ui, _fields_root);
 
 		if (config.is_prefab)
 		{
@@ -179,7 +191,7 @@ namespace sfg
 			label_in.pos_value.y	  = 0.5f;
 			label_in.size_value		  = {1.0f, theme.item_height};
 
-			ui.set_widget_text(_prefab_label, "Prefab editing is disabled, Break Prefab to edit it.");
+			ui.set_widget_text(_prefab_label, config.block_edits ? "Prefab child editing is disabled. Break Prefab to edit it." : "Prefab instance. Break Prefab to detach it.");
 			paint.set_text(_prefab_label,
 						   ui.widget_text(_prefab_label),
 						   ui.widget_text_len(_prefab_label),
@@ -216,6 +228,8 @@ namespace sfg
 		_guid_label				  = NULL_WIDGET;
 		_prefab_frame			  = NULL_WIDGET;
 		_prefab_label			  = NULL_WIDGET;
+		_fields_root			  = NULL_WIDGET;
+		_blocker				  = NULL_WIDGET;
 		_entity					  = NULL_ENTITY_ID;
 		_name_fallback[0]		  = '\0';
 		_name_submitted_callback  = nullptr;

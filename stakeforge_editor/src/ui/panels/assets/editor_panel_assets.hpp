@@ -76,8 +76,12 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void show_asset(sid_t guid);
-		void collect_selected_asset_guids(vector_t<sid_t>& out_guids) const;
+		void		show_asset(sid_t guid);
+		void		collect_selected_asset_guids(vector_t<sid_t>& out_guids) const;
+		inline bool is_asset_selection_empty() const
+		{
+			return _selected_asset_nodes.empty();
+		}
 
 	private:
 		struct folder_row_t

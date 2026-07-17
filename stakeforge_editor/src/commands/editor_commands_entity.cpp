@@ -371,8 +371,12 @@ namespace sfg
 
 	entity_id_t editor_commands_entity_t::create(editor_world_handle_t world, entity_id_t parent, editor_world_folder_handle_t folder)
 	{
+		editor_world_t*				 editor_world = editor_world_controller_t::get().get_editor_world(world);
+		editor_world_edit_context_t& context	  = editor_world->get_edit_context();
+		if (parent != NULL_ENTITY_ID && !context.is_entity_child_insertion_allowed(editor_world->get_world(), parent))
+			return NULL_ENTITY_ID;
+
 		editor_command_system_t&		command_system = editor_command_system_t::get();
-		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_editor_world(world)->get_edit_context();
 		const span_t<const entity_id_t> selection	   = context.get_selected_entities();
 
 		editor_command_create_entity_payload_t payload = {};
@@ -427,20 +431,28 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
+		editor_world_t*				 editor_world = editor_world_controller_t::get().get_editor_world(world);
+		world_t&					 world_ref	  = editor_world->get_world();
+		editor_world_edit_context_t& context	  = editor_world->get_edit_context();
+		frame_vector_t<entity_id_t>	 mutable_entities;
+		mutable_entities.resize(entities.size());
+		mutable_entities.resize(context.collect_mutable_entities(world_ref, {.data = entities.data(), .size = entities.size()}, {.data = mutable_entities.data(), .size = mutable_entities.size()}));
+		if (mutable_entities.empty())
+			return false;
+
 		editor_command_system_t&		command_system = editor_command_system_t::get();
-		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_editor_world(world)->get_edit_context();
 		const span_t<const entity_id_t> selection	   = context.get_selected_entities();
 
 		editor_command_duplicate_entity_payload_t payload = {};
 		payload.previous_selection						  = copy_selection_to_aux(command_system, selection);
-		payload.streams									  = create_stream_array(command_system, entities.size());
-		payload.sources									  = copy_entities_to_aux(command_system, entities);
-		payload.parents									  = copy_entity_parents_to_aux(command_system, editor_world_controller_t::get().get_editor_world(world)->get_world(), entities);
-		payload.entities								  = create_entity_array(command_system, entities.size(), NULL_ENTITY_ID);
+		payload.streams									  = create_stream_array(command_system, mutable_entities.size());
+		payload.sources									  = copy_entities_to_aux(command_system, mutable_entities);
+		payload.parents									  = copy_entity_parents_to_aux(command_system, world_ref, mutable_entities);
+		payload.entities								  = create_entity_array(command_system, mutable_entities.size(), NULL_ENTITY_ID);
 		payload.world									  = world;
 		payload.previous_anchor							  = context.get_entity_anchor();
 		payload.previous_selection_count				  = static_cast<u32>(selection.size);
-		payload.count									  = static_cast<u32>(entities.size());
+		payload.count									  = static_cast<u32>(mutable_entities.size());
 
 		const editor_command_issue_desc_t desc{
 			.undo			   = duplicate_entity_undo,
@@ -480,18 +492,26 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
+		editor_world_t*				 editor_world = editor_world_controller_t::get().get_editor_world(world);
+		world_t&					 world_ref	  = editor_world->get_world();
+		editor_world_edit_context_t& context	  = editor_world->get_edit_context();
+		frame_vector_t<entity_id_t>	 mutable_entities;
+		mutable_entities.resize(entities.size());
+		mutable_entities.resize(context.collect_mutable_entities(world_ref, {.data = entities.data(), .size = entities.size()}, {.data = mutable_entities.data(), .size = mutable_entities.size()}));
+		if (mutable_entities.empty())
+			return false;
+
 		editor_command_system_t&		command_system = editor_command_system_t::get();
-		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_editor_world(world)->get_edit_context();
 		const span_t<const entity_id_t> selection	   = context.get_selected_entities();
 
 		editor_command_destroy_entity_payload_t payload = {};
 		payload.previous_selection						= copy_selection_to_aux(command_system, selection);
-		payload.streams									= create_stream_array(command_system, entities.size());
-		payload.entities								= copy_entities_to_aux(command_system, entities);
+		payload.streams									= create_stream_array(command_system, mutable_entities.size());
+		payload.entities								= copy_entities_to_aux(command_system, mutable_entities);
 		payload.world									= world;
 		payload.previous_anchor							= context.get_entity_anchor();
 		payload.previous_selection_count				= static_cast<u32>(selection.size);
-		payload.count									= static_cast<u32>(entities.size());
+		payload.count									= static_cast<u32>(mutable_entities.size());
 
 		const editor_command_issue_desc_t desc{
 			.undo			   = destroy_entity_undo,
@@ -518,8 +538,19 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
-		world_t& world_ref = editor_world_controller_t::get().get_editor_world(world)->get_world();
-		for (entity_id_t entity : entities)
+		editor_world_t*				 editor_world = editor_world_controller_t::get().get_editor_world(world);
+		world_t&					 world_ref	  = editor_world->get_world();
+		editor_world_edit_context_t& context	  = editor_world->get_edit_context();
+		if (parent != NULL_ENTITY_ID && !context.is_entity_child_insertion_allowed(world_ref, parent))
+			return false;
+
+		frame_vector_t<entity_id_t> mutable_entities;
+		mutable_entities.resize(entities.size());
+		mutable_entities.resize(context.collect_mutable_entities(world_ref, {.data = entities.data(), .size = entities.size()}, {.data = mutable_entities.data(), .size = mutable_entities.size()}));
+		if (mutable_entities.empty())
+			return false;
+
+		for (entity_id_t entity : mutable_entities)
 		{
 			if (!world_ref.is_alive(entity))
 				return false;
@@ -537,11 +568,11 @@ namespace sfg
 		editor_command_system_t& command_system = editor_command_system_t::get();
 
 		editor_command_reparent_entity_payload_t payload = {};
-		payload.entities								 = copy_entities_to_aux(command_system, entities);
-		payload.previous_parents						 = copy_entity_parents_to_aux(command_system, world_ref, entities);
-		payload.next_parents							 = create_entity_array(command_system, entities.size(), parent);
+		payload.entities								 = copy_entities_to_aux(command_system, mutable_entities);
+		payload.previous_parents						 = copy_entity_parents_to_aux(command_system, world_ref, mutable_entities);
+		payload.next_parents							 = create_entity_array(command_system, mutable_entities.size(), parent);
 		payload.world									 = world;
-		payload.count									 = static_cast<u32>(entities.size());
+		payload.count									 = static_cast<u32>(mutable_entities.size());
 
 		const editor_command_issue_desc_t desc{
 			.undo			   = reparent_entity_undo,

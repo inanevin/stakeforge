@@ -136,6 +136,7 @@ namespace sfg
 		bool					   is_component_paste_enabled(sid_t type_id) const;
 		bool					   read_entity_infos(span_t<const entity_id_t> entities, vector_t<editor_entity_info_data_t>& out_infos) const;
 		bool					   is_selection_prefab_referenced() const;
+		bool					   is_selection_prefab_child() const;
 		void					   break_prefabs();
 		void					   begin_entity_info_edit();
 		void					   submit_entity_info_edit();

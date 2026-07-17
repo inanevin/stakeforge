@@ -99,7 +99,7 @@ namespace sfg
 		ui::layout_in_t& left_in = tree.in(_top_left_row);
 		left_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		left_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		left_in.size_value		 = {1.0f, theme.item_area_height};
+		left_in.size_value		 = {1.0f, theme.item_area_height * 0.75f};
 		left_in.flow			 = ui::flow_e::row;
 		left_in.child_spacing	 = 0.0f;
 

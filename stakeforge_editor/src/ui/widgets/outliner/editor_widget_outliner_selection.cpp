@@ -113,7 +113,7 @@ namespace sfg
 		const editor_world_t*			editor_world = editor_world_controller_t::get().get_editor_world(_edit_world);
 		const span_t<const entity_id_t> selected	 = editor_world->get_edit_context().get_selected_entities();
 		out_entities.resize(selected.size);
-		out_entities.resize(editor_world->get_edit_context().collect_selected_root_entities(editor_world->get_world(), {.data = out_entities.data(), .size = out_entities.size()}));
+		out_entities.resize(editor_world->get_edit_context().collect_selected_mutable_root_entities(editor_world->get_world(), {.data = out_entities.data(), .size = out_entities.size()}));
 	}
 
 	void editor_widget_outliner_t::collect_payload_entities(entity_id_t entity)
@@ -123,7 +123,8 @@ namespace sfg
 		if (_edit_world.is_null())
 			return;
 
-		world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		editor_world_t* editor_world = editor_world_controller_t::get().get_editor_world(_edit_world);
+		world_t&		world		 = editor_world->get_world();
 		if (is_entity_selected(entity))
 		{
 			frame_vector_t<entity_id_t> root_entities;
@@ -135,7 +136,7 @@ namespace sfg
 			}
 		}
 
-		if (_payload_entities.empty() && entity != NULL_ENTITY_ID && world.is_alive(entity))
+		if (_payload_entities.empty() && entity != NULL_ENTITY_ID && world.is_alive(entity) && editor_world->get_edit_context().is_entity_mutation_allowed(world, entity))
 			_payload_entities.push_back({.world = _edit_world, .entity = entity});
 	}
 

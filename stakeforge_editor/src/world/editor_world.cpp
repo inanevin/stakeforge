@@ -413,7 +413,7 @@ namespace sfg
 		};
 		data.gizmo = {};
 
-		const entity_id_t anchor = _edit_context.get_entity_anchor();
+		const entity_id_t anchor = _edit_context.get_mutable_entity_anchor(_world);
 		if (anchor != NULL_ENTITY_ID)
 		{
 			const ecs_component_table_t&		transform_table = _world.get_component_table(type_id_t<component_system_transform_t>::value);

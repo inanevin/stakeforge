@@ -171,7 +171,6 @@ namespace sfg
 
 	void editor_widget_reflection_t::set_block_edits(bool block_edits)
 	{
-		ui::layout_tree_t& tree = _ui->get_tree();
 		if (!block_edits)
 		{
 			if (_blocker != NULL_WIDGET)
@@ -183,27 +182,7 @@ namespace sfg
 		}
 
 		if (_blocker == NULL_WIDGET)
-		{
-			_blocker = _ui->allocate_widget();
-			_ui->set_widget_debug_name(_blocker, "reflection_blocker");
-			tree.attach(_root, _blocker);
-		}
-
-		ui::layout_in_t& blocker_in = tree.in(_blocker);
-		blocker_in.flags			= ui::wf_visible | ui::wf_input;
-		blocker_in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
-		blocker_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
-		blocker_in.pos_value		= {0.0f, 0.0f};
-		blocker_in.size_mode_x		= ui::axis_mode_e::parent_relative;
-		blocker_in.size_mode_y		= ui::axis_mode_e::parent_relative;
-		blocker_in.size_value		= {1.0f, 1.0f};
-		tree.draw_order(_blocker)	= tree.draw_order_const(_root) + 10;
-
-		ui::vg_rect_paint_t rect = {};
-		rect.fill_color_a		 = {0.01f, 0.01f, 0.01f, 0.65f};
-		rect.fill_color_b		 = rect.fill_color_a;
-		rect.filled				 = true;
-		_ui->get_paint().set_rect(_blocker, rect);
+			_blocker = editor_misc_widgets_t::add_edit_blocker(*_ui, _root);
 	}
 
 	bool editor_widget_reflection_t::is_field_visible(const reflected_type_t& type, const reflected_field_t& field, span_t<void*> objects, u32 dependency_depth) const

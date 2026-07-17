@@ -63,6 +63,31 @@ namespace sfg
 		}
 	}
 
+	ui::widget_id_t editor_misc_widgets_t::add_edit_blocker(ui::ui_context& ui, ui::widget_id_t parent)
+	{
+		ui::layout_tree_t&	  tree	  = ui.get_tree();
+		const ui::widget_id_t blocker = ui.allocate_widget();
+		ui.set_widget_debug_name(blocker, "edit_blocker");
+		tree.attach(parent, blocker);
+
+		ui::layout_in_t& blocker_in = tree.in(blocker);
+		blocker_in.flags			= ui::wf_visible | ui::wf_input;
+		blocker_in.pos_mode_x		= ui::pos_mode_e::relative_in_parent;
+		blocker_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
+		blocker_in.pos_value		= {0.0f, 0.0f};
+		blocker_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		blocker_in.size_mode_y		= ui::axis_mode_e::parent_relative;
+		blocker_in.size_value		= {1.0f, 1.0f};
+		tree.draw_order(blocker)	= tree.draw_order_const(parent) + 10;
+
+		ui::vg_rect_paint_t rect = {};
+		rect.fill_color_a		 = {0.01f, 0.01f, 0.01f, 0.65f};
+		rect.fill_color_b		 = rect.fill_color_a;
+		rect.filled				 = true;
+		ui.get_paint().set_rect(blocker, rect);
+		return blocker;
+	}
+
 	editor_property_row_t editor_misc_widgets_t::make_property_row(ui::ui_context& ui, ui::widget_id_t parent, f32 indentation)
 	{
 		ui::layout_tree_t&	  tree	= ui.get_tree();

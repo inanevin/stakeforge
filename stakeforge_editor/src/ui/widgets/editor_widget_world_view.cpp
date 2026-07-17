@@ -439,7 +439,7 @@ namespace sfg
 
 			frame_vector_t<entity_id_t> entities;
 			entities.resize(selected.size);
-			entities.resize(editor_world->get_edit_context().collect_selected_root_entities(editor_world->get_world(), {.data = entities.data(), .size = entities.size()}));
+			entities.resize(editor_world->get_edit_context().collect_selected_mutable_root_entities(editor_world->get_world(), {.data = entities.data(), .size = entities.size()}));
 			if (ev.key == static_cast<u16>(input_code::key_x))
 				editor_commands_entity_t::destroy(widget._edit_world, entities);
 			else

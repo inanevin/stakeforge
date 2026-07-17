@@ -54,6 +54,7 @@ namespace sfg
 		void*									  user_data	   = nullptr;
 		editor_world_handle_t					  world		   = {};
 		bool									  is_prefab	   = false;
+		bool									  block_edits  = false;
 	};
 
 	class editor_widget_entity_info_t final
@@ -112,6 +113,8 @@ namespace sfg
 		ui::widget_id_t								_guid_label				  = NULL_WIDGET;
 		ui::widget_id_t								_prefab_frame			  = NULL_WIDGET;
 		ui::widget_id_t								_prefab_label			  = NULL_WIDGET;
+		ui::widget_id_t								_fields_root			  = NULL_WIDGET;
+		ui::widget_id_t								_blocker				  = NULL_WIDGET;
 		entity_id_t									_entity					  = NULL_ENTITY_ID;
 	};
 }

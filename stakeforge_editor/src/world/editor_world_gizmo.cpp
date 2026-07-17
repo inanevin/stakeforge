@@ -108,7 +108,7 @@ namespace sfg
 
 	bool editor_world_gizmo_t::calculate_frame(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, frame_t& out_frame) const
 	{
-		const entity_id_t anchor = context.get_entity_anchor();
+		const entity_id_t anchor = context.get_mutable_entity_anchor(world);
 		if (anchor == NULL_ENTITY_ID || camera_entity == NULL_ENTITY_ID || context.get_transform_control_type() == editor_transform_control_type_e::invalid)
 			return false;
 
@@ -421,7 +421,7 @@ namespace sfg
 
 		const span_t<const entity_id_t> selected = context.get_selected_entities();
 		_entities.resize(selected.size);
-		_entities.resize(context.collect_selected_root_entities(world, {.data = _entities.data(), .size = _entities.size()}));
+		_entities.resize(context.collect_selected_mutable_root_entities(world, {.data = _entities.data(), .size = _entities.size()}));
 		for (entity_id_t entity : _entities)
 		{
 			const entity_id_t parent = world.get_entity_parent(entity);

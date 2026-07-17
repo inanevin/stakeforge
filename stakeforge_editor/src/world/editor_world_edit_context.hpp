@@ -235,7 +235,8 @@ namespace sfg
 		void							   issue_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor);
 		void							   apply_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor);
 		void							   clear_entity_selection();
-		size_t							   collect_selected_root_entities(const world_t& world, span_t<entity_id_t> out_entities) const;
+		size_t							   collect_mutable_entities(const world_t& world, span_t<const entity_id_t> entities, span_t<entity_id_t> out_entities) const;
+		size_t							   collect_selected_mutable_root_entities(const world_t& world, span_t<entity_id_t> out_entities) const;
 		editor_selection_listener_handle_t add_selection_listener(editor_selection_listener_fn fn, void* user_data);
 		void							   remove_selection_listener(editor_selection_listener_handle_t handle);
 
@@ -245,7 +246,10 @@ namespace sfg
 
 		editor_world_folder_handle_t get_folder_handle(u64 guid) const;
 		editor_world_folder_handle_t get_entity_folder(entity_guid_t guid) const;
+		entity_id_t					 get_mutable_entity_anchor(const world_t& world) const;
 		bool						 can_assign_folder(editor_world_folder_handle_t handle, editor_world_folder_handle_t parent_handle) const;
+		bool						 is_entity_child_insertion_allowed(const world_t& world, entity_id_t entity) const;
+		bool						 is_entity_mutation_allowed(const world_t& world, entity_id_t entity) const;
 		bool						 is_entity_expanded(entity_guid_t guid) const;
 		void						 collect_folder_tree(editor_world_folder_handle_t handle, vector_t<editor_world_folder_handle_t>& out_handles) const;
 
@@ -310,6 +314,8 @@ namespace sfg
 		void								  append_entity_items(const world_t& world, const outliner_component_tables_t& tables, entity_id_t id, u16 depth);
 		bool								  is_entity_assigned(entity_guid_t guid) const;
 		bool								  is_entity_selected(entity_id_t entity) const;
+		bool								  is_entity_mutation_allowed(const ecs_component_table_t& prefab_table, entity_id_t entity) const;
+		bool								  is_selected_mutable_root_entity(const world_t& world, const ecs_component_table_t& prefab_table, entity_id_t entity) const;
 		void								  remove_entity_from_folders(entity_guid_t guid);
 		void								  notify_selection_listeners();
 

@@ -54,7 +54,8 @@ namespace sfg
 
 	bool editor_widget_outliner_t::is_create_enabled() const
 	{
-		return editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_selected_entities().size <= 1;
+		const editor_world_t* editor_world = editor_world_controller_t::get().get_editor_world(_edit_world);
+		return editor_world->get_edit_context().get_selected_entities().size <= 1 && (_action_menu_entity == NULL_ENTITY_ID || editor_world->get_edit_context().is_entity_child_insertion_allowed(editor_world->get_world(), _action_menu_entity));
 	}
 
 	bool editor_widget_outliner_t::can_reparent_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent) const
@@ -65,13 +66,18 @@ namespace sfg
 		if (_edit_world.is_null())
 			return false;
 
-		world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		editor_world_t* editor_world = editor_world_controller_t::get().get_editor_world(_edit_world);
+		world_t&		world		 = editor_world->get_world();
 		if (parent != NULL_ENTITY_ID && !world.is_alive(parent))
+			return false;
+		if (parent != NULL_ENTITY_ID && !editor_world->get_edit_context().is_entity_child_insertion_allowed(world, parent))
 			return false;
 
 		for (const editor_entity_payload_t& payload_entity : entities)
 		{
 			if (!(payload_entity.world == _edit_world) || payload_entity.entity == NULL_ENTITY_ID || !world.is_alive(payload_entity.entity))
+				return false;
+			if (!editor_world->get_edit_context().is_entity_mutation_allowed(world, payload_entity.entity))
 				return false;
 			if (payload_entity.entity == parent)
 				return false;

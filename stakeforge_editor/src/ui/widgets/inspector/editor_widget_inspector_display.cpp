@@ -163,13 +163,14 @@ namespace sfg
 		if (_display_entities.empty())
 			return;
 
-		world_t&		  world			 = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
-		const bool		  prefab_blocked = _allow_prefab_blocks && is_selection_prefab_referenced();
-		const entity_id_t first_entity	 = _display_entities.front();
-		_entity_info					 = new editor_widget_entity_info_t();
-		_entity_info_fold				 = new editor_widget_fold_t();
+		world_t&		  world				= editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		const bool		  prefab_referenced = _allow_prefab_blocks && is_selection_prefab_referenced();
+		const bool		  prefab_blocked	= _allow_prefab_blocks && is_selection_prefab_child();
+		const entity_id_t first_entity		= _display_entities.front();
+		_entity_info						= new editor_widget_entity_info_t();
+		_entity_info_fold					= new editor_widget_fold_t();
 		_entity_info_fold->init(*_ui, _column, {.label = "Entity Info", .folded = false, .settings_button = !prefab_blocked});
-		_entity_info->init(*_ui, _entity_info_fold->get_body(), {.break_prefab = on_entity_info_break_prefab, .user_data = this, .world = _edit_world, .is_prefab = prefab_blocked});
+		_entity_info->init(*_ui, _entity_info_fold->get_body(), {.break_prefab = on_entity_info_break_prefab, .user_data = this, .world = _edit_world, .is_prefab = prefab_referenced, .block_edits = prefab_blocked});
 		_entity_info->set_name_submitted_callback(on_entity_info_name_submitted, this);
 		_entity_info->set_edit_callbacks({.edit_begin = on_entity_info_edit_begin, .edit_submitted = on_entity_info_edit_submitted, .user_data = this});
 		_entity_info->set_entities(world, {.data = _display_entities.data(), .size = _display_entities.size()});
@@ -261,7 +262,7 @@ namespace sfg
 		display->reflect->uninit();
 		delete display->reflect;
 
-		const bool prefab_blocked = _allow_prefab_blocks && is_selection_prefab_referenced();
+		const bool prefab_blocked = _allow_prefab_blocks && is_selection_prefab_child();
 		display->reflect		  = new editor_widget_reflection_t();
 		display->reflect->init(*_ui,
 							   display->fold->get_body(),
@@ -334,6 +335,18 @@ namespace sfg
 		return false;
 	}
 
+	bool editor_widget_inspector_t::is_selection_prefab_child() const
+	{
+		const editor_world_t* editor_world = editor_world_controller_t::get().get_editor_world(_edit_world);
+		const world_t&		  world		   = editor_world->get_world();
+		for (entity_id_t entity : _display_entities)
+		{
+			if (!editor_world->get_edit_context().is_entity_mutation_allowed(world, entity))
+				return true;
+		}
+		return false;
+	}
+
 	void editor_widget_inspector_t::break_prefabs()
 	{
 		world_t&					 world		  = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
@@ -374,6 +387,8 @@ namespace sfg
 	void editor_widget_inspector_t::begin_entity_info_edit()
 	{
 		clear_entity_info_edit();
+		if (_allow_prefab_blocks && is_selection_prefab_child())
+			return;
 		_entity_info_edit_entities.assign(_display_entities.begin(), _display_entities.end());
 		if (!read_entity_infos({.data = _entity_info_edit_entities.data(), .size = _entity_info_edit_entities.size()}, _entity_info_edit_prev_infos))
 		{
@@ -409,6 +424,8 @@ namespace sfg
 	void editor_widget_inspector_t::begin_component_edit(sid_t component_type)
 	{
 		clear_component_edit();
+		if (_allow_prefab_blocks && is_selection_prefab_child())
+			return;
 		_component_edit_entities.assign(_display_entities.begin(), _display_entities.end());
 		if (!serialize_component_streams(component_type, {.data = _component_edit_entities.data(), .size = _component_edit_entities.size()}, _component_edit_prev_streams))
 		{

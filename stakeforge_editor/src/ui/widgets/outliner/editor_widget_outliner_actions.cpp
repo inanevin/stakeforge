@@ -140,7 +140,8 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
-		world_t&					  world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		editor_world_t*				  editor_world = editor_world_controller_t::get().get_editor_world(_edit_world);
+		world_t&					  world		   = editor_world->get_world();
 		frame_vector_t<entity_id_t>	  moved_entities;
 		frame_vector_t<entity_guid_t> moved_guids;
 		moved_entities.reserve(entities.size());
@@ -149,9 +150,13 @@ namespace sfg
 		{
 			if (!(payload_entity.world == _edit_world) || payload_entity.entity == NULL_ENTITY_ID || !world.is_alive(payload_entity.entity))
 				return false;
+			if (!editor_world->get_edit_context().is_entity_mutation_allowed(world, payload_entity.entity))
+				continue;
 			moved_entities.push_back(payload_entity.entity);
 			moved_guids.push_back(world.get_entity_guid(payload_entity.entity));
 		}
+		if (moved_entities.empty())
+			return false;
 
 		if (!editor_commands_entity_t::reparent(_edit_world, moved_entities, NULL_ENTITY_ID))
 			return false;
@@ -169,15 +174,20 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
-		world_t&					  world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		editor_world_t*				  editor_world = editor_world_controller_t::get().get_editor_world(_edit_world);
+		world_t&					  world		   = editor_world->get_world();
 		frame_vector_t<entity_guid_t> moved_guids;
 		moved_guids.reserve(entities.size());
 		for (const editor_entity_payload_t& payload_entity : entities)
 		{
 			if (!(payload_entity.world == _edit_world) || payload_entity.entity == NULL_ENTITY_ID || !world.is_alive(payload_entity.entity))
 				return false;
+			if (!editor_world->get_edit_context().is_entity_mutation_allowed(world, payload_entity.entity))
+				continue;
 			moved_guids.push_back(world.get_entity_guid(payload_entity.entity));
 		}
+		if (moved_guids.empty())
+			return false;
 
 		if (!editor_commands_world_edit_context_t::deassign_entities_from_folder(_edit_world, {.data = moved_guids.data(), .size = moved_guids.size()}))
 			return false;
@@ -203,7 +213,10 @@ namespace sfg
 
 	void editor_widget_outliner_t::toggle_entity_disabled(entity_id_t entity)
 	{
-		world_t&			   world		  = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+		editor_world_t* editor_world = editor_world_controller_t::get().get_editor_world(_edit_world);
+		world_t&		world		 = editor_world->get_world();
+		if (!editor_world->get_edit_context().is_entity_mutation_allowed(world, entity))
+			return;
 		ecs_component_table_t& disabled_table = world.get_component_table(type_id_t<component_disabled_t>::value);
 
 		const sid_t component_type = type_id_t<component_disabled_t>::value;
@@ -413,6 +426,10 @@ namespace sfg
 
 		_action_menu_entity						= entity;
 		ENTITY_ROW_ACTION_MENU_ROWS[0].disabled = !is_create_enabled();
+		frame_vector_t<entity_id_t> mutable_entities;
+		append_selected_root_entities(mutable_entities);
+		ENTITY_ROW_ACTION_MENU_ROWS[1].disabled = mutable_entities.empty();
+		ENTITY_ROW_ACTION_MENU_ROWS[2].disabled = mutable_entities.empty();
 
 		editor_action_menu_desc_t desc = {};
 		desc.rows					   = ENTITY_ROW_ACTION_MENU_ROWS;

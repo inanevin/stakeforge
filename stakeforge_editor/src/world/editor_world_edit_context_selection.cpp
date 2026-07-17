@@ -89,25 +89,75 @@ namespace sfg
 		}
 	}
 
-	size_t editor_world_edit_context_t::collect_selected_root_entities(const world_t& world, span_t<entity_id_t> out_entities) const
+	bool editor_world_edit_context_t::is_entity_mutation_allowed(const world_t& world, entity_id_t entity) const
+	{
+		const ecs_component_table_t& prefab_table = world.get_component_table(type_id_t<component_prefab_reference_t>::value);
+		return is_entity_mutation_allowed(prefab_table, entity);
+	}
+
+	bool editor_world_edit_context_t::is_entity_child_insertion_allowed(const world_t& world, entity_id_t entity) const
+	{
+		const ecs_component_table_t& prefab_table = world.get_component_table(type_id_t<component_prefab_reference_t>::value);
+		return ecs_helpers_t::table_find_as_const<component_prefab_reference_t>(prefab_table, entity) == nullptr;
+	}
+
+	bool editor_world_edit_context_t::is_entity_mutation_allowed(const ecs_component_table_t& prefab_table, entity_id_t entity) const
+	{
+		const component_prefab_reference_t* prefab = ecs_helpers_t::table_find_as_const<component_prefab_reference_t>(prefab_table, entity);
+		return prefab == nullptr || prefab->is_root;
+	}
+
+	bool editor_world_edit_context_t::is_selected_mutable_root_entity(const world_t& world, const ecs_component_table_t& prefab_table, entity_id_t entity) const
+	{
+		if (!is_entity_mutation_allowed(prefab_table, entity))
+			return false;
+
+		for (entity_id_t parent = world.get_entity_parent(entity); parent != NULL_ENTITY_ID; parent = world.get_entity_parent(parent))
+		{
+			if (std::find(_selected_entities.begin(), _selected_entities.end(), parent) != _selected_entities.end() && is_entity_mutation_allowed(prefab_table, parent))
+				return false;
+		}
+		return true;
+	}
+
+	size_t editor_world_edit_context_t::collect_mutable_entities(const world_t& world, span_t<const entity_id_t> entities, span_t<entity_id_t> out_entities) const
+	{
+		SFG_ASSERT(out_entities.size >= entities.size);
+		const ecs_component_table_t& prefab_table = world.get_component_table(type_id_t<component_prefab_reference_t>::value);
+		size_t						 count		  = 0;
+		for (size_t i = 0; i < entities.size; ++i)
+		{
+			if (is_entity_mutation_allowed(prefab_table, entities.data[i]))
+				out_entities.data[count++] = entities.data[i];
+		}
+		return count;
+	}
+
+	size_t editor_world_edit_context_t::collect_selected_mutable_root_entities(const world_t& world, span_t<entity_id_t> out_entities) const
 	{
 		SFG_ASSERT(out_entities.size >= _selected_entities.size());
-		size_t count = 0;
+		const ecs_component_table_t& prefab_table = world.get_component_table(type_id_t<component_prefab_reference_t>::value);
+		size_t						 count		  = 0;
 		for (entity_id_t entity : _selected_entities)
 		{
-			bool has_selected_ancestor = false;
-			for (entity_id_t parent = world.get_entity_parent(entity); parent != NULL_ENTITY_ID; parent = world.get_entity_parent(parent))
-			{
-				if (std::find(_selected_entities.begin(), _selected_entities.end(), parent) != _selected_entities.end())
-				{
-					has_selected_ancestor = true;
-					break;
-				}
-			}
-			if (!has_selected_ancestor)
+			if (is_selected_mutable_root_entity(world, prefab_table, entity))
 				out_entities.data[count++] = entity;
 		}
 		return count;
+	}
+
+	entity_id_t editor_world_edit_context_t::get_mutable_entity_anchor(const world_t& world) const
+	{
+		const ecs_component_table_t& prefab_table = world.get_component_table(type_id_t<component_prefab_reference_t>::value);
+		if (_entity_anchor != NULL_ENTITY_ID && is_selected_mutable_root_entity(world, prefab_table, _entity_anchor))
+			return _entity_anchor;
+
+		for (auto it = _selected_entities.rbegin(); it != _selected_entities.rend(); ++it)
+		{
+			if (is_selected_mutable_root_entity(world, prefab_table, *it))
+				return *it;
+		}
+		return NULL_ENTITY_ID;
 	}
 
 	void editor_world_edit_context_t::issue_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor)
@@ -116,7 +166,10 @@ namespace sfg
 		for (size_t i = 0; same_selection && i < entities.size; ++i)
 			same_selection = _selected_entities[i] == entities.data[i];
 		if (same_selection && _entity_anchor == anchor)
+		{
+			notify_selection_listeners();
 			return;
+		}
 
 		editor_command_system_t& command_system = editor_command_system_t::get();
 

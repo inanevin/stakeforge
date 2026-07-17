@@ -267,8 +267,10 @@ namespace sfg
 
 	void editor_panel_inspector_t::refresh_from_available_selection(editor_panel_inspector_source_e preferred_source)
 	{
-		const editor_world_edit_context_t* edit_context		 = !_edit_world.is_null() ? &editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context() : nullptr;
-		const span_t<const entity_id_t>	   selected_entities = edit_context != nullptr ? edit_context->get_selected_entities() : span_t<const entity_id_t>{};
+		const editor_world_edit_context_t* edit_context		   = !_edit_world.is_null() ? &editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context() : nullptr;
+		const span_t<const entity_id_t>	   selected_entities   = edit_context != nullptr ? edit_context->get_selected_entities() : span_t<const entity_id_t>{};
+		const editor_panel_t*			   assets_panel		   = editor_surface_controller_t::get().find_panel(editor_panel_type_e::assets);
+		const bool						   has_asset_selection = assets_panel != nullptr && !static_cast<const editor_panel_assets_t*>(assets_panel)->is_asset_selection_empty();
 
 		vector_t<sid_t> selected_materials;
 		vector_t<sid_t> selected_samplers;
@@ -282,6 +284,9 @@ namespace sfg
 
 		if (preferred_source == editor_panel_inspector_source_e::asset)
 		{
+			if (!has_asset_selection)
+				return;
+
 			_last_source = editor_panel_inspector_source_e::asset;
 			if (has_materials)
 				set_display_material({.data = selected_materials.data(), .size = selected_materials.size()});

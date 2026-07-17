@@ -85,6 +85,8 @@ namespace sfg
 			panel.copy_entity_info();
 			break;
 		case inspector_entity_info_action_menu_paste: {
+			if (panel._allow_prefab_blocks && panel.is_selection_prefab_child())
+				break;
 			frame_vector_t<entity_id_t> entities;
 			editor_world_handle_t		world = {};
 			if (get_selected_entities_from_panel(panel._edit_world, entities, world) && panel._copied_entity_info_valid)
@@ -145,6 +147,8 @@ namespace sfg
 			panel.copy_component(panel._action_menu_type_id);
 			break;
 		case inspector_component_action_menu_paste: {
+			if (panel._allow_prefab_blocks && panel.is_selection_prefab_child())
+				break;
 			frame_vector_t<entity_id_t> entities;
 			editor_world_handle_t		world = {};
 			if (get_selected_entities_from_panel(panel._edit_world, entities, world) && panel.is_component_paste_enabled(panel._action_menu_type_id))
@@ -152,6 +156,8 @@ namespace sfg
 			break;
 		}
 		case inspector_component_action_menu_reset: {
+			if (panel._allow_prefab_blocks && panel.is_selection_prefab_child())
+				break;
 			frame_vector_t<entity_id_t> entities;
 			editor_world_handle_t		world = {};
 			if (get_selected_entities_from_panel(panel._edit_world, entities, world))
@@ -159,6 +165,8 @@ namespace sfg
 			break;
 		}
 		case inspector_component_action_menu_remove: {
+			if (panel._allow_prefab_blocks && panel.is_selection_prefab_child())
+				break;
 			frame_vector_t<entity_id_t> entities;
 			editor_world_handle_t		world = {};
 			if (get_selected_entities_from_panel(panel._edit_world, entities, world))
@@ -183,6 +191,8 @@ namespace sfg
 		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
 		if (command == 0 || command > panel._add_component_types.size())
 			return;
+		if (panel._allow_prefab_blocks && panel.is_selection_prefab_child())
+			return;
 
 		frame_vector_t<entity_id_t> entities;
 		editor_world_handle_t		world = {};
@@ -193,6 +203,8 @@ namespace sfg
 	void editor_widget_inspector_t::on_component_edit_begin(void* user_data)
 	{
 		component_edit_callback_data_t& data = *static_cast<component_edit_callback_data_t*>(user_data);
+		if (data.panel->_allow_prefab_blocks && data.panel->is_selection_prefab_child())
+			return;
 		data.panel->begin_component_edit(data.component_type);
 	}
 

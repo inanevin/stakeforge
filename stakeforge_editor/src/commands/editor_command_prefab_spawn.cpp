@@ -97,8 +97,11 @@ namespace sfg
 
 	entity_id_t editor_command_prefab_spawn_t::spawn(editor_world_handle_t world, resource_handle_t prefab, entity_id_t parent)
 	{
-		editor_command_system_t&		command_system		 = editor_command_system_t::get();
-		editor_world_controller_t&		world_controller	 = editor_world_controller_t::get();
+		editor_command_system_t&   command_system	= editor_command_system_t::get();
+		editor_world_controller_t& world_controller = editor_world_controller_t::get();
+		editor_world_t*			   target_world		= world_controller.get_editor_world(world);
+		if (parent != NULL_ENTITY_ID && !target_world->get_edit_context().is_entity_child_insertion_allowed(target_world->get_world(), parent))
+			return NULL_ENTITY_ID;
 		editor_world_edit_context_t&	selection_controller = world_controller.get_editor_world(world_controller.get_main_world_handle())->get_edit_context();
 		const span_t<const entity_id_t> selection			 = selection_controller.get_selected_entities();
 

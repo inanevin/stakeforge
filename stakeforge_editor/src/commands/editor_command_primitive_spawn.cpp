@@ -136,8 +136,12 @@ namespace sfg
 
 	entity_id_t editor_command_primitive_spawn_t::spawn(editor_world_handle_t world, editor_primitive_type_e primitive, entity_id_t parent, editor_world_folder_handle_t folder)
 	{
+		editor_world_t*				 editor_world = editor_world_controller_t::get().get_editor_world(world);
+		editor_world_edit_context_t& context	  = editor_world->get_edit_context();
+		if (parent != NULL_ENTITY_ID && !context.is_entity_child_insertion_allowed(editor_world->get_world(), parent))
+			return NULL_ENTITY_ID;
+
 		editor_command_system_t&		command_system = editor_command_system_t::get();
-		editor_world_edit_context_t&	context		   = editor_world_controller_t::get().get_editor_world(world)->get_edit_context();
 		const span_t<const entity_id_t> selection	   = context.get_selected_entities();
 
 		editor_command_primitive_spawn_payload_t payload = {
