@@ -1124,6 +1124,7 @@ namespace sfg
 		const DXGI_FORMAT color_format = get_format(desc.texture_format);
 		const DXGI_FORMAT depth_format = get_format(desc.depth_stencil_format);
 		txt.format					   = static_cast<u8>(color_format);
+		txt.state					   = desc.initial_states;
 		txt.mip_levels				   = desc.mip_levels;
 		txt.array_length			   = desc.flags.is_set(texture_flags::tf_is_3d) ? 1 : desc.array_length;
 
@@ -1175,7 +1176,7 @@ namespace sfg
 			.ExtraHeapFlags = desc.flags.is_set(texture_flags::tf_shared) ? D3D12_HEAP_FLAG_SHARED : D3D12_HEAP_FLAG_NONE,
 		};
 
-		const D3D12_RESOURCE_STATES state = D3D12_RESOURCE_STATE_COMMON;
+		const D3D12_RESOURCE_STATES state = get_resource_state(desc.initial_states);
 
 		const D3D12_RESOURCE_ALLOCATION_INFO& allocation_info = _device->GetResourceAllocationInfo(0, 1, &resource_desc_t);
 

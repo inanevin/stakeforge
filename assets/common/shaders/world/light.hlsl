@@ -29,6 +29,14 @@
 //  OF THE POSSIBILITY OF SUCH DAMAGE.
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+struct gpu_light
+{
+	float4 position_range;
+	float4 direction_param0;
+	float4 right_param1;
+	float4 color_intensity;
+};
+
 struct gpu_point_light
 {
     float4 color_entity_index;
@@ -69,6 +77,29 @@ float get_range_attenuation(float r, float d)
 float attenuation(float r, float d)
 {
     return get_range_attenuation(r, d) / max(d*d, 1e-4); // inverse-square * clamp
+}
+
+float get_area_light_attenuation(gpu_light light, float3 world_pos, out float3 L)
+{
+	const float3 direction = normalize(light.direction_param0.xyz);
+	const float3 right = normalize(light.right_param1.xyz);
+	const float3 up = normalize(cross(direction, right));
+	const float half_height = abs(light.direction_param0.w);
+	const float half_width = abs(light.right_param1.w);
+	const float3 delta = world_pos - light.position_range.xyz;
+	const float x = clamp(dot(delta, right), -half_width, half_width);
+	const float y = clamp(dot(delta, up), -half_height, half_height);
+	const float3 closest = light.position_range.xyz + right * x + up * y;
+	const float3 light_vector = closest - world_pos;
+	const float distance_to_light = max(length(light_vector), 1e-4);
+	L = light_vector / distance_to_light;
+	float facing = dot(-L, direction);
+	if (light.direction_param0.w < 0.0)
+		facing = abs(facing);
+	else
+		facing = saturate(facing);
+	const float area = 4.0 * half_width * half_height;
+	return get_range_attenuation(light.position_range.w, distance_to_light) * area * facing / max(distance_to_light * distance_to_light, area);
 }
 
 static const float g_default_spot_blend = 0.2; 

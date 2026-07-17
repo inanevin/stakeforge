@@ -62,17 +62,13 @@ namespace sfg
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
 		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
-		const u32 state = backend.get_texture_state(selection_texture);
-		if (state != resource_state_render_target)
-		{
-			const barrier_t begin_barrier = {
-				.from_states = state,
-				.to_states	 = resource_state_render_target,
-				.texture_t	 = selection_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-			backend.cmd_barrier(cmd, {.barriers = &begin_barrier, .barrier_count = 1});
-		}
+		const barrier_t begin_barrier = {
+			.from_states = resource_state_ps_resource,
+			.to_states	 = resource_state_render_target,
+			.texture_t	 = selection_texture,
+			.flags		 = barrier_flags::baf_is_texture,
+		};
+		backend.cmd_barrier(cmd, {.barriers = &begin_barrier, .barrier_count = 1});
 
 		const render_pass_color_attachment_t selection_attachment = {
 			.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 0.0f),
@@ -194,33 +190,13 @@ namespace sfg
 
 		const vec2u16_t size = ctx.get_size();
 
-		barrier_t begin_barriers[2] = {};
-		u16		  begin_count		= 0;
-
-		u32 state = backend.get_texture_state(object_id_texture);
-		if (state != resource_state_render_target)
-		{
-			begin_barriers[begin_count++] = {
-				.from_states = state,
-				.to_states	 = resource_state_render_target,
-				.texture_t	 = object_id_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-		}
-
-		state = backend.get_texture_state(depth_texture);
-		if (state != resource_state_depth_read)
-		{
-			begin_barriers[begin_count++] = {
-				.from_states = state,
-				.to_states	 = resource_state_depth_read,
-				.texture_t	 = depth_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-		}
-
-		if (begin_count > 0)
-			backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
+		const barrier_t begin_barrier = {
+			.from_states = resource_state_copy_source,
+			.to_states	 = resource_state_render_target,
+			.texture_t	 = object_id_texture,
+			.flags		 = barrier_flags::baf_is_texture,
+		};
+		backend.cmd_barrier(cmd, {.barriers = &begin_barrier, .barrier_count = 1});
 
 		const render_pass_color_attachment_t color_attachment = {
 			.clear_color = vec4f_t(static_cast<f32>(NULL_ENTITY_ID), 0.0f, 0.0f, 0.0f),
@@ -457,17 +433,13 @@ namespace sfg
 		const gpu_index_t  selection_texture_index = ctx.get_selection_texture_index(frame_index);
 		const gpu_index_t  composite_data_index	   = ctx.get_composite_data_index(frame_index);
 
-		const u32 state = backend.get_texture_state(editor_texture);
-		if (state != resource_state_render_target)
-		{
-			const barrier_t begin_barrier = {
-				.from_states = state,
-				.to_states	 = resource_state_render_target,
-				.texture_t	 = editor_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-			backend.cmd_barrier(cmd, {.barriers = &begin_barrier, .barrier_count = 1});
-		}
+		const barrier_t begin_barrier = {
+			.from_states = resource_state_ps_resource,
+			.to_states	 = resource_state_render_target,
+			.texture_t	 = editor_texture,
+			.flags		 = barrier_flags::baf_is_texture,
+		};
+		backend.cmd_barrier(cmd, {.barriers = &begin_barrier, .barrier_count = 1});
 
 		const render_pass_color_attachment_t color_attachment = {
 			.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),

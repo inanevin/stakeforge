@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/type_id.hpp>
 
+#include "barrier_description.hpp"
 #include "format.hpp"
 #include "gfx_constants.hpp"
 #include "shader_description.hpp"
@@ -209,6 +210,7 @@ namespace sfg
 
 		format_e	   texture_format			  = format_e::r8g8b8a8_srgb;
 		format_e	   depth_stencil_format		  = format_e::d16_unorm;
+		u32			   initial_states			  = resource_state_common;
 		vec2u16_t	   size						  = vec2u16_t::zero;
 		bitmask_t<u16> flags					  = 0;
 		view_desc_t	   views[MAX_VIEWS]			  = {{}};

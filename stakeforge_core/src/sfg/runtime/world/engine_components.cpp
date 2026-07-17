@@ -170,6 +170,125 @@ namespace sfg
 			});
 		}
 
+		void register_component_light_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name		  = "light_type_e",
+				.display_name = "Light Type",
+				.tooltip	  = "Light shape and attenuation model evaluated by deferred lighting.",
+				.fields =
+					{
+						{.name = "directional", .display_name = "Directional", .tooltip = "Infinite-distance light with a uniform direction and no distance attenuation."},
+						{.name = "point", .display_name = "Point", .tooltip = "Omnidirectional inverse-square light emitted from the entity position."},
+						{.name = "spot", .display_name = "Spot", .tooltip = "Cone-shaped inverse-square light emitted along the entity forward axis."},
+						{.name = "area", .display_name = "Area", .tooltip = "Rectangular emitter oriented by the entity transform."},
+					},
+				.type_id   = type_id_t<light_type_e>::value,
+				.size	   = sizeof(light_type_e),
+				.alignment = alignof(light_type_e),
+				.flags	   = reflected_type_flag_enum,
+			});
+
+			registry.register_type({
+				.name			 = "component_light",
+				.display_name	 = "Light",
+				.tooltip		 = "Deferred scene light supporting directional, point, spot, and rectangular area emission.",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_light_t*>(ptr), component_light_t{}); },
+				.fields =
+					{
+						{.name		   = "type",
+						 .display_name = "Type",
+						 .tooltip	   = "Selects the light shape and attenuation model.",
+						 .sub_type_id  = type_id_t<light_type_e>::value,
+						 .offset	   = offsetof(component_light_t, type),
+						 .size		   = sizeof(light_type_e),
+						 .type		   = reflected_value_type_e::u8},
+						{.name		   = "color",
+						 .display_name = "Color",
+						 .tooltip	   = "Linear light color before the intensity multiplier.",
+						 .sub_type_id  = type_id_t<color_t>::value,
+						 .offset	   = offsetof(component_light_t, color),
+						 .size		   = sizeof(color_t),
+						 .type		   = reflected_value_type_e::object},
+						{.name = "intensity", .display_name = "Intensity", .tooltip = "Radiometric intensity multiplier applied to the light color.", .offset = offsetof(component_light_t, intensity), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name		   = "range",
+						 .display_name = "Range",
+						 .tooltip	   = "Smooth cutoff distance in world units; zero disables the finite-range cutoff.",
+						 .offset	   = offsetof(component_light_t, range),
+						 .size		   = sizeof(f32),
+						 .type		   = reflected_value_type_e::f32},
+						{.ui_definition		= {.dependency_field = "type"_hs, .dependency_value = static_cast<u32>(light_type_e::spot)},
+						 .name				= "inner_cone_degrees",
+						 .display_name		= "Inner Cone",
+						 .tooltip			= "Spotlight half-angle in degrees where emission remains at full strength.",
+						 .offset			= offsetof(component_light_t, inner_cone_degrees),
+						 .size				= sizeof(f32),
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 179.0f,
+						 .clamp_granularity = 0.1f,
+						 .type				= reflected_value_type_e::f32},
+						{.ui_definition		= {.dependency_field = "type"_hs, .dependency_value = static_cast<u32>(light_type_e::spot)},
+						 .name				= "outer_cone_degrees",
+						 .display_name		= "Outer Cone",
+						 .tooltip			= "Spotlight half-angle in degrees where emission reaches zero.",
+						 .offset			= offsetof(component_light_t, outer_cone_degrees),
+						 .size				= sizeof(f32),
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 179.0f,
+						 .clamp_granularity = 0.1f,
+						 .type				= reflected_value_type_e::f32},
+						{.ui_definition = {.dependency_field = "type"_hs, .dependency_value = static_cast<u32>(light_type_e::area)},
+						 .name			= "area_size",
+						 .display_name	= "Area Size",
+						 .tooltip		= "Full width and height of the rectangular emitter in world units.",
+						 .sub_type_id	= type_id_t<vec2f_t>::value,
+						 .offset		= offsetof(component_light_t, area_size),
+						 .size			= sizeof(vec2f_t),
+						 .type			= reflected_value_type_e::object},
+						{.ui_definition = {.dependency_field = "type"_hs, .dependency_value = static_cast<u32>(light_type_e::area)},
+						 .name			= "two_sided",
+						 .display_name	= "Two Sided",
+						 .tooltip		= "Emits from both faces of the rectangular area light.",
+						 .offset		= offsetof(component_light_t, two_sided),
+						 .size			= sizeof(u8),
+						 .type			= reflected_value_type_e::boolean},
+						{.name		   = "cast_shadows",
+						 .display_name = "Cast Shadows",
+						 .tooltip	   = "Reserves the light for shadow rendering when shadow support is enabled.",
+						 .offset	   = offsetof(component_light_t, cast_shadows),
+						 .size		   = sizeof(u8),
+						 .type		   = reflected_value_type_e::boolean},
+						{.name		   = "shadow_near_plane",
+						 .display_name = "Shadow Near Plane",
+						 .tooltip	   = "Near clipping distance used by point and spot shadow projections.",
+						 .offset	   = offsetof(component_light_t, shadow_near_plane),
+						 .size		   = sizeof(f32),
+						 .type		   = reflected_value_type_e::f32},
+						{.name		   = "shadow_resolution",
+						 .display_name = "Shadow Resolution",
+						 .tooltip	   = "Requested shadow-map width and height when shadows are enabled.",
+						 .sub_type_id  = type_id_t<vec2u16_t>::value,
+						 .offset	   = offsetof(component_light_t, shadow_resolution),
+						 .size		   = sizeof(vec2u16_t),
+						 .type		   = reflected_value_type_e::object},
+						{.ui_definition		= {.dependency_field = "type"_hs, .dependency_value = static_cast<u32>(light_type_e::directional)},
+						 .name				= "shadow_cascade_count",
+						 .display_name		= "Shadow Cascades",
+						 .tooltip			= "Requested directional shadow cascade count when shadows are enabled.",
+						 .offset			= offsetof(component_light_t, shadow_cascade_count),
+						 .size				= sizeof(u8),
+						 .min_clamp			= 1.0f,
+						 .max_clamp			= 8.0f,
+						 .clamp_granularity = 1.0f,
+						 .type				= reflected_value_type_e::u8},
+					},
+				.type_id   = type_id_t<component_light_t>::value,
+				.size	   = sizeof(component_light_t),
+				.alignment = alignof(component_light_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
 		void register_component_skybox_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -674,6 +793,7 @@ namespace sfg
 		register_component_name_reflection(registry);
 		register_component_mesh_renderer_reflection(registry);
 		register_component_camera_reflection(registry);
+		register_component_light_reflection(registry);
 		register_component_post_process_reflection(registry);
 		register_component_skybox_reflection(registry);
 		register_component_prefab_reference_reflection(registry);

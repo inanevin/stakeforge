@@ -31,6 +31,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/inplace_vector.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/quat.hpp>
+#include <sfg/math/vec2f.hpp>
+#include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
@@ -101,6 +103,36 @@ namespace sfg
 	};
 
 	SFG_DEFINE_TYPE_ID(component_camera_t);
+
+	enum class light_type_e : u8
+	{
+		directional,
+		point,
+		spot,
+		area,
+	};
+
+	SFG_DEFINE_TYPE_ID(light_type_e);
+
+	struct component_light_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_light";
+
+		color_t		 color				  = color_t::white;
+		vec2f_t		 area_size			  = {1.0f, 1.0f};
+		f32			 intensity			  = 1.0f;
+		f32			 range				  = 10.0f;
+		f32			 inner_cone_degrees	  = 30.0f;
+		f32			 outer_cone_degrees	  = 45.0f;
+		f32			 shadow_near_plane	  = 0.1f;
+		vec2u16_t	 shadow_resolution	  = {1024, 1024};
+		light_type_e type				  = light_type_e::point;
+		u8			 shadow_cascade_count = 4;
+		u8			 cast_shadows		  = 0;
+		u8			 two_sided			  = 0;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_light_t);
 
 	enum class tonemap_mode_e : u8
 	{

@@ -149,6 +149,7 @@ namespace sfg
 	{
 		texture_desc_t desc = {};
 		desc.texture_format = format_e::r8g8b8a8_srgb;
+		desc.initial_states = resource_state_ps_resource;
 		desc.size			= size;
 		desc.flags			= texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
 		desc.view_count		= 2;
@@ -170,6 +171,7 @@ namespace sfg
 		object_id_desc.clear_values[2] = 0.0f;
 		object_id_desc.clear_values[3] = 0.0f;
 		object_id_desc.texture_format  = format_e::r32_uint;
+		object_id_desc.initial_states  = resource_state_copy_source;
 		object_id_desc.size			   = size;
 		object_id_desc.flags		   = texture_flags::tf_render_target | texture_flags::tf_transfer_source | texture_flags::tf_is_2d;
 		object_id_desc.view_count	   = 1;

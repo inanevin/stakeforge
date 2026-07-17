@@ -56,6 +56,7 @@ namespace sfg
 #define EDITOR_WORLD_DEBUG_TEXT_BYTE_RESERVE	32768
 #define EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX		16384
 #define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX		24576
+#define EDITOR_WORLD_LIGHT_MAX					1024
 
 	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle)
 	{
@@ -88,6 +89,7 @@ namespace sfg
 		_render_resolution = init_config.render_resolution;
 		_render_context.init({
 			.size			 = init_config.render_resolution,
+			.light_max		 = EDITOR_WORLD_LIGHT_MAX,
 			.line_vertex_max = EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
 			.line_index_max	 = EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
 			.text_vertex_max = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
@@ -98,7 +100,7 @@ namespace sfg
 
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
-			_snapshot_slots[i].reserve(8000, EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE, EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE, EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX, EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX);
+			_snapshot_slots[i].reserve(8000, EDITOR_WORLD_LIGHT_MAX, EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE, EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE, EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX, EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX);
 
 			editor_world_snapshot_data_t* data = new editor_world_snapshot_data_t();
 			data->selected_entities.reserve(256);

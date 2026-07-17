@@ -52,8 +52,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
 
-#include <algorithm>
-
 namespace sfg
 {
 #define EDITOR_THUMBNAIL_RENDER_SIZE			 256
@@ -120,6 +118,7 @@ namespace sfg
 
 		texture_desc_t thumbnail_texture_desc = {};
 		thumbnail_texture_desc.texture_format = format_e::r8g8b8a8_srgb;
+		thumbnail_texture_desc.initial_states = resource_state_copy_source;
 		thumbnail_texture_desc.size			  = vec2u16_t(EDITOR_THUMBNAIL_RENDER_SIZE, EDITOR_THUMBNAIL_RENDER_SIZE);
 		thumbnail_texture_desc.flags		  = texture_flags::tf_render_target | texture_flags::tf_transfer_source | texture_flags::tf_is_2d;
 		thumbnail_texture_desc.view_count	  = 1;
@@ -138,7 +137,7 @@ namespace sfg
 		_render_context.init({.size = _world_config.render_resolution, .enable_ssao = 0, .enable_bloom = 1});
 		const shader_internals_t* shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/thumbnail_capture_copy.hlsl"_hs);
 		_thumbnail_shader				 = render_resources_t::get().get_shader_hw(shader->psos[0]);
-		_snapshot.reserve(64, 0, 0, 0, 0);
+		_snapshot.reserve(64, 0, 0, 0, 0, 0);
 		_prep_data.reserve(10);
 		_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_available_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
@@ -595,34 +594,13 @@ namespace sfg
 		backend.queue_wait(queue_gfx, &_semaphore_frame.sem, &_semaphore_frame.value, 1);
 		backend.reset_command_buffer(cmd);
 
-		const gfx_handle_t world_texture	 = _render_context.get_world_texture(0);
-		barrier_t		   begin_barriers[2] = {};
-		u16				   begin_count		 = 0;
-
-		u32 state = backend.get_texture_state(world_texture);
-		if (state != resource_state_ps_resource)
-		{
-			begin_barriers[begin_count++] = {
-				.from_states = state,
-				.to_states	 = resource_state_ps_resource,
-				.texture_t	 = world_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-		}
-
-		state = backend.get_texture_state(_thumbnail_texture);
-		if (state != resource_state_render_target)
-		{
-			begin_barriers[begin_count++] = {
-				.from_states = state,
-				.to_states	 = resource_state_render_target,
-				.texture_t	 = _thumbnail_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-		}
-
-		if (begin_count > 0)
-			backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
+		const barrier_t begin_barrier = {
+			.from_states = resource_state_copy_source,
+			.to_states	 = resource_state_render_target,
+			.texture_t	 = _thumbnail_texture,
+			.flags		 = barrier_flags::baf_is_texture,
+		};
+		backend.cmd_barrier(cmd, {.barriers = &begin_barrier, .barrier_count = 1});
 
 		const render_pass_color_attachment_t color_attachment = {
 			.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),

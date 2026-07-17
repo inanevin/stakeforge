@@ -36,8 +36,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/commands.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/job/job_system.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/math/mat3x3.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
@@ -115,6 +118,43 @@ namespace sfg
 			}
 		}
 
+		u32 light_counts[4] = {};
+		{
+			SFG_ASSERT(snapshot.lights.size() <= ctx.get_light_max());
+			gpu_light_t* light_buffer = reinterpret_cast<gpu_light_t*>(ctx.get_mapped_light_buffer(frame_index));
+			for (size_t i = 0; i < snapshot.lights.size(); ++i)
+			{
+				const world_render_light_t& light = snapshot.lights[i];
+				SFG_ASSERT(light.type < static_cast<u32>(world_render_light_type_e::count));
+				++light_counts[light.type];
+
+				const vec3f_t pos	  = vec3f_t::lerp(light.prev_pos, light.pos, interpolation_alpha);
+				const quat_t  rot	  = quat_t::slerp(light.prev_rot, light.rot, interpolation_alpha);
+				const vec3f_t forward = rot.get_forward();
+				const vec3f_t right	  = rot.get_right();
+				f32			  param0  = 0.0f;
+				f32			  param1  = 0.0f;
+
+				if (light.type == static_cast<u32>(world_render_light_type_e::spot))
+				{
+					param0 = std::cos(math::degrees_to_radians(light.inner_cone_degrees));
+					param1 = std::cos(math::degrees_to_radians(light.outer_cone_degrees));
+				}
+				else if (light.type == static_cast<u32>(world_render_light_type_e::area))
+				{
+					param0 = light.area_height * ((light.flags & 1u) != 0 ? -0.5f : 0.5f);
+					param1 = light.area_width * 0.5f;
+				}
+
+				light_buffer[i] = {
+					.position_range	  = {pos.x, pos.y, pos.z, light.range},
+					.direction_param0 = {forward.x, forward.y, forward.z, param0},
+					.right_param1	  = {right.x, right.y, right.z, param1},
+					.color_intensity  = {light.color.x, light.color.y, light.color.z, light.intensity},
+				};
+			}
+		}
+
 		render_view_t main_camera_view_t = {};
 		main_camera_view_t.calculate(snapshot.main_view, ctx.get_size(), interpolation_alpha);
 
@@ -173,6 +213,7 @@ namespace sfg
 			.inv_view	   = main_camera_view_t.inv_view,
 			.camera_pos	   = vec4f_t(main_camera_view_t.pos.x, main_camera_view_t.pos.y, main_camera_view_t.pos.z, 1.0f),
 			.skybox_params = vec4f_t(snapshot.skybox.intensity, snapshot.skybox.exposure, snapshot.skybox.rotation, snapshot.skybox.prefilter_max_lod),
+			.light_counts  = {light_counts[0], light_counts[1], light_counts[2], light_counts[3]},
 		};
 		SFG_MEMCPY(ctx.get_mapped_lighting_render_pass_data(frame_index), &lighting_render_pass_data, sizeof(render_pass_data_lighting_gpu_t));
 
@@ -205,92 +246,102 @@ namespace sfg
 		const gfx_handle_t cmd_depth	= ctx.get_command_buffer_depth(frame_index);
 		const gfx_handle_t cmd_gbuffer	= ctx.get_command_buffer_gbuffer(frame_index);
 		const gfx_handle_t cmd_lighting = ctx.get_command_buffer_lighting(frame_index);
+		const gfx_handle_t cmd_forward	= ctx.get_command_buffer_forward(frame_index);
 		const gfx_handle_t cmd_post		= ctx.get_command_buffer_post(frame_index);
+		const bool		   ssao_active	= ctx.is_ssao_enabled() && snapshot.post_process.ssao.enabled != 0;
+		const bool		   bloom_active = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
 
-		backend.reset_command_buffer(cmd_depth);
-		backend.cmd_bind_layout(cmd_depth, {.layout = global_layout});
-		backend.cmd_bind_constants(cmd_depth, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
-		render_depth_prepass(ctx, snapshot, prep_data, frame_index);
-		backend.close_command_buffer(cmd_depth);
-
-		backend.reset_command_buffer(cmd_gbuffer);
-		backend.cmd_bind_layout(cmd_gbuffer, {.layout = global_layout});
-		backend.cmd_bind_constants(cmd_gbuffer, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
-		render_gbuffer(ctx, snapshot, prep_data, frame_index);
-		backend.close_command_buffer(cmd_gbuffer);
-
-		const bool ssao_active = ctx.is_ssao_enabled() && snapshot.post_process.ssao.enabled != 0;
-		if (ssao_active)
-		{
-			const gfx_handle_t cmd_ssao = ctx.get_command_buffer_ssao(frame_index);
-			backend.reset_command_buffer(cmd_ssao);
-			backend.cmd_bind_layout_compute(cmd_ssao, {.layout = render_globals_t::get_global_compute_bind_layout()});
-			backend.cmd_bind_constants_compute(cmd_ssao, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
-			render_ssao(ctx, snapshot, prep_data, frame_index);
-			backend.close_command_buffer(cmd_ssao);
-		}
-
-		backend.reset_command_buffer(cmd_lighting);
-		backend.cmd_bind_layout(cmd_lighting, {.layout = global_layout});
-		backend.cmd_bind_constants(cmd_lighting, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
-		render_lighting(ctx, snapshot, prep_data, frame_index);
-		backend.close_command_buffer(cmd_lighting);
-
-		const bool bloom_active = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
 		if (bloom_active)
 		{
 			const render_pass_data_bloom_gpu_t bloom_render_pass_data = {
 				.filter_radius = snapshot.post_process.bloom.filter_radius,
 			};
 			SFG_MEMCPY(ctx.get_mapped_bloom_render_pass_data(frame_index), &bloom_render_pass_data, sizeof(render_pass_data_bloom_gpu_t));
-
-			const gfx_handle_t cmd_bloom = ctx.get_command_buffer_bloom(frame_index);
-			backend.reset_command_buffer(cmd_bloom);
-			backend.cmd_bind_layout_compute(cmd_bloom, {.layout = render_globals_t::get_global_compute_bind_layout()});
-			backend.cmd_bind_constants_compute(cmd_bloom, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
-			render_bloom(ctx, snapshot, prep_data, frame_index);
-			backend.close_command_buffer(cmd_bloom);
 		}
-
-		backend.reset_command_buffer(cmd_post);
-		backend.cmd_bind_layout(cmd_post, {.layout = global_layout});
-		backend.cmd_bind_constants(cmd_post, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
-		render_post_process(ctx, snapshot, prep_data, frame_index);
-		backend.close_command_buffer(cmd_post);
 
 		const gfx_handle_t queue_gfx	 = backend.get_queue_gfx();
 		const gfx_handle_t queue_compute = backend.get_queue_compute();
-		backend.submit_commands(queue_gfx, &cmd_depth, 1);
+		job_system_t&	   jobs			 = job_system_t::get();
+		static job_graph_t render_graph;
+
+		render_graph.clear();
+		render_graph.emplace([&]() {
+			render_access_scope_t render_scope;
+			render_depth_prepass(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+		});
+		render_graph.emplace([&]() {
+			render_access_scope_t render_scope;
+			render_gbuffer(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+		});
+		if (ssao_active)
+		{
+			render_graph.emplace([&]() {
+				render_access_scope_t render_scope;
+				render_ssao(ctx, snapshot, prep_data, frame_index, global_cbv_index);
+			});
+		}
+		jobs.run(render_graph).wait();
+
+		const gfx_handle_t depth_gbuffer_commands[2] = {cmd_depth, cmd_gbuffer};
+		backend.submit_commands(queue_gfx, depth_gbuffer_commands, 2);
 
 		gfx_handle_t ssao_semaphore = {};
 		u64			 gbuffer_ready	= 0;
 		u64			 ssao_ready		= 0;
 		if (ssao_active)
 		{
-			ssao_semaphore = ctx.get_ssao_semaphore(frame_index);
-			gbuffer_ready  = ctx.next_ssao_semaphore_value(frame_index);
-			ssao_ready	   = ctx.next_ssao_semaphore_value(frame_index);
-		}
-
-		backend.submit_commands(queue_gfx, &cmd_gbuffer, 1);
-		if (ssao_active)
-		{
+			ssao_semaphore				= ctx.get_ssao_semaphore(frame_index);
+			gbuffer_ready				= ctx.next_ssao_semaphore_value(frame_index);
+			ssao_ready					= ctx.next_ssao_semaphore_value(frame_index);
 			const gfx_handle_t cmd_ssao = ctx.get_command_buffer_ssao(frame_index);
 			backend.queue_signal(queue_gfx, &ssao_semaphore, &gbuffer_ready, 1);
 			backend.queue_wait(queue_compute, &ssao_semaphore, &gbuffer_ready, 1);
 			backend.submit_commands(queue_compute, &cmd_ssao, 1);
 			backend.queue_signal(queue_compute, &ssao_semaphore, &ssao_ready, 1);
-			backend.queue_wait(queue_gfx, &ssao_semaphore, &ssao_ready, 1);
 		}
 
-		backend.submit_commands(queue_gfx, &cmd_lighting, 1);
+		render_graph.clear();
+		render_graph.emplace([&]() {
+			render_access_scope_t render_scope;
+			render_lighting(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+			render_forward(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+		});
+		jobs.run(render_graph).wait();
+
+		if (ssao_active)
+			backend.queue_wait(queue_gfx, &ssao_semaphore, &ssao_ready, 1);
+
+		const gfx_handle_t lighting_forward_commands[2] = {cmd_lighting, cmd_forward};
+		backend.submit_commands(queue_gfx, lighting_forward_commands, 2);
+
+		gfx_handle_t bloom_semaphore = {};
+		u64			 lighting_ready	 = 0;
+		u64			 bloom_ready	 = 0;
 		if (bloom_active)
 		{
-			const gfx_handle_t bloom_semaphore = ctx.get_bloom_semaphore(frame_index);
-			const u64		   lighting_ready  = ctx.next_bloom_semaphore_value(frame_index);
-			const u64		   bloom_ready	   = ctx.next_bloom_semaphore_value(frame_index);
-			const gfx_handle_t cmd_bloom	   = ctx.get_command_buffer_bloom(frame_index);
+			bloom_semaphore = ctx.get_bloom_semaphore(frame_index);
+			lighting_ready	= ctx.next_bloom_semaphore_value(frame_index);
+			bloom_ready		= ctx.next_bloom_semaphore_value(frame_index);
 			backend.queue_signal(queue_gfx, &bloom_semaphore, &lighting_ready, 1);
+		}
+
+		render_graph.clear();
+		render_graph.emplace([&]() {
+			render_access_scope_t render_scope;
+			render_post_process(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+		});
+		if (bloom_active)
+		{
+			render_graph.emplace([&]() {
+				render_access_scope_t render_scope;
+				render_bloom(ctx, snapshot, prep_data, frame_index, global_cbv_index);
+			});
+		}
+		jobs.run(render_graph).wait();
+
+		if (bloom_active)
+		{
+			const gfx_handle_t cmd_bloom = ctx.get_command_buffer_bloom(frame_index);
 			backend.queue_wait(queue_compute, &bloom_semaphore, &lighting_ready, 1);
 			backend.submit_commands(queue_compute, &cmd_bloom, 1);
 			backend.queue_signal(queue_compute, &bloom_semaphore, &bloom_ready, 1);
@@ -299,30 +350,24 @@ namespace sfg
 		backend.submit_commands(queue_gfx, &cmd_post, 1);
 	}
 
-	void world_rendering_t::render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index)
+	void world_rendering_t::render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
 		const gfx_handle_t	cmd			  = ctx.get_command_buffer_depth(frame_index);
 		const gfx_handle_t	depth_texture = ctx.get_depth_texture(frame_index);
 		render_resources_t& rr			  = render_resources_t::get();
+		backend.reset_command_buffer(cmd);
+		backend.cmd_bind_layout(cmd, {.layout = global_layout});
+		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
-		barrier_t begin_barriers[1] = {};
-		u16		  begin_count		= 0;
-
-		u32 state = backend.get_texture_state(depth_texture);
-		if (state != resource_state_depth_write)
-		{
-			begin_barriers[begin_count++] = {
-				.from_states = state,
-				.to_states	 = resource_state_depth_write,
-				.texture_t	 = depth_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-		}
-
-		if (begin_count > 0)
-			backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
+		const barrier_t begin_barrier = {
+			.from_states = resource_state_depth_read | resource_state_non_ps_resource | resource_state_ps_resource,
+			.to_states	 = resource_state_depth_write,
+			.texture_t	 = depth_texture,
+			.flags		 = barrier_flags::baf_is_texture,
+		};
+		backend.cmd_barrier(cmd, {.barriers = &begin_barrier, .barrier_count = 1});
 
 		BEGIN_DEBUG_EVENT((&backend), cmd, "world_depth_prepass");
 		backend.cmd_begin_render_pass_depth_only(cmd,
@@ -416,9 +461,10 @@ namespace sfg
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 		backend.cmd_barrier(cmd, {.barriers = &depth_read_barrier, .barrier_count = 1});
+		backend.close_command_buffer(cmd);
 	}
 
-	void world_rendering_t::render_gbuffer(const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index)
+	void world_rendering_t::render_gbuffer(const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -429,25 +475,38 @@ namespace sfg
 		const gfx_handle_t	gbuffer_orm		 = ctx.get_gbuffer_orm_texture(frame_index);
 		const gfx_handle_t	gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
 		render_resources_t& rr				 = render_resources_t::get();
+		backend.reset_command_buffer(cmd);
+		backend.cmd_bind_layout(cmd, {.layout = global_layout});
+		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
-		barrier_t		   begin_barriers[4]   = {};
 		const gfx_handle_t gbuffer_textures[4] = {gbuffer_albedo, gbuffer_normal, gbuffer_orm, gbuffer_emissive};
-		u16				   begin_count		   = 0;
-		for (u8 i = 0; i < 4; ++i)
-		{
-			const u32 state = backend.get_texture_state(gbuffer_textures[i]);
-			if (state != resource_state_render_target)
+		const barrier_t	   begin_barriers[4]   = {
 			{
-				begin_barriers[begin_count++] = {
-					.from_states = state,
-					.to_states	 = resource_state_render_target,
-					.texture_t	 = gbuffer_textures[i],
-					.flags		 = barrier_flags::baf_is_texture,
-				};
-			}
-		}
-		if (begin_count > 0)
-			backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
+				.from_states = resource_state_ps_resource,
+				.to_states	 = resource_state_render_target,
+				.texture_t	 = gbuffer_textures[0],
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+			{
+				.from_states = resource_state_non_ps_resource | resource_state_ps_resource,
+				.to_states	 = resource_state_render_target,
+				.texture_t	 = gbuffer_textures[1],
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+			{
+				.from_states = resource_state_ps_resource,
+				.to_states	 = resource_state_render_target,
+				.texture_t	 = gbuffer_textures[2],
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+			{
+				.from_states = resource_state_ps_resource,
+				.to_states	 = resource_state_render_target,
+				.texture_t	 = gbuffer_textures[3],
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+		};
+		backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = 4});
 
 		const render_pass_color_attachment_t color_attachments[4] = {
 			{
@@ -570,7 +629,6 @@ namespace sfg
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
 
-		const bool		ssao_active		= ctx.is_ssao_enabled() && ss.post_process.ssao.enabled != 0;
 		const barrier_t end_barriers[4] = {
 			{
 				.from_states = resource_state_render_target,
@@ -580,7 +638,7 @@ namespace sfg
 			},
 			{
 				.from_states = resource_state_render_target,
-				.to_states	 = ssao_active ? resource_state_non_ps_resource : resource_state_ps_resource,
+				.to_states	 = resource_state_non_ps_resource | resource_state_ps_resource,
 				.texture_t	 = gbuffer_normal,
 				.flags		 = barrier_flags::baf_is_texture,
 			},
@@ -598,24 +656,28 @@ namespace sfg
 			},
 		};
 		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = 4});
+		backend.close_command_buffer(cmd);
 	}
 
-	void world_rendering_t::render_ssao(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
+	void world_rendering_t::render_ssao(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index)
 	{
 		gfx_backend&	   backend = gfx_backend::get();
 		const gfx_handle_t cmd	   = ctx.get_command_buffer_ssao(frame_index);
 		const gfx_handle_t ao_half = ctx.get_ao_half_texture(frame_index);
 		const gfx_handle_t ao_full = ctx.get_ao_texture(frame_index);
+		backend.reset_command_buffer(cmd);
+		backend.cmd_bind_layout_compute(cmd, {.layout = render_globals_t::get_global_compute_bind_layout()});
+		backend.cmd_bind_constants_compute(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
 		barrier_t begin_barriers[2] = {};
 		begin_barriers[0]			= {
-			.from_states = backend.get_texture_state(ao_half),
+			.from_states = resource_state_non_ps_resource,
 			.to_states	 = resource_state_uav,
 			.texture_t	 = ao_half,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 		begin_barriers[1] = {
-			.from_states = backend.get_texture_state(ao_full),
+			.from_states = resource_state_non_ps_resource,
 			.to_states	 = resource_state_uav,
 			.texture_t	 = ao_full,
 			.flags		 = barrier_flags::baf_is_texture,
@@ -666,59 +728,39 @@ namespace sfg
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 		backend.cmd_barrier(cmd, {.barriers = &full_read_barrier, .barrier_count = 1});
+		backend.close_command_buffer(cmd);
 	}
 
-	void world_rendering_t::render_lighting(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
+	void world_rendering_t::render_lighting(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
 		const gfx_handle_t cmd				= ctx.get_command_buffer_lighting(frame_index);
 		const gfx_handle_t lighting_texture = ctx.get_lighting_texture(frame_index);
 		const bool		   ssao_active		= ctx.is_ssao_enabled() && snapshot.post_process.ssao.enabled != 0;
+		backend.reset_command_buffer(cmd);
+		backend.cmd_bind_layout(cmd, {.layout = global_layout});
+		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
-		barrier_t begin_barriers[3] = {};
-		u16		  begin_count		= 0;
-
-		u32 lighting_state = backend.get_texture_state(lighting_texture);
-		if (lighting_state != resource_state_render_target)
-		{
-			begin_barriers[begin_count++] = {
-				.from_states = lighting_state,
+		barrier_t begin_barriers[2] = {
+			{
+				.from_states = resource_state_ps_resource,
 				.to_states	 = resource_state_render_target,
 				.texture_t	 = lighting_texture,
 				.flags		 = barrier_flags::baf_is_texture,
-			};
-		}
-
+			},
+		};
+		u16 begin_count = 1;
 		if (ssao_active)
 		{
-			const gfx_handle_t normal_texture = ctx.get_gbuffer_normal_texture(frame_index);
-			const u32		   normal_state	  = backend.get_texture_state(normal_texture);
-			if (normal_state != resource_state_ps_resource)
-			{
-				begin_barriers[begin_count++] = {
-					.from_states = normal_state,
-					.to_states	 = resource_state_ps_resource,
-					.texture_t	 = normal_texture,
-					.flags		 = barrier_flags::baf_is_texture,
-				};
-			}
-
-			const gfx_handle_t ao_texture = ctx.get_ao_texture(frame_index);
-			const u32		   ao_state	  = backend.get_texture_state(ao_texture);
-			if (ao_state != resource_state_ps_resource)
-			{
-				begin_barriers[begin_count++] = {
-					.from_states = ao_state,
-					.to_states	 = resource_state_ps_resource,
-					.texture_t	 = ao_texture,
-					.flags		 = barrier_flags::baf_is_texture,
-				};
-			}
+			begin_barriers[begin_count++] = {
+				.from_states = resource_state_non_ps_resource,
+				.to_states	 = resource_state_ps_resource,
+				.texture_t	 = ctx.get_ao_texture(frame_index),
+				.flags		 = barrier_flags::baf_is_texture,
+			};
 		}
-
-		if (begin_count > 0)
-			backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
+		backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
 
 		const render_pass_color_attachment_t color_attachment = {
 			.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
@@ -736,7 +778,7 @@ namespace sfg
 
 		const render_resources_t& render_resources = render_resources_t::get();
 		const gpu_index_t		  ao_index		   = ssao_active ? ctx.get_ao_texture_index(frame_index) : render_resources.get_texture_gpu_index(render_resources.get_white_texture(), 0);
-		gpu_index_t				  rp_constants[11] = {
+		gpu_index_t				  rp_constants[12] = {
 			ctx.get_lighting_render_pass_data_index(frame_index),
 			ctx.get_gbuffer_albedo_index(frame_index),
 			ctx.get_gbuffer_normal_index(frame_index),
@@ -748,43 +790,47 @@ namespace sfg
 			snapshot.skybox.irradiance.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.irradiance, 0),
 			snapshot.skybox.prefilter.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.prefilter, 0),
 			snapshot.skybox.brdf_lut.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.brdf_lut, 0),
+			ctx.get_light_buffer_index(frame_index),
 		};
-		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 11, .param_index = 0});
+		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 12, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_lighting_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
 
-		barrier_t end_barriers[2] = {};
-		u16		  end_count		  = 0;
-		if (ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0)
-		{
-			end_barriers[end_count++] = {
-				.from_states = resource_state_render_target,
-				.to_states	 = resource_state_non_ps_resource,
-				.texture_t	 = lighting_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-		}
 		if (ssao_active)
 		{
-			end_barriers[end_count++] = {
+			const barrier_t end_barrier = {
 				.from_states = resource_state_ps_resource,
 				.to_states	 = resource_state_non_ps_resource,
 				.texture_t	 = ctx.get_ao_texture(frame_index),
 				.flags		 = barrier_flags::baf_is_texture,
 			};
+			backend.cmd_barrier(cmd, {.barriers = &end_barrier, .barrier_count = 1});
 		}
-		if (end_count > 0)
-			backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = end_count});
+		backend.close_command_buffer(cmd);
 	}
 
-	void world_rendering_t::render_forward(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
+	void world_rendering_t::render_forward(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
+		gfx_backend&	   backend		= gfx_backend::get();
+		const gfx_handle_t cmd			= ctx.get_command_buffer_forward(frame_index);
+		const bool		   bloom_active = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
+		backend.reset_command_buffer(cmd);
+		backend.cmd_bind_layout(cmd, {.layout = global_layout});
+		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
+		const barrier_t end_barrier = {
+			.from_states = resource_state_render_target,
+			.to_states	 = bloom_active ? resource_state_non_ps_resource : resource_state_ps_resource,
+			.texture_t	 = ctx.get_lighting_texture(frame_index),
+			.flags		 = barrier_flags::baf_is_texture,
+		};
+		backend.cmd_barrier(cmd, {.barriers = &end_barrier, .barrier_count = 1});
+		backend.close_command_buffer(cmd);
 	}
 
-	void world_rendering_t::render_bloom(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
+	void world_rendering_t::render_bloom(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index)
 	{
 		gfx_backend&	   backend			  = gfx_backend::get();
 		const gfx_handle_t cmd				  = ctx.get_command_buffer_bloom(frame_index);
@@ -792,31 +838,9 @@ namespace sfg
 		const gfx_handle_t downsample_texture = ctx.get_bloom_downsample_texture(frame_index);
 		const gfx_handle_t upsample_texture	  = ctx.get_bloom_upsample_texture(frame_index);
 		gpu_index_t		   input_index		  = ctx.get_lighting_texture_index(frame_index);
-
-		barrier_t init_barriers[2] = {};
-		u16		  init_count	   = 0;
-		u32		  state			   = backend.get_texture_state(downsample_texture);
-		if (state != resource_state_non_ps_resource)
-		{
-			init_barriers[init_count++] = {
-				.from_states = state,
-				.to_states	 = resource_state_non_ps_resource,
-				.texture_t	 = downsample_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-		}
-		state = backend.get_texture_state(upsample_texture);
-		if (state != resource_state_non_ps_resource)
-		{
-			init_barriers[init_count++] = {
-				.from_states = state,
-				.to_states	 = resource_state_non_ps_resource,
-				.texture_t	 = upsample_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-		}
-		if (init_count > 0)
-			backend.cmd_barrier(cmd, {.barriers = init_barriers, .barrier_count = init_count});
+		backend.reset_command_buffer(cmd);
+		backend.cmd_bind_layout_compute(cmd, {.layout = render_globals_t::get_global_compute_bind_layout()});
+		backend.cmd_bind_constants_compute(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
 		const gpu_index_t bloom_render_pass_data_index = ctx.get_bloom_render_pass_data_index(frame_index);
 		backend.cmd_bind_constants_compute(cmd, {.data = &bloom_render_pass_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
@@ -904,9 +928,10 @@ namespace sfg
 			backend.cmd_barrier(cmd, {.barriers = &read_barrier, .barrier_count = 1});
 			input_index = ctx.get_bloom_upsample_index(frame_index, static_cast<u8>(level));
 		}
+		backend.close_command_buffer(cmd);
 	}
 
-	void world_rendering_t::render_post_process(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
+	void world_rendering_t::render_post_process(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -920,23 +945,21 @@ namespace sfg
 		const gfx_handle_t lighting_texture = ctx.get_lighting_texture(frame_index);
 		const gfx_handle_t world_texture	= ctx.get_world_texture(frame_index);
 		const bool		   bloom_active		= ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
+		backend.reset_command_buffer(cmd);
+		backend.cmd_bind_layout(cmd, {.layout = global_layout});
+		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
 		barrier_t begin_barriers[3] = {};
 		u16		  begin_count		= 0;
 
-		u32 state = backend.get_texture_state(lighting_texture);
-		if (state != resource_state_ps_resource)
+		if (bloom_active)
 		{
 			begin_barriers[begin_count++] = {
-				.from_states = state,
+				.from_states = resource_state_non_ps_resource,
 				.to_states	 = resource_state_ps_resource,
 				.texture_t	 = lighting_texture,
 				.flags		 = barrier_flags::baf_is_texture,
 			};
-		}
-
-		if (bloom_active)
-		{
 			begin_barriers[begin_count++] = {
 				.from_states	= resource_state_non_ps_resource,
 				.to_states		= resource_state_ps_resource,
@@ -947,19 +970,13 @@ namespace sfg
 			};
 		}
 
-		state = backend.get_texture_state(world_texture);
-		if (state != resource_state_render_target)
-		{
-			begin_barriers[begin_count++] = {
-				.from_states = state,
-				.to_states	 = resource_state_render_target,
-				.texture_t	 = world_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-		}
-
-		if (begin_count > 0)
-			backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
+		begin_barriers[begin_count++] = {
+			.from_states = resource_state_ps_resource,
+			.to_states	 = resource_state_render_target,
+			.texture_t	 = world_texture,
+			.flags		 = barrier_flags::baf_is_texture,
+		};
+		backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
 
 		const render_pass_color_attachment_t color_attachment = {
 			.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
@@ -1051,5 +1068,6 @@ namespace sfg
 			};
 		}
 		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = end_count});
+		backend.close_command_buffer(cmd);
 	}
 }

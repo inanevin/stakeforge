@@ -105,6 +105,14 @@ namespace sfg
 		entity_buffer_desc.flags		   = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
 		entity_buffer_desc.set_name("world_entity_buffer");
 
+		resource_desc_t light_buffer_desc  = {};
+		const u32		light_buffer_count = config.light_max == 0 ? 1 : config.light_max;
+		light_buffer_desc.size			   = static_cast<u32>(sizeof(gpu_light_t) * light_buffer_count);
+		light_buffer_desc.structure_size   = static_cast<u32>(sizeof(gpu_light_t));
+		light_buffer_desc.structure_count  = light_buffer_count;
+		light_buffer_desc.flags			   = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
+		light_buffer_desc.set_name("world_light_buffer");
+
 		resource_desc_t debug_line_data_desc = {};
 		debug_line_data_desc.size			 = static_cast<u32>(sizeof(world_debug_line_gpu_data_t));
 		debug_line_data_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
@@ -194,6 +202,7 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].cmd_depth.is_null());
 			SFG_ASSERT(_pfd[i].cmd_gbuffer.is_null());
 			SFG_ASSERT(_pfd[i].cmd_lighting.is_null());
+			SFG_ASSERT(_pfd[i].cmd_forward.is_null());
 			SFG_ASSERT(_pfd[i].cmd_post.is_null());
 			SFG_ASSERT(_pfd[i].lighting_texture.is_null());
 			SFG_ASSERT(_pfd[i].post_process_texture.is_null());
@@ -209,6 +218,7 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].lighting_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].post_process_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].entity_buffer.is_null());
+			SFG_ASSERT(_pfd[i].light_buffer.is_null());
 
 			_pfd[i].cmd_depth					  = backend.create_command_buffer({
 				.type		= command_type::graphics,
@@ -222,6 +232,10 @@ namespace sfg
 				.type		= command_type::graphics,
 				.debug_name = "world_lighting",
 			});
+			_pfd[i].cmd_forward					  = backend.create_command_buffer({
+				.type		= command_type::graphics,
+				.debug_name = "world_forward",
+			});
 			_pfd[i].cmd_post					  = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "world_post",
@@ -230,6 +244,7 @@ namespace sfg
 			_pfd[i].lighting_render_pass_data	  = backend.create_resource(lighting_render_pass_data_desc);
 			_pfd[i].post_process_render_pass_data = backend.create_resource(post_process_render_pass_data_desc);
 			_pfd[i].entity_buffer				  = backend.create_resource(entity_buffer_desc);
+			_pfd[i].light_buffer				  = backend.create_resource(light_buffer_desc);
 
 			if (config.enable_ssao != 0)
 			{
@@ -253,11 +268,13 @@ namespace sfg
 			backend.map_resource(_pfd[i].lighting_render_pass_data, _pfd[i].mapped_lighting_render_pass_data);
 			backend.map_resource(_pfd[i].post_process_render_pass_data, _pfd[i].mapped_post_process_render_pass_data);
 			backend.map_resource(_pfd[i].entity_buffer, _pfd[i].mapped_entity_buffer);
+			backend.map_resource(_pfd[i].light_buffer, _pfd[i].mapped_light_buffer);
 
 			_pfd[i].opaque_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].opaque_render_pass_data);
 			_pfd[i].lighting_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].lighting_render_pass_data);
 			_pfd[i].post_process_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].post_process_render_pass_data);
 			_pfd[i].entity_buffer_index					= backend.get_resource_gpu_index(_pfd[i].entity_buffer);
+			_pfd[i].light_buffer_index					= backend.get_resource_gpu_index(_pfd[i].light_buffer);
 
 			if (config.line_vertex_max > 0)
 			{
@@ -321,10 +338,12 @@ namespace sfg
 			SFG_ASSERT(!_pfd[i].lighting_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].post_process_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].entity_buffer.is_null());
+			SFG_ASSERT(!_pfd[i].light_buffer.is_null());
 			backend.destroy_resource(_pfd[i].opaque_render_pass_data);
 			backend.destroy_resource(_pfd[i].lighting_render_pass_data);
 			backend.destroy_resource(_pfd[i].post_process_render_pass_data);
 			backend.destroy_resource(_pfd[i].entity_buffer);
+			backend.destroy_resource(_pfd[i].light_buffer);
 			if (_config.enable_ssao != 0)
 			{
 				backend.destroy_resource(_pfd[i].ssao_render_pass_data);
@@ -352,11 +371,13 @@ namespace sfg
 			backend.destroy_command_buffer(_pfd[i].cmd_depth);
 			backend.destroy_command_buffer(_pfd[i].cmd_gbuffer);
 			backend.destroy_command_buffer(_pfd[i].cmd_lighting);
+			backend.destroy_command_buffer(_pfd[i].cmd_forward);
 			backend.destroy_command_buffer(_pfd[i].cmd_post);
 			_pfd[i].opaque_render_pass_data				 = {};
 			_pfd[i].lighting_render_pass_data			 = {};
 			_pfd[i].post_process_render_pass_data		 = {};
 			_pfd[i].entity_buffer						 = {};
+			_pfd[i].light_buffer						 = {};
 			_pfd[i].debug_line_data						 = {};
 			_pfd[i].debug_line_vertex_buffer			 = {};
 			_pfd[i].debug_line_index_buffer				 = {};
@@ -367,6 +388,7 @@ namespace sfg
 			_pfd[i].mapped_lighting_render_pass_data	 = nullptr;
 			_pfd[i].mapped_post_process_render_pass_data = nullptr;
 			_pfd[i].mapped_entity_buffer				 = nullptr;
+			_pfd[i].mapped_light_buffer					 = nullptr;
 			_pfd[i].mapped_debug_line_data				 = nullptr;
 			_pfd[i].mapped_debug_line_vertices			 = nullptr;
 			_pfd[i].mapped_debug_line_indices			 = nullptr;
@@ -377,6 +399,7 @@ namespace sfg
 			_pfd[i].lighting_render_pass_data_index		 = NULL_GPU_INDEX;
 			_pfd[i].post_process_render_pass_data_index	 = NULL_GPU_INDEX;
 			_pfd[i].entity_buffer_index					 = NULL_GPU_INDEX;
+			_pfd[i].light_buffer_index					 = NULL_GPU_INDEX;
 			_pfd[i].debug_line_data_index				 = NULL_GPU_INDEX;
 			_pfd[i].debug_text_data_index				 = NULL_GPU_INDEX;
 			_pfd[i]										 = {};
@@ -406,6 +429,7 @@ namespace sfg
 	{
 		texture_desc_t lighting_desc = {};
 		lighting_desc.texture_format = format_e::r16g16b16a16_sfloat;
+		lighting_desc.initial_states = resource_state_ps_resource;
 		lighting_desc.size			 = size;
 		lighting_desc.flags			 = texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
 		lighting_desc.view_count	 = 2;
@@ -420,6 +444,7 @@ namespace sfg
 		texture_desc_t depth_desc		= {};
 		depth_desc.texture_format		= format_e::r32_sfloat;
 		depth_desc.depth_stencil_format = format_e::d32_sfloat;
+		depth_desc.initial_states		= resource_state_depth_read | resource_state_non_ps_resource | resource_state_ps_resource;
 		depth_desc.size					= size;
 		depth_desc.flags				= texture_flags::tf_depth_texture | texture_flags::tf_typeless | texture_flags::tf_is_2d | texture_flags::tf_sampled;
 		depth_desc.view_count			= 3;
@@ -431,6 +456,7 @@ namespace sfg
 
 		texture_desc_t gbuffer_albedo_desc = {};
 		gbuffer_albedo_desc.texture_format = format_e::r8g8b8a8_srgb;
+		gbuffer_albedo_desc.initial_states = resource_state_ps_resource;
 		gbuffer_albedo_desc.size		   = size;
 		gbuffer_albedo_desc.flags		   = texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
 		gbuffer_albedo_desc.view_count	   = 2;
@@ -440,6 +466,7 @@ namespace sfg
 
 		texture_desc_t gbuffer_normal_desc = {};
 		gbuffer_normal_desc.texture_format = format_e::r10g0b10a2_unorm;
+		gbuffer_normal_desc.initial_states = resource_state_non_ps_resource | resource_state_ps_resource;
 		gbuffer_normal_desc.size		   = size;
 		gbuffer_normal_desc.flags		   = texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
 		gbuffer_normal_desc.view_count	   = 2;
@@ -449,6 +476,7 @@ namespace sfg
 
 		texture_desc_t gbuffer_orm_desc = {};
 		gbuffer_orm_desc.texture_format = format_e::r8g8b8a8_unorm;
+		gbuffer_orm_desc.initial_states = resource_state_ps_resource;
 		gbuffer_orm_desc.size			= size;
 		gbuffer_orm_desc.flags			= texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
 		gbuffer_orm_desc.view_count		= 2;
@@ -458,6 +486,7 @@ namespace sfg
 
 		texture_desc_t gbuffer_emissive_desc = {};
 		gbuffer_emissive_desc.texture_format = format_e::r16g16b16a16_sfloat;
+		gbuffer_emissive_desc.initial_states = resource_state_ps_resource;
 		gbuffer_emissive_desc.size			 = size;
 		gbuffer_emissive_desc.flags			 = texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
 		gbuffer_emissive_desc.view_count	 = 2;
@@ -467,6 +496,7 @@ namespace sfg
 
 		texture_desc_t ao_desc	= {};
 		ao_desc.texture_format	= format_e::r8_unorm;
+		ao_desc.initial_states	= resource_state_non_ps_resource;
 		ao_desc.size			= size;
 		ao_desc.flags			= texture_flags::tf_sampled | texture_flags::tf_gpu_write | texture_flags::tf_is_2d;
 		ao_desc.view_count		= 2;
@@ -481,6 +511,7 @@ namespace sfg
 
 		texture_desc_t bloom_downsample_desc = {};
 		bloom_downsample_desc.texture_format = format_e::r16g16b16a16_sfloat;
+		bloom_downsample_desc.initial_states = resource_state_non_ps_resource;
 		bloom_downsample_desc.size			 = {
 			static_cast<u16>(std::max<u32>(1, size.x / 2)),
 			static_cast<u16>(std::max<u32>(1, size.y / 2)),

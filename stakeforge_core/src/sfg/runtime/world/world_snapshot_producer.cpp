@@ -139,6 +139,7 @@ namespace sfg
 	{
 		snapshot.materials.resize(0);
 		snapshot.entities.resize(0);
+		snapshot.lights.resize(0);
 		snapshot.draws.resize(0);
 		snapshot.skybox		  = {};
 		snapshot.post_process = {};
@@ -149,6 +150,7 @@ namespace sfg
 		const ecs_component_table_t& camera_table		 = world.get_component_table(type_id_t<component_camera_t>::value);
 		const ecs_component_table_t& post_process_table	 = world.get_component_table(type_id_t<component_post_process_t>::value);
 		const ecs_component_table_t& skybox_table		 = world.get_component_table(type_id_t<component_skybox_t>::value);
+		const ecs_component_table_t& light_table		 = world.get_component_table(type_id_t<component_light_t>::value);
 		const ecs_component_table_t& disabled_table		 = world.get_component_table(type_id_t<component_disabled_t>::value);
 		const ecs_component_table_t& mesh_renderer_table = world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
 
@@ -251,6 +253,37 @@ namespace sfg
 			}
 		}
 
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				transform_table.ref(),
+				alive_table.ref(),
+				light_table.ref(),
+				!disabled_table.ref(),
+			};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				const component_system_transform_t& transform = ecs_helpers_t::row_get<component_system_transform_t>(row, 0);
+				const component_light_t&			light	  = ecs_helpers_t::row_get<component_light_t>(row, 2);
+
+				snapshot.lights.push_back({
+					.prev_rot			= transform.prev_abs_rot,
+					.rot				= transform.abs_rot,
+					.prev_pos			= transform.prev_abs_pos,
+					.intensity			= light.intensity,
+					.pos				= transform.abs_pos,
+					.range				= light.range,
+					.color				= {light.color.x, light.color.y, light.color.z},
+					.inner_cone_degrees = light.inner_cone_degrees,
+					.outer_cone_degrees = light.outer_cone_degrees,
+					.area_width			= light.area_size.x,
+					.area_height		= light.area_size.y,
+					.type				= static_cast<u8>(light.type),
+					.flags				= light.two_sided != 0 ? static_cast<u8>(1) : static_cast<u8>(0),
+				});
+			}
+		}
+
 		// extract mesh renderers
 		{
 			const ecs_component_table_ref_t table_refs[] = {
@@ -314,6 +347,7 @@ namespace sfg
 			}
 		}
 
+		std::sort(snapshot.lights.begin(), snapshot.lights.end(), [](const world_render_light_t& l0, const world_render_light_t& l1) -> bool { return l0.type < l1.type; });
 		std::sort(snapshot.draws.begin(), snapshot.draws.end(), [](const world_draw_t& d0, const world_draw_t& d1) -> bool { return d0.sort_key < d1.sort_key; });
 	}
 }

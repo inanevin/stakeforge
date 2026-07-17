@@ -31,7 +31,9 @@
 
 #include "layout_defines.hlsl"
 #include "depth.hlsl"
+#include "light.hlsl"
 #include "normal.hlsl"
+#include "pbr.hlsl"
 
 struct vs_output
 {
@@ -45,6 +47,7 @@ struct render_pass_data
 	float4x4 inv_view;
 	float4 camera_pos;
 	float4 skybox_params;
+	uint4 light_counts;
 };
 
 SamplerState smp_nearest : static_sampler_nearest;
@@ -124,6 +127,7 @@ float4 PSMain(vs_output input) : SV_TARGET
 	const uint skybox_irradiance	 = sfg_constant_rp8;
 	const uint skybox_prefilter		 = sfg_constant_rp9;
 	const uint skybox_brdf_lut		 = sfg_constant_rp10;
+	StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(sfg_constant_rp11);
 
 	const int2	 pixel		  = int2(input.pos.xy);
 	const float	 device_depth = tex_gbuffer_depth.Load(int3(pixel, 0)).r;
@@ -143,7 +147,58 @@ float4 PSMain(vs_output input) : SV_TARGET
 	const float	 roughness = saturate(orm.g);
 	const float	 metallic  = saturate(orm.b);
 	const float3 N		   = oct_decode(normal.xy);
-	const float3 lighting  = get_sky_lighting(skybox_irradiance, skybox_prefilter, skybox_brdf_lut, N, V, albedo, ao, roughness, metallic, rp_data);
+	float3 lighting = get_sky_lighting(skybox_irradiance, skybox_prefilter, skybox_brdf_lut, N, V, albedo, ao, roughness, metallic, rp_data);
+	uint light_offset = 0;
+
+	[loop]
+	for (uint i = 0; i < rp_data.light_counts.x; ++i)
+	{
+		const gpu_light light = light_buffer[light_offset + i];
+		const float3 L = normalize(-light.direction_param0.xyz);
+		const float3 radiance = light.color_intensity.xyz * light.color_intensity.w;
+		lighting += calculate_pbr(V, N, L, albedo, ao, roughness, metallic, radiance);
+	}
+	light_offset += rp_data.light_counts.x;
+
+	[loop]
+	for (uint i = 0; i < rp_data.light_counts.y; ++i)
+	{
+		const gpu_light light = light_buffer[light_offset + i];
+		const float3 light_vector = light.position_range.xyz - world_pos;
+		const float distance_to_light = max(length(light_vector), 1e-4);
+		const float3 L = light_vector / distance_to_light;
+		const float light_attenuation = attenuation(light.position_range.w, distance_to_light);
+		const float3 radiance = light.color_intensity.xyz * (light.color_intensity.w * light_attenuation);
+		lighting += calculate_pbr(V, N, L, albedo, ao, roughness, metallic, radiance);
+	}
+	light_offset += rp_data.light_counts.y;
+
+	[loop]
+	for (uint i = 0; i < rp_data.light_counts.z; ++i)
+	{
+		const gpu_light light = light_buffer[light_offset + i];
+		const float3 light_vector = light.position_range.xyz - world_pos;
+		const float distance_to_light = max(length(light_vector), 1e-4);
+		const float3 L = light_vector / distance_to_light;
+		const float3 direction = normalize(light.direction_param0.xyz);
+		const float cos_inner = max(light.direction_param0.w, light.right_param1.w);
+		const float cos_outer = min(light.direction_param0.w, light.right_param1.w);
+		const float cone = smoothstep(cos_outer, cos_inner, dot(-L, direction));
+		const float light_attenuation = attenuation(light.position_range.w, distance_to_light) * cone;
+		const float3 radiance = light.color_intensity.xyz * (light.color_intensity.w * light_attenuation);
+		lighting += calculate_pbr(V, N, L, albedo, ao, roughness, metallic, radiance);
+	}
+	light_offset += rp_data.light_counts.z;
+
+	[loop]
+	for (uint i = 0; i < rp_data.light_counts.w; ++i)
+	{
+		const gpu_light light = light_buffer[light_offset + i];
+		float3 L;
+		const float light_attenuation = get_area_light_attenuation(light, world_pos, L);
+		const float3 radiance = light.color_intensity.xyz * (light.color_intensity.w * light_attenuation);
+		lighting += calculate_pbr(V, N, L, albedo, ao, roughness, metallic, radiance);
+	}
 
 	return float4(lighting + emissive, 1.0);
 }

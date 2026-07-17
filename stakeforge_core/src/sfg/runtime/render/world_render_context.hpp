@@ -45,10 +45,11 @@ namespace sfg
 
 	struct render_pass_data_lighting_gpu_t
 	{
-		mat4x4_t inv_view_proj = mat4x4_t::identity;
-		mat4x4_t inv_view	   = mat4x4_t::identity;
-		vec4f_t	 camera_pos	   = vec4f_t::zero;
-		vec4f_t	 skybox_params = vec4f_t::zero;
+		mat4x4_t inv_view_proj	 = mat4x4_t::identity;
+		mat4x4_t inv_view		 = mat4x4_t::identity;
+		vec4f_t	 camera_pos		 = vec4f_t::zero;
+		vec4f_t	 skybox_params	 = vec4f_t::zero;
+		u32		 light_counts[4] = {};
 	};
 
 	struct render_pass_data_post_process_gpu_t
@@ -104,9 +105,20 @@ namespace sfg
 		vec4f_t	 forward	   = vec4f_t::zero;
 	};
 
+	struct gpu_light_t
+	{
+		vec4f_t position_range	 = vec4f_t::zero;
+		vec4f_t direction_param0 = vec4f_t::zero;
+		vec4f_t right_param1	 = vec4f_t::zero;
+		vec4f_t color_intensity	 = vec4f_t::zero;
+	};
+
+	static_assert(sizeof(gpu_light_t) == 64);
+
 	struct world_render_context_config_t
 	{
 		vec2u16_t size			  = vec2u16_t::zero;
+		u32		  light_max		  = 0;
 		u32		  line_vertex_max = 0;
 		u32		  line_index_max  = 0;
 		u32		  text_vertex_max = 0;
@@ -153,6 +165,11 @@ namespace sfg
 		inline gfx_handle_t get_command_buffer_lighting(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_lighting;
+		}
+
+		inline gfx_handle_t get_command_buffer_forward(u8 frame_index) const
+		{
+			return _pfd[frame_index].cmd_forward;
 		}
 
 		inline gfx_handle_t get_command_buffer_post(u8 frame_index) const
@@ -283,6 +300,11 @@ namespace sfg
 		inline gpu_index_t get_entity_buffer_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].entity_buffer_index;
+		}
+
+		inline gpu_index_t get_light_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].light_buffer_index;
 		}
 
 		inline gpu_index_t get_gbuffer_albedo_index(u8 frame_index) const
@@ -445,6 +467,11 @@ namespace sfg
 			return _pfd[frame_index].mapped_entity_buffer;
 		}
 
+		inline u8* get_mapped_light_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_light_buffer;
+		}
+
 		inline u8* get_mapped_debug_line_data(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_debug_line_data;
@@ -510,6 +537,11 @@ namespace sfg
 			return _config.enable_bloom != 0;
 		}
 
+		inline u32 get_light_max() const
+		{
+			return _config.light_max;
+		}
+
 	private:
 		void create_texture(vec2u16_t size);
 		void destroy_texture();
@@ -526,11 +558,13 @@ namespace sfg
 			u8*			 mapped_lighting_render_pass_data							= nullptr;
 			u8*			 mapped_post_process_render_pass_data						= nullptr;
 			u8*			 mapped_entity_buffer										= nullptr;
+			u8*			 mapped_light_buffer										= nullptr;
 			u8*			 mapped_ssao_render_pass_data								= nullptr;
 			u8*			 mapped_bloom_render_pass_data								= nullptr;
 			gfx_handle_t cmd_depth													= {};
 			gfx_handle_t cmd_gbuffer												= {};
 			gfx_handle_t cmd_lighting												= {};
+			gfx_handle_t cmd_forward												= {};
 			gfx_handle_t cmd_post													= {};
 			gfx_handle_t cmd_ssao													= {};
 			gfx_handle_t cmd_bloom													= {};
@@ -540,6 +574,7 @@ namespace sfg
 			gfx_handle_t ssao_render_pass_data										= {};
 			gfx_handle_t bloom_render_pass_data										= {};
 			gfx_handle_t entity_buffer												= {};
+			gfx_handle_t light_buffer												= {};
 			gfx_handle_t debug_line_data											= {};
 			gfx_handle_t debug_line_vertex_buffer									= {};
 			gfx_handle_t debug_line_index_buffer									= {};
@@ -582,6 +617,7 @@ namespace sfg
 			gpu_index_t	 ssao_render_pass_data_index								= NULL_GPU_INDEX;
 			gpu_index_t	 bloom_render_pass_data_index								= NULL_GPU_INDEX;
 			gpu_index_t	 entity_buffer_index										= NULL_GPU_INDEX;
+			gpu_index_t	 light_buffer_index											= NULL_GPU_INDEX;
 			gpu_index_t	 debug_line_data_index										= NULL_GPU_INDEX;
 			gpu_index_t	 debug_text_data_index										= NULL_GPU_INDEX;
 		};
