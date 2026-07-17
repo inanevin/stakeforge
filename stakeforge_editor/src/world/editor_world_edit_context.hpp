@@ -235,6 +235,7 @@ namespace sfg
 		void							   issue_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor);
 		void							   apply_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor);
 		void							   clear_entity_selection();
+		size_t							   collect_selected_root_entities(const world_t& world, span_t<entity_id_t> out_entities) const;
 		editor_selection_listener_handle_t add_selection_listener(editor_selection_listener_fn fn, void* user_data);
 		void							   remove_selection_listener(editor_selection_listener_handle_t handle);
 

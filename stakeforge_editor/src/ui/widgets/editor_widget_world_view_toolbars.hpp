@@ -55,6 +55,9 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void set_edit_world(editor_world_handle_t world);
+		void set_transform_control_type(editor_transform_control_type_e type);
+		void toggle_transform_locality();
+		void toggle_transform_snapping();
 
 		// -----------------------------------------------------------------------------
 		// accessors

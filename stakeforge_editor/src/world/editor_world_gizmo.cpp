@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_gizmo.hpp"
 #include "commands/editor_command_component_edit.hpp"
 #include "world/editor_world_edit_context.hpp"
+#include <sfg/data/char_util.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
@@ -39,12 +40,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/runtime/world/world_debug_draw.hpp>
 
 namespace sfg
 {
-#define EDITOR_WORLD_GIZMO_ROTATION_SEGMENTS 64
-#define EDITOR_WORLD_GIZMO_SCALE_MIN		 0.001f
-#define EDITOR_WORLD_GIZMO_AXIS_PARALLEL_EPS 0.01f
+#define EDITOR_WORLD_GIZMO_ROTATION_SEGMENTS	   64
+#define EDITOR_WORLD_GIZMO_SCALE_MIN			   0.001f
+#define EDITOR_WORLD_GIZMO_UNIFORM_SCALE_PER_PIXEL 0.0025f
+#define EDITOR_WORLD_GIZMO_AXIS_PARALLEL_EPS	   0.01f
 
 	static constexpr u32 GIZMO_PLANE_AXES[3][3] = {
 		{0, 1, 2},
@@ -69,8 +72,9 @@ namespace sfg
 
 	struct editor_world_gizmo_t::hit_t
 	{
-		vec2f_t				rotation_tangent = vec2f_t::zero;
-		editor_gizmo_axis_e axis			 = editor_gizmo_axis_e::invalid;
+		vec3f_t				rotation_direction = vec3f_t::zero;
+		vec2f_t				rotation_tangent   = vec2f_t::zero;
+		editor_gizmo_axis_e axis			   = editor_gizmo_axis_e::invalid;
 	};
 
 	struct editor_world_gizmo_t::ray_t
@@ -136,7 +140,7 @@ namespace sfg
 		const quat_t axis_models[3] = {
 			quat_t::angle_axis(-90.0f, {0.0f, 0.0f, 1.0f}),
 			quat_t::identity,
-			quat_t::angle_axis(90.0f, vec3f_t::right),
+			quat_t::angle_axis(-90.0f, vec3f_t::right),
 		};
 		for (u32 i = 0; i < 3; ++i)
 		{
@@ -194,9 +198,10 @@ namespace sfg
 						const f32 distance = vec2f_t::distance_sqr_to_segment(mouse, previous, current);
 						if (distance < closest_distance)
 						{
-							closest_distance		= distance;
-							result.axis				= static_cast<editor_gizmo_axis_e>(axis);
-							result.rotation_tangent = (current - previous).normalized();
+							closest_distance		  = distance;
+							result.axis				  = static_cast<editor_gizmo_axis_e>(axis);
+							result.rotation_direction = (frame.ring_u[axis] * math::cos(angle) + frame.ring_v[axis] * math::sin(angle)).normalized();
+							result.rotation_tangent	  = (current - previous).normalized();
 						}
 					}
 					previous	   = current;
@@ -367,7 +372,8 @@ namespace sfg
 			relative_position.x * static_cast<f32>(resolution.x),
 			relative_position.y * static_cast<f32>(resolution.y),
 		};
-		_rotation_screen_tangent = hit.rotation_tangent;
+		_initial_rotation_direction = hit.rotation_direction;
+		_rotation_screen_tangent	= hit.rotation_tangent;
 		if (context.get_transform_snapping() == editor_transform_snapping_e::default_)
 		{
 			const editor_world_view_settings_t& settings = context.get_world_view_settings();
@@ -376,11 +382,10 @@ namespace sfg
 			_snap_scale									 = settings.snap_scale * 0.01f;
 		}
 
-		vec2f_t pivot_pixels;
-		project_point(frame, frame.pivot, pivot_pixels);
-		_initial_center_distance = vec2f_t::distance(_initial_mouse_pixels, pivot_pixels);
 		if (axis_handle)
 		{
+			vec2f_t pivot_pixels;
+			project_point(frame, frame.pivot, pivot_pixels);
 			vec2f_t endpoint_pixels;
 			project_point(frame, frame.pivot + _axis_world * frame.world_scale, endpoint_pixels);
 			_axis_screen_direction = (endpoint_pixels - pivot_pixels).normalized();
@@ -415,23 +420,11 @@ namespace sfg
 		_entities.resize(0);
 
 		const span_t<const entity_id_t> selected = context.get_selected_entities();
-		for (size_t i = 0; i < selected.size; ++i)
+		_entities.resize(selected.size);
+		_entities.resize(context.collect_selected_root_entities(world, {.data = _entities.data(), .size = _entities.size()}));
+		for (entity_id_t entity : _entities)
 		{
-			const entity_id_t entity				= selected.data[i];
-			bool			  has_selected_ancestor = false;
-			for (entity_id_t parent = world.get_entity_parent(entity); parent != NULL_ENTITY_ID; parent = world.get_entity_parent(parent))
-			{
-				if (std::find(selected.data, selected.data + selected.size, parent) != selected.data + selected.size)
-				{
-					has_selected_ancestor = true;
-					break;
-				}
-			}
-			if (has_selected_ancestor)
-				continue;
-
 			const entity_id_t parent = world.get_entity_parent(entity);
-			_entities.push_back(entity);
 			_initial_local_rotations.push_back(world.get_entity_rot_local(entity));
 			_initial_local_positions.push_back(world.get_entity_pos_local(entity));
 			_initial_local_scales.push_back(world.get_entity_scale_local(entity));
@@ -506,6 +499,7 @@ namespace sfg
 			}
 			if (_snap_rotate > 0.0f)
 				angle_degrees = math::round(angle_degrees / _snap_rotate) * _snap_rotate;
+			_rotation_angle_degrees		   = angle_degrees;
 			const mat4x3_t pivot_to_origin = mat4x3_t::translation(-_pivot);
 			const mat4x3_t origin_to_pivot = mat4x3_t::translation(_pivot);
 			delta						   = origin_to_pivot * mat4x3_t::rotation(quat_t::angle_axis(angle_degrees, _axis_world)) * pivot_to_origin;
@@ -514,11 +508,7 @@ namespace sfg
 		case editor_transform_control_type_e::scale: {
 			if (_active_axis == editor_gizmo_axis_e::central)
 			{
-				vec2f_t pivot_pixels;
-				project_point(frame, _pivot, pivot_pixels);
-				const f32 current_distance = vec2f_t::distance(mouse_pixels, pivot_pixels);
-				const f32 scale_radius	   = math::max(_initial_center_distance, CENTRAL_HIT_RADIUS_PX * 0.5f);
-				f32		  factor		   = 1.0f + (current_distance - _initial_center_distance) / scale_radius;
+				f32 factor = 1.0f + mouse_delta.x * EDITOR_WORLD_GIZMO_UNIFORM_SCALE_PER_PIXEL;
 				if (_snap_scale > 0.0f)
 					factor = 1.0f + math::round((factor - 1.0f) / _snap_scale) * _snap_scale;
 				factor						   = math::max(EDITOR_WORLD_GIZMO_SCALE_MIN, factor);
@@ -563,6 +553,25 @@ namespace sfg
 		}
 
 		apply_delta(world, delta);
+	}
+
+	void editor_world_gizmo_t::draw_rotation_visualization(world_debug_draw_t& debug_draw, const color_t& line_color, const color_t& text_color, f32 text_size_px) const
+	{
+		if (!_action_active || _control_type != editor_transform_control_type_e::rotate)
+			return;
+
+		const vec3f_t current_direction = quat_t::angle_axis(_rotation_angle_degrees, _axis_world) * _initial_rotation_direction;
+		const vec3f_t initial_endpoint	= _pivot + _initial_rotation_direction * _world_scale;
+		const vec3f_t current_endpoint	= _pivot + current_direction * _world_scale;
+		debug_draw.draw_line(_pivot, initial_endpoint, line_color, 2.0f, debug_draw_depth_e::always_visible);
+		debug_draw.draw_line(_pivot, current_endpoint, line_color, 2.0f, debug_draw_depth_e::always_visible);
+
+		char  rotation_text[32] = {};
+		char* text_cur			= rotation_text;
+		char* text_end			= rotation_text + sizeof(rotation_text);
+		char_util::append_double(text_cur, text_end, _rotation_angle_degrees, 1);
+		char_util::append(text_cur, text_end, " deg");
+		debug_draw.draw_text_3d(current_endpoint, rotation_text, text_color, text_size_px, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_left, {6.0f, -6.0f});
 	}
 
 	void editor_world_gizmo_t::apply_delta(world_t& world, const mat4x3_t& delta)
@@ -673,7 +682,7 @@ namespace sfg
 		_initial_axis_parameter		= 0.0f;
 		_axis_pixels_per_world		= 0.0f;
 		_world_scale				= 0.0f;
-		_initial_center_distance	= 0.0f;
+		_rotation_angle_degrees		= 0.0f;
 		_snap_translate				= 0.0f;
 		_snap_rotate				= 0.0f;
 		_snap_scale					= 0.0f;

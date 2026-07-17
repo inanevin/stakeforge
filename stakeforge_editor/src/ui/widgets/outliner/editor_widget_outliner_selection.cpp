@@ -110,15 +110,10 @@ namespace sfg
 
 	void editor_widget_outliner_t::append_selected_root_entities(frame_vector_t<entity_id_t>& out_entities) const
 	{
-		const span_t<const entity_id_t> selected = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_selected_entities();
-		out_entities.resize(0);
-		out_entities.reserve(selected.size);
-		for (size_t i = 0; i < selected.size; ++i)
-		{
-			const entity_id_t entity = selected.data[i];
-			if (!has_selected_ancestor(entity))
-				out_entities.push_back(entity);
-		}
+		const editor_world_t*			editor_world = editor_world_controller_t::get().get_editor_world(_edit_world);
+		const span_t<const entity_id_t> selected	 = editor_world->get_edit_context().get_selected_entities();
+		out_entities.resize(selected.size);
+		out_entities.resize(editor_world->get_edit_context().collect_selected_root_entities(editor_world->get_world(), {.data = out_entities.data(), .size = out_entities.size()}));
 	}
 
 	void editor_widget_outliner_t::collect_payload_entities(entity_id_t entity)

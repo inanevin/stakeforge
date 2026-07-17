@@ -153,7 +153,6 @@ namespace sfg
 		bool						  is_entity_expanded(entity_id_t entity) const;
 		bool						  is_entity_selected(entity_id_t entity) const;
 		bool						  is_create_enabled() const;
-		bool						  has_selected_ancestor(entity_id_t entity) const;
 		bool						  can_reparent_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent) const;
 		size_t						  find_visible_entity_index(entity_id_t entity) const;
 		const editor_outliner_item_t* find_outliner_item(entity_id_t entity) const;

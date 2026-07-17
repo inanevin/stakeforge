@@ -57,20 +57,6 @@ namespace sfg
 		return editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_selected_entities().size <= 1;
 	}
 
-	bool editor_widget_outliner_t::has_selected_ancestor(entity_id_t entity) const
-	{
-		if (_edit_world.is_null())
-			return false;
-
-		const world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
-		for (entity_id_t parent = world.get_entity_parent(entity); parent != NULL_ENTITY_ID; parent = world.get_entity_parent(parent))
-		{
-			if (is_entity_selected(parent))
-				return true;
-		}
-		return false;
-	}
-
 	bool editor_widget_outliner_t::can_reparent_entities(const vector_t<editor_entity_payload_t>& entities, entity_id_t parent) const
 	{
 		if (entities.empty())

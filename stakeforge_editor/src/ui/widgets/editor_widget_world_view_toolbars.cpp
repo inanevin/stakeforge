@@ -286,6 +286,26 @@ namespace sfg
 			refresh();
 	}
 
+	void editor_widget_world_view_toolbars_t::set_transform_control_type(editor_transform_control_type_e type)
+	{
+		editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().set_transform_control_type(type);
+		refresh();
+	}
+
+	void editor_widget_world_view_toolbars_t::toggle_transform_locality()
+	{
+		editor_world_edit_context_t& context = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
+		context.set_transform_locality(context.get_transform_locality() == editor_transform_locality_e::world ? editor_transform_locality_e::local : editor_transform_locality_e::world);
+		refresh();
+	}
+
+	void editor_widget_world_view_toolbars_t::toggle_transform_snapping()
+	{
+		editor_world_edit_context_t& context = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
+		context.set_transform_snapping(context.get_transform_snapping() == editor_transform_snapping_e::default_ ? editor_transform_snapping_e::none : editor_transform_snapping_e::default_);
+		refresh();
+	}
+
 	void editor_widget_world_view_toolbars_t::refresh()
 	{
 		const editor_world_edit_context_t& context = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
@@ -300,8 +320,7 @@ namespace sfg
 	void editor_widget_world_view_toolbars_t::on_transform_control_toggled(bool toggled, void* user_data)
 	{
 		transform_button_data_t& data = *static_cast<transform_button_data_t*>(user_data);
-		editor_world_controller_t::get().get_editor_world(data.toolbar->_edit_world)->get_edit_context().set_transform_control_type(data.type);
-		data.toolbar->refresh();
+		data.toolbar->set_transform_control_type(data.type);
 	}
 
 	void editor_widget_world_view_toolbars_t::on_settings_pressed(bool toggled, void* user_data)

@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/widgets/editor_widget_world_view.hpp"
+#include "commands/editor_commands_entity.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
@@ -299,8 +300,8 @@ namespace sfg
 	{
 		const ui::layout_out_t& out = _ui->get_tree().out(_world_view);
 		return {
-			math::clamp((position.x - out.pos.x) / out.size.x, 0.0f, 1.0f),
-			math::clamp((position.y - out.pos.y) / out.size.y, 0.0f, 1.0f),
+			(position.x - out.pos.x) / out.size.x,
+			(position.y - out.pos.y) / out.size.y,
 		};
 	}
 
@@ -364,7 +365,7 @@ namespace sfg
 		}
 	}
 
-	void editor_widget_world_view_t::on_world_view_release(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	void editor_widget_world_view_t::on_world_view_release(ui::input_router_t& router, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
 		if (btn == ui::mouse_button_e::right)
@@ -378,7 +379,7 @@ namespace sfg
 			world->update_gizmo_hover(relative_position);
 			widget._gizmo_press_consumed = false;
 		}
-		else if (btn == ui::mouse_button_e::left && !widget._edit_world.is_null())
+		else if (btn == ui::mouse_button_e::left && !widget._edit_world.is_null() && router.get_hovered() == widget._world_view)
 		{
 			const vec2f_t relative_position		= widget.calculate_relative_position(pos);
 			const bool	  incremental_selection = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
@@ -417,8 +418,60 @@ namespace sfg
 	void editor_widget_world_view_t::on_world_view_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
 	{
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
-		if (widget._gizmo_press_consumed && ev.action == ui::key_action_e::press && ev.key == static_cast<u16>(input_code::key_escape))
-			editor_world_controller_t::get().get_editor_world(widget._edit_world)->cancel_gizmo_action();
+		if (ev.action != ui::key_action_e::press || widget._edit_world.is_null())
+			return;
+
+		if (ev.key == static_cast<u16>(input_code::key_escape))
+		{
+			if (widget._gizmo_press_consumed)
+				widget.cancel_gizmo_action();
+			return;
+		}
+
+		const bool ctrl_pressed = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+		if (ev.key == static_cast<u16>(input_code::key_x) || (ev.key == static_cast<u16>(input_code::key_d) && ctrl_pressed))
+		{
+			widget.cancel_gizmo_action();
+			editor_world_t*					editor_world = editor_world_controller_t::get().get_editor_world(widget._edit_world);
+			const span_t<const entity_id_t> selected	 = editor_world->get_edit_context().get_selected_entities();
+			if (selected.size == 0)
+				return;
+
+			frame_vector_t<entity_id_t> entities;
+			entities.resize(selected.size);
+			entities.resize(editor_world->get_edit_context().collect_selected_root_entities(editor_world->get_world(), {.data = entities.data(), .size = entities.size()}));
+			if (ev.key == static_cast<u16>(input_code::key_x))
+				editor_commands_entity_t::destroy(widget._edit_world, entities);
+			else
+			{
+				frame_vector_t<entity_id_t> duplicates;
+				editor_commands_entity_t::duplicate(widget._edit_world, entities, duplicates);
+			}
+			return;
+		}
+
+		if (ev.key == static_cast<u16>(input_code::key_alpha1))
+		{
+			widget.cancel_gizmo_action();
+			widget._toolbars.set_transform_control_type(editor_transform_control_type_e::move);
+		}
+		else if (ev.key == static_cast<u16>(input_code::key_alpha2))
+		{
+			widget.cancel_gizmo_action();
+			widget._toolbars.set_transform_control_type(editor_transform_control_type_e::rotate);
+		}
+		else if (ev.key == static_cast<u16>(input_code::key_alpha3))
+		{
+			widget.cancel_gizmo_action();
+			widget._toolbars.set_transform_control_type(editor_transform_control_type_e::scale);
+		}
+		else if (ev.key == static_cast<u16>(input_code::key_alpha4))
+		{
+			widget.cancel_gizmo_action();
+			widget._toolbars.toggle_transform_locality();
+		}
+		else if (ev.key == static_cast<u16>(input_code::key_alpha5))
+			widget._toolbars.toggle_transform_snapping();
 	}
 
 	void editor_widget_world_view_t::on_world_view_wheel(ui::input_router_t&, ui::widget_id_t, f32 delta, void* user_data)

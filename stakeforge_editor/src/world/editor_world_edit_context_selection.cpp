@@ -89,6 +89,27 @@ namespace sfg
 		}
 	}
 
+	size_t editor_world_edit_context_t::collect_selected_root_entities(const world_t& world, span_t<entity_id_t> out_entities) const
+	{
+		SFG_ASSERT(out_entities.size >= _selected_entities.size());
+		size_t count = 0;
+		for (entity_id_t entity : _selected_entities)
+		{
+			bool has_selected_ancestor = false;
+			for (entity_id_t parent = world.get_entity_parent(entity); parent != NULL_ENTITY_ID; parent = world.get_entity_parent(parent))
+			{
+				if (std::find(_selected_entities.begin(), _selected_entities.end(), parent) != _selected_entities.end())
+				{
+					has_selected_ancestor = true;
+					break;
+				}
+			}
+			if (!has_selected_ancestor)
+				out_entities.data[count++] = entity;
+		}
+		return count;
+	}
+
 	void editor_world_edit_context_t::issue_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor)
 	{
 		bool same_selection = _selected_entities.size() == entities.size;

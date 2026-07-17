@@ -46,6 +46,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define EDITOR_WORLD_GIZMO_SCALE_FULL				  100
+#define EDITOR_WORLD_GIZMO_ROTATION_ORIENTATION_SCALE 55
+
 	void editor_world_rendering_t::render_outlines(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		const editor_world_snapshot_data_t& snapshot_data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
@@ -359,7 +362,7 @@ namespace sfg
 			static const quat_t axis_rotations[3] = {
 				quat_t::angle_axis(-90.0f, {0.0f, 0.0f, 1.0f}),
 				quat_t::identity,
-				quat_t::angle_axis(90.0f, vec3f_t::right),
+				quat_t::angle_axis(-90.0f, vec3f_t::right),
 			};
 
 			const vec3f_t position = vec3f_t::lerp(snapshot_data.gizmo.prev_position, snapshot_data.gizmo.position, interpolation_alpha);
@@ -375,8 +378,8 @@ namespace sfg
 			gizmo_data.models[6] = mat4x4_t::transform(position, rotation, {editor_world_gizmo_t::PLANE_SIZE, editor_world_gizmo_t::PLANE_THICKNESS, editor_world_gizmo_t::PLANE_SIZE});
 
 			const vec3f_t xy_offset = rotation * vec3f_t(editor_world_gizmo_t::PLANE_CENTER, editor_world_gizmo_t::PLANE_CENTER, 0.0f);
-			const vec3f_t yz_offset = rotation * vec3f_t(0.0f, editor_world_gizmo_t::PLANE_CENTER, editor_world_gizmo_t::PLANE_CENTER);
-			const vec3f_t zx_offset = rotation * vec3f_t(editor_world_gizmo_t::PLANE_CENTER, 0.0f, editor_world_gizmo_t::PLANE_CENTER);
+			const vec3f_t yz_offset = rotation * vec3f_t(0.0f, editor_world_gizmo_t::PLANE_CENTER, -editor_world_gizmo_t::PLANE_CENTER);
+			const vec3f_t zx_offset = rotation * vec3f_t(editor_world_gizmo_t::PLANE_CENTER, 0.0f, -editor_world_gizmo_t::PLANE_CENTER);
 			gizmo_data.offsets[4]	= vec4f_t(xy_offset.x, xy_offset.y, xy_offset.z, 0.0f);
 			gizmo_data.offsets[5]	= vec4f_t(yz_offset.x, yz_offset.y, yz_offset.z, 0.0f);
 			gizmo_data.offsets[6]	= vec4f_t(zx_offset.x, zx_offset.y, zx_offset.z, 0.0f);
@@ -494,6 +497,30 @@ namespace sfg
 			backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_gizmo_shader()});
 
+			if (snapshot_data.gizmo.control_type == editor_transform_control_type_e::rotate)
+			{
+				const editor_world_gizmo_mesh_t& orientation_mesh		   = ctx.get_gizmo_mesh(0);
+				const gfx_handle_t				 orientation_vertex_buffer = render_resources.get_resource(orientation_mesh.vertex_buffer);
+				const gfx_handle_t				 orientation_index_buffer  = render_resources.get_resource(orientation_mesh.index_buffer);
+				SFG_ASSERT(!orientation_vertex_buffer.is_null() && !orientation_index_buffer.is_null());
+
+				backend.cmd_bind_vertex_buffers(cmd, {.buffer = orientation_vertex_buffer, .slot = 0, .vertex_size = orientation_mesh.vertex_stride, .offset = 0});
+				backend.cmd_bind_index_buffers(cmd, {.buffer = orientation_index_buffer, .offset = 0, .index_size = orientation_mesh.index_stride});
+				for (u32 axis = 0; axis < 3; ++axis)
+				{
+					const u32 obj_constants[2] = {axis, EDITOR_WORLD_GIZMO_ROTATION_ORIENTATION_SCALE};
+					backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
+					backend.cmd_draw_indexed_instanced(cmd,
+													   {
+														   .index_count_per_instance = orientation_mesh.index_count,
+														   .instance_count			 = 1,
+														   .start_index_location	 = 0,
+														   .base_vertex_location	 = 0,
+														   .start_instance_location	 = 0,
+													   });
+				}
+			}
+
 			if (snapshot_data.gizmo.control_type == editor_transform_control_type_e::move)
 			{
 				const editor_world_gizmo_mesh_t& plane_mesh			 = ctx.get_gizmo_central_mesh(1);
@@ -506,7 +533,8 @@ namespace sfg
 
 				for (u32 plane = static_cast<u32>(editor_gizmo_axis_e::xy); plane <= static_cast<u32>(editor_gizmo_axis_e::zx); ++plane)
 				{
-					backend.cmd_bind_constants(cmd, {.data = &plane, .offset = constant_obj0, .count = 1, .param_index = 0});
+					const u32 obj_constants[2] = {plane, EDITOR_WORLD_GIZMO_SCALE_FULL};
+					backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
 					backend.cmd_draw_indexed_instanced(cmd,
 													   {
 														   .index_count_per_instance = plane_mesh.index_count,
@@ -523,7 +551,8 @@ namespace sfg
 
 			for (u32 axis = 0; axis < 3; ++axis)
 			{
-				backend.cmd_bind_constants(cmd, {.data = &axis, .offset = constant_obj0, .count = 1, .param_index = 0});
+				const u32 obj_constants[2] = {axis, EDITOR_WORLD_GIZMO_SCALE_FULL};
+				backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
 				backend.cmd_draw_indexed_instanced(cmd,
 												   {
 													   .index_count_per_instance = mesh.index_count,
@@ -544,8 +573,8 @@ namespace sfg
 
 				backend.cmd_bind_vertex_buffers(cmd, {.buffer = central_vertex_buffer, .slot = 0, .vertex_size = central_mesh.vertex_stride, .offset = 0});
 				backend.cmd_bind_index_buffers(cmd, {.buffer = central_index_buffer, .offset = 0, .index_size = central_mesh.index_stride});
-				const u32 central = static_cast<u32>(editor_gizmo_axis_e::central);
-				backend.cmd_bind_constants(cmd, {.data = &central, .offset = constant_obj0, .count = 1, .param_index = 0});
+				const u32 obj_constants[2] = {static_cast<u32>(editor_gizmo_axis_e::central), EDITOR_WORLD_GIZMO_SCALE_FULL};
+				backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
 				backend.cmd_draw_indexed_instanced(cmd,
 												   {
 													   .index_count_per_instance = central_mesh.index_count,

@@ -202,6 +202,20 @@ namespace sfg
 			draw_line(corners[edge[0]], corners[edge[1]], color, thickness_px, depth);
 	}
 
+	void world_debug_draw_t::draw_rectangle(const vec3f_t& center, const vec3f_t& right, const vec3f_t& up, const vec2f_t& size, const color_t& color, f32 thickness_px, debug_draw_depth_e depth)
+	{
+		SFG_ASSERT(!right.is_zero() && !up.is_zero() && size.x > 0.0f && size.y > 0.0f);
+		const vec3f_t half_right = right.normalized() * size.x * 0.5f;
+		const vec3f_t half_up	 = up.normalized() * size.y * 0.5f;
+		const vec3f_t corners[4] = {
+			center - half_right - half_up,
+			center + half_right - half_up,
+			center + half_right + half_up,
+			center - half_right + half_up,
+		};
+		draw_polyline({.data = corners, .size = std::size(corners)}, color, thickness_px, depth, true);
+	}
+
 	void world_debug_draw_t::draw_circle(const vec3f_t& center, f32 radius, const vec3f_t& normal, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
 	{
 		SFG_ASSERT(radius > 0.0f && segments >= 3 && !normal.is_zero());
@@ -269,11 +283,18 @@ namespace sfg
 
 	void world_debug_draw_t::draw_frustum(const vec3f_t& origin, const vec3f_t& direction, f32 fov_degrees, f32 aspect_ratio, f32 near_distance, f32 far_distance, const color_t& color, f32 thickness_px, debug_draw_depth_e depth)
 	{
-		SFG_ASSERT(!direction.is_zero() && fov_degrees > 0.0f && aspect_ratio > 0.0f && near_distance > 0.0f && far_distance > near_distance);
-		const vec3f_t forward	  = direction.normalized();
-		const vec3f_t reference	  = math::abs(vec3f_t::dot(forward, vec3f_t::up)) > 0.99f ? vec3f_t::right : vec3f_t::up;
-		const vec3f_t right		  = vec3f_t::cross(reference, forward).normalized();
-		const vec3f_t up		  = vec3f_t::cross(forward, right).normalized();
+		const vec3f_t forward	= direction.normalized();
+		const vec3f_t reference = math::abs(vec3f_t::dot(forward, vec3f_t::up)) > 0.99f ? vec3f_t::right : vec3f_t::up;
+		draw_frustum(origin, direction, reference, fov_degrees, aspect_ratio, near_distance, far_distance, color, thickness_px, depth);
+	}
+
+	void world_debug_draw_t::draw_frustum(const vec3f_t& origin, const vec3f_t& direction, const vec3f_t& up, f32 fov_degrees, f32 aspect_ratio, f32 near_distance, f32 far_distance, const color_t& color, f32 thickness_px, debug_draw_depth_e depth)
+	{
+		SFG_ASSERT(!direction.is_zero() && !up.is_zero() && fov_degrees > 0.0f && aspect_ratio > 0.0f && near_distance >= 0.0f && far_distance > near_distance);
+		const vec3f_t forward	 = direction.normalized();
+		const vec3f_t right		 = vec3f_t::cross(up, forward).normalized();
+		const vec3f_t frustum_up = vec3f_t::cross(forward, right).normalized();
+		SFG_ASSERT(!right.is_zero());
 		const f32	  tangent	  = math::tan(fov_degrees * DEG_2_RAD * 0.5f);
 		const f32	  near_height = tangent * near_distance;
 		const f32	  near_width  = near_height * aspect_ratio;
@@ -282,14 +303,14 @@ namespace sfg
 		const vec3f_t near_center = origin + forward * near_distance;
 		const vec3f_t far_center  = origin + forward * far_distance;
 		const vec3f_t corners[8]  = {
-			near_center - right * near_width - up * near_height,
-			near_center + right * near_width - up * near_height,
-			near_center + right * near_width + up * near_height,
-			near_center - right * near_width + up * near_height,
-			far_center - right * far_width - up * far_height,
-			far_center + right * far_width - up * far_height,
-			far_center + right * far_width + up * far_height,
-			far_center - right * far_width + up * far_height,
+			near_center - right * near_width - frustum_up * near_height,
+			near_center + right * near_width - frustum_up * near_height,
+			near_center + right * near_width + frustum_up * near_height,
+			near_center - right * near_width + frustum_up * near_height,
+			far_center - right * far_width - frustum_up * far_height,
+			far_center + right * far_width - frustum_up * far_height,
+			far_center + right * far_width + frustum_up * far_height,
+			far_center - right * far_width + frustum_up * far_height,
 		};
 		const u8 edges[12][2] = {
 			{0, 1},

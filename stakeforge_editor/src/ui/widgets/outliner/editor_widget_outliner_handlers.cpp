@@ -203,7 +203,7 @@ namespace sfg
 		if (editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_edit_context().get_selected_entities().size == 0)
 			return;
 
-		if (ev.key == static_cast<u16>(input_code::key_delete))
+		if (ev.key == static_cast<u16>(input_code::key_delete) || ev.key == static_cast<u16>(input_code::key_x))
 			panel.destroy_selected_entities();
 		else if (ev.key == static_cast<u16>(input_code::key_d) && ctrl_pressed)
 			panel.duplicate_selected_entities();

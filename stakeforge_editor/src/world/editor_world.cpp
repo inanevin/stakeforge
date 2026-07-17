@@ -297,6 +297,70 @@ namespace sfg
 		consume_entity_pick_result();
 		_world.tick(dt_seconds);
 		_world.update_world_transforms(true);
+		if (_gizmo.is_action_active())
+		{
+			const vec4f_t& color = editor_theme_t::get().color_accent2;
+			_gizmo.draw_rotation_visualization(_world.get_debug_draw(), {color.x, color.y, color.z, color.w}, color_t::white, editor_theme_t::get().text_small_px_size * 1.5f);
+		}
+		const span_t<const entity_id_t> selected = _edit_context.get_selected_entities();
+		if (selected.size != 0)
+		{
+			world_debug_draw_t&			 debug_draw		 = _world.get_debug_draw();
+			const vec4f_t&				 accent_warn	 = editor_theme_t::get().color_accent_warn;
+			const color_t				 debug_color	 = {accent_warn.x, accent_warn.y, accent_warn.z, accent_warn.w};
+			const ecs_component_table_t& transform_table = _world.get_component_table(type_id_t<component_system_transform_t>::value);
+			const ecs_component_table_t& camera_table	 = _world.get_component_table(type_id_t<component_camera_t>::value);
+			const ecs_component_table_t& light_table	 = _world.get_component_table(type_id_t<component_light_t>::value);
+
+			for (size_t i = 0; i < selected.size; ++i)
+			{
+				const entity_id_t					entity	  = selected.data[i];
+				const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
+				const component_camera_t*			camera	  = ecs_helpers_t::table_find_as_const<component_camera_t>(camera_table, entity);
+				if (camera != nullptr)
+				{
+					SFG_ASSERT(_render_resolution.x != 0 && _render_resolution.y != 0);
+					debug_draw.draw_frustum(transform.abs_pos,
+											transform.abs_rot.get_forward(),
+											transform.abs_rot.get_up(),
+											camera->fov_degrees,
+											static_cast<f32>(_render_resolution.x) / static_cast<f32>(_render_resolution.y),
+											camera->near_plane,
+											camera->far_plane,
+											debug_color,
+											2.0f,
+											debug_draw_depth_e::always_visible);
+				}
+
+				const component_light_t* light = ecs_helpers_t::table_find_as_const<component_light_t>(light_table, entity);
+				if (light == nullptr)
+					continue;
+
+				const vec3f_t forward = transform.abs_rot.get_forward();
+				switch (light->type)
+				{
+				case light_type_e::directional: {
+					const vec3f_t offset = transform.abs_rot.get_right() * 0.25f;
+					debug_draw.draw_line(transform.abs_pos - offset, transform.abs_pos - offset + forward * 2.0f, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+					debug_draw.draw_line(transform.abs_pos, transform.abs_pos + forward * 2.0f, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+					debug_draw.draw_line(transform.abs_pos + offset, transform.abs_pos + offset + forward * 2.0f, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+					break;
+				}
+				case light_type_e::point:
+					if (light->range > 0.0f)
+						debug_draw.draw_sphere(transform.abs_pos, light->range, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+					break;
+				case light_type_e::spot:
+					if (light->range > 0.0f && light->outer_cone_degrees > 0.0f)
+						debug_draw.draw_frustum(transform.abs_pos, forward, transform.abs_rot.get_up(), light->outer_cone_degrees * 2.0f, 1.0f, 0.0f, light->range, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+					break;
+				case light_type_e::area:
+					if (light->area_size.x > 0.0f && light->area_size.y > 0.0f)
+						debug_draw.draw_rectangle(transform.abs_pos, transform.abs_rot.get_right(), transform.abs_rot.get_up(), light->area_size, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+					break;
+				}
+			}
+		}
 		if (_edit_context.is_bounding_boxes_enabled() && _latest_snapshot_slot != UINT8_MAX)
 		{
 			const world_render_snapshot_t& snapshot		= _snapshot_slots[_latest_snapshot_slot];

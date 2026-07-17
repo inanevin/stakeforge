@@ -37,7 +37,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class color_t;
 	class world_t;
+	class world_debug_draw_t;
 	class editor_world_edit_context_t;
 	enum class editor_transform_control_type_e : u8;
 	enum class editor_transform_locality_e : u8;
@@ -88,6 +90,7 @@ namespace sfg
 		void update_action(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, vec2f_t relative_position);
 		void end_action(world_t& world, const editor_world_edit_context_t& context);
 		void cancel_action(world_t& world);
+		void draw_rotation_visualization(world_debug_draw_t& debug_draw, const color_t& line_color, const color_t& text_color, f32 text_size_px) const;
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -146,7 +149,7 @@ namespace sfg
 		f32								_initial_axis_parameter		= 0.0f;
 		f32								_axis_pixels_per_world		= 0.0f;
 		f32								_world_scale				= 0.0f;
-		f32								_initial_center_distance	= 0.0f;
+		f32								_rotation_angle_degrees		= 0.0f;
 		f32								_snap_translate				= 0.0f;
 		f32								_snap_rotate				= 0.0f;
 		f32								_snap_scale					= 0.0f;
