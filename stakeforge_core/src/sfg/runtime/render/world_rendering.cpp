@@ -172,7 +172,7 @@ namespace sfg
 			if (light.type != static_cast<u8>(world_render_light_type_e::directional) && camera_distance - light.range > shadow_distance)
 				continue;
 
-			u16 resolution = static_cast<u16>(math::clamp<u32>(math::max<u16>(light.shadow_resolution.x, light.shadow_resolution.y), settings.shadows.min_resolution, settings.shadows.max_resolution));
+			u16 resolution = static_cast<u16>(math::clamp<u32>(light.shadow_resolution, settings.shadows.min_resolution, settings.shadows.max_resolution));
 			f32 projected  = 0.0f;
 
 			// calc dyn resolution based off distance.

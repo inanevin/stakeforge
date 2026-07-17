@@ -105,6 +105,7 @@ namespace sfg
 	enum class reflected_field_dependency_type_e : u8
 	{
 		show_if_equals,
+		show_if_not_equal,
 	};
 
 	struct reflected_field_ui_definition_t

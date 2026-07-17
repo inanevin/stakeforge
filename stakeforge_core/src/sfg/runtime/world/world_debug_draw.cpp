@@ -80,11 +80,13 @@ namespace sfg
 		_text_commands.shrink_to_fit();
 		_text_bytes.resize(0);
 		_text_bytes.shrink_to_fit();
+
 		if (_text_canvas)
 		{
 			_text_canvas->uninit();
 			_text_canvas.reset();
 		}
+
 		_config				= {};
 		_dropped_line_count = 0;
 		_dropped_text_count = 0;
@@ -114,6 +116,7 @@ namespace sfg
 		const f32			  signed_thickness_px = depth == debug_draw_depth_e::depth_tested ? thickness_px : -thickness_px;
 		const vec4f_t		  line_color		  = color.to_vector();
 		const primitive_index base_vertex		  = static_cast<primitive_index>(_vertices.size());
+
 		_vertices.push_back({.color = line_color, .position = from, .other_position = to, .corner = 0.0f, .signed_thickness_px = signed_thickness_px});
 		_vertices.push_back({.color = line_color, .position = from, .other_position = to, .corner = 1.0f, .signed_thickness_px = signed_thickness_px});
 		_vertices.push_back({.color = line_color, .position = to, .other_position = from, .corner = 2.0f, .signed_thickness_px = signed_thickness_px});
@@ -180,6 +183,7 @@ namespace sfg
 			{half_extents.x, half_extents.y, half_extents.z},
 			{-half_extents.x, half_extents.y, half_extents.z},
 		};
+
 		vec3f_t corners[8];
 		for (u32 i = 0; i < 8; ++i)
 			corners[i] = transform * local_corners[i];
@@ -198,6 +202,7 @@ namespace sfg
 			{2, 6},
 			{3, 7},
 		};
+
 		for (const auto& edge : edges)
 			draw_line(corners[edge[0]], corners[edge[1]], color, thickness_px, depth);
 	}
@@ -213,6 +218,7 @@ namespace sfg
 			center + half_right + half_up,
 			center - half_right + half_up,
 		};
+
 		draw_polyline({.data = corners, .size = std::size(corners)}, color, thickness_px, depth, true);
 	}
 
@@ -262,6 +268,7 @@ namespace sfg
 		const u32	  arc_segments = math::max(segments / 2, 2u);
 		const f32	  step		   = MATH_PI / static_cast<f32>(arc_segments);
 		const vec3f_t axes[2]	   = {axis0, axis1};
+
 		for (const vec3f_t& axis : axes)
 		{
 			vec3f_t previous_top	= top + axis * radius;
@@ -295,6 +302,7 @@ namespace sfg
 		const vec3f_t right		 = vec3f_t::cross(up, forward).normalized();
 		const vec3f_t frustum_up = vec3f_t::cross(forward, right).normalized();
 		SFG_ASSERT(!right.is_zero());
+
 		const f32	  tangent	  = math::tan(fov_degrees * DEG_2_RAD * 0.5f);
 		const f32	  near_height = tangent * near_distance;
 		const f32	  near_width  = near_height * aspect_ratio;
@@ -302,7 +310,8 @@ namespace sfg
 		const f32	  far_width	  = far_height * aspect_ratio;
 		const vec3f_t near_center = origin + forward * near_distance;
 		const vec3f_t far_center  = origin + forward * far_distance;
-		const vec3f_t corners[8]  = {
+
+		const vec3f_t corners[8] = {
 			near_center - right * near_width - frustum_up * near_height,
 			near_center + right * near_width - frustum_up * near_height,
 			near_center + right * near_width + frustum_up * near_height,
@@ -312,6 +321,7 @@ namespace sfg
 			far_center + right * far_width + frustum_up * far_height,
 			far_center - right * far_width + frustum_up * far_height,
 		};
+
 		const u8 edges[12][2] = {
 			{0, 1},
 			{1, 2},
@@ -326,6 +336,7 @@ namespace sfg
 			{2, 6},
 			{3, 7},
 		};
+
 		for (const auto& edge : edges)
 			draw_line(corners[edge[0]], corners[edge[1]], color, thickness_px, depth);
 	}
@@ -336,6 +347,7 @@ namespace sfg
 		const u32 text_length = static_cast<u32>(std::strlen(text));
 		if (text_length == 0)
 			return;
+
 		if (_config.text_vertex_max == 0 || _text_commands.size() >= _config.text_command_reserve || _text_bytes.size() + text_length > _config.text_byte_reserve)
 		{
 			++_dropped_text_count;
@@ -364,6 +376,7 @@ namespace sfg
 		const u32 text_length = static_cast<u32>(std::strlen(text));
 		if (text_length == 0)
 			return;
+
 		if (_config.text_vertex_max == 0 || _text_commands.size() >= _config.text_command_reserve || _text_bytes.size() + text_length > _config.text_byte_reserve)
 		{
 			++_dropped_text_count;

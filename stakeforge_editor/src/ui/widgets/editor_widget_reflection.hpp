@@ -54,6 +54,7 @@ namespace sfg
 	class editor_widget_fold_label_t;
 	class editor_widget_reference_t;
 	struct reflected_field_t;
+	struct reflected_type_t;
 
 	struct editor_widget_reflection_fold_state_t
 	{
@@ -126,6 +127,8 @@ namespace sfg
 		void clear_widgets();
 		void set_block_edits(bool block_edits);
 		void fit_control(ui::widget_id_t widget);
+		void rebuild();
+		bool is_field_visible(const reflected_type_t& type, const reflected_field_t& field, span_t<void*> objects, u32 dependency_depth) const;
 		void create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, editor_world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider);
 		void create_checkbox(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		bool create_dropdown(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
@@ -176,9 +179,15 @@ namespace sfg
 		static void on_container_element_remove(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_path_picker(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_container_refresh(ui::ui_context& ui, void* user_data);
+		static void on_field_edit_begin(void* user_data);
+		static void on_field_edited(void* user_data);
+		static void on_field_edit_submitted(void* user_data);
+		static void on_reflection_refresh(ui::ui_context& ui, void* user_data);
 
 	private:
-		editor_widget_callbacks_t						 _callbacks = {};
+		editor_widget_callbacks_t						 _callbacks		  = {};
+		editor_widget_callbacks_t						 _field_callbacks = {};
+		vector_t<void*>									 _objects;
 		vector_t<editor_input_field_t*>					 _inputs;
 		vector_t<editor_checkbox_t*>					 _checkboxes;
 		vector_t<editor_dropdown_t*>					 _dropdowns;
@@ -196,9 +205,12 @@ namespace sfg
 		vector_t<ui::widget_id_t>						 _dividers;
 		vector_t<ui::widget_id_t>						 _rows;
 		vector_t<ui::widget_id_t>						 _tooltip_owners;
-		vector_t<editor_widget_reflection_fold_state_t>* _fold_states = nullptr;
-		ui::ui_context*									 _ui		  = nullptr;
-		ui::widget_id_t									 _root		  = NULL_WIDGET;
-		ui::widget_id_t									 _blocker	  = NULL_WIDGET;
+		vector_t<editor_widget_reflection_fold_state_t>* _fold_states	   = nullptr;
+		ui::ui_context*									 _ui			   = nullptr;
+		sid_t											 _type_id		   = 0;
+		editor_world_handle_t							 _world			   = {};
+		ui::widget_id_t									 _root			   = NULL_WIDGET;
+		ui::widget_id_t									 _blocker		   = NULL_WIDGET;
+		bool											 _has_dependencies = false;
 	};
 }

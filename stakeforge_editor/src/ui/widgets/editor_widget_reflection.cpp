@@ -106,32 +106,67 @@ namespace sfg
 
 	void editor_widget_reflection_t::uninit()
 	{
+		_ui->cancel_mutations(this);
 		clear_widgets();
 		if (_blocker != NULL_WIDGET)
 			_ui->deallocate_widget(_blocker);
 		_ui->deallocate_widget(_root);
 
-		_ui		 = nullptr;
-		_root	 = NULL_WIDGET;
-		_blocker = NULL_WIDGET;
+		_objects.resize(0);
+		_callbacks		  = {};
+		_field_callbacks  = {};
+		_fold_states	  = nullptr;
+		_ui				  = nullptr;
+		_type_id		  = 0;
+		_world			  = {};
+		_root			  = NULL_WIDGET;
+		_blocker		  = NULL_WIDGET;
+		_has_dependencies = false;
 	}
 
 	void editor_widget_reflection_t::set_reflection(const editor_widget_reflection_config_t& config)
 	{
+		_ui->cancel_mutations(this);
 		clear_widgets();
-		_fold_states = config.fold_states;
-		_callbacks	 = config.callbacks;
+		_fold_states	 = config.fold_states;
+		_callbacks		 = config.callbacks;
+		_field_callbacks = {
+			.edit_begin		= on_field_edit_begin,
+			.edited			= on_field_edited,
+			.edit_submitted = on_field_edit_submitted,
+			.user_data		= this,
+		};
+		_objects.resize(0);
+		_objects.reserve(config.objects.size);
+		for (size_t i = 0; i < config.objects.size; ++i)
+			_objects.push_back(config.objects.data[i]);
+		_type_id		  = config.type_id;
+		_world			  = config.world;
+		_has_dependencies = false;
 		set_block_edits(config.block_edits);
 
-		const reflected_type_t* type = reflection_registry_t::get().find_type(config.type_id);
+		const reflected_type_t* type = reflection_registry_t::get().find_type(_type_id);
 		if (type == nullptr)
 			return;
 
-		if (config.objects.size == 0)
+		if (_objects.empty())
 			return;
 		editor_theme_t& theme = editor_theme_t::get();
 
-		create_fields(_root, config.objects, config.type_id, config.world, true, false, theme.margin_horizontal, true);
+		create_fields(_root, {.data = _objects.data(), .size = _objects.size()}, _type_id, _world, true, false, theme.margin_horizontal, true);
+	}
+
+	void editor_widget_reflection_t::rebuild()
+	{
+		save_fold_states();
+		clear_widgets();
+		_has_dependencies = false;
+
+		const reflected_type_t* type = reflection_registry_t::get().find_type(_type_id);
+		if (type == nullptr || _objects.empty())
+			return;
+
+		create_fields(_root, {.data = _objects.data(), .size = _objects.size()}, _type_id, _world, true, false, editor_theme_t::get().margin_horizontal, true);
 	}
 
 	void editor_widget_reflection_t::set_block_edits(bool block_edits)
@@ -171,6 +206,77 @@ namespace sfg
 		_ui->get_paint().set_rect(_blocker, rect);
 	}
 
+	bool editor_widget_reflection_t::is_field_visible(const reflected_type_t& type, const reflected_field_t& field, span_t<void*> objects, u32 dependency_depth) const
+	{
+		if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_ui))
+			return false;
+
+		if (field.ui_definition.dependency_field == 0)
+			return true;
+
+		if (dependency_depth >= type.fields.end - type.fields.start)
+		{
+			SFG_ASSERT(false);
+			return false;
+		}
+
+		const reflected_field_t* dependency_field = nullptr;
+
+		for (u32 i = type.fields.start; i < type.fields.end; ++i)
+		{
+			const reflected_field_t* candidate = reflection_registry_t::get().get_field(i);
+			if (candidate->field_identifier == field.ui_definition.dependency_field)
+			{
+				dependency_field = candidate;
+				break;
+			}
+		}
+
+		SFG_ASSERT(dependency_field != nullptr);
+		SFG_ASSERT(dependency_field->value_type == reflected_value_type_e::boolean || dependency_field->value_type == reflected_value_type_e::u8 || dependency_field->value_type == reflected_value_type_e::u16 ||
+				   dependency_field->value_type == reflected_value_type_e::u32);
+		SFG_ASSERT(dependency_field->size == sizeof(u8) || dependency_field->size == sizeof(u16) || dependency_field->size == sizeof(u32));
+
+		if (!is_field_visible(type, *dependency_field, objects, dependency_depth + 1))
+			return false;
+
+		for (size_t i = 0; i < objects.size; ++i)
+		{
+			const u8* dependency_data  = static_cast<const u8*>(objects.data[i]) + dependency_field->offset;
+			u32		  dependency_value = 0;
+
+			switch (dependency_field->size)
+			{
+			case sizeof(u8):
+				dependency_value = *reinterpret_cast<const u8*>(dependency_data);
+				break;
+			case sizeof(u16):
+				dependency_value = *reinterpret_cast<const u16*>(dependency_data);
+				break;
+			case sizeof(u32):
+				dependency_value = *reinterpret_cast<const u32*>(dependency_data);
+				break;
+			default:
+				SFG_ASSERT(false);
+				break;
+			}
+
+			switch (field.ui_definition.dependency_type)
+			{
+			case reflected_field_dependency_type_e::show_if_equals:
+				if (dependency_value != field.ui_definition.dependency_value)
+					return false;
+				break;
+			case reflected_field_dependency_type_e::show_if_not_equal:
+				if (dependency_value == field.ui_definition.dependency_value)
+					return false;
+				break;
+			}
+		}
+
+		return true;
+	}
+
 	void editor_widget_reflection_t::create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, editor_world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider)
 	{
 		const reflected_type_t* type = reflection_registry_t::get().find_type(type_id);
@@ -179,11 +285,22 @@ namespace sfg
 
 		const u32 field_start = type->fields.start;
 		const u32 field_end	  = type->fields.end;
+		bool	  has_fields  = false;
 		for (u32 i = field_start; i < field_end; i++)
 		{
 			const reflected_field_t* field = reflection_registry_t::get().get_field(i);
 			if (field == nullptr || field->flags.is_set(reflected_field_flags_e::reflected_field_flag_no_ui))
 				continue;
+
+			if (field->ui_definition.dependency_field != 0)
+				_has_dependencies = true;
+
+			if (!is_field_visible(*type, *field, objects, 0))
+				continue;
+
+			if (add_divider && has_fields)
+				_dividers.push_back(editor_dividers_t::add_divider_hor(*_ui, parent, editor_theme_t::get().divider_thickness * 2.0f, editor_theme_t::get().color_frame, editor_theme_t::get().color_frame, ui::vg_gradient_e::none));
+			has_fields = true;
 
 			switch (field->value_type)
 			{
@@ -257,9 +374,6 @@ namespace sfg
 				break;
 			}
 			}
-
-			if (add_divider && i != field_end - 1)
-				_dividers.push_back(editor_dividers_t::add_divider_hor(*_ui, parent, editor_theme_t::get().divider_thickness * 2.0f, editor_theme_t::get().color_frame, editor_theme_t::get().color_frame, ui::vg_gradient_e::none));
 		}
 	}
 
@@ -294,7 +408,7 @@ namespace sfg
 					   row.right,
 					   {
 						   .field	  = {.fields = fields},
-						   .callbacks = _callbacks,
+						   .callbacks = _field_callbacks,
 					   });
 
 		ui::layout_in_t& checkbox_in = _ui->get_tree().in(checkbox->get_root());
@@ -340,7 +454,7 @@ namespace sfg
 					   {
 						   .items	   = items.data(),
 						   .field	   = {.fields = fields, .field_size = field->size},
-						   .callbacks  = _callbacks,
+						   .callbacks  = _field_callbacks,
 						   .item_count = static_cast<u16>(items.size()),
 						   .width	   = editor_dropdown_width_e::parent_relative,
 						   .pos_y	   = editor_dropdown_pos_y_e::center,
@@ -383,7 +497,7 @@ namespace sfg
 								.type		= input_type,
 								.is_slider	= is_slider,
 							},
-						.callbacks	 = _callbacks,
+						.callbacks	 = _field_callbacks,
 						.placeholder = field->name,
 						.increment	 = increment,
 						.min_value	 = min_value,
@@ -416,7 +530,7 @@ namespace sfg
 		reference->init(*_ui,
 						row.right,
 						{
-							.callbacks	= _callbacks,
+							.callbacks	= _field_callbacks,
 							.fields		= fields,
 							.world		= world,
 							.asset_type = asset_type,
@@ -445,7 +559,7 @@ namespace sfg
 			quat_fields.push_back(reinterpret_cast<quat_t*>(fields.data[i]));
 
 		editor_quat_field_t* quat = new editor_quat_field_t();
-		quat->init(*_ui, row.right, {.field = {.fields = {.data = quat_fields.data(), .size = quat_fields.size()}}, .callbacks = _callbacks});
+		quat->init(*_ui, row.right, {.field = {.fields = {.data = quat_fields.data(), .size = quat_fields.size()}}, .callbacks = _field_callbacks});
 		fit_control(quat->get_root());
 		if (removable_item)
 			install_sub_item_button(row.right, quat->get_root(), container_data, element_index);
@@ -468,7 +582,7 @@ namespace sfg
 				vector_fields.push_back(reinterpret_cast<vec2f_t*>(fields.data[i]));
 
 			editor_vec2_field_t* vec = new editor_vec2_field_t();
-			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}, .callbacks = _callbacks});
+			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}, .callbacks = _field_callbacks});
 			fit_control(vec->get_root());
 			if (removable_item)
 				install_sub_item_button(row.right, vec->get_root(), container_data, element_index);
@@ -488,7 +602,7 @@ namespace sfg
 				vector_fields.push_back(reinterpret_cast<vec3f_t*>(fields.data[i]));
 
 			editor_vec3_field_t* vec = new editor_vec3_field_t();
-			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}, .callbacks = _callbacks});
+			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}, .callbacks = _field_callbacks});
 			fit_control(vec->get_root());
 			if (removable_item)
 				install_sub_item_button(row.right, vec->get_root(), container_data, element_index);
@@ -508,7 +622,7 @@ namespace sfg
 				vector_fields.push_back(reinterpret_cast<vec4f_t*>(fields.data[i]));
 
 			editor_vec4_field_t* vec = new editor_vec4_field_t();
-			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}, .callbacks = _callbacks});
+			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}, .callbacks = _field_callbacks});
 			fit_control(vec->get_root());
 			if (removable_item)
 				install_sub_item_button(row.right, vec->get_root(), container_data, element_index);
@@ -535,7 +649,7 @@ namespace sfg
 			color_fields.push_back(reinterpret_cast<color_t*>(fields.data[i]));
 
 		editor_color_field_t* color = new editor_color_field_t();
-		color->init(*_ui, row.right, {.field = {.fields = {.data = color_fields.data(), .size = color_fields.size()}}, .callbacks = _callbacks});
+		color->init(*_ui, row.right, {.field = {.fields = {.data = color_fields.data(), .size = color_fields.size()}}, .callbacks = _field_callbacks});
 		fit_control(color->get_root());
 		if (removable_item)
 			install_sub_item_button(row.right, color->get_root(), container_data, element_index);
@@ -1102,6 +1216,35 @@ namespace sfg
 		data.reflection->refresh_container(data);
 	}
 
+	void editor_widget_reflection_t::on_field_edit_begin(void* user_data)
+	{
+		editor_widget_reflection_t& reflection = *static_cast<editor_widget_reflection_t*>(user_data);
+		if (reflection._callbacks.edit_begin != nullptr)
+			reflection._callbacks.edit_begin(reflection._callbacks.user_data);
+	}
+
+	void editor_widget_reflection_t::on_field_edited(void* user_data)
+	{
+		editor_widget_reflection_t& reflection = *static_cast<editor_widget_reflection_t*>(user_data);
+		if (reflection._callbacks.edited != nullptr)
+			reflection._callbacks.edited(reflection._callbacks.user_data);
+	}
+
+	void editor_widget_reflection_t::on_field_edit_submitted(void* user_data)
+	{
+		editor_widget_reflection_t& reflection = *static_cast<editor_widget_reflection_t*>(user_data);
+		if (reflection._callbacks.edit_submitted != nullptr)
+			reflection._callbacks.edit_submitted(reflection._callbacks.user_data);
+
+		if (reflection._has_dependencies)
+			reflection._ui->request_unique_mutation(on_reflection_refresh, &reflection);
+	}
+
+	void editor_widget_reflection_t::on_reflection_refresh(ui::ui_context&, void* user_data)
+	{
+		static_cast<editor_widget_reflection_t*>(user_data)->rebuild();
+	}
+
 	void editor_widget_reflection_t::install_tooltip(ui::widget_id_t owner, const char* text)
 	{
 		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(*_ui);
@@ -1207,7 +1350,5 @@ namespace sfg
 		_dividers.resize(0);
 		_rows.resize(0);
 		_tooltip_owners.resize(0);
-		_callbacks	 = {};
-		_fold_states = nullptr;
 	}
 }

@@ -495,6 +495,7 @@ namespace sfg
 		}
 
 		world_render_shadow_allocation_t* allocation = nullptr;
+
 		for (world_render_shadow_allocation_t& candidate : _shadow_allocations)
 		{
 			if (candidate.texture.is_null())
@@ -503,6 +504,7 @@ namespace sfg
 				break;
 			}
 		}
+
 		if (allocation == nullptr)
 			return nullptr;
 
@@ -512,12 +514,16 @@ namespace sfg
 		desc.initial_states		  = resource_state_ps_resource;
 		desc.size				  = resolution;
 		desc.flags				  = texture_flags::tf_depth_texture | texture_flags::tf_typeless | texture_flags::tf_is_2d | texture_flags::tf_sampled;
+
 		if (type == static_cast<u8>(world_render_light_type_e::point))
 			desc.flags.set(texture_flags::tf_cubemap);
+
 		desc.array_length = layer_count;
 		desc.view_count	  = static_cast<u8>(layer_count + 1);
+
 		for (u8 layer = 0; layer < layer_count; ++layer)
 			desc.views[layer] = {.type = view_type::depth_stencil, .base_arr_level = layer, .level_count = 1};
+
 		desc.views[layer_count] = {.type = view_type::sampled, .base_arr_level = 0, .level_count = layer_count, .is_cubemap = type == static_cast<u8>(world_render_light_type_e::point)};
 		desc.clear_values[0]	= 1.0f;
 		desc.set_name("world_shadow_map");
@@ -530,6 +536,7 @@ namespace sfg
 			*allocation = {};
 			return nullptr;
 		}
+
 		allocation->texture_index	 = backend.get_texture_gpu_index(allocation->texture, layer_count);
 		allocation->resolution		 = resolution;
 		allocation->stable_id		 = stable_id;
