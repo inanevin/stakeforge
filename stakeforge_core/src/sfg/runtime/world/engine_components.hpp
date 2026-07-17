@@ -125,6 +125,8 @@ namespace sfg
 		f32			 inner_cone_degrees	  = 30.0f;
 		f32			 outer_cone_degrees	  = 45.0f;
 		f32			 shadow_near_plane	  = 0.1f;
+		f32			 shadow_bias		  = 0.001f;
+		f32			 shadow_normal_bias	  = 0.01f;
 		vec2u16_t	 shadow_resolution	  = {1024, 1024};
 		light_type_e type				  = light_type_e::point;
 		u8			 shadow_cascade_count = 4;

@@ -35,6 +35,19 @@ struct gpu_light
 	float4 direction_param0;
 	float4 right_param1;
 	float4 color_intensity;
+	uint4 shadow;
+};
+
+struct gpu_shadow_view
+{
+	float4x4 view_proj;
+	float4 params0;
+	float4 params1;
+	float4 params2;
+	uint texture_index;
+	uint slice;
+	uint type;
+	uint pad;
 };
 
 struct gpu_point_light
@@ -191,7 +204,7 @@ float sample_cascade_shadow(
     float3         N,
     float3         L,
     int            slice,
-    float2         shadow_resolution, float texel_world)
+    float2         shadow_resolution, float texel_world, float depth_bias, float normal_bias)
 {
 
     // Transform world position into light clip space
@@ -209,7 +222,8 @@ float sample_cascade_shadow(
     // float receiver_bias = g_depth_bias_base + slope_bias(NoL) * max(texel.x, texel.y); // or texel_world * 0.00001
     // float compare_depth = ndc.z - receiver_bias * 0.1;
 
-    float compare_depth = clip.z; 
+    float NoL = saturate(dot(N, normalize(L)));
+    float compare_depth = ndc.z - depth_bias - normal_bias * (1.0 - NoL);
 
      // Single tap (fast path)
     if (g_pcf_radius == 0)
@@ -229,7 +243,7 @@ float sample_shadow_cone(Texture2D shadow_map,
     float3         L,
     float3 light_forward,
     float2         shadow_resolution,
-    float cos_outer
+    float cos_outer, float depth_bias, float normal_bias
     )
 {
     float cos_theta = dot(normalize(-L), normalize(light_forward));
@@ -249,7 +263,7 @@ float sample_shadow_cone(Texture2D shadow_map,
 
     float NoL = saturate(dot(N, normalize(L)));
     float2 texel = 1.0f / shadow_resolution;
-    float receiver_bias = g_depth_bias_base + slope_bias(NoL) * max(texel.x, texel.y);
+    float receiver_bias = depth_bias + normal_bias * (1.0 - NoL);
 
     float compare_depth = ndc.z - receiver_bias * 0.1;
 
@@ -277,7 +291,7 @@ float sample_shadow_cube(TextureCube shadow_map,
     float3         N,
     float3         L,
     float2         shadow_resolution,
-    float near_z, float far_z
+    float near_z, float far_z, float depth_bias, float normal_bias
     )
 {
 
@@ -293,7 +307,7 @@ float sample_shadow_cube(TextureCube shadow_map,
 
     float2 texel = 1.0 / shadow_resolution;
     float  NoL   = saturate(dot(N, normalize(L)));
-    float  receiver_bias = g_depth_bias_base + slope_bias(NoL) * max(texel.x, texel.y);
+    float  receiver_bias = depth_bias + normal_bias * (1.0 - NoL);
 
     float  cmp = depth01 - receiver_bias * 0.1;
     return shadow_map.SampleCmpLevelZero(smp, dir, cmp);
@@ -312,17 +326,17 @@ float sample_cascade_shadow_blend(
     float2         shadow_resolution,
     float          depth_linear,           // eye-linear 
     float          split_curr,             // end depth of current cascade
-    float          blend_width, float texel_world)    
+    float          blend_width, float texel_world, float depth_bias, float normal_bias)
 {
     if (blend_width <= 0.0f || slice_next < 0)
     {
-        return sample_cascade_shadow(shadow_map, smp_shadow, light_space_matrix_curr, world_pos, N, L, slice_curr, shadow_resolution, texel_world);
+        return sample_cascade_shadow(shadow_map, smp_shadow, light_space_matrix_curr, world_pos, N, L, slice_curr, shadow_resolution, texel_world, depth_bias, normal_bias);
     }
 
     float a = saturate( (split_curr - depth_linear) / max(blend_width, 1e-6f) );
     // a=1 => fully current cascade, a=0 => transition to next
-    float s0 = sample_cascade_shadow(shadow_map, smp_shadow, light_space_matrix_curr, world_pos, N, L, slice_curr, shadow_resolution, texel_world);
-    float s1 = sample_cascade_shadow(shadow_map, smp_shadow, light_space_matrix_next, world_pos, N, L, slice_next, shadow_resolution, texel_world);
+    float s0 = sample_cascade_shadow(shadow_map, smp_shadow, light_space_matrix_curr, world_pos, N, L, slice_curr, shadow_resolution, texel_world, depth_bias, normal_bias);
+    float s1 = sample_cascade_shadow(shadow_map, smp_shadow, light_space_matrix_next, world_pos, N, L, slice_next, shadow_resolution, texel_world, depth_bias, normal_bias);
     
     return lerp(s1, s0, a);
 }

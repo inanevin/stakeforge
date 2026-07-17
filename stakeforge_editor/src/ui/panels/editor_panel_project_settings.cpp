@@ -138,7 +138,7 @@ namespace sfg
 		const editor_project_settings_data_t previous = _project_edit_previous;
 		const editor_project_settings_data_t post	  = editor_command_project_settings_t::read();
 		_project_edit_active						  = false;
-		if (previous.last_world_guid == post.last_world_guid && previous.world_tick_rate == post.world_tick_rate && previous.world_physics_rate == post.world_physics_rate && previous.max_sim_steps == post.max_sim_steps)
+		if (previous == post)
 			return;
 
 		editor_command_project_settings_t::apply(previous);

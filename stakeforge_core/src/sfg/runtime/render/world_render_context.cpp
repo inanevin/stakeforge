@@ -30,9 +30,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/gfx/util/render_util.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/runtime/render/world_render_light.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/vertex.hpp>
@@ -52,6 +54,7 @@ namespace sfg
 			_pfd[i]		  = other._pfd[i];
 			other._pfd[i] = {};
 		}
+
 		_shaders						= other._shaders;
 		other._shaders					= {};
 		_config							= other._config;
@@ -62,6 +65,15 @@ namespace sfg
 		other._ssao_noise_staging		= {};
 		_ssao_noise_texture_index		= other._ssao_noise_texture_index;
 		other._ssao_noise_texture_index = NULL_GPU_INDEX;
+
+		for (u32 i = 0; i < WORLD_RENDER_SHADOW_ALLOCATION_CAPACITY; ++i)
+		{
+			_shadow_allocations[i]		 = other._shadow_allocations[i];
+			other._shadow_allocations[i] = {};
+		}
+
+		_shadow_serial		 = other._shadow_serial;
+		other._shadow_serial = 0;
 		return *this;
 	}
 
@@ -70,6 +82,7 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT((config.line_vertex_max == 0) == (config.line_index_max == 0));
 		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_index_max == 0));
+		SFG_ASSERT(config.shadow_view_max <= WORLD_RENDER_SHADOW_VIEW_CAPACITY);
 		_config = config;
 		render_util_t::ensure_world_resolution(_config.size);
 
@@ -112,6 +125,19 @@ namespace sfg
 		light_buffer_desc.structure_count  = light_buffer_count;
 		light_buffer_desc.flags			   = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
 		light_buffer_desc.set_name("world_light_buffer");
+
+		resource_desc_t shadow_view_buffer_desc = {};
+		const u32		shadow_view_count		= config.shadow_view_max == 0 ? 1 : config.shadow_view_max;
+		shadow_view_buffer_desc.size			= static_cast<u32>(sizeof(gpu_shadow_view_t) * shadow_view_count);
+		shadow_view_buffer_desc.structure_size	= static_cast<u32>(sizeof(gpu_shadow_view_t));
+		shadow_view_buffer_desc.structure_count = shadow_view_count;
+		shadow_view_buffer_desc.flags			= resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
+		shadow_view_buffer_desc.set_name("world_shadow_views");
+
+		resource_desc_t shadow_view_data_desc = {};
+		shadow_view_data_desc.size			  = static_cast<u32>(sizeof(render_pass_data_opaque_gpu_t));
+		shadow_view_data_desc.flags			  = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		shadow_view_data_desc.set_name("world_shadow_view_data");
 
 		resource_desc_t debug_line_data_desc = {};
 		debug_line_data_desc.size			 = static_cast<u32>(sizeof(world_debug_line_gpu_data_t));
@@ -220,31 +246,46 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].entity_buffer.is_null());
 			SFG_ASSERT(_pfd[i].light_buffer.is_null());
 
-			_pfd[i].cmd_depth					  = backend.create_command_buffer({
+			_pfd[i].cmd_depth	 = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "world_depth",
 			});
-			_pfd[i].cmd_gbuffer					  = backend.create_command_buffer({
+			_pfd[i].cmd_gbuffer	 = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "world_gbuffer",
 			});
-			_pfd[i].cmd_lighting				  = backend.create_command_buffer({
+			_pfd[i].cmd_lighting = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "world_lighting",
 			});
-			_pfd[i].cmd_forward					  = backend.create_command_buffer({
+			_pfd[i].cmd_forward	 = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "world_forward",
 			});
-			_pfd[i].cmd_post					  = backend.create_command_buffer({
+			_pfd[i].cmd_post	 = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "world_post",
 			});
+
 			_pfd[i].opaque_render_pass_data		  = backend.create_resource(opaque_render_pass_data_desc);
 			_pfd[i].lighting_render_pass_data	  = backend.create_resource(lighting_render_pass_data_desc);
 			_pfd[i].post_process_render_pass_data = backend.create_resource(post_process_render_pass_data_desc);
 			_pfd[i].entity_buffer				  = backend.create_resource(entity_buffer_desc);
 			_pfd[i].light_buffer				  = backend.create_resource(light_buffer_desc);
+			_pfd[i].shadow_view_buffer			  = backend.create_resource(shadow_view_buffer_desc);
+			backend.map_resource(_pfd[i].shadow_view_buffer, _pfd[i].mapped_shadow_views);
+			_pfd[i].shadow_view_buffer_index = backend.get_resource_gpu_index(_pfd[i].shadow_view_buffer);
+
+			if (config.shadow_view_max > 0)
+			{
+				_pfd[i].cmd_shadows = backend.create_command_buffer({.type = command_type::graphics, .debug_name = "world_shadows"});
+				for (u16 view = 0; view < config.shadow_view_max; ++view)
+				{
+					_pfd[i].shadow_view_data[view] = backend.create_resource(shadow_view_data_desc);
+					backend.map_resource(_pfd[i].shadow_view_data[view], _pfd[i].mapped_shadow_view_data[view]);
+					_pfd[i].shadow_view_data_indices[view] = backend.get_resource_gpu_index(_pfd[i].shadow_view_data[view]);
+				}
+			}
 
 			if (config.enable_ssao != 0)
 			{
@@ -308,6 +349,7 @@ namespace sfg
 		_shaders.debug_line						   = render_resources.get_shader_hw(sh->psos[0]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/debug_text.hlsl"_hs);
 		_shaders.debug_text						   = render_resources.get_shader_hw(sh->psos[0]);
+
 		if (config.enable_ssao != 0)
 		{
 			sh					   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/ssao.hlsl"_hs);
@@ -315,6 +357,7 @@ namespace sfg
 			sh					   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/ssao_upsample.hlsl"_hs);
 			_shaders.ssao_upsample = render_resources.get_shader_hw(sh->psos[0]);
 		}
+
 		if (config.enable_bloom != 0)
 		{
 			sh						  = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/bloom_downsample.hlsl"_hs);
@@ -332,6 +375,14 @@ namespace sfg
 
 		destroy_texture();
 		gfx_backend& backend = gfx_backend::get();
+
+		for (world_render_shadow_allocation_t& allocation : _shadow_allocations)
+		{
+			if (!allocation.texture.is_null())
+				backend.destroy_texture(allocation.texture);
+			allocation = {};
+		}
+
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			SFG_ASSERT(!_pfd[i].opaque_render_pass_data.is_null());
@@ -344,24 +395,36 @@ namespace sfg
 			backend.destroy_resource(_pfd[i].post_process_render_pass_data);
 			backend.destroy_resource(_pfd[i].entity_buffer);
 			backend.destroy_resource(_pfd[i].light_buffer);
+			backend.destroy_resource(_pfd[i].shadow_view_buffer);
+
+			if (_config.shadow_view_max > 0)
+			{
+				for (u16 view = 0; view < _config.shadow_view_max; ++view)
+					backend.destroy_resource(_pfd[i].shadow_view_data[view]);
+				backend.destroy_command_buffer(_pfd[i].cmd_shadows);
+			}
+
 			if (_config.enable_ssao != 0)
 			{
 				backend.destroy_resource(_pfd[i].ssao_render_pass_data);
 				backend.destroy_command_buffer(_pfd[i].cmd_ssao);
 				backend.destroy_semaphore(_pfd[i].ssao_semaphore);
 			}
+
 			if (_config.enable_bloom != 0)
 			{
 				backend.destroy_resource(_pfd[i].bloom_render_pass_data);
 				backend.destroy_command_buffer(_pfd[i].cmd_bloom);
 				backend.destroy_semaphore(_pfd[i].bloom_semaphore);
 			}
+
 			if (_config.line_vertex_max > 0)
 			{
 				backend.destroy_resource(_pfd[i].debug_line_data);
 				backend.destroy_resource(_pfd[i].debug_line_vertex_buffer);
 				backend.destroy_resource(_pfd[i].debug_line_index_buffer);
 			}
+
 			if (_config.text_vertex_max > 0)
 			{
 				backend.destroy_resource(_pfd[i].debug_text_data);
@@ -373,6 +436,7 @@ namespace sfg
 			backend.destroy_command_buffer(_pfd[i].cmd_lighting);
 			backend.destroy_command_buffer(_pfd[i].cmd_forward);
 			backend.destroy_command_buffer(_pfd[i].cmd_post);
+
 			_pfd[i].opaque_render_pass_data				 = {};
 			_pfd[i].lighting_render_pass_data			 = {};
 			_pfd[i].post_process_render_pass_data		 = {};
@@ -404,6 +468,7 @@ namespace sfg
 			_pfd[i].debug_text_data_index				 = NULL_GPU_INDEX;
 			_pfd[i]										 = {};
 		}
+
 		if (_config.enable_ssao != 0)
 		{
 			backend.destroy_texture(_ssao_noise_texture);
@@ -412,8 +477,99 @@ namespace sfg
 			_ssao_noise_staging		  = {};
 			_ssao_noise_texture_index = NULL_GPU_INDEX;
 		}
+
 		_shaders = {};
 		_config	 = {};
+	}
+
+	world_render_shadow_allocation_t* world_render_context_t::get_or_create_shadow_allocation(u32 stable_id, u8 type, vec2u16_t resolution, u8 layer_count)
+	{
+		for (world_render_shadow_allocation_t& allocation : _shadow_allocations)
+		{
+			if (allocation.stable_id == stable_id && allocation.type == type && allocation.resolution == resolution && allocation.layer_count == layer_count)
+			{
+				allocation.last_used_serial = _shadow_serial;
+				allocation.retire_serial	= 0;
+				return &allocation;
+			}
+		}
+
+		world_render_shadow_allocation_t* allocation = nullptr;
+		for (world_render_shadow_allocation_t& candidate : _shadow_allocations)
+		{
+			if (candidate.texture.is_null())
+			{
+				allocation = &candidate;
+				break;
+			}
+		}
+		if (allocation == nullptr)
+			return nullptr;
+
+		texture_desc_t desc		  = {};
+		desc.texture_format		  = format_e::r32_sfloat;
+		desc.depth_stencil_format = format_e::d32_sfloat;
+		desc.initial_states		  = resource_state_ps_resource;
+		desc.size				  = resolution;
+		desc.flags				  = texture_flags::tf_depth_texture | texture_flags::tf_typeless | texture_flags::tf_is_2d | texture_flags::tf_sampled;
+		if (type == static_cast<u8>(world_render_light_type_e::point))
+			desc.flags.set(texture_flags::tf_cubemap);
+		desc.array_length = layer_count;
+		desc.view_count	  = static_cast<u8>(layer_count + 1);
+		for (u8 layer = 0; layer < layer_count; ++layer)
+			desc.views[layer] = {.type = view_type::depth_stencil, .base_arr_level = layer, .level_count = 1};
+		desc.views[layer_count] = {.type = view_type::sampled, .base_arr_level = 0, .level_count = layer_count, .is_cubemap = type == static_cast<u8>(world_render_light_type_e::point)};
+		desc.clear_values[0]	= 1.0f;
+		desc.set_name("world_shadow_map");
+
+		gfx_backend& backend = gfx_backend::get();
+		allocation->texture	 = backend.create_texture(desc);
+		if (allocation->texture.is_null())
+		{
+			SFG_ERR("failed to create shadow map texture");
+			*allocation = {};
+			return nullptr;
+		}
+		allocation->texture_index	 = backend.get_texture_gpu_index(allocation->texture, layer_count);
+		allocation->resolution		 = resolution;
+		allocation->stable_id		 = stable_id;
+		allocation->type			 = type;
+		allocation->layer_count		 = layer_count;
+		allocation->last_used_serial = _shadow_serial;
+		return allocation;
+	}
+
+	const world_render_shadow_allocation_t* world_render_context_t::find_shadow_allocation(u32 stable_id, u8 type) const
+	{
+		for (const world_render_shadow_allocation_t& allocation : _shadow_allocations)
+		{
+			if (allocation.stable_id == stable_id && allocation.type == type && allocation.retire_serial == 0)
+				return &allocation;
+		}
+		return nullptr;
+	}
+
+	void world_render_context_t::begin_shadow_allocations()
+	{
+		++_shadow_serial;
+		gfx_backend& backend = gfx_backend::get();
+		for (world_render_shadow_allocation_t& allocation : _shadow_allocations)
+		{
+			if (!allocation.texture.is_null() && allocation.retire_serial != 0 && _shadow_serial - allocation.retire_serial >= BACK_BUFFER_COUNT)
+			{
+				backend.destroy_texture(allocation.texture);
+				allocation = {};
+			}
+		}
+	}
+
+	void world_render_context_t::end_shadow_allocations()
+	{
+		for (world_render_shadow_allocation_t& allocation : _shadow_allocations)
+		{
+			if (!allocation.texture.is_null() && allocation.last_used_serial != _shadow_serial && allocation.retire_serial == 0)
+				allocation.retire_serial = _shadow_serial;
+		}
 	}
 
 	void world_render_context_t::resize(vec2u16_t size)
@@ -519,6 +675,7 @@ namespace sfg
 		bloom_downsample_desc.flags		 = texture_flags::tf_sampled | texture_flags::tf_gpu_write | texture_flags::tf_is_2d;
 		bloom_downsample_desc.view_count = WORLD_RENDER_BLOOM_LEVEL_COUNT * 2;
 		bloom_downsample_desc.mip_levels = WORLD_RENDER_BLOOM_LEVEL_COUNT;
+
 		for (u8 level = 0; level < WORLD_RENDER_BLOOM_LEVEL_COUNT; ++level)
 		{
 			bloom_downsample_desc.views[level] = {
@@ -526,12 +683,14 @@ namespace sfg
 				.base_mip_level = level,
 				.mip_count		= 1,
 			};
+
 			bloom_downsample_desc.views[WORLD_RENDER_BLOOM_LEVEL_COUNT + level] = {
 				.type			= view_type::gpu_write,
 				.base_mip_level = level,
 				.mip_count		= 1,
 			};
 		}
+
 		bloom_downsample_desc.set_name("world_bloom_downsample");
 
 		texture_desc_t bloom_upsample_desc = bloom_downsample_desc;
@@ -539,6 +698,7 @@ namespace sfg
 		bloom_upsample_desc.set_name("world_bloom_upsample");
 
 		gfx_backend& backend = gfx_backend::get();
+
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			SFG_ASSERT(_pfd[i].lighting_texture.is_null());
@@ -558,11 +718,13 @@ namespace sfg
 			_pfd[i].gbuffer_normal		 = backend.create_texture(gbuffer_normal_desc);
 			_pfd[i].gbuffer_orm			 = backend.create_texture(gbuffer_orm_desc);
 			_pfd[i].gbuffer_emissive	 = backend.create_texture(gbuffer_emissive_desc);
+
 			if (_config.enable_ssao != 0)
 			{
 				_pfd[i].ao_texture		= backend.create_texture(ao_desc);
 				_pfd[i].ao_half_texture = backend.create_texture(ao_half_desc);
 			}
+
 			_pfd[i].lighting_texture_index	   = backend.get_texture_gpu_index(_pfd[i].lighting_texture, 0);
 			_pfd[i].post_process_texture_index = backend.get_texture_gpu_index(_pfd[i].post_process_texture, 0);
 			_pfd[i].depth_texture_index		   = backend.get_texture_gpu_index(_pfd[i].depth_texture, 2);
@@ -570,6 +732,7 @@ namespace sfg
 			_pfd[i].gbuffer_normal_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_normal, 1);
 			_pfd[i].gbuffer_orm_index		   = backend.get_texture_gpu_index(_pfd[i].gbuffer_orm, 1);
 			_pfd[i].gbuffer_emissive_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_emissive, 1);
+
 			if (_config.enable_ssao != 0)
 			{
 				_pfd[i].ao_texture_index		  = backend.get_texture_gpu_index(_pfd[i].ao_texture, 0);
@@ -582,6 +745,7 @@ namespace sfg
 			{
 				_pfd[i].bloom_downsample = backend.create_texture(bloom_downsample_desc);
 				_pfd[i].bloom_upsample	 = backend.create_texture(bloom_upsample_desc);
+
 				for (u8 level = 0; level < WORLD_RENDER_BLOOM_LEVEL_COUNT; ++level)
 				{
 					_pfd[i].bloom_downsample_index[level]	  = backend.get_texture_gpu_index(_pfd[i].bloom_downsample, level);
@@ -591,6 +755,7 @@ namespace sfg
 				}
 			}
 		}
+
 		_config.size = size;
 	}
 

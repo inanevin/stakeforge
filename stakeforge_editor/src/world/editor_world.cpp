@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_camera_fly.hpp"
 #include "world/editor_world_camera_orbit.hpp"
 #include "world/editor_world_rendering.hpp"
+#include "editor_app.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/data/char_util.hpp>
 #include <sfg/data/frame_vector.hpp>
@@ -94,6 +95,7 @@ namespace sfg
 			.line_index_max	 = EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
 			.text_vertex_max = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
 			.text_index_max	 = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
+			.shadow_view_max = ENGINE_SHADOW_VIEW_MAX,
 		});
 
 		_render_prep_data.reserve(1000);
@@ -398,7 +400,7 @@ namespace sfg
 	void editor_world_t::produce_snapshot()
 	{
 		world_render_snapshot_t& snapshot = _snapshot_slots[_producer_slot];
-		world_snapshot_producer_t::produce(_world, snapshot);
+		world_snapshot_producer_t::produce(_world, snapshot, editor_app_t::get().get_runtime().get_settings());
 
 		editor_world_snapshot_data_t&	data			= *static_cast<editor_world_snapshot_data_t*>(snapshot.user_data);
 		const span_t<const entity_id_t> selected		= _edit_context.get_selected_entities();
@@ -409,7 +411,8 @@ namespace sfg
 			.scale	 = _edit_context.get_world_view_settings().grid_scale,
 			.enabled = _edit_context.is_grid_enabled(),
 		};
-		data.gizmo				 = {};
+		data.gizmo = {};
+
 		const entity_id_t anchor = _edit_context.get_entity_anchor();
 		if (anchor != NULL_ENTITY_ID)
 		{
@@ -424,6 +427,7 @@ namespace sfg
 				.control_type  = _edit_context.get_transform_control_type(),
 			};
 		}
+
 		data.gizmo.hovered_axis = _gizmo.get_hovered_axis();
 		data.gizmo.active_axis	= _gizmo.get_active_axis();
 		data.selected_entities.resize(0);

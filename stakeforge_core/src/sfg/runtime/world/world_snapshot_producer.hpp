@@ -30,11 +30,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	class world_t;
+	struct engine_runtime_settings_t;
 	struct world_render_snapshot_t;
 
 	class world_snapshot_producer_t final
 	{
 	public:
-		static void produce(world_t& world, world_render_snapshot_t& snapshot);
+		static void produce(world_t& world, world_render_snapshot_t& snapshot, const engine_runtime_settings_t& runtime_settings);
 	};
 }

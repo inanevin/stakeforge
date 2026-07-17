@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "commands/editor_command_project_settings.hpp"
 #include "editor_command_system.hpp"
 #include "editor_project.hpp"
+#include "editor_app.hpp"
 #include <sfg/io/log.hpp>
 
 namespace sfg
@@ -56,25 +57,22 @@ namespace sfg
 	{
 		const editor_project_t& project = editor_project_t::get();
 		return {
-			.last_world_guid	= project.last_world_guid,
-			.world_tick_rate	= project.world_tick_rate,
-			.world_physics_rate = project.world_physics_rate,
-			.max_sim_steps		= project.max_sim_steps,
+			.runtime_settings = project.runtime_settings,
+			.last_world_guid  = project.last_world_guid,
 		};
 	}
 
 	void editor_command_project_settings_t::apply(const editor_project_settings_data_t& settings)
 	{
-		editor_project_t& project  = editor_project_t::get();
-		project.last_world_guid	   = settings.last_world_guid;
-		project.world_tick_rate	   = settings.world_tick_rate;
-		project.world_physics_rate = settings.world_physics_rate;
-		project.max_sim_steps	   = settings.max_sim_steps;
+		editor_project_t& project = editor_project_t::get();
+		project.runtime_settings  = settings.runtime_settings;
+		project.last_world_guid	  = settings.last_world_guid;
+		editor_app_t::get().get_runtime().update_settings(settings.runtime_settings);
 	}
 
 	bool editor_command_project_settings_t::edit(const editor_project_settings_data_t& previous, const editor_project_settings_data_t& post)
 	{
-		if (previous.last_world_guid == post.last_world_guid && previous.world_tick_rate == post.world_tick_rate && previous.world_physics_rate == post.world_physics_rate && previous.max_sim_steps == post.max_sim_steps)
+		if (previous == post)
 			return true;
 
 		const editor_command_edit_project_settings_payload_t payload{

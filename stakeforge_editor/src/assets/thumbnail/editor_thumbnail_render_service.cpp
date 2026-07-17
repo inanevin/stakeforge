@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
+#include <sfg/runtime/engine/engine_runtime_settings.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/resource_type.hpp>
 #include <sfg/runtime/resources/shader.hpp>
@@ -551,7 +552,8 @@ namespace sfg
 	void editor_thumbnail_render_service_t::produce_snapshot(thumbnail_world_t& thumbnail_world)
 	{
 		thumbnail_world.world->update_world_transforms(false);
-		world_snapshot_producer_t::produce(*thumbnail_world.world, _snapshot);
+		const engine_runtime_settings_t settings = {};
+		world_snapshot_producer_t::produce(*thumbnail_world.world, _snapshot, settings);
 	}
 
 	void editor_thumbnail_render_service_t::render_world()

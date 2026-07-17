@@ -27,45 +27,42 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/common/type_id.hpp>
-#include <sfg/data/string.hpp>
-#include <sfg/runtime/engine/engine_runtime_settings.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/math/frustum.hpp>
+#include <sfg/math/mat4x4.hpp>
+#include <sfg/math/vec2u16.hpp>
+#include <sfg/math/vec4f.hpp>
 
 namespace sfg
 {
-	struct editor_project_runtime_t
+	struct gpu_shadow_view_t
 	{
-		string_t path;
-		string_t assets_path;
-		string_t cache_path;
-		string_t default_assets_path;
-		string_t name;
+		mat4x4_t	view_proj	  = mat4x4_t::identity;
+		vec4f_t		params0		  = vec4f_t::zero;
+		vec4f_t		params1		  = vec4f_t::zero;
+		vec4f_t		params2		  = vec4f_t::zero;
+		gpu_index_t texture_index = NULL_GPU_INDEX;
+		u32			slice		  = 0;
+		u32			type		  = 0;
+		u32			pad			  = 0;
 	};
 
-	struct editor_project_t
+	struct world_render_shadow_view_t
 	{
-		static editor_project_t& get()
-		{
-			static editor_project_t instance;
-			return instance;
-		}
-
-		editor_project_runtime_t  _runtime		   = {};
-		engine_runtime_settings_t runtime_settings = {};
-		sid_t					  last_world_guid  = NULL_SID;
-
-		bool					save(const char* path);
-		bool					try_load(const char* path);
-		void					refresh_runtime(const char* path);
-		static editor_project_t make_default_project(const char* path);
+		mat4x4_t	 view_proj	   = mat4x4_t::identity;
+		frustum_t	 frustum	   = {};
+		vec2u16_t	 resolution	   = vec2u16_t::zero;
+		gfx_handle_t texture	   = {};
+		gpu_index_t	 texture_index = NULL_GPU_INDEX;
+		u32			 light_index   = UINT32_MAX;
+		u32			 draw_offset   = 0;
+		u32			 draw_count	   = 0;
+		f32			 split_near	   = 0.0f;
+		f32			 split_far	   = 0.0f;
+		f32			 near_plane	   = 0.0f;
+		f32			 far_plane	   = 0.0f;
+		f32			 fade		   = 1.0f;
+		u8			 view_index	   = 0;
+		u8			 type		   = 0;
 	};
-
-	SFG_DEFINE_TYPE_ID(editor_project_t);
-
-	struct editor_project_reflection_t
-	{
-		editor_project_reflection_t();
-	};
-
-	inline editor_project_reflection_t g_reflect_editor_project;
 }

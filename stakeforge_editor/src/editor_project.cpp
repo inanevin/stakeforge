@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_project.hpp"
+#include "editor_app.hpp"
 #include <sfg/io/file_system.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/serialization/serialization.hpp>
@@ -38,10 +39,7 @@ namespace sfg
 	{
 		editor_project_t project = {};
 		project.refresh_runtime(path);
-		project.last_world_guid	   = NULL_SID;
-		project.world_tick_rate	   = 60;
-		project.world_physics_rate = 100;
-		project.max_sim_steps	   = 4;
+		project.last_world_guid = NULL_SID;
 		return project;
 	}
 
@@ -70,6 +68,7 @@ namespace sfg
 
 		*this = project;
 		refresh_runtime(path);
+		editor_app_t::get().get_runtime().update_settings(runtime_settings);
 		return true;
 	}
 
@@ -109,33 +108,12 @@ namespace sfg
 			.fields =
 				{
 					{.name = "last_world_guid", .display_name = "Last World GUID", .offset = offsetof(editor_project_t, last_world_guid), .size = sizeof(sid_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u64},
-					{.name				= "world_tick_rate",
-					 .display_name		= "World Tick Rate",
-					 .offset			= offsetof(editor_project_t, world_tick_rate),
-					 .size				= sizeof(u32),
-					 .flags				= reflected_field_flag_clamped,
-					 .min_clamp			= 15.0f,
-					 .max_clamp			= 240.0f,
-					 .clamp_granularity = 1.0f,
-					 .type				= reflected_value_type_e::u32},
-					{.name				= "world_physics_rate",
-					 .display_name		= "World Physics Rate",
-					 .offset			= offsetof(editor_project_t, world_physics_rate),
-					 .size				= sizeof(u32),
-					 .flags				= reflected_field_flag_clamped,
-					 .min_clamp			= 30.0f,
-					 .max_clamp			= 240.0f,
-					 .clamp_granularity = 1.0f,
-					 .type				= reflected_value_type_e::u32},
-					{.name				= "max_sim_steps",
-					 .display_name		= "Max Sim Steps",
-					 .offset			= offsetof(editor_project_t, max_sim_steps),
-					 .size				= sizeof(u32),
-					 .flags				= reflected_field_flag_clamped,
-					 .min_clamp			= 1.0f,
-					 .max_clamp			= 8.0f,
-					 .clamp_granularity = 1.0f,
-					 .type				= reflected_value_type_e::u32},
+					{.name		   = "runtime_settings",
+					 .display_name = "Runtime",
+					 .sub_type_id  = type_id_t<engine_runtime_settings_t>::value,
+					 .offset	   = offsetof(editor_project_t, runtime_settings),
+					 .size		   = sizeof(engine_runtime_settings_t),
+					 .type		   = reflected_value_type_e::object},
 				},
 			.type_id   = type_id_t<editor_project_t>::value,
 			.size	   = sizeof(editor_project_t),

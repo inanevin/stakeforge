@@ -35,12 +35,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/barrier_description.hpp>
 #include <sfg/gfx/common/commands.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
+#include <sfg/gfx/util/shadow_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/job/job_system.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/math/mat3x3.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/engine/engine_runtime_settings.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
@@ -92,12 +94,14 @@ namespace sfg
 			backend.cmd_bind_constants(cmd, {.data = constants.data(), .offset = constant_mat0, .count = static_cast<u8>(constants.size()), .param_index = 0});
 		}
 	}
-	void world_rendering_t::render_world(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	void world_rendering_t::render_world(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
-		gfx_backend& backend = gfx_backend::get();
+		gfx_backend&					 backend  = gfx_backend::get();
+		const engine_runtime_settings_t& settings = snapshot.runtime_settings;
 
 		gpu_entity_t* entity_buffer = reinterpret_cast<gpu_entity_t*>(ctx.get_mapped_entity_buffer(frame_index));
 
+		// prep entity buffer.
 		{
 			SFG_ASSERT(snapshot.entities.size() <= WORLD_RENDER_ENTITY_BUFFER_CAPACITY);
 			for (size_t i = 0; i < snapshot.entities.size(); ++i)
@@ -118,6 +122,144 @@ namespace sfg
 			}
 		}
 
+		// main cam view.
+		render_view_t main_camera_view_t = {};
+		main_camera_view_t.calculate(snapshot.main_view, ctx.get_size(), interpolation_alpha);
+
+		prep_data.shadow_views.resize(0);
+		prep_data.shadow_draw_indices.resize(0);
+
+		ctx.begin_shadow_allocations();
+
+		u64 shadow_texels	 = 0;
+		f32 quality_scale	 = 1.0f;
+		u16 quality_view_max = settings.shadows.max_views;
+
+		switch (settings.quality_level)
+		{
+		case engine_quality_level_e::low:
+			quality_scale	 = 0.5f;
+			quality_view_max = math::min<u16>(quality_view_max, 12);
+			break;
+		case engine_quality_level_e::medium:
+			quality_scale	 = 0.75f;
+			quality_view_max = math::min<u16>(quality_view_max, 24);
+			break;
+		case engine_quality_level_e::high:
+			break;
+		case engine_quality_level_e::ultra:
+			quality_scale = 2.0f;
+			break;
+		}
+
+		const u16 shadow_view_max	  = math::min(ctx.get_shadow_view_max(), quality_view_max);
+		const u64 shadow_texel_budget = static_cast<u64>(static_cast<double>(settings.shadows.texel_budget) * quality_scale);
+		const f32 shadow_distance	  = settings.shadows.shadow_distance * quality_scale;
+
+		for (u32 light_index = 0; light_index < snapshot.lights.size() && prep_data.shadow_views.size() < shadow_view_max; ++light_index)
+		{
+			const world_render_light_t& light = snapshot.lights[light_index];
+			if (light.cast_shadows == 0 || light.type == static_cast<u8>(world_render_light_type_e::area))
+				continue;
+
+			const vec3f_t pos			  = vec3f_t::lerp(light.prev_pos, light.pos, interpolation_alpha);
+			const quat_t  rot			  = quat_t::slerp(light.prev_rot, light.rot, interpolation_alpha);
+			const f32	  camera_distance = vec3f_t::distance(pos, main_camera_view_t.pos);
+			const f32	  shadow_fade	  = light.type == static_cast<u8>(world_render_light_type_e::directional)
+												? 1.0f
+												: 1.0f - math::clamp((camera_distance - light.range - (shadow_distance - settings.shadows.shadow_fade_distance)) / math::max(settings.shadows.shadow_fade_distance, 0.001f), 0.0f, 1.0f);
+
+			if (light.type != static_cast<u8>(world_render_light_type_e::directional) && camera_distance - light.range > shadow_distance)
+				continue;
+
+			u16 resolution = static_cast<u16>(math::clamp<u32>(math::max<u16>(light.shadow_resolution.x, light.shadow_resolution.y), settings.shadows.min_resolution, settings.shadows.max_resolution));
+			f32 projected  = 0.0f;
+
+			// calc dyn resolution based off distance.
+			if (light.type != static_cast<u8>(world_render_light_type_e::directional))
+			{
+				projected = light.range * static_cast<f32>(ctx.get_size().y) / math::max(camera_distance, 0.1f);
+
+				while (resolution > settings.shadows.min_resolution && projected < static_cast<f32>(resolution) * 0.5f)
+					resolution = static_cast<u16>(resolution / 2);
+
+				const world_render_shadow_allocation_t* current = ctx.find_shadow_allocation(light.stable_id, light.type);
+
+				if (current != nullptr && current->resolution.x >= settings.shadows.min_resolution && current->resolution.x <= settings.shadows.max_resolution)
+				{
+					if (resolution > current->resolution.x && projected < static_cast<f32>(current->resolution.x) * 0.75f)
+						resolution = current->resolution.x;
+					else if (resolution < current->resolution.x && projected > static_cast<f32>(current->resolution.x) * 0.35f)
+						resolution = current->resolution.x;
+				}
+			}
+
+			const u8  layer_count	   = light.type == static_cast<u8>(world_render_light_type_e::point) ? 6 : light.type == static_cast<u8>(world_render_light_type_e::directional) ? math::min<u8>(light.shadow_cascade_count, 8) : 1;
+			const u64 requested_texels = static_cast<u64>(resolution) * resolution * layer_count;
+			if (shadow_texels + requested_texels > shadow_texel_budget || prep_data.shadow_views.size() + layer_count > shadow_view_max)
+				continue;
+
+			world_render_shadow_allocation_t* allocation = ctx.get_or_create_shadow_allocation(light.stable_id, light.type, {resolution, resolution}, layer_count);
+			if (allocation == nullptr)
+				continue;
+
+			shadow_texels += requested_texels;
+
+			for (u8 layer = 0; layer < layer_count; ++layer)
+			{
+				mat4x4_t view_proj	= mat4x4_t::identity;
+				f32		 split_near = light.shadow_near_plane;
+				f32		 split_far	= light.range;
+
+				if (light.type == static_cast<u8>(world_render_light_type_e::spot))
+					view_proj = mat4x4_t::perspective(light.outer_cone_degrees * 2.0f, 1.0f, light.shadow_near_plane, light.range) * mat4x4_t::view(rot, pos);
+				else if (light.type == static_cast<u8>(world_render_light_type_e::point))
+				{
+					static const vec3f_t directions[6] = {vec3f_t::right, -vec3f_t::right, vec3f_t::up, -vec3f_t::up, vec3f_t::forward, -vec3f_t::forward};
+					static const vec3f_t ups[6]		   = {vec3f_t::up, vec3f_t::up, -vec3f_t::forward, vec3f_t::forward, vec3f_t::up, vec3f_t::up};
+					view_proj						   = mat4x4_t::perspective(90.0f, 1.0f, light.shadow_near_plane, light.range) * mat4x4_t::look_at(pos, pos + directions[layer], ups[layer]);
+				}
+				else
+				{
+					const f32 n		 = main_camera_view_t.near_plane;
+					const f32 f		 = math::min(main_camera_view_t.far_plane, shadow_distance);
+					const f32 ratio0 = static_cast<f32>(layer) / layer_count;
+					const f32 ratio1 = static_cast<f32>(layer + 1) / layer_count;
+					split_near		 = math::lerp(n + (f - n) * ratio0, n * std::pow(f / n, ratio0), 0.65f);
+					split_far		 = math::lerp(n + (f - n) * ratio1, n * std::pow(f / n, ratio1), 0.65f);
+
+					const mat4x4_t				 cascade_proj = mat4x4_t::perspective_reverse_z(snapshot.main_view.fov_degrees, static_cast<f32>(ctx.get_size().x) / ctx.get_size().y, split_near, split_far);
+					inplace_vector_t<vec4f_t, 8> corners;
+					vec3f_t						 center;
+					shadow_util_t::get_world_space_ndc((cascade_proj * main_camera_view_t.view).inverse(), corners, center);
+
+					const vec3f_t  forward	  = rot.get_forward();
+					const vec3f_t  up		  = math::abs(vec3f_t::dot(forward, vec3f_t::up)) > 0.95f ? vec3f_t::right : vec3f_t::up;
+					const mat4x4_t light_view = mat4x4_t::look_at(center - forward * shadow_distance, center, up);
+					mat4x4_t	   light_proj;
+					vec2f_t		   texel;
+					shadow_util_t::get_lightspace_projection(light_proj, light_view, corners, {resolution, resolution}, texel);
+					view_proj = light_proj * light_view;
+				}
+
+				prep_data.shadow_views.push_back({.view_proj	 = view_proj,
+												  .frustum		 = frustum_t::extract(view_proj),
+												  .resolution	 = {resolution, resolution},
+												  .texture		 = allocation->texture,
+												  .texture_index = allocation->texture_index,
+												  .light_index	 = light_index,
+												  .split_near	 = split_near,
+												  .split_far	 = split_far,
+												  .near_plane	 = light.shadow_near_plane,
+												  .far_plane	 = light.range,
+												  .fade			 = shadow_fade,
+												  .view_index	 = layer,
+												  .type			 = light.type});
+			}
+		}
+		ctx.end_shadow_allocations();
+
+		// light buffer prep.
 		u32 light_counts[4] = {};
 		{
 			SFG_ASSERT(snapshot.lights.size() <= ctx.get_light_max());
@@ -146,31 +288,64 @@ namespace sfg
 					param1 = light.area_width * 0.5f;
 				}
 
+				u32 shadow_offset = UINT32_MAX;
+				u32 shadow_count  = 0;
+
+				for (u32 view_index = 0; view_index < prep_data.shadow_views.size(); ++view_index)
+				{
+					if (prep_data.shadow_views[view_index].light_index != i)
+						continue;
+					if (shadow_offset == UINT32_MAX)
+						shadow_offset = view_index;
+					++shadow_count;
+				}
+
 				light_buffer[i] = {
 					.position_range	  = {pos.x, pos.y, pos.z, light.range},
 					.direction_param0 = {forward.x, forward.y, forward.z, param0},
 					.right_param1	  = {right.x, right.y, right.z, param1},
 					.color_intensity  = {light.color.x, light.color.y, light.color.z, light.intensity},
+					.shadow			  = {shadow_offset, shadow_count, 0, 0},
 				};
 			}
 		}
 
-		render_view_t main_camera_view_t = {};
-		main_camera_view_t.calculate(snapshot.main_view, ctx.get_size(), interpolation_alpha);
+		// shadow buffer prep
+		for (u32 view_index = 0; view_index < prep_data.shadow_views.size(); ++view_index)
+		{
+			world_render_shadow_view_t& view	 = prep_data.shadow_views[view_index];
+			const world_render_light_t& light	 = snapshot.lights[view.light_index];
+			const gpu_shadow_view_t		gpu_view = {
+				.view_proj	   = view.view_proj,
+				.params0	   = {view.split_near, view.split_far, view.near_plane, view.far_plane},
+				.params1	   = {1.0f / view.resolution.x, 1.0f / view.resolution.y, 0.0f, 0.0f},
+				.params2	   = {light.shadow_bias, light.shadow_normal_bias, view.fade, settings.shadows.shadow_fade_distance},
+				.texture_index = view.texture_index,
+				.slice		   = view.view_index,
+				.type		   = view.type,
+			};
+			SFG_MEMCPY(ctx.get_mapped_shadow_views(frame_index) + view_index * sizeof(gpu_shadow_view_t), &gpu_view, sizeof(gpu_shadow_view_t));
+
+			const render_pass_data_opaque_gpu_t shadow_pass_data = {.view_proj = view.view_proj};
+			SFG_MEMCPY(ctx.get_mapped_shadow_view_data(frame_index, static_cast<u16>(view_index)), &shadow_pass_data, sizeof(render_pass_data_opaque_gpu_t));
+		}
 
 		// debug copy
 		const world_debug_draw_snapshot_t& debug_draw = snapshot.debug_draw;
+
 		if (!debug_draw.line_indices.empty())
 		{
 			SFG_ASSERT(!debug_draw.line_vertices.empty());
 
 			SFG_MEMCPY(ctx.get_mapped_debug_line_vertices(frame_index), debug_draw.line_vertices.data(), debug_draw.line_vertices.size() * sizeof(vertex_debug_line_t));
 			SFG_MEMCPY(ctx.get_mapped_debug_line_indices(frame_index), debug_draw.line_indices.data(), debug_draw.line_indices.size() * sizeof(primitive_index));
+
 			const world_debug_line_gpu_data_t line_data = {
 				.view	= main_camera_view_t.view,
 				.proj	= main_camera_view_t.proj,
 				.params = vec4f_t(static_cast<f32>(ctx.get_size().x), static_cast<f32>(ctx.get_size().y), main_camera_view_t.near_plane, 0.00005f),
 			};
+
 			SFG_MEMCPY(ctx.get_mapped_debug_line_data(frame_index), &line_data, sizeof(world_debug_line_gpu_data_t));
 		}
 
@@ -179,16 +354,19 @@ namespace sfg
 			SFG_ASSERT(!debug_draw.text_vertices.empty());
 			SFG_MEMCPY(ctx.get_mapped_debug_text_vertices(frame_index), debug_draw.text_vertices.data(), debug_draw.text_vertices.size() * sizeof(vertex_debug_text_t));
 			SFG_MEMCPY(ctx.get_mapped_debug_text_indices(frame_index), debug_draw.text_indices.data(), debug_draw.text_indices.size() * sizeof(primitive_index));
+
 			const world_debug_text_gpu_data_t text_data = {
 				.view_proj = main_camera_view_t.view_proj,
 				.params	   = vec4f_t(static_cast<f32>(ctx.get_size().x), static_cast<f32>(ctx.get_size().y), 0.00005f, 0.0f),
 			};
+
 			SFG_MEMCPY(ctx.get_mapped_debug_text_data(frame_index), &text_data, sizeof(world_debug_text_gpu_data_t));
 		}
 
 		// culling
 		prep_data.draw_culls.resize(snapshot.draws.size());
 
+		// main cull
 		const u8 main_view_index = 0;
 		for (size_t i = 0; i < snapshot.draws.size(); ++i)
 		{
@@ -203,6 +381,24 @@ namespace sfg
 				prep_data.draw_culls[i].cull_mask |= 1ull << main_view_index;
 		}
 
+		// shadow culls.
+		for (world_render_shadow_view_t& view : prep_data.shadow_views)
+		{
+			view.draw_offset = static_cast<u32>(prep_data.shadow_draw_indices.size());
+
+			for (u32 draw_index = 0; draw_index < snapshot.draws.size(); ++draw_index)
+			{
+				const world_draw_t& draw  = snapshot.draws[draw_index];
+				const mat4x4_t&		model = entity_buffer[draw.entity_index].model;
+				const mat3x3_t		linear_model(model[0], model[1], model[2], model[4], model[5], model[6], model[8], model[9], model[10]);
+
+				if (frustum_t::test(view.frustum, draw.aabb, linear_model, model.get_translation()) != frustum_result::outside)
+					prep_data.shadow_draw_indices.push_back(draw_index);
+			}
+
+			view.draw_count = static_cast<u32>(prep_data.shadow_draw_indices.size()) - view.draw_offset;
+		}
+
 		// rp data
 		const render_pass_data_opaque_gpu_t opaque_render_pass_data = {.view_proj = main_camera_view_t.view_proj};
 		SFG_MEMCPY(ctx.get_mapped_opaque_render_pass_data(frame_index), &opaque_render_pass_data, sizeof(render_pass_data_opaque_gpu_t));
@@ -211,6 +407,7 @@ namespace sfg
 		const render_pass_data_lighting_gpu_t lighting_render_pass_data = {
 			.inv_view_proj = main_camera_view_t.inv_view_proj,
 			.inv_view	   = main_camera_view_t.inv_view,
+			.view		   = main_camera_view_t.view,
 			.camera_pos	   = vec4f_t(main_camera_view_t.pos.x, main_camera_view_t.pos.y, main_camera_view_t.pos.z, 1.0f),
 			.skybox_params = vec4f_t(snapshot.skybox.intensity, snapshot.skybox.exposure, snapshot.skybox.rotation, snapshot.skybox.prefilter_max_lod),
 			.light_counts  = {light_counts[0], light_counts[1], light_counts[2], light_counts[3]},
@@ -219,9 +416,10 @@ namespace sfg
 
 		if (ctx.is_ssao_enabled())
 		{
-			const vec2u16_t					  size					= ctx.get_size();
-			const u32						  half_width			= static_cast<u32>(size.x) / 2;
-			const u32						  half_height			= static_cast<u32>(size.y) / 2;
+			const vec2u16_t size		= ctx.get_size();
+			const u32		half_width	= static_cast<u32>(size.x) / 2;
+			const u32		half_height = static_cast<u32>(size.y) / 2;
+
 			const render_pass_data_ssao_gpu_t ssao_render_pass_data = {
 				.proj				 = main_camera_view_t.proj,
 				.inv_proj			 = main_camera_view_t.inv_proj,
@@ -240,6 +438,7 @@ namespace sfg
 				.num_steps			 = snapshot.post_process.ssao.step_count,
 				.random_rot_strength = snapshot.post_process.ssao.random_rotation_strength,
 			};
+
 			SFG_MEMCPY(ctx.get_mapped_ssao_render_pass_data(frame_index), &ssao_render_pass_data, sizeof(render_pass_data_ssao_gpu_t));
 		}
 
@@ -248,6 +447,7 @@ namespace sfg
 		const gfx_handle_t cmd_lighting = ctx.get_command_buffer_lighting(frame_index);
 		const gfx_handle_t cmd_forward	= ctx.get_command_buffer_forward(frame_index);
 		const gfx_handle_t cmd_post		= ctx.get_command_buffer_post(frame_index);
+		const gfx_handle_t cmd_shadows	= ctx.get_command_buffer_shadows(frame_index);
 		const bool		   ssao_active	= ctx.is_ssao_enabled() && snapshot.post_process.ssao.enabled != 0;
 		const bool		   bloom_active = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
 
@@ -268,11 +468,14 @@ namespace sfg
 		render_graph.emplace([&]() {
 			render_access_scope_t render_scope;
 			render_depth_prepass(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+			if (!prep_data.shadow_views.empty())
+				render_shadows(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 		});
 		render_graph.emplace([&]() {
 			render_access_scope_t render_scope;
 			render_gbuffer(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 		});
+
 		if (ssao_active)
 		{
 			render_graph.emplace([&]() {
@@ -288,6 +491,7 @@ namespace sfg
 		gfx_handle_t ssao_semaphore = {};
 		u64			 gbuffer_ready	= 0;
 		u64			 ssao_ready		= 0;
+
 		if (ssao_active)
 		{
 			ssao_semaphore				= ctx.get_ssao_semaphore(frame_index);
@@ -299,6 +503,9 @@ namespace sfg
 			backend.submit_commands(queue_compute, &cmd_ssao, 1);
 			backend.queue_signal(queue_compute, &ssao_semaphore, &ssao_ready, 1);
 		}
+
+		if (!prep_data.shadow_views.empty())
+			backend.submit_commands(queue_gfx, &cmd_shadows, 1);
 
 		render_graph.clear();
 		render_graph.emplace([&]() {
@@ -330,6 +537,7 @@ namespace sfg
 			render_access_scope_t render_scope;
 			render_post_process(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 		});
+
 		if (bloom_active)
 		{
 			render_graph.emplace([&]() {
@@ -348,6 +556,82 @@ namespace sfg
 			backend.queue_wait(queue_gfx, &bloom_semaphore, &bloom_ready, 1);
 		}
 		backend.submit_commands(queue_gfx, &cmd_post, 1);
+	}
+
+	void world_rendering_t::render_shadows(const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	{
+		gfx_backend&	   backend = gfx_backend::get();
+		const gfx_handle_t cmd	   = ctx.get_command_buffer_shadows(frame_index);
+		backend.reset_command_buffer(cmd);
+		backend.cmd_bind_layout(cmd, {.layout = global_layout});
+		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
+
+		inplace_vector_t<barrier_t, 32> barriers;
+		for (const world_render_shadow_view_t& view : prep_data.shadow_views)
+		{
+			if (view.view_index != 0)
+				continue;
+			barriers.push_back({.from_states = resource_state_ps_resource, .to_states = resource_state_depth_write, .texture_t = view.texture, .flags = barrier_flags::baf_is_texture});
+		}
+
+		backend.cmd_barrier(cmd, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
+
+		render_resources_t& rr = render_resources_t::get();
+
+		for (u32 view_index = 0; view_index < prep_data.shadow_views.size(); ++view_index)
+		{
+			const world_render_shadow_view_t& view = prep_data.shadow_views[view_index];
+			backend.cmd_begin_render_pass_depth_only(cmd, {.depth_stencil_attachment = {.texture = view.texture, .clear_depth = 1.0f, .depth_load_op = load_op::clear, .depth_store_op = store_op::store, .view_index = view.view_index}});
+			backend.cmd_set_viewport(cmd, {.min_depth = 0.0f, .max_depth = 1.0f, .width = view.resolution.x, .height = view.resolution.y});
+			backend.cmd_set_scissors(cmd, {.width = view.resolution.x, .height = view.resolution.y});
+
+			const gpu_index_t rp_constants[2] = {ctx.get_shadow_view_data_index(frame_index, static_cast<u16>(view_index)), ctx.get_entity_buffer_index(frame_index)};
+			backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+
+			gfx_handle_t bound_vertex	= {};
+			gfx_handle_t bound_index	= {};
+			gfx_handle_t bound_pipeline = {};
+			u32			 bound_material = UINT32_MAX;
+
+			for (u32 i = 0; i < view.draw_count; ++i)
+			{
+				const world_draw_t& draw = ss.draws[prep_data.shadow_draw_indices[view.draw_offset + i]];
+
+				if ((draw.pass_mask & world_pass_flags_depth) == 0 || draw.direct_pso.is_null() == false)
+					continue;
+
+				const world_render_material_t& mat	 = ss.materials[draw.material_index];
+				bitmask_t<u32>				   flags = shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering;
+				flags.set(shader_variant_flags_double_sided, mat.double_sided != 0);
+				flags.set(shader_variant_flags_alpha_cutoff, mat.use_alpha_cutoff != 0);
+				flags.set(shader_variant_flags_skinned, draw.skinning_index != UINT32_MAX);
+
+				const render_resource_handle_t shader = mat.find_pso(flags);
+				if (shader.is_null())
+					continue;
+
+				bind_vertex(backend, cmd, bound_vertex, rr.get_resource(draw.vertex_buffer), draw.vertex_stride);
+				bind_index(backend, cmd, bound_index, rr.get_resource(draw.index_buffer), draw.index_stride);
+				bind_pipeline(backend, cmd, bound_pipeline, rr.get_shader_hw(shader));
+				bind_material(backend, cmd, bound_material, draw.material_index, mat);
+
+				const u32 obj_constants[2] = {draw.entity_index, draw.skinning_index == UINT32_MAX ? 0 : draw.skinning_index};
+				backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
+				backend.cmd_draw_indexed_instanced(cmd, {.index_count_per_instance = draw.index_count, .instance_count = 1, .start_index_location = draw.start_index, .base_vertex_location = draw.start_vertex});
+			}
+			backend.cmd_end_render_pass(cmd, {});
+		}
+
+		barriers.resize(0);
+		for (const world_render_shadow_view_t& view : prep_data.shadow_views)
+		{
+			if (view.view_index != 0)
+				continue;
+			barriers.push_back({.from_states = resource_state_depth_write, .to_states = resource_state_ps_resource, .texture_t = view.texture, .flags = barrier_flags::baf_is_texture});
+		}
+
+		backend.cmd_barrier(cmd, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
+		backend.close_command_buffer(cmd);
 	}
 
 	void world_rendering_t::render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
@@ -778,7 +1062,7 @@ namespace sfg
 
 		const render_resources_t& render_resources = render_resources_t::get();
 		const gpu_index_t		  ao_index		   = ssao_active ? ctx.get_ao_texture_index(frame_index) : render_resources.get_texture_gpu_index(render_resources.get_white_texture(), 0);
-		gpu_index_t				  rp_constants[12] = {
+		gpu_index_t				  rp_constants[13] = {
 			ctx.get_lighting_render_pass_data_index(frame_index),
 			ctx.get_gbuffer_albedo_index(frame_index),
 			ctx.get_gbuffer_normal_index(frame_index),
@@ -791,8 +1075,10 @@ namespace sfg
 			snapshot.skybox.prefilter.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.prefilter, 0),
 			snapshot.skybox.brdf_lut.is_null() ? NULL_GPU_INDEX : render_resources.get_texture_gpu_index(snapshot.skybox.brdf_lut, 0),
 			ctx.get_light_buffer_index(frame_index),
+			ctx.get_shadow_view_buffer_index(frame_index),
 		};
-		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 12, .param_index = 0});
+
+		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 13, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_lighting_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 
@@ -820,12 +1106,14 @@ namespace sfg
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
 		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
+
 		const barrier_t end_barrier = {
 			.from_states = resource_state_render_target,
 			.to_states	 = bloom_active ? resource_state_non_ps_resource : resource_state_ps_resource,
 			.texture_t	 = ctx.get_lighting_texture(frame_index),
 			.flags		 = barrier_flags::baf_is_texture,
 		};
+
 		backend.cmd_barrier(cmd, {.barriers = &end_barrier, .barrier_count = 1});
 		backend.close_command_buffer(cmd);
 	}
@@ -838,6 +1126,7 @@ namespace sfg
 		const gfx_handle_t downsample_texture = ctx.get_bloom_downsample_texture(frame_index);
 		const gfx_handle_t upsample_texture	  = ctx.get_bloom_upsample_texture(frame_index);
 		gpu_index_t		   input_index		  = ctx.get_lighting_texture_index(frame_index);
+
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout_compute(cmd, {.layout = render_globals_t::get_global_compute_bind_layout()});
 		backend.cmd_bind_constants_compute(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
@@ -846,6 +1135,7 @@ namespace sfg
 		backend.cmd_bind_constants_compute(cmd, {.data = &bloom_render_pass_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
 
 		backend.cmd_bind_pipeline_compute(cmd, {.pipeline = ctx.get_bloom_downsample_shader()});
+
 		for (u8 level = 0; level < WORLD_RENDER_BLOOM_LEVEL_COUNT; ++level)
 		{
 			const u32		width		  = std::max<u32>(1, size.x >> (level + 1));
@@ -862,6 +1152,7 @@ namespace sfg
 
 			const u32 constants[5] = {width, height, input_index, ctx.get_bloom_downsample_uav_index(frame_index, level), level};
 			backend.cmd_bind_constants_compute(cmd, {.data = constants, .offset = constant_rp1, .count = 5, .param_index = 0});
+
 			BEGIN_DEBUG_EVENT((&backend), cmd, "world_bloom_downsample");
 			backend.cmd_dispatch(cmd, {.group_size_x = (width + 7) / 8, .group_size_y = (height + 7) / 8, .group_size_z = 1});
 			END_DEBUG_EVENT((&backend), cmd);
@@ -880,12 +1171,14 @@ namespace sfg
 
 		backend.cmd_bind_pipeline_compute(cmd, {.pipeline = ctx.get_bloom_upsample_shader()});
 		input_index = ctx.get_bloom_downsample_index(frame_index, WORLD_RENDER_BLOOM_LEVEL_COUNT - 1);
+
 		for (i32 level = WORLD_RENDER_BLOOM_LEVEL_COUNT - 1; level >= 0; --level)
 		{
-			const u32		width				 = std::max<u32>(1, size.x >> level);
-			const u32		height				 = std::max<u32>(1, size.y >> level);
-			const bool		has_downsample_input = level > 0;
-			const barrier_t write_barrier		 = {
+			const u32  width				= std::max<u32>(1, size.x >> level);
+			const u32  height				= std::max<u32>(1, size.y >> level);
+			const bool has_downsample_input = level > 0;
+
+			const barrier_t write_barrier = {
 				.from_states	= resource_state_non_ps_resource,
 				.to_states		= resource_state_uav,
 				.texture_t		= upsample_texture,
@@ -904,6 +1197,7 @@ namespace sfg
 				gpu_index_t output;
 				u32			has_downsample_input;
 			};
+
 			const bloom_upsample_constants_t constants = {
 				.width				  = width,
 				.height				  = height,
@@ -912,8 +1206,10 @@ namespace sfg
 				.output				  = ctx.get_bloom_upsample_uav_index(frame_index, static_cast<u8>(level)),
 				.has_downsample_input = has_downsample_input ? 1u : 0u,
 			};
+
 			backend.cmd_bind_constants_compute(cmd, {.data = reinterpret_cast<const u32*>(&constants), .offset = constant_rp1, .count = 6, .param_index = 0});
 			BEGIN_DEBUG_EVENT((&backend), cmd, "world_bloom_upsample");
+
 			backend.cmd_dispatch(cmd, {.group_size_x = (width + 7) / 8, .group_size_y = (height + 7) / 8, .group_size_z = 1});
 			END_DEBUG_EVENT((&backend), cmd);
 
@@ -925,6 +1221,7 @@ namespace sfg
 				.base_mip_level = static_cast<u8>(level),
 				.mip_count		= 1,
 			};
+
 			backend.cmd_barrier(cmd, {.barriers = &read_barrier, .barrier_count = 1});
 			input_index = ctx.get_bloom_upsample_index(frame_index, static_cast<u8>(level));
 		}
@@ -945,6 +1242,7 @@ namespace sfg
 		const gfx_handle_t lighting_texture = ctx.get_lighting_texture(frame_index);
 		const gfx_handle_t world_texture	= ctx.get_world_texture(frame_index);
 		const bool		   bloom_active		= ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
+
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
 		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
@@ -960,6 +1258,7 @@ namespace sfg
 				.texture_t	 = lighting_texture,
 				.flags		 = barrier_flags::baf_is_texture,
 			};
+
 			begin_barriers[begin_count++] = {
 				.from_states	= resource_state_non_ps_resource,
 				.to_states		= resource_state_ps_resource,
@@ -976,6 +1275,7 @@ namespace sfg
 			.texture_t	 = world_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
+
 		backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
 
 		const render_pass_color_attachment_t color_attachment = {
@@ -985,6 +1285,7 @@ namespace sfg
 			.store_op	 = store_op::store,
 			.view_index	 = 1,
 		};
+
 		BEGIN_DEBUG_EVENT((&backend), cmd, "world_post_process");
 		backend.cmd_begin_render_pass(cmd, {.color_attachments = &color_attachment, .color_attachment_count = 1});
 
@@ -1055,6 +1356,7 @@ namespace sfg
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 		};
+
 		u16 end_count = 1;
 		if (bloom_active)
 		{
@@ -1067,6 +1369,7 @@ namespace sfg
 				.mip_count		= 1,
 			};
 		}
+
 		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = end_count});
 		backend.close_command_buffer(cmd);
 	}

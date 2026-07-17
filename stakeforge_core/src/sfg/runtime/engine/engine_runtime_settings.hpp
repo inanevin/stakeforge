@@ -28,44 +28,50 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/common/type_id.hpp>
-#include <sfg/data/string.hpp>
-#include <sfg/runtime/engine/engine_runtime_settings.hpp>
 
 namespace sfg
 {
-	struct editor_project_runtime_t
+#define ENGINE_SHADOW_VIEW_MAX 64
+
+	enum class engine_quality_level_e : u8
 	{
-		string_t path;
-		string_t assets_path;
-		string_t cache_path;
-		string_t default_assets_path;
-		string_t name;
+		low,
+		medium,
+		high,
+		ultra,
 	};
 
-	struct editor_project_t
+	struct engine_shadow_settings_t
 	{
-		static editor_project_t& get()
-		{
-			static editor_project_t instance;
-			return instance;
-		}
+		f32 shadow_distance		 = 200.0f;
+		f32 shadow_fade_distance = 30.0f;
+		u32 texel_budget		 = 16u * 1024u * 1024u;
+		u16 min_resolution		 = 256;
+		u16 max_resolution		 = 2048;
+		u16 max_views			 = 48;
 
-		editor_project_runtime_t  _runtime		   = {};
-		engine_runtime_settings_t runtime_settings = {};
-		sid_t					  last_world_guid  = NULL_SID;
-
-		bool					save(const char* path);
-		bool					try_load(const char* path);
-		void					refresh_runtime(const char* path);
-		static editor_project_t make_default_project(const char* path);
+		bool operator==(const engine_shadow_settings_t&) const = default;
 	};
 
-	SFG_DEFINE_TYPE_ID(editor_project_t);
-
-	struct editor_project_reflection_t
+	struct engine_runtime_settings_t
 	{
-		editor_project_reflection_t();
+		engine_shadow_settings_t shadows			= {};
+		u32						 world_tick_rate	= 60;
+		u32						 world_physics_rate = 100;
+		u32						 max_sim_steps		= 4;
+		engine_quality_level_e	 quality_level		= engine_quality_level_e::high;
+
+		bool operator==(const engine_runtime_settings_t&) const = default;
 	};
 
-	inline editor_project_reflection_t g_reflect_editor_project;
+	SFG_DEFINE_TYPE_ID(engine_quality_level_e);
+	SFG_DEFINE_TYPE_ID(engine_shadow_settings_t);
+	SFG_DEFINE_TYPE_ID(engine_runtime_settings_t);
+
+	struct engine_runtime_settings_reflection_t
+	{
+		engine_runtime_settings_reflection_t();
+	};
+
+	inline engine_runtime_settings_reflection_t g_reflect_engine_runtime_settings;
 }

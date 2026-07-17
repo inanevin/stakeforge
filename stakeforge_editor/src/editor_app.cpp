@@ -444,7 +444,8 @@ namespace sfg
 			if (_mode == editor_app_mode_e::normal)
 			{
 				ZoneScopedN("world_controller_tick");
-				_world_controller.tick(project.world_tick_rate, project.world_physics_rate, project.max_sim_steps);
+				const engine_runtime_settings_t settings = _runtime.get_settings();
+				_world_controller.tick(settings.world_tick_rate, settings.world_physics_rate, settings.max_sim_steps);
 			}
 
 			if (_mode == editor_app_mode_e::splash)

@@ -35,6 +35,8 @@
 #define static_sampler_linear_repeat register(s3, space0)
 #define static_sampler_nearest register(s4, space0)
 #define static_sampler_nearest_repeat register(s5, space0)
+#define static_sampler_shadow_2d register(s8, space0)
+#define static_sampler_shadow_cube register(s9, space0)
 
 struct sfg_globals
 {

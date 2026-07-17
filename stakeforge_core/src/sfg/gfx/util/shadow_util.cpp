@@ -76,50 +76,35 @@ namespace sfg
 				max_z		   = math::max(max_z, trf.z);
 			}
 
-			// f32 orthoWidth  = max_x - min_x;
-			// f32 orthoHeight = max_y - min_y;
-			//
-			// // Texel size in light space:
-			// f32 texelX = orthoWidth / static_cast<f32>(resolution.x);
-			// f32 texelY = orthoHeight / static_cast<f32>(resolution.y);
-			//
-			// // Center before snapping
-			// vec2f center = {0.5f * (min_x + max_x), 0.5f * (min_y + max_y)};
-			//
-			// // Snap center to texel grid
-			// center.x = floor(center.x / texelX + 0.5f) * texelX;
-			// center.y = floor(center.y / texelY + 0.5f) * texelY;
-			//
-			// // Rebuild min/max using snapped center (KEEP SIZE THE SAME)
-			// min_x = center.x - 0.5f * orthoWidth;
-			// max_x = center.x + 0.5f * orthoWidth;
-			// min_y = center.y - 0.5f * orthoHeight;
-			// max_y = center.y + 0.5f * orthoHeight;
+			const f32 orthoWidth  = max_x - min_x;
+			const f32 orthoHeight = max_y - min_y;
 
-			constexpr f32 zMult = 10.0f;
+			// Texel size in light space:
+			const f32 texelX = orthoWidth / static_cast<f32>(resolution.x);
+			const f32 texelY = orthoHeight / static_cast<f32>(resolution.y);
 
-			if (min_z < 0)
-			{
-				min_z *= zMult;
-			}
-			else
-			{
-				min_z /= zMult;
-			}
-			if (max_z < 0)
-			{
-				max_z /= zMult;
-			}
-			else
-			{
-				max_z *= zMult;
-			}
+			// Center before snapping
+			vec2f_t center = {0.5f * (min_x + max_x), 0.5f * (min_y + max_y)};
+
+			// Snap center to texel grid
+			center.x = floor(center.x / texelX + 0.5f) * texelX;
+			center.y = floor(center.y / texelY + 0.5f) * texelY;
+
+			// Rebuild min/max using snapped center (KEEP SIZE THE SAME)
+			min_x = center.x - 0.5f * orthoWidth;
+			max_x = center.x + 0.5f * orthoWidth;
+			min_y = center.y - 0.5f * orthoHeight;
+			max_y = center.y + 0.5f * orthoHeight;
+
+			const f32 z_padding = math::max(10.0f, (max_z - min_z) * 0.25f);
+			min_z -= z_padding;
+			max_z += z_padding;
 
 			f32 near_dist = -max_z;
 			f32 far_dist  = -min_z;
 
 			out_proj	   = mat4x4_t::ortho(min_x, max_x, max_y, min_y, near_dist, far_dist);
-			out_texel_size = vec2f_t(max_x - min_x / static_cast<f32>(resolution.x), max_y - min_y / static_cast<f32>(resolution.y));
+			out_texel_size = vec2f_t((max_x - min_x) / static_cast<f32>(resolution.x), (max_y - min_y) / static_cast<f32>(resolution.y));
 		}
 
 		//

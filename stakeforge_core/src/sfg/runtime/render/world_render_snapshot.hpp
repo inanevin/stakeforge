@@ -31,12 +31,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_debug_draw_snapshot.hpp"
 #include "world_render_entity.hpp"
 #include "world_render_light.hpp"
+#include "world_render_shadow.hpp"
 #include "world_render_material.hpp"
 #include "world_render_view.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/runtime/engine/engine_runtime_settings.hpp>
 
 namespace sfg
 {
@@ -90,30 +92,37 @@ namespace sfg
 
 	struct world_render_prep_data_t
 	{
-		vector_t<world_render_prep_draw_cull_t> draw_culls = {};
+		vector_t<world_render_prep_draw_cull_t> draw_culls			= {};
+		vector_t<world_render_shadow_view_t>	shadow_views		= {};
+		vector_t<u32>							shadow_draw_indices = {};
 
 		inline void reserve(size_t culls)
 		{
 			draw_culls.reserve(culls);
+			shadow_views.reserve(64);
+			shadow_draw_indices.reserve(culls * 4);
 		}
 
 		inline void reset()
 		{
 			draw_culls.resize(0);
+			shadow_views.resize(0);
+			shadow_draw_indices.resize(0);
 		}
 	};
 
 	struct world_render_snapshot_t
 	{
-		void*							  user_data	   = nullptr;
-		world_render_view_t				  main_view	   = {};
-		world_render_skybox_t			  skybox	   = {};
-		world_render_post_process_t		  post_process = {};
-		world_debug_draw_snapshot_t		  debug_draw   = {};
-		vector_t<world_render_material_t> materials	   = {};
-		vector_t<world_render_entity_t>	  entities	   = {};
-		vector_t<world_render_light_t>	  lights	   = {};
-		vector_t<world_draw_t>			  draws		   = {};
+		void*							  user_data		   = nullptr;
+		engine_runtime_settings_t		  runtime_settings = {};
+		world_render_view_t				  main_view		   = {};
+		world_render_skybox_t			  skybox		   = {};
+		world_render_post_process_t		  post_process	   = {};
+		world_debug_draw_snapshot_t		  debug_draw	   = {};
+		vector_t<world_render_material_t> materials		   = {};
+		vector_t<world_render_entity_t>	  entities		   = {};
+		vector_t<world_render_light_t>	  lights		   = {};
+		vector_t<world_draw_t>			  draws			   = {};
 
 		inline void reserve(size_t entity_count, size_t light_count, size_t line_vertex_count, size_t line_index_count, size_t text_vertex_count, size_t text_index_count)
 		{

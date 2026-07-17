@@ -4,6 +4,7 @@
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/job/job_system.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/platform/time.hpp>
@@ -88,8 +89,17 @@ namespace sfg
 	{
 	}
 
-	resource_file_system_t& engine_runtime_t::get_resource_file_system()
+	void engine_runtime_t::update_settings(const engine_runtime_settings_t& settings)
 	{
-		return _resource_file_system;
+		_settings							   = settings;
+		_settings.world_tick_rate			   = math::clamp(_settings.world_tick_rate, 15u, 240u);
+		_settings.world_physics_rate		   = math::clamp(_settings.world_physics_rate, 30u, 240u);
+		_settings.max_sim_steps				   = math::clamp(_settings.max_sim_steps, 1u, 8u);
+		_settings.shadows.min_resolution	   = math::clamp<u16>(_settings.shadows.min_resolution, 64, 8192);
+		_settings.shadows.max_resolution	   = math::clamp<u16>(_settings.shadows.max_resolution, _settings.shadows.min_resolution, 8192);
+		_settings.shadows.max_views			   = math::min<u16>(_settings.shadows.max_views, ENGINE_SHADOW_VIEW_MAX);
+		_settings.shadows.shadow_distance	   = math::max(_settings.shadows.shadow_distance, 1.0f);
+		_settings.shadows.shadow_fade_distance = math::clamp(_settings.shadows.shadow_fade_distance, 0.0f, _settings.shadows.shadow_distance);
 	}
+
 }

@@ -27,15 +27,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/runtime/engine/engine_runtime_settings.hpp>
 
 namespace sfg
 {
 	struct editor_project_settings_data_t
 	{
-		sid_t last_world_guid	 = NULL_SID;
-		u32	  world_tick_rate	 = 60;
-		u32	  world_physics_rate = 100;
-		u32	  max_sim_steps		 = 4;
+		engine_runtime_settings_t runtime_settings = {};
+		sid_t					  last_world_guid  = NULL_SID;
+
+		bool operator==(const editor_project_settings_data_t&) const = default;
 	};
 
 	struct editor_command_edit_project_settings_payload_t

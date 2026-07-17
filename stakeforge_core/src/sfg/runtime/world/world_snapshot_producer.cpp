@@ -135,8 +135,9 @@ namespace sfg
 		}
 	}
 
-	void world_snapshot_producer_t::produce(world_t& world, world_render_snapshot_t& snapshot)
+	void world_snapshot_producer_t::produce(world_t& world, world_render_snapshot_t& snapshot, const engine_runtime_settings_t& runtime_settings)
 	{
+		snapshot.runtime_settings = runtime_settings;
 		snapshot.materials.resize(0);
 		snapshot.entities.resize(0);
 		snapshot.lights.resize(0);
@@ -253,6 +254,7 @@ namespace sfg
 			}
 		}
 
+		// lights.
 		{
 			const ecs_component_table_ref_t table_refs[] = {
 				transform_table.ref(),
@@ -267,19 +269,26 @@ namespace sfg
 				const component_light_t&			light	  = ecs_helpers_t::row_get<component_light_t>(row, 2);
 
 				snapshot.lights.push_back({
-					.prev_rot			= transform.prev_abs_rot,
-					.rot				= transform.abs_rot,
-					.prev_pos			= transform.prev_abs_pos,
-					.intensity			= light.intensity,
-					.pos				= transform.abs_pos,
-					.range				= light.range,
-					.color				= {light.color.x, light.color.y, light.color.z},
-					.inner_cone_degrees = light.inner_cone_degrees,
-					.outer_cone_degrees = light.outer_cone_degrees,
-					.area_width			= light.area_size.x,
-					.area_height		= light.area_size.y,
-					.type				= static_cast<u8>(light.type),
-					.flags				= light.two_sided != 0 ? static_cast<u8>(1) : static_cast<u8>(0),
+					.prev_rot			  = transform.prev_abs_rot,
+					.rot				  = transform.abs_rot,
+					.prev_pos			  = transform.prev_abs_pos,
+					.intensity			  = light.intensity,
+					.pos				  = transform.abs_pos,
+					.range				  = light.range,
+					.color				  = {light.color.x, light.color.y, light.color.z},
+					.inner_cone_degrees	  = light.inner_cone_degrees,
+					.outer_cone_degrees	  = light.outer_cone_degrees,
+					.area_width			  = light.area_size.x,
+					.area_height		  = light.area_size.y,
+					.shadow_near_plane	  = light.shadow_near_plane,
+					.shadow_bias		  = light.shadow_bias,
+					.shadow_normal_bias	  = light.shadow_normal_bias,
+					.shadow_resolution	  = light.shadow_resolution,
+					.stable_id			  = row.id,
+					.type				  = static_cast<u8>(light.type),
+					.flags				  = light.two_sided != 0 ? static_cast<u8>(1) : static_cast<u8>(0),
+					.shadow_cascade_count = light.shadow_cascade_count,
+					.cast_shadows		  = light.cast_shadows,
 				});
 			}
 		}
