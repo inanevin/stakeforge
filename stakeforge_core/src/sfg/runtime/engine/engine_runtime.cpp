@@ -8,6 +8,7 @@
 #include <sfg/job/job_system.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/platform/time.hpp>
+#include <sfg/physics/physics_runtime.hpp>
 #include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
@@ -31,6 +32,7 @@ namespace sfg
 	{
 		g_engine_thread_ids.main_thread_id = SFG_THIS_THREAD_ID();
 		job_system_t::get().init();
+		physics_runtime_t::init();
 		time_t::init();
 		process::init();
 		freetype_runtime_t::init();
@@ -42,6 +44,7 @@ namespace sfg
 		job_system_t::get().wait_for_all();
 		resource_manager_t::get().uninit();
 		freetype_runtime_t::uninit();
+		physics_runtime_t::uninit();
 		job_system_t::get().uninit();
 		time_t::uninit();
 		process::uninit();
