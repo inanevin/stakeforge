@@ -108,6 +108,15 @@
 				"type": 13
 			}
 		},
+		{
+			"name": "editor_world_physics_debug",
+			"path": "editor/resource_pack/shaders/editor_world_physics_debug.hlsl",
+			"type": 7,
+			"config": {
+				"schema": "sfg.schema.shader",
+				"type": 21
+			}
+		},
         {
             "name": "splash",
             "path": "editor/resource_pack/textures/splash.jpg",

@@ -78,6 +78,12 @@ namespace sfg
 		f32		signed_thickness_px = 1.0f;
 	};
 
+	struct vertex_debug_triangle_t
+	{
+		vec3f_t position = vec3f_t::zero;
+		vec4f_t color	 = vec4f_t::zero;
+	};
+
 	struct vertex_debug_text_t
 	{
 		vec4f_t color  = vec4f_t::zero;

@@ -30,6 +30,7 @@ namespace sfg
 		bloom_downsample,
 		bloom_upsample,
 		unlit_shader,
+		debug_triangle,
 		count,
 	};
 

@@ -538,6 +538,13 @@ namespace sfg
 				return false;
 			}
 			break;
+		case shader_type_e::debug_triangle:
+			if (!shader_cook_variants_t::cook_debug_triangle_shader(compile_source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook debug triangle shader variants: {0}", full_path);
+				return false;
+			}
+			break;
 		case shader_type_e::ssao:
 		case shader_type_e::ssao_upsample:
 		case shader_type_e::bloom_downsample:

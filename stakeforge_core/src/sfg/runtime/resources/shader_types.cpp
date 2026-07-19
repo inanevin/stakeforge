@@ -38,6 +38,7 @@ namespace sfg
 					{.name = "bloom_downsample", .display_name = "Bloom Downsample"},
 					{.name = "bloom_upsample", .display_name = "Bloom Upsample"},
 					{.name = "unlit_shader", .display_name = "Unlit Shader"},
+					{.name = "debug_triangle", .display_name = "Debug Triangle"},
 				},
 			.type_id   = type_id_t<shader_type_e>::value,
 			.size	   = sizeof(shader_type_e),
