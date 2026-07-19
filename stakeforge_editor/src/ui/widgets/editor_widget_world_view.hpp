@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_world_view_toolbars.hpp"
 #include "world/editor_world_camera.hpp"
 #include "world/editor_world_handle.hpp"
+#include <sfg/math/vec2i16.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
@@ -58,6 +59,7 @@ namespace sfg
 		void		set_edit_world(editor_world_handle_t world);
 		static bool on_window_event(window_runtime_t& runtime, const window_event_t& ev);
 		static void reset_camera_input(window_runtime_t& runtime);
+		vec2i16_t	get_center() const;
 
 		inline ui::widget_id_t get_root() const
 		{

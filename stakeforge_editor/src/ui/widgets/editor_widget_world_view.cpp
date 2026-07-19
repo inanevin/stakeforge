@@ -27,6 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_world_view.hpp"
 #include "commands/editor_commands_entity.hpp"
 #include "ui/editor_payload_controller.hpp"
+#include "ui/editor_global_toolbar.hpp"
+#include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -169,6 +171,15 @@ namespace sfg
 		tree.set_visible(_empty_label, false);
 	}
 
+	vec2i16_t editor_widget_world_view_t::get_center() const
+	{
+		const ui::layout_out_t& out = _ui->get_tree().out(_world_view);
+		return {
+			static_cast<i16>(out.pos.x + out.size.x * 0.5f),
+			static_cast<i16>(out.pos.y + out.size.y * 0.5f),
+		};
+	}
+
 	bool editor_widget_world_view_t::on_window_event(window_runtime_t& runtime, const window_event_t& ev)
 	{
 		s_event_runtime = &runtime;
@@ -233,16 +244,18 @@ namespace sfg
 	{
 		if (_edit_world.is_null())
 			return;
+		const editor_play_mode_e play_mode = editor_global_toolbar_t::get().get_play_mode();
+		if (play_mode == editor_play_mode_e::play || play_mode == editor_play_mode_e::play_paused)
+			return;
 
 		if (s_active_camera_view != nullptr && s_active_camera_view != this)
 			s_active_camera_view->end_camera_control();
 
+		editor_surface_controller_t::get().begin_editor_camera_cursor_capture(runtime);
 		_camera_runtime		 = &runtime;
 		_camera_control		 = true;
 		s_active_camera_view = this;
 		pass_camera_input({.reset = true});
-		process::set_cursor_confinement(runtime.window_handle, window_cursor_confinement_e::pointer);
-		process::set_cursor_visible(false);
 	}
 
 	void editor_widget_world_view_t::end_camera_control()
@@ -250,11 +263,12 @@ namespace sfg
 		if (!_camera_control)
 			return;
 
-		process::set_cursor_confinement(_camera_runtime->window_handle, window_cursor_confinement_e::none);
-		process::set_cursor_visible(true);
+		editor_surface_controller_t::get().end_editor_camera_cursor_capture(*_camera_runtime);
 		pass_camera_input({.reset = true});
+
 		_camera_runtime = nullptr;
 		_camera_control = false;
+
 		if (s_active_camera_view == this)
 			s_active_camera_view = nullptr;
 	}

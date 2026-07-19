@@ -32,12 +32,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_settings.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_modal_controller.hpp"
+#include "ui/editor_global_toolbar.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/panels/editor_panel_factory.hpp"
+#include "ui/panels/editor_panel_world.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/panels/editor_secondary_base.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -103,20 +105,24 @@ namespace sfg
 
 	void editor_surface_controller_t::init(editor_renderer_t& renderer, editor_payload_controller_t& payload_controller)
 	{
-		_renderer			= &renderer;
-		_payload_controller = &payload_controller;
-		_debug_mode			= false;
-		_close				= false;
+		_renderer				= &renderer;
+		_payload_controller		= &payload_controller;
+		_debug_mode				= false;
+		_close					= false;
+		_cursor_capture_surface = {};
+		_cursor_capture			= editor_cursor_capture_e::none;
 	}
 
 	void editor_surface_controller_t::uninit()
 	{
 		SFG_ASSERT(_surfaces.empty());
 		_surfaces.resize_zero();
-		_renderer			= nullptr;
-		_payload_controller = nullptr;
-		_debug_mode			= false;
-		_close				= false;
+		_renderer				= nullptr;
+		_payload_controller		= nullptr;
+		_debug_mode				= false;
+		_close					= false;
+		_cursor_capture_surface = {};
+		_cursor_capture			= editor_cursor_capture_e::none;
 	}
 
 	void editor_surface_controller_t::load_surface_dock_layout(editor_surface_t& surface, const string_t& dock_layout)
@@ -154,6 +160,70 @@ namespace sfg
 			surface.ui->get_paint().set_text_raster_mode(raster_mode);
 	}
 
+	void editor_surface_controller_t::begin_editor_camera_cursor_capture(window_runtime_t& runtime)
+	{
+		SFG_ASSERT(_cursor_capture == editor_cursor_capture_e::none);
+		capture_cursor(get_surface_handle_by_runtime(runtime), editor_cursor_capture_e::editor_camera);
+	}
+
+	void editor_surface_controller_t::end_editor_camera_cursor_capture(window_runtime_t& runtime)
+	{
+		SFG_ASSERT(_cursor_capture == editor_cursor_capture_e::editor_camera);
+		SFG_ASSERT(_cursor_capture_surface == get_surface_handle_by_runtime(runtime));
+		release_cursor();
+	}
+
+	void editor_surface_controller_t::set_play_cursor_locked(bool locked)
+	{
+		if (!locked)
+		{
+			if (_cursor_capture == editor_cursor_capture_e::play)
+				release_cursor();
+			return;
+		}
+
+		for (editor_surface_t& surface : _surfaces)
+			editor_widget_world_view_t::reset_camera_input(*surface.runtime);
+
+		SFG_ASSERT(_cursor_capture == editor_cursor_capture_e::none);
+		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
+		{
+			const surface_handle_t handle  = *it;
+			editor_surface_t&	   surface = _surfaces.get(handle);
+			editor_panel_t* const  panel   = find_panel_in_surface(surface, editor_panel_type_e::world, 0);
+			if (panel == nullptr)
+				continue;
+
+			editor_panel_world_t* const world_panel = static_cast<editor_panel_world_t*>(panel);
+			process::set_cursor_position(surface.runtime->window_handle, world_panel->get_world_view().get_center());
+			capture_cursor(handle, editor_cursor_capture_e::play);
+			return;
+		}
+
+		SFG_ASSERT(false);
+	}
+
+	void editor_surface_controller_t::capture_cursor(surface_handle_t surface_handle, editor_cursor_capture_e capture)
+	{
+		SFG_ASSERT(_cursor_capture == editor_cursor_capture_e::none);
+		SFG_ASSERT(capture != editor_cursor_capture_e::none);
+		editor_surface_t& surface = _surfaces.get(surface_handle);
+		process::set_cursor_confinement(surface.runtime->window_handle, window_cursor_confinement_e::pointer);
+		process::set_cursor_visible(false);
+		_cursor_capture_surface = surface_handle;
+		_cursor_capture			= capture;
+	}
+
+	void editor_surface_controller_t::release_cursor()
+	{
+		SFG_ASSERT(_cursor_capture != editor_cursor_capture_e::none);
+		editor_surface_t& surface = _surfaces.get(_cursor_capture_surface);
+		process::set_cursor_confinement(surface.runtime->window_handle, window_cursor_confinement_e::none);
+		process::set_cursor_visible(true);
+		_cursor_capture_surface = {};
+		_cursor_capture			= editor_cursor_capture_e::none;
+	}
+
 	bool editor_surface_controller_t::is_any_modal_active() const
 	{
 		for (const editor_surface_t& surface : _surfaces)
@@ -172,6 +242,14 @@ namespace sfg
 		const surface_handle_t		 surface_handle = surfaces.get_surface_handle_by_runtime(runtime);
 		editor_surface_t&			 surface		= surfaces.get_surface(surface_handle);
 		ui::ui_context&				 ui				= *surface.ui;
+
+		if (ev.type == window_event_type_e::key && ev.sub_type == window_event_sub_type_e::press && ev.button == static_cast<u16>(input_code::key_escape) && surfaces._cursor_capture == editor_cursor_capture_e::play)
+		{
+			surfaces.set_play_cursor_locked(false);
+			return;
+		}
+		if (ev.type == window_event_type_e::focus && ev.sub_type == window_event_sub_type_e::release && surfaces._cursor_capture == editor_cursor_capture_e::play && surfaces._cursor_capture_surface == surface_handle)
+			surfaces.set_play_cursor_locked(false);
 
 		if (surface.type == editor_surface_type_e::splash || surface.type == editor_surface_type_e::project_creator)
 		{
@@ -262,7 +340,8 @@ namespace sfg
 				return;
 
 			const bool ctrl = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
-			if (!modal_active && !popup_active && ctrl && ev.button == static_cast<u16>(input_code::key_s) && ev.sub_type == window_event_sub_type_e::press && !world_controller.get_main_world_handle().is_null())
+			if (!modal_active && !popup_active && ctrl && ev.button == static_cast<u16>(input_code::key_s) && ev.sub_type == window_event_sub_type_e::press && !world_controller.get_main_world_handle().is_null() &&
+				editor_global_toolbar_t::get().get_play_mode() == editor_play_mode_e::none)
 			{
 				world_controller.save_main_world();
 				return;
@@ -470,6 +549,13 @@ namespace sfg
 		_renderer->end_render();
 
 		editor_surface_t& surface = _surfaces.get(handle);
+		if (handle == _cursor_capture_surface)
+		{
+			if (_cursor_capture == editor_cursor_capture_e::play)
+				set_play_cursor_locked(false);
+			else
+				editor_widget_world_view_t::reset_camera_input(*surface.runtime);
+		}
 		if (surface.type == editor_surface_type_e::primary)
 			save_layout();
 

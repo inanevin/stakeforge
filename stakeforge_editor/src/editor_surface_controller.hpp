@@ -73,6 +73,9 @@ namespace sfg
 		void			 load_primary_main_toolbar(editor_surface_t& surface, const string_t& main_toolbar);
 		void			 set_debug_mode(bool enabled);
 		void			 set_text_subpixel_enabled();
+		void			 begin_editor_camera_cursor_capture(window_runtime_t& runtime);
+		void			 end_editor_camera_cursor_capture(window_runtime_t& runtime);
+		void			 set_play_cursor_locked(bool locked);
 		static void		 on_payload_unhandled(const editor_payload_t& payload, void* user_data);
 
 		editor_panel_t* find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {}, sid_t sub_item_id = 0);
@@ -131,16 +134,27 @@ namespace sfg
 		}
 
 	private:
+		enum class editor_cursor_capture_e : u8
+		{
+			none,
+			editor_camera,
+			play,
+		};
+
 		bool is_any_modal_active() const;
+		void capture_cursor(surface_handle_t surface, editor_cursor_capture_e capture);
+		void release_cursor();
 
 		static void on_window_event(void* hwnd, const window_event_t& ev, void* user_data);
 		static bool on_window_client_hit_test(window_runtime_t& runtime, const vec2i16_t& pos, void* user_data);
 
 	private:
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;
-		editor_renderer_t*												_renderer			= nullptr;
-		editor_payload_controller_t*									_payload_controller = nullptr;
-		bool															_debug_mode			= false;
-		bool															_close				= false;
+		editor_renderer_t*												_renderer				= nullptr;
+		editor_payload_controller_t*									_payload_controller		= nullptr;
+		surface_handle_t												_cursor_capture_surface = {};
+		bool															_debug_mode				= false;
+		bool															_close					= false;
+		editor_cursor_capture_e											_cursor_capture			= editor_cursor_capture_e::none;
 	};
 }
