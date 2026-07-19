@@ -74,6 +74,9 @@ namespace sfg
 		// bodies
 		// -----------------------------------------------------------------------------
 
+		void sync_body_create_destroy();
+		void sync_body_create_destroy(entity_id_t entity);
+		void recreate_bodies(entity_id_t entity);
 		void set_body_linear_velocity(entity_id_t entity, const vec3f_t& velocity);
 		void set_body_angular_velocity(entity_id_t entity, const vec3f_t& velocity);
 		void add_body_force(entity_id_t entity, const vec3f_t& force);
@@ -105,7 +108,6 @@ namespace sfg
 		// settings
 		// -----------------------------------------------------------------------------
 
-		void set_simulation_enabled(bool enabled);
 		void update_collision_masks(const u64 masks[PHYSICS_COLLISION_LAYER_MAX], u64 active_layers);
 		void update_step_settings(u32 physics_rate, u32 max_sub_steps);
 
@@ -114,7 +116,6 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		span_t<const physics_contact_event_t> get_contact_events() const;
-		bool								  is_simulation_enabled() const;
 
 	private:
 		class impl_t;

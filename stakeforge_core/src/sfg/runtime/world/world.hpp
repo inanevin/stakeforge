@@ -62,6 +62,7 @@ namespace sfg
 		void		  attach_to(entity_id_t id, entity_id_t parent);
 		void		  detach(entity_id_t id);
 		void		  sync_entity_hierarchy(entity_id_t id);
+		void		  recreate_physics(entity_id_t id);
 
 		// -----------------------------------------------------------------------------
 		// resource

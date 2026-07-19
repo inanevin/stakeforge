@@ -36,15 +36,14 @@ namespace sfg
 {
 	struct world_init_config_t
 	{
-		world_debug_draw_config_t debug_draw				 = {};
-		physics_runtime_config_t  physics					 = {};
-		vec2u16_t				  render_resolution			 = vec2u16_t(512, 512);
-		u32						  component_table_reserve	 = 64;
-		u32						  free_list_reserve			 = 1024;
-		u32						  used_resource_reserve		 = 512;
-		u32						  text_allocation_reserve	 = 1024;
-		u32						  text_byte_reserve			 = 64 * 1024;
-		bool					  physics_enabled			 = false;
-		bool					  physics_simulation_enabled = false;
+		world_debug_draw_config_t debug_draw			  = {};
+		physics_runtime_config_t  physics				  = {};
+		vec2u16_t				  render_resolution		  = vec2u16_t(512, 512);
+		u32						  component_table_reserve = 64;
+		u32						  free_list_reserve		  = 1024;
+		u32						  used_resource_reserve	  = 512;
+		u32						  text_allocation_reserve = 1024;
+		u32						  text_byte_reserve		  = 64 * 1024;
+		bool					  physics_enabled		  = false;
 	};
 }

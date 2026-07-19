@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/reflection/reflection_container_ops.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/resources/resource_type.hpp>
 
 #include <cstddef>
@@ -41,6 +42,43 @@ namespace sfg
 
 	namespace
 	{
+		u32 get_entity_tag_bitmask_option_count(void* user_data)
+		{
+			return static_cast<u32>(engine_runtime_t::get().get_project_settings().tags.size());
+		}
+
+		bitmask_option_t get_entity_tag_bitmask_option(u32 index, void* user_data)
+		{
+			const string_t& tag = engine_runtime_t::get().get_project_settings().tags[index];
+			return {
+				.name  = tag.empty() ? "Unnamed Tag" : tag.c_str(),
+				.value = 1ull << index,
+			};
+		}
+
+		const char* build_entity_tag_bitmask_title(u64 value, void* user_data)
+		{
+			if (value == 0)
+				return "None";
+
+			static thread_local string_t title;
+			title.resize(0);
+			const vector_t<string_t>& tags = engine_runtime_t::get().get_project_settings().tags;
+			for (u32 i = 0; i < tags.size(); ++i)
+			{
+				if ((value & (1ull << i)) == 0)
+					continue;
+
+				if (!title.empty())
+					title += " | ";
+				if (tags[i].empty())
+					title += "Unnamed Tag";
+				else
+					title += tags[i];
+			}
+			return title.empty() ? "Unknown" : title.c_str();
+		}
+
 		void register_component_hierarchy_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -517,7 +555,8 @@ namespace sfg
 				.name			 = "component_entity_tags",
 				.display_name	 = "Tags",
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_entity_tags_t*>(ptr), component_entity_tags_t{}); },
-				.fields			 = {{.name = "tags", .display_name = "Tags", .sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_ENTITY_TAG_MASK, .offset = offsetof(component_entity_tags_t, tags), .size = sizeof(u64), .type = reflected_value_type_e::u64}},
+				.fields			 = {{.name = "tags", .display_name = "Tags", .offset = offsetof(component_entity_tags_t, tags), .size = sizeof(u64), .type = reflected_value_type_e::bitmask}},
+				.bitmask_opts	 = {.get_option_count_fn = get_entity_tag_bitmask_option_count, .get_option_fn = get_entity_tag_bitmask_option, .build_title_fn = build_entity_tag_bitmask_title},
 				.type_id		 = type_id_t<component_entity_tags_t>::value,
 				.size			 = sizeof(component_entity_tags_t),
 				.alignment		 = alignof(component_entity_tags_t),

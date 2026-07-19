@@ -48,6 +48,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #define ICON_EYE_CROSS		 "\u0026"
 #define ICON_FILE			 "\u0067"
 #define ICON_PLAY			 "\u002C"
+#define ICON_PLAY_STEP		 "\u002E"
+#define ICON_PAUSE			 "\u002F"
 #define ICON_INFO			 "\u004F"
 #define ICON_WARN			 "\u004E"
 #define ICON_ERROR			 "\u006E"

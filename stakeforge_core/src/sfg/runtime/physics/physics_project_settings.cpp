@@ -29,9 +29,50 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/reflection/reflection_container_ops.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/engine/engine_runtime.hpp>
 
 namespace sfg
 {
+	namespace
+	{
+		u32 get_collision_layer_bitmask_option_count(void* user_data)
+		{
+			return static_cast<u32>(engine_runtime_t::get().get_project_settings().physics.collision_layers.size());
+		}
+
+		bitmask_option_t get_collision_layer_bitmask_option(u32 index, void* user_data)
+		{
+			const physics_collision_layer_definition_t& layer = engine_runtime_t::get().get_project_settings().physics.collision_layers[index];
+			return {
+				.name  = layer.name.empty() ? "Unnamed Layer" : layer.name.c_str(),
+				.value = 1ull << layer.slot,
+			};
+		}
+
+		const char* build_collision_layer_bitmask_title(u64 value, void* user_data)
+		{
+			if (value == 0)
+				return "None";
+
+			static thread_local string_t title;
+			title.resize(0);
+			const vector_t<physics_collision_layer_definition_t>& layers = engine_runtime_t::get().get_project_settings().physics.collision_layers;
+			for (const physics_collision_layer_definition_t& layer : layers)
+			{
+				if ((value & (1ull << layer.slot)) == 0)
+					continue;
+
+				if (!title.empty())
+					title += " | ";
+				if (layer.name.empty())
+					title += "Unnamed Layer";
+				else
+					title += layer.name;
+			}
+			return title.empty() ? "Unknown" : title.c_str();
+		}
+	}
+
 	physics_project_settings_t::physics_project_settings_t()
 	{
 		collision_layers.push_back({.name = "Default", .collides_with = 1, .identifier = 1, .slot = 0});
@@ -75,13 +116,35 @@ namespace sfg
 		for (physics_collision_layer_definition_t& layer : collision_layers)
 			layer.collides_with &= active_layers;
 
+		const physics_collision_layer_definition_t* previous_layers[PHYSICS_COLLISION_LAYER_MAX] = {};
+		if (previous != nullptr)
+		{
+			for (u32 i = 0; i < collision_layers.size(); ++i)
+			{
+				const auto it = std::find_if(previous->collision_layers.begin(), previous->collision_layers.end(), [&](const physics_collision_layer_definition_t& layer) { return layer.identifier == collision_layers[i].identifier; });
+				if (it != previous->collision_layers.end())
+					previous_layers[i] = &*it;
+			}
+		}
+
 		for (u32 i = 0; i < collision_layers.size(); ++i)
 		{
 			for (u32 j = i; j < collision_layers.size(); ++j)
 			{
-				const u64  bit_i	= 1ull << collision_layers[i].slot;
-				const u64  bit_j	= 1ull << collision_layers[j].slot;
-				const bool collides = (collision_layers[i].collides_with & bit_j) != 0 || (collision_layers[j].collides_with & bit_i) != 0;
+				const u64  bit_i	 = 1ull << collision_layers[i].slot;
+				const u64  bit_j	 = 1ull << collision_layers[j].slot;
+				const bool current_i = (collision_layers[i].collides_with & bit_j) != 0;
+				const bool current_j = (collision_layers[j].collides_with & bit_i) != 0;
+				bool	   collides	 = current_i || current_j;
+				if (previous_layers[i] != nullptr && previous_layers[j] != nullptr)
+				{
+					const bool previous_i = (previous_layers[i]->collides_with & (1ull << previous_layers[j]->slot)) != 0;
+					const bool previous_j = (previous_layers[j]->collides_with & (1ull << previous_layers[i]->slot)) != 0;
+					const bool changed_i  = current_i != previous_i;
+					const bool changed_j  = current_j != previous_j;
+					if (changed_i != changed_j)
+						collides = changed_i ? current_i : current_j;
+				}
 				if (collides)
 				{
 					collision_layers[i].collides_with |= bit_j;
@@ -122,13 +185,14 @@ namespace sfg
 			.fields =
 				{
 					{.name = "name", .display_name = "Name", .offset = offsetof(physics_collision_layer_definition_t, name), .size = sizeof(string_t), .type = reflected_value_type_e::string},
-					{.name = "collides_with", .display_name = "Collides With", .offset = offsetof(physics_collision_layer_definition_t, collides_with), .size = sizeof(u64), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u64},
+					{.name = "collides_with", .display_name = "Collides With", .offset = offsetof(physics_collision_layer_definition_t, collides_with), .size = sizeof(u64), .type = reflected_value_type_e::bitmask},
 					{.name = "identifier", .display_name = "Identifier", .offset = offsetof(physics_collision_layer_definition_t, identifier), .size = sizeof(u64), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u64},
 					{.name = "slot", .display_name = "Slot", .offset = offsetof(physics_collision_layer_definition_t, slot), .size = sizeof(u8), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u8},
 				},
-			.type_id   = type_id_t<physics_collision_layer_definition_t>::value,
-			.size	   = sizeof(physics_collision_layer_definition_t),
-			.alignment = alignof(physics_collision_layer_definition_t),
+			.bitmask_opts = {.get_option_count_fn = get_collision_layer_bitmask_option_count, .get_option_fn = get_collision_layer_bitmask_option, .build_title_fn = build_collision_layer_bitmask_title},
+			.type_id	  = type_id_t<physics_collision_layer_definition_t>::value,
+			.size		  = sizeof(physics_collision_layer_definition_t),
+			.alignment	  = alignof(physics_collision_layer_definition_t),
 		});
 
 		registry.register_type({

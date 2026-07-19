@@ -328,8 +328,8 @@ namespace sfg
 		vector_t<u32>									 _character_free_list;
 		vector_t<u32>									 _entity_to_character;
 		vector_t<physics_contact_event_t>				 _contact_events;
-		f32												 _accumulator		 = 0.0f;
-		bool											 _simulation_enabled = false;
+		vector_t<entity_id_t>							 _sync_entities;
+		f32												 _accumulator = 0.0f;
 
 		impl_t() : _raw_contact_events(4096)
 		{
@@ -354,6 +354,7 @@ namespace sfg
 			_entity_to_proxy.resize(ECS_MAX_ENTITIES, UINT32_MAX);
 			_entity_to_character.resize(ECS_MAX_ENTITIES, UINT32_MAX);
 			_contact_events.reserve(_config.contact_event_reserve);
+			_sync_entities.reserve(_config.body_reserve + _config.character_reserve);
 		}
 
 		void uninit()
@@ -383,6 +384,7 @@ namespace sfg
 			_character_free_list.resize(0);
 			_entity_to_character.resize(0);
 			_contact_events.resize(0);
+			_sync_entities.resize(0);
 			_accumulator = 0.0f;
 		}
 
@@ -438,6 +440,7 @@ namespace sfg
 			const body_proxy_t* proxy = resolve_body(body_id);
 			if (proxy == nullptr || proxy->entity == filter.ignored_entity)
 				return false;
+
 			if (proxy->is_character)
 			{
 				if ((filter.flags & physics_query_flag_character) == 0)
@@ -456,10 +459,13 @@ namespace sfg
 
 			if (proxy->collider.is_sensor != 0 && (filter.flags & physics_query_flag_sensor) == 0)
 				return false;
+
 			if (filter.required_any_tags.bits != 0 && (proxy->tags & filter.required_any_tags.bits) == 0)
 				return false;
+
 			if ((proxy->tags & filter.required_all_tags.bits) != filter.required_all_tags.bits)
 				return false;
+
 			if ((proxy->tags & filter.excluded_tags.bits) != 0)
 				return false;
 
@@ -469,122 +475,209 @@ namespace sfg
 		void tick(f32 delta_time)
 		{
 			_contact_events.resize(0);
-			reconcile_bodies();
-			reconcile_characters();
-
-			if (!_simulation_enabled)
-			{
-				sync_bodies_to_physics(delta_time);
-				sync_characters_to_physics();
-				return;
-			}
+			sync_body_create_destroy();
+			sync_static_bodies_to_physics();
 
 			const f32 fixed_delta = 1.0f / static_cast<f32>(_config.physics_rate);
 			_accumulator += delta_time;
 			u32 steps = 0;
 			while (_accumulator >= fixed_delta && steps < _config.max_sub_steps)
 			{
-				sync_bodies_to_physics(fixed_delta);
-				sync_characters_to_physics();
 				update_characters(fixed_delta);
+
 				_system->Update(fixed_delta, 1, _temp_allocator, &physics_runtime_t::get_job_system());
-				sync_dynamic_bodies_to_world();
+
 				drain_contact_events();
 				_accumulator -= fixed_delta;
 				steps++;
 			}
 
+			if (steps != 0)
+				sync_dynamic_bodies_into_world();
+
 			if (steps == _config.max_sub_steps && _accumulator >= fixed_delta)
 				_accumulator = 0.0f;
 		}
 
-		void reconcile_bodies()
+		void sync_static_bodies_to_physics()
 		{
-			ecs_component_table_t&		 collider_table	  = _world->get_component_table(type_id_t<component_collider_t>::value);
-			ecs_component_table_t&		 rigid_body_table = _world->get_component_table(type_id_t<component_rigid_body_t>::value);
-			ecs_component_table_t&		 tags_table		  = _world->get_component_table(type_id_t<component_entity_tags_t>::value);
-			const ecs_component_table_t& disabled_table	  = _world->get_component_table(type_id_t<component_disabled_t>::value);
-			const ecs_component_table_t& transform_table  = _world->get_component_table(type_id_t<component_system_transform_t>::value);
+			const ecs_component_table_t& system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
+			const ecs_component_table_t& transform_table	  = _world->get_component_table(type_id_t<component_system_transform_t>::value);
+			JPH::BodyInterface&			 body_interface		  = _system->GetBodyInterface();
 
-			for (u32 i = 0; i < _bodies.size(); ++i)
+			const ecs_component_table_ref_t refs[] = {system_physics_table.ref(), transform_table.ref()};
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 			{
-				body_proxy_t& proxy = _bodies[i];
-				if (!proxy.active || proxy.is_character)
+				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
+				if (system_physics.is_static == 0)
 					continue;
 
-				if (!_world->is_alive(proxy.entity) || !ecs_t::table_has(collider_table, proxy.entity) || ecs_t::table_has(disabled_table, proxy.entity))
-				{
-					destroy_body(i);
-					continue;
-				}
+				body_proxy_t&						proxy		  = _bodies[system_physics.body_proxy_index];
+				const component_system_transform_t& transform	  = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
+				const quat_t						body_rotation = transform.abs_rot * proxy.collider.local_rotation;
+				const vec3f_t						body_position = transform.abs_pos + transform.abs_rot * (proxy.collider.local_position * transform.abs_scale);
+				body_interface.SetPositionAndRotation(proxy.body_id, to_jolt_position(body_position), to_jolt(body_rotation), JPH::EActivation::DontActivate);
 
-				const component_collider_t&	  collider	 = ecs_helpers_t::table_get_as_const<component_collider_t>(collider_table, proxy.entity);
-				const component_rigid_body_t* rigid_body = ecs_helpers_t::table_find_as_const<component_rigid_body_t>(rigid_body_table, proxy.entity);
-				_world->calculate_transform_direct(proxy.entity);
-				const component_system_transform_t& transform	   = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, proxy.entity);
-				const bool							has_rigid_body = rigid_body != nullptr;
-				if (proxy.collider != collider || proxy.has_rigid_body != has_rigid_body || (has_rigid_body && proxy.rigid_body != *rigid_body) || proxy.scale != transform.abs_scale)
-				{
-					destroy_body(i);
-					continue;
-				}
-
-				const component_entity_tags_t* tags = ecs_helpers_t::table_find_as_const<component_entity_tags_t>(tags_table, proxy.entity);
-				proxy.tags							= tags != nullptr ? tags->tags : 0;
-			}
-
-			const ecs_component_table_ref_t refs[] = {collider_table.ref()};
-			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = 1}))
-			{
-				if (_entity_to_proxy[row.id] != UINT32_MAX || ecs_t::table_has(disabled_table, row.id))
-					continue;
-
-				const component_collider_t&	   collider	  = ecs_helpers_t::row_get<component_collider_t>(row);
-				const component_rigid_body_t*  rigid_body = ecs_helpers_t::table_find_as_const<component_rigid_body_t>(rigid_body_table, row.id);
-				const component_entity_tags_t* tags		  = ecs_helpers_t::table_find_as_const<component_entity_tags_t>(tags_table, row.id);
-				create_body(row.id, collider, rigid_body, tags != nullptr ? tags->tags : 0);
+				proxy.last_entity_pos = transform.abs_pos;
+				proxy.last_entity_rot = transform.abs_rot;
 			}
 		}
 
-		void reconcile_characters()
+		void sync_body_create_destroy_entity(entity_id_t entity)
 		{
-			ecs_component_table_t&		 mover_table	= _world->get_component_table(type_id_t<component_character_mover_t>::value);
-			ecs_component_table_t&		 tags_table		= _world->get_component_table(type_id_t<component_entity_tags_t>::value);
-			const ecs_component_table_t& disabled_table = _world->get_component_table(type_id_t<component_disabled_t>::value);
+			ecs_component_table_t& system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
+			ecs_component_table_t& collider_table		= _world->get_component_table(type_id_t<component_collider_t>::value);
+			ecs_component_table_t& mover_table			= _world->get_component_table(type_id_t<component_character_mover_t>::value);
+			ecs_component_table_t& rigid_body_table		= _world->get_component_table(type_id_t<component_rigid_body_t>::value);
+			ecs_component_table_t& tags_table			= _world->get_component_table(type_id_t<component_entity_tags_t>::value);
+			ecs_component_table_t& disabled_table		= _world->get_component_table(type_id_t<component_disabled_t>::value);
 
-			for (u32 i = 0; i < _characters.size(); ++i)
+			component_system_physics_t* system_physics = ecs_helpers_t::table_find_as<component_system_physics_t>(system_physics_table, entity);
+			const bool					disabled	   = ecs_t::table_has(disabled_table, entity);
+
+			if (system_physics != nullptr)
 			{
-				character_proxy_t& proxy = _characters[i];
-				if (!proxy.active)
-					continue;
-
-				if (!_world->is_alive(proxy.entity) || !ecs_t::table_has(mover_table, proxy.entity) || ecs_t::table_has(disabled_table, proxy.entity))
+				if (system_physics->body_proxy_index != UINT32_MAX && (!ecs_t::table_has(collider_table, entity) || disabled))
 				{
-					destroy_character(i);
-					continue;
+					destroy_body(system_physics->body_proxy_index);
+					system_physics->body_proxy_index = UINT32_MAX;
 				}
 
-				const component_character_mover_t& mover = ecs_helpers_t::table_get_as_const<component_character_mover_t>(mover_table, proxy.entity);
-				if (proxy.mover != mover)
+				if (system_physics->character_proxy_index != UINT32_MAX && (!ecs_t::table_has(mover_table, entity) || disabled))
 				{
-					destroy_character(i);
-					continue;
+					destroy_character(system_physics->character_proxy_index);
+					system_physics->character_proxy_index = UINT32_MAX;
 				}
 
-				const component_entity_tags_t* tags	 = ecs_helpers_t::table_find_as_const<component_entity_tags_t>(tags_table, proxy.entity);
-				_bodies[proxy.body_proxy_index].tags = tags != nullptr ? tags->tags : 0;
+				if (system_physics->body_proxy_index == UINT32_MAX && system_physics->character_proxy_index == UINT32_MAX)
+				{
+					ecs_t::table_remove(system_physics_table, entity);
+					system_physics = nullptr;
+				}
 			}
 
-			const ecs_component_table_ref_t refs[] = {mover_table.ref()};
-			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = 1}))
+			if (system_physics != nullptr || disabled)
+				return;
+
+			const component_entity_tags_t* tags = ecs_helpers_t::table_find_as_const<component_entity_tags_t>(tags_table, entity);
+			if (ecs_t::table_has(collider_table, entity))
 			{
-				if (_entity_to_character[row.id] != UINT32_MAX || ecs_t::table_has(disabled_table, row.id))
-					continue;
+				const component_collider_t&	  collider	  = ecs_helpers_t::table_get_as_const<component_collider_t>(collider_table, entity);
+				const component_rigid_body_t* rigid_body  = ecs_helpers_t::table_find_as_const<component_rigid_body_t>(rigid_body_table, entity);
+				const u32					  proxy_index = create_body(entity, collider, rigid_body, tags != nullptr ? tags->tags : 0);
 
-				const component_character_mover_t& mover = ecs_helpers_t::row_get<component_character_mover_t>(row);
-				const component_entity_tags_t*	   tags	 = ecs_helpers_t::table_find_as_const<component_entity_tags_t>(tags_table, row.id);
-				create_character(row.id, mover, tags != nullptr ? tags->tags : 0);
+				if (proxy_index != UINT32_MAX)
+				{
+					component_system_physics_t& phy = ecs_helpers_t::table_add_or_get_as<component_system_physics_t>(system_physics_table, entity);
+					phy.body_proxy_index			= proxy_index;
+					phy.is_static					= rigid_body == nullptr ? 1 : (rigid_body->motion_type == physics_motion_type_e::static_body);
+				}
 			}
+			else if (ecs_t::table_has(mover_table, entity))
+			{
+				const component_character_mover_t& mover		   = ecs_helpers_t::table_get_as_const<component_character_mover_t>(mover_table, entity);
+				const u32						   character_index = create_character(entity, mover, tags != nullptr ? tags->tags : 0);
+
+				if (character_index != UINT32_MAX)
+				{
+					component_system_physics_t& phy = ecs_helpers_t::table_add_or_get_as<component_system_physics_t>(system_physics_table, entity);
+					phy.character_proxy_index		= character_index;
+					phy.is_static					= 0;
+				}
+			}
+		}
+
+		void sync_body_create_destroy()
+		{
+			const ecs_component_table_t& system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
+			const ecs_component_table_t& collider_table		  = _world->get_component_table(type_id_t<component_collider_t>::value);
+			const ecs_component_table_t& mover_table		  = _world->get_component_table(type_id_t<component_character_mover_t>::value);
+			const ecs_component_table_t& disabled_table		  = _world->get_component_table(type_id_t<component_disabled_t>::value);
+
+			// disabled physics bodies.
+			_sync_entities.resize(0);
+			const ecs_component_table_ref_t disabled_refs[] = {system_physics_table.ref(), disabled_table.ref()};
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = disabled_refs, .size = std::size(disabled_refs)}))
+				_sync_entities.push_back(row.id);
+
+			for (entity_id_t entity : _sync_entities)
+				sync_body_create_destroy_entity(entity);
+
+			// physics bodies with no collider.
+			_sync_entities.resize(0);
+			const ecs_component_table_ref_t body_destroy_refs[] = {system_physics_table.ref(), !collider_table.ref()};
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = body_destroy_refs, .size = std::size(body_destroy_refs)}))
+			{
+				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row);
+				if (system_physics.body_proxy_index != UINT32_MAX)
+					_sync_entities.push_back(row.id);
+			}
+
+			for (entity_id_t entity : _sync_entities)
+				sync_body_create_destroy_entity(entity);
+
+			// movers with no collider.
+			_sync_entities.resize(0);
+			const ecs_component_table_ref_t character_destroy_refs[] = {system_physics_table.ref(), !mover_table.ref()};
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = character_destroy_refs, .size = std::size(character_destroy_refs)}))
+			{
+				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row);
+				if (system_physics.character_proxy_index != UINT32_MAX)
+					_sync_entities.push_back(row.id);
+			}
+			for (entity_id_t entity : _sync_entities)
+				sync_body_create_destroy_entity(entity);
+
+			// create missing bodies.
+			_sync_entities.resize(0);
+			const ecs_component_table_ref_t body_create_refs[] = {collider_table.ref(), !system_physics_table.ref(), !disabled_table.ref()};
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = body_create_refs, .size = std::size(body_create_refs)}))
+				_sync_entities.push_back(row.id);
+
+			for (entity_id_t entity : _sync_entities)
+				sync_body_create_destroy_entity(entity);
+
+			// create missing moves.
+			_sync_entities.resize(0);
+			const ecs_component_table_ref_t character_create_refs[] = {mover_table.ref(), !system_physics_table.ref(), !disabled_table.ref()};
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = character_create_refs, .size = std::size(character_create_refs)}))
+				_sync_entities.push_back(row.id);
+
+			for (entity_id_t entity : _sync_entities)
+				sync_body_create_destroy_entity(entity);
+		}
+
+		void sync_body_create_destroy(entity_id_t entity)
+		{
+			sync_body_create_destroy_entity(entity);
+
+			const ecs_component_table_t& hierarchy_table = _world->get_component_table(type_id_t<component_hierarchy_t>::value);
+			const component_hierarchy_t& hierarchy		 = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, entity);
+			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
+				const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
+				sync_body_create_destroy(child);
+				child = next_child;
+			}
+		}
+
+		void recreate_bodies(entity_id_t entity)
+		{
+			ecs_component_table_t&		system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
+			component_system_physics_t* system_physics		 = ecs_helpers_t::table_find_as<component_system_physics_t>(system_physics_table, entity);
+			if (system_physics != nullptr)
+			{
+				if (system_physics->body_proxy_index != UINT32_MAX)
+					destroy_body(system_physics->body_proxy_index);
+
+				if (system_physics->character_proxy_index != UINT32_MAX)
+					destroy_character(system_physics->character_proxy_index);
+
+				ecs_t::table_remove(system_physics_table, entity);
+			}
+
+			sync_body_create_destroy_entity(entity);
 		}
 
 		u32 allocate_proxy()
@@ -613,7 +706,7 @@ namespace sfg
 			return static_cast<u32>(_characters.size() - 1);
 		}
 
-		void create_character(entity_id_t entity, const component_character_mover_t& mover, u64 tags)
+		u32 create_character(entity_id_t entity, const component_character_mover_t& mover, u64 tags)
 		{
 			_world->calculate_transform_direct(entity);
 			const ecs_component_table_t&		transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
@@ -624,7 +717,7 @@ namespace sfg
 			if (shape_result.HasError())
 			{
 				SFG_ERR("failed to create character shape for entity {0}: {1}", entity, shape_result.GetError().c_str());
-				return;
+				return UINT32_MAX;
 			}
 
 			const u32	  body_proxy_index		= allocate_proxy();
@@ -665,27 +758,31 @@ namespace sfg
 			body_proxy.body_id									 = proxy.character->GetInnerBodyID();
 			_body_index_to_handle[body_proxy.body_id.GetIndex()] = handle;
 			_entity_to_character[entity]						 = character_index;
+			return character_index;
 		}
 
 		void destroy_character(u32 character_index)
 		{
 			character_proxy_t& proxy = _characters[character_index];
 			SFG_ASSERT(proxy.active);
+
 			body_proxy_t& body_proxy							 = _bodies[proxy.body_proxy_index];
 			_body_index_to_handle[body_proxy.body_id.GetIndex()] = 0;
 			proxy.character										 = nullptr;
 			body_proxy.active									 = false;
 			body_proxy.entity									 = NULL_ENTITY_ID;
 			body_proxy.generation++;
+
 			_body_free_list.push_back(proxy.body_proxy_index);
 			_entity_to_character[proxy.entity] = UINT32_MAX;
-			proxy.active					   = false;
-			proxy.entity					   = NULL_ENTITY_ID;
-			proxy.body_proxy_index			   = UINT32_MAX;
+
+			proxy.active		   = false;
+			proxy.entity		   = NULL_ENTITY_ID;
+			proxy.body_proxy_index = UINT32_MAX;
 			_character_free_list.push_back(character_index);
 		}
 
-		void create_body(entity_id_t entity, const component_collider_t& collider, const component_rigid_body_t* rigid_body, u64 tags)
+		u32 create_body(entity_id_t entity, const component_collider_t& collider, const component_rigid_body_t* rigid_body, u64 tags)
 		{
 			const u32	  proxy_index = allocate_proxy();
 			body_proxy_t& proxy		  = _bodies[proxy_index];
@@ -737,7 +834,7 @@ namespace sfg
 				proxy.active = false;
 				proxy.generation++;
 				_body_free_list.push_back(proxy_index);
-				return;
+				return UINT32_MAX;
 			}
 
 			const physics_motion_type_e motion_type	  = rigid_body != nullptr ? rigid_body->motion_type : physics_motion_type_e::static_body;
@@ -779,7 +876,7 @@ namespace sfg
 				proxy.active = false;
 				proxy.generation++;
 				_body_free_list.push_back(proxy_index);
-				return;
+				return UINT32_MAX;
 			}
 
 			proxy.body_id									= body->GetID();
@@ -788,71 +885,26 @@ namespace sfg
 			_body_index_to_handle[proxy.body_id.GetIndex()] = settings.mUserData;
 			_entity_to_proxy[entity]						= proxy_index;
 			body_interface.AddBody(proxy.body_id, motion_type == physics_motion_type_e::static_body ? JPH::EActivation::DontActivate : JPH::EActivation::Activate);
+			return proxy_index;
 		}
 
 		void destroy_body(u32 proxy_index)
 		{
 			body_proxy_t& proxy = _bodies[proxy_index];
 			SFG_ASSERT(proxy.active);
+
 			JPH::BodyInterface& body_interface = _system->GetBodyInterface();
 			body_interface.RemoveBody(proxy.body_id);
 			body_interface.DestroyBody(proxy.body_id);
+
 			_body_index_to_handle[proxy.body_id.GetIndex()] = 0;
 			if (proxy.entity < _entity_to_proxy.size() && _entity_to_proxy[proxy.entity] == proxy_index)
 				_entity_to_proxy[proxy.entity] = UINT32_MAX;
+
 			proxy.active = false;
 			proxy.entity = NULL_ENTITY_ID;
 			proxy.generation++;
 			_body_free_list.push_back(proxy_index);
-		}
-
-		void sync_bodies_to_physics(f32 delta_time)
-		{
-			const ecs_component_table_t& transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
-			JPH::BodyInterface&			 body_interface	 = _system->GetBodyInterface();
-			for (body_proxy_t& proxy : _bodies)
-			{
-				if (!proxy.active || proxy.is_character)
-					continue;
-
-				_world->calculate_transform_direct(proxy.entity);
-				const component_system_transform_t& transform	  = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, proxy.entity);
-				const quat_t						body_rotation = transform.abs_rot * proxy.collider.local_rotation;
-				const vec3f_t						body_position = transform.abs_pos + transform.abs_rot * (proxy.collider.local_position * transform.abs_scale);
-				const physics_motion_type_e			motion_type	  = proxy.has_rigid_body ? proxy.rigid_body.motion_type : physics_motion_type_e::static_body;
-
-				if (motion_type == physics_motion_type_e::kinematic_body)
-				{
-					body_interface.MoveKinematic(proxy.body_id, to_jolt_position(body_position), to_jolt(body_rotation), delta_time);
-				}
-				else if (transform.abs_pos != proxy.last_entity_pos || transform.abs_rot != proxy.last_entity_rot)
-				{
-					body_interface.SetPositionAndRotation(proxy.body_id, to_jolt_position(body_position), to_jolt(body_rotation), motion_type == physics_motion_type_e::dynamic_body ? JPH::EActivation::Activate : JPH::EActivation::DontActivate);
-				}
-
-				proxy.last_entity_pos = transform.abs_pos;
-				proxy.last_entity_rot = transform.abs_rot;
-			}
-		}
-
-		void sync_characters_to_physics()
-		{
-			const ecs_component_table_t& transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
-			for (character_proxy_t& proxy : _characters)
-			{
-				if (!proxy.active)
-					continue;
-
-				_world->calculate_transform_direct(proxy.entity);
-				const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, proxy.entity);
-				if (transform.abs_pos != proxy.last_entity_pos)
-					proxy.character->SetPosition(to_jolt_position(transform.abs_pos));
-				if (transform.abs_rot != proxy.last_entity_rot)
-					proxy.character->SetRotation(to_jolt(transform.abs_rot));
-
-				proxy.last_entity_pos = transform.abs_pos;
-				proxy.last_entity_rot = transform.abs_rot;
-			}
 		}
 
 		void update_characters(f32 delta_time)
@@ -864,12 +916,14 @@ namespace sfg
 
 				JPH::CharacterVirtual& character = *proxy.character;
 				character.UpdateGroundVelocity();
+
 				const JPH::Vec3 ground_velocity = character.GetGroundVelocity();
 				JPH::Vec3		velocity		= character.GetLinearVelocity();
 				if (character.GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround)
 				{
 					const f32 vertical_velocity		   = velocity.Dot(JPH::Vec3::sAxisY());
 					const f32 ground_vertical_velocity = ground_velocity.Dot(JPH::Vec3::sAxisY());
+
 					if (vertical_velocity - ground_vertical_velocity < 0.1f)
 					{
 						const JPH::Vec3 previous_ground = to_jolt(proxy.last_ground_velocity);
@@ -885,12 +939,15 @@ namespace sfg
 
 				query_broad_phase_filter_t broad_filter;
 				broad_filter.flags = physics_query_flag_all;
+
 				query_object_layer_filter_t layer_filter;
 				layer_filter.layers = _config.collision_masks[proxy.mover.collision_layer];
+
 				const physics_query_filter_t query_filter{
 					.collision_layers = {.bits = layer_filter.layers},
 					.ignored_entity	  = proxy.entity,
 				};
+
 				query_body_filter_t body_filter;
 				body_filter.impl   = this;
 				body_filter.filter = &query_filter;
@@ -922,23 +979,97 @@ namespace sfg
 			return const_cast<impl_t*>(this)->get_character(entity);
 		}
 
-		void sync_dynamic_bodies_to_world()
+		void sync_dynamic_body_children_into_world(entity_id_t entity, const ecs_component_table_t& system_physics_table, ecs_component_table_t& system_transform_table, const ecs_component_table_t& transform_table, const ecs_component_table_t& hierarchy_table)
 		{
-			JPH::BodyInterface& body_interface = _system->GetBodyInterface();
-			for (body_proxy_t& proxy : _bodies)
+			const component_system_transform_t& parent_system_transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(system_transform_table, entity);
+			const component_hierarchy_t&		hierarchy				= ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, entity);
+
+			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
 			{
-				if (!proxy.active || !proxy.has_rigid_body || proxy.rigid_body.motion_type != physics_motion_type_e::dynamic_body || proxy.is_character)
+				const component_hierarchy_t&	  child_hierarchy	   = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
+				const entity_id_t				  next_child		   = child_hierarchy.next_sibling;
+				const component_system_physics_t* child_system_physics = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, child);
+				if (child_system_physics != nullptr && child_system_physics->is_static == 0)
+				{
+					child = next_child;
+					continue;
+				}
+
+				const component_transform_t&  transform		   = ecs_helpers_t::table_get_as_const<component_transform_t>(transform_table, child);
+				component_system_transform_t& system_transform = ecs_helpers_t::table_get_as<component_system_transform_t>(system_transform_table, child);
+				system_transform.abs_pos					   = parent_system_transform.abs_pos + (parent_system_transform.abs_rot * (transform.pos * parent_system_transform.abs_scale));
+				system_transform.abs_rot					   = parent_system_transform.abs_rot * transform.rot;
+				system_transform.abs_scale					   = parent_system_transform.abs_scale * transform.scale;
+				system_transform.abs_mat					   = parent_system_transform.abs_mat * mat4x3_t::transform(transform.pos, transform.rot, transform.scale);
+
+				sync_dynamic_body_children_into_world(child, system_physics_table, system_transform_table, transform_table, hierarchy_table);
+				child = next_child;
+			}
+		}
+
+		void sync_dynamic_bodies_into_world()
+		{
+			const ecs_component_table_t& system_physics_table	= _world->get_component_table(type_id_t<component_system_physics_t>::value);
+			ecs_component_table_t&		 system_transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
+			ecs_component_table_t&		 transform_table		= _world->get_component_table(type_id_t<component_transform_t>::value);
+			const ecs_component_table_t& hierarchy_table		= _world->get_component_table(type_id_t<component_hierarchy_t>::value);
+			JPH::BodyInterface&			 body_interface			= _system->GetBodyInterface();
+
+			const ecs_component_table_ref_t absolute_refs[] = {system_physics_table.ref(), system_transform_table.ref()};
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = absolute_refs, .size = std::size(absolute_refs)}))
+			{
+				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
+				if (system_physics.is_static == 0 || system_physics.body_proxy_index == UINT32_MAX)
 					continue;
 
-				JPH::RVec3 body_position;
-				JPH::Quat  body_rotation;
+				body_proxy_t& proxy = _bodies[system_physics.body_proxy_index];
+				JPH::RVec3	  body_position;
+				JPH::Quat	  body_rotation;
 				body_interface.GetPositionAndRotation(proxy.body_id, body_position, body_rotation);
-				const quat_t  entity_rotation = from_jolt(body_rotation) * proxy.collider.local_rotation.inverse();
+				const quat_t entity_rotation = from_jolt(body_rotation) * proxy.collider.local_rotation.inverse();
+
 				const vec3f_t entity_position = from_jolt(body_position) - entity_rotation * (proxy.collider.local_position * proxy.scale);
-				_world->set_entity_pos_local(proxy.entity, _world->abs_pos_to_local(proxy.entity, entity_position));
-				_world->set_entity_rot_local(proxy.entity, _world->abs_rot_to_local(proxy.entity, entity_rotation));
+
+				component_system_transform_t& system_transform = ecs_helpers_t::row_get_mutable<component_system_transform_t>(row, 1);
+				system_transform.abs_pos					   = entity_position;
+				system_transform.abs_rot					   = entity_rotation;
+				system_transform.abs_mat					   = mat4x3_t::transform(entity_position, entity_rotation, system_transform.abs_scale);
+
 				proxy.last_entity_pos = entity_position;
 				proxy.last_entity_rot = entity_rotation;
+			}
+
+			const ecs_component_table_ref_t hierarchy_refs[] = {system_physics_table.ref(), hierarchy_table.ref()};
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = hierarchy_refs, .size = std::size(hierarchy_refs)}))
+			{
+				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
+				if (system_physics.is_static == 0 || system_physics.body_proxy_index == UINT32_MAX)
+					continue;
+
+				sync_dynamic_body_children_into_world(row.id, system_physics_table, system_transform_table, transform_table, hierarchy_table);
+			}
+
+			const ecs_component_table_ref_t local_refs[] = {system_physics_table.ref(), system_transform_table.ref(), transform_table.ref(), hierarchy_table.ref()};
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = local_refs, .size = std::size(local_refs)}))
+			{
+				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
+				if (system_physics.is_static == 0 || system_physics.body_proxy_index == UINT32_MAX)
+					continue;
+
+				const component_system_transform_t& system_transform = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
+				component_transform_t&				transform		 = ecs_helpers_t::row_get_mutable<component_transform_t>(row, 2);
+				const component_hierarchy_t&		hierarchy		 = ecs_helpers_t::row_get<component_hierarchy_t>(row, 3);
+				if (hierarchy.parent == NULL_ENTITY_ID)
+				{
+					transform.pos = system_transform.abs_pos;
+					transform.rot = system_transform.abs_rot;
+				}
+				else
+				{
+					const component_system_transform_t& parent_system_transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(system_transform_table, hierarchy.parent);
+					transform.pos												= parent_system_transform.abs_mat.inverse() * system_transform.abs_pos;
+					transform.rot												= parent_system_transform.abs_rot.inverse() * system_transform.abs_rot;
+				}
 			}
 		}
 
@@ -978,6 +1109,7 @@ namespace sfg
 		{
 			const body_proxy_t* proxy = resolve_body(result.mBodyID);
 			SFG_ASSERT(proxy != nullptr);
+
 			const vec3f_t delta	  = ray.direction.normalized() * ray.distance;
 			hit.position		  = ray.origin + delta * result.mFraction;
 			hit.distance		  = ray.distance * result.mFraction;
@@ -1006,6 +1138,7 @@ namespace sfg
 			query_body_filter_t body_filter;
 			body_filter.impl   = this;
 			body_filter.filter = &filter;
+
 			JPH::RayCastResult result;
 			if (!_system->GetNarrowPhaseQuery().CastRay(jolt_ray, result, broad_filter, layer_filter, body_filter))
 				return false;
@@ -1022,11 +1155,14 @@ namespace sfg
 
 			query_broad_phase_filter_t broad_filter;
 			broad_filter.flags = filter.flags;
+
 			query_object_layer_filter_t layer_filter;
 			layer_filter.layers = filter.collision_layers.bits;
+
 			query_body_filter_t body_filter;
 			body_filter.impl   = this;
 			body_filter.filter = &filter;
+
 			JPH::AnyHitCollisionCollector<JPH::CastRayCollector> collector;
 			JPH::RayCastSettings								 settings;
 			_system->GetNarrowPhaseQuery().CastRay(jolt_ray, settings, collector, broad_filter, layer_filter, body_filter);
@@ -1041,16 +1177,20 @@ namespace sfg
 
 			query_broad_phase_filter_t broad_filter;
 			broad_filter.flags = filter.flags;
+
 			query_object_layer_filter_t layer_filter;
 			layer_filter.layers = filter.collision_layers.bits;
+
 			query_body_filter_t body_filter;
 			body_filter.impl   = this;
 			body_filter.filter = &filter;
+
 			ray_all_collector_t collector;
 			collector.impl	   = this;
 			collector.hits	   = out_hits.data;
 			collector.ray	   = &ray;
 			collector.capacity = static_cast<u32>(out_hits.size);
+
 			JPH::RayCastSettings settings;
 			_system->GetNarrowPhaseQuery().CastRay(jolt_ray, settings, collector, broad_filter, layer_filter, body_filter);
 
@@ -1059,7 +1199,7 @@ namespace sfg
 
 			return {.hit_count = collector.count, .overflow = collector.overflow};
 		}
-	}
+	};
 
 	physics_world_t::physics_world_t()	= default;
 	physics_world_t::~physics_world_t() = default;
@@ -1082,6 +1222,21 @@ namespace sfg
 	void physics_world_t::tick(f32 delta_time)
 	{
 		_impl->tick(delta_time);
+	}
+
+	void physics_world_t::sync_body_create_destroy()
+	{
+		_impl->sync_body_create_destroy();
+	}
+
+	void physics_world_t::sync_body_create_destroy(entity_id_t entity)
+	{
+		_impl->sync_body_create_destroy(entity);
+	}
+
+	void physics_world_t::recreate_bodies(entity_id_t entity)
+	{
+		_impl->recreate_bodies(entity);
 	}
 
 	void physics_world_t::set_body_linear_velocity(entity_id_t entity, const vec3f_t& velocity)
@@ -1221,11 +1376,6 @@ namespace sfg
 		return true;
 	}
 
-	void physics_world_t::set_simulation_enabled(bool enabled)
-	{
-		_impl->_simulation_enabled = enabled;
-	}
-
 	void physics_world_t::update_collision_masks(const u64 masks[PHYSICS_COLLISION_LAYER_MAX], u64 active_layers)
 	{
 		for (u32 i = 0; i < PHYSICS_COLLISION_LAYER_MAX; ++i)
@@ -1246,8 +1396,4 @@ namespace sfg
 		return {.data = _impl->_contact_events.data(), .size = _impl->_contact_events.size()};
 	}
 
-	bool physics_world_t::is_simulation_enabled() const
-	{
-		return _impl->_simulation_enabled;
-	}
 }

@@ -82,7 +82,6 @@ namespace sfg
 		{
 			_physics_world = new physics_world_t();
 			_physics_world->init(*this, config.physics);
-			_physics_world->set_simulation_enabled(config.physics_simulation_enabled);
 		}
 	}
 
@@ -113,6 +112,9 @@ namespace sfg
 	void world_t::tick(f32 delta_time)
 	{
 		_debug_draw.begin_frame();
+
+		// gameplay tick.
+		update_world_transforms();
 
 		if (_physics_world != nullptr)
 			_physics_world->tick(delta_time);
@@ -184,6 +186,13 @@ namespace sfg
 
 		component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
 		SFG_ASSERT(hierarchy.first_child == NULL_ENTITY_ID);
+
+		if (_physics_world != nullptr)
+		{
+			ecs_t::table_remove(get_component_table(type_id_t<component_collider_t>::value), id);
+			ecs_t::table_remove(get_component_table(type_id_t<component_character_mover_t>::value), id);
+			_physics_world->sync_body_create_destroy(id);
+		}
 
 		detach(id);
 
@@ -479,6 +488,18 @@ namespace sfg
 
 	void world_t::sync_entity_hierarchy(entity_id_t id)
 	{
+		SFG_ASSERT(is_alive(id));
+
+		if (_physics_world != nullptr)
+			_physics_world->sync_body_create_destroy(id);
+	}
+
+	void world_t::recreate_physics(entity_id_t id)
+	{
+		SFG_ASSERT(is_alive(id));
+
+		if (_physics_world != nullptr)
+			_physics_world->recreate_bodies(id);
 	}
 
 	bool world_t::add_resource(resource_type_e type, resource_handle_t handle)

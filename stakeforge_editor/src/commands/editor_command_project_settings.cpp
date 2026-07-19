@@ -27,11 +27,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "commands/editor_command_project_settings.hpp"
 #include "editor_command_system.hpp"
 #include "editor_project.hpp"
-#include "editor_app.hpp"
 #include "editor_world_controller.hpp"
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
@@ -107,7 +107,7 @@ namespace sfg
 		editor_project_t& project = editor_project_t::get();
 		project.settings		  = settings;
 		project.settings.project_settings.normalize();
-		editor_app_t::get().get_runtime().update_project_settings(project.settings.project_settings);
+		engine_runtime_t::get().update_project_settings(project.settings.project_settings);
 		const physics_runtime_config_t physics_config = project.settings.project_settings.physics.make_runtime_config(project.settings.project_settings.world_physics_rate, project.settings.project_settings.max_sim_steps);
 		editor_world_controller_t::get().update_physics_settings(physics_config.collision_masks, physics_config.active_collision_layers, physics_config.physics_rate, physics_config.max_sub_steps);
 	}
