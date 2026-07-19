@@ -359,17 +359,7 @@ namespace sfg
 
 		void uninit()
 		{
-			for (u32 i = 0; i < _characters.size(); ++i)
-			{
-				if (_characters[i].active)
-					destroy_character(i);
-			}
-
-			for (u32 i = 0; i < _bodies.size(); ++i)
-			{
-				if (_bodies[i].active)
-					destroy_body(i);
-			}
+			clear();
 
 			delete _system;
 			delete _temp_allocator;
@@ -385,6 +375,38 @@ namespace sfg
 			_entity_to_character.resize(0);
 			_contact_events.resize(0);
 			_sync_entities.resize(0);
+			_accumulator = 0.0f;
+		}
+
+		void clear()
+		{
+			for (u32 i = 0; i < _characters.size(); ++i)
+			{
+				if (_characters[i].active)
+					destroy_character(i);
+			}
+
+			for (u32 i = 0; i < _bodies.size(); ++i)
+			{
+				if (_bodies[i].active)
+					destroy_body(i);
+			}
+
+			raw_contact_event_t raw_contact;
+			while (_raw_contact_events.try_dequeue(raw_contact))
+			{
+			}
+
+			ecs_t::table_clear(_world->get_component_table(type_id_t<component_system_physics_t>::value));
+			_bodies.resize(0);
+			_body_free_list.resize(0);
+			_characters.resize(0);
+			_character_free_list.resize(0);
+			_contact_events.resize(0);
+			_sync_entities.resize(0);
+			std::fill(_body_index_to_handle.begin(), _body_index_to_handle.end(), 0);
+			std::fill(_entity_to_proxy.begin(), _entity_to_proxy.end(), UINT32_MAX);
+			std::fill(_entity_to_character.begin(), _entity_to_character.end(), UINT32_MAX);
 			_accumulator = 0.0f;
 		}
 
@@ -1217,6 +1239,11 @@ namespace sfg
 		_impl->uninit();
 		delete _impl;
 		_impl = nullptr;
+	}
+
+	void physics_world_t::clear()
+	{
+		_impl->clear();
 	}
 
 	void physics_world_t::tick(f32 delta_time)

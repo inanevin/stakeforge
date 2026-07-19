@@ -68,6 +68,7 @@ namespace sfg
 
 		void init(world_t& world, const physics_runtime_config_t& config);
 		void uninit();
+		void clear();
 		void tick(f32 delta_time);
 
 		// -----------------------------------------------------------------------------
