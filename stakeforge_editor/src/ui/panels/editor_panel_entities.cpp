@@ -33,7 +33,7 @@ namespace sfg
 	{
 		set_type(editor_panel_type_e::entities);
 		set_title(editor_panel_type_to_string(editor_panel_type_e::entities));
-		set_icon(ICON_BOXES);
+		set_icon(ICON_CUBE);
 	}
 
 	void editor_panel_entities_t::init(ui::ui_context& ui, ui::widget_id_t parent)

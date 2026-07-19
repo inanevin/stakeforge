@@ -81,6 +81,7 @@ namespace sfg
 		vec2u16_t								  swapchain_size = {};
 		ui::widget_id_t							  root			 = NULL_WIDGET;
 		ui::widget_id_t							  content_root	 = NULL_WIDGET;
+		ui::widget_id_t							  owner_root	 = NULL_WIDGET;
 		ui::widget_id_t							  payload_root	 = NULL_WIDGET;
 		ui::widget_id_t							  payload_text	 = NULL_WIDGET;
 		editor_surface_type_e					  type			 = editor_surface_type_e::secondary;

@@ -382,15 +382,34 @@ namespace sfg
 		surface_root_in.child_spacing	 = 0.0f;
 		surface_root_in.child_margins	 = {0.0f, 0.0f, 0.0f, 0.0f};
 
+		editor_theme_t& theme = editor_theme_t::get();
+
 		surface.content_root = surface.root;
 		if (surface.type == editor_surface_type_e::secondary || surface.type == editor_surface_type_e::project_creator)
 		{
 			surface.window_frame = make_unique<editor_widget_window_frame_t>();
 			surface.window_frame->init(*surface.ui, surface.root, {.runtime = surface.runtime.get(), .only_close = surface.type == editor_surface_type_e::project_creator});
 
+			surface.owner_root = surface.ui->allocate_widget();
+			surface.ui->set_widget_debug_name(surface.owner_root, "surface_owner_root");
+			surface.ui->get_tree().attach(surface.root, surface.owner_root);
+
+			ui::layout_in_t& owner_root_in = surface.ui->get_tree().in(surface.owner_root);
+			owner_root_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
+			owner_root_in.size_mode_y	   = ui::axis_mode_e::fill;
+			owner_root_in.size_value	   = {1.0f, 1.0f};
+			owner_root_in.flow			   = ui::flow_e::column;
+			owner_root_in.child_margins	   = {1, 1, 1, 1};
+
+			ui::vg_rect_paint_t owner_paint = {
+				.fill_color_a = theme.color_frame_dark,
+				.fill_color_b = theme.color_frame_dark,
+			};
+			surface.ui->get_paint().set_rect(surface.owner_root, owner_paint);
+
 			surface.content_root = surface.ui->allocate_widget();
 			surface.ui->set_widget_debug_name(surface.content_root, "surface_content_root");
-			surface.ui->get_tree().attach(surface.root, surface.content_root);
+			surface.ui->get_tree().attach(surface.owner_root, surface.content_root);
 
 			ui::layout_in_t& content_root_in = surface.ui->get_tree().in(surface.content_root);
 			content_root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
