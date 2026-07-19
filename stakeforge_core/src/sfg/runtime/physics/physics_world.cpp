@@ -538,7 +538,7 @@ namespace sfg
 				const component_system_transform_t& transform	  = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
 				const quat_t						body_rotation = transform.abs_rot * proxy.collider.local_rotation;
 				const vec3f_t						body_position = transform.abs_pos + transform.abs_rot * (proxy.collider.local_position * transform.abs_scale);
-				body_interface.SetPositionAndRotation(proxy.body_id, to_jolt_position(body_position), to_jolt(body_rotation), JPH::EActivation::DontActivate);
+				body_interface.SetPositionAndRotation(proxy.body_id, to_jolt_position(body_position), to_jolt(body_rotation), JPH::EActivation::Activate);
 
 				proxy.last_entity_pos = transform.abs_pos;
 				proxy.last_entity_rot = transform.abs_rot;
@@ -1041,7 +1041,7 @@ namespace sfg
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = absolute_refs, .size = std::size(absolute_refs)}))
 			{
 				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
-				if (system_physics.is_static == 0 || system_physics.body_proxy_index == UINT32_MAX)
+				if (system_physics.is_static != 0 || system_physics.body_proxy_index == UINT32_MAX)
 					continue;
 
 				body_proxy_t& proxy = _bodies[system_physics.body_proxy_index];
@@ -1065,7 +1065,7 @@ namespace sfg
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = hierarchy_refs, .size = std::size(hierarchy_refs)}))
 			{
 				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
-				if (system_physics.is_static == 0 || system_physics.body_proxy_index == UINT32_MAX)
+				if (system_physics.is_static != 0 || system_physics.body_proxy_index == UINT32_MAX)
 					continue;
 
 				sync_dynamic_body_children_into_world(row.id, system_physics_table, system_transform_table, transform_table, hierarchy_table);
@@ -1075,7 +1075,7 @@ namespace sfg
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = local_refs, .size = std::size(local_refs)}))
 			{
 				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
-				if (system_physics.is_static == 0 || system_physics.body_proxy_index == UINT32_MAX)
+				if (system_physics.is_static != 0 || system_physics.body_proxy_index == UINT32_MAX)
 					continue;
 
 				const component_system_transform_t& system_transform = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);

@@ -124,11 +124,25 @@ namespace sfg
 			sid_t						field_id = 0;
 		};
 
+		struct dependent_field_t
+		{
+			vector_t<void*>			 objects;
+			const reflected_type_t*	 type	= nullptr;
+			const reflected_field_t* field	= nullptr;
+			ui::widget_id_t			 widget = NULL_WIDGET;
+		};
+
+		struct field_divider_t
+		{
+			ui::widget_id_t widget	= NULL_WIDGET;
+			ui::widget_id_t divider = NULL_WIDGET;
+		};
+
 		void clear_widgets();
 		void set_block_edits(bool block_edits);
 		void fit_control(ui::widget_id_t widget);
-		void rebuild();
 		bool is_field_visible(const reflected_type_t& type, const reflected_field_t& field, span_t<void*> objects, u32 dependency_depth) const;
+		void refresh_dependency_visibility();
 		void create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, editor_world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider);
 		void create_checkbox(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		bool create_dropdown(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
@@ -184,7 +198,6 @@ namespace sfg
 		static void on_field_edit_begin(void* user_data);
 		static void on_field_edited(void* user_data);
 		static void on_field_edit_submitted(void* user_data);
-		static void on_reflection_refresh(ui::ui_context& ui, void* user_data);
 
 	private:
 		editor_widget_callbacks_t						 _callbacks		  = {};
@@ -204,15 +217,16 @@ namespace sfg
 		vector_t<container_element_user_data_t*>		 _container_element_user_data;
 		vector_t<path_picker_user_data_t*>				 _path_picker_user_data;
 		vector_t<field_fold_t>							 _field_folds;
+		vector_t<dependent_field_t>						 _dependent_fields;
+		vector_t<field_divider_t>						 _field_dividers;
 		vector_t<ui::widget_id_t>						 _dividers;
 		vector_t<ui::widget_id_t>						 _rows;
 		vector_t<ui::widget_id_t>						 _tooltip_owners;
-		vector_t<editor_widget_reflection_fold_state_t>* _fold_states	   = nullptr;
-		ui::ui_context*									 _ui			   = nullptr;
-		sid_t											 _type_id		   = 0;
-		editor_world_handle_t							 _world			   = {};
-		ui::widget_id_t									 _root			   = NULL_WIDGET;
-		ui::widget_id_t									 _blocker		   = NULL_WIDGET;
-		bool											 _has_dependencies = false;
+		vector_t<editor_widget_reflection_fold_state_t>* _fold_states = nullptr;
+		ui::ui_context*									 _ui		  = nullptr;
+		sid_t											 _type_id	  = 0;
+		editor_world_handle_t							 _world		  = {};
+		ui::widget_id_t									 _root		  = NULL_WIDGET;
+		ui::widget_id_t									 _blocker	  = NULL_WIDGET;
 	};
 }
