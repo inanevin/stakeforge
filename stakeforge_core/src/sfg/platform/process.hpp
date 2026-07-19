@@ -90,6 +90,7 @@ namespace sfg
 		static bool					 is_key_down(u16 key);
 		static bool					 is_mouse_down(u16 button);
 		static vec2i16_t			 get_cursor_position();
+		static void					 set_cursor_position(void* window_handle, const vec2i16_t& position);
 
 		// -----------------------------------------------------------------------------
 		// window

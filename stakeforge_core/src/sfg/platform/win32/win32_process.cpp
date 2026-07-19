@@ -1369,6 +1369,15 @@ namespace sfg
 		return {static_cast<i16>(pt.x), static_cast<i16>(pt.y)};
 	}
 
+	void process::set_cursor_position(void* window_handle, const vec2i16_t& position)
+	{
+		HWND hwnd = static_cast<HWND>(window_handle);
+		SFG_ASSERT(hwnd != nullptr);
+		POINT point = {position.x, position.y};
+		ClientToScreen(hwnd, &point);
+		SetCursorPos(point.x, point.y);
+	}
+
 	bool process::create_window(const char* title, const vec2i16_t& pos, const vec2u16_t& size, window_style_e window_style, f32 window_alpha, bool always_on_top, window_runtime_t& runtime)
 	{
 		HINSTANCE  instance = GetModuleHandle(nullptr);
