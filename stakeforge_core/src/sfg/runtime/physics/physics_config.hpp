@@ -27,15 +27,31 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/math/vec3f.hpp>
+#include <sfg/runtime/physics/physics_types.hpp>
+
 namespace sfg
 {
-	class world_t;
-	struct project_settings_t;
-	struct world_render_snapshot_t;
-
-	class world_snapshot_producer_t final
+	struct physics_runtime_config_t
 	{
-	public:
-		static void produce(world_t& world, world_render_snapshot_t& snapshot, const project_settings_t& project_settings);
+		physics_runtime_config_t()
+		{
+			for (u32 i = 0; i < PHYSICS_COLLISION_LAYER_MAX; ++i)
+				collision_masks[i] = UINT64_MAX;
+		}
+
+		vec3f_t gravity										 = {0.0f, -9.81f, 0.0f};
+		u64		collision_masks[PHYSICS_COLLISION_LAYER_MAX] = {};
+		u64		active_collision_layers						 = 1;
+		u32		max_bodies									 = 16384;
+		u32		body_mutex_count							 = 0;
+		u32		max_body_pairs								 = 32768;
+		u32		max_contact_constraints						 = 16384;
+		u32		temp_allocator_bytes						 = 16 * 1024 * 1024;
+		u32		body_reserve								 = 4096;
+		u32		character_reserve							 = 128;
+		u32		contact_event_reserve						 = 4096;
+		u32		physics_rate								 = 100;
+		u32		max_sub_steps								 = 4;
 	};
 }

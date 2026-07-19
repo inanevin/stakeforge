@@ -27,15 +27,43 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/type_id.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/runtime/physics/physics_config.hpp>
+
 namespace sfg
 {
-	class world_t;
-	struct project_settings_t;
-	struct world_render_snapshot_t;
-
-	class world_snapshot_producer_t final
+	struct physics_collision_layer_definition_t
 	{
-	public:
-		static void produce(world_t& world, world_render_snapshot_t& snapshot, const project_settings_t& project_settings);
+		string_t name		   = {};
+		u64		 collides_with = 0;
+		u64		 identifier	   = 0;
+		u8		 slot		   = 0;
+
+		bool operator==(const physics_collision_layer_definition_t&) const = default;
 	};
+
+	struct physics_project_settings_t
+	{
+		physics_project_settings_t();
+
+		vector_t<physics_collision_layer_definition_t> collision_layers				   = {};
+		u64											   next_collision_layer_identifier = 2;
+
+		void					 normalize(const physics_project_settings_t* previous = nullptr);
+		physics_runtime_config_t make_runtime_config(u32 physics_rate, u32 max_sub_steps) const;
+
+		bool operator==(const physics_project_settings_t&) const = default;
+	};
+
+	SFG_DEFINE_TYPE_ID(physics_collision_layer_definition_t);
+	SFG_DEFINE_TYPE_ID(physics_project_settings_t);
+
+	struct physics_project_settings_reflection_t
+	{
+		physics_project_settings_reflection_t();
+	};
+
+	inline physics_project_settings_reflection_t g_reflect_physics_project_settings;
 }

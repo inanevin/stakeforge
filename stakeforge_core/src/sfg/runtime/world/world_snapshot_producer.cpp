@@ -135,9 +135,10 @@ namespace sfg
 		}
 	}
 
-	void world_snapshot_producer_t::produce(world_t& world, world_render_snapshot_t& snapshot, const engine_runtime_settings_t& runtime_settings)
+	void world_snapshot_producer_t::produce(world_t& world, world_render_snapshot_t& snapshot, const project_settings_t& project_settings)
 	{
-		snapshot.runtime_settings = runtime_settings;
+		snapshot.shadows	   = project_settings.shadows;
+		snapshot.quality_level = project_settings.quality_level;
 		snapshot.materials.resize(0);
 		snapshot.entities.resize(0);
 		snapshot.lights.resize(0);

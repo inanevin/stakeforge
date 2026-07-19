@@ -38,7 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/runtime/engine/engine_runtime_settings.hpp>
+#include <sfg/runtime/project/project_settings.hpp>
 
 namespace sfg
 {
@@ -113,16 +113,17 @@ namespace sfg
 
 	struct world_render_snapshot_t
 	{
-		void*							  user_data		   = nullptr;
-		engine_runtime_settings_t		  runtime_settings = {};
-		world_render_view_t				  main_view		   = {};
-		world_render_skybox_t			  skybox		   = {};
-		world_render_post_process_t		  post_process	   = {};
-		world_debug_draw_snapshot_t		  debug_draw	   = {};
-		vector_t<world_render_material_t> materials		   = {};
-		vector_t<world_render_entity_t>	  entities		   = {};
-		vector_t<world_render_light_t>	  lights		   = {};
-		vector_t<world_draw_t>			  draws			   = {};
+		void*							  user_data		= nullptr;
+		engine_shadow_settings_t		  shadows		= {};
+		world_render_view_t				  main_view		= {};
+		world_render_skybox_t			  skybox		= {};
+		world_render_post_process_t		  post_process	= {};
+		world_debug_draw_snapshot_t		  debug_draw	= {};
+		vector_t<world_render_material_t> materials		= {};
+		vector_t<world_render_entity_t>	  entities		= {};
+		vector_t<world_render_light_t>	  lights		= {};
+		vector_t<world_draw_t>			  draws			= {};
+		engine_quality_level_e			  quality_level = engine_quality_level_e::high;
 
 		inline void reserve(size_t entity_count, size_t light_count, size_t line_vertex_count, size_t line_index_count, size_t text_vertex_count, size_t text_index_count)
 		{

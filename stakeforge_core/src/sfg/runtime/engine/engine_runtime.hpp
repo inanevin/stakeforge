@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "engine_runtime_settings.hpp"
+#include <sfg/runtime/project/project_settings.hpp>
 #include <sfg/runtime/resources/resource_file_system.hpp>
 
 namespace sfg
@@ -27,19 +27,19 @@ namespace sfg
 
 		bool init();
 		void uninit();
-		void update_settings(const engine_runtime_settings_t& settings);
+		void update_project_settings(const project_settings_t& settings);
 
 		inline resource_file_system_t& get_resource_file_system()
 		{
 			return _resource_file_system;
 		}
-		inline const engine_runtime_settings_t& get_settings() const
+		inline const project_settings_t& get_project_settings() const
 		{
-			return _settings;
+			return _project_settings;
 		}
 
 	private:
-		resource_file_system_t	  _resource_file_system;
-		engine_runtime_settings_t _settings = {};
+		resource_file_system_t _resource_file_system;
+		project_settings_t	   _project_settings = {};
 	};
 }

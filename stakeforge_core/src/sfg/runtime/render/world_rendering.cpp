@@ -42,7 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/mat3x3.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
-#include <sfg/runtime/engine/engine_runtime_settings.hpp>
+#include <sfg/runtime/project/project_settings.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
@@ -96,8 +96,8 @@ namespace sfg
 	}
 	void world_rendering_t::render_world(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
-		gfx_backend&					 backend  = gfx_backend::get();
-		const engine_runtime_settings_t& settings = snapshot.runtime_settings;
+		gfx_backend&					backend = gfx_backend::get();
+		const engine_shadow_settings_t& shadows = snapshot.shadows;
 
 		gpu_entity_t* entity_buffer = reinterpret_cast<gpu_entity_t*>(ctx.get_mapped_entity_buffer(frame_index));
 
@@ -133,9 +133,9 @@ namespace sfg
 
 		u64 shadow_texels	 = 0;
 		f32 quality_scale	 = 1.0f;
-		u16 quality_view_max = settings.shadows.max_views;
+		u16 quality_view_max = shadows.max_views;
 
-		switch (settings.quality_level)
+		switch (snapshot.quality_level)
 		{
 		case engine_quality_level_e::low:
 			quality_scale	 = 0.5f;
@@ -153,8 +153,8 @@ namespace sfg
 		}
 
 		const u16 shadow_view_max	  = math::min(ctx.get_shadow_view_max(), quality_view_max);
-		const u64 shadow_texel_budget = static_cast<u64>(static_cast<double>(settings.shadows.texel_budget) * quality_scale);
-		const f32 shadow_distance	  = settings.shadows.shadow_distance * quality_scale;
+		const u64 shadow_texel_budget = static_cast<u64>(static_cast<double>(shadows.texel_budget) * quality_scale);
+		const f32 shadow_distance	  = shadows.shadow_distance * quality_scale;
 
 		for (u32 light_index = 0; light_index < snapshot.lights.size() && prep_data.shadow_views.size() < shadow_view_max; ++light_index)
 		{
@@ -165,14 +165,13 @@ namespace sfg
 			const vec3f_t pos			  = vec3f_t::lerp(light.prev_pos, light.pos, interpolation_alpha);
 			const quat_t  rot			  = quat_t::slerp(light.prev_rot, light.rot, interpolation_alpha);
 			const f32	  camera_distance = vec3f_t::distance(pos, main_camera_view_t.pos);
-			const f32	  shadow_fade	  = light.type == static_cast<u8>(world_render_light_type_e::directional)
-												? 1.0f
-												: 1.0f - math::clamp((camera_distance - light.range - (shadow_distance - settings.shadows.shadow_fade_distance)) / math::max(settings.shadows.shadow_fade_distance, 0.001f), 0.0f, 1.0f);
+			const f32	  shadow_fade =
+				light.type == static_cast<u8>(world_render_light_type_e::directional) ? 1.0f : 1.0f - math::clamp((camera_distance - light.range - (shadow_distance - shadows.shadow_fade_distance)) / math::max(shadows.shadow_fade_distance, 0.001f), 0.0f, 1.0f);
 
 			if (light.type != static_cast<u8>(world_render_light_type_e::directional) && camera_distance - light.range > shadow_distance)
 				continue;
 
-			u16 resolution = static_cast<u16>(math::clamp<u32>(light.shadow_resolution, settings.shadows.min_resolution, settings.shadows.max_resolution));
+			u16 resolution = static_cast<u16>(math::clamp<u32>(light.shadow_resolution, shadows.min_resolution, shadows.max_resolution));
 			f32 projected  = 0.0f;
 
 			// calc dyn resolution based off distance.
@@ -180,12 +179,12 @@ namespace sfg
 			{
 				projected = light.range * static_cast<f32>(ctx.get_size().y) / math::max(camera_distance, 0.1f);
 
-				while (resolution > settings.shadows.min_resolution && projected < static_cast<f32>(resolution) * 0.5f)
+				while (resolution > shadows.min_resolution && projected < static_cast<f32>(resolution) * 0.5f)
 					resolution = static_cast<u16>(resolution / 2);
 
 				const world_render_shadow_allocation_t* current = ctx.find_shadow_allocation(light.stable_id, light.type);
 
-				if (current != nullptr && current->resolution.x >= settings.shadows.min_resolution && current->resolution.x <= settings.shadows.max_resolution)
+				if (current != nullptr && current->resolution.x >= shadows.min_resolution && current->resolution.x <= shadows.max_resolution)
 				{
 					if (resolution > current->resolution.x && projected < static_cast<f32>(current->resolution.x) * 0.75f)
 						resolution = current->resolution.x;
@@ -319,7 +318,7 @@ namespace sfg
 				.view_proj	   = view.view_proj,
 				.params0	   = {view.split_near, view.split_far, view.near_plane, view.far_plane},
 				.params1	   = {1.0f / view.resolution.x, 1.0f / view.resolution.y, 0.0f, 0.0f},
-				.params2	   = {light.shadow_bias, light.shadow_normal_bias, view.fade, settings.shadows.shadow_fade_distance},
+				.params2	   = {light.shadow_bias, light.shadow_normal_bias, view.fade, shadows.shadow_fade_distance},
 				.texture_index = view.texture_index,
 				.slice		   = view.view_index,
 				.type		   = view.type,

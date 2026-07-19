@@ -109,6 +109,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/render/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/resources/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/world/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/physics/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/project/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gui/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gui/widgets/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/*.cpp
@@ -166,6 +167,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/world/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/reflection/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/serialization/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/physics/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/project/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/stb/*.h
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/moodycamel/*.h
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/nhlohmann/*.hpp

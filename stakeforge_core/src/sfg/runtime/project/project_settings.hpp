@@ -28,6 +28,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/common/type_id.hpp>
+#include <sfg/data/string.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/runtime/physics/physics_project_settings.hpp>
 
 namespace sfg
 {
@@ -53,25 +56,29 @@ namespace sfg
 		bool operator==(const engine_shadow_settings_t&) const = default;
 	};
 
-	struct engine_runtime_settings_t
+	struct project_settings_t
 	{
-		engine_shadow_settings_t shadows			= {};
-		u32						 world_tick_rate	= 60;
-		u32						 world_physics_rate = 100;
-		u32						 max_sim_steps		= 4;
-		engine_quality_level_e	 quality_level		= engine_quality_level_e::high;
+		physics_project_settings_t physics			  = {};
+		vector_t<string_t>		   tags				  = {};
+		engine_shadow_settings_t   shadows			  = {};
+		u32						   world_tick_rate	  = 60;
+		u32						   world_physics_rate = 100;
+		u32						   max_sim_steps	  = 4;
+		engine_quality_level_e	   quality_level	  = engine_quality_level_e::high;
 
-		bool operator==(const engine_runtime_settings_t&) const = default;
+		void normalize(const project_settings_t* previous = nullptr);
+
+		bool operator==(const project_settings_t&) const = default;
 	};
 
 	SFG_DEFINE_TYPE_ID(engine_quality_level_e);
 	SFG_DEFINE_TYPE_ID(engine_shadow_settings_t);
-	SFG_DEFINE_TYPE_ID(engine_runtime_settings_t);
+	SFG_DEFINE_TYPE_ID(project_settings_t);
 
-	struct engine_runtime_settings_reflection_t
+	struct project_settings_reflection_t
 	{
-		engine_runtime_settings_reflection_t();
+		project_settings_reflection_t();
 	};
 
-	inline engine_runtime_settings_reflection_t g_reflect_engine_runtime_settings;
+	inline project_settings_reflection_t g_reflect_project_settings;
 }

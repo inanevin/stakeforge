@@ -4,11 +4,10 @@
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/math/math.hpp>
 #include <sfg/job/job_system.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/platform/time.hpp>
-#include <sfg/physics/physics_runtime.hpp>
+#include <sfg/runtime/physics/physics_runtime.hpp>
 #include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
@@ -92,17 +91,10 @@ namespace sfg
 	{
 	}
 
-	void engine_runtime_t::update_settings(const engine_runtime_settings_t& settings)
+	void engine_runtime_t::update_project_settings(const project_settings_t& settings)
 	{
-		_settings							   = settings;
-		_settings.world_tick_rate			   = math::clamp(_settings.world_tick_rate, 15u, 240u);
-		_settings.world_physics_rate		   = math::clamp(_settings.world_physics_rate, 30u, 240u);
-		_settings.max_sim_steps				   = math::clamp(_settings.max_sim_steps, 1u, 8u);
-		_settings.shadows.min_resolution	   = math::clamp<u16>(_settings.shadows.min_resolution, 64, 8192);
-		_settings.shadows.max_resolution	   = math::clamp<u16>(_settings.shadows.max_resolution, _settings.shadows.min_resolution, 8192);
-		_settings.shadows.max_views			   = math::min<u16>(_settings.shadows.max_views, ENGINE_SHADOW_VIEW_MAX);
-		_settings.shadows.shadow_distance	   = math::max(_settings.shadows.shadow_distance, 1.0f);
-		_settings.shadows.shadow_fade_distance = math::clamp(_settings.shadows.shadow_fade_distance, 0.0f, _settings.shadows.shadow_distance);
+		_project_settings = settings;
+		_project_settings.normalize();
 	}
 
 }

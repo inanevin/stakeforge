@@ -305,7 +305,7 @@ namespace sfg
 		editor_project_t& proj = editor_project_t::get();
 		surfaces.get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());
 
-		if (proj.last_world_guid == NULL_SID || !_world_controller.load_main_world(proj.last_world_guid))
+		if (proj.settings.last_world_guid == NULL_SID || !_world_controller.load_main_world(proj.settings.last_world_guid))
 			_world_controller.load_dummy_world();
 
 		return true;
@@ -444,7 +444,7 @@ namespace sfg
 			if (_mode == editor_app_mode_e::normal)
 			{
 				ZoneScopedN("world_controller_tick");
-				const engine_runtime_settings_t settings = _runtime.get_settings();
+				const project_settings_t& settings = _runtime.get_project_settings();
 				_world_controller.tick(settings.world_tick_rate, settings.world_physics_rate, settings.max_sim_steps);
 			}
 
