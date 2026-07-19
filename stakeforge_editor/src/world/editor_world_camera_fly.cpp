@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -96,5 +97,45 @@ namespace sfg
 		move_dir.normalize();
 		const vec3f_t position = world.get_entity_pos_local(_camera_entity) + move_dir * (_current_move_speed * dt_seconds);
 		world.set_entity_pos_local(_camera_entity, position);
+	}
+
+	void editor_world_camera_fly_t::serialize(const world_t& world, nlohmann::json& out_json) const
+	{
+		const vec3f_t& position = world.get_entity_pos_local(_camera_entity);
+		const quat_t&  rotation = world.get_entity_rot_local(_camera_entity);
+
+		out_json = {
+			{"position", {{"x", position.x}, {"y", position.y}, {"z", position.z}}},
+			{"rotation", {{"x", rotation.x}, {"y", rotation.y}, {"z", rotation.z}, {"w", rotation.w}}},
+			{"yaw_degrees", _camera_yaw_degrees},
+			{"pitch_degrees", _camera_pitch_degrees},
+			{"move_speed", _current_move_speed},
+		};
+	}
+
+	void editor_world_camera_fly_t::deserialize(world_t& world, const nlohmann::json& in_json)
+	{
+		vec3f_t position = world.get_entity_pos_local(_camera_entity);
+		quat_t	rotation = world.get_entity_rot_local(_camera_entity);
+
+		const nlohmann::json position_json = in_json.value<nlohmann::json>("position", nlohmann::json::object());
+		const nlohmann::json rotation_json = in_json.value<nlohmann::json>("rotation", nlohmann::json::object());
+
+		position.x = position_json.value<f32>("x", position.x);
+		position.y = position_json.value<f32>("y", position.y);
+		position.z = position_json.value<f32>("z", position.z);
+		rotation.x = rotation_json.value<f32>("x", rotation.x);
+		rotation.y = rotation_json.value<f32>("y", rotation.y);
+		rotation.z = rotation_json.value<f32>("z", rotation.z);
+		rotation.w = rotation_json.value<f32>("w", rotation.w);
+
+		const vec3f_t euler	  = quat_t::to_euler(rotation);
+		_camera_yaw_degrees	  = in_json.value<f32>("yaw_degrees", euler.y);
+		_camera_pitch_degrees = in_json.value<f32>("pitch_degrees", euler.x);
+		_current_move_speed	  = in_json.value<f32>("move_speed", EDITOR_WORLD_CAMERA_FLY_BASE_MOVE_SPEED);
+		_direction_input	  = vec3f_t::zero;
+		_mouse_delta		  = vec2f_t::zero;
+
+		world.teleport_entity(_camera_entity, position, quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f), vec3f_t::one);
 	}
 }

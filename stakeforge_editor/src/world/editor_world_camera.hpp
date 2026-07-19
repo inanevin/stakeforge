@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -73,8 +74,10 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		virtual void pass_input(const editor_world_camera_input_t& input) = 0;
-		virtual void tick(world_t& world, f32 dt_seconds)				  = 0;
+		virtual void pass_input(const editor_world_camera_input_t& input)			 = 0;
+		virtual void tick(world_t& world, f32 dt_seconds)							 = 0;
+		virtual void serialize(const world_t& world, nlohmann::json& out_json) const = 0;
+		virtual void deserialize(world_t& world, const nlohmann::json& in_json)		 = 0;
 		virtual void fit_to_bounds(world_t& world, const aabb_t& bounds)
 		{
 		}

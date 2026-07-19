@@ -53,6 +53,8 @@ namespace sfg
 
 		void pass_input(const editor_world_camera_input_t& input) override;
 		void tick(world_t& world, f32 dt_seconds) override;
+		void serialize(const world_t& world, nlohmann::json& out_json) const override;
+		void deserialize(world_t& world, const nlohmann::json& in_json) override;
 		void fit_to_bounds(world_t& world, const aabb_t& bounds) override;
 
 		// -----------------------------------------------------------------------------

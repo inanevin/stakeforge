@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -104,6 +105,53 @@ namespace sfg
 
 		_distance = easing_t::smooth_damp(_distance, _distance_target, &_distance_velocity, EDITOR_WORLD_CAMERA_ORBIT_ZOOM_SMOOTH_TIME, EDITOR_WORLD_CAMERA_ORBIT_ZOOM_MAX_SPEED, dt_seconds);
 
+		apply_transform(world);
+	}
+
+	void editor_world_camera_orbit_t::serialize(const world_t& world, nlohmann::json& out_json) const
+	{
+		const vec3f_t& position = world.get_entity_pos_local(_camera_entity);
+		const quat_t&  rotation = world.get_entity_rot_local(_camera_entity);
+		out_json				= {
+			{"position", {{"x", position.x}, {"y", position.y}, {"z", position.z}}},
+			{"rotation", {{"x", rotation.x}, {"y", rotation.y}, {"z", rotation.z}, {"w", rotation.w}}},
+			{"target", {{"x", _target.x}, {"y", _target.y}, {"z", _target.z}}},
+			{"yaw_degrees", _camera_yaw_degrees},
+			{"pitch_degrees", _camera_pitch_degrees},
+			{"distance", _distance},
+			{"distance_target", _distance_target},
+			{"distance_velocity", _distance_velocity},
+		};
+	}
+
+	void editor_world_camera_orbit_t::deserialize(world_t& world, const nlohmann::json& in_json)
+	{
+		vec3f_t position = world.get_entity_pos_local(_camera_entity);
+		quat_t	rotation = world.get_entity_rot_local(_camera_entity);
+
+		const nlohmann::json position_json = in_json.value<nlohmann::json>("position", nlohmann::json::object());
+		const nlohmann::json rotation_json = in_json.value<nlohmann::json>("rotation", nlohmann::json::object());
+		position.x						   = position_json.value<f32>("x", position.x);
+		position.y						   = position_json.value<f32>("y", position.y);
+		position.z						   = position_json.value<f32>("z", position.z);
+		rotation.x						   = rotation_json.value<f32>("x", rotation.x);
+		rotation.y						   = rotation_json.value<f32>("y", rotation.y);
+		rotation.z						   = rotation_json.value<f32>("z", rotation.z);
+		rotation.w						   = rotation_json.value<f32>("w", rotation.w);
+
+		const vec3f_t euler	  = quat_t::to_euler(rotation);
+		_camera_yaw_degrees	  = in_json.value<f32>("yaw_degrees", euler.y);
+		_camera_pitch_degrees = in_json.value<f32>("pitch_degrees", euler.x);
+		_distance			  = in_json.value<f32>("distance", _distance);
+		_distance_target	  = in_json.value<f32>("distance_target", _distance);
+		_distance_velocity	  = in_json.value<f32>("distance_velocity", 0.0f);
+		_target				  = position + rotation.get_forward() * _distance;
+
+		const nlohmann::json target_json = in_json.value<nlohmann::json>("target", nlohmann::json::object());
+		_target.x						 = target_json.value<f32>("x", _target.x);
+		_target.y						 = target_json.value<f32>("y", _target.y);
+		_target.z						 = target_json.value<f32>("z", _target.z);
+		_mouse_delta					 = vec2f_t::zero;
 		apply_transform(world);
 	}
 
