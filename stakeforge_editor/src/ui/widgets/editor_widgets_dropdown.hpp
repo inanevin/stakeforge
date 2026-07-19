@@ -41,6 +41,8 @@ namespace sfg::ui
 
 namespace sfg
 {
+	struct editor_popup_item_desc_t;
+
 	enum class editor_dropdown_width_e : u8
 	{
 		sum_children,
@@ -57,11 +59,12 @@ namespace sfg
 	struct editor_dropdown_item_t
 	{
 		const char* text  = nullptr;
-		u16			value = 0;
+		u64			value = 0;
 	};
 
-	using editor_dropdown_selected_fn = u16 (*)(void* user_data);
-	using editor_dropdown_pressed_fn  = void (*)(u16 value, void* user_data);
+	using editor_dropdown_selected_fn	 = u16 (*)(void* user_data);
+	using editor_dropdown_pressed_fn	 = void (*)(u16 value, void* user_data);
+	using editor_dropdown_build_title_fn = const char* (*)(u64 value, void* user_data);
 
 	struct editor_dropdown_field_t
 	{
@@ -71,19 +74,21 @@ namespace sfg
 
 	struct editor_dropdown_config_t
 	{
-		const editor_dropdown_item_t* items				   = nullptr;
-		const char*					  title				   = nullptr;
-		editor_dropdown_selected_fn	  selected			   = nullptr;
-		editor_dropdown_pressed_fn	  pressed			   = nullptr;
-		void*						  user_data			   = nullptr;
-		editor_dropdown_field_t		  field				   = {};
-		editor_widget_callbacks_t	  callbacks			   = {};
-		u16							  item_count		   = 0;
-		editor_dropdown_width_e		  width				   = editor_dropdown_width_e::sum_children;
-		editor_dropdown_pos_y_e		  pos_y				   = editor_dropdown_pos_y_e::flow;
-		f32							  fixed_width		   = 0.0f;
-		bool						  title_from_selection = true;
-		bool						  is_bitmask		   = false;
+		const editor_dropdown_item_t*  items				= nullptr;
+		const char*					   title				= nullptr;
+		editor_dropdown_selected_fn	   selected				= nullptr;
+		editor_dropdown_pressed_fn	   pressed				= nullptr;
+		editor_dropdown_build_title_fn build_title			= nullptr;
+		void*						   user_data			= nullptr;
+		void*						   title_user_data		= nullptr;
+		editor_dropdown_field_t		   field				= {};
+		editor_widget_callbacks_t	   callbacks			= {};
+		u16							   item_count			= 0;
+		editor_dropdown_width_e		   width				= editor_dropdown_width_e::sum_children;
+		editor_dropdown_pos_y_e		   pos_y				= editor_dropdown_pos_y_e::flow;
+		f32							   fixed_width			= 0.0f;
+		bool						   title_from_selection = true;
+		bool						   is_bitmask			= false;
 	};
 
 	class editor_dropdown_t final
@@ -109,28 +114,30 @@ namespace sfg
 
 	private:
 		bool		is_field_bound() const;
-		u16			read_field_value(const u8* field) const;
-		void		write_field_value(u8* field, u16 value) const;
-		void		modify_field(u16 value);
-		u32			get_selected() const;
+		u64			read_field_value(const u8* field) const;
+		void		write_field_value(u8* field, u64 value) const;
+		void		modify_field(u64 value);
+		u64			get_selected() const;
 		const char* get_selected_text() const;
+		void		build_popup_items(editor_popup_item_desc_t* items) const;
+		void		refresh_popup_items();
 		void		open_popup();
-		u32			read_field_value_u32(const u8* field) const;
-		void		write_field_value_u32(u8* field, u32 value) const;
 
 		static void on_root_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_root_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_popup_item_pressed(u16 value, void* user_data);
+		static void on_popup_closed(void* user_data);
 
 	private:
 		editor_dropdown_config_t		 _config = {};
 		vector_t<editor_dropdown_item_t> _items;
 		vector_t<u8*>					 _fields;
-		ui::ui_context*					 _ui			 = nullptr;
-		ui::widget_id_t					 _root			 = NULL_WIDGET;
-		ui::widget_id_t					 _title			 = NULL_WIDGET;
-		ui::widget_id_t					 _icon_frame	 = NULL_WIDGET;
-		u32								 _selected_value = 0;
-		bool							 _mixed			 = false;
+		ui::ui_context*					 _ui				  = nullptr;
+		u64								 _selected_value	  = 0;
+		ui::widget_id_t					 _root				  = NULL_WIDGET;
+		ui::widget_id_t					 _title				  = NULL_WIDGET;
+		ui::widget_id_t					 _icon_frame		  = NULL_WIDGET;
+		bool							 _mixed				  = false;
+		bool							 _bitmask_edit_active = false;
 	};
 }

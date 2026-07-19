@@ -44,7 +44,6 @@ namespace sfg
 #define REFLECTION_SUB_TYPE_IDENTIFIER_DIRECTORY	   "reflection_subtype_directory"_hs
 #define REFLECTION_SUB_TYPE_IDENTIFIER_PATH			   "reflection_subtype_path"_hs
 #define REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER "reflection_subtype_collision_layer"_hs
-#define REFLECTION_SUB_TYPE_IDENTIFIER_ENTITY_TAG_MASK "reflection_subtype_entity_tag_mask"_hs
 
 	enum class reflected_value_type_e : u8
 	{
@@ -63,6 +62,25 @@ namespace sfg
 		object,
 		container,
 		char_array,
+		bitmask,
+	};
+
+	struct bitmask_option_t
+	{
+		const char* name  = nullptr;
+		u64			value = 0;
+	};
+
+	typedef u32 (*fn_bitmask_get_option_count)(void* user_data);
+	typedef bitmask_option_t (*fn_bitmask_get_option)(u32 index, void* user_data);
+	typedef const char* (*fn_bitmask_build_title)(u64 value, void* user_data);
+
+	struct bitmask_opts_t
+	{
+		fn_bitmask_get_option_count get_option_count_fn = nullptr;
+		fn_bitmask_get_option		get_option_fn		= nullptr;
+		fn_bitmask_build_title		build_title_fn		= nullptr;
+		void*						user_data			= nullptr;
 	};
 
 	enum reflected_field_flags_e
@@ -178,6 +196,7 @@ namespace sfg
 	struct reflected_type_t
 	{
 		reflected_field_span_t fields		   = {};
+		bitmask_opts_t		   bitmask_opts	   = {};
 		const char*			   name			   = nullptr;
 		const char*			   display_name	   = nullptr;
 		const char*			   tooltip		   = nullptr;
@@ -195,10 +214,11 @@ namespace sfg
 		const char*							   tooltip		   = "";
 		fn_default_init						   default_init_fn = nullptr;
 		vector_t<reflected_field_descriptor_t> fields;
-		sid_t								   type_id	 = 0;
-		size_t								   size		 = 0;
-		size_t								   alignment = 0;
-		bitmask32							   flags	 = 0;
+		bitmask_opts_t						   bitmask_opts = {};
+		sid_t								   type_id		= 0;
+		size_t								   size			= 0;
+		size_t								   alignment	= 0;
+		bitmask32							   flags		= 0;
 	};
 
 	class reflection_registry_t

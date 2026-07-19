@@ -265,10 +265,49 @@ namespace sfg
 			}
 
 			case reflected_value_type_e::u64:
+			case reflected_value_type_e::bitmask:
 				if (dismiss_name)
-					out_json = *reinterpret_cast<const u64*>(data);
+				{
+					switch (field.size)
+					{
+					case sizeof(u8):
+						out_json = *reinterpret_cast<const u8*>(data);
+						break;
+					case sizeof(u16):
+						out_json = *reinterpret_cast<const u16*>(data);
+						break;
+					case sizeof(u32):
+						out_json = *reinterpret_cast<const u32*>(data);
+						break;
+					case sizeof(u64):
+						out_json = *reinterpret_cast<const u64*>(data);
+						break;
+					default:
+						SFG_ASSERT(false);
+						break;
+					}
+				}
 				else
-					out_json[field.name] = *reinterpret_cast<const u64*>(data);
+				{
+					switch (field.size)
+					{
+					case sizeof(u8):
+						out_json[field.name] = *reinterpret_cast<const u8*>(data);
+						break;
+					case sizeof(u16):
+						out_json[field.name] = *reinterpret_cast<const u16*>(data);
+						break;
+					case sizeof(u32):
+						out_json[field.name] = *reinterpret_cast<const u32*>(data);
+						break;
+					case sizeof(u64):
+						out_json[field.name] = *reinterpret_cast<const u64*>(data);
+						break;
+					default:
+						SFG_ASSERT(false);
+						break;
+					}
+				}
 				break;
 
 			case reflected_value_type_e::i64:
@@ -447,11 +486,28 @@ namespace sfg
 				break;
 
 			case reflected_value_type_e::u64:
-				if (dismiss_name)
-					*reinterpret_cast<u64*>(data) = in_json;
-				else
-					*reinterpret_cast<u64*>(data) = in_json.value<u64>(field.name, 0);
+			case reflected_value_type_e::bitmask: {
+				const u64 value = dismiss_name ? in_json.get<u64>() : in_json.value<u64>(field.name, 0);
+				switch (field.size)
+				{
+				case sizeof(u8):
+					*reinterpret_cast<u8*>(data) = static_cast<u8>(value);
+					break;
+				case sizeof(u16):
+					*reinterpret_cast<u16*>(data) = static_cast<u16>(value);
+					break;
+				case sizeof(u32):
+					*reinterpret_cast<u32*>(data) = static_cast<u32>(value);
+					break;
+				case sizeof(u64):
+					*reinterpret_cast<u64*>(data) = value;
+					break;
+				default:
+					SFG_ASSERT(false);
+					break;
+				}
 				break;
+			}
 
 			case reflected_value_type_e::i64:
 				if (dismiss_name)
@@ -805,10 +861,11 @@ namespace sfg
 		if (descriptor.display_name != nullptr)
 			type.display_name = _text_allocator.allocate(descriptor.display_name);
 
-		type.type_id   = descriptor.type_id;
-		type.size	   = descriptor.size;
-		type.alignment = descriptor.alignment;
-		type.flags	   = descriptor.flags;
+		type.type_id	  = descriptor.type_id;
+		type.size		  = descriptor.size;
+		type.alignment	  = descriptor.alignment;
+		type.flags		  = descriptor.flags;
+		type.bitmask_opts = descriptor.bitmask_opts;
 
 		if (descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 		{
@@ -836,6 +893,10 @@ namespace sfg
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.remove_index_fn != nullptr);
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || (field_desc.container_ops.element_value_type != reflected_value_type_e::invalid && field_desc.container_ops.element_value_type != reflected_value_type_e::container));
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.element_value_type != reflected_value_type_e::object || field_desc.container_ops.element_sub_type_id != 0);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::bitmask || field_desc.size == sizeof(u8) || field_desc.size == sizeof(u16) || field_desc.size == sizeof(u32) || field_desc.size == sizeof(u64));
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::bitmask || descriptor.bitmask_opts.get_option_count_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::bitmask || descriptor.bitmask_opts.get_option_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::bitmask || descriptor.bitmask_opts.build_title_fn != nullptr);
 
 			field.name			   = _text_allocator.allocate(field_desc.name);
 			field.field_identifier = TO_SID(field.name);
