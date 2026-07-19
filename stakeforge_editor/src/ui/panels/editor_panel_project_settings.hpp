@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widget_reflection.hpp"
+#include "ui/widgets/editor_widgets_scrollbar.hpp"
 
 namespace sfg
 {
@@ -64,8 +65,11 @@ namespace sfg
 	private:
 		vector_t<editor_widget_reflection_fold_state_t> _field_states		   = {};
 		editor_widget_reflection_t						_reflection			   = {};
+		editor_scrollbar_t								_scrollbar			   = {};
 		editor_project_settings_data_t					_project_edit_previous = {};
 		editor_command_listener_handle_t				_command_listener	   = {};
+		ui::widget_id_t									_scroll_area		   = NULL_WIDGET;
+		ui::widget_id_t									_content			   = NULL_WIDGET;
 		bool											_refresh_pending	   = false;
 		bool											_project_edit_active   = false;
 	};

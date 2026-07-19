@@ -49,11 +49,36 @@ namespace sfg
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flow			 = ui::flow_e::column;
 		root_in.child_spacing	 = 0.0f;
-		root_in.child_margins	 = {theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
+
+		_scroll_area = ui.allocate_widget();
+		ui.set_widget_debug_name(_scroll_area, "project_settings_scroll_area");
+		tree.attach(_root, _scroll_area);
+
+		ui::layout_in_t& scroll_area_in = tree.in(_scroll_area);
+		scroll_area_in.flags			= ui::wf_visible | ui::wf_input | ui::wf_scroll_y;
+		scroll_area_in.child_clip_mode	= ui::clip_mode_e::scissor_rect;
+		scroll_area_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		scroll_area_in.size_mode_y		= ui::axis_mode_e::parent_relative;
+		scroll_area_in.size_value		= {1.0f, 1.0f};
+
+		_content = ui.allocate_widget();
+		ui.set_widget_debug_name(_content, "project_settings_content");
+		tree.attach(_scroll_area, _content);
+		tree.draw_order(_content) = tree.draw_order_const(_scroll_area) + 1;
+
+		ui::layout_in_t& content_in = tree.in(_content);
+		content_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		content_in.size_mode_y		= ui::axis_mode_e::sum_children;
+		content_in.size_value		= {1.0f, 1.0f};
+		content_in.flow				= ui::flow_e::column;
+		content_in.child_spacing	= 0.0f;
+		content_in.child_margins	= {theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
+
+		_scrollbar.init(ui, {.target = _scroll_area, .axes = editor_scrollbar_axis_y});
 
 		void* object = &editor_project_t::get().settings;
 		_reflection.init(ui,
-						 _root,
+						 _content,
 						 {
 							 .fold_states = &_field_states,
 							 .callbacks =
@@ -73,9 +98,14 @@ namespace sfg
 		editor_command_system_t::get().remove_listener(_command_listener);
 		_ui->cancel_mutations(this);
 		_reflection.uninit();
+		_scrollbar.uninit();
+		_ui->deallocate_widget(_content);
+		_ui->deallocate_widget(_scroll_area);
 		_field_states.clear();
 		_project_edit_previous = {};
 		_command_listener	   = {};
+		_scroll_area		   = NULL_WIDGET;
+		_content			   = NULL_WIDGET;
 		_refresh_pending	   = false;
 		_project_edit_active   = false;
 		editor_panel_t::uninit();
