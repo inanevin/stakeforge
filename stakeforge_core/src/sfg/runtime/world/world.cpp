@@ -87,6 +87,8 @@ namespace sfg
 
 	void world_t::uninit()
 	{
+		SFG_ASSERT(!_is_playing);
+
 		if (_physics_world != nullptr)
 		{
 			_physics_world->uninit();
@@ -104,20 +106,64 @@ namespace sfg
 		_text_allocations.resize(0);
 		_text_allocation_free_list.resize(0);
 		_text_allocator.uninit();
-		_engine_components = {};
-		_system_components = {};
-		_entity_head	   = 0;
+		_engine_components	 = {};
+		_system_components	 = {};
+		_entity_head		 = 0;
+		_play_resource_count = 0;
+		_is_playing			 = false;
 	}
 
-	void world_t::tick(f32 delta_time)
+	void world_t::begin_play()
 	{
-		_debug_draw.begin_frame();
+		SFG_ASSERT(!_is_playing);
 
-		// gameplay tick.
-		update_world_transforms();
+		_play_resource_count = static_cast<u32>(_used_resources.size());
+		_is_playing			 = true;
+
+		update_world_transforms(false);
 
 		if (_physics_world != nullptr)
-			_physics_world->tick(delta_time);
+		{
+			_physics_world->clear();
+			_physics_world->sync_body_create_destroy();
+		}
+	}
+
+	void world_t::end_play()
+	{
+		SFG_ASSERT(_is_playing);
+
+		if (_physics_world != nullptr)
+			_physics_world->clear();
+
+		resource_manager_t& resource_manager = resource_manager_t::get();
+		for (size_t i = _used_resources.size(); i > _play_resource_count; --i)
+		{
+			world_resource_t& resource = _used_resources[i - 1];
+			if (resource.loaded)
+				resource_manager.unload_resource(resource.handle, false);
+		}
+		_used_resources.resize(_play_resource_count);
+		_play_resource_count = 0;
+		_is_playing			 = false;
+	}
+
+	void world_t::clear_entities()
+	{
+		SFG_ASSERT(!_is_playing);
+
+		if (_physics_world != nullptr)
+			_physics_world->clear();
+
+		_debug_draw.begin_frame();
+		for (ecs_component_table_t& table : _component_tables)
+			ecs_t::table_clear(table);
+
+		_text_allocations.resize(0);
+		_text_allocation_free_list.resize(0);
+		_entity_free_list.resize(0);
+		_text_allocator.reset();
+		_entity_head = 0;
 	}
 
 	entity_guid_t world_t::generate_guid() const

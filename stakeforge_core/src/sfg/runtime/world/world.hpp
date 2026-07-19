@@ -45,7 +45,9 @@ namespace sfg
 
 		void init(const world_init_config_t& config);
 		void uninit();
-		void tick(f32 delta_time);
+		void begin_play();
+		void end_play();
+		void clear_entities();
 
 		// -----------------------------------------------------------------------------
 		// entity
@@ -183,7 +185,9 @@ namespace sfg
 		text_allocator_t				  _text_allocator;
 		engine_components_t				  _engine_components;
 		system_components_t				  _system_components;
-		entity_id_t						  _entity_head = 0;
+		entity_id_t						  _entity_head		   = 0;
+		u32								  _play_resource_count = 0;
+		bool							  _is_playing		   = false;
 	};
 
 }
