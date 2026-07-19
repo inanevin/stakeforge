@@ -647,6 +647,7 @@ namespace sfg
 	{
 		if (!_action_active)
 			return;
+
 		for (size_t i = 0; i < _entities.size(); ++i)
 		{
 			world.set_entity_pos_local(_entities[i], _initial_local_positions[i]);
@@ -654,6 +655,7 @@ namespace sfg
 			world.set_entity_scale_local(_entities[i], _initial_local_scales[i]);
 			world.mark_entity_teleported(_entities[i]);
 		}
+
 		world.update_world_transforms(false);
 		_hovered_axis = editor_gizmo_axis_e::invalid;
 		clear_action();

@@ -17,14 +17,15 @@
 
 namespace sfg
 {
-	namespace
+	engine_runtime_t& engine_runtime_t::get()
 	{
-		resource_file_system_t g_default_resource_file_system;
+		static engine_runtime_t s_instance;
+		return s_instance;
 	}
 
 	void engine_runtime_t::init_globals(size_t resource_manager_memory)
 	{
-		init_globals(g_default_resource_file_system, resource_manager_memory);
+		init_globals(_resource_file_system, resource_manager_memory);
 	}
 
 	void engine_runtime_t::init_globals(resource_file_system_t& resource_file_system, size_t resource_manager_memory)
@@ -49,7 +50,7 @@ namespace sfg
 		process::uninit();
 	}
 
-	bool engine_runtime_t::init_backend(const ui::glyph_atlas_config_t& glyph_atlas_config = {})
+	bool engine_runtime_t::init_backend(const ui::glyph_atlas_config_t& glyph_atlas_config)
 	{
 		if (!gfx_backend::get().init())
 			return false;

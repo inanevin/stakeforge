@@ -3,39 +3,29 @@
 #include "stakeforge_api.hpp"
 #include <sfg/runtime/engine/engine_runtime.hpp>
 
-#include <new>
-
 namespace
 {
-	sfg::engine_runtime_t* g_engine = nullptr;
+	bool g_engine_initialized = false;
 }
 
 sfg_api_result_t sfg_engine_init(void)
 {
-	if (g_engine != nullptr)
+	if (g_engine_initialized)
 		return sfg_api_result_engine_already_initialized;
 
-	sfg::engine_runtime_t* engine = new (std::nothrow) sfg::engine_runtime_t();
-	if (engine == nullptr)
+	if (!sfg::engine_runtime_t::get().init())
 		return sfg_api_result_engine_init_failed;
 
-	if (!engine->init())
-	{
-		delete engine;
-		return sfg_api_result_engine_init_failed;
-	}
-
-	g_engine = engine;
+	g_engine_initialized = true;
 	return sfg_api_result_success;
 }
 
 sfg_api_result_t sfg_engine_uninit(void)
 {
-	if (g_engine == nullptr)
+	if (!g_engine_initialized)
 		return sfg_api_result_engine_not_initialized;
 
-	g_engine->uninit();
-	delete g_engine;
-	g_engine = nullptr;
+	sfg::engine_runtime_t::get().uninit();
+	g_engine_initialized = false;
 	return sfg_api_result_success;
 }

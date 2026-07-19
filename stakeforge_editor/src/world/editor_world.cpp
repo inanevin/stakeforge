@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_camera_fly.hpp"
 #include "world/editor_world_camera_orbit.hpp"
 #include "world/editor_world_rendering.hpp"
-#include "editor_app.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/data/char_util.hpp>
 #include <sfg/data/frame_vector.hpp>
@@ -39,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
@@ -298,12 +298,13 @@ namespace sfg
 	{
 		consume_entity_pick_result();
 		_world.tick(dt_seconds);
-		_world.update_world_transforms(true);
+
 		if (_gizmo.is_action_active())
 		{
 			const vec4f_t& color = editor_theme_t::get().color_accent2;
 			_gizmo.draw_rotation_visualization(_world.get_debug_draw(), {color.x, color.y, color.z, color.w}, color_t::white, editor_theme_t::get().text_small_px_size * 1.5f);
 		}
+
 		const span_t<const entity_id_t> selected = _edit_context.get_selected_entities();
 		if (selected.size != 0)
 		{
@@ -363,6 +364,7 @@ namespace sfg
 				}
 			}
 		}
+
 		if (_edit_context.is_bounding_boxes_enabled() && _latest_snapshot_slot != UINT8_MAX)
 		{
 			const world_render_snapshot_t& snapshot		= _snapshot_slots[_latest_snapshot_slot];
@@ -400,7 +402,7 @@ namespace sfg
 	void editor_world_t::produce_snapshot()
 	{
 		world_render_snapshot_t& snapshot = _snapshot_slots[_producer_slot];
-		world_snapshot_producer_t::produce(_world, snapshot, editor_app_t::get().get_runtime().get_project_settings());
+		world_snapshot_producer_t::produce(_world, snapshot, engine_runtime_t::get().get_project_settings());
 
 		editor_world_snapshot_data_t&	data			= *static_cast<editor_world_snapshot_data_t*>(snapshot.user_data);
 		const span_t<const entity_id_t> selected		= _edit_context.get_selected_entities();

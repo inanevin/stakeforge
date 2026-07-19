@@ -35,7 +35,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/resources/resource_pack.hpp>
 #include <sfg/vendor/taskflow/core/declarations.hpp>
 #include <mutex>
@@ -75,11 +74,6 @@ namespace sfg
 		void set_text_subpixel_enabled(bool enabled);
 		void create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
 
-		inline engine_runtime_t& get_runtime()
-		{
-			return _runtime;
-		}
-
 		inline tf::Executor& get_editor_work_executor()
 		{
 			return *_editor_work_executor;
@@ -107,7 +101,6 @@ namespace sfg
 
 	private:
 		editor_renderer_t			_renderer;
-		engine_runtime_t			_runtime;
 		editor_world_controller_t	_world_controller;
 		editor_command_system_t		_command_system;
 		resource_pack_t				_editor_resource_pack;

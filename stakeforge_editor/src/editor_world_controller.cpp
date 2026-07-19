@@ -43,6 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "world/editor_world.hpp"
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/gfx/backend/backend.hpp>
@@ -97,7 +98,7 @@ namespace sfg
 		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		world_init_config_t		  world_config	   = init_config;
-		const project_settings_t& project_settings = editor_app_t::get().get_runtime().get_project_settings();
+		const project_settings_t& project_settings = engine_runtime_t::get().get_project_settings();
 		world_config.physics					   = project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps);
 
 		const editor_world_handle_t handle = _worlds.add();

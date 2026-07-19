@@ -43,6 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_splash_screen.hpp"
 #include "ui/widgets/editor_widget_world_view.hpp"
+#include <sfg/runtime/engine/engine_runtime.hpp>
 #include "ui/widgets/editor_widget_project_creator.hpp"
 #include "ui/widgets/editor_widget_window_frame.hpp"
 #include <sfg/common/hashing.hpp>
@@ -95,7 +96,7 @@ namespace sfg
 			editor_app_t& app						   = *static_cast<editor_app_t*>(user_data);
 			editor_settings_t::get().last_project_path = editor_project_t::get()._runtime.path;
 			editor_settings_t::get().save();
-			app.get_runtime().get_resource_file_system().set_mode_directory(editor_project_t::get()._runtime.path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
+			engine_runtime_t::get().get_resource_file_system().set_mode_directory(editor_project_t::get()._runtime.path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
 			app.request_switch_mode(editor_app_mode_e::splash);
 		}
 	}

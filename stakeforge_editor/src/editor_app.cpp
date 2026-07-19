@@ -76,24 +76,26 @@ namespace sfg
 
 	bool editor_app_t::init()
 	{
+		engine_runtime_t& runtime = engine_runtime_t::get();
+
 		editor_text_rasterization_t::set_subpixel_enabled(true);
 		editor_directories_t::init_paths();
 		if (!editor_settings_t::get().ensure_loaded())
 			return false;
 
 		/* engine globals, init backend & engine & editor managers */
-		engine_runtime_t::init_globals(_runtime.get_resource_file_system(), 64ull * 1024ull * 1024ull);
+		runtime.init_globals(64ull * 1024ull * 1024ull);
 
-		if (!engine_runtime_t::init_backend({}))
+		if (!runtime.init_backend({}))
 		{
-			engine_runtime_t::uninit_globals();
+			runtime.uninit_globals();
 			return false;
 		}
 
-		if (!_runtime.init())
+		if (!runtime.init())
 		{
-			engine_runtime_t::uninit_globals();
-			engine_runtime_t::uninit_backend();
+			runtime.uninit_globals();
+			runtime.uninit_backend();
 			return false;
 		}
 
@@ -101,7 +103,7 @@ namespace sfg
 
 		/* resources & renderers init */
 
-		_runtime.get_resource_file_system().set_mode_directory("", editor_directories_t::get_editor_resource_cache().c_str());
+		runtime.get_resource_file_system().set_mode_directory("", editor_directories_t::get_editor_resource_cache().c_str());
 
 		const resource_pack_t::init_params_t engine_pack_params{
 			.manifest_path = editor_directories_t::get_engine_manifest(),
@@ -111,9 +113,9 @@ namespace sfg
 		if (!_engine_resource_pack.init(resource_manager_t::get(), engine_pack_params))
 		{
 			_world_controller.uninit();
-			_runtime.uninit();
-			engine_runtime_t::uninit_globals();
-			engine_runtime_t::uninit_backend();
+			runtime.uninit();
+			runtime.uninit_globals();
+			runtime.uninit_backend();
 			return false;
 		}
 
@@ -126,9 +128,9 @@ namespace sfg
 		{
 			_engine_resource_pack.uninit();
 			_world_controller.uninit();
-			_runtime.uninit();
-			engine_runtime_t::uninit_globals();
-			engine_runtime_t::uninit_backend();
+			runtime.uninit();
+			runtime.uninit_globals();
+			runtime.uninit_backend();
 			return false;
 		}
 
@@ -139,9 +141,9 @@ namespace sfg
 			_editor_resource_pack.uninit();
 			_engine_resource_pack.uninit();
 			_world_controller.uninit();
-			_runtime.uninit();
-			engine_runtime_t::uninit_globals();
-			engine_runtime_t::uninit_backend();
+			runtime.uninit();
+			runtime.uninit_globals();
+			runtime.uninit_backend();
 			return false;
 		}
 		editor_surface_controller_t::get().init(_renderer, _payload_controller);
@@ -171,9 +173,9 @@ namespace sfg
 			_renderer.uninit();
 			_editor_resource_pack.uninit();
 			_engine_resource_pack.uninit();
-			_runtime.uninit();
-			engine_runtime_t::uninit_globals();
-			engine_runtime_t::uninit_backend();
+			runtime.uninit();
+			runtime.uninit_globals();
+			runtime.uninit_backend();
 			frame_allocator_tls_t::uninit();
 			return false;
 		}
@@ -186,6 +188,8 @@ namespace sfg
 
 	void editor_app_t::uninit()
 	{
+		engine_runtime_t& runtime = engine_runtime_t::get();
+
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
 		SFG_ASSERT(surfaces.is_empty());
 
@@ -200,9 +204,9 @@ namespace sfg
 			uninit_normal_mode();
 		_editor_work_executor.reset();
 		surfaces.uninit();
-		_runtime.uninit();
-		engine_runtime_t::uninit_globals();
-		engine_runtime_t::uninit_backend();
+		runtime.uninit();
+		runtime.uninit_globals();
+		runtime.uninit_backend();
 		frame_allocator_tls_t::uninit();
 		_mode = editor_app_mode_e::none;
 	}
@@ -358,7 +362,7 @@ namespace sfg
 			if (mode == editor_app_mode_e::splash)
 			{
 				editor_project_t& proj = editor_project_t::get();
-				_runtime.get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
+				engine_runtime_t::get().get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
 				_splash_progress.store(0.0f, std::memory_order_release);
 				{
 					std::lock_guard<std::mutex> lock(_splash_progress_text_mutex);
@@ -444,7 +448,7 @@ namespace sfg
 			if (_mode == editor_app_mode_e::normal)
 			{
 				ZoneScopedN("world_controller_tick");
-				const project_settings_t& settings = _runtime.get_project_settings();
+				const project_settings_t& settings = engine_runtime_t::get().get_project_settings();
 				_world_controller.tick(settings.world_tick_rate, settings.world_physics_rate, settings.max_sim_steps);
 			}
 

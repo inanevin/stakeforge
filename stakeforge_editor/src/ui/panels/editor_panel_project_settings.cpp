@@ -51,7 +51,7 @@ namespace sfg
 		root_in.child_spacing	 = 0.0f;
 		root_in.child_margins	 = {theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
 
-		void* object = &editor_project_t::get();
+		void* object = &editor_project_t::get().settings;
 		_reflection.init(ui,
 						 _root,
 						 {
@@ -63,7 +63,7 @@ namespace sfg
 									 .user_data		 = this,
 								 },
 							 .objects = {.data = &object, .size = 1},
-							 .type_id = type_id_t<editor_project_t>::value,
+							 .type_id = type_id_t<editor_project_settings_data_t>::value,
 						 });
 		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
 	}
@@ -89,7 +89,7 @@ namespace sfg
 			return;
 		}
 
-		void* object = &editor_project_t::get();
+		void* object = &editor_project_t::get().settings;
 		_reflection.set_reflection({
 			.fold_states = &_field_states,
 			.callbacks =
@@ -99,7 +99,7 @@ namespace sfg
 					.user_data		= this,
 				},
 			.objects = {.data = &object, .size = 1},
-			.type_id = type_id_t<editor_project_t>::value,
+			.type_id = type_id_t<editor_project_settings_data_t>::value,
 		});
 	}
 
@@ -136,8 +136,9 @@ namespace sfg
 			return;
 
 		const editor_project_settings_data_t previous = _project_edit_previous;
-		const editor_project_settings_data_t post	  = editor_command_project_settings_t::read();
-		_project_edit_active						  = false;
+		editor_project_t::get().settings.project_settings.normalize(&previous.project_settings);
+		const editor_project_settings_data_t post = editor_command_project_settings_t::read();
+		_project_edit_active					  = false;
 		if (previous == post)
 			return;
 

@@ -25,9 +25,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_project.hpp"
-#include "editor_app.hpp"
 #include <sfg/io/file_system.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -69,7 +69,7 @@ namespace sfg
 		*this = project;
 		settings.project_settings.normalize();
 		refresh_runtime(path);
-		editor_app_t::get().get_runtime().update_project_settings(settings.project_settings);
+		engine_runtime_t::get().update_project_settings(settings.project_settings);
 		return true;
 	}
 
