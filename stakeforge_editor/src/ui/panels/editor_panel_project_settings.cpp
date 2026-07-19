@@ -90,6 +90,8 @@ namespace sfg
 		}
 
 		void* object = &editor_project_t::get().settings;
+		_reflection.save_fold_states();
+
 		_reflection.set_reflection({
 			.fold_states = &_field_states,
 			.callbacks =
