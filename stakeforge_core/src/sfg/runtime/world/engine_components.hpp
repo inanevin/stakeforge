@@ -34,10 +34,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec3f.hpp>
+#include <sfg/runtime/physics/physics_types.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
-
-#include <cstddef>
 
 namespace sfg
 {
@@ -204,6 +203,78 @@ namespace sfg
 	};
 
 	SFG_DEFINE_TYPE_ID(component_prefab_reference_t);
+
+	struct component_entity_tags_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_entity_tags";
+
+		u64 tags = 0;
+
+		bool operator==(const component_entity_tags_t&) const = default;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_entity_tags_t);
+
+	struct component_collider_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_collider";
+
+		vec3f_t				 local_position	   = vec3f_t::zero;
+		quat_t				 local_rotation	   = quat_t::identity;
+		vec3f_t				 half_extent	   = {0.5f, 0.5f, 0.5f};
+		resource_handle_t	 physical_material = NULL_RESOURCE_HANDLE;
+		f32					 radius			   = 0.5f;
+		f32					 half_height	   = 0.5f;
+		physics_shape_type_e shape			   = physics_shape_type_e::box;
+		u8					 collision_layer   = 0;
+		u8					 is_sensor		   = 0;
+
+		bool operator==(const component_collider_t&) const = default;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_collider_t);
+
+	struct component_rigid_body_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_rigid_body";
+
+		f32					  mass						= 1.0f;
+		f32					  gravity_factor			= 1.0f;
+		f32					  linear_damping			= 0.05f;
+		f32					  angular_damping			= 0.05f;
+		physics_motion_type_e motion_type				= physics_motion_type_e::dynamic_body;
+		u8					  motion_quality_continuous = 0;
+		u8					  allow_sleep				= 1;
+
+		bool operator==(const component_rigid_body_t&) const = default;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_rigid_body_t);
+
+	struct component_character_mover_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_character_mover";
+
+		vec3f_t shape_offset				   = vec3f_t::zero;
+		f32		radius						   = 0.4f;
+		f32		half_height					   = 0.9f;
+		f32		max_slope_degrees			   = 50.0f;
+		f32		step_up						   = 0.4f;
+		f32		step_down					   = 0.5f;
+		f32		min_step_forward			   = 0.02f;
+		f32		step_forward_test			   = 0.15f;
+		f32		mass						   = 70.0f;
+		f32		max_strength				   = 100.0f;
+		f32		padding						   = 0.02f;
+		f32		predictive_contact_distance	   = 0.1f;
+		f32		penetration_recovery_speed	   = 1.0f;
+		u8		collision_layer				   = 0;
+		u8		enhanced_internal_edge_removal = 0;
+
+		bool operator==(const component_character_mover_t&) const = default;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_character_mover_t);
 
 	enum class debug_widgets_enum : u8
 	{

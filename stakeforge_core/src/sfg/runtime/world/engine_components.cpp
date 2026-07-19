@@ -511,6 +511,189 @@ namespace sfg
 			});
 		}
 
+		void register_component_entity_tags_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name			 = "component_entity_tags",
+				.display_name	 = "Tags",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_entity_tags_t*>(ptr), component_entity_tags_t{}); },
+				.fields			 = {{.name = "tags", .display_name = "Tags", .sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_ENTITY_TAG_MASK, .offset = offsetof(component_entity_tags_t, tags), .size = sizeof(u64), .type = reflected_value_type_e::u64}},
+				.type_id		 = type_id_t<component_entity_tags_t>::value,
+				.size			 = sizeof(component_entity_tags_t),
+				.alignment		 = alignof(component_entity_tags_t),
+				.flags			 = reflected_type_flag_component,
+			});
+		}
+
+		void register_physics_component_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name		  = "physics_shape_type_e",
+				.display_name = "Physics Shape",
+				.fields		  = {{.name = "box", .display_name = "Box"}, {.name = "sphere", .display_name = "Sphere"}, {.name = "capsule", .display_name = "Capsule"}, {.name = "cylinder", .display_name = "Cylinder"}},
+				.type_id	  = type_id_t<physics_shape_type_e>::value,
+				.size		  = sizeof(physics_shape_type_e),
+				.alignment	  = alignof(physics_shape_type_e),
+				.flags		  = reflected_type_flag_enum,
+			});
+
+			registry.register_type({
+				.name		  = "physics_motion_type_e",
+				.display_name = "Physics Motion",
+				.fields		  = {{.name = "static_body", .display_name = "Static"}, {.name = "kinematic_body", .display_name = "Kinematic"}, {.name = "dynamic_body", .display_name = "Dynamic"}},
+				.type_id	  = type_id_t<physics_motion_type_e>::value,
+				.size		  = sizeof(physics_motion_type_e),
+				.alignment	  = alignof(physics_motion_type_e),
+				.flags		  = reflected_type_flag_enum,
+			});
+
+			registry.register_type({
+				.name			 = "component_collider",
+				.display_name	 = "Collider",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_collider_t*>(ptr), component_collider_t{}); },
+				.fields =
+					{
+						{.name = "shape", .display_name = "Shape", .sub_type_id = type_id_t<physics_shape_type_e>::value, .offset = offsetof(component_collider_t, shape), .size = sizeof(physics_shape_type_e), .type = reflected_value_type_e::u8},
+						{.name = "local_position", .display_name = "Local Position", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(component_collider_t, local_position), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
+						{.name = "local_rotation", .display_name = "Local Rotation", .sub_type_id = type_id_t<quat_t>::value, .offset = offsetof(component_collider_t, local_rotation), .size = sizeof(quat_t), .type = reflected_value_type_e::object},
+						{.ui_definition = {.dependency_field = "shape"_hs, .dependency_value = static_cast<u32>(physics_shape_type_e::box), .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+						 .name			= "half_extent",
+						 .display_name	= "Half Extent",
+						 .sub_type_id	= type_id_t<vec3f_t>::value,
+						 .offset		= offsetof(component_collider_t, half_extent),
+						 .size			= sizeof(vec3f_t),
+						 .type			= reflected_value_type_e::object},
+						{.ui_definition = {.dependency_field = "shape"_hs, .dependency_value = static_cast<u32>(physics_shape_type_e::box), .dependency_type = reflected_field_dependency_type_e::show_if_not_equal},
+						 .name			= "radius",
+						 .display_name	= "Radius",
+						 .offset		= offsetof(component_collider_t, radius),
+						 .size			= sizeof(f32),
+						 .flags			= reflected_field_flag_clamped,
+						 .min_clamp		= 0.001f,
+						 .max_clamp		= 10000.0f,
+						 .type			= reflected_value_type_e::f32},
+						{.name		   = "half_height",
+						 .display_name = "Half Height",
+						 .offset	   = offsetof(component_collider_t, half_height),
+						 .size		   = sizeof(f32),
+						 .flags		   = reflected_field_flag_clamped,
+						 .min_clamp	   = 0.001f,
+						 .max_clamp	   = 10000.0f,
+						 .type		   = reflected_value_type_e::f32},
+						{.name		   = "physical_material",
+						 .display_name = "Physical Material",
+						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICAL_MATERIAL,
+						 .offset	   = offsetof(component_collider_t, physical_material),
+						 .size		   = sizeof(resource_handle_t),
+						 .type		   = reflected_value_type_e::u64},
+						{.name		   = "collision_layer",
+						 .display_name = "Collision Layer",
+						 .sub_type_id  = REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER,
+						 .offset	   = offsetof(component_collider_t, collision_layer),
+						 .size		   = sizeof(u8),
+						 .type		   = reflected_value_type_e::u8},
+						{.name = "is_sensor", .display_name = "Sensor", .offset = offsetof(component_collider_t, is_sensor), .size = sizeof(u8), .type = reflected_value_type_e::boolean},
+					},
+				.type_id   = type_id_t<component_collider_t>::value,
+				.size	   = sizeof(component_collider_t),
+				.alignment = alignof(component_collider_t),
+				.flags	   = reflected_type_flag_component,
+			});
+
+			registry.register_type({
+				.name			 = "component_rigid_body",
+				.display_name	 = "Rigid Body",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_rigid_body_t*>(ptr), component_rigid_body_t{}); },
+				.fields =
+					{
+						{.name		   = "motion_type",
+						 .display_name = "Motion Type",
+						 .sub_type_id  = type_id_t<physics_motion_type_e>::value,
+						 .offset	   = offsetof(component_rigid_body_t, motion_type),
+						 .size		   = sizeof(physics_motion_type_e),
+						 .type		   = reflected_value_type_e::u8},
+						{.name = "mass", .display_name = "Mass", .offset = offsetof(component_rigid_body_t, mass), .size = sizeof(f32), .flags = reflected_field_flag_clamped, .min_clamp = 0.001f, .max_clamp = 1000000.0f, .type = reflected_value_type_e::f32},
+						{.name = "gravity_factor", .display_name = "Gravity Factor", .offset = offsetof(component_rigid_body_t, gravity_factor), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name		   = "linear_damping",
+						 .display_name = "Linear Damping",
+						 .offset	   = offsetof(component_rigid_body_t, linear_damping),
+						 .size		   = sizeof(f32),
+						 .flags		   = reflected_field_flag_clamped,
+						 .min_clamp	   = 0.0f,
+						 .max_clamp	   = 1.0f,
+						 .type		   = reflected_value_type_e::f32},
+						{.name		   = "angular_damping",
+						 .display_name = "Angular Damping",
+						 .offset	   = offsetof(component_rigid_body_t, angular_damping),
+						 .size		   = sizeof(f32),
+						 .flags		   = reflected_field_flag_clamped,
+						 .min_clamp	   = 0.0f,
+						 .max_clamp	   = 1.0f,
+						 .type		   = reflected_value_type_e::f32},
+						{.name = "motion_quality_continuous", .display_name = "Continuous Collision", .offset = offsetof(component_rigid_body_t, motion_quality_continuous), .size = sizeof(u8), .type = reflected_value_type_e::boolean},
+						{.name = "allow_sleep", .display_name = "Allow Sleep", .offset = offsetof(component_rigid_body_t, allow_sleep), .size = sizeof(u8), .type = reflected_value_type_e::boolean},
+					},
+				.type_id   = type_id_t<component_rigid_body_t>::value,
+				.size	   = sizeof(component_rigid_body_t),
+				.alignment = alignof(component_rigid_body_t),
+				.flags	   = reflected_type_flag_component,
+			});
+
+			registry.register_type({
+				.name			 = "component_character_mover",
+				.display_name	 = "Character Mover",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_character_mover_t*>(ptr), component_character_mover_t{}); },
+				.fields =
+					{
+						{.name = "shape_offset", .display_name = "Shape Offset", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(component_character_mover_t, shape_offset), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
+						{.name		   = "radius",
+						 .display_name = "Radius",
+						 .offset	   = offsetof(component_character_mover_t, radius),
+						 .size		   = sizeof(f32),
+						 .flags		   = reflected_field_flag_clamped,
+						 .min_clamp	   = 0.001f,
+						 .max_clamp	   = 1000.0f,
+						 .type		   = reflected_value_type_e::f32},
+						{.name		   = "half_height",
+						 .display_name = "Half Height",
+						 .offset	   = offsetof(component_character_mover_t, half_height),
+						 .size		   = sizeof(f32),
+						 .flags		   = reflected_field_flag_clamped,
+						 .min_clamp	   = 0.001f,
+						 .max_clamp	   = 1000.0f,
+						 .type		   = reflected_value_type_e::f32},
+						{.name		   = "max_slope_degrees",
+						 .display_name = "Maximum Slope",
+						 .offset	   = offsetof(component_character_mover_t, max_slope_degrees),
+						 .size		   = sizeof(f32),
+						 .flags		   = reflected_field_flag_clamped,
+						 .min_clamp	   = 0.0f,
+						 .max_clamp	   = 89.0f,
+						 .type		   = reflected_value_type_e::f32},
+						{.name = "step_up", .display_name = "Step Up", .offset = offsetof(component_character_mover_t, step_up), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "step_down", .display_name = "Step Down", .offset = offsetof(component_character_mover_t, step_down), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "min_step_forward", .display_name = "Minimum Step Forward", .offset = offsetof(component_character_mover_t, min_step_forward), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "step_forward_test", .display_name = "Step Forward Test", .offset = offsetof(component_character_mover_t, step_forward_test), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "mass", .display_name = "Mass", .offset = offsetof(component_character_mover_t, mass), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "max_strength", .display_name = "Maximum Strength", .offset = offsetof(component_character_mover_t, max_strength), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "padding", .display_name = "Padding", .offset = offsetof(component_character_mover_t, padding), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "predictive_contact_distance", .display_name = "Predictive Contact Distance", .offset = offsetof(component_character_mover_t, predictive_contact_distance), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name = "penetration_recovery_speed", .display_name = "Penetration Recovery Speed", .offset = offsetof(component_character_mover_t, penetration_recovery_speed), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name		   = "collision_layer",
+						 .display_name = "Collision Layer",
+						 .sub_type_id  = REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER,
+						 .offset	   = offsetof(component_character_mover_t, collision_layer),
+						 .size		   = sizeof(u8),
+						 .type		   = reflected_value_type_e::u8},
+						{.name = "enhanced_internal_edge_removal", .display_name = "Enhanced Internal Edge Removal", .offset = offsetof(component_character_mover_t, enhanced_internal_edge_removal), .size = sizeof(u8), .type = reflected_value_type_e::boolean},
+					},
+				.type_id   = type_id_t<component_character_mover_t>::value,
+				.size	   = sizeof(component_character_mover_t),
+				.alignment = alignof(component_character_mover_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
 		void register_debug_widgets_enum_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -817,6 +1000,8 @@ namespace sfg
 		register_component_post_process_reflection(registry);
 		register_component_skybox_reflection(registry);
 		register_component_prefab_reference_reflection(registry);
+		register_component_entity_tags_reflection(registry);
+		register_physics_component_reflection(registry);
 		register_debug_widgets_enum_reflection(registry);
 		register_debug_struct_reflection(registry);
 		register_component_debug_widgets_reflection(registry);
