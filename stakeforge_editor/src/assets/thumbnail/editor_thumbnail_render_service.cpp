@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/thumbnail/editor_thumbnail_render_service.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/thumbnail/editor_asset_thumbnailer.hpp"
-#include "editor_app.hpp"
 
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/barrier_description.hpp>
@@ -38,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/math/math.hpp>
+#include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
@@ -553,7 +553,7 @@ namespace sfg
 	void editor_thumbnail_render_service_t::produce_snapshot(thumbnail_world_t& thumbnail_world)
 	{
 		thumbnail_world.world->update_world_transforms(false);
-		world_snapshot_producer_t::produce(*thumbnail_world.world, _snapshot, editor_app_t::get().get_runtime().get_project_settings());
+		world_snapshot_producer_t::produce(*thumbnail_world.world, _snapshot, engine_runtime_t::get().get_project_settings());
 	}
 
 	void editor_thumbnail_render_service_t::render_world()
