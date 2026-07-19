@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "ui/panels/editor_panel_world.hpp"
+#include "editor_world_controller.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/io/assert.hpp>
 
@@ -41,6 +42,11 @@ namespace sfg
 	{
 		editor_panel_t::init(ui, parent);
 		_world_view.init(ui, _root);
+
+		editor_world_controller_t& worlds = editor_world_controller_t::get();
+		_world_view.set_edit_world(worlds.get_main_world_handle());
+		set_panel_name(worlds.get_main_world_handle().is_null() ? "" : worlds.get_main_world_name());
+		set_world_dirty(worlds.is_main_world_dirty());
 	}
 
 	void editor_panel_world_t::uninit()

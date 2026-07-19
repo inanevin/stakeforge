@@ -89,11 +89,14 @@ namespace sfg
 		_texture_sampler_editor.init(ui, _content);
 		_physical_material_editor.init(ui, _content);
 		_texture_viewer.init(ui, _content);
+		set_edit_world(editor_world_controller_t::get().get_main_world_handle());
 		refresh_from_available_selection(editor_panel_inspector_source_e::none);
 	}
 
 	void editor_panel_inspector_t::uninit()
 	{
+		save_entity_scroll_state();
+
 		if (!_command_listener.is_null())
 			editor_command_system_t::get().remove_listener(_command_listener);
 		if (!_selection_listener.is_null())
@@ -106,7 +109,6 @@ namespace sfg
 		_scrollbar.uninit();
 		_ui->deallocate_widget(_content);
 		_ui->deallocate_widget(_scroll_area);
-		_entity_scroll_states.resize(0);
 		_display_entities.resize(0);
 		_material_ids.resize(0);
 		_texture_sampler_ids.resize(0);
@@ -119,7 +121,6 @@ namespace sfg
 		_content				= NULL_WIDGET;
 		_pending_scroll_y		= 0.0f;
 		_display				= editor_panel_inspector_display_e::none;
-		_last_source			= editor_panel_inspector_source_e::none;
 		_scroll_restore_pending = false;
 		editor_panel_t::uninit();
 	}
@@ -193,10 +194,7 @@ namespace sfg
 
 	void editor_panel_inspector_t::set_edit_world(editor_world_handle_t world)
 	{
-		if (_edit_world == world)
-			return;
-
-		if (!_selection_listener.is_null())
+		if (_edit_world != world && !_selection_listener.is_null())
 		{
 			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
 			_selection_listener = {};
@@ -204,9 +202,8 @@ namespace sfg
 
 		_edit_world = world;
 		_entity_inspector.set_edit_world(world);
-		if (!_edit_world.is_null())
+		if (!_edit_world.is_null() && _selection_listener.is_null())
 			_selection_listener = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().add_selection_listener(on_entity_selection_changed, this);
-		refresh_from_available_selection(editor_panel_inspector_source_e::none);
 	}
 
 	void editor_panel_inspector_t::on_asset_selection_changed()
