@@ -62,7 +62,7 @@ namespace sfg
 {
 	namespace
 	{
-#define PHYSICS_OBJECT_LAYER_MOVING_BIT 64
+#define PHYSICS_OBJECT_LAYER_MOVING_BIT (1 << 6)
 #define PHYSICS_BROAD_PHASE_STATIC		0
 #define PHYSICS_BROAD_PHASE_MOVING		1
 
@@ -310,6 +310,26 @@ namespace sfg
 				count++;
 			}
 		};
+
+		world_t*										 _world			 = nullptr;
+		JPH::PhysicsSystem*								 _system		 = nullptr;
+		JPH::TempAllocatorImpl*							 _temp_allocator = nullptr;
+		physics_runtime_config_t						 _config		 = {};
+		physics_broad_phase_interface_t					 _broad_phase_interface;
+		physics_object_broad_phase_filter_t				 _object_broad_phase_filter;
+		physics_layer_pair_filter_t						 _layer_pair_filter;
+		contact_listener_t								 _contact_listener;
+		moodycamel::ConcurrentQueue<raw_contact_event_t> _raw_contact_events;
+		vector_t<body_proxy_t>							 _bodies;
+		vector_t<u32>									 _body_free_list;
+		vector_t<u64>									 _body_index_to_handle;
+		vector_t<u32>									 _entity_to_proxy;
+		vector_t<character_proxy_t>						 _characters;
+		vector_t<u32>									 _character_free_list;
+		vector_t<u32>									 _entity_to_character;
+		vector_t<physics_contact_event_t>				 _contact_events;
+		f32												 _accumulator		 = 0.0f;
+		bool											 _simulation_enabled = false;
 
 		impl_t() : _raw_contact_events(4096)
 		{
@@ -1039,27 +1059,7 @@ namespace sfg
 
 			return {.hit_count = collector.count, .overflow = collector.overflow};
 		}
-
-		world_t*										 _world			 = nullptr;
-		JPH::PhysicsSystem*								 _system		 = nullptr;
-		JPH::TempAllocatorImpl*							 _temp_allocator = nullptr;
-		physics_runtime_config_t						 _config		 = {};
-		physics_broad_phase_interface_t					 _broad_phase_interface;
-		physics_object_broad_phase_filter_t				 _object_broad_phase_filter;
-		physics_layer_pair_filter_t						 _layer_pair_filter;
-		contact_listener_t								 _contact_listener;
-		moodycamel::ConcurrentQueue<raw_contact_event_t> _raw_contact_events;
-		vector_t<body_proxy_t>							 _bodies;
-		vector_t<u32>									 _body_free_list;
-		vector_t<u64>									 _body_index_to_handle;
-		vector_t<u32>									 _entity_to_proxy;
-		vector_t<character_proxy_t>						 _characters;
-		vector_t<u32>									 _character_free_list;
-		vector_t<u32>									 _entity_to_character;
-		vector_t<physics_contact_event_t>				 _contact_events;
-		f32												 _accumulator		 = 0.0f;
-		bool											 _simulation_enabled = false;
-	};
+	}
 
 	physics_world_t::physics_world_t()	= default;
 	physics_world_t::~physics_world_t() = default;

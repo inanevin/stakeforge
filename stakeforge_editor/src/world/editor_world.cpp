@@ -400,7 +400,7 @@ namespace sfg
 	void editor_world_t::produce_snapshot()
 	{
 		world_render_snapshot_t& snapshot = _snapshot_slots[_producer_slot];
-		world_snapshot_producer_t::produce(_world, snapshot, editor_app_t::get().get_runtime().get_settings());
+		world_snapshot_producer_t::produce(_world, snapshot, editor_app_t::get().get_runtime().get_project_settings());
 
 		editor_world_snapshot_data_t&	data			= *static_cast<editor_world_snapshot_data_t*>(snapshot.user_data);
 		const span_t<const entity_id_t> selected		= _edit_context.get_selected_entities();

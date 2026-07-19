@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/runtime/physics/physics_world.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/prefab.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
@@ -76,10 +77,24 @@ namespace sfg
 		_engine_components.alive_table	   = &get_component_table(type_id_t<component_alive_t>::value);
 		_engine_components.prefab_table	   = &get_component_table(type_id_t<component_prefab_reference_t>::value);
 		_system_components.transform_table = &get_component_table(type_id_t<component_system_transform_t>::value);
+
+		if (config.physics_enabled)
+		{
+			_physics_world = new physics_world_t();
+			_physics_world->init(*this, config.physics);
+			_physics_world->set_simulation_enabled(config.physics_simulation_enabled);
+		}
 	}
 
 	void world_t::uninit()
 	{
+		if (_physics_world != nullptr)
+		{
+			_physics_world->uninit();
+			delete _physics_world;
+			_physics_world = nullptr;
+		}
+
 		_debug_draw.uninit();
 		for (ecs_component_table_t& table : _component_tables)
 			ecs_t::table_uninit(table);
@@ -95,9 +110,12 @@ namespace sfg
 		_entity_head	   = 0;
 	}
 
-	void world_t::tick(f32)
+	void world_t::tick(f32 delta_time)
 	{
 		_debug_draw.begin_frame();
+
+		if (_physics_world != nullptr)
+			_physics_world->tick(delta_time);
 	}
 
 	entity_guid_t world_t::generate_guid() const

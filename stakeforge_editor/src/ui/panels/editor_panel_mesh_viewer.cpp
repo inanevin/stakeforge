@@ -177,6 +177,7 @@ namespace sfg
 			.free_list_reserve		 = 128,
 			.used_resource_reserve	 = 64,
 			.text_allocation_reserve = 256,
+			.physics_enabled		 = false,
 		};
 
 		editor_world_controller_t& controller = editor_world_controller_t::get();

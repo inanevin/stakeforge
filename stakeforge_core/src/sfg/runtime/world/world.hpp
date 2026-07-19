@@ -16,6 +16,7 @@ namespace sfg
 {
 	class mat4x3_t;
 	class istream_t;
+	class physics_world_t;
 	struct world_init_config_t;
 	struct component_hierarchy_t;
 	struct prefab_internals_t;
@@ -130,6 +131,21 @@ namespace sfg
 			return _debug_draw;
 		}
 
+		inline physics_world_t& get_physics()
+		{
+			return *_physics_world;
+		}
+
+		inline const physics_world_t& get_physics() const
+		{
+			return *_physics_world;
+		}
+
+		inline bool is_physics_enabled() const
+		{
+			return _physics_world != nullptr;
+		}
+
 	private:
 		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
@@ -162,6 +178,7 @@ namespace sfg
 		vector_t<entity_id_t>			  _entity_free_list;
 		vector_t<world_resource_t>		  _used_resources;
 		world_debug_draw_t				  _debug_draw;
+		physics_world_t*				  _physics_world = nullptr;
 		text_allocator_t				  _text_allocator;
 		engine_components_t				  _engine_components;
 		system_components_t				  _system_components;

@@ -26,23 +26,19 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "editor_project.hpp"
+
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/runtime/engine/engine_runtime_settings.hpp>
+#include <sfg/memory/chunk_allocator.hpp>
 
 namespace sfg
 {
-	struct editor_project_settings_data_t
-	{
-		engine_runtime_settings_t runtime_settings = {};
-		sid_t					  last_world_guid  = NULL_SID;
-
-		bool operator==(const editor_project_settings_data_t&) const = default;
-	};
-
 	struct editor_command_edit_project_settings_payload_t
 	{
-		editor_project_settings_data_t previous = {};
-		editor_project_settings_data_t post		= {};
+		chunk_handle32_t previous_project_settings = {};
+		chunk_handle32_t post_project_settings	   = {};
+		sid_t			 previous_last_world_guid  = NULL_SID;
+		sid_t			 post_last_world_guid	   = NULL_SID;
 	};
 
 	class editor_command_project_settings_t final

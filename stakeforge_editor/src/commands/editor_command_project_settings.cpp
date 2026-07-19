@@ -28,12 +28,36 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include "editor_project.hpp"
 #include "editor_app.hpp"
+#include "editor_world_controller.hpp"
 #include <sfg/io/log.hpp>
+#include <sfg/memory/memory.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
 	namespace
 	{
+		chunk_handle32_t copy_project_settings_to_aux(editor_command_system_t& system, const project_settings_t& settings)
+		{
+			nlohmann::json json = nlohmann::json::object();
+			reflection_registry_t::get().type_to_json(type_id_t<project_settings_t>::value, const_cast<project_settings_t*>(&settings), nullptr, json);
+			const string_t		   text	  = json.dump();
+			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(text.size(), alignof(char));
+			SFG_MEMCPY(system.get_aux_data().get<char>(handle), text.data(), text.size());
+			return handle;
+		}
+
+		bool read_project_settings_from_aux(editor_command_system_t& system, chunk_handle32_t handle, project_settings_t& settings)
+		{
+			const char*			 text = system.get_aux_data().get<char>(handle);
+			const nlohmann::json json = nlohmann::json::parse(text, text + handle.size, nullptr, false);
+			if (json.is_discarded())
+				return false;
+
+			return reflection_registry_t::get().type_from_json(type_id_t<project_settings_t>::value, &settings, nullptr, json);
+		}
+
 		bool apply_and_save_project_settings(const editor_project_settings_data_t& settings)
 		{
 			editor_command_project_settings_t::apply(settings);
@@ -43,31 +67,49 @@ namespace sfg
 		bool project_settings_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			const editor_command_edit_project_settings_payload_t& payload = system.get_payload_as<editor_command_edit_project_settings_payload_t>(command);
-			return apply_and_save_project_settings(payload.previous);
+			editor_project_settings_data_t						  settings{
+				.last_world_guid = payload.previous_last_world_guid,
+			};
+			if (!read_project_settings_from_aux(system, payload.previous_project_settings, settings.project_settings))
+				return false;
+			return apply_and_save_project_settings(settings);
 		}
 
 		bool project_settings_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			const editor_command_edit_project_settings_payload_t& payload = system.get_payload_as<editor_command_edit_project_settings_payload_t>(command);
-			return apply_and_save_project_settings(payload.post);
+			editor_project_settings_data_t						  settings{
+				.last_world_guid = payload.post_last_world_guid,
+			};
+			if (!read_project_settings_from_aux(system, payload.post_project_settings, settings.project_settings))
+				return false;
+			return apply_and_save_project_settings(settings);
+		}
+
+		bool project_settings_cleanup(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_edit_project_settings_payload_t& payload = system.get_payload_as<editor_command_edit_project_settings_payload_t>(command);
+			system.get_aux_data().free(payload.previous_project_settings);
+			system.get_aux_data().free(payload.post_project_settings);
+			payload.previous_project_settings = {};
+			payload.post_project_settings	  = {};
+			return true;
 		}
 	}
 
 	editor_project_settings_data_t editor_command_project_settings_t::read()
 	{
-		const editor_project_t& project = editor_project_t::get();
-		return {
-			.runtime_settings = project.runtime_settings,
-			.last_world_guid  = project.last_world_guid,
-		};
+		return editor_project_t::get().settings;
 	}
 
 	void editor_command_project_settings_t::apply(const editor_project_settings_data_t& settings)
 	{
 		editor_project_t& project = editor_project_t::get();
-		project.runtime_settings  = settings.runtime_settings;
-		project.last_world_guid	  = settings.last_world_guid;
-		editor_app_t::get().get_runtime().update_settings(settings.runtime_settings);
+		project.settings		  = settings;
+		project.settings.project_settings.normalize();
+		editor_app_t::get().get_runtime().update_project_settings(project.settings.project_settings);
+		const physics_runtime_config_t physics_config = project.settings.project_settings.physics.make_runtime_config(project.settings.project_settings.world_physics_rate, project.settings.project_settings.max_sim_steps);
+		editor_world_controller_t::get().update_physics_settings(physics_config.collision_masks, physics_config.active_collision_layers, physics_config.physics_rate, physics_config.max_sub_steps);
 	}
 
 	bool editor_command_project_settings_t::edit(const editor_project_settings_data_t& previous, const editor_project_settings_data_t& post)
@@ -75,21 +117,27 @@ namespace sfg
 		if (previous == post)
 			return true;
 
-		const editor_command_edit_project_settings_payload_t payload{
-			.previous = previous,
-			.post	  = post,
+		editor_command_system_t&					   system = editor_command_system_t::get();
+		editor_command_edit_project_settings_payload_t payload{
+			.previous_project_settings = copy_project_settings_to_aux(system, previous.project_settings),
+			.post_project_settings	   = copy_project_settings_to_aux(system, post.project_settings),
+			.previous_last_world_guid  = previous.last_world_guid,
+			.post_last_world_guid	   = post.last_world_guid,
 		};
 
 		const editor_command_issue_desc_t desc{
 			.undo		= project_settings_undo,
 			.redo		= project_settings_redo,
+			.cleanup	= project_settings_cleanup,
 			.debug_name = "Edit Project Settings",
 			.type		= editor_command_type_e::project_settings_edit,
 		};
 
-		const editor_command_handle_t handle = editor_command_system_t::get().issue_command(desc, payload);
+		const editor_command_handle_t handle = system.issue_command(desc, payload);
 		if (handle.is_null())
 		{
+			system.get_aux_data().free(payload.previous_project_settings);
+			system.get_aux_data().free(payload.post_project_settings);
 			SFG_ERR("failed to issue project settings edit command");
 			return false;
 		}

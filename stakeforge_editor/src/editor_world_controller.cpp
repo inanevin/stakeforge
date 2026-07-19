@@ -51,6 +51,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/platform/time.hpp>
 #include <sfg/platform/process.hpp>
+#include <sfg/runtime/physics/physics_world.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
@@ -95,11 +96,14 @@ namespace sfg
 	{
 		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+		world_init_config_t		  world_config	   = init_config;
+		const project_settings_t& project_settings = editor_app_t::get().get_runtime().get_project_settings();
+		world_config.physics					   = project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps);
 
 		const editor_world_handle_t handle = _worlds.add();
 		_worlds.get(handle)				   = new editor_world_t();
 		editor_world_t* const editor_world = _worlds.get(handle);
-		editor_world->init(init_config, handle);
+		editor_world->init(world_config, handle);
 
 		return handle;
 	}
@@ -253,6 +257,20 @@ namespace sfg
 		}
 	}
 
+	void editor_world_controller_t::update_physics_settings(const u64* collision_masks, u64 active_layers, u32 physics_rate, u32 max_sub_steps)
+	{
+		for (editor_world_t* editor_world : _worlds)
+		{
+			world_t& world = editor_world->get_world();
+			if (!world.is_physics_enabled())
+				continue;
+
+			physics_world_t& physics = world.get_physics();
+			physics.update_collision_masks(collision_masks, active_layers);
+			physics.update_step_settings(physics_rate, max_sub_steps);
+		}
+	}
+
 	void editor_world_controller_t::install_default_world(editor_world_handle_t handle)
 	{
 		editor_world_t* const editor_world = _worlds.get(handle);
@@ -309,6 +327,7 @@ namespace sfg
 			.free_list_reserve		 = 1024,
 			.used_resource_reserve	 = 512,
 			.text_allocation_reserve = 1024,
+			.physics_enabled		 = true,
 		};
 
 		const editor_world_handle_t handle = create_world(init_config);
@@ -337,6 +356,7 @@ namespace sfg
 			.free_list_reserve		 = 1024,
 			.used_resource_reserve	 = 512,
 			.text_allocation_reserve = 1024,
+			.physics_enabled		 = true,
 		};
 
 		const editor_world_handle_t handle = create_world(init_config);
@@ -360,8 +380,8 @@ namespace sfg
 			if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::entities))
 				static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
 		}
-		editor_project_t& project = editor_project_t::get();
-		project.last_world_guid	  = asset_guid;
+		editor_project_t& project		 = editor_project_t::get();
+		project.settings.last_world_guid = asset_guid;
 		project.save(project._runtime.path.c_str());
 		return true;
 	}
@@ -421,8 +441,8 @@ namespace sfg
 
 		_main_world_asset_guid = asset.guid;
 		set_main_world_dirty(false);
-		editor_project_t& project = editor_project_t::get();
-		project.last_world_guid	  = asset.guid;
+		editor_project_t& project		 = editor_project_t::get();
+		project.settings.last_world_guid = asset.guid;
 		project.save(project._runtime.path.c_str());
 		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
 		const editor_asset_node_handle_t existing_node = asset_manager.find_asset_node_handle(asset.guid);
