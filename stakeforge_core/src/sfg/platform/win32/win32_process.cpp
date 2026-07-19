@@ -262,23 +262,25 @@ namespace
 		RECT rect{};
 		GetWindowRect(hwnd, &rect);
 
-		const LONG system_border_x = GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
-		const LONG system_border_y = GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
-		const LONG border_x		   = system_border_x > 8 ? system_border_x : 8;
-		const LONG border_y		   = system_border_y > 8 ? system_border_y : 8;
+		const UINT dpi		   = GetDpiForWindow(hwnd);
+		const LONG corner_x	   = GetSystemMetricsForDpi(SM_CXFRAME, dpi) + GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+		const LONG corner_y	   = GetSystemMetricsForDpi(SM_CYFRAME, dpi) + GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+		const bool left		   = pt.x == rect.left;
+		const bool right	   = pt.x == rect.right - 2;
+		const bool top		   = pt.y == rect.top;
+		const bool bottom	   = pt.y == rect.bottom - 2;
+		const bool near_left   = pt.x < rect.left + corner_x;
+		const bool near_right  = pt.x >= rect.right - corner_x;
+		const bool near_top	   = pt.y < rect.top + corner_y;
+		const bool near_bottom = pt.y >= rect.bottom - corner_y;
 
-		const bool left	  = pt.x >= rect.left && pt.x < rect.left + border_x;
-		const bool right  = pt.x < rect.right && pt.x >= rect.right - border_x;
-		const bool top	  = pt.y >= rect.top && pt.y < rect.top + border_y;
-		const bool bottom = pt.y < rect.bottom && pt.y >= rect.bottom - border_y;
-
-		if (top && left)
+		if ((top && near_left) || (left && near_top))
 			return HTTOPLEFT;
-		if (top && right)
+		if ((top && near_right) || (right && near_top))
 			return HTTOPRIGHT;
-		if (bottom && left)
+		if ((bottom && near_left) || (left && near_bottom))
 			return HTBOTTOMLEFT;
-		if (bottom && right)
+		if ((bottom && near_right) || (right && near_bottom))
 			return HTBOTTOMRIGHT;
 		if (left)
 			return HTLEFT;
