@@ -41,6 +41,7 @@ namespace sfg
 			return instance;
 		}
 
+		vec4f_t color_frame_dark   = color_utils_t::srgb_to_linear(color_t::from255(5, 5, 5, 255.0f)).to_vector();
 		vec4f_t color_frame		   = color_utils_t::srgb_to_linear(color_t::from255(14, 14, 14, 255.0f)).to_vector();
 		vec4f_t color_frame_light  = color_utils_t::srgb_to_linear(color_t::from255(20, 20, 20, 255.0f)).to_vector();
 		vec4f_t color_panel		   = color_utils_t::srgb_to_linear(color_t::from255(28, 28, 28, 255.0f)).to_vector();

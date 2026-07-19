@@ -43,6 +43,15 @@ namespace sfg
 		post_process,
 	};
 
+	enum class editor_play_mode_e : u8
+	{
+		none,
+		play,
+		play_physics,
+		play_paused,
+		play_physics_paused,
+	};
+
 	class editor_global_toolbar_t final
 	{
 	public:
@@ -71,6 +80,26 @@ namespace sfg
 			return _world_view;
 		}
 
+		inline void set_play_mode(editor_play_mode_e mode)
+		{
+			_play_mode = mode;
+		}
+
+		inline editor_play_mode_e get_play_mode() const
+		{
+			return _play_mode;
+		}
+
+		inline void set_do_step(bool do_step)
+		{
+			_do_step = do_step;
+		}
+
+		inline bool is_do_step() const
+		{
+			return _do_step;
+		}
+
 		inline bool is_inited() const
 		{
 			return _inited;
@@ -83,6 +112,8 @@ namespace sfg
 		editor_global_toolbar_t& operator=(const editor_global_toolbar_t&) = delete;
 
 		editor_main_toolbar_world_view_e _world_view = editor_main_toolbar_world_view_e::final;
+		editor_play_mode_e				 _play_mode	 = editor_play_mode_e::none;
 		bool							 _inited	 = false;
+		bool							 _do_step	 = false;
 	};
 }

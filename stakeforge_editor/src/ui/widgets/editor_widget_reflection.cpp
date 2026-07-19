@@ -130,18 +130,23 @@ namespace sfg
 	{
 		_ui->cancel_mutations(this);
 		clear_widgets();
-		_fold_states	 = config.fold_states;
-		_callbacks		 = config.callbacks;
+
+		_fold_states = config.fold_states;
+		_callbacks	 = config.callbacks;
+
 		_field_callbacks = {
 			.edit_begin		= on_field_edit_begin,
 			.edited			= on_field_edited,
 			.edit_submitted = on_field_edit_submitted,
 			.user_data		= this,
 		};
+
 		_objects.resize(0);
 		_objects.reserve(config.objects.size);
+
 		for (size_t i = 0; i < config.objects.size; ++i)
 			_objects.push_back(config.objects.data[i]);
+
 		_type_id		  = config.type_id;
 		_world			  = config.world;
 		_has_dependencies = false;
@@ -153,8 +158,8 @@ namespace sfg
 
 		if (_objects.empty())
 			return;
-		editor_theme_t& theme = editor_theme_t::get();
 
+		editor_theme_t& theme = editor_theme_t::get();
 		create_fields(_root, {.data = _objects.data(), .size = _objects.size()}, _type_id, _world, true, false, theme.margin_horizontal, true);
 	}
 

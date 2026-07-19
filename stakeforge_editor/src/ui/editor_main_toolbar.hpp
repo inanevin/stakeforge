@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/editor_global_toolbar.hpp"
 #include "ui/widgets/editor_widgets_dropdown.hpp"
+#include "ui/widgets/editor_widgets_icon_button.hpp"
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg::ui
@@ -76,14 +77,28 @@ namespace sfg
 		}
 
 	private:
+		void refresh_play_controls();
+
 		static u16	get_selected_world_view(void* user_data);
 		static void on_world_view_pressed(u16 value, void* user_data);
+		static void on_play_toggled(bool toggled, void* user_data);
+		static void on_play_physics_toggled(bool toggled, void* user_data);
+		static void on_pause_toggled(bool toggled, void* user_data);
+		static void on_step_pressed(bool toggled, void* user_data);
+		static void on_play_controls_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
-		editor_dropdown_t _world_view_dropdown;
-		ui::ui_context*	  _ui		   = nullptr;
-		ui::widget_id_t	  _root		   = NULL_WIDGET;
-		ui::widget_id_t	  _world_label = NULL_WIDGET;
+		editor_dropdown_t	 _world_view_dropdown;
+		editor_icon_button_t _play_button;
+		editor_icon_button_t _play_physics_button;
+		editor_icon_button_t _pause_button;
+		editor_icon_button_t _step_button;
+		ui::ui_context*		 _ui			 = nullptr;
+		ui::widget_id_t		 _root			 = NULL_WIDGET;
+		ui::widget_id_t		 _world_frame	 = NULL_WIDGET;
+		ui::widget_id_t		 _world_label	 = NULL_WIDGET;
+		ui::widget_id_t		 _play_frame	 = NULL_WIDGET;
+		editor_play_mode_e	 _displayed_mode = editor_play_mode_e::none;
 	};
 
 	void to_json(nlohmann::json& j, const editor_main_toolbar_world_view_e& view);

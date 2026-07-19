@@ -37,6 +37,8 @@ namespace sfg
 	void editor_global_toolbar_t::uninit()
 	{
 		_world_view = editor_main_toolbar_world_view_e::final;
+		_play_mode	= editor_play_mode_e::none;
 		_inited		= false;
+		_do_step	= false;
 	}
 }
