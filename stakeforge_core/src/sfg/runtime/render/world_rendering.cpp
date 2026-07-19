@@ -348,6 +348,13 @@ namespace sfg
 			SFG_MEMCPY(ctx.get_mapped_debug_line_data(frame_index), &line_data, sizeof(world_debug_line_gpu_data_t));
 		}
 
+		if (!debug_draw.triangle_indices.empty())
+		{
+			SFG_ASSERT(!debug_draw.triangle_vertices.empty());
+			SFG_MEMCPY(ctx.get_mapped_debug_triangle_vertices(frame_index), debug_draw.triangle_vertices.data(), debug_draw.triangle_vertices.size() * sizeof(vertex_debug_triangle_t));
+			SFG_MEMCPY(ctx.get_mapped_debug_triangle_indices(frame_index), debug_draw.triangle_indices.data(), debug_draw.triangle_indices.size() * sizeof(primitive_index));
+		}
+
 		if (!debug_draw.text_indices.empty())
 		{
 			SFG_ASSERT(!debug_draw.text_vertices.empty());

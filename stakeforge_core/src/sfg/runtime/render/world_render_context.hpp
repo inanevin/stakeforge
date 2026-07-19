@@ -122,15 +122,17 @@ namespace sfg
 
 	struct world_render_context_config_t
 	{
-		vec2u16_t size			  = vec2u16_t::zero;
-		u32		  light_max		  = 0;
-		u32		  line_vertex_max = 0;
-		u32		  line_index_max  = 0;
-		u32		  text_vertex_max = 0;
-		u32		  text_index_max  = 0;
-		u16		  shadow_view_max = 0;
-		u8		  enable_ssao	  = 1;
-		u8		  enable_bloom	  = 1;
+		vec2u16_t size				  = vec2u16_t::zero;
+		u32		  light_max			  = 0;
+		u32		  line_vertex_max	  = 0;
+		u32		  line_index_max	  = 0;
+		u32		  triangle_vertex_max = 0;
+		u32		  triangle_index_max  = 0;
+		u32		  text_vertex_max	  = 0;
+		u32		  text_index_max	  = 0;
+		u16		  shadow_view_max	  = 0;
+		u8		  enable_ssao		  = 1;
+		u8		  enable_bloom		  = 1;
 	};
 
 	struct world_render_shadow_allocation_t
@@ -539,6 +541,16 @@ namespace sfg
 			return _pfd[frame_index].mapped_debug_line_indices;
 		}
 
+		inline u8* get_mapped_debug_triangle_vertices(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_triangle_vertices;
+		}
+
+		inline u8* get_mapped_debug_triangle_indices(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_triangle_indices;
+		}
+
 		inline u8* get_mapped_debug_text_data(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_debug_text_data;
@@ -562,6 +574,16 @@ namespace sfg
 		inline gfx_handle_t get_debug_line_index_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].debug_line_index_buffer;
+		}
+
+		inline gfx_handle_t get_debug_triangle_vertex_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_triangle_vertex_buffer;
+		}
+
+		inline gfx_handle_t get_debug_triangle_index_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_triangle_index_buffer;
 		}
 
 		inline gfx_handle_t get_debug_text_vertex_buffer(u8 frame_index) const
@@ -600,6 +622,10 @@ namespace sfg
 
 		struct per_frame_data_t
 		{
+			u8*			 mapped_debug_triangle_vertices								 = nullptr;
+			u8*			 mapped_debug_triangle_indices								 = nullptr;
+			gfx_handle_t debug_triangle_vertex_buffer								 = {};
+			gfx_handle_t debug_triangle_index_buffer								 = {};
 			u8*			 mapped_shadow_views										 = nullptr;
 			u8*			 mapped_shadow_view_data[WORLD_RENDER_SHADOW_VIEW_CAPACITY]	 = {};
 			u8*			 mapped_debug_line_vertices									 = nullptr;

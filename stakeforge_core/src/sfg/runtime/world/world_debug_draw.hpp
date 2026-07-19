@@ -90,6 +90,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void draw_line(const vec3f_t& from, const vec3f_t& to, const color_t& color, f32 thickness_px = 2.0f, debug_draw_depth_e depth = debug_draw_depth_e::depth_tested);
+		void draw_triangle(const vec3f_t& p0, const vec3f_t& p1, const vec3f_t& p2, const color_t& color);
 		void draw_polyline(span_t<const vec3f_t> points, const color_t& color, f32 thickness_px = 2.0f, debug_draw_depth_e depth = debug_draw_depth_e::depth_tested, bool closed = false);
 		void draw_aabb(const aabb_t& bounds, const color_t& color, f32 thickness_px = 2.0f, debug_draw_depth_e depth = debug_draw_depth_e::depth_tested);
 		void draw_box(const mat4x3_t& transform, const vec3f_t& half_extents, const color_t& color, f32 thickness_px = 2.0f, debug_draw_depth_e depth = debug_draw_depth_e::depth_tested);
@@ -121,6 +122,11 @@ namespace sfg
 			return _dropped_line_count;
 		}
 
+		inline u32 get_dropped_triangle_count() const
+		{
+			return _dropped_triangle_count;
+		}
+
 		inline u32 get_dropped_text_count() const
 		{
 			return _dropped_text_count;
@@ -141,13 +147,16 @@ namespace sfg
 			bool						is_screen	  = false;
 		};
 
-		vector_t<vertex_debug_line_t> _vertices;
-		vector_t<primitive_index>	  _indices;
-		vector_t<text_command_t>	  _text_commands;
-		vector_t<char>				  _text_bytes;
-		unique_t<ui::vg_canvas_t>	  _text_canvas;
-		world_debug_draw_config_t	  _config			  = {};
-		u32							  _dropped_line_count = 0;
-		u32							  _dropped_text_count = 0;
+		vector_t<vertex_debug_line_t>	  _vertices;
+		vector_t<primitive_index>		  _indices;
+		vector_t<vertex_debug_triangle_t> _triangle_vertices;
+		vector_t<primitive_index>		  _triangle_indices;
+		vector_t<text_command_t>		  _text_commands;
+		vector_t<char>					  _text_bytes;
+		unique_t<ui::vg_canvas_t>		  _text_canvas;
+		world_debug_draw_config_t		  _config				  = {};
+		u32								  _dropped_line_count	  = 0;
+		u32								  _dropped_triangle_count = 0;
+		u32								  _dropped_text_count	  = 0;
 	};
 }

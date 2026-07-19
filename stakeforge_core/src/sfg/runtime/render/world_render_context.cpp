@@ -81,6 +81,7 @@ namespace sfg
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT((config.line_vertex_max == 0) == (config.line_index_max == 0));
+		SFG_ASSERT((config.triangle_vertex_max == 0) == (config.triangle_index_max == 0));
 		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_index_max == 0));
 		SFG_ASSERT(config.shadow_view_max <= WORLD_RENDER_SHADOW_VIEW_CAPACITY);
 		_config = config;
@@ -153,6 +154,16 @@ namespace sfg
 		debug_line_index_desc.size			  = config.line_index_max * static_cast<u32>(sizeof(primitive_index));
 		debug_line_index_desc.flags			  = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
 		debug_line_index_desc.set_name("world_debug_line_indices");
+
+		resource_desc_t debug_triangle_vertex_desc = {};
+		debug_triangle_vertex_desc.size			   = config.triangle_vertex_max * static_cast<u32>(sizeof(vertex_debug_triangle_t));
+		debug_triangle_vertex_desc.flags		   = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
+		debug_triangle_vertex_desc.set_name("world_debug_triangle_vertices");
+
+		resource_desc_t debug_triangle_index_desc = {};
+		debug_triangle_index_desc.size			  = config.triangle_index_max * static_cast<u32>(sizeof(primitive_index));
+		debug_triangle_index_desc.flags			  = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
+		debug_triangle_index_desc.set_name("world_debug_triangle_indices");
 
 		resource_desc_t debug_text_data_desc = {};
 		debug_text_data_desc.size			 = static_cast<u32>(sizeof(world_debug_text_gpu_data_t));
@@ -328,6 +339,14 @@ namespace sfg
 				_pfd[i].debug_line_data_index = backend.get_resource_gpu_index(_pfd[i].debug_line_data);
 			}
 
+			if (config.triangle_vertex_max > 0)
+			{
+				_pfd[i].debug_triangle_vertex_buffer = backend.create_resource(debug_triangle_vertex_desc);
+				_pfd[i].debug_triangle_index_buffer	 = backend.create_resource(debug_triangle_index_desc);
+				backend.map_resource(_pfd[i].debug_triangle_vertex_buffer, _pfd[i].mapped_debug_triangle_vertices);
+				backend.map_resource(_pfd[i].debug_triangle_index_buffer, _pfd[i].mapped_debug_triangle_indices);
+			}
+
 			if (config.text_vertex_max > 0)
 			{
 				_pfd[i].debug_text_data			 = backend.create_resource(debug_text_data_desc);
@@ -423,6 +442,12 @@ namespace sfg
 				backend.destroy_resource(_pfd[i].debug_line_data);
 				backend.destroy_resource(_pfd[i].debug_line_vertex_buffer);
 				backend.destroy_resource(_pfd[i].debug_line_index_buffer);
+			}
+
+			if (_config.triangle_vertex_max > 0)
+			{
+				backend.destroy_resource(_pfd[i].debug_triangle_vertex_buffer);
+				backend.destroy_resource(_pfd[i].debug_triangle_index_buffer);
 			}
 
 			if (_config.text_vertex_max > 0)

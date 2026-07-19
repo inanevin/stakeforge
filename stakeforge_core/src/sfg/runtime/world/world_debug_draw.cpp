@@ -45,12 +45,15 @@ namespace sfg
 	void world_debug_draw_t::init(const world_debug_draw_config_t& config)
 	{
 		SFG_ASSERT((config.line_vertex_reserve == 0) == (config.line_index_reserve == 0));
+		SFG_ASSERT((config.triangle_vertex_reserve == 0) == (config.triangle_index_reserve == 0));
 		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_index_max == 0));
 		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_command_reserve == 0));
 		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_byte_reserve == 0));
 		_config = config;
 		_vertices.reserve(config.line_vertex_reserve);
 		_indices.reserve(config.line_index_reserve);
+		_triangle_vertices.reserve(config.triangle_vertex_reserve);
+		_triangle_indices.reserve(config.triangle_index_reserve);
 		_text_commands.reserve(config.text_command_reserve);
 		_text_bytes.reserve(config.text_byte_reserve);
 
@@ -76,6 +79,10 @@ namespace sfg
 		_vertices.shrink_to_fit();
 		_indices.resize(0);
 		_indices.shrink_to_fit();
+		_triangle_vertices.resize(0);
+		_triangle_vertices.shrink_to_fit();
+		_triangle_indices.resize(0);
+		_triangle_indices.shrink_to_fit();
 		_text_commands.resize(0);
 		_text_commands.shrink_to_fit();
 		_text_bytes.resize(0);
@@ -87,19 +94,23 @@ namespace sfg
 			_text_canvas.reset();
 		}
 
-		_config				= {};
-		_dropped_line_count = 0;
-		_dropped_text_count = 0;
+		_config					= {};
+		_dropped_line_count		= 0;
+		_dropped_triangle_count = 0;
+		_dropped_text_count		= 0;
 	}
 
 	void world_debug_draw_t::begin_frame()
 	{
 		_vertices.resize(0);
 		_indices.resize(0);
+		_triangle_vertices.resize(0);
+		_triangle_indices.resize(0);
 		_text_commands.resize(0);
 		_text_bytes.resize(0);
-		_dropped_line_count = 0;
-		_dropped_text_count = 0;
+		_dropped_line_count		= 0;
+		_dropped_triangle_count = 0;
+		_dropped_text_count		= 0;
 	}
 
 	void world_debug_draw_t::draw_line(const vec3f_t& from, const vec3f_t& to, const color_t& color, f32 thickness_px, debug_draw_depth_e depth)
@@ -127,6 +138,24 @@ namespace sfg
 		_indices.push_back(base_vertex + 2);
 		_indices.push_back(base_vertex + 1);
 		_indices.push_back(base_vertex + 3);
+	}
+
+	void world_debug_draw_t::draw_triangle(const vec3f_t& p0, const vec3f_t& p1, const vec3f_t& p2, const color_t& color)
+	{
+		if (_triangle_vertices.size() + 3 > _config.triangle_vertex_reserve || _triangle_indices.size() + 3 > _config.triangle_index_reserve)
+		{
+			++_dropped_triangle_count;
+			return;
+		}
+
+		const vec4f_t		  triangle_color = color.to_vector();
+		const primitive_index base_vertex	 = static_cast<primitive_index>(_triangle_vertices.size());
+		_triangle_vertices.push_back({.position = p0, .color = triangle_color});
+		_triangle_vertices.push_back({.position = p1, .color = triangle_color});
+		_triangle_vertices.push_back({.position = p2, .color = triangle_color});
+		_triangle_indices.push_back(base_vertex);
+		_triangle_indices.push_back(base_vertex + 1);
+		_triangle_indices.push_back(base_vertex + 2);
 	}
 
 	void world_debug_draw_t::draw_polyline(span_t<const vec3f_t> points, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, bool closed)
@@ -427,6 +456,14 @@ namespace sfg
 		snapshot.line_indices.resize(_indices.size());
 		if (!_indices.empty())
 			SFG_MEMCPY(snapshot.line_indices.data(), _indices.data(), _indices.size() * sizeof(primitive_index));
+
+		snapshot.triangle_vertices.resize(_triangle_vertices.size());
+		if (!_triangle_vertices.empty())
+			SFG_MEMCPY(snapshot.triangle_vertices.data(), _triangle_vertices.data(), _triangle_vertices.size() * sizeof(vertex_debug_triangle_t));
+
+		snapshot.triangle_indices.resize(_triangle_indices.size());
+		if (!_triangle_indices.empty())
+			SFG_MEMCPY(snapshot.triangle_indices.data(), _triangle_indices.data(), _triangle_indices.size() * sizeof(primitive_index));
 
 		snapshot.text_vertices.resize(0);
 		snapshot.text_indices.resize(0);

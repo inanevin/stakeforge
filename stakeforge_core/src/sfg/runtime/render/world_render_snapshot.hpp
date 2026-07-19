@@ -125,12 +125,14 @@ namespace sfg
 		vector_t<world_draw_t>			  draws			= {};
 		engine_quality_level_e			  quality_level = engine_quality_level_e::high;
 
-		inline void reserve(size_t entity_count, size_t light_count, size_t line_vertex_count, size_t line_index_count, size_t text_vertex_count, size_t text_index_count)
+		inline void reserve(size_t entity_count, size_t light_count, size_t line_vertex_count, size_t line_index_count, size_t triangle_vertex_count, size_t triangle_index_count, size_t text_vertex_count, size_t text_index_count)
 		{
 			entities.reserve(entity_count);
 			lights.reserve(light_count);
 			debug_draw.line_vertices.reserve(line_vertex_count);
 			debug_draw.line_indices.reserve(line_index_count);
+			debug_draw.triangle_vertices.reserve(triangle_vertex_count);
+			debug_draw.triangle_indices.reserve(triangle_index_count);
 			debug_draw.text_vertices.reserve(text_vertex_count);
 			debug_draw.text_indices.reserve(text_index_count);
 		}
