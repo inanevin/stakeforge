@@ -26,6 +26,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/widgets/editor_widget_reflection.hpp"
+#include "editor_project.hpp"
+#include "ui/editor_popup_controller.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "editor_widget_checkbox.hpp"
@@ -320,6 +322,15 @@ namespace sfg
 				create_container(parent, type_id, field, {.data = container_fields.data(), .size = container_fields.size()}, world, track_rows, sub_item, indentation);
 				break;
 			}
+			case reflected_value_type_e::bitmask: {
+				frame_vector_t<u8*> fields;
+				fields.reserve(objects.size);
+				for (size_t idx = 0; idx < objects.size; ++idx)
+					fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
+
+				create_bitmask_dropdown(parent, *type, *field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, false, indentation);
+				break;
+			}
 			case reflected_value_type_e::f32:
 			case reflected_value_type_e::u32:
 			case reflected_value_type_e::i32:
@@ -407,21 +418,27 @@ namespace sfg
 		if (field->value_type != reflected_value_type_e::u8 && field->value_type != reflected_value_type_e::u16 && field->value_type != reflected_value_type_e::u32)
 			return false;
 
-		const reflected_type_t* enum_type = reflection_registry_t::get().find_type(field->sub_type_id);
-		if (enum_type == nullptr || !enum_type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
-			return false;
-
-		const u32							   enum_item_count = enum_type->fields.end - enum_type->fields.start;
 		frame_vector_t<editor_dropdown_item_t> items;
-		items.reserve(enum_item_count);
-
-		for (u32 i = 0; i < enum_item_count; ++i)
+		if (field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER)
 		{
-			const reflected_field_t* enum_field = reflection_registry_t::get().get_field(enum_type->fields.start + i);
-			items.push_back({
-				.text  = enum_field->display_name != nullptr ? enum_field->display_name : enum_field->name,
-				.value = static_cast<u16>(i),
-			});
+			const vector_t<physics_collision_layer_definition_t>& layers = editor_project_t::get().settings.project_settings.physics.collision_layers;
+			items.reserve(layers.size());
+			for (u32 i = 0; i < layers.size(); ++i)
+				items.push_back({.text = layers[i].name.empty() ? "Unnamed Layer" : layers[i].name.c_str(), .value = layers[i].slot});
+		}
+		else
+		{
+			const reflected_type_t* enum_type = reflection_registry_t::get().find_type(field->sub_type_id);
+			if (enum_type == nullptr || !enum_type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
+				return false;
+
+			const u32 enum_item_count = enum_type->fields.end - enum_type->fields.start;
+			items.reserve(enum_item_count);
+			for (u32 i = 0; i < enum_item_count; ++i)
+			{
+				const reflected_field_t* enum_field = reflection_registry_t::get().get_field(enum_type->fields.start + i);
+				items.push_back({.text = enum_field->display_name != nullptr ? enum_field->display_name : enum_field->name, .value = static_cast<u16>(i)});
+			}
 		}
 
 		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
@@ -445,6 +462,47 @@ namespace sfg
 		if (track_row)
 			_rows.push_back(row.row);
 		return true;
+	}
+
+	void editor_widget_reflection_t::create_bitmask_dropdown(
+		ui::widget_id_t parent, const reflected_type_t& type, const reflected_field_t& field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
+	{
+		SFG_ASSERT(type.bitmask_opts.get_option_count_fn != nullptr && type.bitmask_opts.get_option_fn != nullptr && type.bitmask_opts.build_title_fn != nullptr);
+		const u32 option_count = type.bitmask_opts.get_option_count_fn(type.bitmask_opts.user_data);
+		SFG_ASSERT(option_count + 1 <= editor_popup_controller_t::MAX_ITEMS);
+
+		frame_vector_t<editor_dropdown_item_t> items;
+		items.reserve(option_count + 1);
+		items.push_back({.text = "None", .value = 0});
+		for (u32 i = 0; i < option_count; ++i)
+		{
+			const bitmask_option_t option = type.bitmask_opts.get_option_fn(i, type.bitmask_opts.user_data);
+			items.push_back({.text = option.name, .value = option.value});
+		}
+
+		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field.display_name ? field.display_name : "missing_display_name", sub_item, false, indentation);
+		install_tooltip(row.label, field.tooltip);
+
+		editor_dropdown_t* dropdown = new editor_dropdown_t();
+		dropdown->init(*_ui,
+					   row.right,
+					   {
+						   .items			= items.data(),
+						   .build_title		= type.bitmask_opts.build_title_fn,
+						   .title_user_data = type.bitmask_opts.user_data,
+						   .field			= {.fields = fields, .field_size = field.size},
+						   .callbacks		= _field_callbacks,
+						   .item_count		= static_cast<u16>(items.size()),
+						   .width			= editor_dropdown_width_e::parent_relative,
+						   .pos_y			= editor_dropdown_pos_y_e::center,
+						   .is_bitmask		= true,
+					   });
+		fit_control(dropdown->get_root());
+		if (removable_item)
+			install_sub_item_button(row.right, dropdown->get_root(), container_data, element_index);
+		_dropdowns.push_back(dropdown);
+		if (track_row)
+			_rows.push_back(row.row);
 	}
 
 	void editor_widget_reflection_t::create_input_field(ui::widget_id_t parent, const reflected_field_t* field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)

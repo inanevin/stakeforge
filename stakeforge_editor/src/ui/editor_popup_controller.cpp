@@ -475,6 +475,14 @@ namespace sfg
 		_ui->get_input().set_popup_scope(_frame, popup_roots, 1, on_popup_outside, this);
 	}
 
+	void editor_popup_controller_t::update_popup_items(const editor_popup_item_desc_t* items, u16 item_count)
+	{
+		SFG_ASSERT(_visible && _mode == popup_mode_e::items && item_count == _desc.item_count);
+		for (u32 i = 0; i < item_count; ++i)
+			_items[i] = items[i];
+		refresh_rows();
+	}
+
 	void editor_popup_controller_t::close_popup(bool notify_input)
 	{
 		if (_ui == nullptr || !_visible)

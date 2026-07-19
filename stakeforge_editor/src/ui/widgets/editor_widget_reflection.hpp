@@ -132,6 +132,8 @@ namespace sfg
 		void create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, editor_world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider);
 		void create_checkbox(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		bool create_dropdown(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
+		void create_bitmask_dropdown(
+			ui::widget_id_t parent, const reflected_type_t& type, const reflected_field_t& field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		void create_input_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		bool create_reference(ui::widget_id_t				 parent,
 							  const reflected_field_t* const field,

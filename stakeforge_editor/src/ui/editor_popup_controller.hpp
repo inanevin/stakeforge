@@ -121,7 +121,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 MAX_CONTROLLERS = 16;
-		static constexpr u32 MAX_ITEMS		 = 16;
+		static constexpr u32 MAX_ITEMS		 = 65;
 
 		editor_popup_controller_t()												   = default;
 		~editor_popup_controller_t()											   = default;
@@ -146,6 +146,7 @@ namespace sfg
 		void request_asset_popup(const editor_asset_popup_desc_t& desc);
 		void request_entity_popup(const editor_entity_popup_desc_t& desc);
 		void request_custom_popup(const editor_custom_popup_desc_t& desc);
+		void update_popup_items(const editor_popup_item_desc_t* items, u16 item_count);
 		void close_popup(bool notify_input = false);
 
 		static editor_popup_controller_t* find(ui::ui_context& ui);

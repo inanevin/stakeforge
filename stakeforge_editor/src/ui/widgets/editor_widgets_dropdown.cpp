@@ -399,15 +399,21 @@ namespace sfg
 		{
 			const editor_widget_callbacks_t callbacks  = dropdown._config.callbacks;
 			const bool						is_bitmask = dropdown._config.is_bitmask;
+
 			if ((!is_bitmask || !dropdown._bitmask_edit_active) && callbacks.edit_begin != nullptr)
 				callbacks.edit_begin(callbacks.user_data);
+
 			if (is_bitmask)
 				dropdown._bitmask_edit_active = true;
+
 			dropdown.modify_field(value);
+
 			if (is_bitmask)
 				dropdown.refresh_popup_items();
+
 			if (callbacks.edited != nullptr)
 				callbacks.edited(callbacks.user_data);
+
 			if (!is_bitmask && callbacks.edit_submitted != nullptr)
 				callbacks.edit_submitted(callbacks.user_data);
 		}
