@@ -465,6 +465,25 @@ namespace sfg
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_composite_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 
+		if (!snapshot.debug_draw.triangle_indices.empty())
+		{
+			const gpu_index_t physics_rp_constant  = world_ctx.get_opaque_render_pass_data_index(frame_index);
+			const gpu_index_t physics_obj_constant = world_ctx.get_depth_texture_index(frame_index);
+			backend.cmd_bind_constants(cmd, {.data = &physics_rp_constant, .offset = constant_rp0, .count = 1, .param_index = 0});
+			backend.cmd_bind_constants(cmd, {.data = &physics_obj_constant, .offset = constant_obj0, .count = 1, .param_index = 0});
+			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_physics_debug_shader()});
+			backend.cmd_bind_vertex_buffers(cmd, {.buffer = world_ctx.get_debug_triangle_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_triangle_t)), .offset = 0});
+			backend.cmd_bind_index_buffers(cmd, {.buffer = world_ctx.get_debug_triangle_index_buffer(frame_index), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
+			backend.cmd_draw_indexed_instanced(cmd,
+											   {
+												   .index_count_per_instance = static_cast<u32>(snapshot.debug_draw.triangle_indices.size()),
+												   .instance_count			 = 1,
+												   .start_index_location	 = 0,
+												   .base_vertex_location	 = 0,
+												   .start_instance_location	 = 0,
+											   });
+		}
+
 		if (render_gizmo)
 		{
 			u8 mesh_index = 0;

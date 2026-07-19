@@ -87,15 +87,17 @@ namespace sfg
 			_pfd[i].gizmo_data_index = backend.get_resource_gpu_index(_pfd[i].gizmo_data);
 		}
 
-		const shader_internals_t* composite_shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_render_texture.hlsl"_hs);
-		const shader_internals_t* gizmo_shader	   = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_gizmo.hlsl"_hs);
-		_composite_shader						   = render_resources_t::get().get_shader_hw(composite_shader->psos[0]);
-		_gizmo_shader							   = render_resources_t::get().get_shader_hw(gizmo_shader->psos[0]);
-		_gizmo_meshes[0]						   = load_gizmo_mesh_render_data(GIZMO_MESH_TRANSLATION);
-		_gizmo_meshes[1]						   = load_gizmo_mesh_render_data(GIZMO_MESH_ROTATION);
-		_gizmo_meshes[2]						   = load_gizmo_mesh_render_data(GIZMO_MESH_SCALE);
-		_gizmo_central_meshes[0]				   = load_gizmo_mesh_render_data(DEFAULT_MESH_SPHERE_GUID);
-		_gizmo_central_meshes[1]				   = load_gizmo_mesh_render_data(DEFAULT_MESH_CUBE_GUID);
+		const shader_internals_t* composite_shader	   = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_render_texture.hlsl"_hs);
+		const shader_internals_t* gizmo_shader		   = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_gizmo.hlsl"_hs);
+		const shader_internals_t* physics_debug_shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_physics_debug.hlsl"_hs);
+		_composite_shader							   = render_resources_t::get().get_shader_hw(composite_shader->psos[0]);
+		_gizmo_shader								   = render_resources_t::get().get_shader_hw(gizmo_shader->psos[0]);
+		_physics_debug_shader						   = render_resources_t::get().get_shader_hw(physics_debug_shader->psos[0]);
+		_gizmo_meshes[0]							   = load_gizmo_mesh_render_data(GIZMO_MESH_TRANSLATION);
+		_gizmo_meshes[1]							   = load_gizmo_mesh_render_data(GIZMO_MESH_ROTATION);
+		_gizmo_meshes[2]							   = load_gizmo_mesh_render_data(GIZMO_MESH_SCALE);
+		_gizmo_central_meshes[0]					   = load_gizmo_mesh_render_data(DEFAULT_MESH_SPHERE_GUID);
+		_gizmo_central_meshes[1]					   = load_gizmo_mesh_render_data(DEFAULT_MESH_CUBE_GUID);
 
 		create_texture(config.size);
 	}
@@ -123,8 +125,9 @@ namespace sfg
 			mesh = {};
 		for (editor_world_gizmo_mesh_t& mesh : _gizmo_central_meshes)
 			mesh = {};
-		_composite_shader = {};
-		_gizmo_shader	  = {};
+		_composite_shader	  = {};
+		_gizmo_shader		  = {};
+		_physics_debug_shader = {};
 		_world_render_context.uninit();
 	}
 

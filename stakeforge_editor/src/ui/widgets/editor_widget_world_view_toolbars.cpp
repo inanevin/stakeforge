@@ -252,12 +252,21 @@ namespace sfg
 		button_config.on_clicked   = on_bounding_boxes_toggled;
 		_bounding_boxes_button.init(ui, _view_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _bounding_boxes_button);
+		editor_dividers_t::add_divider_ver(ui, _view_frame, theme.border_thickness * 0.5f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
+
+		button_config.icon		   = ICON_CUBES;
+		button_config.toggled_icon = ICON_CUBES;
+		button_config.tooltip	   = "Physics Debug";
+		button_config.on_clicked   = on_physics_debug_toggled;
+		_physics_debug_button.init(ui, _view_frame, button_config);
+		set_icon_button_parent_relative_height(tree, _physics_debug_button);
 	}
 
 	void editor_widget_world_view_toolbars_t::uninit()
 	{
 		if (_settings_popup.is_initialized())
 			editor_popup_controller_t::find(*_ui)->close_popup(false);
+		_physics_debug_button.uninit();
 		_bounding_boxes_button.uninit();
 		_grid_button.uninit();
 		_snapping_button.uninit();
@@ -315,6 +324,7 @@ namespace sfg
 		_snapping_button.set_toggled(context.get_transform_snapping() == editor_transform_snapping_e::default_);
 		_grid_button.set_toggled(context.is_grid_enabled());
 		_bounding_boxes_button.set_toggled(context.is_bounding_boxes_enabled());
+		_physics_debug_button.set_toggled(context.is_physics_debug_enabled());
 	}
 
 	void editor_widget_world_view_toolbars_t::on_transform_control_toggled(bool toggled, void* user_data)
@@ -372,5 +382,11 @@ namespace sfg
 	{
 		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
 		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().set_bounding_boxes_enabled(toggled);
+	}
+
+	void editor_widget_world_view_toolbars_t::on_physics_debug_toggled(bool toggled, void* user_data)
+	{
+		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
+		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().set_physics_debug_enabled(toggled);
 	}
 }

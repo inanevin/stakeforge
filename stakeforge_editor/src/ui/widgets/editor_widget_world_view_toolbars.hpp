@@ -85,6 +85,7 @@ namespace sfg
 		static void on_snapping_toggled(bool toggled, void* user_data);
 		static void on_grid_toggled(bool toggled, void* user_data);
 		static void on_bounding_boxes_toggled(bool toggled, void* user_data);
+		static void on_physics_debug_toggled(bool toggled, void* user_data);
 
 	private:
 		editor_popup_world_view_settings_t _settings_popup;
@@ -94,6 +95,7 @@ namespace sfg
 		editor_icon_button_t			   _snapping_button;
 		editor_icon_button_t			   _grid_button;
 		editor_icon_button_t			   _bounding_boxes_button;
+		editor_icon_button_t			   _physics_debug_button;
 		transform_button_data_t			   _transform_button_data[3];
 		ui::ui_context*					   _ui			   = nullptr;
 		editor_world_handle_t			   _edit_world	   = {};

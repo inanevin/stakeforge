@@ -139,7 +139,7 @@ namespace sfg
 		_render_context.init({.size = _world_config.render_resolution, .enable_ssao = 0, .enable_bloom = 1});
 		const shader_internals_t* shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/thumbnail_capture_copy.hlsl"_hs);
 		_thumbnail_shader				 = render_resources_t::get().get_shader_hw(shader->psos[0]);
-		_snapshot.reserve(64, 0, 0, 0, 0, 0);
+		_snapshot.reserve(64, 0, 0, 0, 0, 0, 0, 0);
 		_prep_data.reserve(10);
 		_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_available_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);

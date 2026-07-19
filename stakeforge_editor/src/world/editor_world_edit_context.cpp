@@ -69,6 +69,7 @@ namespace sfg
 		_transform_snapping		= editor_transform_snapping_e::none;
 		_grid_enabled			= false;
 		_bounding_boxes_enabled = false;
+		_physics_debug_enabled	= false;
 	}
 
 	void editor_world_edit_context_t::set_world(editor_world_handle_t world)

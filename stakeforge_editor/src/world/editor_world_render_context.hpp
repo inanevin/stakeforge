@@ -171,6 +171,11 @@ namespace sfg
 			return _gizmo_shader;
 		}
 
+		inline gfx_handle_t get_physics_debug_shader() const
+		{
+			return _physics_debug_shader;
+		}
+
 		inline const editor_world_gizmo_mesh_t& get_gizmo_mesh(u8 index) const
 		{
 			return _gizmo_meshes[index];
@@ -216,8 +221,9 @@ namespace sfg
 		editor_world_gizmo_mesh_t _gizmo_meshes[3]		   = {};
 		editor_world_gizmo_mesh_t _gizmo_central_meshes[2] = {};
 
-		gfx_handle_t _composite_shader = {};
-		gfx_handle_t _gizmo_shader	   = {};
+		gfx_handle_t _composite_shader	   = {};
+		gfx_handle_t _gizmo_shader		   = {};
+		gfx_handle_t _physics_debug_shader = {};
 
 		u32		  _object_id_readback_row_pitch = 0;
 		vec2u16_t _size							= vec2u16_t::zero;
