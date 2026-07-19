@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/common/type_id.hpp>
 #include <sfg/data/string.hpp>
-#include <sfg/runtime/engine/engine_runtime_settings.hpp>
+#include <sfg/runtime/project/project_settings.hpp>
 
 namespace sfg
 {
@@ -42,6 +42,14 @@ namespace sfg
 		string_t name;
 	};
 
+	struct editor_project_settings_data_t
+	{
+		project_settings_t project_settings = {};
+		sid_t			   last_world_guid	= NULL_SID;
+
+		bool operator==(const editor_project_settings_data_t&) const = default;
+	};
+
 	struct editor_project_t
 	{
 		static editor_project_t& get()
@@ -50,9 +58,8 @@ namespace sfg
 			return instance;
 		}
 
-		editor_project_runtime_t  _runtime		   = {};
-		engine_runtime_settings_t runtime_settings = {};
-		sid_t					  last_world_guid  = NULL_SID;
+		editor_project_runtime_t	   _runtime = {};
+		editor_project_settings_data_t settings = {};
 
 		bool					save(const char* path);
 		bool					try_load(const char* path);
@@ -60,6 +67,7 @@ namespace sfg
 		static editor_project_t make_default_project(const char* path);
 	};
 
+	SFG_DEFINE_TYPE_ID(editor_project_settings_data_t);
 	SFG_DEFINE_TYPE_ID(editor_project_t);
 
 	struct editor_project_reflection_t

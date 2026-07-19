@@ -39,7 +39,7 @@ namespace sfg
 	{
 		editor_project_t project = {};
 		project.refresh_runtime(path);
-		project.last_world_guid = NULL_SID;
+		project.settings.last_world_guid = NULL_SID;
 		return project;
 	}
 
@@ -67,8 +67,9 @@ namespace sfg
 			return false;
 
 		*this = project;
+		settings.project_settings.normalize();
 		refresh_runtime(path);
-		editor_app_t::get().get_runtime().update_settings(runtime_settings);
+		editor_app_t::get().get_runtime().update_project_settings(settings.project_settings);
 		return true;
 	}
 
@@ -103,16 +104,32 @@ namespace sfg
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();
 		registry.register_type({
+			.name		  = "editor_project_settings_data_t",
+			.display_name = "Editor Project Settings",
+			.fields =
+				{
+					{.name = "last_world_guid", .display_name = "Last World GUID", .offset = offsetof(editor_project_settings_data_t, last_world_guid), .size = sizeof(sid_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u64},
+					{.name		   = "project_settings",
+					 .display_name = "Project",
+					 .sub_type_id  = type_id_t<project_settings_t>::value,
+					 .offset	   = offsetof(editor_project_settings_data_t, project_settings),
+					 .size		   = sizeof(project_settings_t),
+					 .type		   = reflected_value_type_e::object},
+				},
+			.type_id   = type_id_t<editor_project_settings_data_t>::value,
+			.size	   = sizeof(editor_project_settings_data_t),
+			.alignment = alignof(editor_project_settings_data_t),
+		});
+		registry.register_type({
 			.name		  = "editor_project_t",
 			.display_name = "Project Settings",
 			.fields =
 				{
-					{.name = "last_world_guid", .display_name = "Last World GUID", .offset = offsetof(editor_project_t, last_world_guid), .size = sizeof(sid_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u64},
-					{.name		   = "runtime_settings",
-					 .display_name = "Runtime",
-					 .sub_type_id  = type_id_t<engine_runtime_settings_t>::value,
-					 .offset	   = offsetof(editor_project_t, runtime_settings),
-					 .size		   = sizeof(engine_runtime_settings_t),
+					{.name		   = "settings",
+					 .display_name = "Settings",
+					 .sub_type_id  = type_id_t<editor_project_settings_data_t>::value,
+					 .offset	   = offsetof(editor_project_t, settings),
+					 .size		   = sizeof(editor_project_settings_data_t),
 					 .type		   = reflected_value_type_e::object},
 				},
 			.type_id   = type_id_t<editor_project_t>::value,
