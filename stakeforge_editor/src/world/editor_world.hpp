@@ -31,11 +31,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_gizmo.hpp"
 #include "world/editor_world_handle.hpp"
 #include "world/editor_world_render_context.hpp"
+#include "ui/editor_global_toolbar.hpp"
 #include <sfg/data/atomic.hpp>
+#include <sfg/data/ostream.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
@@ -98,6 +101,8 @@ namespace sfg
 		void						   resize(vec2u16_t render_resolution);
 		void						   install_camera(editor_world_camera_type_e type);
 		void						   uninstall_camera();
+		void						   serialize_camera(nlohmann::json& out_json) const;
+		void						   deserialize_camera(const nlohmann::json& in_json);
 		void						   pass_camera_input(const editor_world_camera_input_t& input);
 		void						   reset_camera_input();
 		void						   tick_camera(f32 dt_seconds);
@@ -109,7 +114,9 @@ namespace sfg
 		void						   end_gizmo_action();
 		void						   cancel_gizmo_action();
 		void						   request_entity_pick(vec2f_t relative_position, bool incremental_selection);
-		void						   tick(f32 dt_seconds);
+		void						   begin_frame();
+		void						   draw_debug();
+		void						   update_play_mode(editor_play_mode_e mode);
 		void						   update_world_transforms(bool advance_interpolation);
 		void						   produce_snapshot();
 		const world_render_snapshot_t& acquire_render_snapshot();
@@ -154,15 +161,24 @@ namespace sfg
 			return _render_resolution;
 		}
 
+		inline editor_play_mode_e get_play_mode() const
+		{
+			return _play_mode;
+		}
+
 	private:
 		void publish_snapshot();
 		void consume_entity_pick_result();
+		void save_play_snapshot();
+		void restore_play_snapshot(bool keep_current_camera);
 
 	private:
 		world_render_snapshot_t	 _snapshot_slots[3] = {};
 		world_render_prep_data_t _render_prep_data	= {};
 
-		editor_world_camera_t* _camera = nullptr;
+		editor_world_camera_t*	   _camera = nullptr;
+		ostream_t				   _play_snapshot;
+		editor_world_camera_type_e _camera_type = editor_world_camera_type_e::fly;
 
 		editor_world_render_context_t _render_context = {};
 
@@ -179,5 +195,6 @@ namespace sfg
 		u8							_producer_slot								 = 0;
 		u8							_consumer_slot								 = 0;
 		u8							_latest_snapshot_slot						 = UINT8_MAX;
+		editor_play_mode_e			_play_mode									 = editor_play_mode_e::none;
 	};
 }

@@ -38,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
+#include "ui/editor_global_toolbar.hpp"
 #include "ui/panels/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_world.hpp"
 #include "ui/panels/editor_panel_inspector.hpp"
@@ -74,6 +75,7 @@ namespace sfg
 		_accumulator_us	  = 0;
 		_last_fixed_step_us.store(_previous_time_us, std::memory_order_relaxed);
 		_fixed_step_us.store(0, std::memory_order_relaxed);
+		_play_main_world_dirty = false;
 	}
 
 	void editor_world_controller_t::uninit()
@@ -96,7 +98,7 @@ namespace sfg
 	editor_world_handle_t editor_world_controller_t::create_world(const world_init_config_t& init_config)
 	{
 		editor_app_t::get().stop_render();
-		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
 		world_init_config_t		  world_config	   = init_config;
 		const project_settings_t& project_settings = engine_runtime_t::get().get_project_settings();
 		world_config.physics					   = project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps);
@@ -112,11 +114,13 @@ namespace sfg
 	void editor_world_controller_t::destroy_world(editor_world_handle_t handle)
 	{
 		editor_app_t::get().stop_render();
-		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
 		const bool was_main_world = _main_world == handle;
 		if (was_main_world)
+		{
+			stop_main_world_play_mode();
 			set_main_world({}, NULL_SID, "");
+		}
 
 		destroy_world_internal(handle);
 	}
@@ -134,6 +138,8 @@ namespace sfg
 		if (_main_world.is_null())
 			return;
 
+		stop_main_world_play_mode();
+
 		const editor_world_handle_t handle = _main_world;
 		set_main_world({}, NULL_SID, "");
 		destroy_world_internal(handle);
@@ -147,6 +153,7 @@ namespace sfg
 	void editor_world_controller_t::destroy_worlds_internal(bool notify_panels)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+		stop_main_world_play_mode();
 
 		if (notify_panels && !_main_world.is_null())
 			set_main_world({}, NULL_SID, "");
@@ -162,7 +169,23 @@ namespace sfg
 		_main_world_asset_guid		   = NULL_SID;
 		_pending_main_world_asset_guid = NULL_SID;
 		_main_world_name.resize(0);
-		_main_world_dirty = false;
+		_main_world_dirty	   = false;
+		_play_main_world_dirty = false;
+	}
+
+	void editor_world_controller_t::stop_main_world_play_mode()
+	{
+		if (_main_world.is_null())
+			return;
+
+		editor_global_toolbar_t::get().set_play_mode(editor_play_mode_e::none);
+		editor_global_toolbar_t::get().set_do_step(false);
+
+		editor_world_t* const editor_world = _worlds.get(_main_world);
+		if (editor_world->get_play_mode() == editor_play_mode_e::none)
+			return;
+
+		update_main_world_play_mode(editor_play_mode_e::none);
 	}
 
 	void editor_world_controller_t::resize_world(editor_world_handle_t handle, vec2u16_t render_resolution)
@@ -214,7 +237,15 @@ namespace sfg
 
 	void editor_world_controller_t::tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps)
 	{
-		_world_physics_rate = world_physics_rate;
+		_world_physics_rate				   = world_physics_rate;
+		editor_global_toolbar_t& toolbar   = editor_global_toolbar_t::get();
+		const editor_play_mode_e play_mode = toolbar.get_play_mode();
+		const bool				 do_step   = toolbar.is_do_step();
+		toolbar.set_do_step(false);
+		update_main_world_play_mode(play_mode);
+
+		for (editor_world_t* editor_world : _worlds)
+			editor_world->begin_frame();
 
 		const i64 now	   = time_t::get_cpu_microseconds();
 		const i64 delta_us = now - _previous_time_us;
@@ -234,11 +265,13 @@ namespace sfg
 				{
 					const editor_world_handle_t handle		 = *it;
 					editor_world_t*				editor_world = _worlds.get(handle);
-					editor_world->tick_camera(dt_seconds);
-					editor_world->tick(dt_seconds);
+					tick_editor_world(*editor_world, handle == _main_world, play_mode, dt_seconds, false);
 				}
 				++steps;
 			}
+
+			if (do_step && !_main_world.is_null() && (play_mode == editor_play_mode_e::play_paused || play_mode == editor_play_mode_e::play_physics_paused))
+				tick_editor_world(*_worlds.get(_main_world), true, play_mode, dt_seconds, true);
 
 			_fixed_step_us.store(fixed_us, std::memory_order_relaxed);
 			_last_fixed_step_us.store(now - _accumulator_us, std::memory_order_release);
@@ -250,11 +283,110 @@ namespace sfg
 			_last_fixed_step_us.store(now, std::memory_order_release);
 		}
 
-		for (editor_world_t* editor_world : _worlds)
+		for (auto it = _worlds.begin_handle(); it != _worlds.end_handle(); ++it)
 		{
-			if (steps == 0)
+			const editor_world_handle_t handle			  = *it;
+			editor_world_t* const		editor_world	  = _worlds.get(handle);
+			const bool					main_world_paused = handle == _main_world && (play_mode == editor_play_mode_e::play_paused || play_mode == editor_play_mode_e::play_physics_paused);
+
+			if (steps == 0 && !main_world_paused)
 				editor_world->update_world_transforms(false);
+
+			editor_world->draw_debug();
 			editor_world->produce_snapshot();
+		}
+	}
+
+	void editor_world_controller_t::update_main_world_play_mode(editor_play_mode_e mode)
+	{
+		if (_main_world.is_null())
+			return;
+
+		editor_world_t&			 editor_world  = *_worlds.get(_main_world);
+		const editor_play_mode_e previous_mode = editor_world.get_play_mode();
+		if (previous_mode == mode)
+			return;
+
+		const bool entering_play = previous_mode == editor_play_mode_e::none;
+		const bool exiting_play	 = mode == editor_play_mode_e::none;
+		const bool entering_full = entering_play && mode == editor_play_mode_e::play;
+		const bool exiting_full	 = exiting_play && (previous_mode == editor_play_mode_e::play || previous_mode == editor_play_mode_e::play_paused);
+
+		if (entering_play)
+			_play_main_world_dirty = _main_world_dirty;
+
+		editor_world.update_play_mode(mode);
+
+		if (entering_full)
+			editor_surface_controller_t::get().set_play_cursor_locked(true);
+		else if (exiting_full)
+			editor_surface_controller_t::get().set_play_cursor_locked(false);
+
+		if (!exiting_play)
+			return;
+
+		_main_world_dirty	   = _play_main_world_dirty;
+		_play_main_world_dirty = false;
+		notify_main_world_dirty_changed();
+
+		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
+		if (editor_panel_t* panel = surfaces.find_panel(editor_panel_type_e::entities))
+			static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
+		if (editor_panel_t* panel = surfaces.find_panel(editor_panel_type_e::inspector))
+			static_cast<editor_panel_inspector_t*>(panel)->refresh_from_selection();
+	}
+
+	void editor_world_controller_t::tick_editor_world(editor_world_t& editor_world, bool is_main_world, editor_play_mode_e mode, f32 dt_seconds, bool force_simulation)
+	{
+		world_t& world = editor_world.get_world();
+		if (!is_main_world)
+		{
+			editor_world.tick_camera(dt_seconds);
+			world.update_world_transforms();
+
+			if (world.is_physics_enabled())
+				world.get_physics().tick(dt_seconds);
+			return;
+		}
+
+		switch (mode)
+		{
+		case editor_play_mode_e::none:
+			editor_world.tick_camera(dt_seconds);
+			world.update_world_transforms();
+			break;
+		case editor_play_mode_e::play:
+			world.update_world_transforms();
+
+			if (world.is_physics_enabled())
+				world.get_physics().tick(dt_seconds);
+			break;
+		case editor_play_mode_e::play_physics:
+			editor_world.tick_camera(dt_seconds);
+			world.update_world_transforms();
+
+			if (world.is_physics_enabled())
+				world.get_physics().tick(dt_seconds);
+			break;
+		case editor_play_mode_e::play_paused:
+			if (force_simulation)
+			{
+				world.update_world_transforms();
+
+				if (world.is_physics_enabled())
+					world.get_physics().tick(dt_seconds);
+			}
+			break;
+		case editor_play_mode_e::play_physics_paused:
+			if (force_simulation)
+			{
+				editor_world.tick_camera(dt_seconds);
+				world.update_world_transforms();
+
+				if (world.is_physics_enabled())
+					world.get_physics().tick(dt_seconds);
+			}
+			break;
 		}
 	}
 
@@ -278,10 +410,11 @@ namespace sfg
 		editor_world->install_camera(editor_world_camera_type_e::fly);
 		world_t& world = editor_world->get_world();
 
-		const entity_id_t	environment				= world.create_entity("environment");
-		component_skybox_t& skybox					= ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(type_id_t<component_skybox_t>::value), environment);
-		skybox.skybox_asset							= DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
-		skybox.exposure								= 0.25f;
+		const entity_id_t	environment = world.create_entity("environment");
+		component_skybox_t& skybox		= ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(type_id_t<component_skybox_t>::value), environment);
+		skybox.skybox_asset				= DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
+		skybox.exposure					= 0.25f;
+
 		ecs_component_table_t& debug_widgets_table	= world.get_component_table(type_id_t<component_debug_widgets_t>::value);
 		const bool			   debug_widgets_exists = ecs_t::table_has(debug_widgets_table, environment);
 		void*				   debug_widgets		= ecs_t::table_add(debug_widgets_table, environment);
@@ -298,6 +431,9 @@ namespace sfg
 
 	bool editor_world_controller_t::load_main_world(sid_t asset_guid)
 	{
+		if (editor_global_toolbar_t::get().get_play_mode() != editor_play_mode_e::none)
+			return false;
+
 		editor_app_t::get().stop_render();
 
 		if (!_main_world.is_null() && _main_world_dirty)
@@ -365,11 +501,13 @@ namespace sfg
 			install_default_world(handle);
 		else
 		{
-			world_t&			 world			 = _worlds.get(handle)->get_world();
-			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
+			editor_world_t* const editor_world	  = _worlds.get(handle);
+			world_t&			  world			  = editor_world->get_world();
+			const nlohmann::json  embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
 			world_cooker_t::world_from_json(world, embedded_source);
 			world.load_all_used_resources();
-			_worlds.get(handle)->install_camera(editor_world_camera_type_e::fly);
+			editor_world->install_camera(editor_world_camera_type_e::fly);
+			editor_world->deserialize_camera(embedded_source.value<nlohmann::json>("editor_camera", nlohmann::json::object()));
 		}
 
 		const char* asset_name = editor_asset_util_t::find_asset_display_name(asset_guid);
@@ -391,10 +529,15 @@ namespace sfg
 	{
 		if (_main_world.is_null())
 			return false;
+		if (editor_global_toolbar_t::get().get_play_mode() != editor_play_mode_e::none)
+			return false;
 
-		nlohmann::json world_json = nlohmann::json::object();
-		world_cooker_t::world_to_json(_worlds.get(_main_world)->get_world(), world_json);
-		_worlds.get(_main_world)->get_edit_context().write_folders_to_json(world_json["folders"]);
+		nlohmann::json		  world_json   = nlohmann::json::object();
+		editor_world_t* const editor_world = _worlds.get(_main_world);
+		world_cooker_t::world_to_json(editor_world->get_world(), world_json);
+
+		editor_world->get_edit_context().write_folders_to_json(world_json["folders"]);
+		editor_world->serialize_camera(world_json["editor_camera"]);
 
 		editor_asset_t		  asset = {};
 		string_t			  asset_path;
@@ -442,9 +585,11 @@ namespace sfg
 
 		_main_world_asset_guid = asset.guid;
 		set_main_world_dirty(false);
+
 		editor_project_t& project		 = editor_project_t::get();
 		project.settings.last_world_guid = asset.guid;
 		project.save(project._runtime.path.c_str());
+
 		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
 		const editor_asset_node_handle_t existing_node = asset_manager.find_asset_node_handle(asset.guid);
 		if (!existing_node.is_null())

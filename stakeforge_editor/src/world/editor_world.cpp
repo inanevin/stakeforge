@@ -31,10 +31,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/data/char_util.hpp>
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/data/istream.hpp>
 #include <sfg/math/aabb.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/mat4x3.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
+#include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/io/assert.hpp>
@@ -44,6 +47,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -83,6 +87,9 @@ namespace sfg
 		_pending_pick_request		 = {};
 		_last_render_pick_request_id = 0;
 		_next_pick_request_id		 = 0;
+		_camera_type				 = editor_world_camera_type_e::fly;
+		_play_mode					 = editor_play_mode_e::none;
+		_play_snapshot.shrink(0);
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 			_object_id_readback_valid[i] = false;
@@ -112,6 +119,13 @@ namespace sfg
 
 	void editor_world_t::uninit()
 	{
+		if (_play_mode != editor_play_mode_e::none)
+		{
+			_world.end_play();
+			_play_mode = editor_play_mode_e::none;
+		}
+		_play_snapshot.shrink(0);
+
 		_gizmo.uninit(_world);
 		uninstall_camera();
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
@@ -154,6 +168,7 @@ namespace sfg
 	void editor_world_t::install_camera(editor_world_camera_type_e type)
 	{
 		uninstall_camera();
+		_camera_type = type;
 
 		switch (type)
 		{
@@ -178,6 +193,18 @@ namespace sfg
 		_camera->uninit(_world);
 		delete _camera;
 		_camera = nullptr;
+	}
+
+	void editor_world_t::serialize_camera(nlohmann::json& out_json) const
+	{
+		SFG_ASSERT(_camera != nullptr);
+		_camera->serialize(_world, out_json);
+	}
+
+	void editor_world_t::deserialize_camera(const nlohmann::json& in_json)
+	{
+		SFG_ASSERT(_camera != nullptr);
+		_camera->deserialize(_world, in_json);
 	}
 
 	void editor_world_t::pass_camera_input(const editor_world_camera_input_t& input)
@@ -205,6 +232,9 @@ namespace sfg
 
 	void editor_world_t::update_gizmo_hover(vec2f_t relative_position)
 	{
+		if (_play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+			return;
+
 		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
 		_gizmo.update_hover(_world, _edit_context, camera_entity, _render_resolution, relative_position);
 	}
@@ -216,18 +246,27 @@ namespace sfg
 
 	bool editor_world_t::begin_gizmo_action(vec2f_t relative_position)
 	{
+		if (_play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+			return false;
+
 		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
 		return _gizmo.begin_action(_world, _edit_context, camera_entity, _render_resolution, relative_position);
 	}
 
 	void editor_world_t::update_gizmo_action(vec2f_t relative_position)
 	{
+		if (_play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+			return;
+
 		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
 		_gizmo.update_action(_world, _edit_context, camera_entity, _render_resolution, relative_position);
 	}
 
 	void editor_world_t::end_gizmo_action()
 	{
+		if (_play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+			return;
+
 		_gizmo.end_action(_world, _edit_context);
 	}
 
@@ -294,10 +333,99 @@ namespace sfg
 		_edit_context.issue_entity_selection({.data = selection.data(), .size = selection.size()}, selection.empty() ? NULL_ENTITY_ID : entity);
 	}
 
-	void editor_world_t::tick(f32 dt_seconds)
+	void editor_world_t::save_play_snapshot()
+	{
+		SFG_ASSERT(_camera != nullptr);
+
+		nlohmann::json snapshot = nlohmann::json::object();
+		world_cooker_t::world_to_json(_world, snapshot);
+		serialize_camera(snapshot["editor_camera"]);
+
+		const string_t snapshot_text = snapshot.dump();
+		_play_snapshot.shrink(0);
+		_play_snapshot << snapshot_text;
+	}
+
+	void editor_world_t::restore_play_snapshot(bool keep_current_camera)
+	{
+		SFG_ASSERT(_play_snapshot.get_size() != 0);
+
+		istream_t snapshot_stream(_play_snapshot.get_raw(), _play_snapshot.get_size());
+		string_t  snapshot_text;
+		snapshot_stream >> snapshot_text;
+
+		const nlohmann::json snapshot = nlohmann::json::parse(snapshot_text, nullptr, false);
+		SFG_ASSERT(!snapshot.is_discarded());
+		nlohmann::json camera = snapshot.value<nlohmann::json>("editor_camera", nlohmann::json::object());
+		if (keep_current_camera)
+			serialize_camera(camera);
+
+		// reset
+		uninstall_camera();
+		_world.clear_entities();
+		world_cooker_t::world_from_json(_world, snapshot);
+
+		// cam
+		install_camera(_camera_type);
+		deserialize_camera(camera);
+
+		// reset
+		_world.update_world_transforms(false);
+		_play_snapshot.shrink(0);
+		_pending_pick_request		 = {};
+		_last_render_pick_request_id = 0;
+		_pick_result.store(0, std::memory_order_relaxed);
+	}
+
+	void editor_world_t::update_play_mode(editor_play_mode_e mode)
+	{
+		if (_play_mode == mode)
+			return;
+
+		if (_play_mode == editor_play_mode_e::none)
+		{
+			SFG_ASSERT(mode == editor_play_mode_e::play || mode == editor_play_mode_e::play_physics);
+			if (mode == editor_play_mode_e::play)
+			{
+				cancel_gizmo_action();
+				clear_gizmo_hover();
+			}
+
+			save_play_snapshot();
+
+			if (mode == editor_play_mode_e::play)
+				uninstall_camera();
+
+			_world.begin_play();
+			_play_mode = mode;
+			return;
+		}
+
+		if (mode == editor_play_mode_e::none)
+		{
+			const bool keep_current_camera = _play_mode == editor_play_mode_e::play_physics || _play_mode == editor_play_mode_e::play_physics_paused;
+			cancel_gizmo_action();
+			clear_gizmo_hover();
+			_world.end_play();
+			_play_mode = editor_play_mode_e::none;
+			restore_play_snapshot(keep_current_camera);
+			return;
+		}
+
+		const bool full_pause_transition	= (_play_mode == editor_play_mode_e::play && mode == editor_play_mode_e::play_paused) || (_play_mode == editor_play_mode_e::play_paused && mode == editor_play_mode_e::play);
+		const bool physics_pause_transition = (_play_mode == editor_play_mode_e::play_physics && mode == editor_play_mode_e::play_physics_paused) || (_play_mode == editor_play_mode_e::play_physics_paused && mode == editor_play_mode_e::play_physics);
+		SFG_ASSERT(full_pause_transition || physics_pause_transition);
+		_play_mode = mode;
+	}
+
+	void editor_world_t::begin_frame()
 	{
 		consume_entity_pick_result();
-		_world.tick(dt_seconds);
+		_world.get_debug_draw().begin_frame();
+	}
+
+	void editor_world_t::draw_debug()
+	{
 
 		if (_gizmo.is_action_active())
 		{
@@ -309,11 +437,15 @@ namespace sfg
 		if (selected.size != 0)
 		{
 			world_debug_draw_t&			 debug_draw		 = _world.get_debug_draw();
-			const vec4f_t&				 accent_warn	 = editor_theme_t::get().color_accent_warn;
+			const editor_theme_t&		 theme			 = editor_theme_t::get();
+			const vec4f_t&				 accent_warn	 = theme.color_accent_warn;
+			const vec4f_t&				 accent1		 = theme.color_accent1;
 			const color_t				 debug_color	 = {accent_warn.x, accent_warn.y, accent_warn.z, accent_warn.w};
+			const color_t				 collider_color	 = {accent1.x, accent1.y, accent1.z, accent1.w};
 			const ecs_component_table_t& transform_table = _world.get_component_table(type_id_t<component_system_transform_t>::value);
 			const ecs_component_table_t& camera_table	 = _world.get_component_table(type_id_t<component_camera_t>::value);
 			const ecs_component_table_t& light_table	 = _world.get_component_table(type_id_t<component_light_t>::value);
+			const ecs_component_table_t& collider_table	 = _world.get_component_table(type_id_t<component_collider_t>::value);
 
 			for (size_t i = 0; i < selected.size; ++i)
 			{
@@ -333,6 +465,39 @@ namespace sfg
 											debug_color,
 											2.0f,
 											debug_draw_depth_e::always_visible);
+				}
+
+				const component_collider_t* collider = ecs_helpers_t::table_find_as_const<component_collider_t>(collider_table, entity);
+				if (collider != nullptr)
+				{
+					const vec3f_t abs_scale		= vec3f_t::abs(transform.abs_scale);
+					const quat_t  body_rotation = transform.abs_rot * collider->local_rotation;
+					const vec3f_t body_position = transform.abs_pos + transform.abs_rot * (collider->local_position * transform.abs_scale);
+					switch (collider->shape)
+					{
+					case physics_shape_type_e::box: {
+						const mat4x3_t collider_transform = mat4x3_t::transform(body_position, body_rotation, vec3f_t::one);
+						debug_draw.draw_box(collider_transform, vec3f_t::max(collider->half_extent * abs_scale, {0.001f, 0.001f, 0.001f}), collider_color, 2.0f, debug_draw_depth_e::always_visible);
+						break;
+					}
+					case physics_shape_type_e::sphere: {
+						const f32 radius = math::max(collider->radius * math::max(abs_scale.x, math::max(abs_scale.y, abs_scale.z)), 0.001f);
+						debug_draw.draw_sphere(body_position, radius, collider_color, 2.0f, debug_draw_depth_e::always_visible);
+						break;
+					}
+					case physics_shape_type_e::capsule: {
+						const f32 radius	  = math::max(collider->radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
+						const f32 half_height = math::max(collider->half_height * abs_scale.y, 0.001f);
+						debug_draw.draw_capsule(body_position, radius, half_height, body_rotation.get_up(), collider_color, 2.0f, debug_draw_depth_e::always_visible);
+						break;
+					}
+					case physics_shape_type_e::cylinder: {
+						const f32 radius	  = math::max(collider->radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
+						const f32 half_height = math::max(collider->half_height * abs_scale.y, 0.001f);
+						debug_draw.draw_cylinder(body_position, radius, half_height, body_rotation.get_up(), collider_color, 2.0f, debug_draw_depth_e::always_visible);
+						break;
+					}
+					}
 				}
 
 				const component_light_t* light = ecs_helpers_t::table_find_as_const<component_light_t>(light_table, entity);
@@ -415,7 +580,8 @@ namespace sfg
 		};
 		data.gizmo = {};
 
-		const entity_id_t anchor = _edit_context.get_mutable_entity_anchor(_world);
+		const bool		  gizmo_enabled = _play_mode != editor_play_mode_e::play && _play_mode != editor_play_mode_e::play_paused;
+		const entity_id_t anchor		= gizmo_enabled ? _edit_context.get_mutable_entity_anchor(_world) : NULL_ENTITY_ID;
 		if (anchor != NULL_ENTITY_ID)
 		{
 			const ecs_component_table_t&		transform_table = _world.get_component_table(type_id_t<component_system_transform_t>::value);
@@ -430,8 +596,11 @@ namespace sfg
 			};
 		}
 
-		data.gizmo.hovered_axis = _gizmo.get_hovered_axis();
-		data.gizmo.active_axis	= _gizmo.get_active_axis();
+		if (gizmo_enabled)
+		{
+			data.gizmo.hovered_axis = _gizmo.get_hovered_axis();
+			data.gizmo.active_axis	= _gizmo.get_active_axis();
+		}
 		data.selected_entities.resize(0);
 		data.selected_entities.reserve(selected.size);
 		for (size_t i = 0; i < selected.size; ++i)

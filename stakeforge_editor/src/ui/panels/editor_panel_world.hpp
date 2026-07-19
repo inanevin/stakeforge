@@ -46,6 +46,11 @@ namespace sfg
 		void set_panel_name(const char* name);
 		void set_world_dirty(bool dirty);
 
+		inline editor_widget_world_view_t& get_world_view()
+		{
+			return _world_view;
+		}
+
 	private:
 		editor_widget_world_view_t _world_view;
 		string_t				   _panel_name	= {};

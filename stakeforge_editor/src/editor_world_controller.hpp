@@ -44,6 +44,7 @@ namespace sfg
 	class editor_command_system_t;
 	class editor_world_t;
 	class world_t;
+	enum class editor_play_mode_e : u8;
 	struct world_init_config_t;
 	struct world_render_snapshot_t;
 	struct editor_command_listener_tag_t;
@@ -134,11 +135,14 @@ namespace sfg
 		void		destroy_world_internal(editor_world_handle_t handle);
 		void		destroy_main_world_internal();
 		void		destroy_worlds_internal(bool notify_panels);
+		void		stop_main_world_play_mode();
 		void		set_main_world(editor_world_handle_t handle, sid_t asset_guid, const char* name);
 		bool		load_main_world_now(sid_t asset_guid);
 		void		notify_main_world_changed();
 		void		notify_main_world_dirty_changed();
 		void		set_main_world_dirty(bool dirty);
+		void		update_main_world_play_mode(editor_play_mode_e mode);
+		void		tick_editor_world(editor_world_t& editor_world, bool is_main_world, editor_play_mode_e mode, f32 dt_seconds, bool force_simulation);
 		static void on_save_dirty_world_modal(void* user_data);
 		static void on_dont_save_dirty_world_modal(void* user_data);
 		static void on_cancel_dirty_world_modal(void* user_data);
@@ -159,6 +163,7 @@ namespace sfg
 		f32																	_render_alpha				   = 0.0f;
 		u32																	_world_physics_rate			   = 100;
 		bool																_main_world_dirty			   = false;
+		bool																_play_main_world_dirty		   = false;
 
 		static inline editor_world_controller_t* s_instance = nullptr;
 	};
