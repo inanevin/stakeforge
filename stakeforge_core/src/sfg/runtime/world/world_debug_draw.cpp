@@ -288,6 +288,24 @@ namespace sfg
 		}
 	}
 
+	void world_debug_draw_t::draw_cylinder(const vec3f_t& center, f32 radius, f32 half_height, const vec3f_t& direction, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
+	{
+		SFG_ASSERT(radius > 0.0f && half_height > 0.0f && segments >= 3 && !direction.is_zero());
+		const vec3f_t normal	= direction.normalized();
+		const vec3f_t reference = math::abs(vec3f_t::dot(normal, vec3f_t::up)) > 0.99f ? vec3f_t::right : vec3f_t::up;
+		const vec3f_t axis0		= vec3f_t::cross(reference, normal).normalized();
+		const vec3f_t axis1		= vec3f_t::cross(normal, axis0).normalized();
+		const vec3f_t top		= center + normal * half_height;
+		const vec3f_t bottom	= center - normal * half_height;
+
+		draw_circle(top, radius, normal, color, thickness_px, depth, segments);
+		draw_circle(bottom, radius, normal, color, thickness_px, depth, segments);
+		draw_line(top + axis0 * radius, bottom + axis0 * radius, color, thickness_px, depth);
+		draw_line(top - axis0 * radius, bottom - axis0 * radius, color, thickness_px, depth);
+		draw_line(top + axis1 * radius, bottom + axis1 * radius, color, thickness_px, depth);
+		draw_line(top - axis1 * radius, bottom - axis1 * radius, color, thickness_px, depth);
+	}
+
 	void world_debug_draw_t::draw_frustum(const vec3f_t& origin, const vec3f_t& direction, f32 fov_degrees, f32 aspect_ratio, f32 near_distance, f32 far_distance, const color_t& color, f32 thickness_px, debug_draw_depth_e depth)
 	{
 		const vec3f_t forward	= direction.normalized();

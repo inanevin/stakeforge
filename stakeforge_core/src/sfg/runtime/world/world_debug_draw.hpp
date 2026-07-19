@@ -97,6 +97,7 @@ namespace sfg
 		void draw_circle(const vec3f_t& center, f32 radius, const vec3f_t& normal, const color_t& color, f32 thickness_px = 2.0f, debug_draw_depth_e depth = debug_draw_depth_e::depth_tested, u32 segments = 32);
 		void draw_sphere(const vec3f_t& center, f32 radius, const color_t& color, f32 thickness_px = 2.0f, debug_draw_depth_e depth = debug_draw_depth_e::depth_tested, u32 segments = 32);
 		void draw_capsule(const vec3f_t& center, f32 radius, f32 half_height, const vec3f_t& direction, const color_t& color, f32 thickness_px = 2.0f, debug_draw_depth_e depth = debug_draw_depth_e::depth_tested, u32 segments = 32);
+		void draw_cylinder(const vec3f_t& center, f32 radius, f32 half_height, const vec3f_t& direction, const color_t& color, f32 thickness_px = 2.0f, debug_draw_depth_e depth = debug_draw_depth_e::depth_tested, u32 segments = 32);
 		void draw_frustum(const vec3f_t& origin, const vec3f_t& direction, f32 fov_degrees, f32 aspect_ratio, f32 near_distance, f32 far_distance, const color_t& color, f32 thickness_px = 2.0f, debug_draw_depth_e depth = debug_draw_depth_e::depth_tested);
 		void draw_frustum(
 			const vec3f_t& origin, const vec3f_t& direction, const vec3f_t& up, f32 fov_degrees, f32 aspect_ratio, f32 near_distance, f32 far_distance, const color_t& color, f32 thickness_px = 2.0f, debug_draw_depth_e depth = debug_draw_depth_e::depth_tested);
