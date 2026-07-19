@@ -30,10 +30,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace JPH
 {
 	class JobSystem;
+	class PhysicsSystem;
 }
 
 namespace sfg
 {
+	class world_debug_draw_t;
+
 	class physics_runtime_t final
 	{
 	public:
@@ -43,5 +46,6 @@ namespace sfg
 		static void uninit();
 
 		static JPH::JobSystem& get_job_system();
+		static void			   draw_debug(JPH::PhysicsSystem& system, world_debug_draw_t& debug_draw);
 	};
 }

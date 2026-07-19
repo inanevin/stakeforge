@@ -1251,6 +1251,11 @@ namespace sfg
 		_impl->tick(delta_time);
 	}
 
+	void physics_world_t::draw_debug(world_debug_draw_t& debug_draw)
+	{
+		physics_runtime_t::draw_debug(*_impl->_system, debug_draw);
+	}
+
 	void physics_world_t::sync_body_create_destroy()
 	{
 		_impl->sync_body_create_destroy();

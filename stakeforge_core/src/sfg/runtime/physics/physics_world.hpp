@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	class world_t;
+	class world_debug_draw_t;
 
 	struct character_mover_state_t
 	{
@@ -70,6 +71,7 @@ namespace sfg
 		void uninit();
 		void clear();
 		void tick(f32 delta_time);
+		void draw_debug(world_debug_draw_t& debug_draw);
 
 		// -----------------------------------------------------------------------------
 		// bodies
