@@ -86,6 +86,7 @@ namespace sfg
 		static void on_grid_toggled(bool toggled, void* user_data);
 		static void on_bounding_boxes_toggled(bool toggled, void* user_data);
 		static void on_physics_debug_toggled(bool toggled, void* user_data);
+		static void on_shoot_rays_toggled(bool toggled, void* user_data);
 
 	private:
 		editor_popup_world_view_settings_t _settings_popup;
@@ -96,6 +97,7 @@ namespace sfg
 		editor_icon_button_t			   _grid_button;
 		editor_icon_button_t			   _bounding_boxes_button;
 		editor_icon_button_t			   _physics_debug_button;
+		editor_icon_button_t			   _shoot_rays_button;
 		transform_button_data_t			   _transform_button_data[3];
 		ui::ui_context*					   _ui			   = nullptr;
 		editor_world_handle_t			   _edit_world	   = {};
@@ -107,5 +109,6 @@ namespace sfg
 		ui::widget_id_t					   _global_frame   = NULL_WIDGET;
 		ui::widget_id_t					   _controls_frame = NULL_WIDGET;
 		ui::widget_id_t					   _view_frame	   = NULL_WIDGET;
+		ui::widget_id_t					   _physics_frame  = NULL_WIDGET;
 	};
 }

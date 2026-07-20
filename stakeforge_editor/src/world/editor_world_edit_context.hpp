@@ -228,6 +228,16 @@ namespace sfg
 			return _physics_debug_enabled;
 		}
 
+		inline void set_shoot_rays_enabled(bool enabled)
+		{
+			_shoot_rays_enabled = enabled;
+		}
+
+		inline bool is_shoot_rays_enabled() const
+		{
+			return _shoot_rays_enabled;
+		}
+
 		inline editor_world_view_settings_t& get_world_view_settings()
 		{
 			return _world_view_settings;
@@ -346,5 +356,6 @@ namespace sfg
 		bool																		  _bounding_boxes_enabled = false;
 		editor_world_view_settings_t												  _world_view_settings	  = {};
 		bool																		  _physics_debug_enabled  = false;
+		bool																		  _shoot_rays_enabled	  = false;
 	};
 }

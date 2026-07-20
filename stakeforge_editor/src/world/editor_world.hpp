@@ -114,6 +114,7 @@ namespace sfg
 		void						   end_gizmo_action();
 		void						   cancel_gizmo_action();
 		void						   request_entity_pick(vec2f_t relative_position, bool incremental_selection);
+		void						   shoot_ray_from_camera(vec2f_t relative_position);
 		void						   begin_frame();
 		void						   draw_debug();
 		void						   update_play_mode(editor_play_mode_e mode);

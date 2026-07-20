@@ -41,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
+#include <sfg/runtime/world/world_util.hpp>
 
 namespace sfg
 {
@@ -75,12 +76,6 @@ namespace sfg
 		vec3f_t				rotation_direction = vec3f_t::zero;
 		vec2f_t				rotation_tangent   = vec2f_t::zero;
 		editor_gizmo_axis_e axis			   = editor_gizmo_axis_e::invalid;
-	};
-
-	struct editor_world_gizmo_t::ray_t
-	{
-		vec3f_t origin	  = vec3f_t::zero;
-		vec3f_t direction = vec3f_t::zero;
 	};
 
 	void editor_world_gizmo_t::init()
@@ -165,16 +160,11 @@ namespace sfg
 
 	bool editor_world_gizmo_t::project_point(const frame_t& frame, const vec3f_t& point, vec2f_t& out_position) const
 	{
-		const vec4f_t clip = frame.view.view_proj * vec4f_t(point.x, point.y, point.z, 1.0f);
-
-		if (clip.w <= MATH_EPS)
+		if (!world_util_t::world_position_to_relative_position(frame.view.view_proj, point, out_position))
 			return false;
 
-		const f32 inv_w = 1.0f / clip.w;
-		out_position	= {
-			(clip.x * inv_w * 0.5f + 0.5f) * static_cast<f32>(frame.resolution.x),
-			(0.5f - clip.y * inv_w * 0.5f) * static_cast<f32>(frame.resolution.y),
-		};
+		out_position.x *= static_cast<f32>(frame.resolution.x);
+		out_position.y *= static_cast<f32>(frame.resolution.y);
 		return true;
 	}
 
@@ -240,9 +230,9 @@ namespace sfg
 
 		if (control_type == editor_transform_control_type_e::move)
 		{
-			ray_t ray = {};
+			world_ray_t ray = {};
 
-			if (calculate_ray(frame, relative_position, ray))
+			if (world_util_t::relative_position_to_world_ray(frame.view.inv_view_proj, relative_position, ray))
 			{
 				f32 best_alignment = 0.0f;
 
@@ -298,24 +288,7 @@ namespace sfg
 		return result;
 	}
 
-	bool editor_world_gizmo_t::calculate_ray(const frame_t& frame, vec2f_t relative_position, ray_t& out_ray) const
-	{
-		const f32 ndc_x		 = relative_position.x * 2.0f - 1.0f;
-		const f32 ndc_y		 = 1.0f - relative_position.y * 2.0f;
-		vec4f_t	  near_point = frame.view.inv_view_proj * vec4f_t(ndc_x, ndc_y, 1.0f, 1.0f);
-		vec4f_t	  far_point	 = frame.view.inv_view_proj * vec4f_t(ndc_x, ndc_y, 0.0f, 1.0f);
-
-		if (math::abs(near_point.w) <= MATH_EPS || math::abs(far_point.w) <= MATH_EPS)
-			return false;
-
-		near_point /= near_point.w;
-		far_point /= far_point.w;
-		out_ray.origin	  = {near_point.x, near_point.y, near_point.z};
-		out_ray.direction = (vec3f_t(far_point.x, far_point.y, far_point.z) - out_ray.origin).normalized();
-		return !out_ray.direction.is_zero();
-	}
-
-	bool editor_world_gizmo_t::calculate_axis_parameter(const ray_t& ray, const vec3f_t& pivot, const vec3f_t& axis, f32& out_parameter) const
+	bool editor_world_gizmo_t::calculate_axis_parameter(const world_ray_t& ray, const vec3f_t& pivot, const vec3f_t& axis, f32& out_parameter) const
 	{
 		const f32 parallel = vec3f_t::dot(axis, ray.direction);
 		const f32 denom	   = 1.0f - parallel * parallel;
@@ -328,7 +301,7 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_world_gizmo_t::calculate_rotation_direction(const ray_t& ray, const vec3f_t& pivot, const vec3f_t& axis, vec3f_t& out_direction) const
+	bool editor_world_gizmo_t::calculate_rotation_direction(const world_ray_t& ray, const vec3f_t& pivot, const vec3f_t& axis, vec3f_t& out_direction) const
 	{
 		const f32 denom = vec3f_t::dot(ray.direction, axis);
 
@@ -340,7 +313,7 @@ namespace sfg
 		return !out_direction.is_zero();
 	}
 
-	bool editor_world_gizmo_t::calculate_plane_point(const ray_t& ray, const vec3f_t& pivot, const vec3f_t& normal, vec3f_t& out_point) const
+	bool editor_world_gizmo_t::calculate_plane_point(const world_ray_t& ray, const vec3f_t& pivot, const vec3f_t& normal, vec3f_t& out_point) const
 	{
 		const f32 denom = vec3f_t::dot(ray.direction, normal);
 
@@ -436,9 +409,9 @@ namespace sfg
 			_axis_pixels_per_world = vec2f_t::distance(pivot_pixels, endpoint_pixels) / frame.world_scale;
 		}
 
-		ray_t ray = {};
+		world_ray_t ray = {};
 
-		if (calculate_ray(frame, relative_position, ray))
+		if (world_util_t::relative_position_to_world_ray(frame.view.inv_view_proj, relative_position, ray))
 		{
 			if (!axis_handle)
 				_central_plane_valid = calculate_plane_point(ray, _pivot, _central_plane_normal, _initial_plane_point);
@@ -505,8 +478,8 @@ namespace sfg
 		};
 
 		const vec2f_t mouse_delta = mouse_pixels - _initial_mouse_pixels;
-		ray_t		  ray		  = {};
-		const bool	  ray_valid	  = calculate_ray(frame, relative_position, ray);
+		world_ray_t	  ray		  = {};
+		const bool	  ray_valid	  = world_util_t::relative_position_to_world_ray(frame.view.inv_view_proj, relative_position, ray);
 
 		mat4x3_t delta = mat4x3_t::identity;
 

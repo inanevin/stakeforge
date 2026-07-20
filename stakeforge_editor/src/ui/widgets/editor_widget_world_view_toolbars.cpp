@@ -99,7 +99,7 @@ namespace sfg
 		ui::layout_in_t& left_in = tree.in(_top_left_row);
 		left_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		left_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		left_in.size_value		 = {1.0f, theme.item_area_height * 0.75f};
+		left_in.size_value		 = {1.0f, theme.item_area_height};
 		left_in.flow			 = ui::flow_e::row;
 		left_in.child_spacing	 = 0.0f;
 
@@ -151,6 +151,7 @@ namespace sfg
 		buttons_frame_rect.fill_color_b		   = {theme.color_frame.x, theme.color_frame.y, theme.color_frame.z, 0.9f};
 		buttons_frame_rect.outline_color	   = theme.color_frame;
 		buttons_frame_rect.outline_thickness   = theme.outline_thickness;
+		buttons_frame_rect.rounding			   = theme.item_rounding;
 		paint.set_rect(_global_frame, buttons_frame_rect);
 		paint.set_rect(_controls_frame, buttons_frame_rect);
 
@@ -252,20 +253,46 @@ namespace sfg
 		button_config.on_clicked   = on_bounding_boxes_toggled;
 		_bounding_boxes_button.init(ui, _view_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _bounding_boxes_button);
-		editor_dividers_t::add_divider_ver(ui, _view_frame, theme.border_thickness * 0.5f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
+
+		editor_misc_widgets_t::add_spacer(ui, _top_left_row, {theme.item_height, theme.item_height});
+
+		_physics_frame = ui.allocate_widget();
+		ui.set_widget_debug_name(_physics_frame, "world_view_toolbar_physics_frame");
+		tree.attach(_top_left_row, _physics_frame);
+
+		ui::layout_in_t& physics_frame_in = tree.in(_physics_frame);
+		physics_frame_in.pos_mode_x		  = ui::pos_mode_e::flow;
+		physics_frame_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
+		physics_frame_in.pos_value.y	  = 0.5f;
+		physics_frame_in.anchor_y		  = ui::anchor_e::center;
+		physics_frame_in.size_mode_x	  = ui::axis_mode_e::sum_children;
+		physics_frame_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
+		physics_frame_in.size_value.y	  = 1.0f;
+		physics_frame_in.flow			  = ui::flow_e::row;
+		physics_frame_in.child_spacing	  = 0.0f;
+		paint.set_rect(_physics_frame, buttons_frame_rect);
 
 		button_config.icon		   = ICON_CUBES;
 		button_config.toggled_icon = ICON_CUBES;
 		button_config.tooltip	   = "Physics Debug";
 		button_config.on_clicked   = on_physics_debug_toggled;
-		_physics_debug_button.init(ui, _view_frame, button_config);
+		_physics_debug_button.init(ui, _physics_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _physics_debug_button);
+		editor_dividers_t::add_divider_ver(ui, _physics_frame, theme.border_thickness * 0.5f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
+
+		button_config.icon		   = ICON_EXPLOSION;
+		button_config.toggled_icon = ICON_EXPLOSION;
+		button_config.tooltip	   = "Physics Shoot Rays";
+		button_config.on_clicked   = on_shoot_rays_toggled;
+		_shoot_rays_button.init(ui, _physics_frame, button_config);
+		set_icon_button_parent_relative_height(tree, _shoot_rays_button);
 	}
 
 	void editor_widget_world_view_toolbars_t::uninit()
 	{
 		if (_settings_popup.is_initialized())
 			editor_popup_controller_t::find(*_ui)->close_popup(false);
+		_shoot_rays_button.uninit();
 		_physics_debug_button.uninit();
 		_bounding_boxes_button.uninit();
 		_grid_button.uninit();
@@ -286,6 +313,7 @@ namespace sfg
 		_global_frame	= NULL_WIDGET;
 		_controls_frame = NULL_WIDGET;
 		_view_frame		= NULL_WIDGET;
+		_physics_frame	= NULL_WIDGET;
 	}
 
 	void editor_widget_world_view_toolbars_t::set_edit_world(editor_world_handle_t world)
@@ -325,6 +353,7 @@ namespace sfg
 		_grid_button.set_toggled(context.is_grid_enabled());
 		_bounding_boxes_button.set_toggled(context.is_bounding_boxes_enabled());
 		_physics_debug_button.set_toggled(context.is_physics_debug_enabled());
+		_shoot_rays_button.set_toggled(context.is_shoot_rays_enabled());
 	}
 
 	void editor_widget_world_view_toolbars_t::on_transform_control_toggled(bool toggled, void* user_data)
@@ -388,5 +417,11 @@ namespace sfg
 	{
 		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
 		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().set_physics_debug_enabled(toggled);
+	}
+
+	void editor_widget_world_view_toolbars_t::on_shoot_rays_toggled(bool toggled, void* user_data)
+	{
+		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
+		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().set_shoot_rays_enabled(toggled);
 	}
 }

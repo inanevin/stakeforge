@@ -99,6 +99,9 @@ namespace sfg
 		const vec3f_t& get_entity_pos_local(entity_id_t id) const;
 		const quat_t&  get_entity_rot_local(entity_id_t id) const;
 		const vec3f_t& get_entity_scale_local(entity_id_t id) const;
+		const vec3f_t& get_entity_pos_last_abs(entity_id_t id) const;
+		const quat_t&  get_entity_rot_last_abs(entity_id_t id) const;
+		const vec3f_t& get_entity_scale_last_abs(entity_id_t id) const;
 		vec3f_t		   abs_pos_to_local(entity_id_t id, const vec3f_t& pos);
 		quat_t		   abs_rot_to_local(entity_id_t id, const quat_t& rot);
 		vec3f_t		   abs_scale_to_local(entity_id_t id, const vec3f_t& scale);

@@ -48,7 +48,7 @@ namespace sfg
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible | ui::wf_input;
-		root_in.size_mode_x		 = ui::axis_mode_e::fixed;
+		root_in.size_mode_x		 = ui::axis_mode_e::copy_other;
 		root_in.size_mode_y		 = ui::axis_mode_e::fixed;
 		root_in.size_value		 = {config.size, config.size};
 		root_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;

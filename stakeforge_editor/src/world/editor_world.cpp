@@ -37,6 +37,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/physics/physics_world.hpp>
+#include <sfg/runtime/render/render_view.hpp>
+#include <sfg/runtime/render/world_render_view.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
 #include <sfg/runtime/resources/physics_collision_mesh.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
@@ -50,6 +52,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
+#include <sfg/runtime/world/world_util.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
@@ -312,6 +315,53 @@ namespace sfg
 			.id					   = _next_pick_request_id,
 			.incremental_selection = incremental_selection,
 		};
+	}
+
+	void editor_world_t::shoot_ray_from_camera(vec2f_t relative_position)
+	{
+		SFG_ASSERT(_play_mode == editor_play_mode_e::play_physics || _play_mode == editor_play_mode_e::play_physics_paused);
+		SFG_ASSERT(_camera != nullptr);
+
+		physics_world_t& physics = _world.get_physics();
+
+		if (!physics.is_init())
+			return;
+
+		const entity_id_t camera_entity	  = _camera->get_entity();
+		vec3f_t			  camera_position = _world.get_entity_pos_local(camera_entity);
+		quat_t			  camera_rotation = _world.get_entity_rot_local(camera_entity);
+		vec3f_t			  camera_scale	  = _world.get_entity_scale_local(camera_entity);
+
+		const component_camera_t& camera	 = ecs_helpers_t::table_get_as<component_camera_t>(_world.get_component_table(type_id_t<component_camera_t>::value), camera_entity);
+		const world_render_view_t world_view = {
+			.pos		 = camera_position,
+			.rot		 = camera_rotation,
+			.prev_pos	 = camera_position,
+			.prev_rot	 = camera_rotation,
+			.near_plane	 = camera.near_plane,
+			.far_plane	 = camera.far_plane,
+			.fov_degrees = camera.fov_degrees,
+		};
+		render_view_t view = {};
+		view.calculate(world_view, _render_resolution, 1.0f);
+
+		world_ray_t ray = {};
+
+		if (!world_util_t::relative_position_to_world_ray(view.inv_view_proj, relative_position, ray))
+			return;
+
+		ray.origin		  = camera_position;
+		physics_hit_t hit = {};
+
+		if (!physics.raycast_closest({.origin = ray.origin, .direction = ray.direction, .distance = camera.far_plane}, hit))
+			return;
+
+		const component_rigid_body_t* rigid_body = ecs_helpers_t::table_find_as_const<component_rigid_body_t>(_world.get_component_table(type_id_t<component_rigid_body_t>::value), hit.entity);
+
+		if (rigid_body == nullptr || rigid_body->motion_type != physics_motion_type_e::dynamic_body)
+			return;
+
+		physics.add_body_force(hit.entity, ray.direction * _edit_context.get_world_view_settings().physics_ray_force);
 	}
 
 	void editor_world_t::consume_entity_pick_result()

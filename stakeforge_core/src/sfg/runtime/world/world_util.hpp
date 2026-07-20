@@ -27,26 +27,24 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/common/type_id.hpp>
+#include <sfg/math/vec3f.hpp>
 
 namespace sfg
 {
-	struct editor_world_view_settings_t
+	class mat4x4_t;
+	struct vec2f_t;
+
+	struct world_ray_t
 	{
-		f32 physics_ray_force = 1000.0f;
-		f32 grid_scale		  = 1.0f;
-		f32 snap_translate	  = 0.0f;
-		f32 snap_rotate		  = 0.0f;
-		f32 snap_scale		  = 0.0f;
+		vec3f_t origin	  = vec3f_t::zero;
+		vec3f_t direction = vec3f_t::forward;
 	};
 
-	SFG_DEFINE_TYPE_ID(editor_world_view_settings_t);
-
-	struct editor_world_view_settings_reflection_t
+	class world_util_t final
 	{
-		editor_world_view_settings_reflection_t();
+	public:
+		static bool world_position_to_relative_position(const mat4x4_t& view_proj, const vec3f_t& world_position, vec2f_t& out_relative_position);
+		static bool relative_position_to_world_position(const mat4x4_t& inv_view_proj, const vec2f_t& relative_position, f32 ndc_depth, vec3f_t& out_world_position);
+		static bool relative_position_to_world_ray(const mat4x4_t& inv_view_proj, const vec2f_t& relative_position, world_ray_t& out_ray);
 	};
-
-	inline editor_world_view_settings_reflection_t g_reflect_editor_world_view_settings;
 }

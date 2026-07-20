@@ -475,6 +475,30 @@ namespace sfg
 		return transform.scale;
 	}
 
+	const vec3f_t& world_t::get_entity_pos_last_abs(entity_id_t id) const
+	{
+		SFG_ASSERT(is_alive(id));
+
+		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(*_system_components.transform_table, id);
+		return transform.prev_abs_pos;
+	}
+
+	const quat_t& world_t::get_entity_rot_last_abs(entity_id_t id) const
+	{
+		SFG_ASSERT(is_alive(id));
+
+		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(*_system_components.transform_table, id);
+		return transform.prev_abs_rot;
+	}
+
+	const vec3f_t& world_t::get_entity_scale_last_abs(entity_id_t id) const
+	{
+		SFG_ASSERT(is_alive(id));
+
+		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(*_system_components.transform_table, id);
+		return transform.prev_abs_scale;
+	}
+
 	vec3f_t world_t::abs_pos_to_local(entity_id_t id, const vec3f_t& pos)
 	{
 		SFG_ASSERT(is_alive(id));

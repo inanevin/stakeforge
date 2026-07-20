@@ -38,6 +38,15 @@ namespace sfg
 			.display_name = "World View Settings",
 			.fields =
 				{
+					{.name				= "physics_ray_force",
+					 .display_name		= "Physics Ray Force",
+					 .offset			= offsetof(editor_world_view_settings_t, physics_ray_force),
+					 .size				= sizeof(f32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 0.0f,
+					 .max_clamp			= 100000.0f,
+					 .clamp_granularity = 100.0f,
+					 .type				= reflected_value_type_e::f32},
 					{.name				= "grid_scale",
 					 .display_name		= "Grid Scale",
 					 .offset			= offsetof(editor_world_view_settings_t, grid_scale),

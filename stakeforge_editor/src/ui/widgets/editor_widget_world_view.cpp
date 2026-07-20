@@ -139,16 +139,17 @@ namespace sfg
 		_toolbars.uninit();
 		_ui->deallocate_widget(_empty_label);
 		_ui->deallocate_widget(_world_view);
-		_edit_world			  = {};
-		_last_resize_request  = vec2u16_t::zero;
-		_camera_runtime		  = nullptr;
-		_empty_label		  = NULL_WIDGET;
-		_world_view			  = NULL_WIDGET;
-		_root				  = NULL_WIDGET;
-		_resize_ticks		  = 0;
-		_camera_control		  = false;
-		_gizmo_press_consumed = false;
-		_ui					  = nullptr;
+		_edit_world				  = {};
+		_last_resize_request	  = vec2u16_t::zero;
+		_camera_runtime			  = nullptr;
+		_empty_label			  = NULL_WIDGET;
+		_world_view				  = NULL_WIDGET;
+		_root					  = NULL_WIDGET;
+		_resize_ticks			  = 0;
+		_camera_control			  = false;
+		_gizmo_press_consumed	  = false;
+		_shoot_ray_press_consumed = false;
+		_ui						  = nullptr;
 	}
 
 	void editor_widget_world_view_t::set_edit_world(editor_world_handle_t world)
@@ -331,7 +332,8 @@ namespace sfg
 			world->cancel_gizmo_action();
 			world->clear_gizmo_hover();
 		}
-		_gizmo_press_consumed = false;
+		_gizmo_press_consumed	  = false;
+		_shoot_ray_press_consumed = false;
 	}
 
 	void editor_widget_world_view_t::refresh_world_texture()
@@ -362,7 +364,7 @@ namespace sfg
 			widget._resize_ticks = 0;
 			widget.request_world_resize(false);
 		}
-		if (!widget._gizmo_press_consumed && widget._ui->get_input().get_hovered() == widget._world_view)
+		if (!widget._gizmo_press_consumed && !widget._shoot_ray_press_consumed && widget._ui->get_input().get_hovered() == widget._world_view)
 		{
 			const vec2f_t& mouse = widget._ui->get_input().get_mouse_position();
 			editor_world_controller_t::get().get_editor_world(widget._edit_world)->update_gizmo_hover(widget.calculate_relative_position(mouse));
@@ -381,7 +383,16 @@ namespace sfg
 		}
 		else if (btn == ui::mouse_button_e::left && !widget._edit_world.is_null())
 		{
-			editor_world_t* world		 = editor_world_controller_t::get().get_editor_world(widget._edit_world);
+			editor_world_t*			 world			   = editor_world_controller_t::get().get_editor_world(widget._edit_world);
+			const editor_play_mode_e play_mode		   = world->get_play_mode();
+			const bool				 physics_play_mode = play_mode == editor_play_mode_e::play_physics || play_mode == editor_play_mode_e::play_physics_paused;
+
+			if (physics_play_mode && world->get_edit_context().is_shoot_rays_enabled())
+			{
+				widget._shoot_ray_press_consumed = true;
+				return;
+			}
+
 			widget._gizmo_press_consumed = world->begin_gizmo_action(widget.calculate_relative_position(pos));
 		}
 	}
@@ -392,6 +403,11 @@ namespace sfg
 
 		if (btn == ui::mouse_button_e::right)
 			widget.end_camera_control();
+		else if (btn == ui::mouse_button_e::left && widget._shoot_ray_press_consumed)
+		{
+			widget._shoot_ray_press_consumed = false;
+			editor_world_controller_t::get().get_editor_world(widget._edit_world)->shoot_ray_from_camera(widget.calculate_relative_position(pos));
+		}
 		else if (btn == ui::mouse_button_e::left && widget._gizmo_press_consumed)
 		{
 			editor_world_t* world			  = editor_world_controller_t::get().get_editor_world(widget._edit_world);
@@ -412,7 +428,7 @@ namespace sfg
 	void editor_widget_world_view_t::on_world_view_hover_move(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, const vec2f_t&, void* user_data)
 	{
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
-		if (!widget._edit_world.is_null() && !widget._gizmo_press_consumed)
+		if (!widget._edit_world.is_null() && !widget._gizmo_press_consumed && !widget._shoot_ray_press_consumed)
 			editor_world_controller_t::get().get_editor_world(widget._edit_world)->update_gizmo_hover(widget.calculate_relative_position(pos));
 	}
 

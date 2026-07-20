@@ -41,6 +41,7 @@ namespace sfg
 	class world_t;
 	class world_debug_draw_t;
 	class editor_world_edit_context_t;
+	struct world_ray_t;
 	enum class editor_transform_control_type_e : u8;
 	enum class editor_transform_locality_e : u8;
 
@@ -114,15 +115,13 @@ namespace sfg
 	private:
 		struct frame_t;
 		struct hit_t;
-		struct ray_t;
 
 		bool  calculate_frame(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, frame_t& out_frame) const;
 		hit_t pick(const frame_t& frame, editor_transform_control_type_e control_type, vec2f_t relative_position) const;
 		bool  project_point(const frame_t& frame, const vec3f_t& point, vec2f_t& out_position) const;
-		bool  calculate_ray(const frame_t& frame, vec2f_t relative_position, ray_t& out_ray) const;
-		bool  calculate_axis_parameter(const ray_t& ray, const vec3f_t& pivot, const vec3f_t& axis, f32& out_parameter) const;
-		bool  calculate_rotation_direction(const ray_t& ray, const vec3f_t& pivot, const vec3f_t& axis, vec3f_t& out_direction) const;
-		bool  calculate_plane_point(const ray_t& ray, const vec3f_t& pivot, const vec3f_t& normal, vec3f_t& out_point) const;
+		bool  calculate_axis_parameter(const world_ray_t& ray, const vec3f_t& pivot, const vec3f_t& axis, f32& out_parameter) const;
+		bool  calculate_rotation_direction(const world_ray_t& ray, const vec3f_t& pivot, const vec3f_t& axis, vec3f_t& out_direction) const;
+		bool  calculate_plane_point(const world_ray_t& ray, const vec3f_t& pivot, const vec3f_t& normal, vec3f_t& out_point) const;
 		void  collect_action_entities(world_t& world, const editor_world_edit_context_t& context);
 		void  apply_delta(world_t& world, const mat4x3_t& delta);
 		void  clear_action();
