@@ -57,6 +57,7 @@ namespace sfg
 		static bool cook_skeleton(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool cook_animation(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool cook_mesh(const editor_asset_t& asset, const char* asset_name = nullptr);
+		static bool cook_physics_collision_mesh(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool cook_hdr_skybox(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool cook_prefab(const editor_asset_t& asset, const char* asset_name = nullptr);
 	};

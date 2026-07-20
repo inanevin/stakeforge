@@ -43,6 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_world.hpp"
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "world/editor_world.hpp"
+
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/data/istream.hpp>
@@ -237,7 +238,6 @@ namespace sfg
 
 	void editor_world_controller_t::tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps)
 	{
-		_world_physics_rate				   = world_physics_rate;
 		editor_global_toolbar_t& toolbar   = editor_global_toolbar_t::get();
 		const editor_play_mode_e play_mode = toolbar.get_play_mode();
 		const bool				 do_step   = toolbar.is_do_step();
@@ -512,13 +512,16 @@ namespace sfg
 
 		const char* asset_name = editor_asset_util_t::find_asset_display_name(asset_guid);
 		set_main_world(handle, asset_guid, asset_name != nullptr ? asset_name : "unnamed");
+
 		if (!asset->embedded_source.empty())
 		{
 			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
 			_worlds.get(_main_world)->get_edit_context().read_folders_from_json(embedded_source.value<nlohmann::json>("folders", nlohmann::json::array()));
+
 			if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::entities))
 				static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
 		}
+
 		editor_project_t& project		 = editor_project_t::get();
 		project.settings.last_world_guid = asset_guid;
 		project.save(project._runtime.path.c_str());
@@ -529,6 +532,7 @@ namespace sfg
 	{
 		if (_main_world.is_null())
 			return false;
+
 		if (editor_global_toolbar_t::get().get_play_mode() != editor_play_mode_e::none)
 			return false;
 
@@ -730,10 +734,12 @@ namespace sfg
 		const i64 last_fixed_step_us = _last_fixed_step_us.load(std::memory_order_acquire);
 		const i64 now				 = time_t::get_cpu_microseconds();
 		const f32 alpha				 = static_cast<f32>(static_cast<double>(now - last_fixed_step_us) / static_cast<double>(fixed_us));
+
 		if (alpha < 0.0f)
 			return 0.0f;
 		if (alpha > 1.0f)
 			return 1.0f;
+
 		return alpha;
 	}
 }

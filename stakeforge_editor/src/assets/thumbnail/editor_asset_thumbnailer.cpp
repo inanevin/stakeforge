@@ -278,6 +278,7 @@ namespace sfg
 		case editor_asset_type_e::mesh:
 		case editor_asset_type_e::hdr_skybox:
 		case editor_asset_type_e::prefab:
+		case editor_asset_type_e::physics_collision_mesh:
 			return true;
 		default:
 			return false;

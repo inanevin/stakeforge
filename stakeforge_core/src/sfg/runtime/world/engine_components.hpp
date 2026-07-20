@@ -223,6 +223,7 @@ namespace sfg
 		quat_t				 local_rotation	   = quat_t::identity;
 		vec3f_t				 half_extent	   = {0.5f, 0.5f, 0.5f};
 		resource_handle_t	 physical_material = NULL_RESOURCE_HANDLE;
+		resource_handle_t	 collision_mesh	   = NULL_RESOURCE_HANDLE;
 		f32					 radius			   = 0.5f;
 		f32					 half_height	   = 0.5f;
 		physics_shape_type_e shape			   = physics_shape_type_e::box;

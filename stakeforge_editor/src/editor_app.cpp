@@ -64,11 +64,13 @@ namespace sfg
 	void editor_app_t::on_project_assets_progress(void* user_data, f32 progress, const char* progress_text)
 	{
 		editor_app_t& app = *static_cast<editor_app_t*>(user_data);
+
 		app._splash_progress.store(progress, std::memory_order_release);
 		{
-			std::lock_guard<std::mutex> lock(app._splash_progress_text_mutex);
+			LOCK_GUARD(app._splash_progress_text_mutex);
 			app._splash_progress_text = progress_text;
 		}
+
 		app._splash_progress_text_dirty.store(true, std::memory_order_release);
 		if (progress >= 1.0f)
 			app.request_switch_mode(editor_app_mode_e::normal);
@@ -200,8 +202,10 @@ namespace sfg
 		_editor_resource_pack.uninit();
 		_engine_resource_pack.uninit();
 		_asset_manager.uninit();
+
 		if (_mode == editor_app_mode_e::normal)
 			uninit_normal_mode();
+
 		_editor_work_executor.reset();
 		surfaces.uninit();
 		runtime.uninit();
@@ -231,6 +235,7 @@ namespace sfg
 			editor_global_toolbar_t::get().uninit();
 			return false;
 		}
+
 		_payload_controller.init(surfaces.get_surface(payload_surface));
 		_payload_controller.set_unhandled_listener(editor_surface_controller_t::on_payload_unhandled, this);
 
@@ -365,7 +370,7 @@ namespace sfg
 				engine_runtime_t::get().get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
 				_splash_progress.store(0.0f, std::memory_order_release);
 				{
-					std::lock_guard<std::mutex> lock(_splash_progress_text_mutex);
+					LOCK_GUARD(_splash_progress_text_mutex);
 					_splash_progress_text = "Ensuring default assets";
 				}
 				_splash_progress_text_dirty.store(true, std::memory_order_release);
@@ -462,7 +467,7 @@ namespace sfg
 					surface.splash->update_progress(_splash_progress.load(std::memory_order_acquire));
 					if (_splash_progress_text_dirty.exchange(false, std::memory_order_acq_rel))
 					{
-						std::lock_guard<std::mutex> lock(_splash_progress_text_mutex);
+						LOCK_GUARD(_splash_progress_text_mutex);
 						surface.splash->update_progress_text(_splash_progress_text.c_str());
 					}
 					break;
@@ -488,6 +493,7 @@ namespace sfg
 				ZoneScopedN("resource_manager_drain_atlases");
 				resource_manager_t::get().drain_atlases(_atlas_upload_frame_slot);
 			}
+
 			_atlas_upload_frame_slot = static_cast<u8>((_atlas_upload_frame_slot + 1) % BACK_BUFFER_COUNT);
 
 			if (surfaces.is_empty())

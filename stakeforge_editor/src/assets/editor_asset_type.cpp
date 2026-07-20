@@ -75,6 +75,9 @@ namespace sfg
 		case editor_asset_type_e::hdr_skybox:
 			j = "hdr_skybox";
 			break;
+		case editor_asset_type_e::physics_collision_mesh:
+			j = "physics_collision_mesh";
+			break;
 		case editor_asset_type_e::world:
 			j = "world";
 			break;
@@ -114,6 +117,8 @@ namespace sfg
 			t = editor_asset_type_e::animation_state_machine;
 		else if (s == "hdr_skybox")
 			t = editor_asset_type_e::hdr_skybox;
+		else if (s == "physics_collision_mesh")
+			t = editor_asset_type_e::physics_collision_mesh;
 		else if (s == "world")
 			t = editor_asset_type_e::world;
 		else
@@ -150,6 +155,8 @@ namespace sfg
 			return editor_asset_type_e::animation_state_machine;
 		case resource_type_e::hdr_skybox:
 			return editor_asset_type_e::hdr_skybox;
+		case resource_type_e::physics_collision_mesh:
+			return editor_asset_type_e::physics_collision_mesh;
 		default:
 			return editor_asset_type_e::invalid;
 		}

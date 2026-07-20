@@ -45,6 +45,7 @@ namespace sfg
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PREFAB					"reflection_resource_subtype_prefab"_hs
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_STATE_MACHINE "reflection_resource_subtype_animation_state_machine"_hs
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_HDR_SKYBOX				"reflection_resource_subtype_hdr_skybox"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICS_COLLISION_MESH	"reflection_resource_subtype_physics_collision_mesh"_hs
 
 	enum class resource_type_e : u8
 	{
@@ -62,6 +63,7 @@ namespace sfg
 		prefab,
 		animation_state_machine,
 		hdr_skybox,
+		physics_collision_mesh,
 		count,
 	};
 
@@ -95,6 +97,8 @@ namespace sfg
 			return resource_type_e::animation_state_machine;
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_HDR_SKYBOX)
 			return resource_type_e::hdr_skybox;
+		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICS_COLLISION_MESH)
+			return resource_type_e::physics_collision_mesh;
 		return resource_type_e::invalid;
 	}
 

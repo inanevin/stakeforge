@@ -18,6 +18,7 @@
 #include "material.hpp"
 #include "mesh.hpp"
 #include "physical_material.hpp"
+#include "physics_collision_mesh.hpp"
 #include "prefab.hpp"
 #include "shader.hpp"
 #include "skeleton.hpp"
@@ -97,6 +98,7 @@ namespace sfg
 		&prefab_resource_desc,
 		&animation_state_machine_resource_desc,
 		&skybox_hdr_resource_desc,
+		&physics_collision_mesh_resource_desc,
 	};
 
 	const char* resource_state_to_string(resource_state_e state)
@@ -142,6 +144,8 @@ namespace sfg
 			return "Animation State Machine";
 		case resource_type_e::hdr_skybox:
 			return "HDR Skybox";
+		case resource_type_e::physics_collision_mesh:
+			return "Physics Collision Mesh";
 		default:
 			return "Invalid";
 		}
@@ -181,6 +185,7 @@ namespace sfg
 					{.name = "prefab", .display_name = "Prefab"},
 					{.name = "animation_state_machine", .display_name = "Animation State Machine"},
 					{.name = "hdr_skybox", .display_name = "HDR Skybox"},
+					{.name = "physics_collision_mesh", .display_name = "Physics Collision Mesh"},
 				},
 			.type_id   = type_id_t<resource_type_e>::value,
 			.size	   = sizeof(resource_type_e),

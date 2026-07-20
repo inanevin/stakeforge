@@ -25,37 +25,39 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
+#include "physics_collision_mesh_def.hpp"
 
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/reflection/reflection_container_ops.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/runtime/resources/resource_type.hpp>
+#include <cstddef>
 
 namespace sfg
 {
-	enum class editor_asset_type_e : u8
+	physics_collision_mesh_def_reflection_t::physics_collision_mesh_def_reflection_t()
 	{
-		invalid,
-		audio,
-		font,
-		mesh,
-		skeleton,
-		animation,
-		material,
-		shader,
-		texture,
-		texture_sampler,
-		physical_material,
-		prefab,
-		animation_state_machine,
-		hdr_skybox,
-		physics_collision_mesh,
-		world,
-		count,
-	};
+		reflection_registry_t& registry = reflection_registry_t::get();
 
-	void				to_json(nlohmann::json& j, const editor_asset_type_e& t);
-	void				from_json(const nlohmann::json& j, editor_asset_type_e& t);
-	editor_asset_type_e editor_asset_type_from_resource_type(resource_type_e type);
+		registry.register_type({
+			.name = "physics_collision_mesh_def_t",
+			.fields =
+				{
+					{.container_ops = reflection_container_ops_t::vector_ops<vec3f_t>(reflected_value_type_e::object, type_id_t<vec3f_t>::value),
+					 .name			= "vertices",
+					 .display_name	= "Vertices",
+					 .offset		= offsetof(physics_collision_mesh_def_t, vertices),
+					 .size			= sizeof(vector_t<vec3f_t>),
+					 .type			= reflected_value_type_e::container},
+					{.container_ops = reflection_container_ops_t::vector_ops<primitive_index>(reflected_value_type_e::u32),
+					 .name			= "indices",
+					 .display_name	= "Indices",
+					 .offset		= offsetof(physics_collision_mesh_def_t, indices),
+					 .size			= sizeof(vector_t<primitive_index>),
+					 .type			= reflected_value_type_e::container},
+				},
+			.type_id   = type_id_t<physics_collision_mesh_def_t>::value,
+			.size	   = sizeof(physics_collision_mesh_def_t),
+			.alignment = alignof(physics_collision_mesh_def_t),
+		});
+	}
 }

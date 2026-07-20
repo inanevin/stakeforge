@@ -52,6 +52,12 @@ namespace sfg
 		editor_surface_controller_t(const editor_surface_controller_t&)			   = delete;
 		editor_surface_controller_t& operator=(const editor_surface_controller_t&) = delete;
 
+		static inline editor_surface_controller_t& get()
+		{
+			static editor_surface_controller_t s_instance;
+			return s_instance;
+		}
+
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
@@ -76,13 +82,12 @@ namespace sfg
 		void			 begin_editor_camera_cursor_capture(window_runtime_t& runtime);
 		void			 end_editor_camera_cursor_capture(window_runtime_t& runtime);
 		void			 set_play_cursor_locked(bool locked);
+		editor_panel_t*	 find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {}, sid_t sub_item_id = 0);
+		editor_panel_t*	 find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle, sid_t sub_item_id = 0);
+		editor_panel_t*	 create_panel_instance(editor_panel_type_e type, surface_handle_t surface_handle = {}, bool prefer_existing_type_dock = true, sid_t sub_item_id = 0);
+		editor_panel_t*	 show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {}, sid_t sub_item_id = 0);
+		void			 refresh_panel_title(editor_panel_t* panel);
 		static void		 on_payload_unhandled(const editor_payload_t& payload, void* user_data);
-
-		editor_panel_t* find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {}, sid_t sub_item_id = 0);
-		editor_panel_t* find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle, sid_t sub_item_id = 0);
-		editor_panel_t* create_panel_instance(editor_panel_type_e type, surface_handle_t surface_handle = {}, bool prefer_existing_type_dock = true, sid_t sub_item_id = 0);
-		editor_panel_t* show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {}, sid_t sub_item_id = 0);
-		void			refresh_panel_title(editor_panel_t* panel);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -127,12 +132,6 @@ namespace sfg
 			return _surfaces.end();
 		}
 
-		static inline editor_surface_controller_t& get()
-		{
-			static editor_surface_controller_t s_instance;
-			return s_instance;
-		}
-
 	private:
 		enum class editor_cursor_capture_e : u8
 		{
@@ -141,6 +140,7 @@ namespace sfg
 			play,
 		};
 
+	private:
 		bool is_any_modal_active() const;
 		void capture_cursor(surface_handle_t surface, editor_cursor_capture_e capture);
 		void release_cursor();

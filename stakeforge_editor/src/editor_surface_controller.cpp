@@ -207,21 +207,29 @@ namespace sfg
 	{
 		SFG_ASSERT(_cursor_capture == editor_cursor_capture_e::none);
 		SFG_ASSERT(capture != editor_cursor_capture_e::none);
+
 		editor_surface_t& surface = _surfaces.get(surface_handle);
+
 		process::set_cursor_confinement(surface.runtime->window_handle, window_cursor_confinement_e::pointer);
 		process::set_cursor_visible(false);
 		_cursor_capture_surface = surface_handle;
 		_cursor_capture			= capture;
+
+		SFG_TRACE("cursor capture :{0}", (u32)capture);
 	}
 
 	void editor_surface_controller_t::release_cursor()
 	{
 		SFG_ASSERT(_cursor_capture != editor_cursor_capture_e::none);
+
 		editor_surface_t& surface = _surfaces.get(_cursor_capture_surface);
+
 		process::set_cursor_confinement(surface.runtime->window_handle, window_cursor_confinement_e::none);
 		process::set_cursor_visible(true);
 		_cursor_capture_surface = {};
 		_cursor_capture			= editor_cursor_capture_e::none;
+
+		SFG_TRACE("cursor capture released");
 	}
 
 	bool editor_surface_controller_t::is_any_modal_active() const
@@ -248,6 +256,7 @@ namespace sfg
 			surfaces.set_play_cursor_locked(false);
 			return;
 		}
+
 		if (ev.type == window_event_type_e::focus && ev.sub_type == window_event_sub_type_e::release && surfaces._cursor_capture == editor_cursor_capture_e::play && surfaces._cursor_capture_surface == surface_handle)
 			surfaces.set_play_cursor_locked(false);
 
@@ -257,6 +266,7 @@ namespace sfg
 			{
 			case window_event_type_e::delta:
 			case window_event_type_e::mouse: {
+
 				const vec2i16_t mp = runtime.mouse_position;
 				ui.on_mouse_move({static_cast<f32>(mp.x), static_cast<f32>(mp.y)});
 
@@ -293,10 +303,12 @@ namespace sfg
 		}
 
 		editor_world_controller_t& world_controller = app.get_world_controller();
+
 		switch (ev.type)
 		{
 		case window_event_type_e::delta:
 		case window_event_type_e::mouse: {
+
 			const vec2i16_t mp = runtime.mouse_position;
 			ui.on_mouse_move({static_cast<f32>(mp.x), static_cast<f32>(mp.y)});
 
@@ -317,8 +329,10 @@ namespace sfg
 			break;
 		}
 		case window_event_type_e::wheel: {
+
 			const bool modal_active = surfaces.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
+
 			if (modal_active || popup_active)
 				editor_widget_world_view_t::reset_camera_input(runtime);
 			else if (editor_widget_world_view_t::on_window_event(runtime, ev))
@@ -334,6 +348,7 @@ namespace sfg
 
 			const bool modal_active = surfaces.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
+
 			if (modal_active || popup_active)
 				editor_widget_world_view_t::reset_camera_input(runtime);
 			else if (editor_widget_world_view_t::on_window_event(runtime, ev))
@@ -371,6 +386,7 @@ namespace sfg
 	bool editor_surface_controller_t::on_window_client_hit_test(window_runtime_t& runtime, const vec2i16_t& pos, void*)
 	{
 		editor_surface_t& surface = editor_surface_controller_t::get().get_surface_by_runtime(runtime);
+
 		if (surface.type == editor_surface_type_e::splash || surface.type == editor_surface_type_e::project_creator)
 			return false;
 		if (surface.type == editor_surface_type_e::primary)
@@ -388,6 +404,7 @@ namespace sfg
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
 		editor_panel_t*				 panel	  = static_cast<editor_panel_t*>(payload.user_ptr);
 		vec2u16_t					 size	  = payload.size_value;
+
 		if (size.x == 0 || size.y == 0)
 			size = {640, 480};
 		size.y = static_cast<u16>(size.y + editor_theme_t::get().item_height);
@@ -426,9 +443,11 @@ namespace sfg
 			_surfaces.remove(handle);
 			return {};
 		}
+
 		surface.runtime->set_flag(window_runtime_flags_e::high_frequency_input);
 
 		surface.ui = make_unique<ui::ui_context>();
+
 		surface.ui->init({
 			.canvas =
 				{
@@ -441,12 +460,14 @@ namespace sfg
 			.max_widgets		= 10000,
 			.text_pool_capacity = 1024 * 1024,
 		});
+
 		surface.ui->get_paint().set_pipelines({
 			.default_pipeline		 = "editor/resource_pack/shaders/editor_ui_default.hlsl"_hs,
 			.text_pipeline			 = "editor/resource_pack/shaders/editor_ui_text_lcd.hlsl"_hs,
 			.grayscale_text_pipeline = "editor/resource_pack/shaders/editor_ui_text_grayscale.hlsl"_hs,
 			.sdf_pipeline			 = "editor/resource_pack/shaders/editor_ui_sdf.hlsl"_hs,
 		});
+
 		surface.ui->set_debug_draw(_debug_mode);
 
 		surface.root = surface.ui->allocate_widget();
@@ -480,10 +501,11 @@ namespace sfg
 			owner_root_in.flow			   = ui::flow_e::column;
 			owner_root_in.child_margins	   = {1, 1, 1, 1};
 
-			ui::vg_rect_paint_t owner_paint = {
+			const ui::vg_rect_paint_t owner_paint = {
 				.fill_color_a = theme.color_frame_dark,
 				.fill_color_b = theme.color_frame_dark,
 			};
+
 			surface.ui->get_paint().set_rect(surface.owner_root, owner_paint);
 
 			surface.content_root = surface.ui->allocate_widget();
@@ -556,6 +578,7 @@ namespace sfg
 			else
 				editor_widget_world_view_t::reset_camera_input(*surface.runtime);
 		}
+
 		if (surface.type == editor_surface_type_e::primary)
 			save_layout();
 
@@ -572,6 +595,7 @@ namespace sfg
 
 		if (surface.window_frame)
 			surface.window_frame->uninit();
+
 		surface.ui->deallocate_widget(surface.root);
 
 		surface.tooltip_controller->uninit();
@@ -590,6 +614,7 @@ namespace sfg
 	{
 		frame_vector_t<surface_handle_t> destroy_handles;
 		frame_vector_t<surface_handle_t> payload_handles;
+
 		for (u16 i = 0; i < _surfaces.head(); ++i)
 		{
 			if (!_surfaces.is_active(i))
@@ -883,6 +908,7 @@ namespace sfg
 			if (surface.type == editor_surface_type_e::primary)
 				return surface;
 		}
+
 		SFG_ASSERT(false);
 		return *_surfaces.begin();
 	}
@@ -901,6 +927,7 @@ namespace sfg
 			if (surface.runtime.get() == &runtime)
 				return handle;
 		}
+
 		SFG_ASSERT(false);
 		return _surfaces.begin_handle() != _surfaces.end_handle() ? *_surfaces.begin_handle() : surface_handle_t{};
 	}

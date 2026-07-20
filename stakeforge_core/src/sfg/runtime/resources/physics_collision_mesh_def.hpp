@@ -28,45 +28,24 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/type_id.hpp>
-#include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/runtime/resources/texture_payload_type.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
+#include <sfg/math/vec3f.hpp>
 
 namespace sfg
 {
-	struct editor_asset_t;
-	struct editor_asset_import_context_t;
-
-	struct glb_cook_config_t
+	struct physics_collision_mesh_def_t
 	{
-		texture_payload_type_e	   texture_payload_type = texture_payload_type_e::ktx2_uastc;
-		texture_ktx2_compression_e ktx2_compression		= texture_ktx2_compression_e::default_quality;
-		bool					   import_textures		= true;
-		bool					   import_materials		= true;
-		bool					   import_animations	= true;
-		bool					   import_meshes		= true;
-		bool					   import_collisions	= true;
-		bool					   combine_meshes		= false;
-		bool					   generate_mipmaps		= false;
+		vector_t<vec3f_t>		  vertices = {};
+		vector_t<primitive_index> indices  = {};
 	};
 
-	class editor_glb_importer_t final
-	{
-	public:
-		editor_glb_importer_t()										   = delete;
-		~editor_glb_importer_t()									   = delete;
-		editor_glb_importer_t(const editor_glb_importer_t&)			   = delete;
-		editor_glb_importer_t& operator=(const editor_glb_importer_t&) = delete;
+	SFG_DEFINE_TYPE_ID(physics_collision_mesh_def_t);
 
-		static bool import_glb(const char* target_directory, const char* source_full_path, const glb_cook_config_t& cook_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets, vector_t<string_t>& out_asset_paths);
+	struct physics_collision_mesh_def_reflection_t
+	{
+		physics_collision_mesh_def_reflection_t();
 	};
 
-	SFG_DEFINE_TYPE_ID(glb_cook_config_t);
-
-	struct glb_cook_config_reflection_t
-	{
-		glb_cook_config_reflection_t();
-	};
-
-	inline glb_cook_config_reflection_t g_reflect_glb_cook_config;
+	inline physics_collision_mesh_def_reflection_t g_reflect_physics_collision_mesh_def;
 }

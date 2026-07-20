@@ -97,6 +97,7 @@ namespace sfg
 	{
 		if (_action_active)
 			cancel_action(world);
+
 		clear_hover();
 		_initial_absolute.resize(0);
 		_initial_parent_inverse.resize(0);
@@ -109,12 +110,13 @@ namespace sfg
 	bool editor_world_gizmo_t::calculate_frame(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, frame_t& out_frame) const
 	{
 		const entity_id_t anchor = context.get_mutable_entity_anchor(world);
+
 		if (anchor == NULL_ENTITY_ID || camera_entity == NULL_ENTITY_ID || context.get_transform_control_type() == editor_transform_control_type_e::invalid)
 			return false;
 
-		vec3f_t camera_position;
-		quat_t	camera_rotation;
-		vec3f_t camera_scale;
+		vec3f_t camera_position = vec3f_t::zero;
+		quat_t	camera_rotation = quat_t::identity;
+		vec3f_t camera_scale	= vec3f_t::one;
 		world.calculate_transform_direct(camera_entity).decompose(camera_position, camera_rotation, camera_scale);
 
 		const component_camera_t& camera	 = ecs_helpers_t::table_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), camera_entity);
@@ -132,8 +134,8 @@ namespace sfg
 		out_frame.camera_right	 = camera_rotation.get_right();
 		out_frame.camera_up		 = camera_rotation.get_up();
 
-		vec3f_t anchor_scale;
-		quat_t	anchor_rotation;
+		vec3f_t anchor_scale	= vec3f_t::one;
+		quat_t	anchor_rotation = quat_t::identity;
 		world.calculate_transform_direct(anchor).decompose(out_frame.pivot, anchor_rotation, anchor_scale);
 
 		const quat_t orientation	= context.get_transform_locality() == editor_transform_locality_e::local ? anchor_rotation : quat_t::identity;
@@ -142,6 +144,7 @@ namespace sfg
 			quat_t::identity,
 			quat_t::angle_axis(-90.0f, vec3f_t::right),
 		};
+
 		for (u32 i = 0; i < 3; ++i)
 		{
 			out_frame.axis_rotations[i] = orientation * axis_models[i];
@@ -151,6 +154,7 @@ namespace sfg
 		}
 
 		const vec4f_t pivot_clip = out_frame.view.view_proj * vec4f_t(out_frame.pivot.x, out_frame.pivot.y, out_frame.pivot.z, 1.0f);
+
 		if (pivot_clip.w <= MATH_EPS)
 			return false;
 
@@ -162,8 +166,10 @@ namespace sfg
 	bool editor_world_gizmo_t::project_point(const frame_t& frame, const vec3f_t& point, vec2f_t& out_position) const
 	{
 		const vec4f_t clip = frame.view.view_proj * vec4f_t(point.x, point.y, point.z, 1.0f);
+
 		if (clip.w <= MATH_EPS)
 			return false;
+
 		const f32 inv_w = 1.0f / clip.w;
 		out_position	= {
 			(clip.x * inv_w * 0.5f + 0.5f) * static_cast<f32>(frame.resolution.x),
@@ -186,16 +192,19 @@ namespace sfg
 		{
 			for (u32 axis = 0; axis < 3; ++axis)
 			{
-				vec2f_t previous;
+				vec2f_t previous	   = vec2f_t::zero;
 				bool	previous_valid = project_point(frame, frame.pivot + frame.ring_u[axis] * frame.world_scale, previous);
+
 				for (u32 segment = 1; segment <= EDITOR_WORLD_GIZMO_ROTATION_SEGMENTS; ++segment)
 				{
-					const f32  angle = static_cast<f32>(segment) / static_cast<f32>(EDITOR_WORLD_GIZMO_ROTATION_SEGMENTS) * MATH_TWO_PI;
-					vec2f_t	   current;
+					const f32  angle		 = static_cast<f32>(segment) / static_cast<f32>(EDITOR_WORLD_GIZMO_ROTATION_SEGMENTS) * MATH_TWO_PI;
+					vec2f_t	   current		 = vec2f_t::zero;
 					const bool current_valid = project_point(frame, frame.pivot + (frame.ring_u[axis] * math::cos(angle) + frame.ring_v[axis] * math::sin(angle)) * frame.world_scale, current);
+
 					if (previous_valid && current_valid)
 					{
 						const f32 distance = vec2f_t::distance_sqr_to_segment(mouse, previous, current);
+
 						if (distance < closest_distance)
 						{
 							closest_distance		  = distance;
@@ -204,37 +213,46 @@ namespace sfg
 							result.rotation_tangent	  = (current - previous).normalized();
 						}
 					}
+
 					previous	   = current;
 					previous_valid = current_valid;
 				}
 			}
+
 			return result;
 		}
 
-		vec2f_t pivot_pixels;
+		vec2f_t pivot_pixels = vec2f_t::zero;
+
 		if (!project_point(frame, frame.pivot, pivot_pixels))
 			return result;
+
 		if (control_type == editor_transform_control_type_e::move || control_type == editor_transform_control_type_e::scale)
 		{
 			const f32 central_hit_radius_sqr = CENTRAL_HIT_RADIUS_PX * CENTRAL_HIT_RADIUS_PX;
+
 			if ((mouse - pivot_pixels).magnitude_sqr() <= central_hit_radius_sqr)
 			{
 				result.axis = editor_gizmo_axis_e::central;
 				return result;
 			}
 		}
+
 		if (control_type == editor_transform_control_type_e::move)
 		{
-			ray_t ray;
+			ray_t ray = {};
+
 			if (calculate_ray(frame, relative_position, ray))
 			{
 				f32 best_alignment = 0.0f;
+
 				for (u32 plane = 0; plane < 3; ++plane)
 				{
-					const vec3f_t& axis_a = frame.axes[GIZMO_PLANE_AXES[plane][0]];
-					const vec3f_t& axis_b = frame.axes[GIZMO_PLANE_AXES[plane][1]];
-					const vec3f_t& normal = frame.axes[GIZMO_PLANE_AXES[plane][2]];
-					vec3f_t		   plane_point;
+					const vec3f_t& axis_a	   = frame.axes[GIZMO_PLANE_AXES[plane][0]];
+					const vec3f_t& axis_b	   = frame.axes[GIZMO_PLANE_AXES[plane][1]];
+					const vec3f_t& normal	   = frame.axes[GIZMO_PLANE_AXES[plane][2]];
+					vec3f_t		   plane_point = vec3f_t::zero;
+
 					if (!calculate_plane_point(ray, frame.pivot, normal, plane_point))
 						continue;
 
@@ -243,32 +261,40 @@ namespace sfg
 					const f32	  coordinate_b = vec3f_t::dot(offset, axis_b);
 					const f32	  plane_min	   = PLANE_CENTER - PLANE_SIZE * 0.5f;
 					const f32	  plane_max	   = PLANE_CENTER + PLANE_SIZE * 0.5f;
+
 					if (coordinate_a < plane_min || coordinate_a > plane_max || coordinate_b < plane_min || coordinate_b > plane_max)
 						continue;
 
 					const f32 alignment = math::abs(vec3f_t::dot(ray.direction, normal));
+
 					if (alignment > best_alignment)
 					{
 						best_alignment = alignment;
 						result.axis	   = static_cast<editor_gizmo_axis_e>(static_cast<u32>(editor_gizmo_axis_e::xy) + plane);
 					}
 				}
+
 				if (result.axis != editor_gizmo_axis_e::invalid)
 					return result;
 			}
 		}
+
 		for (u32 axis = 0; axis < 3; ++axis)
 		{
-			vec2f_t endpoint_pixels;
+			vec2f_t endpoint_pixels = vec2f_t::zero;
+
 			if (!project_point(frame, frame.pivot + frame.axes[axis] * frame.world_scale, endpoint_pixels))
 				continue;
+
 			const f32 distance = vec2f_t::distance_sqr_to_segment(mouse, pivot_pixels, endpoint_pixels);
+
 			if (distance < closest_distance)
 			{
 				closest_distance = distance;
 				result.axis		 = static_cast<editor_gizmo_axis_e>(axis);
 			}
 		}
+
 		return result;
 	}
 
@@ -278,8 +304,10 @@ namespace sfg
 		const f32 ndc_y		 = 1.0f - relative_position.y * 2.0f;
 		vec4f_t	  near_point = frame.view.inv_view_proj * vec4f_t(ndc_x, ndc_y, 1.0f, 1.0f);
 		vec4f_t	  far_point	 = frame.view.inv_view_proj * vec4f_t(ndc_x, ndc_y, 0.0f, 1.0f);
+
 		if (math::abs(near_point.w) <= MATH_EPS || math::abs(far_point.w) <= MATH_EPS)
 			return false;
+
 		near_point /= near_point.w;
 		far_point /= far_point.w;
 		out_ray.origin	  = {near_point.x, near_point.y, near_point.z};
@@ -291,8 +319,10 @@ namespace sfg
 	{
 		const f32 parallel = vec3f_t::dot(axis, ray.direction);
 		const f32 denom	   = 1.0f - parallel * parallel;
+
 		if (denom <= EDITOR_WORLD_GIZMO_AXIS_PARALLEL_EPS)
 			return false;
+
 		const vec3f_t offset = ray.origin - pivot;
 		out_parameter		 = (vec3f_t::dot(axis, offset) - parallel * vec3f_t::dot(ray.direction, offset)) / denom;
 		return true;
@@ -301,8 +331,10 @@ namespace sfg
 	bool editor_world_gizmo_t::calculate_rotation_direction(const ray_t& ray, const vec3f_t& pivot, const vec3f_t& axis, vec3f_t& out_direction) const
 	{
 		const f32 denom = vec3f_t::dot(ray.direction, axis);
+
 		if (math::abs(denom) <= EDITOR_WORLD_GIZMO_AXIS_PARALLEL_EPS)
 			return false;
+
 		const f32 distance = vec3f_t::dot(pivot - ray.origin, axis) / denom;
 		out_direction	   = (ray.origin + ray.direction * distance - pivot).normalized();
 		return !out_direction.is_zero();
@@ -311,8 +343,10 @@ namespace sfg
 	bool editor_world_gizmo_t::calculate_plane_point(const ray_t& ray, const vec3f_t& pivot, const vec3f_t& normal, vec3f_t& out_point) const
 	{
 		const f32 denom = vec3f_t::dot(ray.direction, normal);
+
 		if (math::abs(denom) <= EDITOR_WORLD_GIZMO_AXIS_PARALLEL_EPS)
 			return false;
+
 		const f32 distance = vec3f_t::dot(pivot - ray.origin, normal) / denom;
 		out_point		   = ray.origin + ray.direction * distance;
 		return true;
@@ -322,7 +356,8 @@ namespace sfg
 	{
 		if (_action_active)
 			return;
-		frame_t frame;
+
+		frame_t frame = {};
 		_hovered_axis = calculate_frame(world, context, camera_entity, resolution, frame) ? pick(frame, context.get_transform_control_type(), relative_position).axis : editor_gizmo_axis_e::invalid;
 	}
 
@@ -335,12 +370,16 @@ namespace sfg
 	bool editor_world_gizmo_t::begin_action(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, vec2f_t relative_position)
 	{
 		SFG_ASSERT(!_action_active);
-		frame_t frame;
+		frame_t frame = {};
+
 		if (!calculate_frame(world, context, camera_entity, resolution, frame))
 			return false;
+
 		const hit_t hit = pick(frame, context.get_transform_control_type(), relative_position);
+
 		if (hit.axis == editor_gizmo_axis_e::invalid)
 			return false;
+
 		const u32  handle_index = static_cast<u32>(hit.axis);
 		const bool axis_handle	= handle_index < 3;
 		const bool plane_handle = hit.axis >= editor_gizmo_axis_e::xy && hit.axis <= editor_gizmo_axis_e::zx;
@@ -353,6 +392,7 @@ namespace sfg
 		_world				  = context.get_world();
 		_pivot				  = frame.pivot;
 		_axis_world			  = axis_handle ? frame.axes[handle_index] : vec3f_t::zero;
+
 		if (plane_handle)
 		{
 			const u32 plane		  = handle_index - static_cast<u32>(editor_gizmo_axis_e::xy);
@@ -366,14 +406,17 @@ namespace sfg
 			_central_plane_right  = frame.camera_right;
 			_central_plane_up	  = frame.camera_up;
 		}
+
 		_world_scale		  = frame.world_scale;
 		_orientation		  = _locality == editor_transform_locality_e::local ? frame.axis_rotations[1] : quat_t::identity;
 		_initial_mouse_pixels = {
 			relative_position.x * static_cast<f32>(resolution.x),
 			relative_position.y * static_cast<f32>(resolution.y),
 		};
+
 		_initial_rotation_direction = hit.rotation_direction;
 		_rotation_screen_tangent	= hit.rotation_tangent;
+
 		if (context.get_transform_snapping() == editor_transform_snapping_e::default_)
 		{
 			const editor_world_view_settings_t& settings = context.get_world_view_settings();
@@ -384,15 +427,17 @@ namespace sfg
 
 		if (axis_handle)
 		{
-			vec2f_t pivot_pixels;
+			vec2f_t pivot_pixels = vec2f_t::zero;
 			project_point(frame, frame.pivot, pivot_pixels);
-			vec2f_t endpoint_pixels;
+
+			vec2f_t endpoint_pixels = vec2f_t::zero;
 			project_point(frame, frame.pivot + _axis_world * frame.world_scale, endpoint_pixels);
 			_axis_screen_direction = (endpoint_pixels - pivot_pixels).normalized();
 			_axis_pixels_per_world = vec2f_t::distance(pivot_pixels, endpoint_pixels) / frame.world_scale;
 		}
 
-		ray_t ray;
+		ray_t ray = {};
+
 		if (calculate_ray(frame, relative_position, ray))
 		{
 			if (!axis_handle)
@@ -422,9 +467,11 @@ namespace sfg
 		const span_t<const entity_id_t> selected = context.get_selected_entities();
 		_entities.resize(selected.size);
 		_entities.resize(context.collect_selected_mutable_root_entities(world, {.data = _entities.data(), .size = _entities.size()}));
+
 		for (entity_id_t entity : _entities)
 		{
 			const entity_id_t parent = world.get_entity_parent(entity);
+
 			_initial_local_rotations.push_back(world.get_entity_rot_local(entity));
 			_initial_local_positions.push_back(world.get_entity_pos_local(entity));
 			_initial_local_scales.push_back(world.get_entity_scale_local(entity));
@@ -437,13 +484,15 @@ namespace sfg
 	{
 		if (!_action_active)
 			return;
+
 		if (_selection_generation != context.get_selection_generation() || _control_type != context.get_transform_control_type() || _locality != context.get_transform_locality())
 		{
 			cancel_action(world);
 			return;
 		}
 
-		frame_t frame;
+		frame_t frame = {};
+
 		if (!calculate_frame(world, context, camera_entity, resolution, frame))
 		{
 			cancel_action(world);
@@ -454,51 +503,65 @@ namespace sfg
 			relative_position.x * static_cast<f32>(resolution.x),
 			relative_position.y * static_cast<f32>(resolution.y),
 		};
+
 		const vec2f_t mouse_delta = mouse_pixels - _initial_mouse_pixels;
-		ray_t		  ray;
-		const bool	  ray_valid = calculate_ray(frame, relative_position, ray);
+		ray_t		  ray		  = {};
+		const bool	  ray_valid	  = calculate_ray(frame, relative_position, ray);
 
 		mat4x3_t delta = mat4x3_t::identity;
+
 		switch (_control_type)
 		{
 		case editor_transform_control_type_e::move: {
 			if (_active_axis == editor_gizmo_axis_e::central || (_active_axis >= editor_gizmo_axis_e::xy && _active_axis <= editor_gizmo_axis_e::zx))
 			{
-				vec3f_t current_plane_point;
+				vec3f_t current_plane_point = vec3f_t::zero;
+
 				if (_central_plane_valid && ray_valid && calculate_plane_point(ray, _pivot, _central_plane_normal, current_plane_point))
 				{
 					vec3f_t translation = current_plane_point - _initial_plane_point;
+
 					if (_snap_translate > 0.0f)
 					{
 						const f32 right = math::round(vec3f_t::dot(translation, _central_plane_right) / _snap_translate) * _snap_translate;
 						const f32 up	= math::round(vec3f_t::dot(translation, _central_plane_up) / _snap_translate) * _snap_translate;
 						translation		= _central_plane_right * right + _central_plane_up * up;
 					}
+
 					delta = mat4x3_t::translation(translation);
 				}
+
 				break;
 			}
-			f32 axis_delta = _axis_pixels_per_world > MATH_EPS ? vec2f_t::dot(mouse_delta, _axis_screen_direction) / _axis_pixels_per_world : 0.0f;
-			f32 current_axis_parameter;
+
+			f32 axis_delta			   = _axis_pixels_per_world > MATH_EPS ? vec2f_t::dot(mouse_delta, _axis_screen_direction) / _axis_pixels_per_world : 0.0f;
+			f32 current_axis_parameter = 0.0f;
+
 			if (_axis_parameter_valid && ray_valid && calculate_axis_parameter(ray, _pivot, _axis_world, current_axis_parameter))
 				axis_delta = current_axis_parameter - _initial_axis_parameter;
+
 			if (_snap_translate > 0.0f)
 				axis_delta = math::round(axis_delta / _snap_translate) * _snap_translate;
+
 			delta = mat4x3_t::translation(_axis_world * axis_delta);
 			break;
 		}
 		case editor_transform_control_type_e::rotate: {
-			f32		angle_degrees = vec2f_t::dot(mouse_delta, _rotation_screen_tangent) / PIXEL_SIZE * RAD_2_DEG;
-			vec3f_t current_rotation_direction;
+			f32		angle_degrees			   = vec2f_t::dot(mouse_delta, _rotation_screen_tangent) / PIXEL_SIZE * RAD_2_DEG;
+			vec3f_t current_rotation_direction = vec3f_t::zero;
+
 			if (_rotation_plane_valid && ray_valid && calculate_rotation_direction(ray, _pivot, _axis_world, current_rotation_direction))
 			{
 				const f32 dot_value = math::clamp(vec3f_t::dot(_initial_rotation_direction, current_rotation_direction), -1.0f, 1.0f);
 				angle_degrees		= math::acos(dot_value) * RAD_2_DEG;
+
 				if (vec3f_t::dot(_axis_world, vec3f_t::cross(_initial_rotation_direction, current_rotation_direction)) < 0.0f)
 					angle_degrees = -angle_degrees;
 			}
+
 			if (_snap_rotate > 0.0f)
 				angle_degrees = math::round(angle_degrees / _snap_rotate) * _snap_rotate;
+
 			_rotation_angle_degrees		   = angle_degrees;
 			const mat4x3_t pivot_to_origin = mat4x3_t::translation(-_pivot);
 			const mat4x3_t origin_to_pivot = mat4x3_t::translation(_pivot);
@@ -509,23 +572,31 @@ namespace sfg
 			if (_active_axis == editor_gizmo_axis_e::central)
 			{
 				f32 factor = 1.0f + mouse_delta.x * EDITOR_WORLD_GIZMO_UNIFORM_SCALE_PER_PIXEL;
+
 				if (_snap_scale > 0.0f)
 					factor = 1.0f + math::round((factor - 1.0f) / _snap_scale) * _snap_scale;
+
 				factor						   = math::max(EDITOR_WORLD_GIZMO_SCALE_MIN, factor);
 				const mat4x3_t pivot_to_origin = mat4x3_t::translation(-_pivot);
 				const mat4x3_t origin_to_pivot = mat4x3_t::translation(_pivot);
 				delta						   = origin_to_pivot * mat4x3_t::scale(vec3f_t(factor, factor, factor)) * pivot_to_origin;
 				break;
 			}
-			f32 axis_delta = _axis_pixels_per_world > MATH_EPS ? vec2f_t::dot(mouse_delta, _axis_screen_direction) / _axis_pixels_per_world : 0.0f;
-			f32 current_axis_parameter;
+
+			f32 axis_delta			   = _axis_pixels_per_world > MATH_EPS ? vec2f_t::dot(mouse_delta, _axis_screen_direction) / _axis_pixels_per_world : 0.0f;
+			f32 current_axis_parameter = 0.0f;
+
 			if (_axis_parameter_valid && ray_valid && calculate_axis_parameter(ray, _pivot, _axis_world, current_axis_parameter))
 				axis_delta = current_axis_parameter - _initial_axis_parameter;
+
 			f32 factor = 1.0f + axis_delta / _world_scale;
+
 			if (_snap_scale > 0.0f)
 				factor = 1.0f + math::round((factor - 1.0f) / _snap_scale) * _snap_scale;
+
 			factor		  = math::max(EDITOR_WORLD_GIZMO_SCALE_MIN, factor);
 			vec3f_t scale = vec3f_t::one;
+
 			switch (_active_axis)
 			{
 			case editor_gizmo_axis_e::x:
@@ -541,6 +612,7 @@ namespace sfg
 				SFG_ASSERT(false);
 				break;
 			}
+
 			const mat4x3_t pivot_to_origin = mat4x3_t::translation(-_pivot);
 			const mat4x3_t origin_to_pivot = mat4x3_t::translation(_pivot);
 			const mat4x3_t basis		   = mat4x3_t::rotation(_orientation);
@@ -578,15 +650,17 @@ namespace sfg
 	{
 		for (size_t i = 0; i < _entities.size(); ++i)
 		{
-			vec3f_t position;
-			quat_t	rotation;
-			vec3f_t scale;
+			vec3f_t position = vec3f_t::zero;
+			quat_t	rotation = quat_t::identity;
+			vec3f_t scale	 = vec3f_t::one;
 			(_initial_parent_inverse[i] * delta * _initial_absolute[i]).decompose(position, rotation, scale);
+
 			world.set_entity_pos_local(_entities[i], position);
 			world.set_entity_rot_local(_entities[i], rotation);
 			world.set_entity_scale_local(_entities[i], scale);
 			world.mark_entity_teleported(_entities[i]);
 		}
+
 		world.update_world_transforms(false);
 	}
 
@@ -594,16 +668,18 @@ namespace sfg
 	{
 		if (!_action_active)
 			return;
+
 		if (_selection_generation != context.get_selection_generation() || _control_type != context.get_transform_control_type() || _locality != context.get_transform_locality())
 		{
 			cancel_action(world);
 			return;
 		}
 
-		frame_vector_t<ostream_t> previous_streams;
-		frame_vector_t<ostream_t> post_streams;
+		frame_vector_t<ostream_t> previous_streams = {};
+		frame_vector_t<ostream_t> post_streams	   = {};
 		previous_streams.reserve(_entities.size());
 		post_streams.reserve(_entities.size());
+
 		for (size_t i = 0; i < _entities.size(); ++i)
 		{
 			component_transform_t previous = {
@@ -611,25 +687,31 @@ namespace sfg
 				.rot   = _initial_local_rotations[i],
 				.scale = _initial_local_scales[i],
 			};
-			ostream_t previous_stream;
+
+			ostream_t previous_stream = {};
+
 			if (!reflection_registry_t::get().type_to_stream(type_id_t<component_transform_t>::value, &previous, nullptr, previous_stream))
 			{
 				SFG_ERR("failed to serialize previous gizmo transform for entity {0}", _entities[i]);
 				cancel_action(world);
 				return;
 			}
+
 			component_transform_t current = {
 				.pos   = world.get_entity_pos_local(_entities[i]),
 				.rot   = world.get_entity_rot_local(_entities[i]),
 				.scale = world.get_entity_scale_local(_entities[i]),
 			};
-			ostream_t post_stream;
+
+			ostream_t post_stream = {};
+
 			if (!reflection_registry_t::get().type_to_stream(type_id_t<component_transform_t>::value, &current, nullptr, post_stream))
 			{
 				SFG_ERR("failed to serialize current gizmo transform for entity {0}", _entities[i]);
 				cancel_action(world);
 				return;
 			}
+
 			previous_streams.push_back(std::move(previous_stream));
 			post_streams.push_back(std::move(post_stream));
 		}
@@ -640,6 +722,7 @@ namespace sfg
 			cancel_action(world);
 			return;
 		}
+
 		clear_action();
 	}
 
@@ -669,6 +752,7 @@ namespace sfg
 		_initial_local_positions.resize(0);
 		_initial_local_scales.resize(0);
 		_entities.resize(0);
+
 		_orientation				= quat_t::identity;
 		_initial_rotation_direction = vec3f_t::zero;
 		_initial_plane_point		= vec3f_t::zero;
@@ -681,20 +765,23 @@ namespace sfg
 		_rotation_screen_tangent	= vec2f_t::zero;
 		_axis_screen_direction		= vec2f_t::zero;
 		_world						= {};
-		_initial_axis_parameter		= 0.0f;
-		_axis_pixels_per_world		= 0.0f;
-		_world_scale				= 0.0f;
-		_rotation_angle_degrees		= 0.0f;
-		_snap_translate				= 0.0f;
-		_snap_rotate				= 0.0f;
-		_snap_scale					= 0.0f;
-		_selection_generation		= 0;
-		_control_type				= editor_transform_control_type_e::invalid;
-		_locality					= editor_transform_locality_e::invalid;
-		_active_axis				= editor_gizmo_axis_e::invalid;
-		_axis_parameter_valid		= false;
-		_rotation_plane_valid		= false;
-		_central_plane_valid		= false;
-		_action_active				= false;
+
+		_initial_axis_parameter = 0.0f;
+		_axis_pixels_per_world	= 0.0f;
+		_world_scale			= 0.0f;
+		_rotation_angle_degrees = 0.0f;
+		_snap_translate			= 0.0f;
+		_snap_rotate			= 0.0f;
+		_snap_scale				= 0.0f;
+
+		_selection_generation = 0;
+		_control_type		  = editor_transform_control_type_e::invalid;
+		_locality			  = editor_transform_locality_e::invalid;
+		_active_axis		  = editor_gizmo_axis_e::invalid;
+
+		_axis_parameter_valid = false;
+		_rotation_plane_valid = false;
+		_central_plane_valid  = false;
+		_action_active		  = false;
 	}
 }

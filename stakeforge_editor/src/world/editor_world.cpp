@@ -38,6 +38,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/physics/physics_world.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
+#include <sfg/runtime/resources/physics_collision_mesh.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
@@ -511,6 +513,23 @@ namespace sfg
 						const f32 radius	  = math::max(collider->radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
 						const f32 half_height = math::max(collider->half_height * abs_scale.y, 0.001f);
 						debug_draw.draw_cylinder(body_position, radius, half_height, body_rotation.get_up(), collider_color, 2.0f, debug_draw_depth_e::always_visible);
+						break;
+					}
+					case physics_shape_type_e::mesh: {
+						const physics_collision_mesh_runtime_t* collision_mesh = resource_manager_t::get().find_runtime<physics_collision_mesh_runtime_t>(collider->collision_mesh);
+						if (collision_mesh == nullptr)
+							break;
+
+						const chunk_allocator_t& memory	  = resource_manager_t::get().get_memory();
+						const vec3f_t*			 vertices = memory.get<vec3f_t>(collision_mesh->vertices);
+						const primitive_index*	 indices  = memory.get<primitive_index>(collision_mesh->indices);
+						for (u32 i = 0; i < collision_mesh->index_count; i += 3)
+						{
+							const vec3f_t p0 = body_position + body_rotation * (vertices[indices[i]] * transform.abs_scale);
+							const vec3f_t p1 = body_position + body_rotation * (vertices[indices[i + 1]] * transform.abs_scale);
+							const vec3f_t p2 = body_position + body_rotation * (vertices[indices[i + 2]] * transform.abs_scale);
+							debug_draw.draw_triangle(p0, p1, p2, collider_color);
+						}
 						break;
 					}
 					}

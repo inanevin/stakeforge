@@ -64,6 +64,7 @@ namespace sfg
 		sphere,
 		capsule,
 		cylinder,
+		mesh,
 	};
 
 	enum physics_query_flags_e : u8

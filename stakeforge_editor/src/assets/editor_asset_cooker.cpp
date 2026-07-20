@@ -51,6 +51,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/font_cook.hpp>
 #include <sfg/runtime/resources/physical_material_cook.hpp>
 #include <sfg/runtime/resources/physical_material_def.hpp>
+#include <sfg/runtime/resources/physics_collision_mesh_cook.hpp>
 #include <sfg/runtime/resources/prefab.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/skeleton_cook.hpp>
@@ -122,6 +123,8 @@ namespace sfg
 			return cook_material(asset, asset_name);
 		case editor_asset_type_e::mesh:
 			return cook_mesh(asset, asset_name);
+		case editor_asset_type_e::physics_collision_mesh:
+			return cook_physics_collision_mesh(asset, asset_name);
 		case editor_asset_type_e::shader:
 			return cook_shader(asset, asset_name);
 		case editor_asset_type_e::skeleton:
@@ -153,6 +156,7 @@ namespace sfg
 		case editor_asset_type_e::audio:
 		case editor_asset_type_e::material:
 		case editor_asset_type_e::mesh:
+		case editor_asset_type_e::physics_collision_mesh:
 		case editor_asset_type_e::shader:
 		case editor_asset_type_e::skeleton:
 		case editor_asset_type_e::animation:
@@ -192,6 +196,7 @@ namespace sfg
 			const string_t source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 			return header.file_source_ticks == file_system_t::get_last_modified_ticks(source_full_path.c_str());
 		}
+
 		return true;
 	}
 
@@ -216,6 +221,7 @@ namespace sfg
 			SFG_ERR("failed to cook audio asset {0}", asset.guid);
 			return false;
 		}
+
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
@@ -243,6 +249,7 @@ namespace sfg
 		}
 		if (out_definition != nullptr)
 			*out_definition = definition;
+
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
@@ -262,6 +269,7 @@ namespace sfg
 			SFG_ERR("failed to cook material asset {0}", asset.guid);
 			return false;
 		}
+
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
@@ -285,6 +293,7 @@ namespace sfg
 			SFG_ERR("failed to cook texture sampler asset {0}", asset.guid);
 			return false;
 		}
+
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
@@ -308,6 +317,7 @@ namespace sfg
 			SFG_ERR("failed to cook physical material asset {0}", asset.guid);
 			return false;
 		}
+
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
@@ -341,6 +351,7 @@ namespace sfg
 			SFG_ERR("failed to cook texture asset {0}", asset.guid);
 			return false;
 		}
+
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
@@ -359,6 +370,7 @@ namespace sfg
 			SFG_ERR("failed to cook font asset {0}", asset.guid);
 			return false;
 		}
+
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
@@ -369,6 +381,7 @@ namespace sfg
 
 		skeleton_def_t		 def			 = {};
 		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
+
 		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &def, nullptr, embedded_source))
 		{
 			SFG_ERR("failed to deserialize skeleton definition for asset {0}", asset.guid);
@@ -382,6 +395,7 @@ namespace sfg
 			SFG_ERR("failed to cook skeleton asset {0}", asset.guid);
 			return false;
 		}
+
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
@@ -392,6 +406,7 @@ namespace sfg
 
 		animation_def_t		 def			 = {};
 		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
+
 		if (!reflection_registry_t::get().type_from_json(type_id_t<animation_def_t>::value, &def, nullptr, embedded_source))
 		{
 			SFG_ERR("failed to deserialize animation definition for asset {0}", asset.guid);
@@ -405,6 +420,7 @@ namespace sfg
 			SFG_ERR("failed to cook animation asset {0}", asset.guid);
 			return false;
 		}
+
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
@@ -421,6 +437,24 @@ namespace sfg
 			SFG_ERR("failed to cook mesh asset {0}", asset.guid);
 			return false;
 		}
+
+		return save_cooked_asset(asset, header, stream, asset_name);
+	}
+
+	bool editor_asset_cooker_t::cook_physics_collision_mesh(const editor_asset_t& asset, const char* asset_name)
+	{
+		SFG_ASSERT(asset.asset_type == editor_asset_type_e::physics_collision_mesh);
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file_blob);
+
+		resource_header_t header = {};
+		ostream_t		  stream;
+		const string_t	  source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		if (!physics_collision_mesh_cooker::cook_from_file(source_full_path.c_str(), header, stream))
+		{
+			SFG_ERR("failed to cook physics collision mesh asset {0}", asset.guid);
+			return false;
+		}
+
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
@@ -445,6 +479,7 @@ namespace sfg
 			SFG_ERR("failed to cook HDR skybox asset {0}", asset.guid);
 			return false;
 		}
+
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
@@ -460,6 +495,7 @@ namespace sfg
 			.version	 = prefab_loader_t::WIRE_VERSION,
 			.source_tick = hashing_t::hash_u64(reinterpret_cast<const u8*>(prefab_source.data()), prefab_source.size()),
 		};
+
 		ostream_t stream;
 		stream << prefab_source;
 		return save_cooked_asset(asset, header, stream, asset_name);

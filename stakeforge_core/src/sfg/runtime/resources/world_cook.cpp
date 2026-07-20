@@ -126,7 +126,6 @@ namespace sfg
 			const entity_id_t root = entity_from_json(world, root_entity_json);
 			if (root != NULL_ENTITY_ID)
 			{
-				world.sync_entity_hierarchy(root);
 				world.scan_for_resources(root);
 			}
 		}

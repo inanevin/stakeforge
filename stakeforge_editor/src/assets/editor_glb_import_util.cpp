@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/mesh_def.hpp>
 #include <sfg/runtime/resources/mesh_util.hpp>
+#include <sfg/runtime/resources/physics_collision_mesh_def.hpp>
 #include <sfg/vendor/tinygltf/tiny_gltf_v3.h>
 
 namespace sfg
@@ -397,6 +398,47 @@ namespace sfg
 			SFG_ERR("failed to generate GLB static primitive tangents");
 			return false;
 		}
+
+		return true;
+	}
+
+	bool editor_glb_import_util_t::import_collision_primitive(const tg3_model& model, const tg3_primitive& primitive, physics_collision_mesh_def_t& out)
+	{
+		if (primitive.mode != TG3_MODE_TRIANGLES)
+		{
+			SFG_ERR("glb collision primitive mode is unsupported: {0}", primitive.mode);
+			return false;
+		}
+
+		const u32 vertex_count = get_primitive_vertex_count(model, primitive);
+		if (vertex_count == 0 || out.vertices.size() > UINT32_MAX - vertex_count)
+		{
+			SFG_ERR("glb collision primitive has invalid vertex count");
+			return false;
+		}
+
+		vector_t<f32> positions;
+		if (!read_float_attribute(model, find_attribute(primitive, "POSITION"), TG3_TYPE_VEC3, vertex_count, positions))
+		{
+			SFG_ERR("failed to read GLB collision POSITION attribute");
+			return false;
+		}
+
+		vector_t<primitive_index> indices;
+		if (!read_indices(model, primitive.indices, vertex_count, indices) || indices.empty() || indices.size() % 3 != 0)
+		{
+			SFG_ERR("failed to read GLB collision primitive indices");
+			return false;
+		}
+
+		const primitive_index base_vertex = static_cast<primitive_index>(out.vertices.size());
+		out.vertices.reserve(out.vertices.size() + vertex_count);
+		for (u32 i = 0; i < vertex_count; ++i)
+			out.vertices.push_back(convert_vector({positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]}));
+
+		out.indices.reserve(out.indices.size() + indices.size());
+		for (primitive_index index : indices)
+			out.indices.push_back(base_vertex + index);
 
 		return true;
 	}

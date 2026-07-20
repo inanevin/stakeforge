@@ -39,6 +39,7 @@ namespace sfg
 	class quat_t;
 	struct primitive_skinned_def_t;
 	struct primitive_static_def_t;
+	struct physics_collision_mesh_def_t;
 	struct vec3f_t;
 	struct vec4f_t;
 
@@ -63,5 +64,6 @@ namespace sfg
 		static bool read_inverse_bind_matrix(const tg3_model& model, const tg3_skin& skin, u32 joint_index, mat4x3_t& out_matrix);
 		static bool import_static_primitive(const tg3_model& model, const tg3_primitive& primitive, u32 material_index, primitive_static_def_t& out);
 		static bool import_skinned_primitive(const tg3_model& model, const tg3_primitive& primitive, u32 material_index, primitive_skinned_def_t& out);
+		static bool import_collision_primitive(const tg3_model& model, const tg3_primitive& primitive, physics_collision_mesh_def_t& out);
 	};
 }

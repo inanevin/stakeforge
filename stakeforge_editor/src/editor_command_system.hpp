@@ -282,6 +282,7 @@ namespace sfg
 		u32																				  _next_sequence	 = 1;
 		u32																				  _generation		 = 0;
 		u32																				  _entity_generation = 0;
-		static inline editor_command_system_t*											  s_instance		 = nullptr;
+
+		static inline editor_command_system_t* s_instance = nullptr;
 	};
 }

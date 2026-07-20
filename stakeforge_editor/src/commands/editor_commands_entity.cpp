@@ -249,7 +249,6 @@ namespace sfg
 					return false;
 				}
 
-				world.sync_entity_hierarchy(entity);
 				entities[i] = entity;
 				if (parents[i] != NULL_ENTITY_ID)
 					world.attach_to(entity, parents[i]);
@@ -269,7 +268,6 @@ namespace sfg
 			{
 				istream_t		  stream(system.get_aux_data().get<u8>(streams[i]), streams[i].size);
 				const entity_id_t entity = world_cooker_t::entity_from_stream(world, stream, false);
-				world.sync_entity_hierarchy(entity);
 				system.get_aux_data().free(streams[i]);
 				streams[i]	= {};
 				entities[i] = entity;

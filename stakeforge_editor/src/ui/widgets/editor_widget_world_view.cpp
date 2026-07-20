@@ -35,9 +35,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "assets/editor_asset_spawn.hpp"
+
 #include <sfg/gfx/util/render_util.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/math/rectf.hpp>
 #include <sfg/platform/common_window.hpp>
@@ -228,10 +230,12 @@ namespace sfg
 			return;
 
 		const ui::layout_out_t& out = _ui->get_tree().out(_world_view);
-		vec2u16_t				resolution{
+
+		vec2u16_t resolution{
 			.x = static_cast<u16>(math::clamp(out.size.x, 0.0f, 65535.0f) + 0.5f),
 			.y = static_cast<u16>(math::clamp(out.size.y, 0.0f, 65535.0f) + 0.5f),
 		};
+
 		render_util_t::ensure_world_resolution(resolution);
 		if (!force && _last_resize_request == resolution)
 			return;
@@ -244,6 +248,7 @@ namespace sfg
 	{
 		if (_edit_world.is_null())
 			return;
+
 		const editor_play_mode_e play_mode = editor_global_toolbar_t::get().get_play_mode();
 		if (play_mode == editor_play_mode_e::play || play_mode == editor_play_mode_e::play_paused)
 			return;
@@ -370,8 +375,12 @@ namespace sfg
 	{
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
 		SFG_ASSERT(s_event_runtime != nullptr);
+
 		if (btn == ui::mouse_button_e::right)
+		{
+			SFG_TRACE("press");
 			widget.begin_camera_control(*s_event_runtime);
+		}
 		else if (btn == ui::mouse_button_e::left && !widget._edit_world.is_null())
 		{
 			editor_world_t* world		 = editor_world_controller_t::get().get_editor_world(widget._edit_world);
@@ -382,6 +391,7 @@ namespace sfg
 	void editor_widget_world_view_t::on_world_view_release(ui::input_router_t& router, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
+
 		if (btn == ui::mouse_button_e::right)
 			widget.end_camera_control();
 		else if (btn == ui::mouse_button_e::left && widget._gizmo_press_consumed)

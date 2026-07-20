@@ -37,7 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/resources/resource_pack.hpp>
 #include <sfg/vendor/taskflow/core/declarations.hpp>
-#include <mutex>
+#include <sfg/data/mutex.hpp>
 
 namespace sfg
 {
@@ -63,16 +63,28 @@ namespace sfg
 			return s_instance;
 		}
 
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
 		bool init();
 		void uninit();
 		void tick();
 		void stop_render();
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
 
 		void switch_mode(editor_app_mode_e mode);
 		void request_switch_mode(editor_app_mode_e mode);
 		void set_debug_mode(bool enabled);
 		void set_text_subpixel_enabled(bool enabled);
 		void create_payload(const char* text, editor_payload_type_e type, void* user_ptr, vec2u16_t size_value = {});
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
 
 		inline tf::Executor& get_editor_work_executor()
 		{
@@ -83,10 +95,12 @@ namespace sfg
 		{
 			return _debug_mode;
 		}
+
 		inline editor_world_controller_t& get_world_controller()
 		{
 			return _world_controller;
 		}
+
 		inline editor_command_system_t& get_command_system()
 		{
 			return _command_system;
@@ -100,17 +114,17 @@ namespace sfg
 		static void on_project_assets_progress(void* user_data, f32 progress, const char* progress_text);
 
 	private:
+		editor_asset_manager_t		_asset_manager;
 		editor_renderer_t			_renderer;
-		editor_world_controller_t	_world_controller;
 		editor_command_system_t		_command_system;
+		editor_world_controller_t	_world_controller;
 		resource_pack_t				_editor_resource_pack;
 		resource_pack_t				_engine_resource_pack;
-		editor_asset_manager_t		_asset_manager;
-		unique_t<tf::Executor>		_editor_work_executor;
 		editor_payload_controller_t _payload_controller;
 		editor_modal_progress_bar_t _debug_progress_modal;
+		unique_t<tf::Executor>		_editor_work_executor;
 		string_t					_splash_progress_text;
-		std::mutex					_splash_progress_text_mutex;
+		mutex_t						_splash_progress_text_mutex;
 		i64							_last_tick_us				= 0;
 		f32							_debug_modal_progress		= 0.0f;
 		atomic_t<f32>				_splash_progress			= 0.0f;

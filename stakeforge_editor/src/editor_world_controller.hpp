@@ -61,12 +61,14 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
+
 		void init();
 		void uninit();
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
+
 		editor_world_handle_t create_world(const world_init_config_t& init_config);
 		void				  destroy_world(editor_world_handle_t handle);
 		void				  destroy_worlds();
@@ -131,18 +133,19 @@ namespace sfg
 			const world_render_snapshot_t* snapshot = nullptr;
 		};
 
-		f32			calculate_render_alpha() const;
-		void		destroy_world_internal(editor_world_handle_t handle);
-		void		destroy_main_world_internal();
-		void		destroy_worlds_internal(bool notify_panels);
-		void		stop_main_world_play_mode();
-		void		set_main_world(editor_world_handle_t handle, sid_t asset_guid, const char* name);
-		bool		load_main_world_now(sid_t asset_guid);
-		void		notify_main_world_changed();
-		void		notify_main_world_dirty_changed();
-		void		set_main_world_dirty(bool dirty);
-		void		update_main_world_play_mode(editor_play_mode_e mode);
-		void		tick_editor_world(editor_world_t& editor_world, bool is_main_world, editor_play_mode_e mode, f32 dt_seconds, bool force_simulation);
+		f32	 calculate_render_alpha() const;
+		void destroy_world_internal(editor_world_handle_t handle);
+		void destroy_main_world_internal();
+		void destroy_worlds_internal(bool notify_panels);
+		void stop_main_world_play_mode();
+		void set_main_world(editor_world_handle_t handle, sid_t asset_guid, const char* name);
+		bool load_main_world_now(sid_t asset_guid);
+		void notify_main_world_changed();
+		void notify_main_world_dirty_changed();
+		void set_main_world_dirty(bool dirty);
+		void update_main_world_play_mode(editor_play_mode_e mode);
+		void tick_editor_world(editor_world_t& editor_world, bool is_main_world, editor_play_mode_e mode, f32 dt_seconds, bool force_simulation);
+
 		static void on_save_dirty_world_modal(void* user_data);
 		static void on_dont_save_dirty_world_modal(void* user_data);
 		static void on_cancel_dirty_world_modal(void* user_data);
@@ -150,18 +153,17 @@ namespace sfg
 
 	private:
 		dynamic_gen_pool_t<editor_world_t*, u32, editor_world_handle_tag_t> _worlds;
-		vector_t<acquired_render_world_t>									_render_worlds;
 		string_t															_main_world_name;
-		editor_world_handle_t												_main_world					   = {};
+		vector_t<acquired_render_world_t>									_render_worlds;
 		sid_t																_main_world_asset_guid		   = NULL_SID;
 		sid_t																_pending_main_world_asset_guid = NULL_SID;
-		pool_handle_t<u32, editor_command_listener_tag_t>					_command_listener			   = {};
 		i64																	_previous_time_us			   = 0;
 		i64																	_accumulator_us				   = 0;
+		editor_world_handle_t												_main_world					   = {};
+		pool_handle_t<u32, editor_command_listener_tag_t>					_command_listener			   = {};
 		atomic_t<i64>														_last_fixed_step_us			   = 0;
 		atomic_t<i64>														_fixed_step_us				   = 0;
 		f32																	_render_alpha				   = 0.0f;
-		u32																	_world_physics_rate			   = 100;
 		bool																_main_world_dirty			   = false;
 		bool																_play_main_world_dirty		   = false;
 

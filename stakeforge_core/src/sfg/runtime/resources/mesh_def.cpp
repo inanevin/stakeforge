@@ -30,8 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/reflection/reflection_container_ops.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
-#include <cstddef>
-
 namespace sfg
 {
 	primitive_static_def_reflection_t::primitive_static_def_reflection_t()

@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/resources/physical_material.hpp>
+#include <sfg/runtime/resources/physics_collision_mesh.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
@@ -56,6 +57,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <Jolt/Physics/Collision/Shape/BoxShape.h>
 #include <Jolt/Physics/Collision/Shape/CapsuleShape.h>
 #include <Jolt/Physics/Collision/Shape/CylinderShape.h>
+#include <Jolt/Physics/Collision/Shape/ScaledShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 
 namespace sfg
@@ -582,6 +584,7 @@ namespace sfg
 				return;
 
 			const component_entity_tags_t* tags = ecs_helpers_t::table_find_as_const<component_entity_tags_t>(tags_table, entity);
+
 			if (ecs_t::table_has(collider_table, entity))
 			{
 				const component_collider_t&	  collider	  = ecs_helpers_t::table_get_as_const<component_collider_t>(collider_table, entity);
@@ -806,6 +809,13 @@ namespace sfg
 
 		u32 create_body(entity_id_t entity, const component_collider_t& collider, const component_rigid_body_t* rigid_body, u64 tags)
 		{
+			const physics_motion_type_e motion_type = rigid_body != nullptr ? rigid_body->motion_type : physics_motion_type_e::static_body;
+			if (collider.shape == physics_shape_type_e::mesh && motion_type != physics_motion_type_e::static_body)
+			{
+				SFG_ERR("mesh colliders only support static physics bodies: {0}", entity);
+				return UINT32_MAX;
+			}
+
 			const u32	  proxy_index = allocate_proxy();
 			body_proxy_t& proxy		  = _bodies[proxy_index];
 			proxy.active			  = true;
@@ -848,6 +858,30 @@ namespace sfg
 				shape = settings.Create().Get();
 				break;
 			}
+			case physics_shape_type_e::mesh: {
+				const physics_collision_mesh_runtime_t* collision_mesh = resource_manager_t::get().find_runtime<physics_collision_mesh_runtime_t>(collider.collision_mesh);
+				if (collision_mesh == nullptr)
+				{
+					SFG_ERR("failed to find collision mesh resource for entity {0}", entity);
+					break;
+				}
+
+				JPH::Shape* mesh_shape = *resource_manager_t::get().get_memory().get<JPH::Shape*>(collision_mesh->mesh_shape);
+				if (transform.abs_scale.equals(vec3f_t::one))
+				{
+					shape = mesh_shape;
+				}
+				else
+				{
+					JPH::ScaledShapeSettings		settings(mesh_shape, to_jolt(transform.abs_scale));
+					JPH::ShapeSettings::ShapeResult result = settings.Create();
+					if (result.HasError())
+						SFG_ERR("failed to scale collision mesh shape for entity {0}: {1}", entity, result.GetError().c_str());
+					else
+						shape = result.Get();
+				}
+				break;
+			}
 			}
 
 			if (shape == nullptr)
@@ -859,10 +893,9 @@ namespace sfg
 				return UINT32_MAX;
 			}
 
-			const physics_motion_type_e motion_type	  = rigid_body != nullptr ? rigid_body->motion_type : physics_motion_type_e::static_body;
-			const quat_t				body_rotation = transform.abs_rot * collider.local_rotation;
-			const vec3f_t				body_position = transform.abs_pos + transform.abs_rot * (collider.local_position * transform.abs_scale);
-			JPH::BodyCreationSettings	settings(shape, to_jolt_position(body_position), to_jolt(body_rotation), to_jolt(motion_type), make_object_layer(collider.collision_layer, motion_type));
+			const quat_t			  body_rotation = transform.abs_rot * collider.local_rotation;
+			const vec3f_t			  body_position = transform.abs_pos + transform.abs_rot * (collider.local_position * transform.abs_scale);
+			JPH::BodyCreationSettings settings(shape, to_jolt_position(body_position), to_jolt(body_rotation), to_jolt(motion_type), make_object_layer(collider.collision_layer, motion_type));
 			settings.mIsSensor = collider.is_sensor != 0;
 			settings.mUserData = (static_cast<u64>(proxy.generation) << 32) | proxy_index;
 
