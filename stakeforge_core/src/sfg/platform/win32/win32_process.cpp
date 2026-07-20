@@ -537,8 +537,15 @@ namespace
 					.flags = sfg::wef_high_freq,
 				};
 
-				bool		 emit_mouse	 = false;
-				const USHORT mouse_flags = raw->data.mouse.usButtonFlags;
+				bool		 emit_mouse				  = false;
+				const USHORT mouse_flags			  = raw->data.mouse.usButtonFlags;
+				const bool	 activation_mouse_press	  = g_activation_mouse_target != nullptr && (((g_activation_mouse_msg == WM_LBUTTONDOWN || g_activation_mouse_msg == WM_LBUTTONDBLCLK) && (mouse_flags & RI_MOUSE_LEFT_BUTTON_DOWN) != 0) ||
+																								 ((g_activation_mouse_msg == WM_RBUTTONDOWN || g_activation_mouse_msg == WM_RBUTTONDBLCLK) && (mouse_flags & RI_MOUSE_RIGHT_BUTTON_DOWN) != 0) ||
+																								 ((g_activation_mouse_msg == WM_MBUTTONDOWN || g_activation_mouse_msg == WM_MBUTTONDBLCLK) && (mouse_flags & RI_MOUSE_MIDDLE_BUTTON_DOWN) != 0));
+				const bool	 activation_mouse_release = g_activation_mouse_target != nullptr && (((g_activation_mouse_msg == WM_LBUTTONDOWN || g_activation_mouse_msg == WM_LBUTTONDBLCLK) && (mouse_flags & RI_MOUSE_LEFT_BUTTON_UP) != 0) ||
+																								 ((g_activation_mouse_msg == WM_RBUTTONDOWN || g_activation_mouse_msg == WM_RBUTTONDBLCLK) && (mouse_flags & RI_MOUSE_RIGHT_BUTTON_UP) != 0) ||
+																								 ((g_activation_mouse_msg == WM_MBUTTONDOWN || g_activation_mouse_msg == WM_MBUTTONDBLCLK) && (mouse_flags & RI_MOUSE_MIDDLE_BUTTON_UP) != 0));
+
 				if ((mouse_flags & RI_MOUSE_LEFT_BUTTON_DOWN) != 0)
 				{
 					set_key_down(static_cast<u32>(sfg::input_code::mouse_0), true);
@@ -584,7 +591,17 @@ namespace
 
 				if (emit_mouse)
 				{
-					push_event(*runtime, ev);
+					const bool background_mouse_press = GET_RAWINPUT_CODE_WPARAM(w_param) == RIM_INPUTSINK && ev.sub_type == sfg::window_event_sub_type_e::press;
+
+					if (!activation_mouse_press && !background_mouse_press)
+						push_event(*runtime, ev);
+
+					if (activation_mouse_release)
+					{
+						g_activation_mouse_target = nullptr;
+						g_activation_mouse_msg	  = 0;
+					}
+
 					return 0;
 				}
 
@@ -702,12 +719,15 @@ namespace
 			if (msg == WM_LBUTTONUP || msg == WM_RBUTTONUP || msg == WM_MBUTTONUP)
 				sub_type = sfg::window_event_sub_type_e::release;
 
-			bool allow_regular_high_freq_mouse = false;
-			if (g_activation_mouse_target == hwnd && g_activation_mouse_msg == msg)
+			const bool allow_regular_high_freq_mouse = g_activation_mouse_target == hwnd && g_activation_mouse_msg == msg;
+			const bool activation_mouse_release		 = g_activation_mouse_target == hwnd && (((g_activation_mouse_msg == WM_LBUTTONDOWN || g_activation_mouse_msg == WM_LBUTTONDBLCLK) && msg == WM_LBUTTONUP) ||
+																							 ((g_activation_mouse_msg == WM_RBUTTONDOWN || g_activation_mouse_msg == WM_RBUTTONDBLCLK) && msg == WM_RBUTTONUP) ||
+																							 ((g_activation_mouse_msg == WM_MBUTTONDOWN || g_activation_mouse_msg == WM_MBUTTONDBLCLK) && msg == WM_MBUTTONUP));
+
+			if (activation_mouse_release)
 			{
-				g_activation_mouse_target	  = nullptr;
-				g_activation_mouse_msg		  = 0;
-				allow_regular_high_freq_mouse = sub_type == sfg::window_event_sub_type_e::press;
+				g_activation_mouse_target = nullptr;
+				g_activation_mouse_msg	  = 0;
 			}
 
 			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input) && hwnd == g_raw_input_target && !allow_regular_high_freq_mouse)
