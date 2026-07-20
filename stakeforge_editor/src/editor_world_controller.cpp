@@ -69,9 +69,12 @@ namespace sfg
 	void editor_world_controller_t::init()
 	{
 		s_instance = this;
+
 		_worlds.reserve(8);
 		_render_worlds.reserve(8);
+
 		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
+
 		_previous_time_us = time_t::get_cpu_microseconds();
 		_accumulator_us	  = 0;
 		_last_fixed_step_us.store(_previous_time_us, std::memory_order_relaxed);
@@ -89,6 +92,7 @@ namespace sfg
 
 		destroy_worlds_internal(false);
 		_render_worlds.resize(0);
+
 		_previous_time_us = 0;
 		_accumulator_us	  = 0;
 		_last_fixed_step_us.store(0, std::memory_order_relaxed);
@@ -107,6 +111,7 @@ namespace sfg
 		const editor_world_handle_t handle = _worlds.add();
 		_worlds.get(handle)				   = new editor_world_t();
 		editor_world_t* const editor_world = _worlds.get(handle);
+
 		editor_world->init(world_config, handle);
 
 		return handle;
@@ -117,6 +122,7 @@ namespace sfg
 		editor_app_t::get().stop_render();
 
 		const bool was_main_world = _main_world == handle;
+
 		if (was_main_world)
 		{
 			stop_main_world_play_mode();
@@ -129,8 +135,10 @@ namespace sfg
 	void editor_world_controller_t::destroy_world_internal(editor_world_handle_t handle)
 	{
 		editor_world_t* const world = _worlds.get(handle);
+
 		world->uninit();
 		delete world;
+
 		_worlds.remove(handle);
 	}
 
@@ -183,6 +191,7 @@ namespace sfg
 		editor_global_toolbar_t::get().set_do_step(false);
 
 		editor_world_t* const editor_world = _worlds.get(_main_world);
+
 		if (editor_world->get_play_mode() == editor_play_mode_e::none)
 			return;
 
@@ -192,6 +201,7 @@ namespace sfg
 	void editor_world_controller_t::resize_world(editor_world_handle_t handle, vec2u16_t render_resolution)
 	{
 		editor_world_t* const world = _worlds.get(handle);
+
 		if (world->get_render_resolution() == render_resolution)
 			return;
 
@@ -209,6 +219,7 @@ namespace sfg
 			return false;
 
 		_render_alpha = calculate_render_alpha();
+
 		for (editor_world_t* world : _worlds)
 		{
 			_render_worlds.push_back({
@@ -229,6 +240,7 @@ namespace sfg
 
 		for (const acquired_render_world_t& acquired : _render_worlds)
 			acquired.world->render(*acquired.snapshot, _render_alpha, frame_index, global_cbv_index, global_layout);
+
 		_render_worlds.resize(0);
 
 		gfx_backend& backend = gfx_backend::get();
@@ -253,20 +265,24 @@ namespace sfg
 
 		u32		  steps	   = 0;
 		const i64 fixed_us = world_tick_rate == 0 ? 0 : 1000000 / static_cast<i64>(world_tick_rate);
+
 		if (fixed_us > 0)
 		{
 			_accumulator_us += delta_us;
 
 			const f32 dt_seconds = 1.0f / static_cast<f32>(world_tick_rate);
+
 			while (_accumulator_us >= fixed_us && steps < max_sim_steps)
 			{
 				_accumulator_us -= fixed_us;
+
 				for (auto it = _worlds.begin_handle(); it != _worlds.end_handle(); ++it)
 				{
 					const editor_world_handle_t handle		 = *it;
 					editor_world_t*				editor_world = _worlds.get(handle);
 					tick_editor_world(*editor_world, handle == _main_world, play_mode, dt_seconds, false);
 				}
+
 				++steps;
 			}
 
@@ -304,6 +320,7 @@ namespace sfg
 
 		editor_world_t&			 editor_world  = *_worlds.get(_main_world);
 		const editor_play_mode_e previous_mode = editor_world.get_play_mode();
+
 		if (previous_mode == mode)
 			return;
 
@@ -330,8 +347,10 @@ namespace sfg
 		notify_main_world_dirty_changed();
 
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
+
 		if (editor_panel_t* panel = surfaces.find_panel(editor_panel_type_e::entities))
 			static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
+
 		if (editor_panel_t* panel = surfaces.find_panel(editor_panel_type_e::inspector))
 			static_cast<editor_panel_inspector_t*>(panel)->refresh_from_selection();
 	}
@@ -339,13 +358,12 @@ namespace sfg
 	void editor_world_controller_t::tick_editor_world(editor_world_t& editor_world, bool is_main_world, editor_play_mode_e mode, f32 dt_seconds, bool force_simulation)
 	{
 		world_t& world = editor_world.get_world();
+
 		if (!is_main_world)
 		{
 			editor_world.tick_camera(dt_seconds);
 			world.update_world_transforms();
-
-			if (world.is_physics_enabled())
-				world.get_physics().tick(dt_seconds);
+			world.tick_physics(dt_seconds);
 			return;
 		}
 
@@ -357,35 +375,29 @@ namespace sfg
 			break;
 		case editor_play_mode_e::play:
 			world.update_world_transforms();
-
-			if (world.is_physics_enabled())
-				world.get_physics().tick(dt_seconds);
+			world.tick_physics(dt_seconds);
 			break;
 		case editor_play_mode_e::play_physics:
 			editor_world.tick_camera(dt_seconds);
 			world.update_world_transforms();
-
-			if (world.is_physics_enabled())
-				world.get_physics().tick(dt_seconds);
+			world.tick_physics(dt_seconds);
 			break;
 		case editor_play_mode_e::play_paused:
 			if (force_simulation)
 			{
 				world.update_world_transforms();
-
-				if (world.is_physics_enabled())
-					world.get_physics().tick(dt_seconds);
+				world.tick_physics(dt_seconds);
 			}
+
 			break;
 		case editor_play_mode_e::play_physics_paused:
 			if (force_simulation)
 			{
 				editor_world.tick_camera(dt_seconds);
 				world.update_world_transforms();
-
-				if (world.is_physics_enabled())
-					world.get_physics().tick(dt_seconds);
+				world.tick_physics(dt_seconds);
 			}
+
 			break;
 		}
 	}
@@ -395,7 +407,8 @@ namespace sfg
 		for (editor_world_t* editor_world : _worlds)
 		{
 			world_t& world = editor_world->get_world();
-			if (!world.is_physics_enabled())
+
+			if (!world.get_physics().is_init())
 				continue;
 
 			physics_world_t& physics = world.get_physics();
@@ -407,6 +420,7 @@ namespace sfg
 	void editor_world_controller_t::install_default_world(editor_world_handle_t handle)
 	{
 		editor_world_t* const editor_world = _worlds.get(handle);
+
 		editor_world->install_camera(editor_world_camera_type_e::fly);
 		world_t& world = editor_world->get_world();
 
@@ -418,6 +432,7 @@ namespace sfg
 		ecs_component_table_t& debug_widgets_table	= world.get_component_table(type_id_t<component_debug_widgets_t>::value);
 		const bool			   debug_widgets_exists = ecs_t::table_has(debug_widgets_table, environment);
 		void*				   debug_widgets		= ecs_t::table_add(debug_widgets_table, environment);
+
 		if (!debug_widgets_exists)
 		{
 			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(debug_widgets_table.type_desc.type_id);
@@ -477,6 +492,7 @@ namespace sfg
 		editor_app_t::get().stop_render();
 
 		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(asset_guid);
+
 		if (asset == nullptr || asset->asset_type != editor_asset_type_e::world)
 		{
 			SFG_ERR("failed to find world asset {0}", asset_guid);
@@ -497,6 +513,7 @@ namespace sfg
 		};
 
 		const editor_world_handle_t handle = create_world(init_config);
+
 		if (asset->embedded_source.empty())
 			install_default_world(handle);
 		else
@@ -543,12 +560,14 @@ namespace sfg
 		editor_world->get_edit_context().write_folders_to_json(world_json["folders"]);
 		editor_world->serialize_camera(world_json["editor_camera"]);
 
-		editor_asset_t		  asset = {};
-		string_t			  asset_path;
+		editor_asset_t		  asset			 = {};
+		string_t			  asset_path	 = {};
 		const editor_asset_t* existing_asset = _main_world_asset_guid != NULL_SID ? editor_asset_manager_t::get().find_asset(_main_world_asset_guid) : nullptr;
+
 		if (existing_asset != nullptr && existing_asset->asset_type == editor_asset_type_e::world)
 		{
 			asset_path = editor_asset_util_t::find_asset_path(_main_world_asset_guid);
+
 			if (!asset_path.empty() && file_system_t::exists(asset_path.c_str()))
 				asset = *existing_asset;
 		}
@@ -556,14 +575,18 @@ namespace sfg
 		if (asset_path.empty() || !file_system_t::exists(asset_path.c_str()))
 		{
 			asset_path = process::save_file("Save World", "sfg_asset");
+
 			if (asset_path.empty())
 			{
 				SFG_ERR("world save cancelled");
 				return false;
 			}
+
 			file_system_t::fix_path(asset_path);
+
 			if (file_system_t::get_file_extension(asset_path) != "sfg_asset")
 				asset_path += ".sfg_asset";
+
 			if (!editor_asset_path_t::is_source_inside_assets(editor_project_t::get()._runtime.assets_path.c_str(), asset_path.c_str()))
 			{
 				SFG_ERR("world save path is outside project assets directory {0}", asset_path.c_str());
@@ -581,6 +604,7 @@ namespace sfg
 			.asset_type		 = editor_asset_type_e::world,
 			.allow_overwrite = true,
 		};
+
 		if (!editor_asset_writer_t::write_embedded_asset(write_desc, &asset, &asset_path))
 		{
 			SFG_ERR("failed to save world asset {0}", asset_path.c_str());
@@ -596,14 +620,17 @@ namespace sfg
 
 		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
 		const editor_asset_node_handle_t existing_node = asset_manager.find_asset_node_handle(asset.guid);
+
 		if (!existing_node.is_null())
 			asset_manager.reload_asset_node(existing_node);
 		else
 		{
 			const editor_asset_node_handle_t parent_node = asset_manager.find_node_by_path(parent_path.c_str());
+
 			if (!parent_node.is_null())
 				asset_manager.add_path_node(parent_node, asset_path.c_str());
 		}
+
 		return true;
 	}
 
@@ -613,6 +640,7 @@ namespace sfg
 			return;
 
 		const editor_world_handle_t previous_main_world = _main_world;
+
 		if (!previous_main_world.is_null())
 			editor_command_system_t::get().clear_world(previous_main_world);
 
@@ -645,6 +673,7 @@ namespace sfg
 		editor_world_controller_t& controller	  = *static_cast<editor_world_controller_t*>(user_data);
 		const sid_t				   asset_guid	  = controller._pending_main_world_asset_guid;
 		controller._pending_main_world_asset_guid = NULL_SID;
+
 		if (asset_guid != NULL_SID && controller.save_main_world())
 			controller.load_main_world_now(asset_guid);
 	}
@@ -654,6 +683,7 @@ namespace sfg
 		editor_world_controller_t& controller	  = *static_cast<editor_world_controller_t*>(user_data);
 		const sid_t				   asset_guid	  = controller._pending_main_world_asset_guid;
 		controller._pending_main_world_asset_guid = NULL_SID;
+
 		if (asset_guid != NULL_SID)
 			controller.load_main_world_now(asset_guid);
 	}
@@ -666,6 +696,7 @@ namespace sfg
 	void editor_world_controller_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
 	{
 		editor_world_controller_t& controller = *static_cast<editor_world_controller_t*>(user_data);
+
 		switch (command.type)
 		{
 		case editor_command_type_e::entity_create:
@@ -728,6 +759,7 @@ namespace sfg
 	f32 editor_world_controller_t::calculate_render_alpha() const
 	{
 		const i64 fixed_us = _fixed_step_us.load(std::memory_order_relaxed);
+
 		if (fixed_us <= 0)
 			return 0.0f;
 
@@ -737,6 +769,7 @@ namespace sfg
 
 		if (alpha < 0.0f)
 			return 0.0f;
+
 		if (alpha > 1.0f)
 			return 1.0f;
 

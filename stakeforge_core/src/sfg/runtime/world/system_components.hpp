@@ -58,7 +58,7 @@ namespace sfg
 
 		u32 body_proxy_index	  = UINT32_MAX;
 		u32 character_proxy_index = UINT32_MAX;
-		u8	is_static			  = 0;
+		u8	is_dynamic			  = 0;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_physics_t);

@@ -260,6 +260,7 @@ namespace sfg
 					.handle_b = impl->get_handle(pair.GetBody2ID()),
 					.type	  = physics_contact_type_e::end,
 				};
+
 				impl->_raw_contact_events.enqueue(event);
 			}
 
@@ -276,6 +277,7 @@ namespace sfg
 					.type		 = type,
 					.is_sensor	 = settings.mIsSensor,
 				};
+
 				impl->_raw_contact_events.enqueue(event);
 			}
 		};
@@ -342,12 +344,15 @@ namespace sfg
 			_world					  = &world;
 			_config					  = config;
 			_layer_pair_filter.config = &_config;
-			_temp_allocator			  = new JPH::TempAllocatorImpl(_config.temp_allocator_bytes);
-			_system					  = new JPH::PhysicsSystem();
+
+			_temp_allocator = new JPH::TempAllocatorImpl(_config.temp_allocator_bytes);
+			_system			= new JPH::PhysicsSystem();
 			_system->Init(_config.max_bodies, _config.body_mutex_count, _config.max_body_pairs, _config.max_contact_constraints, _broad_phase_interface, _object_broad_phase_filter, _layer_pair_filter);
 			_system->SetGravity(to_jolt(_config.gravity));
+
 			_contact_listener.impl = this;
 			_system->SetContactListener(&_contact_listener);
+
 			_bodies.reserve(_config.body_reserve);
 			_body_free_list.reserve(_config.body_reserve);
 			_characters.reserve(_config.character_reserve);
@@ -365,9 +370,11 @@ namespace sfg
 
 			delete _system;
 			delete _temp_allocator;
+
 			_system			= nullptr;
 			_temp_allocator = nullptr;
 			_world			= nullptr;
+
 			_bodies.resize(0);
 			_body_free_list.resize(0);
 			_body_index_to_handle.resize(0);
@@ -377,6 +384,7 @@ namespace sfg
 			_entity_to_character.resize(0);
 			_contact_events.resize(0);
 			_sync_entities.resize(0);
+
 			_accumulator = 0.0f;
 		}
 
@@ -394,7 +402,8 @@ namespace sfg
 					destroy_body(i);
 			}
 
-			raw_contact_event_t raw_contact;
+			raw_contact_event_t raw_contact = {};
+
 			while (_raw_contact_events.try_dequeue(raw_contact))
 			{
 			}
@@ -409,12 +418,14 @@ namespace sfg
 			std::fill(_body_index_to_handle.begin(), _body_index_to_handle.end(), 0);
 			std::fill(_entity_to_proxy.begin(), _entity_to_proxy.end(), UINT32_MAX);
 			std::fill(_entity_to_character.begin(), _entity_to_character.end(), UINT32_MAX);
+
 			_accumulator = 0.0f;
 		}
 
 		u64 get_handle(const JPH::BodyID& body_id) const
 		{
 			const u32 index = body_id.GetIndex();
+
 			if (index >= _body_index_to_handle.size())
 				return 0;
 
@@ -425,6 +436,7 @@ namespace sfg
 		{
 			const u32 index		 = static_cast<u32>(handle);
 			const u32 generation = static_cast<u32>(handle >> 32);
+
 			if (index >= _bodies.size())
 				return nullptr;
 
@@ -462,6 +474,7 @@ namespace sfg
 		bool passes_filter(const JPH::BodyID& body_id, const physics_query_filter_t& filter) const
 		{
 			const body_proxy_t* proxy = resolve_body(body_id);
+
 			if (proxy == nullptr || proxy->entity == filter.ignored_entity)
 				return false;
 
@@ -473,10 +486,13 @@ namespace sfg
 			else
 			{
 				const physics_motion_type_e motion_type = proxy->has_rigid_body ? proxy->rigid_body.motion_type : physics_motion_type_e::static_body;
+
 				if (motion_type == physics_motion_type_e::static_body && (filter.flags & physics_query_flag_static) == 0)
 					return false;
+
 				if (motion_type == physics_motion_type_e::kinematic_body && (filter.flags & physics_query_flag_kinematic) == 0)
 					return false;
+
 				if (motion_type == physics_motion_type_e::dynamic_body && (filter.flags & physics_query_flag_dynamic) == 0)
 					return false;
 			}
@@ -500,11 +516,12 @@ namespace sfg
 		{
 			_contact_events.resize(0);
 			sync_body_create_destroy();
-			sync_static_bodies_to_physics();
+			sync_static_and_kinematic_bodies_to_physics();
 
 			const f32 fixed_delta = 1.0f / static_cast<f32>(_config.physics_rate);
 			_accumulator += delta_time;
 			u32 steps = 0;
+
 			while (_accumulator >= fixed_delta && steps < _config.max_sub_steps)
 			{
 				update_characters(fixed_delta);
@@ -523,17 +540,19 @@ namespace sfg
 				_accumulator = 0.0f;
 		}
 
-		void sync_static_bodies_to_physics()
+		void sync_static_and_kinematic_bodies_to_physics()
 		{
 			const ecs_component_table_t& system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
 			const ecs_component_table_t& transform_table	  = _world->get_component_table(type_id_t<component_system_transform_t>::value);
 			JPH::BodyInterface&			 body_interface		  = _system->GetBodyInterface();
 
 			const ecs_component_table_ref_t refs[] = {system_physics_table.ref(), transform_table.ref()};
+
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 			{
 				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
-				if (system_physics.is_static == 0)
+
+				if (system_physics.is_dynamic)
 					continue;
 
 				body_proxy_t&						proxy		  = _bodies[system_physics.body_proxy_index];
@@ -595,7 +614,7 @@ namespace sfg
 				{
 					component_system_physics_t& phy = ecs_helpers_t::table_add_or_get_as<component_system_physics_t>(system_physics_table, entity);
 					phy.body_proxy_index			= proxy_index;
-					phy.is_static					= rigid_body == nullptr ? 1 : (rigid_body->motion_type == physics_motion_type_e::static_body);
+					phy.is_dynamic					= rigid_body == nullptr ? 0 : (rigid_body->motion_type == physics_motion_type_e::dynamic_body);
 				}
 			}
 			else if (ecs_t::table_has(mover_table, entity))
@@ -607,7 +626,7 @@ namespace sfg
 				{
 					component_system_physics_t& phy = ecs_helpers_t::table_add_or_get_as<component_system_physics_t>(system_physics_table, entity);
 					phy.character_proxy_index		= character_index;
-					phy.is_static					= 0;
+					phy.is_dynamic					= 0;
 				}
 			}
 		}
@@ -622,6 +641,7 @@ namespace sfg
 			// disabled physics bodies.
 			_sync_entities.resize(0);
 			const ecs_component_table_ref_t disabled_refs[] = {system_physics_table.ref(), disabled_table.ref()};
+
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = disabled_refs, .size = std::size(disabled_refs)}))
 				_sync_entities.push_back(row.id);
 
@@ -631,9 +651,11 @@ namespace sfg
 			// physics bodies with no collider.
 			_sync_entities.resize(0);
 			const ecs_component_table_ref_t body_destroy_refs[] = {system_physics_table.ref(), !collider_table.ref()};
+
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = body_destroy_refs, .size = std::size(body_destroy_refs)}))
 			{
 				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row);
+
 				if (system_physics.body_proxy_index != UINT32_MAX)
 					_sync_entities.push_back(row.id);
 			}
@@ -644,18 +666,22 @@ namespace sfg
 			// movers with no collider.
 			_sync_entities.resize(0);
 			const ecs_component_table_ref_t character_destroy_refs[] = {system_physics_table.ref(), !mover_table.ref()};
+
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = character_destroy_refs, .size = std::size(character_destroy_refs)}))
 			{
 				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row);
+
 				if (system_physics.character_proxy_index != UINT32_MAX)
 					_sync_entities.push_back(row.id);
 			}
+
 			for (entity_id_t entity : _sync_entities)
 				sync_body_create_destroy_entity(entity);
 
 			// create missing bodies.
 			_sync_entities.resize(0);
 			const ecs_component_table_ref_t body_create_refs[] = {collider_table.ref(), !system_physics_table.ref(), !disabled_table.ref()};
+
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = body_create_refs, .size = std::size(body_create_refs)}))
 				_sync_entities.push_back(row.id);
 
@@ -665,6 +691,7 @@ namespace sfg
 			// create missing moves.
 			_sync_entities.resize(0);
 			const ecs_component_table_ref_t character_create_refs[] = {mover_table.ref(), !system_physics_table.ref(), !disabled_table.ref()};
+
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = character_create_refs, .size = std::size(character_create_refs)}))
 				_sync_entities.push_back(row.id);
 
@@ -678,10 +705,12 @@ namespace sfg
 
 			const ecs_component_table_t& hierarchy_table = _world->get_component_table(type_id_t<component_hierarchy_t>::value);
 			const component_hierarchy_t& hierarchy		 = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, entity);
+
 			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
 			{
 				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
 				const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
+
 				sync_body_create_destroy(child);
 				child = next_child;
 			}
@@ -691,6 +720,7 @@ namespace sfg
 		{
 			ecs_component_table_t&		system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
 			component_system_physics_t* system_physics		 = ecs_helpers_t::table_find_as<component_system_physics_t>(system_physics_table, entity);
+
 			if (system_physics != nullptr)
 			{
 				if (system_physics->body_proxy_index != UINT32_MAX)
@@ -734,11 +764,13 @@ namespace sfg
 		u32 create_character(entity_id_t entity, const component_character_mover_t& mover, u64 tags)
 		{
 			_world->calculate_transform_direct(entity);
+
 			const ecs_component_table_t&		transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
 			const component_system_transform_t& transform		= ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
 
 			JPH::CapsuleShapeSettings		shape_settings(math::max(mover.half_height, 0.001f), math::max(mover.radius, 0.001f));
 			JPH::ShapeSettings::ShapeResult shape_result = shape_settings.Create();
+
 			if (shape_result.HasError())
 			{
 				SFG_ERR("failed to create character shape for entity {0}: {1}", entity, shape_result.GetError().c_str());
@@ -754,21 +786,22 @@ namespace sfg
 			body_proxy.collider.collision_layer = mover.collision_layer;
 			body_proxy.rigid_body.motion_type	= physics_motion_type_e::kinematic_body;
 			body_proxy.has_rigid_body			= true;
-			const u64 handle					= (static_cast<u64>(body_proxy.generation) << 32) | body_proxy_index;
 
-			JPH::CharacterVirtualSettings settings;
-			settings.mMaxSlopeAngle				  = math::degrees_to_radians(mover.max_slope_degrees);
-			settings.mMaxStrength				  = mover.max_strength;
-			settings.mMass						  = mover.mass;
-			settings.mShape						  = shape_result.Get();
-			settings.mShapeOffset				  = to_jolt(mover.shape_offset);
-			settings.mCharacterPadding			  = mover.padding;
-			settings.mPredictiveContactDistance	  = mover.predictive_contact_distance;
-			settings.mPenetrationRecoverySpeed	  = mover.penetration_recovery_speed;
-			settings.mEnhancedInternalEdgeRemoval = mover.enhanced_internal_edge_removal != 0;
-			settings.mSupportingVolume			  = JPH::Plane(JPH::Vec3::sAxisY(), -mover.radius);
-			settings.mInnerBodyShape			  = shape_result.Get();
-			settings.mInnerBodyLayer			  = make_object_layer(mover.collision_layer, physics_motion_type_e::kinematic_body);
+			const u64 handle = (static_cast<u64>(body_proxy.generation) << 32) | body_proxy_index;
+
+			JPH::CharacterVirtualSettings settings = {};
+			settings.mMaxSlopeAngle				   = math::degrees_to_radians(mover.max_slope_degrees);
+			settings.mMaxStrength				   = mover.max_strength;
+			settings.mMass						   = mover.mass;
+			settings.mShape						   = shape_result.Get();
+			settings.mShapeOffset				   = to_jolt(mover.shape_offset);
+			settings.mCharacterPadding			   = mover.padding;
+			settings.mPredictiveContactDistance	   = mover.predictive_contact_distance;
+			settings.mPenetrationRecoverySpeed	   = mover.penetration_recovery_speed;
+			settings.mEnhancedInternalEdgeRemoval  = mover.enhanced_internal_edge_removal != 0;
+			settings.mSupportingVolume			   = JPH::Plane(JPH::Vec3::sAxisY(), -mover.radius);
+			settings.mInnerBodyShape			   = shape_result.Get();
+			settings.mInnerBodyLayer			   = make_object_layer(mover.collision_layer, physics_motion_type_e::kinematic_body);
 
 			const u32		   character_index = allocate_character_proxy();
 			character_proxy_t& proxy		   = _characters[character_index];
@@ -810,6 +843,7 @@ namespace sfg
 		u32 create_body(entity_id_t entity, const component_collider_t& collider, const component_rigid_body_t* rigid_body, u64 tags)
 		{
 			const physics_motion_type_e motion_type = rigid_body != nullptr ? rigid_body->motion_type : physics_motion_type_e::static_body;
+
 			if (collider.shape == physics_shape_type_e::mesh && motion_type != physics_motion_type_e::static_body)
 			{
 				SFG_ERR("mesh colliders only support static physics bodies: {0}", entity);
@@ -827,12 +861,14 @@ namespace sfg
 			proxy.physical_material	  = collider.physical_material;
 
 			_world->calculate_transform_direct(entity);
+
 			const ecs_component_table_t&		transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
 			const component_system_transform_t& transform		= ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
 			proxy.scale											= transform.abs_scale;
 
 			const vec3f_t			  abs_scale = vec3f_t::abs(transform.abs_scale);
-			JPH::RefConst<JPH::Shape> shape;
+			JPH::RefConst<JPH::Shape> shape		= {};
+
 			switch (collider.shape)
 			{
 			case physics_shape_type_e::box: {
@@ -860,6 +896,7 @@ namespace sfg
 			}
 			case physics_shape_type_e::mesh: {
 				const physics_collision_mesh_runtime_t* collision_mesh = resource_manager_t::get().find_runtime<physics_collision_mesh_runtime_t>(collider.collision_mesh);
+
 				if (collision_mesh == nullptr)
 				{
 					SFG_ERR("failed to find collision mesh resource for entity {0}", entity);
@@ -867,6 +904,7 @@ namespace sfg
 				}
 
 				JPH::Shape* mesh_shape = *resource_manager_t::get().get_memory().get<JPH::Shape*>(collision_mesh->mesh_shape);
+
 				if (transform.abs_scale.equals(vec3f_t::one))
 				{
 					shape = mesh_shape;
@@ -875,11 +913,13 @@ namespace sfg
 				{
 					JPH::ScaledShapeSettings		settings(mesh_shape, to_jolt(transform.abs_scale));
 					JPH::ShapeSettings::ShapeResult result = settings.Create();
+
 					if (result.HasError())
 						SFG_ERR("failed to scale collision mesh shape for entity {0}: {1}", entity, result.GetError().c_str());
 					else
 						shape = result.Get();
 				}
+
 				break;
 			}
 			}
@@ -896,6 +936,7 @@ namespace sfg
 			const quat_t			  body_rotation = transform.abs_rot * collider.local_rotation;
 			const vec3f_t			  body_position = transform.abs_pos + transform.abs_rot * (collider.local_position * transform.abs_scale);
 			JPH::BodyCreationSettings settings(shape, to_jolt_position(body_position), to_jolt(body_rotation), to_jolt(motion_type), make_object_layer(collider.collision_layer, motion_type));
+
 			settings.mIsSensor = collider.is_sensor != 0;
 			settings.mUserData = (static_cast<u64>(proxy.generation) << 32) | proxy_index;
 
@@ -906,6 +947,7 @@ namespace sfg
 				settings.mGravityFactor	 = rigid_body->gravity_factor;
 				settings.mAllowSleeping	 = rigid_body->allow_sleep != 0;
 				settings.mMotionQuality	 = rigid_body->motion_quality_continuous != 0 ? JPH::EMotionQuality::LinearCast : JPH::EMotionQuality::Discrete;
+
 				if (motion_type == physics_motion_type_e::dynamic_body)
 				{
 					settings.mOverrideMassProperties	   = JPH::EOverrideMassProperties::CalculateInertia;
@@ -916,6 +958,7 @@ namespace sfg
 			if (collider.physical_material != NULL_RESOURCE_HANDLE)
 			{
 				const physical_material_runtime_t* material = resource_manager_t::get().find_runtime<physical_material_runtime_t>(collider.physical_material);
+
 				if (material != nullptr)
 				{
 					settings.mRestitution = material->restitution;
@@ -925,6 +968,7 @@ namespace sfg
 
 			JPH::BodyInterface& body_interface = _system->GetBodyInterface();
 			JPH::Body*			body		   = body_interface.CreateBody(settings);
+
 			if (body == nullptr)
 			{
 				SFG_ERR("failed to allocate physics body for entity {0}", entity);
@@ -953,6 +997,7 @@ namespace sfg
 			body_interface.DestroyBody(proxy.body_id);
 
 			_body_index_to_handle[proxy.body_id.GetIndex()] = 0;
+
 			if (proxy.entity < _entity_to_proxy.size() && _entity_to_proxy[proxy.entity] == proxy_index)
 				_entity_to_proxy[proxy.entity] = UINT32_MAX;
 
@@ -974,6 +1019,7 @@ namespace sfg
 
 				const JPH::Vec3 ground_velocity = character.GetGroundVelocity();
 				JPH::Vec3		velocity		= character.GetLinearVelocity();
+
 				if (character.GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround)
 				{
 					const f32 vertical_velocity		   = velocity.Dot(JPH::Vec3::sAxisY());
@@ -992,32 +1038,35 @@ namespace sfg
 				character.SetLinearVelocity(velocity);
 				proxy.last_ground_velocity = from_jolt(ground_velocity);
 
-				query_broad_phase_filter_t broad_filter;
-				broad_filter.flags = physics_query_flag_all;
+				query_broad_phase_filter_t broad_filter = {};
+				broad_filter.flags						= physics_query_flag_all;
 
-				query_object_layer_filter_t layer_filter;
-				layer_filter.layers = _config.collision_masks[proxy.mover.collision_layer];
+				query_object_layer_filter_t layer_filter = {};
+				layer_filter.layers						 = _config.collision_masks[proxy.mover.collision_layer];
 
 				const physics_query_filter_t query_filter{
 					.collision_layers = {.bits = layer_filter.layers},
 					.ignored_entity	  = proxy.entity,
 				};
 
-				query_body_filter_t body_filter;
-				body_filter.impl   = this;
-				body_filter.filter = &query_filter;
+				query_body_filter_t body_filter = {};
+				body_filter.impl				= this;
+				body_filter.filter				= &query_filter;
 
-				JPH::CharacterVirtual::ExtendedUpdateSettings update_settings;
-				update_settings.mStickToFloorStepDown	   = JPH::Vec3(0.0f, -proxy.mover.step_down, 0.0f);
-				update_settings.mWalkStairsStepUp		   = JPH::Vec3(0.0f, proxy.mover.step_up, 0.0f);
-				update_settings.mWalkStairsMinStepForward  = proxy.mover.min_step_forward;
-				update_settings.mWalkStairsStepForwardTest = proxy.mover.step_forward_test;
+				JPH::CharacterVirtual::ExtendedUpdateSettings update_settings = {};
+				update_settings.mStickToFloorStepDown						  = JPH::Vec3(0.0f, -proxy.mover.step_down, 0.0f);
+				update_settings.mWalkStairsStepUp							  = JPH::Vec3(0.0f, proxy.mover.step_up, 0.0f);
+				update_settings.mWalkStairsMinStepForward					  = proxy.mover.min_step_forward;
+				update_settings.mWalkStairsStepForwardTest					  = proxy.mover.step_forward_test;
+
 				character.ExtendedUpdate(delta_time, to_jolt(_config.gravity), update_settings, broad_filter, layer_filter, body_filter, {}, *_temp_allocator);
 
 				const vec3f_t position = from_jolt(character.GetPosition());
 				const quat_t  rotation = from_jolt(character.GetRotation());
+
 				_world->set_entity_pos_local(proxy.entity, _world->abs_pos_to_local(proxy.entity, position));
 				_world->set_entity_rot_local(proxy.entity, _world->abs_rot_to_local(proxy.entity, rotation));
+
 				proxy.last_entity_pos = position;
 				proxy.last_entity_rot = rotation;
 			}
@@ -1044,7 +1093,8 @@ namespace sfg
 				const component_hierarchy_t&	  child_hierarchy	   = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
 				const entity_id_t				  next_child		   = child_hierarchy.next_sibling;
 				const component_system_physics_t* child_system_physics = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, child);
-				if (child_system_physics != nullptr && child_system_physics->is_static == 0)
+
+				if (child_system_physics != nullptr && child_system_physics->is_dynamic != 0)
 				{
 					child = next_child;
 					continue;
@@ -1071,15 +1121,17 @@ namespace sfg
 			JPH::BodyInterface&			 body_interface			= _system->GetBodyInterface();
 
 			const ecs_component_table_ref_t absolute_refs[] = {system_physics_table.ref(), system_transform_table.ref()};
+
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = absolute_refs, .size = std::size(absolute_refs)}))
 			{
 				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
-				if (system_physics.is_static != 0 || system_physics.body_proxy_index == UINT32_MAX)
+
+				if (system_physics.is_dynamic == 0 || system_physics.body_proxy_index == UINT32_MAX)
 					continue;
 
-				body_proxy_t& proxy = _bodies[system_physics.body_proxy_index];
-				JPH::RVec3	  body_position;
-				JPH::Quat	  body_rotation;
+				body_proxy_t& proxy			= _bodies[system_physics.body_proxy_index];
+				JPH::RVec3	  body_position = JPH::RVec3::sZero();
+				JPH::Quat	  body_rotation = JPH::Quat::sIdentity();
 				body_interface.GetPositionAndRotation(proxy.body_id, body_position, body_rotation);
 				const quat_t entity_rotation = from_jolt(body_rotation) * proxy.collider.local_rotation.inverse();
 
@@ -1095,25 +1147,30 @@ namespace sfg
 			}
 
 			const ecs_component_table_ref_t hierarchy_refs[] = {system_physics_table.ref(), hierarchy_table.ref()};
+
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = hierarchy_refs, .size = std::size(hierarchy_refs)}))
 			{
 				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
-				if (system_physics.is_static != 0 || system_physics.body_proxy_index == UINT32_MAX)
+
+				if (system_physics.is_dynamic == 0 || system_physics.body_proxy_index == UINT32_MAX)
 					continue;
 
 				sync_dynamic_body_children_into_world(row.id, system_physics_table, system_transform_table, transform_table, hierarchy_table);
 			}
 
 			const ecs_component_table_ref_t local_refs[] = {system_physics_table.ref(), system_transform_table.ref(), transform_table.ref(), hierarchy_table.ref()};
+
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = local_refs, .size = std::size(local_refs)}))
 			{
 				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
-				if (system_physics.is_static != 0 || system_physics.body_proxy_index == UINT32_MAX)
+
+				if (system_physics.is_dynamic == 0 || system_physics.body_proxy_index == UINT32_MAX)
 					continue;
 
 				const component_system_transform_t& system_transform = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
 				component_transform_t&				transform		 = ecs_helpers_t::row_get_mutable<component_transform_t>(row, 2);
 				const component_hierarchy_t&		hierarchy		 = ecs_helpers_t::row_get<component_hierarchy_t>(row, 3);
+
 				if (hierarchy.parent == NULL_ENTITY_ID)
 				{
 					transform.pos = system_transform.abs_pos;
@@ -1130,11 +1187,13 @@ namespace sfg
 
 		void drain_contact_events()
 		{
-			raw_contact_event_t raw;
+			raw_contact_event_t raw = {};
+
 			while (_raw_contact_events.try_dequeue(raw))
 			{
 				const body_proxy_t* proxy_a = resolve_handle(raw.handle_a);
 				const body_proxy_t* proxy_b = resolve_handle(raw.handle_b);
+
 				if (proxy_a == nullptr || proxy_b == nullptr)
 					continue;
 
@@ -1176,25 +1235,30 @@ namespace sfg
 			hit.is_character	  = proxy->is_character;
 
 			JPH::BodyLockRead lock(_system->GetBodyLockInterface(), result.mBodyID);
+
 			if (lock.Succeeded())
 				hit.normal = from_jolt(lock.GetBody().GetWorldSpaceSurfaceNormal(result.mSubShapeID2, to_jolt_position(hit.position)));
 		}
 
 		bool raycast_closest(const physics_raycast_t& ray, physics_hit_t& out_hit, const physics_query_filter_t& filter)
 		{
-			JPH::RRayCast jolt_ray;
+			JPH::RRayCast jolt_ray = {};
+
 			if (!validate_ray(ray, jolt_ray))
 				return false;
 
-			query_broad_phase_filter_t broad_filter;
-			broad_filter.flags = filter.flags;
-			query_object_layer_filter_t layer_filter;
-			layer_filter.layers = filter.collision_layers.bits;
-			query_body_filter_t body_filter;
-			body_filter.impl   = this;
-			body_filter.filter = &filter;
+			query_broad_phase_filter_t broad_filter = {};
+			broad_filter.flags						= filter.flags;
 
-			JPH::RayCastResult result;
+			query_object_layer_filter_t layer_filter = {};
+			layer_filter.layers						 = filter.collision_layers.bits;
+
+			query_body_filter_t body_filter = {};
+			body_filter.impl				= this;
+			body_filter.filter				= &filter;
+
+			JPH::RayCastResult result = {};
+
 			if (!_system->GetNarrowPhaseQuery().CastRay(jolt_ray, result, broad_filter, layer_filter, body_filter))
 				return false;
 
@@ -1204,49 +1268,53 @@ namespace sfg
 
 		bool raycast_any(const physics_raycast_t& ray, const physics_query_filter_t& filter)
 		{
-			JPH::RRayCast jolt_ray;
+			JPH::RRayCast jolt_ray = {};
+
 			if (!validate_ray(ray, jolt_ray))
 				return false;
 
-			query_broad_phase_filter_t broad_filter;
-			broad_filter.flags = filter.flags;
+			query_broad_phase_filter_t broad_filter = {};
+			broad_filter.flags						= filter.flags;
 
-			query_object_layer_filter_t layer_filter;
-			layer_filter.layers = filter.collision_layers.bits;
+			query_object_layer_filter_t layer_filter = {};
+			layer_filter.layers						 = filter.collision_layers.bits;
 
-			query_body_filter_t body_filter;
-			body_filter.impl   = this;
-			body_filter.filter = &filter;
+			query_body_filter_t body_filter = {};
+			body_filter.impl				= this;
+			body_filter.filter				= &filter;
 
-			JPH::AnyHitCollisionCollector<JPH::CastRayCollector> collector;
-			JPH::RayCastSettings								 settings;
+			JPH::AnyHitCollisionCollector<JPH::CastRayCollector> collector = {};
+			JPH::RayCastSettings								 settings  = {};
+
 			_system->GetNarrowPhaseQuery().CastRay(jolt_ray, settings, collector, broad_filter, layer_filter, body_filter);
 			return collector.HadHit();
 		}
 
 		physics_query_result_t raycast_all(const physics_raycast_t& ray, span_t<physics_hit_t> out_hits, const physics_query_filter_t& filter)
 		{
-			JPH::RRayCast jolt_ray;
+			JPH::RRayCast jolt_ray = {};
+
 			if (!validate_ray(ray, jolt_ray))
 				return {};
 
-			query_broad_phase_filter_t broad_filter;
-			broad_filter.flags = filter.flags;
+			query_broad_phase_filter_t broad_filter = {};
+			broad_filter.flags						= filter.flags;
 
-			query_object_layer_filter_t layer_filter;
-			layer_filter.layers = filter.collision_layers.bits;
+			query_object_layer_filter_t layer_filter = {};
+			layer_filter.layers						 = filter.collision_layers.bits;
 
-			query_body_filter_t body_filter;
-			body_filter.impl   = this;
-			body_filter.filter = &filter;
+			query_body_filter_t body_filter = {};
+			body_filter.impl				= this;
+			body_filter.filter				= &filter;
 
-			ray_all_collector_t collector;
-			collector.impl	   = this;
-			collector.hits	   = out_hits.data;
-			collector.ray	   = &ray;
-			collector.capacity = static_cast<u32>(out_hits.size);
+			ray_all_collector_t collector = {};
+			collector.impl				  = this;
+			collector.hits				  = out_hits.data;
+			collector.ray				  = &ray;
+			collector.capacity			  = static_cast<u32>(out_hits.size);
 
-			JPH::RayCastSettings settings;
+			JPH::RayCastSettings settings = {};
+
 			_system->GetNarrowPhaseQuery().CastRay(jolt_ray, settings, collector, broad_filter, layer_filter, body_filter);
 
 			if (collector.count > 1)
@@ -1262,6 +1330,7 @@ namespace sfg
 	void physics_world_t::init(world_t& world, const physics_runtime_config_t& config)
 	{
 		SFG_ASSERT(_impl == nullptr);
+
 		_impl = new impl_t();
 		_impl->init(world, config);
 	}
@@ -1269,8 +1338,10 @@ namespace sfg
 	void physics_world_t::uninit()
 	{
 		SFG_ASSERT(_impl != nullptr);
+
 		_impl->uninit();
 		delete _impl;
+
 		_impl = nullptr;
 	}
 
@@ -1308,6 +1379,7 @@ namespace sfg
 	{
 		impl_t::body_proxy_t* body = _impl->get_body(entity);
 		SFG_ASSERT(body != nullptr && !body->is_character && body->has_rigid_body && body->rigid_body.motion_type != physics_motion_type_e::static_body);
+
 		_impl->_system->GetBodyInterface().SetLinearVelocity(body->body_id, to_jolt(velocity));
 	}
 
@@ -1315,6 +1387,7 @@ namespace sfg
 	{
 		impl_t::body_proxy_t* body = _impl->get_body(entity);
 		SFG_ASSERT(body != nullptr && !body->is_character && body->has_rigid_body && body->rigid_body.motion_type != physics_motion_type_e::static_body);
+
 		_impl->_system->GetBodyInterface().SetAngularVelocity(body->body_id, to_jolt(velocity));
 	}
 
@@ -1322,6 +1395,7 @@ namespace sfg
 	{
 		impl_t::body_proxy_t* body = _impl->get_body(entity);
 		SFG_ASSERT(body != nullptr && !body->is_character && body->has_rigid_body && body->rigid_body.motion_type == physics_motion_type_e::dynamic_body);
+
 		_impl->_system->GetBodyInterface().AddForce(body->body_id, to_jolt(force));
 	}
 
@@ -1329,6 +1403,7 @@ namespace sfg
 	{
 		impl_t::body_proxy_t* body = _impl->get_body(entity);
 		SFG_ASSERT(body != nullptr && !body->is_character && body->has_rigid_body && body->rigid_body.motion_type == physics_motion_type_e::dynamic_body);
+
 		_impl->_system->GetBodyInterface().AddImpulse(body->body_id, to_jolt(impulse));
 	}
 
@@ -1336,19 +1411,22 @@ namespace sfg
 	{
 		impl_t::body_proxy_t* body = _impl->get_body(entity);
 		SFG_ASSERT(body != nullptr && !body->is_character && body->has_rigid_body && body->rigid_body.motion_type != physics_motion_type_e::static_body);
+
 		_impl->_system->GetBodyInterface().ActivateBody(body->body_id);
 	}
 
 	bool physics_world_t::get_body_state(entity_id_t entity, physics_body_state_t& out_state) const
 	{
 		const impl_t::body_proxy_t* body = _impl->get_body(entity);
+
 		if (body == nullptr || body->is_character)
 			return false;
 
-		JPH::RVec3			position;
-		JPH::Quat			rotation;
+		JPH::RVec3			position	   = JPH::RVec3::sZero();
+		JPH::Quat			rotation	   = JPH::Quat::sIdentity();
 		JPH::BodyInterface& body_interface = _impl->_system->GetBodyInterface();
 		body_interface.GetPositionAndRotation(body->body_id, position, rotation);
+
 		out_state.position		   = from_jolt(position);
 		out_state.rotation		   = from_jolt(rotation);
 		out_state.linear_velocity  = from_jolt(body_interface.GetLinearVelocity(body->body_id));
@@ -1382,6 +1460,7 @@ namespace sfg
 	void physics_world_t::linecast_closest_batch(span_t<const physics_linecast_t> lines, span_t<physics_hit_t> out_hits, const physics_query_filter_t& filter) const
 	{
 		SFG_ASSERT(out_hits.size >= lines.size);
+
 		for (size_t i = 0; i < lines.size; ++i)
 		{
 			out_hits.data[i] = {};
@@ -1393,6 +1472,7 @@ namespace sfg
 	{
 		impl_t::character_proxy_t* character = _impl->get_character(entity);
 		SFG_ASSERT(character != nullptr);
+
 		character->character->SetLinearVelocity(to_jolt(velocity));
 	}
 
@@ -1400,6 +1480,7 @@ namespace sfg
 	{
 		impl_t::character_proxy_t* character = _impl->get_character(entity);
 		SFG_ASSERT(character != nullptr);
+
 		character->character->SetLinearVelocity(character->character->GetLinearVelocity() + to_jolt(velocity));
 	}
 
@@ -1407,6 +1488,7 @@ namespace sfg
 	{
 		impl_t::character_proxy_t* character = _impl->get_character(entity);
 		SFG_ASSERT(character != nullptr);
+
 		if (character->character->GetGroundState() != JPH::CharacterVirtual::EGroundState::OnGround)
 			return;
 
@@ -1420,6 +1502,7 @@ namespace sfg
 	{
 		impl_t::character_proxy_t* character = _impl->get_character(entity);
 		SFG_ASSERT(character != nullptr);
+
 		character->character->SetPosition(to_jolt_position(position));
 		character->last_entity_pos = position;
 		_impl->_world->set_entity_pos_local(entity, _impl->_world->abs_pos_to_local(entity, position));
@@ -1428,6 +1511,7 @@ namespace sfg
 	bool physics_world_t::get_character_state(entity_id_t entity, character_mover_state_t& out_state) const
 	{
 		const impl_t::character_proxy_t* character = _impl->get_character(entity);
+
 		if (character == nullptr)
 			return false;
 
@@ -1436,8 +1520,9 @@ namespace sfg
 		out_state.ground_normal						= from_jolt(jolt_character.GetGroundNormal());
 		out_state.ground_velocity					= from_jolt(jolt_character.GetGroundVelocity());
 		out_state.is_grounded						= jolt_character.GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround;
-		const impl_t::body_proxy_t* ground			= _impl->resolve_body(jolt_character.GetGroundBodyID());
-		out_state.ground_entity						= ground != nullptr ? ground->entity : NULL_ENTITY_ID;
+
+		const impl_t::body_proxy_t* ground = _impl->resolve_body(jolt_character.GetGroundBodyID());
+		out_state.ground_entity			   = ground != nullptr ? ground->entity : NULL_ENTITY_ID;
 		return true;
 	}
 
@@ -1445,12 +1530,14 @@ namespace sfg
 	{
 		for (u32 i = 0; i < PHYSICS_COLLISION_LAYER_MAX; ++i)
 			_impl->_config.collision_masks[i] = masks[i];
+
 		_impl->_config.active_collision_layers = active_layers;
 	}
 
 	void physics_world_t::update_step_settings(u32 physics_rate, u32 max_sub_steps)
 	{
 		SFG_ASSERT(physics_rate != 0 && max_sub_steps != 0);
+
 		_impl->_config.physics_rate	 = physics_rate;
 		_impl->_config.max_sub_steps = max_sub_steps;
 		_impl->_accumulator			 = 0.0f;

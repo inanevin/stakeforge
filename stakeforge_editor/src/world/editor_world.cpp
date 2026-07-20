@@ -82,10 +82,12 @@ namespace sfg
 			.text_vertex_max		 = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
 			.text_index_max			 = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
 		};
+
 		_world.init(world_config);
 		_edit_context.init();
 		_edit_context.set_world(handle);
 		_gizmo.init();
+
 		_producer_slot		  = 0;
 		_consumer_slot		  = 1;
 		_latest_snapshot_slot = UINT8_MAX;
@@ -140,10 +142,12 @@ namespace sfg
 			_world.end_play();
 			_play_mode = editor_play_mode_e::none;
 		}
+
 		_play_snapshot.shrink(0);
 
 		_gizmo.uninit(_world);
 		uninstall_camera();
+
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
 			delete static_cast<editor_world_snapshot_data_t*>(_snapshot_slots[i].user_data);
@@ -172,6 +176,7 @@ namespace sfg
 	void editor_world_t::resize(vec2u16_t render_resolution)
 	{
 		cancel_gizmo_action();
+
 		_render_resolution = render_resolution;
 		_render_context.resize(render_resolution);
 		_pick_result.store(0, std::memory_order_relaxed);
@@ -184,6 +189,7 @@ namespace sfg
 	void editor_world_t::install_camera(editor_world_camera_type_e type)
 	{
 		uninstall_camera();
+
 		_camera_type = type;
 
 		switch (type)
@@ -204,6 +210,7 @@ namespace sfg
 	{
 		if (_camera == nullptr)
 			return;
+
 		cancel_gizmo_action();
 
 		_camera->uninit(_world);
@@ -296,6 +303,7 @@ namespace sfg
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
 		++_next_pick_request_id;
+
 		if (_next_pick_request_id == 0)
 			++_next_pick_request_id;
 
@@ -309,19 +317,23 @@ namespace sfg
 	void editor_world_t::consume_entity_pick_result()
 	{
 		const u64 packed_result = _pick_result.exchange(0, std::memory_order_acquire);
+
 		if (packed_result == 0)
 			return;
 
 		const u32 request_id = static_cast<u32>(packed_result >> EDITOR_WORLD_PICK_RESULT_REQUEST_SHIFT);
+
 		if (request_id != _pending_pick_request.id)
 			return;
 
 		entity_id_t entity = static_cast<entity_id_t>(packed_result);
+
 		if (entity != NULL_ENTITY_ID && !_world.is_alive(entity))
 			entity = NULL_ENTITY_ID;
 
 		const bool incremental_selection = _pending_pick_request.incremental_selection;
 		_pending_pick_request			 = {};
+
 		if (entity == NULL_ENTITY_ID)
 		{
 			_edit_context.clear_entity_selection();
@@ -334,13 +346,15 @@ namespace sfg
 			return;
 		}
 
-		const span_t<const entity_id_t> selected = _edit_context.get_selected_entities();
-		frame_vector_t<entity_id_t>		selection;
+		const span_t<const entity_id_t> selected  = _edit_context.get_selected_entities();
+		frame_vector_t<entity_id_t>		selection = {};
 		selection.reserve(selected.size + 1);
+
 		for (size_t i = 0; i < selected.size; ++i)
 			selection.push_back(selected.data[i]);
 
 		auto it = std::find(selection.begin(), selection.end(), entity);
+
 		if (it == selection.end())
 			selection.push_back(entity);
 		else
@@ -358,6 +372,7 @@ namespace sfg
 		serialize_camera(snapshot["editor_camera"]);
 
 		const string_t snapshot_text = snapshot.dump();
+
 		_play_snapshot.shrink(0);
 		_play_snapshot << snapshot_text;
 	}
@@ -367,12 +382,14 @@ namespace sfg
 		SFG_ASSERT(_play_snapshot.get_size() != 0);
 
 		istream_t snapshot_stream(_play_snapshot.get_raw(), _play_snapshot.get_size());
-		string_t  snapshot_text;
+		string_t  snapshot_text = {};
+
 		snapshot_stream >> snapshot_text;
 
 		const nlohmann::json snapshot = nlohmann::json::parse(snapshot_text, nullptr, false);
 		SFG_ASSERT(!snapshot.is_discarded());
 		nlohmann::json camera = snapshot.value<nlohmann::json>("editor_camera", nlohmann::json::object());
+
 		if (keep_current_camera)
 			serialize_camera(camera);
 
@@ -401,6 +418,7 @@ namespace sfg
 		if (_play_mode == editor_play_mode_e::none)
 		{
 			SFG_ASSERT(mode == editor_play_mode_e::play || mode == editor_play_mode_e::play_physics);
+
 			if (mode == editor_play_mode_e::play)
 			{
 				cancel_gizmo_action();
@@ -442,7 +460,7 @@ namespace sfg
 
 	void editor_world_t::draw_debug()
 	{
-		if (_edit_context.is_physics_debug_enabled() && _world.is_physics_enabled())
+		if (_edit_context.is_physics_debug_enabled() && _world.get_physics().is_init())
 			_world.get_physics().draw_debug(_world.get_debug_draw());
 
 		if (_gizmo.is_action_active())
@@ -452,6 +470,7 @@ namespace sfg
 		}
 
 		const span_t<const entity_id_t> selected = _edit_context.get_selected_entities();
+
 		if (selected.size != 0)
 		{
 			world_debug_draw_t&			 debug_draw		 = _world.get_debug_draw();
@@ -470,6 +489,7 @@ namespace sfg
 				const entity_id_t					entity	  = selected.data[i];
 				const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
 				const component_camera_t*			camera	  = ecs_helpers_t::table_find_as_const<component_camera_t>(camera_table, entity);
+
 				if (camera != nullptr)
 				{
 					SFG_ASSERT(_render_resolution.x != 0 && _render_resolution.y != 0);
@@ -486,11 +506,13 @@ namespace sfg
 				}
 
 				const component_collider_t* collider = ecs_helpers_t::table_find_as_const<component_collider_t>(collider_table, entity);
+
 				if (collider != nullptr)
 				{
 					const vec3f_t abs_scale		= vec3f_t::abs(transform.abs_scale);
 					const quat_t  body_rotation = transform.abs_rot * collider->local_rotation;
 					const vec3f_t body_position = transform.abs_pos + transform.abs_rot * (collider->local_position * transform.abs_scale);
+
 					switch (collider->shape)
 					{
 					case physics_shape_type_e::box: {
@@ -517,12 +539,14 @@ namespace sfg
 					}
 					case physics_shape_type_e::mesh: {
 						const physics_collision_mesh_runtime_t* collision_mesh = resource_manager_t::get().find_runtime<physics_collision_mesh_runtime_t>(collider->collision_mesh);
+
 						if (collision_mesh == nullptr)
 							break;
 
 						const chunk_allocator_t& memory	  = resource_manager_t::get().get_memory();
 						const vec3f_t*			 vertices = memory.get<vec3f_t>(collision_mesh->vertices);
 						const primitive_index*	 indices  = memory.get<primitive_index>(collision_mesh->indices);
+
 						for (u32 i = 0; i < collision_mesh->index_count; i += 3)
 						{
 							const vec3f_t p0 = body_position + body_rotation * (vertices[indices[i]] * transform.abs_scale);
@@ -530,16 +554,19 @@ namespace sfg
 							const vec3f_t p2 = body_position + body_rotation * (vertices[indices[i + 2]] * transform.abs_scale);
 							debug_draw.draw_triangle(p0, p1, p2, collider_color);
 						}
+
 						break;
 					}
 					}
 				}
 
 				const component_light_t* light = ecs_helpers_t::table_find_as_const<component_light_t>(light_table, entity);
+
 				if (light == nullptr)
 					continue;
 
 				const vec3f_t forward = transform.abs_rot.get_forward();
+
 				switch (light->type)
 				{
 				case light_type_e::directional: {
@@ -571,6 +598,7 @@ namespace sfg
 			world_debug_draw_t&			   debug_draw	= _world.get_debug_draw();
 			const editor_theme_t&		   theme		= editor_theme_t::get();
 			const color_t				   bounds_color = {theme.color_highlight.x, theme.color_highlight.y, theme.color_highlight.z, theme.color_highlight.w};
+
 			for (const world_draw_t& draw : snapshot.draws)
 			{
 				const world_render_entity_t& entity		   = snapshot.entities[draw.entity_index];
@@ -617,6 +645,7 @@ namespace sfg
 
 		const bool		  gizmo_enabled = _play_mode != editor_play_mode_e::play && _play_mode != editor_play_mode_e::play_paused;
 		const entity_id_t anchor		= gizmo_enabled ? _edit_context.get_mutable_entity_anchor(_world) : NULL_ENTITY_ID;
+
 		if (anchor != NULL_ENTITY_ID)
 		{
 			const ecs_component_table_t&		transform_table = _world.get_component_table(type_id_t<component_system_transform_t>::value);
@@ -636,8 +665,10 @@ namespace sfg
 			data.gizmo.hovered_axis = _gizmo.get_hovered_axis();
 			data.gizmo.active_axis	= _gizmo.get_active_axis();
 		}
+
 		data.selected_entities.resize(0);
 		data.selected_entities.reserve(selected.size);
+
 		for (size_t i = 0; i < selected.size; ++i)
 			data.selected_entities.push_back(selected.data[i]);
 
@@ -645,6 +676,7 @@ namespace sfg
 		{
 			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, data.selected_entities[i]);
 			entity_id_t					 child	   = hierarchy.first_child;
+
 			while (child != NULL_ENTITY_ID)
 			{
 				if (std::find(data.selected_entities.begin(), data.selected_entities.end(), child) == data.selected_entities.end())
@@ -670,6 +702,7 @@ namespace sfg
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 
 		u8 cur = _snapshot_mailbox.load(std::memory_order_acquire);
+
 		while (cur & EDITOR_WORLD_SNAPSHOT_FRESH_FLAG)
 		{
 			if (_snapshot_mailbox.compare_exchange_weak(cur, _consumer_slot, std::memory_order_acquire, std::memory_order_acquire))
@@ -678,6 +711,7 @@ namespace sfg
 				break;
 			}
 		}
+
 		return _snapshot_slots[_consumer_slot];
 	}
 
@@ -686,6 +720,7 @@ namespace sfg
 		_render_prep_data.reset();
 
 		const editor_world_snapshot_data_t& data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
+
 		if (_object_id_readback_valid[frame_index] && data.pick_request.id != 0 && data.pick_request.id != _last_render_pick_request_id)
 		{
 			const vec2u16_t size  = _render_context.get_size();

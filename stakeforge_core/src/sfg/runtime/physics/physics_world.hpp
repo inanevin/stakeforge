@@ -120,6 +120,11 @@ namespace sfg
 
 		span_t<const physics_contact_event_t> get_contact_events() const;
 
+		inline bool is_init() const
+		{
+			return _impl != nullptr;
+		}
+
 	private:
 		class impl_t;
 		impl_t* _impl = nullptr;

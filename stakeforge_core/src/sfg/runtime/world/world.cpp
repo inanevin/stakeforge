@@ -80,8 +80,7 @@ namespace sfg
 
 		if (config.physics_enabled)
 		{
-			_physics_world = new physics_world_t();
-			_physics_world->init(*this, config.physics);
+			_physics_world.init(*this, config.physics);
 		}
 	}
 
@@ -89,11 +88,9 @@ namespace sfg
 	{
 		SFG_ASSERT(!_is_playing);
 
-		if (_physics_world != nullptr)
+		if (_physics_world.is_init())
 		{
-			_physics_world->uninit();
-			delete _physics_world;
-			_physics_world = nullptr;
+			_physics_world.uninit();
 		}
 
 		_debug_draw.uninit();
@@ -122,10 +119,10 @@ namespace sfg
 
 		update_world_transforms(false);
 
-		if (_physics_world != nullptr)
+		if (_physics_world.is_init())
 		{
-			_physics_world->clear();
-			_physics_world->sync_body_create_destroy();
+			if (_physics_world.is_init())
+				_physics_world.sync_body_create_destroy();
 		}
 	}
 
@@ -133,8 +130,8 @@ namespace sfg
 	{
 		SFG_ASSERT(_is_playing);
 
-		if (_physics_world != nullptr)
-			_physics_world->clear();
+		if (_physics_world.is_init())
+			_physics_world.clear();
 
 		resource_manager_t& resource_manager = resource_manager_t::get();
 		for (size_t i = _used_resources.size(); i > _play_resource_count; --i)
@@ -152,8 +149,8 @@ namespace sfg
 	{
 		SFG_ASSERT(!_is_playing);
 
-		if (_physics_world != nullptr)
-			_physics_world->clear();
+		if (_physics_world.is_init())
+			_physics_world.clear();
 
 		_debug_draw.begin_frame();
 		for (ecs_component_table_t& table : _component_tables)
@@ -164,6 +161,13 @@ namespace sfg
 		_entity_free_list.resize(0);
 		_text_allocator.reset();
 		_entity_head = 0;
+	}
+
+	void world_t::tick_physics(f32 dt)
+	{
+		if (!_physics_world.is_init())
+			return;
+		_physics_world.tick(dt);
 	}
 
 	entity_guid_t world_t::generate_guid() const
@@ -233,11 +237,11 @@ namespace sfg
 		component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
 		SFG_ASSERT(hierarchy.first_child == NULL_ENTITY_ID);
 
-		if (_physics_world != nullptr)
+		if (_physics_world.is_init())
 		{
 			ecs_t::table_remove(get_component_table(type_id_t<component_collider_t>::value), id);
 			ecs_t::table_remove(get_component_table(type_id_t<component_character_mover_t>::value), id);
-			_physics_world->sync_body_create_destroy(id);
+			_physics_world.sync_body_create_destroy(id);
 		}
 
 		detach(id);
@@ -536,16 +540,16 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		if (_physics_world != nullptr)
-			_physics_world->sync_body_create_destroy(id);
+		if (_physics_world.is_init())
+			_physics_world.sync_body_create_destroy(id);
 	}
 
 	void world_t::recreate_physics(entity_id_t id)
 	{
 		SFG_ASSERT(is_alive(id));
 
-		if (_physics_world != nullptr)
-			_physics_world->recreate_bodies(id);
+		if (_physics_world.is_init())
+			_physics_world.recreate_bodies(id);
 	}
 
 	bool world_t::add_resource(resource_type_e type, resource_handle_t handle)

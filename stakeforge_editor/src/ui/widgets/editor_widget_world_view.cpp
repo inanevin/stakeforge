@@ -39,7 +39,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/util/render_util.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/math/rectf.hpp>
 #include <sfg/platform/common_window.hpp>
@@ -378,7 +377,6 @@ namespace sfg
 
 		if (btn == ui::mouse_button_e::right)
 		{
-			SFG_TRACE("press");
 			widget.begin_camera_control(*s_event_runtime);
 		}
 		else if (btn == ui::mouse_button_e::left && !widget._edit_world.is_null())

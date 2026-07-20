@@ -11,12 +11,12 @@
 #include <sfg/runtime/world/ecs_component_type.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
+#include <sfg/runtime/physics/physics_world.hpp>
 
 namespace sfg
 {
 	class mat4x3_t;
 	class istream_t;
-	class physics_world_t;
 	struct world_init_config_t;
 	struct component_hierarchy_t;
 	struct prefab_internals_t;
@@ -39,6 +39,13 @@ namespace sfg
 		world_t(world_t&& other)			= delete;
 		world_t& operator=(world_t&& other) = delete;
 
+		struct world_resource_t
+		{
+			resource_handle_t handle = NULL_RESOURCE_HANDLE;
+			resource_type_e	  type	 = resource_type_e::invalid;
+			bool			  loaded = false;
+		};
+
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
@@ -48,6 +55,7 @@ namespace sfg
 		void begin_play();
 		void end_play();
 		void clear_entities();
+		void tick_physics(f32 dt);
 
 		// -----------------------------------------------------------------------------
 		// entity
@@ -69,13 +77,6 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// resource
 		// -----------------------------------------------------------------------------
-
-		struct world_resource_t
-		{
-			resource_handle_t handle = NULL_RESOURCE_HANDLE;
-			resource_type_e	  type	 = resource_type_e::invalid;
-			bool			  loaded = false;
-		};
 
 		bool									 add_resource(resource_type_e type, resource_handle_t handle);
 		void									 scan_for_resources(entity_id_t entity, bool omit_children = false);
@@ -136,17 +137,12 @@ namespace sfg
 
 		inline physics_world_t& get_physics()
 		{
-			return *_physics_world;
+			return _physics_world;
 		}
 
 		inline const physics_world_t& get_physics() const
 		{
-			return *_physics_world;
-		}
-
-		inline bool is_physics_enabled() const
-		{
-			return _physics_world != nullptr;
+			return _physics_world;
 		}
 
 	private:
@@ -175,16 +171,17 @@ namespace sfg
 			ecs_component_table_t* transform_table = nullptr;
 		};
 
+	private:
 		vector_t<ecs_component_table_t>	  _component_tables;
 		vector_t<world_text_allocation_t> _text_allocations;
 		vector_t<u32>					  _text_allocation_free_list;
 		vector_t<entity_id_t>			  _entity_free_list;
 		vector_t<world_resource_t>		  _used_resources;
-		world_debug_draw_t				  _debug_draw;
-		physics_world_t*				  _physics_world = nullptr;
-		text_allocator_t				  _text_allocator;
-		engine_components_t				  _engine_components;
-		system_components_t				  _system_components;
+		world_debug_draw_t				  _debug_draw		   = {};
+		physics_world_t					  _physics_world	   = {};
+		text_allocator_t				  _text_allocator	   = {};
+		engine_components_t				  _engine_components   = {};
+		system_components_t				  _system_components   = {};
 		entity_id_t						  _entity_head		   = 0;
 		u32								  _play_resource_count = 0;
 		bool							  _is_playing		   = false;
