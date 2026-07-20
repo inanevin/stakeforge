@@ -39,11 +39,13 @@ namespace sfg
 
 	struct character_mover_state_t
 	{
-		vec3f_t		velocity		= vec3f_t::zero;
-		vec3f_t		ground_normal	= vec3f_t::up;
-		vec3f_t		ground_velocity = vec3f_t::zero;
-		entity_id_t ground_entity	= NULL_ENTITY_ID;
-		bool		is_grounded		= false;
+		vec3f_t		velocity			= vec3f_t::zero;
+		vec3f_t		ground_normal		= vec3f_t::up;
+		vec3f_t		ground_velocity		= vec3f_t::zero;
+		entity_id_t ground_entity		= NULL_ENTITY_ID;
+		entity_id_t ground_sub_entity	= NULL_ENTITY_ID;
+		u32			ground_sub_shape_id = 0;
+		bool		is_grounded			= false;
 	};
 
 	struct physics_body_state_t

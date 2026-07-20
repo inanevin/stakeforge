@@ -213,17 +213,24 @@ namespace sfg
 			bool				   has_rigid_body	 = false;
 			bool				   active			 = false;
 			bool				   is_character		 = false;
+
+			entity_id_t get_sub_entity(u32 sub_shape_id) const
+			{
+				return entity;
+			}
 		};
 
 		struct raw_contact_event_t
 		{
-			JPH::RVec3			   position	   = JPH::RVec3::sZero();
-			JPH::Vec3			   normal	   = JPH::Vec3::sZero();
-			u64					   handle_a	   = 0;
-			u64					   handle_b	   = 0;
-			f32					   penetration = 0.0f;
-			physics_contact_type_e type		   = physics_contact_type_e::begin;
-			bool				   is_sensor   = false;
+			JPH::RVec3			   position		  = JPH::RVec3::sZero();
+			JPH::Vec3			   normal		  = JPH::Vec3::sZero();
+			u64					   handle_a		  = 0;
+			u64					   handle_b		  = 0;
+			f32					   penetration	  = 0.0f;
+			u32					   sub_shape_id_a = 0;
+			u32					   sub_shape_id_b = 0;
+			physics_contact_type_e type			  = physics_contact_type_e::begin;
+			bool				   is_sensor	  = false;
 		};
 
 		struct character_proxy_t
@@ -256,9 +263,11 @@ namespace sfg
 			void OnContactRemoved(const JPH::SubShapeIDPair& pair) override
 			{
 				raw_contact_event_t event{
-					.handle_a = impl->get_handle(pair.GetBody1ID()),
-					.handle_b = impl->get_handle(pair.GetBody2ID()),
-					.type	  = physics_contact_type_e::end,
+					.handle_a		= impl->get_handle(pair.GetBody1ID()),
+					.handle_b		= impl->get_handle(pair.GetBody2ID()),
+					.sub_shape_id_a = pair.GetSubShapeID1().GetValue(),
+					.sub_shape_id_b = pair.GetSubShapeID2().GetValue(),
+					.type			= physics_contact_type_e::end,
 				};
 
 				impl->_raw_contact_events.enqueue(event);
@@ -269,13 +278,15 @@ namespace sfg
 			{
 				const JPH::RVec3	position = manifold.mRelativeContactPointsOn1.empty() ? manifold.mBaseOffset : manifold.GetWorldSpaceContactPointOn1(0);
 				raw_contact_event_t event{
-					.position	 = position,
-					.normal		 = manifold.mWorldSpaceNormal,
-					.handle_a	 = body_a.GetUserData(),
-					.handle_b	 = body_b.GetUserData(),
-					.penetration = manifold.mPenetrationDepth,
-					.type		 = type,
-					.is_sensor	 = settings.mIsSensor,
+					.position		= position,
+					.normal			= manifold.mWorldSpaceNormal,
+					.handle_a		= body_a.GetUserData(),
+					.handle_b		= body_b.GetUserData(),
+					.penetration	= manifold.mPenetrationDepth,
+					.sub_shape_id_a = manifold.mSubShapeID1.GetValue(),
+					.sub_shape_id_b = manifold.mSubShapeID2.GetValue(),
+					.type			= type,
+					.is_sensor		= settings.mIsSensor,
 				};
 
 				impl->_raw_contact_events.enqueue(event);
@@ -1198,13 +1209,17 @@ namespace sfg
 					continue;
 
 				_contact_events.push_back({
-					.position	 = from_jolt(raw.position),
-					.normal		 = from_jolt(raw.normal),
-					.entity_a	 = proxy_a->entity,
-					.entity_b	 = proxy_b->entity,
-					.penetration = raw.penetration,
-					.type		 = raw.type,
-					.is_sensor	 = raw.is_sensor,
+					.position		= from_jolt(raw.position),
+					.normal			= from_jolt(raw.normal),
+					.entity_a		= proxy_a->entity,
+					.entity_b		= proxy_b->entity,
+					.sub_entity_a	= proxy_a->get_sub_entity(raw.sub_shape_id_a),
+					.sub_entity_b	= proxy_b->get_sub_entity(raw.sub_shape_id_b),
+					.penetration	= raw.penetration,
+					.sub_shape_id_a = raw.sub_shape_id_a,
+					.sub_shape_id_b = raw.sub_shape_id_b,
+					.type			= raw.type,
+					.is_sensor		= raw.is_sensor,
 				});
 			}
 		}
@@ -1229,6 +1244,7 @@ namespace sfg
 			hit.distance		  = ray.distance * result.mFraction;
 			hit.fraction		  = result.mFraction;
 			hit.entity			  = proxy->entity;
+			hit.sub_entity		  = proxy->get_sub_entity(result.mSubShapeID2.GetValue());
 			hit.physical_material = proxy->physical_material;
 			hit.sub_shape_id	  = result.mSubShapeID2.GetValue();
 			hit.is_sensor		  = proxy->collider.is_sensor != 0;
@@ -1521,8 +1537,11 @@ namespace sfg
 		out_state.ground_velocity					= from_jolt(jolt_character.GetGroundVelocity());
 		out_state.is_grounded						= jolt_character.GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround;
 
-		const impl_t::body_proxy_t* ground = _impl->resolve_body(jolt_character.GetGroundBodyID());
-		out_state.ground_entity			   = ground != nullptr ? ground->entity : NULL_ENTITY_ID;
+		const u32					ground_sub_shape_id = jolt_character.GetGroundSubShapeID().GetValue();
+		const impl_t::body_proxy_t* ground				= _impl->resolve_body(jolt_character.GetGroundBodyID());
+		out_state.ground_entity							= ground != nullptr ? ground->entity : NULL_ENTITY_ID;
+		out_state.ground_sub_entity						= ground != nullptr ? ground->get_sub_entity(ground_sub_shape_id) : NULL_ENTITY_ID;
+		out_state.ground_sub_shape_id					= ground_sub_shape_id;
 		return true;
 	}
 
