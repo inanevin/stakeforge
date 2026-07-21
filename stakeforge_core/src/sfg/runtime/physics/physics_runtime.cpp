@@ -145,7 +145,11 @@ namespace sfg
 				JPH::BodyManager::DrawSettings settings = {};
 				settings.mDrawShape						= true;
 				settings.mDrawVelocity					= true;
+				settings.mDrawMassAndInertia			= true;
+				settings.mDrawSleepStats				= true;
 				system.DrawBodies(settings, this);
+				system.DrawConstraints(this);
+				system.DrawConstraintLimits(this);
 				_debug_draw = nullptr;
 			}
 
@@ -263,6 +267,7 @@ namespace sfg
 		JPH::RegisterDefaultAllocator();
 		JPH::Trace = trace_impl;
 		JPH_IF_ENABLE_ASSERTS(JPH::AssertFailed = assert_impl;)
+
 		JPH::Factory::sInstance = new JPH::Factory();
 		JPH::RegisterTypes();
 		JPH_IF_DEBUG_RENDERER(g_physics_debug_renderer = new physics_debug_renderer_t();)
@@ -275,6 +280,7 @@ namespace sfg
 		job_system_t::get().wait_for_all();
 		delete g_physics_job_system;
 		g_physics_job_system = nullptr;
+
 		JPH_IF_DEBUG_RENDERER(delete g_physics_debug_renderer; g_physics_debug_renderer = nullptr;)
 		JPH::UnregisterTypes();
 		delete JPH::Factory::sInstance;

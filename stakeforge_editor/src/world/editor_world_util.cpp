@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "editor_world_util.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/mat4x3.hpp>
@@ -49,24 +50,108 @@ namespace sfg
 #define EDITOR_CONSTRAINT_GIZMO_CONE_LENGTH		  0.65f
 #define EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT	  999999.0f
 
+	namespace
+	{
+		void draw_physics_shape(world_debug_draw_t&	 debug_draw,
+								physics_shape_type_e shape,
+								const vec3f_t&		 half_extent,
+								f32					 radius,
+								f32					 half_height,
+								resource_handle_t	 collision_mesh_handle,
+								const vec3f_t&		 position,
+								const quat_t&		 rotation,
+								const vec3f_t&		 scale,
+								const color_t&		 color)
+		{
+			const vec3f_t abs_scale = vec3f_t::abs(scale);
+
+			switch (shape)
+			{
+			case physics_shape_type_e::box: {
+				const mat4x3_t shape_transform = mat4x3_t::transform(position, rotation, vec3f_t::one);
+
+				debug_draw.draw_box(shape_transform, vec3f_t::max(half_extent * abs_scale, {0.001f, 0.001f, 0.001f}), color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			}
+			case physics_shape_type_e::sphere: {
+				const f32 scaled_radius = math::max(radius * math::max(abs_scale.x, math::max(abs_scale.y, abs_scale.z)), 0.001f);
+
+				debug_draw.draw_sphere(position, scaled_radius, color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			}
+			case physics_shape_type_e::capsule: {
+				const f32 scaled_radius		 = math::max(radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
+				const f32 scaled_half_height = math::max(half_height * abs_scale.y, 0.001f);
+
+				debug_draw.draw_capsule(position, scaled_radius, scaled_half_height, rotation.get_up(), color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			}
+			case physics_shape_type_e::cylinder: {
+				const f32 scaled_radius		 = math::max(radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
+				const f32 scaled_half_height = math::max(half_height * abs_scale.y, 0.001f);
+
+				debug_draw.draw_cylinder(position, scaled_radius, scaled_half_height, rotation.get_up(), color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			}
+			case physics_shape_type_e::mesh: {
+				const physics_collision_mesh_runtime_t* collision_mesh = resource_manager_t::get().find_runtime<physics_collision_mesh_runtime_t>(collision_mesh_handle);
+
+				if (collision_mesh == nullptr)
+					break;
+
+				const chunk_allocator_t& memory	  = resource_manager_t::get().get_memory();
+				const vec3f_t*			 vertices = memory.get<vec3f_t>(collision_mesh->vertices);
+				const primitive_index*	 indices  = memory.get<primitive_index>(collision_mesh->indices);
+
+				for (u32 index = 0; index < collision_mesh->index_count; index += 3)
+				{
+					const vec3f_t p0 = position + rotation * (vertices[indices[index]] * scale);
+					const vec3f_t p1 = position + rotation * (vertices[indices[index + 1]] * scale);
+					const vec3f_t p2 = position + rotation * (vertices[indices[index + 2]] * scale);
+
+					debug_draw.draw_triangle(p0, p1, p2, color);
+				}
+
+				break;
+			}
+			case physics_shape_type_e::compound:
+				break;
+			}
+		}
+	}
+
 	void editor_world_util_t::draw_selection_gizmos(world_t& world, span_t<const entity_id_t> selected_entities, const vec2u16_t& render_resolution)
 	{
-		world_debug_draw_t&			 debug_draw		 = world.get_debug_draw();
-		const editor_theme_t&		 theme			 = editor_theme_t::get();
-		const vec4f_t&				 accent_warn	 = theme.color_accent_warn;
-		const vec4f_t&				 accent1		 = theme.color_accent1;
-		const color_t				 debug_color	 = {accent_warn.x, accent_warn.y, accent_warn.z, accent_warn.w};
-		const color_t				 collider_color	 = {accent1.x, accent1.y, accent1.z, accent1.w};
-		const ecs_component_table_t& transform_table = world.get_component_table(type_id_t<component_system_transform_t>::value);
-		const ecs_component_table_t& camera_table	 = world.get_component_table(type_id_t<component_camera_t>::value);
-		const ecs_component_table_t& light_table	 = world.get_component_table(type_id_t<component_light_t>::value);
-		const ecs_component_table_t& physical_table	 = world.get_component_table(type_id_t<component_physical_t>::value);
+		world_debug_draw_t&			 debug_draw				= world.get_debug_draw();
+		const editor_theme_t&		 theme					= editor_theme_t::get();
+		const vec4f_t&				 accent_warn			= theme.color_accent_warn;
+		const vec4f_t&				 accent1				= theme.color_accent1;
+		const color_t				 debug_color			= {accent_warn.x, accent_warn.y, accent_warn.z, accent_warn.w};
+		const color_t				 collider_color			= {accent1.x, accent1.y, accent1.z, accent1.w};
+		const ecs_component_table_t& system_transform_table = world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& transform_table		= world.get_component_table(type_id_t<component_transform_t>::value);
+		const ecs_component_table_t& hierarchy_table		= world.get_component_table(type_id_t<component_hierarchy_t>::value);
+		const ecs_component_table_t& camera_table			= world.get_component_table(type_id_t<component_camera_t>::value);
+		const ecs_component_table_t& light_table			= world.get_component_table(type_id_t<component_light_t>::value);
+		const ecs_component_table_t& physical_table			= world.get_component_table(type_id_t<component_physical_t>::value);
+		const ecs_component_table_t& compound_shape_table	= world.get_component_table(type_id_t<component_compound_shape_t>::value);
+		frame_vector_t<entity_id_t>	 compound_parents		= {};
+		compound_parents.reserve(selected_entities.size);
 
 		for (size_t i = 0; i < selected_entities.size; ++i)
 		{
-			const entity_id_t					entity	  = selected_entities.data[i];
-			const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
-			const component_camera_t*			camera	  = ecs_helpers_t::table_find_as_const<component_camera_t>(camera_table, entity);
+			const entity_id_t					entity		   = selected_entities.data[i];
+			const component_system_transform_t& transform	   = ecs_helpers_t::table_get_as_const<component_system_transform_t>(system_transform_table, entity);
+			const component_camera_t*			camera		   = ecs_helpers_t::table_find_as_const<component_camera_t>(camera_table, entity);
+			const component_compound_shape_t*	compound_shape = ecs_helpers_t::table_find_as_const<component_compound_shape_t>(compound_shape_table, entity);
+
+			if (compound_shape != nullptr)
+			{
+				const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, entity);
+
+				if (hierarchy.parent != NULL_ENTITY_ID && std::find(compound_parents.begin(), compound_parents.end(), hierarchy.parent) == compound_parents.end())
+					compound_parents.push_back(hierarchy.parent);
+			}
 
 			if (camera != nullptr)
 			{
@@ -88,60 +173,12 @@ namespace sfg
 
 			if (physical != nullptr)
 			{
-				const vec3f_t abs_scale		= vec3f_t::abs(transform.abs_scale);
 				const quat_t  body_rotation = transform.abs_rot * physical->local_rotation;
 				const vec3f_t body_position = transform.abs_pos + transform.abs_rot * (physical->local_position * transform.abs_scale);
+				draw_physics_shape(debug_draw, physical->shape, physical->half_extent, physical->radius, physical->half_height, physical->collision_mesh, body_position, body_rotation, transform.abs_scale, collider_color);
 
-				switch (physical->shape)
-				{
-				case physics_shape_type_e::box: {
-					const mat4x3_t collider_transform = mat4x3_t::transform(body_position, body_rotation, vec3f_t::one);
-
-					debug_draw.draw_box(collider_transform, vec3f_t::max(physical->half_extent * abs_scale, {0.001f, 0.001f, 0.001f}), collider_color, 2.0f, debug_draw_depth_e::always_visible);
-					break;
-				}
-				case physics_shape_type_e::sphere: {
-					const f32 radius = math::max(physical->radius * math::max(abs_scale.x, math::max(abs_scale.y, abs_scale.z)), 0.001f);
-
-					debug_draw.draw_sphere(body_position, radius, collider_color, 2.0f, debug_draw_depth_e::always_visible);
-					break;
-				}
-				case physics_shape_type_e::capsule: {
-					const f32 radius	  = math::max(physical->radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
-					const f32 half_height = math::max(physical->half_height * abs_scale.y, 0.001f);
-
-					debug_draw.draw_capsule(body_position, radius, half_height, body_rotation.get_up(), collider_color, 2.0f, debug_draw_depth_e::always_visible);
-					break;
-				}
-				case physics_shape_type_e::cylinder: {
-					const f32 radius	  = math::max(physical->radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
-					const f32 half_height = math::max(physical->half_height * abs_scale.y, 0.001f);
-
-					debug_draw.draw_cylinder(body_position, radius, half_height, body_rotation.get_up(), collider_color, 2.0f, debug_draw_depth_e::always_visible);
-					break;
-				}
-				case physics_shape_type_e::mesh: {
-					const physics_collision_mesh_runtime_t* collision_mesh = resource_manager_t::get().find_runtime<physics_collision_mesh_runtime_t>(physical->collision_mesh);
-
-					if (collision_mesh == nullptr)
-						break;
-
-					const chunk_allocator_t& memory	  = resource_manager_t::get().get_memory();
-					const vec3f_t*			 vertices = memory.get<vec3f_t>(collision_mesh->vertices);
-					const primitive_index*	 indices  = memory.get<primitive_index>(collision_mesh->indices);
-
-					for (u32 index = 0; index < collision_mesh->index_count; index += 3)
-					{
-						const vec3f_t p0 = body_position + body_rotation * (vertices[indices[index]] * transform.abs_scale);
-						const vec3f_t p1 = body_position + body_rotation * (vertices[indices[index + 1]] * transform.abs_scale);
-						const vec3f_t p2 = body_position + body_rotation * (vertices[indices[index + 2]] * transform.abs_scale);
-
-						debug_draw.draw_triangle(p0, p1, p2, collider_color);
-					}
-
-					break;
-				}
-				}
+				if (physical->shape == physics_shape_type_e::compound && std::find(compound_parents.begin(), compound_parents.end(), entity) == compound_parents.end())
+					compound_parents.push_back(entity);
 			}
 
 			draw_constraint_gizmos(world, entity, transform, debug_draw);
@@ -175,6 +212,37 @@ namespace sfg
 				if (light->area_size.x > 0.0f && light->area_size.y > 0.0f)
 					debug_draw.draw_rectangle(transform.abs_pos, transform.abs_rot.get_right(), transform.abs_rot.get_up(), light->area_size, debug_color, 2.0f, debug_draw_depth_e::always_visible);
 				break;
+			}
+		}
+
+		for (entity_id_t parent : compound_parents)
+		{
+			const component_physical_t* physical = ecs_helpers_t::table_find_as_const<component_physical_t>(physical_table, parent);
+
+			if (physical == nullptr || physical->shape != physics_shape_type_e::compound)
+				continue;
+
+			const component_system_transform_t& parent_transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(system_transform_table, parent);
+			const component_hierarchy_t&		parent_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, parent);
+			const quat_t						body_rotation	 = parent_transform.abs_rot * physical->local_rotation;
+			const vec3f_t						body_position	 = parent_transform.abs_pos + parent_transform.abs_rot * (physical->local_position * parent_transform.abs_scale);
+
+			for (entity_id_t child = parent_hierarchy.first_child; child != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t&	  child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
+				const component_compound_shape_t* compound_shape  = ecs_helpers_t::table_find_as_const<component_compound_shape_t>(compound_shape_table, child);
+
+				if (compound_shape != nullptr)
+				{
+					const component_transform_t& child_transform = ecs_helpers_t::table_get_as_const<component_transform_t>(transform_table, child);
+					const vec3f_t				 child_position	 = (child_transform.pos + child_transform.rot * (compound_shape->local_position * child_transform.scale)) * parent_transform.abs_scale;
+					const quat_t				 shape_rotation	 = body_rotation * child_transform.rot * compound_shape->local_rotation;
+					const vec3f_t				 shape_position	 = body_position + body_rotation * child_position;
+					const vec3f_t				 shape_scale	 = parent_transform.abs_scale * child_transform.scale;
+					draw_physics_shape(debug_draw, compound_shape->shape, compound_shape->half_extent, compound_shape->radius, compound_shape->half_height, compound_shape->collision_mesh, shape_position, shape_rotation, shape_scale, collider_color);
+				}
+
+				child = child_hierarchy.next_sibling;
 			}
 		}
 	}

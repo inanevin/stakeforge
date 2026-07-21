@@ -55,5 +55,15 @@ namespace sfg
 			.alignment		 = alignof(component_system_physics_t),
 			.flags			 = reflected_type_flag_system_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
 		});
+
+		registry.register_type({
+			.name			 = "component_system_constraints",
+			.display_name	 = "System Constraints",
+			.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_system_constraints_t*>(ptr), component_system_constraints_t{}); },
+			.type_id		 = type_id_t<component_system_constraints_t>::value,
+			.size			 = sizeof(component_system_constraints_t),
+			.alignment		 = alignof(component_system_constraints_t),
+			.flags			 = reflected_type_flag_system_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
+		});
 	}
 }

@@ -56,6 +56,7 @@ namespace sfg
 		{
 			if (handle == bound_vertex)
 				return;
+
 			bound_vertex = handle;
 			backend.cmd_bind_vertex_buffers(cmd, {.buffer = bound_vertex, .slot = 0, .vertex_size = vtx_size, .offset = 0});
 		};
@@ -64,6 +65,7 @@ namespace sfg
 		{
 			if (handle == bound_index)
 				return;
+
 			bound_index = handle;
 			backend.cmd_bind_index_buffers(cmd, {.buffer = bound_index, .offset = 0, .index_size = idx_size});
 		};
@@ -72,6 +74,7 @@ namespace sfg
 		{
 			if (pipeline == bound_pipeline)
 				return;
+
 			bound_pipeline = pipeline;
 			backend.cmd_bind_pipeline(cmd, {.pipeline = pipeline});
 		}
@@ -80,9 +83,10 @@ namespace sfg
 		{
 			if (bound_index == index)
 				return;
+
 			bound_index = index;
 
-			inplace_vector_t<gpu_index_t, 1 + SFG_MATERIAL_MAX_TEXTURES * 2> constants;
+			inplace_vector_t<gpu_index_t, 1 + SFG_MATERIAL_MAX_TEXTURES * 2> constants = {};
 			constants.push_back(render_resources_t::get().get_resource_gpu_index(mat.material_buffer));
 
 			for (u32 i = 0; i < mat.texture_count; i++)
@@ -94,6 +98,7 @@ namespace sfg
 			backend.cmd_bind_constants(cmd, {.data = constants.data(), .offset = constant_mat0, .count = static_cast<u8>(constants.size()), .param_index = 0});
 		}
 	}
+
 	void world_rendering_t::render_world(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		gfx_backend&					backend = gfx_backend::get();
@@ -104,6 +109,7 @@ namespace sfg
 		// prep entity buffer.
 		{
 			SFG_ASSERT(snapshot.entities.size() <= WORLD_RENDER_ENTITY_BUFFER_CAPACITY);
+
 			for (size_t i = 0; i < snapshot.entities.size(); ++i)
 			{
 				const world_render_entity_t& entity	 = snapshot.entities[i];
@@ -159,6 +165,7 @@ namespace sfg
 		for (u32 light_index = 0; light_index < snapshot.lights.size() && prep_data.shadow_views.size() < shadow_view_max; ++light_index)
 		{
 			const world_render_light_t& light = snapshot.lights[light_index];
+
 			if (light.cast_shadows == 0 || light.type == static_cast<u8>(world_render_light_type_e::area))
 				continue;
 
@@ -195,10 +202,12 @@ namespace sfg
 
 			const u8  layer_count	   = light.type == static_cast<u8>(world_render_light_type_e::point) ? 6 : light.type == static_cast<u8>(world_render_light_type_e::directional) ? math::min<u8>(light.shadow_cascade_count, 8) : 1;
 			const u64 requested_texels = static_cast<u64>(resolution) * resolution * layer_count;
+
 			if (shadow_texels + requested_texels > shadow_texel_budget || prep_data.shadow_views.size() + layer_count > shadow_view_max)
 				continue;
 
 			world_render_shadow_allocation_t* allocation = ctx.get_or_create_shadow_allocation(light.stable_id, light.type, {resolution, resolution}, layer_count);
+
 			if (allocation == nullptr)
 				continue;
 
@@ -228,15 +237,15 @@ namespace sfg
 					split_far		 = math::lerp(n + (f - n) * ratio1, n * std::pow(f / n, ratio1), 0.65f);
 
 					const mat4x4_t				 cascade_proj = mat4x4_t::perspective_reverse_z(snapshot.main_view.fov_degrees, static_cast<f32>(ctx.get_size().x) / ctx.get_size().y, split_near, split_far);
-					inplace_vector_t<vec4f_t, 8> corners;
-					vec3f_t						 center;
+					inplace_vector_t<vec4f_t, 8> corners	  = {};
+					vec3f_t						 center		  = vec3f_t::zero;
 					shadow_util_t::get_world_space_ndc((cascade_proj * main_camera_view_t.view).inverse(), corners, center);
 
 					const vec3f_t  forward	  = rot.get_forward();
 					const vec3f_t  up		  = math::abs(vec3f_t::dot(forward, vec3f_t::up)) > 0.95f ? vec3f_t::right : vec3f_t::up;
 					const mat4x4_t light_view = mat4x4_t::look_at(center - forward * shadow_distance, center, up);
-					mat4x4_t	   light_proj;
-					vec2f_t		   texel;
+					mat4x4_t	   light_proj = mat4x4_t::identity;
+					vec2f_t		   texel	  = vec2f_t::zero;
 					shadow_util_t::get_lightspace_projection(light_proj, light_view, corners, {resolution, resolution}, texel);
 					view_proj = light_proj * light_view;
 				}
@@ -256,6 +265,7 @@ namespace sfg
 												  .type			 = light.type});
 			}
 		}
+
 		ctx.end_shadow_allocations();
 
 		// light buffer prep.
@@ -263,6 +273,7 @@ namespace sfg
 		{
 			SFG_ASSERT(snapshot.lights.size() <= ctx.get_light_max());
 			gpu_light_t* light_buffer = reinterpret_cast<gpu_light_t*>(ctx.get_mapped_light_buffer(frame_index));
+
 			for (size_t i = 0; i < snapshot.lights.size(); ++i)
 			{
 				const world_render_light_t& light = snapshot.lights[i];
@@ -294,8 +305,10 @@ namespace sfg
 				{
 					if (prep_data.shadow_views[view_index].light_index != i)
 						continue;
+
 					if (shadow_offset == UINT32_MAX)
 						shadow_offset = view_index;
+
 					++shadow_count;
 				}
 
@@ -310,6 +323,7 @@ namespace sfg
 		}
 
 		// shadow buffer prep
+
 		for (u32 view_index = 0; view_index < prep_data.shadow_views.size(); ++view_index)
 		{
 			world_render_shadow_view_t& view	 = prep_data.shadow_views[view_index];
@@ -374,6 +388,7 @@ namespace sfg
 
 		// main cull
 		const u8 main_view_index = 0;
+
 		for (size_t i = 0; i < snapshot.draws.size(); ++i)
 		{
 			const world_draw_t& draw = snapshot.draws[i];
@@ -472,23 +487,27 @@ namespace sfg
 
 		render_graph.clear();
 		render_graph.emplace([&]() {
-			render_access_scope_t render_scope;
+			render_access_scope_t render_scope = {};
+
 			render_depth_prepass(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+
 			if (!prep_data.shadow_views.empty())
 				render_shadows(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 		});
 		render_graph.emplace([&]() {
-			render_access_scope_t render_scope;
+			render_access_scope_t render_scope = {};
+
 			render_gbuffer(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 		});
 
 		if (ssao_active)
 		{
 			render_graph.emplace([&]() {
-				render_access_scope_t render_scope;
+				render_access_scope_t render_scope = {};
 				render_ssao(ctx, snapshot, prep_data, frame_index, global_cbv_index);
 			});
 		}
+
 		jobs.run(render_graph).wait();
 
 		const gfx_handle_t depth_gbuffer_commands[2] = {cmd_depth, cmd_gbuffer};
@@ -515,10 +534,12 @@ namespace sfg
 
 		render_graph.clear();
 		render_graph.emplace([&]() {
-			render_access_scope_t render_scope;
+			render_access_scope_t render_scope = {};
+
 			render_lighting(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 			render_forward(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 		});
+
 		jobs.run(render_graph).wait();
 
 		if (ssao_active)
@@ -530,6 +551,7 @@ namespace sfg
 		gfx_handle_t bloom_semaphore = {};
 		u64			 lighting_ready	 = 0;
 		u64			 bloom_ready	 = 0;
+
 		if (bloom_active)
 		{
 			bloom_semaphore = ctx.get_bloom_semaphore(frame_index);
@@ -540,17 +562,19 @@ namespace sfg
 
 		render_graph.clear();
 		render_graph.emplace([&]() {
-			render_access_scope_t render_scope;
+			render_access_scope_t render_scope = {};
+
 			render_post_process(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 		});
 
 		if (bloom_active)
 		{
 			render_graph.emplace([&]() {
-				render_access_scope_t render_scope;
+				render_access_scope_t render_scope = {};
 				render_bloom(ctx, snapshot, prep_data, frame_index, global_cbv_index);
 			});
 		}
+
 		jobs.run(render_graph).wait();
 
 		if (bloom_active)
@@ -561,6 +585,7 @@ namespace sfg
 			backend.queue_signal(queue_compute, &bloom_semaphore, &bloom_ready, 1);
 			backend.queue_wait(queue_gfx, &bloom_semaphore, &bloom_ready, 1);
 		}
+
 		backend.submit_commands(queue_gfx, &cmd_post, 1);
 	}
 
@@ -572,11 +597,13 @@ namespace sfg
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
 		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
-		inplace_vector_t<barrier_t, 32> barriers;
+		inplace_vector_t<barrier_t, 32> barriers = {};
+
 		for (const world_render_shadow_view_t& view : prep_data.shadow_views)
 		{
 			if (view.view_index != 0)
 				continue;
+
 			barriers.push_back({.from_states = resource_state_ps_resource, .to_states = resource_state_depth_write, .texture_t = view.texture, .flags = barrier_flags::baf_is_texture});
 		}
 
@@ -613,6 +640,7 @@ namespace sfg
 				flags.set(shader_variant_flags_skinned, draw.skinning_index != UINT32_MAX);
 
 				const render_resource_handle_t shader = mat.find_pso(flags);
+
 				if (shader.is_null())
 					continue;
 
@@ -625,14 +653,17 @@ namespace sfg
 				backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
 				backend.cmd_draw_indexed_instanced(cmd, {.index_count_per_instance = draw.index_count, .instance_count = 1, .start_index_location = draw.start_index, .base_vertex_location = draw.start_vertex});
 			}
+
 			backend.cmd_end_render_pass(cmd, {});
 		}
 
 		barriers.resize(0);
+
 		for (const world_render_shadow_view_t& view : prep_data.shadow_views)
 		{
 			if (view.view_index != 0)
 				continue;
+
 			barriers.push_back({.from_states = resource_state_depth_write, .to_states = resource_state_ps_resource, .texture_t = view.texture, .flags = barrier_flags::baf_is_texture});
 		}
 
@@ -686,6 +717,7 @@ namespace sfg
 		u32			 bound_material = UINT32_MAX;
 
 		const u32 draw_size = static_cast<u32>(ss.draws.size());
+
 		for (u32 i = 0; i < draw_size; i++)
 		{
 			const world_draw_t& draw = ss.draws[i];
@@ -714,12 +746,15 @@ namespace sfg
 
 				const world_render_material_t& mat	 = ss.materials[draw.material_index];
 				u32							   flags = shader_variant_flags_z_prepass;
+
 				if (mat.double_sided)
 					flags |= shader_variant_flags_double_sided;
+
 				if (mat.use_alpha_cutoff)
 					flags |= shader_variant_flags_alpha_cutoff;
 
 				const render_resource_handle_t shader_handle = mat.find_pso(flags);
+
 				if (shader_handle.is_null())
 					continue;
 
@@ -860,6 +895,7 @@ namespace sfg
 		u32			 bound_material = UINT32_MAX;
 
 		const u32 draw_size = static_cast<u32>(ss.draws.size());
+
 		for (u32 i = 0; i < draw_size; i++)
 		{
 			const world_draw_t& draw = ss.draws[i];
@@ -889,12 +925,15 @@ namespace sfg
 				const world_render_material_t& mat = ss.materials[draw.material_index];
 
 				u32 flags = 0;
+
 				if (mat.double_sided)
 					flags |= shader_variant_flags_double_sided;
+
 				if (mat.use_alpha_cutoff)
 					flags |= shader_variant_flags_alpha_cutoff;
 
 				const render_resource_handle_t shader_handle = mat.find_pso(flags);
+
 				if (shader_handle.is_null())
 					continue;
 
@@ -1041,6 +1080,7 @@ namespace sfg
 			},
 		};
 		u16 begin_count = 1;
+
 		if (ssao_active)
 		{
 			begin_barriers[begin_count++] = {
@@ -1050,6 +1090,7 @@ namespace sfg
 				.flags		 = barrier_flags::baf_is_texture,
 			};
 		}
+
 		backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
 
 		const render_pass_color_attachment_t color_attachment = {
@@ -1101,6 +1142,7 @@ namespace sfg
 			};
 			backend.cmd_barrier(cmd, {.barriers = &end_barrier, .barrier_count = 1});
 		}
+
 		backend.close_command_buffer(cmd);
 	}
 
@@ -1231,6 +1273,7 @@ namespace sfg
 			backend.cmd_barrier(cmd, {.barriers = &read_barrier, .barrier_count = 1});
 			input_index = ctx.get_bloom_upsample_index(frame_index, static_cast<u8>(level));
 		}
+
 		backend.close_command_buffer(cmd);
 	}
 
@@ -1309,6 +1352,7 @@ namespace sfg
 
 		// debug draws
 		const world_debug_draw_snapshot_t& debug_draw = snapshot.debug_draw;
+
 		if (!debug_draw.line_indices.empty())
 		{
 			const gpu_index_t line_data_index	  = ctx.get_debug_line_data_index(frame_index);
@@ -1364,6 +1408,7 @@ namespace sfg
 		};
 
 		u16 end_count = 1;
+
 		if (bloom_active)
 		{
 			end_barriers[end_count++] = {

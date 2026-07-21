@@ -61,6 +61,7 @@ namespace sfg
 		// entity
 		// -----------------------------------------------------------------------------
 
+		void		  recreate_physical(entity_id_t id);
 		entity_guid_t generate_guid() const;
 		entity_id_t	  create_entity(const char* name = nullptr, entity_guid_t guid = NULL_ENTITY_GUID);
 		void		  destroy_entity(entity_id_t id);
@@ -72,7 +73,6 @@ namespace sfg
 		void		  attach_to(entity_id_t id, entity_id_t parent);
 		void		  detach(entity_id_t id);
 		void		  sync_entity_hierarchy(entity_id_t id);
-		void		  recreate_physics(entity_id_t id);
 
 		// -----------------------------------------------------------------------------
 		// resource

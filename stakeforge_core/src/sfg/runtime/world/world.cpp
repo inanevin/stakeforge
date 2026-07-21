@@ -170,6 +170,15 @@ namespace sfg
 		_physics_world.tick(dt);
 	}
 
+	void world_t::recreate_physical(entity_id_t id)
+	{
+		if (!_physics_world.is_init())
+			return;
+
+		_physics_world.destroy_body(id);
+		_physics_world.sync_body_create_destroy();
+	}
+
 	entity_guid_t world_t::generate_guid() const
 	{
 		entity_guid_t guid = NULL_ENTITY_GUID;
@@ -239,9 +248,7 @@ namespace sfg
 
 		if (_physics_world.is_init())
 		{
-			ecs_t::table_remove(get_component_table(type_id_t<component_collider_t>::value), id);
-			ecs_t::table_remove(get_component_table(type_id_t<component_character_mover_t>::value), id);
-			_physics_world.sync_body_create_destroy(id);
+			_physics_world.destroy_body(id);
 		}
 
 		detach(id);
@@ -565,15 +572,7 @@ namespace sfg
 		SFG_ASSERT(is_alive(id));
 
 		if (_physics_world.is_init())
-			_physics_world.sync_body_create_destroy(id);
-	}
-
-	void world_t::recreate_physics(entity_id_t id)
-	{
-		SFG_ASSERT(is_alive(id));
-
-		if (_physics_world.is_init())
-			_physics_world.recreate_bodies(id);
+			_physics_world.sync_body_create_destroy();
 	}
 
 	bool world_t::add_resource(resource_type_e type, resource_handle_t handle)

@@ -32,9 +32,37 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
+#include <sfg/runtime/resources/common_resources.hpp>
+
+namespace JPH
+{
+	class CharacterVirtual;
+	class Constraint;
+}
 
 namespace sfg
 {
+	enum class system_constraint_type_e : u8
+	{
+		fixed,
+		distance,
+		point,
+		hinge,
+		cone,
+		slider,
+		swing_twist,
+		six_dof,
+		pulley,
+		vehicle,
+		count,
+	};
+
+	struct system_constraint_slot_t
+	{
+		JPH::Constraint* constraint	   = nullptr;
+		entity_id_t		 target_entity = NULL_ENTITY_ID;
+	};
+
 	struct component_system_transform_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_transform";
@@ -56,12 +84,27 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_physics";
 
-		u32 body_proxy_index	  = UINT32_MAX;
-		u32 character_proxy_index = UINT32_MAX;
-		u8	is_dynamic			  = 0;
+		JPH::CharacterVirtual* character			= nullptr;
+		quat_t				   local_rotation		= quat_t::identity;
+		vec3f_t				   local_position		= vec3f_t::zero;
+		vec3f_t				   last_ground_velocity = vec3f_t::zero;
+		resource_handle_t	   physical_material	= NULL_RESOURCE_HANDLE;
+		u32					   body_id				= UINT32_MAX;
+		entity_id_t			   single_sub_entity	= NULL_ENTITY_ID;
+		u8					   motion_type			= 0;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_physics_t);
+
+	struct component_system_constraints_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_constraints";
+
+		system_constraint_slot_t slots[static_cast<u32>(system_constraint_type_e::count)] = {};
+		u16						 active_mask											  = 0;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_constraints_t);
 
 	struct system_component_reflection_t
 	{

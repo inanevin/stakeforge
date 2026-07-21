@@ -65,6 +65,7 @@ namespace sfg
 		capsule,
 		cylinder,
 		mesh,
+		compound,
 	};
 
 	enum physics_query_flags_e : u8
@@ -100,13 +101,20 @@ namespace sfg
 		vec3f_t end	  = vec3f_t::zero;
 	};
 
+	struct physics_spherecast_t
+	{
+		vec3f_t origin	  = vec3f_t::zero;
+		vec3f_t direction = vec3f_t::forward;
+		f32		radius	  = 0.5f;
+		f32		distance  = 0.0f;
+	};
+
 	struct physics_hit_t
 	{
 		vec3f_t			  position			= vec3f_t::zero;
 		vec3f_t			  normal			= vec3f_t::zero;
 		resource_handle_t physical_material = NULL_RESOURCE_HANDLE;
 		entity_id_t		  entity			= NULL_ENTITY_ID;
-		entity_id_t		  sub_entity		= NULL_ENTITY_ID;
 		f32				  distance			= 0.0f;
 		f32				  fraction			= 0.0f;
 		u32				  sub_shape_id		= 0;
@@ -133,8 +141,8 @@ namespace sfg
 		vec3f_t				   normal		  = vec3f_t::zero;
 		entity_id_t			   entity_a		  = NULL_ENTITY_ID;
 		entity_id_t			   entity_b		  = NULL_ENTITY_ID;
-		entity_id_t			   sub_entity_a	  = NULL_ENTITY_ID;
-		entity_id_t			   sub_entity_b	  = NULL_ENTITY_ID;
+		entity_id_t			   sub_shape_a	  = NULL_ENTITY_ID;
+		entity_id_t			   sub_shape_b	  = NULL_ENTITY_ID;
 		f32					   penetration	  = 0.0f;
 		u32					   sub_shape_id_a = 0;
 		u32					   sub_shape_id_b = 0;

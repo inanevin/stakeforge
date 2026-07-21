@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/system_components.hpp>
 
 #include <Jolt/Jolt.h>
+#include <Jolt/Core/Reference.h>
 #include <Jolt/Math/Quat.h>
 #include <Jolt/Math/Real.h>
 #include <Jolt/Physics/Body/MotionType.h>
@@ -40,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace JPH
 {
 	class PhysicsSystem;
+	class Shape;
 	class TwoBodyConstraintSettings;
 }
 
@@ -50,6 +52,7 @@ namespace sfg
 	struct component_distance_constraint_t;
 	struct component_fixed_constraint_t;
 	struct component_hinge_constraint_t;
+	struct component_physical_t;
 	struct component_point_constraint_t;
 	struct component_pulley_constraint_t;
 	struct component_six_dof_constraint_t;
@@ -61,6 +64,12 @@ namespace sfg
 	{
 	public:
 		physics_world_util_t() = delete;
+
+		// -----------------------------------------------------------------------------
+		// shapes
+		// -----------------------------------------------------------------------------
+
+		static JPH::RefConst<JPH::Shape> create_shape(world_t& world, entity_id_t entity, const component_physical_t& physical, const vec3f_t& scale);
 
 		// -----------------------------------------------------------------------------
 		// constraints
@@ -91,8 +100,13 @@ namespace sfg
 			const component_system_transform_t* target_transform = nullptr;
 			u32									body_id			 = UINT32_MAX;
 			u32									target_body_id	 = UINT32_MAX;
+			entity_id_t							entity			 = NULL_ENTITY_ID;
 			entity_id_t							target_entity	 = NULL_ENTITY_ID;
 		};
+
+		static JPH::RefConst<JPH::Shape> create_shape_from_properties(
+			entity_id_t entity, physics_motion_type_e motion_type, physics_shape_type_e shape_type, const vec3f_t& half_extent, f32 radius, f32 half_height, resource_handle_t collision_mesh, const vec3f_t& scale);
+		static JPH::RefConst<JPH::Shape> create_compound_shape(world_t& world, entity_id_t entity, const component_physical_t& physical, const vec3f_t& scale);
 
 		static bool get_constraint_create_context(world_t& world, entity_id_t entity, entity_guid_t target_guid, constraint_create_context_t& out_context);
 		static bool add_two_body_constraint(JPH::PhysicsSystem& system, const constraint_create_context_t& context, system_constraint_type_e type, const JPH::TwoBodyConstraintSettings& settings, component_system_constraints_t& system_constraints);

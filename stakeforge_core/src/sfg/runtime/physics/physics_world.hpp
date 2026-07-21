@@ -43,7 +43,6 @@ namespace sfg
 		vec3f_t		ground_normal		= vec3f_t::up;
 		vec3f_t		ground_velocity		= vec3f_t::zero;
 		entity_id_t ground_entity		= NULL_ENTITY_ID;
-		entity_id_t ground_sub_entity	= NULL_ENTITY_ID;
 		u32			ground_sub_shape_id = 0;
 		bool		is_grounded			= false;
 	};
@@ -80,8 +79,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void sync_body_create_destroy();
-		void sync_body_create_destroy(entity_id_t entity);
-		void recreate_bodies(entity_id_t entity);
+		void destroy_body(entity_id_t entity);
 		void set_body_linear_velocity(entity_id_t entity, const vec3f_t& velocity);
 		void set_body_angular_velocity(entity_id_t entity, const vec3f_t& velocity);
 		void add_body_force(entity_id_t entity, const vec3f_t& force);
@@ -98,6 +96,9 @@ namespace sfg
 		physics_query_result_t raycast_all(const physics_raycast_t& ray, span_t<physics_hit_t> out_hits, const physics_query_filter_t& filter = {}) const;
 		bool				   linecast_closest(const physics_linecast_t& line, physics_hit_t& out_hit, const physics_query_filter_t& filter = {}) const;
 		void				   linecast_closest_batch(span_t<const physics_linecast_t> lines, span_t<physics_hit_t> out_hits, const physics_query_filter_t& filter = {}) const;
+		bool				   spherecast_any(const physics_spherecast_t& sphere, const physics_query_filter_t& filter = {}) const;
+		bool				   spherecast_closest(const physics_spherecast_t& sphere, physics_hit_t& out_hit, const physics_query_filter_t& filter = {}) const;
+		physics_query_result_t spherecast_all(const physics_spherecast_t& sphere, span_t<physics_hit_t> out_hits, const physics_query_filter_t& filter = {}) const;
 
 		// -----------------------------------------------------------------------------
 		// character
