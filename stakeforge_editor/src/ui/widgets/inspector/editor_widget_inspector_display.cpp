@@ -51,7 +51,11 @@ namespace sfg
 
 	void editor_widget_inspector_t::set_display_entity(span_t<const entity_id_t> entities)
 	{
-		_display_entities.assign(entities.data, entities.data + entities.size);
+		if (entities.size == 0)
+			_display_entities.resize(0);
+		else
+			_display_entities.assign(entities.data, entities.data + entities.size);
+
 		refresh_display();
 	}
 

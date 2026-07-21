@@ -129,6 +129,7 @@ namespace sfg
 	{
 		save_entity_scroll_state();
 		_display_entities.resize(0);
+		_entity_inspector.set_display_entity(span_t<const entity_id_t>{});
 		_texture_viewer.clear_texture();
 		_display = editor_panel_inspector_display_e::none;
 		apply_display_visibility();
