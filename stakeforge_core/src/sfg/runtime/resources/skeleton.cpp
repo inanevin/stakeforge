@@ -14,14 +14,14 @@ namespace sfg
 {
 	bool skeleton_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
 	{
-		ostream_t file_stream;
+		ostream_t file_stream = {};
 		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
 		{
 			SFG_ERR("failed to read skeleton resource: {0}", entry.hash);
 			return false;
 		}
 
-		istream_t stream;
+		istream_t stream = {};
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 
 		chunk_allocator_t&	mem		= ctx.resource_manager.get_memory();
@@ -41,8 +41,10 @@ namespace sfg
 		runtime->joint_count	  = joint_count;
 		runtime->root_joint_index = skeleton.root_joint_index;
 		runtime->joints			  = mem.allocate_bytes(sizeof(skeleton_joint_runtime_t) * joint_count, alignof(skeleton_joint_runtime_t));
+		runtime->evaluation_order = mem.allocate<u32>(joint_count);
 
-		skeleton_joint_runtime_t* runtime_joints = mem.get<skeleton_joint_runtime_t>(runtime->joints);
+		skeleton_joint_runtime_t* runtime_joints		   = mem.get<skeleton_joint_runtime_t>(runtime->joints);
+		u32*					  runtime_evaluation_order = mem.get<u32>(runtime->evaluation_order);
 
 		for (u32 i = 0; i < joint_count; ++i)
 		{
@@ -56,6 +58,8 @@ namespace sfg
 				.name		  = name,
 				.parent_index = joint.parent_index,
 			};
+
+			runtime_evaluation_order[i] = skeleton.evaluation_order[i];
 		}
 
 		return true;
@@ -71,6 +75,7 @@ namespace sfg
 			mem.free(joints[i].name);
 
 		mem.free(runtime->joints);
+		mem.free(runtime->evaluation_order);
 		*runtime = {};
 	}
 

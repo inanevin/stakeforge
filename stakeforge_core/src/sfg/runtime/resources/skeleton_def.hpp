@@ -50,8 +50,12 @@ namespace sfg
 	struct skeleton_def_t
 	{
 		vector_t<skeleton_joint_def_t> joints			= {};
+		vector_t<u32>				   evaluation_order = {};
 		string_t					   name				= {};
 		u32							   root_joint_index = UINT32_MAX;
+
+		bool build_evaluation_order();
+		bool is_evaluation_order_valid() const;
 	};
 
 	SFG_DEFINE_TYPE_ID(skeleton_joint_def_t);

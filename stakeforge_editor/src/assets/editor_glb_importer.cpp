@@ -807,7 +807,7 @@ namespace sfg
 			status += ")";
 			context.report_status(status.c_str());
 
-			vector_t<u32> node_to_joint_index;
+			vector_t<u32> node_to_joint_index = {};
 			node_to_joint_index.resize(model.nodes_count);
 			for (u32& index : node_to_joint_index)
 				index = SKELETON_JOINT_NO_PARENT;
@@ -899,6 +899,12 @@ namespace sfg
 				return false;
 			}
 
+			if (!skeleton.build_evaluation_order())
+			{
+				SFG_ERR("glb skeleton hierarchy is invalid: {0}", skin_index);
+				return false;
+			}
+
 			nlohmann::json embedded_source = nlohmann::json::object();
 			if (!serialize_reflected_to_json(skeleton, embedded_source))
 			{
@@ -914,7 +920,7 @@ namespace sfg
 				.asset_type		 = editor_asset_type_e::skeleton,
 				.allow_overwrite = true,
 			};
-			string_t asset_path;
+			string_t asset_path = {};
 			if (!editor_asset_writer_t::write_embedded_asset(write_desc, &asset, &asset_path))
 			{
 				SFG_ERR("failed to write GLB skeleton asset {0}", asset_name.c_str());

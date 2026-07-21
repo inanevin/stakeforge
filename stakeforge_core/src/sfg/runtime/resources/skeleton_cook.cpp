@@ -38,7 +38,13 @@ namespace sfg
 {
 	bool skeleton_cooker::cook_from_def(const skeleton_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
-		ostream_t skeleton_stream;
+		if (!def.is_evaluation_order_valid())
+		{
+			SFG_ERR("skeleton evaluation order is invalid");
+			return false;
+		}
+
+		ostream_t skeleton_stream = {};
 		if (!reflection_registry_t::get().type_to_stream(type_id_t<skeleton_def_t>::value, const_cast<skeleton_def_t*>(&def), nullptr, skeleton_stream))
 		{
 			SFG_ERR("failed to serialize skeleton definition");

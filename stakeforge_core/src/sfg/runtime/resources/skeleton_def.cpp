@@ -34,6 +34,89 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	bool skeleton_def_t::build_evaluation_order()
+	{
+		evaluation_order.resize(0);
+
+		const u32 joint_count = static_cast<u32>(joints.size());
+		if (joint_count == 0 || root_joint_index >= joint_count)
+			return false;
+
+		vector_t<u32> first_child = {};
+		first_child.resize(joint_count, SKELETON_JOINT_NO_PARENT);
+
+		vector_t<u32> next_sibling = {};
+		next_sibling.resize(joint_count, SKELETON_JOINT_NO_PARENT);
+
+		for (u32 i = joint_count; i != 0; --i)
+		{
+			const u32 joint_index  = i - 1;
+			const u32 parent_index = joints[joint_index].parent_index;
+			if (parent_index == SKELETON_JOINT_NO_PARENT)
+				continue;
+
+			if (parent_index >= joint_count)
+			{
+				evaluation_order.resize(0);
+				return false;
+			}
+
+			next_sibling[joint_index] = first_child[parent_index];
+			first_child[parent_index] = joint_index;
+		}
+
+		evaluation_order.reserve(joint_count);
+
+		if (joints[root_joint_index].parent_index == SKELETON_JOINT_NO_PARENT)
+			evaluation_order.push_back(root_joint_index);
+
+		for (u32 i = 0; i < joint_count; ++i)
+		{
+			if (i != root_joint_index && joints[i].parent_index == SKELETON_JOINT_NO_PARENT)
+				evaluation_order.push_back(i);
+		}
+
+		for (u32 i = 0; i < evaluation_order.size(); ++i)
+		{
+			const u32 joint_index = evaluation_order[i];
+
+			for (u32 child_index = first_child[joint_index]; child_index != SKELETON_JOINT_NO_PARENT; child_index = next_sibling[child_index])
+				evaluation_order.push_back(child_index);
+		}
+
+		if (evaluation_order.size() != joint_count)
+		{
+			evaluation_order.resize(0);
+			return false;
+		}
+
+		return true;
+	}
+
+	bool skeleton_def_t::is_evaluation_order_valid() const
+	{
+		const u32 joint_count = static_cast<u32>(joints.size());
+		if (joint_count == 0 || root_joint_index >= joint_count || evaluation_order.size() != joint_count)
+			return false;
+
+		vector_t<u8> evaluated = {};
+		evaluated.resize(joint_count);
+
+		for (const u32 joint_index : evaluation_order)
+		{
+			if (joint_index >= joint_count || evaluated[joint_index] != 0)
+				return false;
+
+			const u32 parent_index = joints[joint_index].parent_index;
+			if (parent_index != SKELETON_JOINT_NO_PARENT && (parent_index >= joint_count || evaluated[parent_index] == 0))
+				return false;
+
+			evaluated[joint_index] = 1;
+		}
+
+		return true;
+	}
+
 	skeleton_joint_def_reflection_t::skeleton_joint_def_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();
@@ -68,6 +151,12 @@ namespace sfg
 					 .display_name	= "Joints",
 					 .offset		= offsetof(skeleton_def_t, joints),
 					 .size			= sizeof(vector_t<skeleton_joint_def_t>),
+					 .type			= reflected_value_type_e::container},
+					{.container_ops = reflection_container_ops_t::vector_ops<u32>(reflected_value_type_e::u32),
+					 .name			= "evaluation_order",
+					 .display_name	= "Evaluation Order",
+					 .offset		= offsetof(skeleton_def_t, evaluation_order),
+					 .size			= sizeof(vector_t<u32>),
 					 .type			= reflected_value_type_e::container},
 					{.name = "root_index", .display_name = "Root Index", .offset = offsetof(skeleton_def_t, root_joint_index), .size = sizeof(u32), .type = reflected_value_type_e::u32},
 				},
