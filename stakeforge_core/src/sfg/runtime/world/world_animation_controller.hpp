@@ -28,6 +28,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/math/mat4x3.hpp>
+#include <sfg/memory/chunk_allocator.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
@@ -41,11 +44,16 @@ namespace sfg
 		world_animation_controller_t(const world_animation_controller_t&)			 = delete;
 		world_animation_controller_t& operator=(const world_animation_controller_t&) = delete;
 
+		struct bone_t
+		{
+			mat4x3_t bone_transform;
+		};
+
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(world_t& world);
+		void init(world_t& world, u32 bone_reserve);
 		void uninit();
 
 		// -----------------------------------------------------------------------------
@@ -55,6 +63,15 @@ namespace sfg
 		void tick(f32 delta_time);
 
 	private:
-		world_t* _world = nullptr;
+		void sync_create_destroy_skinned_renderers();
+		void create_skinned_renderer(entity_id_t id, u32 bone_count);
+		void destroy_skinned_renderer(entity_id_t id);
+
+		chunk_handle32_t allocate_bones(u32 bone_count);
+		void			 deallocate_bones(chunk_handle32_t handle);
+
+	private:
+		chunk_allocator32_t _bone_memory = {};
+		world_t*			_world		 = nullptr;
 	};
 }

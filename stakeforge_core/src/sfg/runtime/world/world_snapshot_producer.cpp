@@ -377,7 +377,7 @@ namespace sfg
 				if (skinned_mesh_renderer.mesh == NULL_RESOURCE_HANDLE || skinned_mesh_renderer.skeleton == NULL_RESOURCE_HANDLE)
 					continue;
 
-				if (system_skinned_mesh_renderer.skin_instance_index == UINT32_MAX)
+				if (!system_skinned_mesh_renderer.bones_handle)
 					continue;
 
 				const resource_entry_t* entry = rm.find_entry(skinned_mesh_renderer.mesh);

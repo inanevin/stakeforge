@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
+#include <sfg/memory/chunk_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
 
@@ -84,7 +85,7 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_skinned_mesh_renderer";
 
-		u32 skin_instance_index = UINT32_MAX;
+		chunk_handle32_t bones_handle = {};
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_skinned_mesh_renderer_t);
