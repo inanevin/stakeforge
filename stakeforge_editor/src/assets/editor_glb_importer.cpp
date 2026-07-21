@@ -1342,18 +1342,6 @@ namespace sfg
 				});
 			};
 
-			const auto add_collision_mesh = [&](entity_guid_t entity_guid, sid_t collision_guid) -> void {
-				prefab_json["components"].push_back({
-					{"type", type_id_t<component_collider_t>::value},
-					{"entity", entity_guid},
-					{"data",
-					 {
-						 {"shape", static_cast<u8>(physics_shape_type_e::mesh)},
-						 {"collision_mesh", collision_guid},
-					 }},
-				});
-			};
-
 			const auto traverse_node = [&](const auto& self, u32 node_index, entity_guid_t parent_guid) -> void {
 				if (!prefab_valid || node_index >= model.nodes_count || node_guids[node_index] != NULL_ENTITY_GUID)
 					return;
@@ -1407,19 +1395,6 @@ namespace sfg
 						}
 
 						add_mesh_renderer(guid, mesh_it->second, materials);
-					}
-
-					if (!collision_guid_map.empty())
-					{
-						const auto collision_it = collision_guid_map.find(mesh_index);
-						if (collision_it == collision_guid_map.end())
-						{
-							SFG_ERR("failed to find imported GLB collision mesh {0} for prefab", mesh_index);
-							prefab_valid = false;
-							return;
-						}
-
-						add_collision_mesh(guid, collision_it->second);
 					}
 				}
 
@@ -1549,8 +1524,6 @@ namespace sfg
 
 					if (combined_mesh_guid != NULL_SID)
 						add_mesh_renderer(mesh_guid, combined_mesh_guid, materials);
-					if (combined_collision_guid != NULL_SID)
-						add_collision_mesh(mesh_guid, combined_collision_guid);
 				}
 			}
 			else
