@@ -117,6 +117,11 @@ namespace sfg
 			return _value;
 		}
 
+		inline bool is_editing() const
+		{
+			return _inputs[0].is_editing() || _inputs[1].is_editing();
+		}
+
 	private:
 		editor_input_field_t	   _inputs[2] = {};
 		editor_vec2_field_config_t _config	  = {};
@@ -151,6 +156,11 @@ namespace sfg
 		inline const vec3f_t& get_value() const
 		{
 			return _value;
+		}
+
+		inline bool is_editing() const
+		{
+			return _inputs[0].is_editing() || _inputs[1].is_editing() || _inputs[2].is_editing();
 		}
 
 	private:
@@ -189,6 +199,11 @@ namespace sfg
 			return _value;
 		}
 
+		inline bool is_editing() const
+		{
+			return _inputs[0].is_editing() || _inputs[1].is_editing() || _inputs[2].is_editing() || _inputs[3].is_editing();
+		}
+
 	private:
 		editor_input_field_t	   _inputs[4] = {};
 		editor_vec4_field_config_t _config	  = {};
@@ -223,6 +238,11 @@ namespace sfg
 		inline const quat_t& get_value() const
 		{
 			return _value;
+		}
+
+		inline bool is_editing() const
+		{
+			return _inputs[0].is_editing() || _inputs[1].is_editing() || _inputs[2].is_editing();
 		}
 
 	private:

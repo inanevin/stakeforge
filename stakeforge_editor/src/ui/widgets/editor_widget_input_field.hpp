@@ -100,6 +100,11 @@ namespace sfg
 			return _number_value;
 		}
 
+		inline bool is_editing() const
+		{
+			return _edit_active;
+		}
+
 	private:
 		static constexpr u32 TEXT_CAPACITY = 256;
 

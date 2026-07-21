@@ -69,6 +69,7 @@ namespace sfg
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "entity_info");
 		tree.attach(parent, _root);
+		ui.set_pre_layout_tick(_root, on_pre_layout_tick, this);
 
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
@@ -277,31 +278,22 @@ namespace sfg
 			std::snprintf(text, sizeof(text), "%llu", static_cast<unsigned long long>(_world->get_entity_guid(_entity)));
 			_ui->set_widget_text(_guid_label, text);
 		}
+
 		const editor_theme_t& theme = editor_theme_t::get();
 		_ui->get_paint().set_text(_guid_label,
 								  _ui->widget_text(_guid_label),
 								  _ui->widget_text_len(_guid_label),
 								  {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-		frame_vector_t<u8*>		 name_values;
-		frame_vector_t<vec3f_t*> position_values;
-		frame_vector_t<quat_t*>	 rotation_values;
-		frame_vector_t<vec3f_t*> scale_values;
-		name_values.reserve(_entities.size());
-		position_values.reserve(_entities.size());
-		rotation_values.reserve(_entities.size());
-		scale_values.reserve(_entities.size());
 
-		ecs_component_table_t* name_table	   = _world->find_component_table(type_id_t<component_name_t>::value);
-		ecs_component_table_t* transform_table = _world->find_component_table(type_id_t<component_transform_t>::value);
+		frame_vector_t<u8*> name_values = {};
+		name_values.reserve(_entities.size());
+
+		ecs_component_table_t* name_table = _world->find_component_table(type_id_t<component_name_t>::value);
 
 		for (entity_id_t entity : _entities)
 		{
-			component_name_t&	   name		 = ecs_helpers_t::table_get_as<component_name_t>(*name_table, entity);
-			component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*transform_table, entity);
+			component_name_t& name = ecs_helpers_t::table_get_as<component_name_t>(*name_table, entity);
 			name_values.push_back(reinterpret_cast<u8*>(name.text));
-			position_values.push_back(&transform.pos);
-			rotation_values.push_back(&transform.rot);
-			scale_values.push_back(&transform.scale);
 		}
 
 		_name_input.update_field_data({
@@ -309,9 +301,50 @@ namespace sfg
 			.field_size = sizeof(component_name_t::text),
 			.type		= editor_input_field_field_type_e::char_array,
 		});
-		_position_field.update_field_data({.fields = {.data = position_values.data(), .size = position_values.size()}});
-		_rotation_field.update_field_data({.fields = {.data = rotation_values.data(), .size = rotation_values.size()}});
-		_scale_field.update_field_data({.fields = {.data = scale_values.data(), .size = scale_values.size()}});
+
+		refresh_transform_controls(false);
+	}
+
+	void editor_widget_entity_info_t::refresh_transform_controls(bool preserve_edits)
+	{
+		const bool refresh_position = !preserve_edits || !_position_field.is_editing();
+		const bool refresh_rotation = !preserve_edits || !_rotation_field.is_editing();
+		const bool refresh_scale	= !preserve_edits || !_scale_field.is_editing();
+
+		if (!refresh_position && !refresh_rotation && !refresh_scale)
+			return;
+
+		frame_vector_t<vec3f_t*> position_values = {};
+		frame_vector_t<quat_t*>	 rotation_values = {};
+		frame_vector_t<vec3f_t*> scale_values	 = {};
+		position_values.reserve(refresh_position ? _entities.size() : 0);
+		rotation_values.reserve(refresh_rotation ? _entities.size() : 0);
+		scale_values.reserve(refresh_scale ? _entities.size() : 0);
+
+		ecs_component_table_t* transform_table = _world->find_component_table(type_id_t<component_transform_t>::value);
+
+		for (entity_id_t entity : _entities)
+		{
+			component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*transform_table, entity);
+
+			if (refresh_position)
+				position_values.push_back(&transform.pos);
+
+			if (refresh_rotation)
+				rotation_values.push_back(&transform.rot);
+
+			if (refresh_scale)
+				scale_values.push_back(&transform.scale);
+		}
+
+		if (refresh_position)
+			_position_field.update_field_data({.fields = {.data = position_values.data(), .size = position_values.size()}});
+
+		if (refresh_rotation)
+			_rotation_field.update_field_data({.fields = {.data = rotation_values.data(), .size = rotation_values.size()}});
+
+		if (refresh_scale)
+			_scale_field.update_field_data({.fields = {.data = scale_values.data(), .size = scale_values.size()}});
 	}
 
 	void editor_widget_entity_info_t::on_edit_begin(void* user_data)
@@ -354,6 +387,11 @@ namespace sfg
 		editor_widget_entity_info_t& entity_info = *static_cast<editor_widget_entity_info_t*>(user_data);
 		if (entity_info._break_prefab_callback != nullptr)
 			entity_info._break_prefab_callback(entity_info._break_prefab_user_data);
+	}
+
+	void editor_widget_entity_info_t::on_pre_layout_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
+	{
+		static_cast<editor_widget_entity_info_t*>(user_data)->refresh_transform_controls(true);
 	}
 
 	void editor_widget_entity_info_t::begin_edit()

@@ -72,14 +72,14 @@ namespace sfg
 		header_in.child_margins	   = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
 		ui::vg_rect_paint_t rect = {};
-		rect.fill_color_a		 = theme.color_panel_light;
-		rect.fill_color_b		 = theme.color_panel_light;
-		rect.gradient			 = ui::vg_gradient_e::vertical;
+		rect.fill_color_a		 = {theme.color_accent0_dim.x, theme.color_accent0_dim.y, theme.color_accent0_dim.z, 0.8f};
+		rect.fill_color_b		 = {theme.color_accent0_dim.x, theme.color_accent0_dim.y, theme.color_accent0_dim.z, 0.5f};
+		rect.gradient			 = ui::vg_gradient_e::horizontal;
 		rect.outline_color		 = theme.color_outline;
 		rect.outline_thickness	 = theme.outline_thickness;
 
 		paint.set_rect(_header, rect);
-		paint.set_hover_color(_header, theme.color_panel_light2);
+		paint.set_hover_color(_header, theme.color_accent0);
 		paint.set_press_color(_header, theme.color_panel);
 
 		ui::listener_bundle_t listener = {};

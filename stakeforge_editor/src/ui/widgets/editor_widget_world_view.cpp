@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_world_view.hpp"
 #include "commands/editor_commands_entity.hpp"
 #include "ui/editor_payload_controller.hpp"
-#include "ui/editor_global_toolbar.hpp"
 #include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
@@ -168,7 +167,10 @@ namespace sfg
 		request_world_resize(true);
 		refresh_world_texture();
 
-		ui::layout_tree_t& tree = _ui->get_tree();
+		ui::layout_tree_t&				   tree			= _ui->get_tree();
+		const editor_world_edit_context_t& edit_context = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
+
+		tree.set_visible(_toolbars.get_root(), !edit_context.is_edits_disabled());
 		tree.set_visible(_world_view, true);
 		tree.set_visible(_empty_label, false);
 	}
@@ -249,7 +251,7 @@ namespace sfg
 		if (_edit_world.is_null())
 			return;
 
-		const editor_play_mode_e play_mode = editor_global_toolbar_t::get().get_play_mode();
+		const editor_play_mode_e play_mode = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_play_mode();
 		if (play_mode == editor_play_mode_e::play || play_mode == editor_play_mode_e::play_paused)
 			return;
 
@@ -384,7 +386,7 @@ namespace sfg
 		else if (btn == ui::mouse_button_e::left && !widget._edit_world.is_null())
 		{
 			editor_world_t*			 world			   = editor_world_controller_t::get().get_editor_world(widget._edit_world);
-			const editor_play_mode_e play_mode		   = world->get_play_mode();
+			const editor_play_mode_e play_mode		   = world->get_edit_context().get_play_mode();
 			const bool				 physics_play_mode = play_mode == editor_play_mode_e::play_physics || play_mode == editor_play_mode_e::play_physics_paused;
 
 			if (physics_play_mode && world->get_edit_context().is_shoot_rays_enabled())

@@ -85,8 +85,10 @@ namespace sfg
 		static void on_scale_changed(void* user_data);
 		static void on_edit_submitted(void* user_data);
 		static void on_break_prefab_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_pre_layout_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 		void refresh_controls();
+		void refresh_transform_controls(bool preserve_edits);
 		void begin_edit();
 		void submit_edit();
 		void apply_position_values();
