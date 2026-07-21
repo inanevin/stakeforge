@@ -196,7 +196,6 @@ namespace sfg
 
 	void editor_thumbnail_render_util_t::setup_world_for_mesh(editor_thumbnail_world_t& thumbnail_world, resource_handle_t asset_guid)
 	{
-		const mesh_internals_t* runtime = resource_manager_t::get().find_internals<mesh_internals_t>(asset_guid);
 
 		world_t& world				   = *thumbnail_world.world;
 		thumbnail_world.display_entity = world.create_entity("thumbnail_mesh");
@@ -208,6 +207,8 @@ namespace sfg
 			mesh_renderer.materials.push_back(DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
 
 		world.scan_for_resources(thumbnail_world.display_entity, true);
+
+		const mesh_internals_t* runtime = resource_manager_t::get().find_internals<mesh_internals_t>(asset_guid);
 		place_camera_for_aabb(world, thumbnail_world.camera_entity, runtime->local_bounds);
 	}
 
