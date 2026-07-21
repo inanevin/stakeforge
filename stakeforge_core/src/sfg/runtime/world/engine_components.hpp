@@ -91,6 +91,17 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_mesh_renderer_t);
 
+	struct component_skinned_mesh_renderer_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_skinned_mesh_renderer";
+
+		inplace_vector_t<resource_handle_t, 16> materials = {};
+		resource_handle_t						mesh	  = NULL_RESOURCE_HANDLE;
+		resource_handle_t						skeleton  = NULL_RESOURCE_HANDLE;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_skinned_mesh_renderer_t);
+
 	struct component_camera_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_camera";

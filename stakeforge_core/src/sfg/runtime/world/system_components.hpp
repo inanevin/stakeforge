@@ -80,6 +80,15 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_system_transform_t);
 
+	struct component_system_skinned_mesh_renderer_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_skinned_mesh_renderer";
+
+		u32 skin_instance_index = UINT32_MAX;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_skinned_mesh_renderer_t);
+
 	struct component_system_physics_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_physics";

@@ -193,6 +193,44 @@ namespace sfg
 			});
 		}
 
+		void register_component_skinned_mesh_renderer_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name			 = "component_skinned_mesh_renderer",
+				.display_name	 = "Skinned Mesh Renderer",
+				.category		 = "Graphics",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_skinned_mesh_renderer_t*>(ptr), component_skinned_mesh_renderer_t{}); },
+				.fields =
+					{
+						{.name		   = "mesh",
+						 .display_name = "Mesh",
+						 .tooltip	   = "Mesh resource rendered by this entity.",
+						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MESH,
+						 .offset	   = offsetof(component_skinned_mesh_renderer_t, mesh),
+						 .size		   = sizeof(resource_handle_t),
+						 .type		   = reflected_value_type_e::u64},
+						{.name		   = "skeleton",
+						 .display_name = "Skeleton",
+						 .tooltip	   = "Skeleton resource used to skin the mesh.",
+						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SKELETON,
+						 .offset	   = offsetof(component_skinned_mesh_renderer_t, skeleton),
+						 .size		   = sizeof(resource_handle_t),
+						 .type		   = reflected_value_type_e::u64},
+						{.container_ops = reflection_container_ops_t::inplace_vector_ops_with_default<resource_handle_t, 16, NULL_RESOURCE_HANDLE>(reflected_value_type_e::u64, SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MATERIAL),
+						 .name			= "materials",
+						 .display_name	= "Materials",
+						 .tooltip		= "Material resources used when drawing the mesh.",
+						 .offset		= offsetof(component_skinned_mesh_renderer_t, materials),
+						 .size			= sizeof(inplace_vector_t<resource_handle_t, 16>),
+						 .type			= reflected_value_type_e::container},
+					},
+				.type_id   = type_id_t<component_skinned_mesh_renderer_t>::value,
+				.size	   = sizeof(component_skinned_mesh_renderer_t),
+				.alignment = alignof(component_skinned_mesh_renderer_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
 		void register_component_camera_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -2151,6 +2189,7 @@ namespace sfg
 		register_component_transform_reflection(registry);
 		register_component_name_reflection(registry);
 		register_component_mesh_renderer_reflection(registry);
+		register_component_skinned_mesh_renderer_reflection(registry);
 		register_component_camera_reflection(registry);
 		register_component_light_reflection(registry);
 		register_component_post_process_reflection(registry);
