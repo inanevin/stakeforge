@@ -36,7 +36,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define WORLD_RENDER_ENTITY_BUFFER_CAPACITY		8000
 #define WORLD_RENDER_BLOOM_LEVEL_COUNT			5
 #define WORLD_RENDER_SHADOW_VIEW_CAPACITY		64
 #define WORLD_RENDER_SHADOW_ALLOCATION_CAPACITY 32
@@ -101,28 +100,11 @@ namespace sfg
 		vec4f_t	 params	   = vec4f_t::zero;
 	};
 
-	struct gpu_entity_t
-	{
-		mat4x4_t model		   = mat4x4_t::identity;
-		mat4x4_t normal_matrix = mat4x4_t::identity;
-		vec4f_t	 position	   = vec4f_t::zero;
-		vec4f_t	 forward	   = vec4f_t::zero;
-	};
-
-	struct gpu_light_t
-	{
-		vec4f_t position_range	 = vec4f_t::zero;
-		vec4f_t direction_param0 = vec4f_t::zero;
-		vec4f_t right_param1	 = vec4f_t::zero;
-		vec4f_t color_intensity	 = vec4f_t::zero;
-		u32		shadow[4]		 = {UINT32_MAX, 0, 0, 0};
-	};
-
-	static_assert(sizeof(gpu_light_t) == 80);
-
 	struct world_render_context_config_t
 	{
 		vec2u16_t size				  = vec2u16_t::zero;
+		u32		  entity_max		  = 0;
+		u32		  bone_max			  = 0;
 		u32		  light_max			  = 0;
 		u32		  line_vertex_max	  = 0;
 		u32		  line_index_max	  = 0;
@@ -241,6 +223,16 @@ namespace sfg
 			return _config.shadow_view_max;
 		}
 
+		inline u32 get_entity_max() const
+		{
+			return _config.entity_max;
+		}
+
+		inline u32 get_bone_max() const
+		{
+			return _config.bone_max;
+		}
+
 		inline gfx_handle_t get_world_texture(u8 frame_index) const
 		{
 			return _pfd[frame_index].post_process_texture;
@@ -354,6 +346,11 @@ namespace sfg
 		inline gpu_index_t get_entity_buffer_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].entity_buffer_index;
+		}
+
+		inline gpu_index_t get_bone_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].bone_buffer_index;
 		}
 
 		inline gpu_index_t get_light_buffer_index(u8 frame_index) const
@@ -521,6 +518,11 @@ namespace sfg
 			return _pfd[frame_index].mapped_entity_buffer;
 		}
 
+		inline u8* get_mapped_bone_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_bone_buffer;
+		}
+
 		inline u8* get_mapped_light_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_light_buffer;
@@ -641,6 +643,7 @@ namespace sfg
 			u8*			 mapped_light_buffer										 = nullptr;
 			u8*			 mapped_ssao_render_pass_data								 = nullptr;
 			u8*			 mapped_bloom_render_pass_data								 = nullptr;
+			u8*			 mapped_bone_buffer											 = nullptr;
 			gfx_handle_t cmd_depth													 = {};
 			gfx_handle_t cmd_gbuffer												 = {};
 			gfx_handle_t cmd_lighting												 = {};
@@ -659,6 +662,7 @@ namespace sfg
 			gfx_handle_t ssao_render_pass_data										 = {};
 			gfx_handle_t bloom_render_pass_data										 = {};
 			gfx_handle_t entity_buffer												 = {};
+			gfx_handle_t bone_buffer												 = {};
 			gfx_handle_t light_buffer												 = {};
 			gfx_handle_t debug_line_data											 = {};
 			gfx_handle_t debug_line_vertex_buffer									 = {};
@@ -702,6 +706,7 @@ namespace sfg
 			gpu_index_t	 ssao_render_pass_data_index								 = NULL_GPU_INDEX;
 			gpu_index_t	 bloom_render_pass_data_index								 = NULL_GPU_INDEX;
 			gpu_index_t	 entity_buffer_index										 = NULL_GPU_INDEX;
+			gpu_index_t	 bone_buffer_index											 = NULL_GPU_INDEX;
 			gpu_index_t	 light_buffer_index											 = NULL_GPU_INDEX;
 			gpu_index_t	 debug_line_data_index										 = NULL_GPU_INDEX;
 			gpu_index_t	 debug_text_data_index										 = NULL_GPU_INDEX;

@@ -173,6 +173,9 @@ namespace sfg
 	{
 		const world_init_config_t init_config{
 			.render_resolution		 = editor_surface_controller_t::get().get_main_surface().swapchain_size,
+			.render_entity_max		 = 10,
+			.render_bone_max		 = 128,
+			.render_bone_reserve	 = 128,
 			.component_table_reserve = 64,
 			.free_list_reserve		 = 128,
 			.used_resource_reserve	 = 64,

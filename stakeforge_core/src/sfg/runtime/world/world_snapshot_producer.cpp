@@ -141,6 +141,7 @@ namespace sfg
 		snapshot.quality_level = project_settings.quality_level;
 		snapshot.materials.resize(0);
 		snapshot.entities.resize(0);
+		snapshot.bones.resize(0);
 		snapshot.lights.resize(0);
 		snapshot.draws.resize(0);
 		snapshot.skybox		  = {};

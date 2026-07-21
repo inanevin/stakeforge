@@ -125,14 +125,24 @@ namespace sfg
 		_readback_pixels.reserve(readback_desc.size);
 		backend.map_resource(_thumbnail_readback, _mapped_readback);
 
-		_render_context.init(
-			{.size = _world_config.render_resolution, .triangle_vertex_max = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_VERTEX_MAX, .triangle_index_max = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_INDEX_MAX, .enable_ssao = 0, .enable_bloom = 1});
+		_render_context.init({.size				   = _world_config.render_resolution,
+							  .entity_max		   = 10,
+							  .bone_max			   = 128,
+							  .triangle_vertex_max = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_VERTEX_MAX,
+							  .triangle_index_max  = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_INDEX_MAX,
+							  .enable_ssao		   = 0,
+							  .enable_bloom		   = 1});
 
 		const shader_internals_t* shader				= resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/thumbnail_capture_copy.hlsl"_hs);
 		const shader_internals_t* debug_triangle_shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_physics_debug.hlsl"_hs);
 		_thumbnail_shader								= render_resources_t::get().get_shader_hw(shader->psos[0]);
 		_debug_triangle_shader							= render_resources_t::get().get_shader_hw(debug_triangle_shader->psos[0]);
-		_snapshot.reserve(64, 0, 0, 0, editor_thumbnail_render_util_t::DEBUG_TRIANGLE_VERTEX_MAX, editor_thumbnail_render_util_t::DEBUG_TRIANGLE_INDEX_MAX, 0, 0);
+		_snapshot.reserve({
+			.entity_count		   = 64,
+			.bone_count			   = 128,
+			.triangle_vertex_count = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_VERTEX_MAX,
+			.triangle_index_count  = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_INDEX_MAX,
+		});
 		_prep_data.reserve(10);
 		_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_available_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);

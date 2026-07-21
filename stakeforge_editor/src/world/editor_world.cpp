@@ -107,6 +107,8 @@ namespace sfg
 		_render_resolution = init_config.render_resolution;
 		_render_context.init({
 			.size				 = init_config.render_resolution,
+			.entity_max			 = init_config.render_entity_max,
+			.bone_max			 = init_config.render_bone_max,
 			.light_max			 = EDITOR_WORLD_LIGHT_MAX,
 			.line_vertex_max	 = EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
 			.line_index_max		 = EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
@@ -121,14 +123,17 @@ namespace sfg
 
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
-			_snapshot_slots[i].reserve(8000,
-									   EDITOR_WORLD_LIGHT_MAX,
-									   EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
-									   EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
-									   EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_RESERVE,
-									   EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_RESERVE,
-									   EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
-									   EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX);
+			_snapshot_slots[i].reserve({
+				.entity_count		   = 8000,
+				.bone_count			   = init_config.render_bone_reserve,
+				.light_count		   = EDITOR_WORLD_LIGHT_MAX,
+				.line_vertex_count	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
+				.line_index_count	   = EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
+				.triangle_vertex_count = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_RESERVE,
+				.triangle_index_count  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_RESERVE,
+				.text_vertex_count	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
+				.text_index_count	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
+			});
 
 			editor_world_snapshot_data_t* data = new editor_world_snapshot_data_t();
 			data->selected_entities.reserve(256);

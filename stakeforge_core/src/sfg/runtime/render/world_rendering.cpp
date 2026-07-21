@@ -29,6 +29,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "render_view.hpp"
 #include "render_resources.hpp"
 #include "render_globals.hpp"
+#include "world_gpu_entity.hpp"
+#include "world_gpu_light.hpp"
 #include "world_render_context.hpp"
 #include "world_render_snapshot.hpp"
 #include <sfg/gfx/backend/backend.hpp>
@@ -111,7 +113,7 @@ namespace sfg
 
 		// prep entity buffer.
 		{
-			SFG_ASSERT(snapshot.entities.size() <= WORLD_RENDER_ENTITY_BUFFER_CAPACITY);
+			SFG_ASSERT(snapshot.entities.size() <= ctx.get_entity_max());
 
 			for (size_t i = 0; i < snapshot.entities.size(); ++i)
 			{
