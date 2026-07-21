@@ -124,12 +124,7 @@ namespace sfg
 		if (physical.shape == physics_shape_type_e::compound)
 			return create_compound_shape(world, entity, physical, scale);
 
-		JPH::RefConst<JPH::Shape> shape = create_shape_from_properties(entity, physical.motion_type, physical.shape, physical.half_extent, physical.radius, physical.half_height, physical.collision_mesh, scale);
-
-		if (shape == nullptr)
-			SFG_ERR("failed to create physics shape for entity {0}", entity);
-
-		return shape;
+		return create_shape_from_properties(entity, physical.motion_type, physical.shape, physical.half_extent, physical.radius, physical.half_height, physical.collision_mesh, scale);
 	}
 
 	JPH::RefConst<JPH::Shape> physics_world_util_t::create_shape_from_properties(
@@ -147,26 +142,50 @@ namespace sfg
 		switch (shape_type)
 		{
 		case physics_shape_type_e::box: {
-			JPH::BoxShapeSettings settings(to_jolt(vec3f_t::max(half_extent * abs_scale, {0.001f, 0.001f, 0.001f})));
-			shape = settings.Create().Get();
+			JPH::BoxShapeSettings			settings(to_jolt(vec3f_t::max(half_extent * abs_scale, {JPH::cDefaultConvexRadius, JPH::cDefaultConvexRadius, JPH::cDefaultConvexRadius})));
+			JPH::ShapeSettings::ShapeResult result = settings.Create();
+
+			if (result.HasError())
+				SFG_WARN("failed to create box physics shape for entity {0}: {1}", entity, result.GetError().c_str());
+			else
+				shape = result.Get();
+
 			break;
 		}
 		case physics_shape_type_e::sphere: {
-			const f32				 scaled_radius = radius * math::max(abs_scale.x, math::max(abs_scale.y, abs_scale.z));
-			JPH::SphereShapeSettings settings(math::max(scaled_radius, 0.001f));
-			shape = settings.Create().Get();
+			const f32						scaled_radius = radius * math::max(abs_scale.x, math::max(abs_scale.y, abs_scale.z));
+			JPH::SphereShapeSettings		settings(math::max(scaled_radius, 0.001f));
+			JPH::ShapeSettings::ShapeResult result = settings.Create();
+
+			if (result.HasError())
+				SFG_WARN("failed to create sphere physics shape for entity {0}: {1}", entity, result.GetError().c_str());
+			else
+				shape = result.Get();
+
 			break;
 		}
 		case physics_shape_type_e::capsule: {
-			const f32				  scaled_radius = radius * math::max(abs_scale.x, abs_scale.z);
-			JPH::CapsuleShapeSettings settings(math::max(half_height * abs_scale.y, 0.001f), math::max(scaled_radius, 0.001f));
-			shape = settings.Create().Get();
+			const f32						scaled_radius = radius * math::max(abs_scale.x, abs_scale.z);
+			JPH::CapsuleShapeSettings		settings(math::max(half_height * abs_scale.y, 0.001f), math::max(scaled_radius, 0.001f));
+			JPH::ShapeSettings::ShapeResult result = settings.Create();
+
+			if (result.HasError())
+				SFG_WARN("failed to create capsule physics shape for entity {0}: {1}", entity, result.GetError().c_str());
+			else
+				shape = result.Get();
+
 			break;
 		}
 		case physics_shape_type_e::cylinder: {
-			const f32				   scaled_radius = radius * math::max(abs_scale.x, abs_scale.z);
-			JPH::CylinderShapeSettings settings(math::max(half_height * abs_scale.y, 0.001f), math::max(scaled_radius, 0.001f));
-			shape = settings.Create().Get();
+			const f32						scaled_radius = radius * math::max(abs_scale.x, abs_scale.z);
+			JPH::CylinderShapeSettings		settings(math::max(half_height * abs_scale.y, JPH::cDefaultConvexRadius), math::max(scaled_radius, JPH::cDefaultConvexRadius));
+			JPH::ShapeSettings::ShapeResult result = settings.Create();
+
+			if (result.HasError())
+				SFG_WARN("failed to create cylinder physics shape for entity {0}: {1}", entity, result.GetError().c_str());
+			else
+				shape = result.Get();
+
 			break;
 		}
 		case physics_shape_type_e::mesh: {

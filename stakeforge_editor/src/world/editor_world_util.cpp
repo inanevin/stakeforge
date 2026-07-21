@@ -49,6 +49,7 @@ namespace sfg
 #define EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS	  0.4f
 #define EDITOR_CONSTRAINT_GIZMO_CONE_LENGTH		  0.65f
 #define EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT	  999999.0f
+#define EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS	  0.05f
 
 	namespace
 	{
@@ -70,7 +71,7 @@ namespace sfg
 			case physics_shape_type_e::box: {
 				const mat4x3_t shape_transform = mat4x3_t::transform(position, rotation, vec3f_t::one);
 
-				debug_draw.draw_box(shape_transform, vec3f_t::max(half_extent * abs_scale, {0.001f, 0.001f, 0.001f}), color, 2.0f, debug_draw_depth_e::always_visible);
+				debug_draw.draw_box(shape_transform, vec3f_t::max(half_extent * abs_scale, {EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS, EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS, EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS}), color, 2.0f, debug_draw_depth_e::always_visible);
 				break;
 			}
 			case physics_shape_type_e::sphere: {
@@ -87,8 +88,8 @@ namespace sfg
 				break;
 			}
 			case physics_shape_type_e::cylinder: {
-				const f32 scaled_radius		 = math::max(radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
-				const f32 scaled_half_height = math::max(half_height * abs_scale.y, 0.001f);
+				const f32 scaled_radius		 = math::max(radius * math::max(abs_scale.x, abs_scale.z), EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS);
+				const f32 scaled_half_height = math::max(half_height * abs_scale.y, EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS);
 
 				debug_draw.draw_cylinder(position, scaled_radius, scaled_half_height, rotation.get_up(), color, 2.0f, debug_draw_depth_e::always_visible);
 				break;
