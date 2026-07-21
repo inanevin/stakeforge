@@ -62,6 +62,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace sfg
 {
@@ -211,6 +212,8 @@ namespace sfg
 
 	bool editor_world_controller_t::acquire_render_worlds()
 	{
+		ZoneScoped;
+
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 		_render_worlds.resize(0);
 
@@ -232,6 +235,8 @@ namespace sfg
 
 	bool editor_world_controller_t::render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
+		ZoneScoped;
+
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 
 		if (_render_worlds.empty())
@@ -249,6 +254,8 @@ namespace sfg
 
 	void editor_world_controller_t::tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps)
 	{
+		ZoneScoped;
+
 		editor_play_mode_e play_mode = editor_play_mode_e::none;
 		bool			   do_step	 = false;
 

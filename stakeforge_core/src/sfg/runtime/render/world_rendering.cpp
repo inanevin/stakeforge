@@ -47,6 +47,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace sfg
 {
@@ -101,6 +102,8 @@ namespace sfg
 
 	void world_rendering_t::render_world(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
+		ZoneScoped;
+
 		gfx_backend&					backend = gfx_backend::get();
 		const engine_shadow_settings_t& shadows = snapshot.shadows;
 

@@ -50,7 +50,24 @@ namespace sfg
 		texture,
 		model,
 		hdr_skybox,
+		orm_texture,
 	};
+
+	struct editor_texture_orm_import_sources_t
+	{
+		string_t occlusion = {};
+		string_t roughness = {};
+		string_t metallic  = {};
+	};
+
+	SFG_DEFINE_TYPE_ID(editor_texture_orm_import_sources_t);
+
+	struct editor_texture_orm_import_sources_reflection_t
+	{
+		editor_texture_orm_import_sources_reflection_t();
+	};
+
+	inline editor_texture_orm_import_sources_reflection_t g_reflect_editor_texture_orm_import_sources;
 
 	struct editor_asset_import_options_t
 	{
@@ -80,5 +97,7 @@ namespace sfg
 		static bool make_import_options(editor_asset_import_options_t& out_options, const char* asset_name);
 		static bool import_asset(
 			const char* target_directory, const char* source_full_path, span_t<const editor_asset_import_options_t> options, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets, vector_t<string_t>& out_asset_paths);
+		static bool import_texture_orm(
+			const char* target_directory, span_t<const string_t> source_paths, const texture_cook_config_t& texture_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets, vector_t<string_t>& out_asset_paths);
 	};
 }

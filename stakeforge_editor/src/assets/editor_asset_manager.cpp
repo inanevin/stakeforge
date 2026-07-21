@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
 #include <utility>
+#include <tracy/Tracy.hpp>
 
 namespace sfg
 {
@@ -93,11 +94,14 @@ namespace sfg
 
 	void editor_asset_manager_t::tick()
 	{
+		ZoneScoped;
+
 		if (_import_in_progress && _import_status_dirty.exchange(false, std::memory_order_acquire))
 		{
 			f32		 progress	  = 0.0f;
 			bool	 is_completed = false;
-			string_t status;
+			string_t status		  = {};
+
 			{
 				LOCK_GUARD(_import_status_mtx);
 				progress					= _import_progress_pending;
@@ -109,6 +113,7 @@ namespace sfg
 
 			editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
 			_import_progress_modal.set_progress(progress);
+
 			if (!status.empty())
 				modal.set_body_text(status.c_str());
 
@@ -353,7 +358,9 @@ namespace sfg
 		const editor_asset_tree_t& tree		 = _database.get_asset_tree();
 		const editor_asset_node_t& directory = tree.value(directory_node);
 
-		_import_status_pending = paths[0];
+		const auto status_path_it = std::find_if(paths.begin(), paths.end(), [](const string_t& path) { return !path.empty(); });
+		SFG_ASSERT(status_path_it != paths.end());
+		_import_status_pending = *status_path_it;
 		_import_status_visible = _import_status_pending;
 		_import_asset_paths_pending.resize(0);
 		_import_asset_paths_visible.resize(0);

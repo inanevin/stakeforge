@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace sfg
 {
@@ -165,8 +166,11 @@ namespace sfg
 
 	void world_t::tick_physics(f32 dt)
 	{
+		ZoneScoped;
+
 		if (!_physics_world.is_init())
 			return;
+
 		_physics_world.tick(dt);
 	}
 
@@ -551,6 +555,8 @@ namespace sfg
 
 	void world_t::update_world_transforms(bool advance_interpolation)
 	{
+		ZoneScoped;
+
 		const ecs_component_table_ref_t table_refs[] = {
 			_engine_components.transform_table->ref(),
 			_engine_components.hierarchy_table->ref(),
@@ -560,6 +566,7 @@ namespace sfg
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
 			const component_hierarchy_t& hierarchy = ecs_helpers_t::row_get<component_hierarchy_t>(row, 1);
+
 			if (hierarchy.parent != NULL_ENTITY_ID)
 				continue;
 

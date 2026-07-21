@@ -41,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/vendor/moodycamel/concurrentqueue.h>
+#include <tracy/Tracy.hpp>
 
 #include <Jolt/Jolt.h>
 #include <Jolt/Core/TempAllocator.h>
@@ -417,6 +418,8 @@ namespace sfg
 
 		void tick(f32 delta_time)
 		{
+			ZoneScoped;
+
 			_contact_events.resize(0);
 			sync_body_create_destroy();
 			sync_constraint_create_destroy();
@@ -424,8 +427,9 @@ namespace sfg
 			sync_static_and_kinematic_bodies_to_physics();
 
 			const f32 fixed_delta = 1.0f / static_cast<f32>(_config.physics_rate);
+			u32		  steps		  = 0;
+
 			_accumulator += delta_time;
-			u32 steps = 0;
 
 			while (_accumulator >= fixed_delta && steps < _config.max_sub_steps)
 			{
@@ -446,6 +450,8 @@ namespace sfg
 
 		void sync_static_and_kinematic_bodies_to_physics()
 		{
+			ZoneScoped;
+
 			const ecs_component_table_t& system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
 			const ecs_component_table_t& transform_table	  = _world->get_component_table(type_id_t<component_system_transform_t>::value);
 			const ecs_component_table_t& disabled_table		  = _world->get_component_table(type_id_t<component_disabled_t>::value);
@@ -456,12 +462,14 @@ namespace sfg
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 			{
 				const component_system_physics_t& phy = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
+
 				if (phy.motion_type == static_cast<u8>(physics_motion_type_e::dynamic_body))
 					continue;
 
 				const component_system_transform_t& transform	  = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
 				quat_t								body_rotation = transform.abs_rot * phy.local_rotation;
 				vec3f_t								body_position = transform.abs_pos + transform.abs_rot * (phy.local_position * transform.abs_scale);
+
 				body_interface.SetPositionAndRotation(JPH::BodyID(phy.body_id), physics_world_util_t::to_jolt_position(body_position), physics_world_util_t::to_jolt(body_rotation), JPH::EActivation::Activate);
 			}
 		}
@@ -698,6 +706,8 @@ namespace sfg
 
 		void sync_constraint_create_destroy()
 		{
+			ZoneScoped;
+
 			const ecs_component_table_t& system_constraints_table = _world->get_component_table(type_id_t<component_system_constraints_t>::value);
 			const ecs_component_table_t& system_physics_table	  = _world->get_component_table(type_id_t<component_system_physics_t>::value);
 			const ecs_component_table_t& disabled_table			  = _world->get_component_table(type_id_t<component_disabled_t>::value);
@@ -736,6 +746,8 @@ namespace sfg
 
 		void sync_constraint_properties()
 		{
+			ZoneScoped;
+
 			const ecs_component_table_t&	system_constraints_table = _world->get_component_table(type_id_t<component_system_constraints_t>::value);
 			const ecs_component_table_ref_t refs[]					 = {system_constraints_table.ref()};
 
@@ -749,6 +761,8 @@ namespace sfg
 
 		void sync_body_create_destroy()
 		{
+			ZoneScoped;
+
 			const ecs_component_table_t& system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
 			const ecs_component_table_t& mover_table		  = _world->get_component_table(type_id_t<component_character_mover_t>::value);
 			const ecs_component_table_t& physical_table		  = _world->get_component_table(type_id_t<component_physical_t>::value);
@@ -809,6 +823,8 @@ namespace sfg
 
 		void update_characters(f32 delta_time)
 		{
+			ZoneScoped;
+
 			ecs_component_table_t&			system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
 			const ecs_component_table_t&	disabled_table		 = _world->get_component_table(type_id_t<component_disabled_t>::value);
 			const ecs_component_table_t&	mover_table			 = _world->get_component_table(type_id_t<component_character_mover_t>::value);
@@ -817,11 +833,13 @@ namespace sfg
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 			{
 				component_system_physics_t& system_physics = ecs_helpers_t::row_get_mutable<component_system_physics_t>(row, 0);
+
 				if (system_physics.character == nullptr)
 					continue;
 
 				const component_character_mover_t& mover	 = ecs_helpers_t::row_get<component_character_mover_t>(row, 1);
 				JPH::CharacterVirtual&			   character = *system_physics.character;
+
 				character.UpdateGroundVelocity();
 
 				const JPH::Vec3 ground_velocity = character.GetGroundVelocity();
@@ -872,6 +890,8 @@ namespace sfg
 
 		void sync_dynamic_bodies_into_world()
 		{
+			ZoneScoped;
+
 			const ecs_component_table_t& system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
 			const ecs_component_table_t& disabled_table		  = _world->get_component_table(type_id_t<component_disabled_t>::value);
 
@@ -911,6 +931,8 @@ namespace sfg
 
 		void drain_contact_events()
 		{
+			ZoneScoped;
+
 			raw_contact_event_t raw = {};
 
 			while (_raw_contact_events.try_dequeue(raw))

@@ -161,7 +161,7 @@ namespace sfg
 	struct post_process_bloom_t
 	{
 		f32 strength	  = 0.025f;
-		f32 filter_radius = 0.012f;
+		f32 filter_radius = 0.005f;
 		u8	enabled		  = 1;
 	};
 

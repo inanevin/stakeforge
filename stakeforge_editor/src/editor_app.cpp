@@ -399,6 +399,7 @@ namespace sfg
 	{
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
 		bool						 tick	  = true;
+
 #ifdef TRACY_ENABLE
 		tracy::SetThreadName("main");
 #endif
@@ -416,35 +417,21 @@ namespace sfg
 
 			process::pump_os_messages();
 
-			{
-				ZoneScopedN("engine_resource_pack_tick");
-				_engine_resource_pack.tick();
-			}
+			_engine_resource_pack.tick();
+			_editor_resource_pack.tick();
 
-			{
-				ZoneScopedN("editor_resource_pack_tick");
-				_editor_resource_pack.tick();
-			}
+			resource_manager_t::get().flush();
 
+			if (_mode == editor_app_mode_e::normal)
 			{
-				ZoneScopedN("resource_manager_flush");
-				resource_manager_t::get().flush();
-			}
+				_asset_manager.tick();
 
-			{
-				ZoneScopedN("asset_manager_tick");
-				if (_mode == editor_app_mode_e::normal)
-				{
-					_asset_manager.tick();
-
-					if (!_asset_manager.is_import_in_progress())
-						editor_asset_thumbnail_database_t::get().tick();
-				}
+				if (!_asset_manager.is_import_in_progress())
+					editor_asset_thumbnail_database_t::get().tick();
 			}
 
 			if (_mode == editor_app_mode_e::normal)
 			{
-				ZoneScopedN("world_controller_tick");
 				const project_settings_t& settings = engine_runtime_t::get().get_project_settings();
 				_world_controller.tick(settings.world_tick_rate, settings.world_physics_rate, settings.max_sim_steps);
 			}
@@ -468,7 +455,6 @@ namespace sfg
 
 			if (_mode == editor_app_mode_e::normal)
 			{
-				ZoneScopedN("payload_controller_tick");
 				_payload_controller.tick();
 			}
 
@@ -476,15 +462,9 @@ namespace sfg
 			const f32 dt  = static_cast<f32>(now - _last_tick_us) / 1.0e6f;
 			_last_tick_us = now;
 
-			{
-				ZoneScopedN("surface_controller_tick");
-				surfaces.tick_surfaces(dt);
-			}
+			surfaces.tick_surfaces(dt);
 
-			{
-				ZoneScopedN("resource_manager_drain_atlases");
-				resource_manager_t::get().drain_atlases(_atlas_upload_frame_slot);
-			}
+			resource_manager_t::get().drain_atlases(_atlas_upload_frame_slot);
 
 			_atlas_upload_frame_slot = static_cast<u8>((_atlas_upload_frame_slot + 1) % BACK_BUFFER_COUNT);
 

@@ -357,32 +357,36 @@ namespace sfg
 		for (size_t i = 0; i < import_options.size; ++i)
 			state->import_options.push_back(import_options.data[i]);
 
-		state->callback	   = callback;
-		state->user_data   = user_data;
-		state->total_count = static_cast<u32>(paths.size);
+		state->callback	 = callback;
+		state->user_data = user_data;
 
-		tf::Taskflow import_flow;
-		for (size_t i = 0; i < state->paths.size(); ++i)
+		const auto orm_options_it = std::find_if(state->import_options.begin(), state->import_options.end(), [](const editor_asset_import_options_t& options) { return options.type == editor_asset_import_type_e::orm_texture; });
+
+		tf::Taskflow import_flow = {};
+		if (orm_options_it != state->import_options.end())
 		{
-			import_flow.emplace([state, i]() {
-				vector_t<editor_asset_t> imported_assets;
-				vector_t<string_t>		 imported_asset_paths;
-				const string_t&			 path	  = state->paths[i];
-				const f32				 progress = state->total_count != 0 ? static_cast<f32>(state->imported_count.load(std::memory_order_relaxed)) / static_cast<f32>(state->total_count) : 1.0f;
-				if (state->callback != nullptr)
-					state->callback(state->user_data, progress, path.c_str(), false, {});
+			state->total_count			   = 1;
+			const size_t orm_options_index = static_cast<size_t>(orm_options_it - state->import_options.begin());
+			import_flow.emplace([state, orm_options_index]() {
+				vector_t<editor_asset_t>			 imported_assets	  = {};
+				vector_t<string_t>					 imported_asset_paths = {};
+				const editor_asset_import_options_t& orm_options		  = state->import_options[orm_options_index];
 
-				const span_t<const editor_asset_import_options_t> options = {
-					.data = state->import_options.data(),
-					.size = state->import_options.size(),
-				};
+				if (state->callback != nullptr)
+					state->callback(state->user_data, 0.0f, "Importing ORM texture", false, {});
+
 				const editor_asset_import_context_t context = {
 					.user_data	= state,
 					.set_status = report_import_status,
 				};
 
-				if (!editor_asset_importer_t::import_asset(state->target_directory.c_str(), path.c_str(), options, context, imported_assets, imported_asset_paths))
-					SFG_ERR("failed importing asset {0}", path.c_str());
+				const span_t<const string_t> source_paths = {
+					.data = state->paths.data(),
+					.size = state->paths.size(),
+				};
+
+				if (!editor_asset_importer_t::import_texture_orm(state->target_directory.c_str(), source_paths, orm_options.texture_cook_config, context, imported_assets, imported_asset_paths))
+					SFG_ERR("failed importing ORM texture");
 				else
 				{
 					LOCK_GUARD(state->imported_asset_paths_mtx);
@@ -391,12 +395,52 @@ namespace sfg
 						state->imported_asset_paths.push_back(std::move(asset_path));
 				}
 
-				const u32 imported_count = state->imported_count.fetch_add(1, std::memory_order_relaxed) + 1;
-				const f32 done_progress	 = state->total_count != 0 ? static_cast<f32>(imported_count) / static_cast<f32>(state->total_count) : 1.0f;
+				state->imported_count.store(1, std::memory_order_relaxed);
 				if (state->callback != nullptr)
-					state->callback(state->user_data, done_progress, path.c_str(), false, {});
+					state->callback(state->user_data, 1.0f, "ORM texture import completed", false, {});
 			});
 		}
+		else
+		{
+			state->total_count = static_cast<u32>(paths.size);
+			for (size_t i = 0; i < state->paths.size(); ++i)
+			{
+				import_flow.emplace([state, i]() {
+					vector_t<editor_asset_t> imported_assets	  = {};
+					vector_t<string_t>		 imported_asset_paths = {};
+					const string_t&			 path				  = state->paths[i];
+					const f32				 progress			  = state->total_count != 0 ? static_cast<f32>(state->imported_count.load(std::memory_order_relaxed)) / static_cast<f32>(state->total_count) : 1.0f;
+
+					if (state->callback != nullptr)
+						state->callback(state->user_data, progress, path.c_str(), false, {});
+
+					const span_t<const editor_asset_import_options_t> options = {
+						.data = state->import_options.data(),
+						.size = state->import_options.size(),
+					};
+					const editor_asset_import_context_t context = {
+						.user_data	= state,
+						.set_status = report_import_status,
+					};
+
+					if (!editor_asset_importer_t::import_asset(state->target_directory.c_str(), path.c_str(), options, context, imported_assets, imported_asset_paths))
+						SFG_ERR("failed importing asset {0}", path.c_str());
+					else
+					{
+						LOCK_GUARD(state->imported_asset_paths_mtx);
+						state->imported_asset_paths.reserve(state->imported_asset_paths.size() + imported_asset_paths.size());
+						for (string_t& asset_path : imported_asset_paths)
+							state->imported_asset_paths.push_back(std::move(asset_path));
+					}
+
+					const u32 imported_count = state->imported_count.fetch_add(1, std::memory_order_relaxed) + 1;
+					const f32 done_progress	 = state->total_count != 0 ? static_cast<f32>(imported_count) / static_cast<f32>(state->total_count) : 1.0f;
+					if (state->callback != nullptr)
+						state->callback(state->user_data, done_progress, path.c_str(), false, {});
+				});
+			}
+		}
+
 		executor.run(std::move(import_flow), [state]() {
 			if (state->callback != nullptr)
 				state->callback(state->user_data, 1.0f, "Import completed", true, {.data = state->imported_asset_paths.data(), .size = state->imported_asset_paths.size()});

@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/commands.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace sfg
 {
@@ -232,6 +233,8 @@ namespace sfg
 
 	bool texture_queue_t::submit(const texture_queue_submit_desc_t& desc)
 	{
+		ZoneScoped;
+
 		SFG_ASSERT(!desc.queue_gfx.is_null());
 		SFG_ASSERT(!desc.queue_transfer.is_null());
 		SFG_ASSERT(!desc.cmd_prepare.is_null());
@@ -249,6 +252,7 @@ namespace sfg
 		backend.reset_command_buffer(desc.cmd_prepare);
 		const bool prepare_emitted = prepare(desc.cmd_prepare);
 		backend.close_command_buffer(desc.cmd_prepare);
+
 		if (prepare_emitted)
 		{
 			backend.submit_commands(desc.queue_gfx, &desc.cmd_prepare, 1);
@@ -260,6 +264,7 @@ namespace sfg
 		}
 
 		backend.reset_command_buffer_transfer(desc.cmd_transfer);
+
 		if (flush(desc.cmd_transfer))
 		{
 			backend.close_command_buffer(desc.cmd_transfer);

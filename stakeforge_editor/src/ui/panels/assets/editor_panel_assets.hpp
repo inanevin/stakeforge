@@ -135,6 +135,10 @@ namespace sfg
 		void open_action_menu(const vec2f_t& pos, bool allow_folder_actions);
 		void open_asset_action_menu(const vec2f_t& pos);
 		void import_assets(const vector_t<string_t>& paths);
+		void request_import_orm_texture();
+		void show_import_orm_texture_modal();
+		void submit_import_orm_texture();
+		void clear_pending_import_orm_texture();
 		void refresh_folder_rows();
 		bool append_folder_rows(editor_asset_node_handle_t node, u16 depth, frame_string_t<char>& current_path);
 		void refresh_asset_grid(bool force);
@@ -241,6 +245,9 @@ namespace sfg
 		static void on_asset_rename_popup_closed(const char* value, void* user_data);
 		static void on_cook_options_imported(void* user_data);
 		static void on_cook_options_cancelled(void* user_data);
+		static void on_import_orm_texture_submitted(void* user_data);
+		static void on_import_orm_texture_cancelled(void* user_data);
+		static void on_import_orm_texture_error_acknowledged(void* user_data);
 		static void on_search_changed(void* user_data);
 		static void on_asset_search_changed(void* user_data);
 		static void on_show_file_assets_pressed(bool toggled, void* user_data);
@@ -291,6 +298,8 @@ namespace sfg
 		vector_t<editor_asset_node_handle_t>	_selected_asset_nodes			 = {};
 		vector_t<string_t>						_pending_import_paths			 = {};
 		vector_t<editor_asset_import_options_t> _pending_import_options			 = {};
+		editor_texture_orm_import_sources_t		_pending_orm_import_sources		 = {};
+		texture_cook_config_t					_pending_orm_texture_config		 = {};
 		editor_modal_cook_options_t				_cook_options_modal				 = {};
 		editor_modal_assets_override_t			_assets_override_modal			 = {};
 		vector_t<editor_entity_payload_t>		_pending_override_entities		 = {};

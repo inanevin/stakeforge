@@ -94,6 +94,95 @@ namespace sfg
 		modal->request_modal("Cook Options", "Configure cook options for the imported assets.", true, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), &cook_options_content);
 	}
 
+	void editor_panel_assets_t::request_import_orm_texture()
+	{
+		clear_pending_import_orm_texture();
+
+		_pending_orm_texture_config					 = editor_settings_t::get().import.texture;
+		_pending_orm_texture_config.is_linear		 = true;
+		_pending_orm_texture_config.force_4_channels = true;
+
+		show_import_orm_texture_modal();
+	}
+
+	void editor_panel_assets_t::show_import_orm_texture_modal()
+	{
+		editor_modal_cook_option_desc_t modal_options[] = {
+			{.object = &_pending_orm_import_sources, .title = "Sources", .type_id = type_id_t<editor_texture_orm_import_sources_t>::value},
+			{.object = &_pending_orm_texture_config, .title = "Texture", .type_id = type_id_t<texture_cook_config_t>::value},
+		};
+
+		_cook_options_modal.set_options(modal_options, static_cast<u16>(sizeof(modal_options) / sizeof(modal_options[0])));
+
+		const editor_modal_button_desc_t buttons[] = {
+			{.text = "Cancel", .callback = on_import_orm_texture_cancelled, .user_data = this},
+			{.text = "Import", .callback = on_import_orm_texture_submitted, .user_data = this},
+		};
+
+		editor_modal_controller_t*		  modal	  = editor_modal_controller_t::find(*_ui);
+		const editor_modal_content_desc_t content = _cook_options_modal.get_content_desc();
+		modal->request_modal("Import ORM Texture", "Select textures for the ORM channels and configure the texture cook options.", true, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), &content);
+	}
+
+	void editor_panel_assets_t::submit_import_orm_texture()
+	{
+		const string_t* source_paths[] = {
+			&_pending_orm_import_sources.occlusion,
+			&_pending_orm_import_sources.roughness,
+			&_pending_orm_import_sources.metallic,
+		};
+
+		frame_vector_t<string_t> import_paths  = {};
+		bool					 sources_valid = true;
+		bool					 has_source	   = false;
+
+		import_paths.reserve(3);
+
+		for (const string_t* source_path : source_paths)
+		{
+			import_paths.push_back(*source_path);
+
+			if (source_path->empty())
+				continue;
+
+			has_source = true;
+
+			editor_asset_import_options_t source_options = {};
+			if (!editor_asset_importer_t::make_import_options(source_options, source_path->c_str()) || source_options.type != editor_asset_import_type_e::texture || !file_system_t::exists(source_path->c_str()))
+			{
+				sources_valid = false;
+				break;
+			}
+		}
+
+		if (!sources_valid || !has_source)
+		{
+			const editor_modal_button_desc_t buttons[] = {
+				{.text = "Back", .callback = on_import_orm_texture_error_acknowledged, .user_data = this},
+			};
+
+			editor_modal_controller_t::find(*_ui)->request_modal(
+				"Import ORM Texture", has_source ? "Select valid PNG, JPG, or JPEG texture files." : "Select at least one texture.", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::error);
+			return;
+		}
+
+		_pending_orm_texture_config.is_linear		 = true;
+		_pending_orm_texture_config.force_4_channels = true;
+
+		frame_vector_t<editor_asset_import_options_t> import_options = {};
+		import_options.push_back({.texture_cook_config = _pending_orm_texture_config, .type = editor_asset_import_type_e::orm_texture});
+
+		editor_asset_manager_t::get().import_assets(_selected_folder_node, import_paths, import_options);
+
+		clear_pending_import_orm_texture();
+	}
+
+	void editor_panel_assets_t::clear_pending_import_orm_texture()
+	{
+		_pending_orm_import_sources = {};
+		_pending_orm_texture_config = {};
+	}
+
 	void editor_panel_assets_t::collect_pending_import_options(const vector_t<string_t>& paths)
 	{
 		_pending_import_paths.reserve(paths.size());

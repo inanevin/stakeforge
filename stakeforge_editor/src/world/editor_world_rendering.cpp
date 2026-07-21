@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/render/world_render_material.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace sfg
 {
@@ -50,6 +51,8 @@ namespace sfg
 
 	void editor_world_rendering_t::render_outlines(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
+		ZoneScoped;
+
 		const editor_world_snapshot_data_t& snapshot_data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
 
 		gfx_backend& backend = gfx_backend::get();
@@ -189,6 +192,8 @@ namespace sfg
 
 	void editor_world_rendering_t::render_object_ids(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index)
 	{
+		ZoneScoped;
+
 		gfx_backend& backend = gfx_backend::get();
 
 		render_resources_t& render_resources = render_resources_t::get();
@@ -343,6 +348,8 @@ namespace sfg
 
 	void editor_world_rendering_t::blit_world_texture(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index)
 	{
+		ZoneScoped;
+
 		const editor_world_snapshot_data_t& snapshot_data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
 		const vec2u16_t						size		  = ctx.get_size();
 		render_view_t						view		  = {};

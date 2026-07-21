@@ -7,6 +7,7 @@
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace sfg
 {
@@ -306,6 +307,8 @@ namespace sfg
 
 	void render_resources_t::drain_requests()
 	{
+		ZoneScoped;
+
 		SFG_ASSERT(is_render_access_thread());
 
 		gfx_backend& backend = gfx_backend::get();
@@ -315,6 +318,7 @@ namespace sfg
 		release_retired_shaders(false);
 
 		request_t req = {};
+
 		while (_request_q.try_dequeue(req))
 		{
 			switch (req.kind)
@@ -337,8 +341,10 @@ namespace sfg
 			case request_kind_e::create_shader: {
 				const span_t<const shader_blob_t> blobs	 = {.data = req.blobs.data(), .size = req.blobs.size()};
 				const gfx_handle_t				  handle = backend.create_shader(req.shader_desc, blobs, req.existing_layout);
+
 				for (shader_blob_t& blob : req.blobs)
 					SFG_FREE(blob.data.data);
+
 				set_render_thread_resource(_rt_shaders, req.render_handle, handle);
 				break;
 			}
@@ -422,6 +428,8 @@ namespace sfg
 
 	void render_resources_t::drain_destroy_requests()
 	{
+		ZoneScoped;
+
 		SFG_ASSERT(is_render_access_thread());
 
 		for (const request_t& req : _deferred_destroys)
@@ -431,6 +439,7 @@ namespace sfg
 			case request_kind_e::destroy_resource: {
 				const gfx_handle_t handle = remove_render_thread_resource(_rt_resources, req.render_handle);
 				_resources.remove(req.render_handle);
+
 				if (!handle.is_null())
 					_retired_resources.push_back({.resource = handle, .frames = BACK_BUFFER_COUNT});
 				break;
@@ -438,6 +447,7 @@ namespace sfg
 			case request_kind_e::destroy_texture: {
 				const gfx_handle_t handle = remove_render_thread_resource(_rt_textures, req.render_handle);
 				_textures.remove(req.render_handle);
+
 				if (!handle.is_null())
 					_retired_textures.push_back({.texture = handle, .frames = BACK_BUFFER_COUNT});
 				break;
@@ -445,6 +455,7 @@ namespace sfg
 			case request_kind_e::destroy_sampler: {
 				const gfx_handle_t handle = remove_render_thread_resource(_rt_samplers, req.render_handle);
 				_samplers.remove(req.render_handle);
+
 				if (!handle.is_null())
 					_retired_samplers.push_back({.sampler = handle, .frames = BACK_BUFFER_COUNT});
 				break;
@@ -452,6 +463,7 @@ namespace sfg
 			case request_kind_e::destroy_shader: {
 				const gfx_handle_t handle = remove_render_thread_resource(_rt_shaders, req.render_handle);
 				_shaders.remove(req.render_handle);
+
 				if (!handle.is_null())
 					_retired_shaders.push_back({.shader = handle, .frames = BACK_BUFFER_COUNT});
 				break;
@@ -460,6 +472,7 @@ namespace sfg
 				break;
 			}
 		}
+
 		_deferred_destroys.resize(0);
 	}
 

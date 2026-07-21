@@ -539,6 +539,8 @@ namespace sfg::ui
 
 	void ui_context::publish_frame()
 	{
+		ZoneScoped;
+
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 		snapshot_slot_t& slot = _snapshot_slots[_producer_slot];
 
@@ -552,6 +554,7 @@ namespace sfg::ui
 		{
 			if (src.vertex_count == 0 || src.index_count == 0)
 				continue;
+
 			SFG_ASSERT(db_count < slot.draw_buffer_capacity);
 			SFG_ASSERT(vtx_offset + src.vertex_count <= slot.vertex_capacity);
 			SFG_ASSERT(idx_offset + src.index_count <= slot.index_capacity);

@@ -27,12 +27,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_importer.hpp"
 #include "assets/editor_asset.hpp"
+#include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_writer.hpp"
 #include "assets/editor_glb_importer.hpp"
 #include "editor_directories.hpp"
 #include <sfg/data/string_util.hpp>
+#include <sfg/gfx/util/image_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
@@ -41,6 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/skybox_hdr_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
+#include <sfg/vendor/stb/stb_image_write.h>
 
 namespace sfg
 {
@@ -72,6 +75,43 @@ namespace sfg
 			}
 			return nullptr;
 		}
+	}
+
+	editor_texture_orm_import_sources_reflection_t::editor_texture_orm_import_sources_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+
+		registry.register_type({
+			.name		  = "editor_texture_orm_import_sources_t",
+			.display_name = "ORM Sources",
+			.fields =
+				{
+					{.name		   = "occlusion",
+					 .display_name = "Occlusion (R)",
+					 .tooltip	   = "Texture written to the red occlusion channel.",
+					 .sub_type_id  = REFLECTION_SUB_TYPE_IDENTIFIER_PATH,
+					 .offset	   = offsetof(editor_texture_orm_import_sources_t, occlusion),
+					 .size		   = sizeof(string_t),
+					 .type		   = reflected_value_type_e::string},
+					{.name		   = "roughness",
+					 .display_name = "Roughness (G)",
+					 .tooltip	   = "Texture written to the green roughness channel.",
+					 .sub_type_id  = REFLECTION_SUB_TYPE_IDENTIFIER_PATH,
+					 .offset	   = offsetof(editor_texture_orm_import_sources_t, roughness),
+					 .size		   = sizeof(string_t),
+					 .type		   = reflected_value_type_e::string},
+					{.name		   = "metallic",
+					 .display_name = "Metallic (B)",
+					 .tooltip	   = "Texture written to the blue metallic channel.",
+					 .sub_type_id  = REFLECTION_SUB_TYPE_IDENTIFIER_PATH,
+					 .offset	   = offsetof(editor_texture_orm_import_sources_t, metallic),
+					 .size		   = sizeof(string_t),
+					 .type		   = reflected_value_type_e::string},
+				},
+			.type_id   = type_id_t<editor_texture_orm_import_sources_t>::value,
+			.size	   = sizeof(editor_texture_orm_import_sources_t),
+			.alignment = alignof(editor_texture_orm_import_sources_t),
+		});
 	}
 
 	void editor_asset_import_context_t::report_status(const char* text) const
@@ -264,6 +304,154 @@ namespace sfg
 
 		out_assets.push_back(asset);
 		out_asset_paths.push_back(asset_path);
+		return true;
+	}
+
+	bool editor_asset_importer_t::import_texture_orm(
+		const char* target_directory, span_t<const string_t> source_paths, const texture_cook_config_t& texture_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets, vector_t<string_t>& out_asset_paths)
+	{
+		SFG_ASSERT(source_paths.size == 3);
+
+		u8*		  source_pixels[3] = {};
+		vec2u16_t source_sizes[3]  = {
+			vec2u16_t::zero,
+			vec2u16_t::zero,
+			vec2u16_t::zero,
+		};
+		vec2u16_t		output_size	  = vec2u16_t::zero;
+		const string_t* first_source  = nullptr;
+		bool			sources_valid = true;
+
+		for (u32 i = 0; i < 3; ++i)
+		{
+			const string_t& source_path = source_paths.data[i];
+			if (source_path.empty())
+				continue;
+
+			if (!file_system_t::exists(source_path.c_str()) || get_import_type_from_extension(file_system_t::get_file_extension(source_path)) != editor_asset_import_type_e::texture)
+			{
+				SFG_ERR("invalid ORM texture source: {0}", source_path.c_str());
+				sources_valid = false;
+				break;
+			}
+
+			source_pixels[i] = static_cast<u8*>(image_util_t::load_from_file_ch(source_path.c_str(), source_sizes[i], 4));
+			if (source_pixels[i] == nullptr)
+			{
+				sources_valid = false;
+				break;
+			}
+
+			if (first_source == nullptr)
+			{
+				first_source = &source_path;
+				output_size	 = source_sizes[i];
+			}
+			else if (source_sizes[i] != output_size)
+			{
+				SFG_ERR("ORM texture sources must have matching dimensions: {0}", source_path.c_str());
+				sources_valid = false;
+				break;
+			}
+		}
+
+		if (first_source == nullptr)
+		{
+			SFG_ERR("at least one ORM texture source is required");
+			sources_valid = false;
+		}
+
+		if (!sources_valid)
+		{
+			for (u8* pixels : source_pixels)
+			{
+				if (pixels != nullptr)
+					image_util_t::free(pixels);
+			}
+
+			return false;
+		}
+
+		const size_t pixel_count = static_cast<size_t>(output_size.x) * output_size.y;
+		vector_t<u8> pixels		 = {};
+
+		pixels.resize(pixel_count * 4);
+
+		for (size_t i = 0; i < pixel_count; ++i)
+		{
+			const size_t source_offset = i * 4;
+			u8*			 dst		   = pixels.data() + source_offset;
+
+			dst[0] = source_pixels[0] != nullptr ? source_pixels[0][source_offset] : 255;
+			dst[1] = source_pixels[1] != nullptr ? source_pixels[1][source_offset] : 255;
+			dst[2] = source_pixels[2] != nullptr ? source_pixels[2][source_offset] : 0;
+			dst[3] = 255;
+		}
+
+		for (u8* source : source_pixels)
+		{
+			if (source != nullptr)
+				image_util_t::free(source);
+		}
+
+		string_t asset_name = file_system_t::get_filename_from_path(*first_source);
+		asset_name += "_orm";
+
+		if (!editor_directories_t::is_valid_asset_name(asset_name.c_str()))
+		{
+			SFG_ERR("invalid imported ORM texture asset name: {0}", asset_name.c_str());
+			return false;
+		}
+
+		string_t status = "Importing ORM texture: ";
+		status += asset_name;
+
+		context.report_status(status.c_str());
+
+		texture_cook_config_t output_config = texture_config;
+		output_config.size					= output_size;
+		output_config.is_linear				= true;
+		output_config.force_4_channels		= true;
+
+		nlohmann::json cook_options = nlohmann::json::object();
+		if (!reflection_registry_t::get().type_to_json(type_id_t<texture_cook_config_t>::value, &output_config, nullptr, cook_options))
+		{
+			SFG_ERR("failed to serialize ORM texture import options");
+			return false;
+		}
+
+		const string_t generated_source_path = editor_asset_path_t::make_source_path(target_directory, asset_name.c_str(), "png");
+		if (stbi_write_png(generated_source_path.c_str(), output_size.x, output_size.y, 4, pixels.data(), static_cast<int>(output_size.x) * 4) == 0)
+		{
+			SFG_ERR("failed to write ORM texture source {0}", generated_source_path.c_str());
+			return false;
+		}
+
+		editor_asset_t								  asset		 = {};
+		string_t									  asset_path = {};
+		const editor_asset_write_existing_file_desc_t write_desc{
+			.cook_options	  = &cook_options,
+			.parent_path	  = target_directory,
+			.name			  = asset_name.c_str(),
+			.source_full_path = generated_source_path.c_str(),
+			.asset_type		  = editor_asset_type_e::texture,
+			.source_type	  = editor_asset_source_type_e::file_blob,
+		};
+
+		if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))
+		{
+			SFG_ERR("failed to create imported ORM texture asset {0}", asset_name.c_str());
+			return false;
+		}
+
+		if (!editor_asset_cooker_t::cook_texture(asset, asset_name.c_str()))
+		{
+			SFG_ERR("failed to cook imported ORM texture asset {0}", asset.guid);
+			return false;
+		}
+
+		out_assets.push_back(std::move(asset));
+		out_asset_paths.push_back(std::move(asset_path));
 		return true;
 	}
 }

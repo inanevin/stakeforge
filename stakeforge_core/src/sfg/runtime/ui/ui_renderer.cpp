@@ -147,7 +147,7 @@ namespace sfg::ui
 
 	void ui_renderer_t::render(gfx_handle_t cmd, const vg_draw_snapshot_t* snap, u8 frame_index, vec2u16_t fb_size)
 	{
-		ZoneScopedN("ui_renderer_render");
+		ZoneScoped;
 
 		gfx_backend&	  backend	 = gfx_backend::get();
 		const u8		  frame_slot = frame_index % BACK_BUFFER_COUNT;

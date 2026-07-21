@@ -59,6 +59,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace sfg
 {
@@ -666,6 +667,8 @@ namespace sfg
 
 	void editor_surface_controller_t::tick_surfaces(f32 dt)
 	{
+		ZoneScoped;
+
 		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
 		{
 			const surface_handle_t handle  = *it;
@@ -710,6 +713,7 @@ namespace sfg
 			{
 				const vec4f_t screen	= {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
 				const f32	  dpi_scale = surface.runtime->monitor_info.dpi_scale > 0.0f ? surface.runtime->monitor_info.dpi_scale : 1.0f;
+
 				surface.ui->tick(screen, dpi_scale, dt);
 				surface.ui->publish_frame();
 			}

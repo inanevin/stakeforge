@@ -75,6 +75,7 @@ namespace sfg
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_ROWS[] = {
 			{.text = "Create", .children = ASSETS_ACTION_MENU_CREATE_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_CREATE_ROWS) / sizeof(ASSETS_ACTION_MENU_CREATE_ROWS[0]))},
 			{.text = "Import", .command = assets_action_menu_import},
+			{.text = "Import ORM Texture", .command = assets_action_menu_import_orm_texture},
 			{.text = "Delete", .shortcut = "DEL", .command = assets_action_menu_delete},
 			{.text = "Duplicate", .shortcut = "CTRL+D", .command = assets_action_menu_duplicate},
 			{.text = "Rename", .shortcut = "F2", .command = assets_action_menu_rename},

@@ -200,6 +200,9 @@ namespace sfg
 		case assets_action_menu_import:
 			on_import_button_pressed(false, &panel);
 			return;
+		case assets_action_menu_import_orm_texture:
+			panel.request_import_orm_texture();
+			return;
 		case assets_action_menu_delete:
 			panel.delete_folder();
 			return;
@@ -354,6 +357,21 @@ namespace sfg
 	void editor_panel_assets_t::on_cook_options_cancelled(void* user_data)
 	{
 		static_cast<editor_panel_assets_t*>(user_data)->clear_pending_import();
+	}
+
+	void editor_panel_assets_t::on_import_orm_texture_submitted(void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->submit_import_orm_texture();
+	}
+
+	void editor_panel_assets_t::on_import_orm_texture_cancelled(void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->clear_pending_import_orm_texture();
+	}
+
+	void editor_panel_assets_t::on_import_orm_texture_error_acknowledged(void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->show_import_orm_texture_modal();
 	}
 
 	void editor_panel_assets_t::on_search_changed(void* user_data)

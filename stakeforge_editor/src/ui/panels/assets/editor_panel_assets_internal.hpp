@@ -72,5 +72,6 @@ namespace sfg
 		assets_action_menu_create_world					  = 24,
 		assets_action_menu_create_unlit_shader			  = 25,
 		assets_action_menu_create_unlit_material		  = 26,
+		assets_action_menu_import_orm_texture			  = 27,
 	};
 }
