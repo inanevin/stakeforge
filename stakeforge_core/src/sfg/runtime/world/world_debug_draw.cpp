@@ -140,6 +140,32 @@ namespace sfg
 		_indices.push_back(base_vertex + 3);
 	}
 
+	void world_debug_draw_t::draw_arrow(const vec3f_t& from, const vec3f_t& to, const color_t& color, f32 head_length, f32 head_radius, f32 thickness_px, debug_draw_depth_e depth)
+	{
+		SFG_ASSERT(head_length > 0.0f && head_radius > 0.0f);
+
+		const vec3f_t delta	 = to - from;
+		const f32	  length = delta.magnitude();
+
+		if (length <= MATH_EPS)
+			return;
+
+		const vec3f_t direction			 = delta / length;
+		const f32	  actual_head_length = math::min(head_length, length * 0.5f);
+		const f32	  actual_head_radius = math::min(head_radius, length * 0.25f);
+		const vec3f_t reference			 = math::abs(vec3f_t::dot(direction, vec3f_t::up)) > 0.99f ? vec3f_t::right : vec3f_t::up;
+		const vec3f_t axis0				 = vec3f_t::cross(reference, direction).normalized();
+		const vec3f_t axis1				 = vec3f_t::cross(direction, axis0).normalized();
+		const vec3f_t head_base			 = to - direction * actual_head_length;
+
+		draw_line(from, head_base, color, thickness_px, depth);
+		draw_circle(head_base, actual_head_radius, direction, color, thickness_px, depth, 8);
+		draw_line(to, head_base + axis0 * actual_head_radius, color, thickness_px, depth);
+		draw_line(to, head_base - axis0 * actual_head_radius, color, thickness_px, depth);
+		draw_line(to, head_base + axis1 * actual_head_radius, color, thickness_px, depth);
+		draw_line(to, head_base - axis1 * actual_head_radius, color, thickness_px, depth);
+	}
+
 	void world_debug_draw_t::draw_triangle(const vec3f_t& p0, const vec3f_t& p1, const vec3f_t& p2, const color_t& color)
 	{
 		if (_triangle_vertices.size() + 3 > _config.triangle_vertex_reserve || _triangle_indices.size() + 3 > _config.triangle_index_reserve)
@@ -251,9 +277,44 @@ namespace sfg
 		draw_polyline({.data = corners, .size = std::size(corners)}, color, thickness_px, depth, true);
 	}
 
+	void world_debug_draw_t::draw_arc(const vec3f_t& center, const vec3f_t& normal, const vec3f_t& start_direction, f32 radius, f32 angle_radians, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
+	{
+		if (normal.is_zero() || start_direction.is_zero())
+			return;
+
+		SFG_ASSERT(radius > 0.0f && segments > 0);
+
+		if (math::abs(angle_radians) <= MATH_EPS)
+			return;
+
+		const vec3f_t arc_normal	  = normal.normalized();
+		const vec3f_t projected_start = start_direction - arc_normal * vec3f_t::dot(start_direction, arc_normal);
+		if (projected_start.is_zero())
+			return;
+
+		SFG_ASSERT(!projected_start.is_zero());
+
+		const vec3f_t axis0	   = projected_start.normalized();
+		const vec3f_t axis1	   = vec3f_t::cross(arc_normal, axis0).normalized();
+		const f32	  step	   = angle_radians / static_cast<f32>(segments);
+		vec3f_t		  previous = center + axis0 * radius;
+
+		for (u32 i = 1; i <= segments; ++i)
+		{
+			const f32	  angle = step * static_cast<f32>(i);
+			const vec3f_t point = center + (axis0 * math::cos(angle) + axis1 * math::sin(angle)) * radius;
+
+			draw_line(previous, point, color, thickness_px, depth);
+			previous = point;
+		}
+	}
+
 	void world_debug_draw_t::draw_circle(const vec3f_t& center, f32 radius, const vec3f_t& normal, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
 	{
-		SFG_ASSERT(radius > 0.0f && segments >= 3 && !normal.is_zero());
+		if (normal.is_zero())
+			return;
+
+		SFG_ASSERT(radius > 0.0f && segments >= 3);
 		const vec3f_t direction = normal.normalized();
 		const vec3f_t reference = math::abs(vec3f_t::dot(direction, vec3f_t::up)) > 0.99f ? vec3f_t::right : vec3f_t::up;
 		const vec3f_t axis0		= vec3f_t::cross(reference, direction).normalized();
@@ -279,7 +340,10 @@ namespace sfg
 
 	void world_debug_draw_t::draw_capsule(const vec3f_t& center, f32 radius, f32 half_height, const vec3f_t& direction, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
 	{
-		SFG_ASSERT(radius > 0.0f && half_height >= 0.0f && segments >= 4 && !direction.is_zero());
+		if (direction.is_zero())
+			return;
+
+		SFG_ASSERT(radius > 0.0f && half_height >= 0.0f && segments >= 4);
 		const vec3f_t normal	= direction.normalized();
 		const vec3f_t reference = math::abs(vec3f_t::dot(normal, vec3f_t::up)) > 0.99f ? vec3f_t::right : vec3f_t::up;
 		const vec3f_t axis0		= vec3f_t::cross(reference, normal).normalized();
@@ -319,7 +383,10 @@ namespace sfg
 
 	void world_debug_draw_t::draw_cylinder(const vec3f_t& center, f32 radius, f32 half_height, const vec3f_t& direction, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
 	{
-		SFG_ASSERT(radius > 0.0f && half_height > 0.0f && segments >= 3 && !direction.is_zero());
+		if (direction.is_zero())
+			return;
+
+		SFG_ASSERT(radius > 0.0f && half_height > 0.0f && segments >= 3);
 		const vec3f_t normal	= direction.normalized();
 		const vec3f_t reference = math::abs(vec3f_t::dot(normal, vec3f_t::up)) > 0.99f ? vec3f_t::right : vec3f_t::up;
 		const vec3f_t axis0		= vec3f_t::cross(reference, normal).normalized();
@@ -335,6 +402,87 @@ namespace sfg
 		draw_line(top - axis1 * radius, bottom - axis1 * radius, color, thickness_px, depth);
 	}
 
+	void world_debug_draw_t::draw_cone(const vec3f_t& origin, const vec3f_t& direction, f32 length, f32 half_angle_radians, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
+	{
+		if (direction.is_zero())
+			return;
+
+		SFG_ASSERT(length > 0.0f && half_angle_radians >= 0.0f && half_angle_radians <= MATH_PI && segments >= 3);
+
+		const vec3f_t forward	  = direction.normalized();
+		const vec3f_t reference	  = math::abs(vec3f_t::dot(forward, vec3f_t::up)) > 0.99f ? vec3f_t::right : vec3f_t::up;
+		const vec3f_t axis0		  = vec3f_t::cross(reference, forward).normalized();
+		const vec3f_t axis1		  = vec3f_t::cross(forward, axis0).normalized();
+		const f32	  axial		  = math::cos(half_angle_radians) * length;
+		const f32	  radial	  = math::sin(half_angle_radians) * length;
+		const vec3f_t ring_center = origin + forward * axial;
+
+		if (math::abs(radial) <= MATH_EPS)
+		{
+			draw_line(origin, ring_center, color, thickness_px, depth);
+			return;
+		}
+
+		const f32 step	   = MATH_PI * 2.0f / static_cast<f32>(segments);
+		vec3f_t	  previous = ring_center + axis0 * radial;
+
+		for (u32 i = 1; i <= segments; ++i)
+		{
+			const f32	  angle = step * static_cast<f32>(i);
+			const vec3f_t point = ring_center + (axis0 * math::cos(angle) + axis1 * math::sin(angle)) * radial;
+
+			draw_line(previous, point, color, thickness_px, depth);
+			previous = point;
+		}
+
+		draw_line(origin, ring_center + axis0 * radial, color, thickness_px, depth);
+		draw_line(origin, ring_center - axis0 * radial, color, thickness_px, depth);
+		draw_line(origin, ring_center + axis1 * radial, color, thickness_px, depth);
+		draw_line(origin, ring_center - axis1 * radial, color, thickness_px, depth);
+	}
+
+	void world_debug_draw_t::draw_cone(const vec3f_t& origin, const vec3f_t& direction, const vec3f_t& up, f32 length, const vec2f_t& half_angles_radians, const color_t& color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
+	{
+		if (direction.is_zero() || up.is_zero())
+			return;
+
+		SFG_ASSERT(length > 0.0f && half_angles_radians.x >= 0.0f && half_angles_radians.y >= 0.0f && segments >= 4);
+
+		const vec3f_t forward = direction.normalized();
+		const vec3f_t right	  = vec3f_t::cross(up, forward).normalized();
+		SFG_ASSERT(!right.is_zero());
+
+		const vec3f_t cone_up	= vec3f_t::cross(forward, right).normalized();
+		const f32	  angle_x	= math::min(half_angles_radians.x, MATH_PI * 0.499f);
+		const f32	  angle_y	= math::min(half_angles_radians.y, MATH_PI * 0.499f);
+		const f32	  tangent_x = math::tan(angle_x);
+		const f32	  tangent_y = math::tan(angle_y);
+
+		if (tangent_x <= MATH_EPS && tangent_y <= MATH_EPS)
+		{
+			draw_line(origin, origin + forward * length, color, thickness_px, depth);
+			return;
+		}
+
+		const f32 step	   = MATH_PI * 2.0f / static_cast<f32>(segments);
+		vec3f_t	  previous = (forward + right * tangent_x).normalized() * length + origin;
+
+		for (u32 i = 1; i <= segments; ++i)
+		{
+			const f32	  angle = step * static_cast<f32>(i);
+			const vec3f_t ray	= (forward + right * (tangent_x * math::cos(angle)) + cone_up * (tangent_y * math::sin(angle))).normalized();
+			const vec3f_t point = origin + ray * length;
+
+			draw_line(previous, point, color, thickness_px, depth);
+			previous = point;
+		}
+
+		draw_line(origin, origin + (forward + right * tangent_x).normalized() * length, color, thickness_px, depth);
+		draw_line(origin, origin + (forward - right * tangent_x).normalized() * length, color, thickness_px, depth);
+		draw_line(origin, origin + (forward + cone_up * tangent_y).normalized() * length, color, thickness_px, depth);
+		draw_line(origin, origin + (forward - cone_up * tangent_y).normalized() * length, color, thickness_px, depth);
+	}
+
 	void world_debug_draw_t::draw_frustum(const vec3f_t& origin, const vec3f_t& direction, f32 fov_degrees, f32 aspect_ratio, f32 near_distance, f32 far_distance, const color_t& color, f32 thickness_px, debug_draw_depth_e depth)
 	{
 		const vec3f_t forward	= direction.normalized();
@@ -344,7 +492,10 @@ namespace sfg
 
 	void world_debug_draw_t::draw_frustum(const vec3f_t& origin, const vec3f_t& direction, const vec3f_t& up, f32 fov_degrees, f32 aspect_ratio, f32 near_distance, f32 far_distance, const color_t& color, f32 thickness_px, debug_draw_depth_e depth)
 	{
-		SFG_ASSERT(!direction.is_zero() && !up.is_zero() && fov_degrees > 0.0f && aspect_ratio > 0.0f && near_distance >= 0.0f && far_distance > near_distance);
+		if (direction.is_zero() || up.is_zero())
+			return;
+
+		SFG_ASSERT(fov_degrees > 0.0f && aspect_ratio > 0.0f && near_distance >= 0.0f && far_distance > near_distance);
 		const vec3f_t forward	 = direction.normalized();
 		const vec3f_t right		 = vec3f_t::cross(up, forward).normalized();
 		const vec3f_t frustum_up = vec3f_t::cross(forward, right).normalized();
