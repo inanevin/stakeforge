@@ -91,7 +91,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const world_init_config_t& init_config, editor_world_handle_t handle, bool edits_disabled);
+		void init(const world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type);
 		void uninit();
 
 		// -----------------------------------------------------------------------------

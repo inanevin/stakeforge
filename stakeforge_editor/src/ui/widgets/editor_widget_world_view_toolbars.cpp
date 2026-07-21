@@ -48,7 +48,8 @@ namespace sfg
 
 	void editor_widget_world_view_toolbars_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
-		_ui							= &ui;
+		_ui = &ui;
+
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -129,7 +130,7 @@ namespace sfg
 		global_frame_in.flow			 = ui::flow_e::row;
 		global_frame_in.child_spacing	 = 0.0f;
 
-		editor_misc_widgets_t::add_spacer(ui, _top_left_row, {theme.item_height, theme.item_height});
+		_global_spacer = editor_misc_widgets_t::add_spacer(ui, _top_left_row, {theme.item_height, theme.item_height});
 
 		_controls_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(_controls_frame, "world_view_toolbar_buttons_frame");
@@ -220,7 +221,7 @@ namespace sfg
 		_snapping_button.init(ui, _controls_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _snapping_button);
 
-		editor_misc_widgets_t::add_spacer(ui, _top_left_row, {theme.item_height, theme.item_height});
+		_controls_spacer = editor_misc_widgets_t::add_spacer(ui, _top_left_row, {theme.item_height, theme.item_height});
 
 		_view_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(_view_frame, "world_view_toolbar_view_frame");
@@ -254,7 +255,7 @@ namespace sfg
 		_bounding_boxes_button.init(ui, _view_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _bounding_boxes_button);
 
-		editor_misc_widgets_t::add_spacer(ui, _top_left_row, {theme.item_height, theme.item_height});
+		_view_spacer = editor_misc_widgets_t::add_spacer(ui, _top_left_row, {theme.item_height, theme.item_height});
 
 		_physics_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(_physics_frame, "world_view_toolbar_physics_frame");
@@ -292,34 +293,55 @@ namespace sfg
 	{
 		if (_settings_popup.is_initialized())
 			editor_popup_controller_t::find(*_ui)->close_popup(false);
+
 		_shoot_rays_button.uninit();
 		_physics_debug_button.uninit();
 		_bounding_boxes_button.uninit();
 		_grid_button.uninit();
 		_snapping_button.uninit();
 		_locality_button.uninit();
+
 		for (editor_icon_button_t& button : _transform_buttons)
 			button.uninit();
+
 		_settings_button.uninit();
+
 		_ui->deallocate_widget(_root);
 
-		_ui				= nullptr;
-		_edit_world		= {};
-		_root			= NULL_WIDGET;
-		_left_column	= NULL_WIDGET;
-		_right_column	= NULL_WIDGET;
-		_top_left_row	= NULL_WIDGET;
-		_top_right_row	= NULL_WIDGET;
-		_global_frame	= NULL_WIDGET;
-		_controls_frame = NULL_WIDGET;
-		_view_frame		= NULL_WIDGET;
-		_physics_frame	= NULL_WIDGET;
+		_ui				 = nullptr;
+		_edit_world		 = {};
+		_root			 = NULL_WIDGET;
+		_left_column	 = NULL_WIDGET;
+		_right_column	 = NULL_WIDGET;
+		_top_left_row	 = NULL_WIDGET;
+		_top_right_row	 = NULL_WIDGET;
+		_global_frame	 = NULL_WIDGET;
+		_controls_frame	 = NULL_WIDGET;
+		_view_frame		 = NULL_WIDGET;
+		_physics_frame	 = NULL_WIDGET;
+		_global_spacer	 = NULL_WIDGET;
+		_controls_spacer = NULL_WIDGET;
+		_view_spacer	 = NULL_WIDGET;
+		_edit_type		 = editor_world_edit_type_e::full_control;
 	}
 
-	void editor_widget_world_view_toolbars_t::set_edit_world(editor_world_handle_t world)
+	void editor_widget_world_view_toolbars_t::set_edit_world(editor_world_handle_t world, editor_world_edit_type_e edit_type)
 	{
 		_edit_world = world;
-		if (!_edit_world.is_null())
+		_edit_type	= edit_type;
+
+		const bool full_control = _edit_type == editor_world_edit_type_e::full_control;
+
+		ui::layout_tree_t& tree = _ui->get_tree();
+		tree.set_visible(_root, _edit_type != editor_world_edit_type_e::view_only);
+		tree.set_visible(_global_frame, full_control);
+		tree.set_visible(_controls_frame, full_control);
+		tree.set_visible(_physics_frame, full_control);
+		tree.set_visible(_global_spacer, full_control);
+		tree.set_visible(_controls_spacer, full_control);
+		tree.set_visible(_view_spacer, full_control);
+
+		if (!_edit_world.is_null() && _edit_type != editor_world_edit_type_e::view_only)
 			refresh();
 	}
 
@@ -346,12 +368,18 @@ namespace sfg
 	void editor_widget_world_view_toolbars_t::refresh()
 	{
 		const editor_world_edit_context_t& context = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
-		for (size_t i = 0; i < 3; ++i)
-			_transform_buttons[i].set_toggled(_transform_button_data[i].type == context.get_transform_control_type());
-		_locality_button.set_toggled(context.get_transform_locality() == editor_transform_locality_e::world);
-		_snapping_button.set_toggled(context.get_transform_snapping() == editor_transform_snapping_e::default_);
+
 		_grid_button.set_toggled(context.is_grid_enabled());
 		_bounding_boxes_button.set_toggled(context.is_bounding_boxes_enabled());
+
+		if (_edit_type != editor_world_edit_type_e::full_control)
+			return;
+
+		for (size_t i = 0; i < 3; ++i)
+			_transform_buttons[i].set_toggled(_transform_button_data[i].type == context.get_transform_control_type());
+
+		_locality_button.set_toggled(context.get_transform_locality() == editor_transform_locality_e::world);
+		_snapping_button.set_toggled(context.get_transform_snapping() == editor_transform_snapping_e::default_);
 		_physics_debug_button.set_toggled(context.is_physics_debug_enabled());
 		_shoot_rays_button.set_toggled(context.is_shoot_rays_enabled());
 	}

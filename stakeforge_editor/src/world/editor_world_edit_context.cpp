@@ -42,15 +42,16 @@ namespace sfg
 #define EDITOR_WORLD_EDIT_CONTEXT_MAX_FOLDERS			  1024
 #define EDITOR_WORLD_EDIT_CONTEXT_MAX_SELECTION_LISTENERS 64
 
-	void editor_world_edit_context_t::init(bool edits_disabled)
+	void editor_world_edit_context_t::init(editor_world_edit_type_e edit_type)
 	{
 		_folders.init(EDITOR_WORLD_EDIT_CONTEXT_MAX_FOLDERS);
 		_selection_listeners.init(EDITOR_WORLD_EDIT_CONTEXT_MAX_SELECTION_LISTENERS);
 		_entity_metadata.reserve(EDITOR_WORLD_EDIT_CONTEXT_INITIAL_ENTITY_CAPACITY);
 		_outliner_items.reserve(EDITOR_WORLD_EDIT_CONTEXT_INITIAL_ENTITY_CAPACITY);
 		_selected_entities.reserve(EDITOR_WORLD_EDIT_CONTEXT_INITIAL_ENTITY_CAPACITY);
+
 		_selection_generation = 0;
-		_edits_disabled		  = edits_disabled;
+		_edit_type			  = edit_type;
 	}
 
 	void editor_world_edit_context_t::uninit()
@@ -60,22 +61,26 @@ namespace sfg
 		_selected_entities.clear();
 		_selection_listeners.uninit();
 		_folders.uninit();
-		_world					= {};
-		_entity_anchor			= NULL_ENTITY_ID;
-		_next_guid				= 1;
-		_selection_generation	= 0;
+
+		_world				  = {};
+		_entity_anchor		  = NULL_ENTITY_ID;
+		_next_guid			  = 1;
+		_selection_generation = 0;
+
 		_world_view_settings	= {};
 		_transform_control_type = editor_transform_control_type_e::move;
 		_transform_locality		= editor_transform_locality_e::local;
 		_transform_snapping		= editor_transform_snapping_e::none;
 		_world_view				= editor_world_view_e::final;
 		_play_mode				= editor_play_mode_e::none;
+
 		_grid_enabled			= false;
 		_bounding_boxes_enabled = false;
 		_physics_debug_enabled	= false;
 		_shoot_rays_enabled		= false;
 		_do_step				= false;
-		_edits_disabled			= false;
+
+		_edit_type = editor_world_edit_type_e::full_control;
 	}
 
 	void editor_world_edit_context_t::set_world(editor_world_handle_t world)

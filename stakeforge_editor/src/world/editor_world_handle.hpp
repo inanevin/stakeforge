@@ -36,4 +36,11 @@ namespace sfg
 	};
 
 	using editor_world_handle_t = pool_handle_t<u32, editor_world_handle_tag_t>;
+
+	enum class editor_world_edit_type_e : u8
+	{
+		view_only,
+		view_with_debug,
+		full_control,
+	};
 }

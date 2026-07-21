@@ -65,6 +65,9 @@ namespace sfg
 	{
 		_world_config = {
 			.render_resolution		 = vec2u16_t(EDITOR_THUMBNAIL_RENDER_SIZE, EDITOR_THUMBNAIL_RENDER_SIZE),
+			.render_entity_max		 = 10,
+			.render_bone_max		 = 128,
+			.render_bone_reserve	 = 128,
 			.component_table_reserve = 32,
 			.free_list_reserve		 = 16,
 			.used_resource_reserve	 = 32,

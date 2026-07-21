@@ -54,7 +54,7 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void set_edit_world(editor_world_handle_t world);
+		void set_edit_world(editor_world_handle_t world, editor_world_edit_type_e edit_type);
 		void set_transform_control_type(editor_transform_control_type_e type);
 		void toggle_transform_locality();
 		void toggle_transform_snapping();
@@ -99,16 +99,20 @@ namespace sfg
 		editor_icon_button_t			   _physics_debug_button;
 		editor_icon_button_t			   _shoot_rays_button;
 		transform_button_data_t			   _transform_button_data[3];
-		ui::ui_context*					   _ui			   = nullptr;
-		editor_world_handle_t			   _edit_world	   = {};
-		ui::widget_id_t					   _root		   = NULL_WIDGET;
-		ui::widget_id_t					   _left_column	   = NULL_WIDGET;
-		ui::widget_id_t					   _right_column   = NULL_WIDGET;
-		ui::widget_id_t					   _top_left_row   = NULL_WIDGET;
-		ui::widget_id_t					   _top_right_row  = NULL_WIDGET;
-		ui::widget_id_t					   _global_frame   = NULL_WIDGET;
-		ui::widget_id_t					   _controls_frame = NULL_WIDGET;
-		ui::widget_id_t					   _view_frame	   = NULL_WIDGET;
-		ui::widget_id_t					   _physics_frame  = NULL_WIDGET;
+		ui::ui_context*					   _ui				= nullptr;
+		editor_world_handle_t			   _edit_world		= {};
+		ui::widget_id_t					   _root			= NULL_WIDGET;
+		ui::widget_id_t					   _left_column		= NULL_WIDGET;
+		ui::widget_id_t					   _right_column	= NULL_WIDGET;
+		ui::widget_id_t					   _top_left_row	= NULL_WIDGET;
+		ui::widget_id_t					   _top_right_row	= NULL_WIDGET;
+		ui::widget_id_t					   _global_frame	= NULL_WIDGET;
+		ui::widget_id_t					   _controls_frame	= NULL_WIDGET;
+		ui::widget_id_t					   _view_frame		= NULL_WIDGET;
+		ui::widget_id_t					   _physics_frame	= NULL_WIDGET;
+		ui::widget_id_t					   _global_spacer	= NULL_WIDGET;
+		ui::widget_id_t					   _controls_spacer = NULL_WIDGET;
+		ui::widget_id_t					   _view_spacer		= NULL_WIDGET;
+		editor_world_edit_type_e		   _edit_type		= editor_world_edit_type_e::full_control;
 	};
 }

@@ -154,9 +154,10 @@ namespace sfg
 	void editor_widget_world_view_t::set_edit_world(editor_world_handle_t world)
 	{
 		cancel_gizmo_action();
-		_toolbars.set_edit_world(world);
+
 		if (world.is_null())
 		{
+			_toolbars.set_edit_world(world, editor_world_edit_type_e::view_only);
 			end_camera_control();
 			_edit_world = world;
 			clear_world();
@@ -164,13 +165,16 @@ namespace sfg
 		}
 
 		_edit_world = world;
+
+		const editor_world_edit_type_e edit_type = editor_world_controller_t::get().get_editor_world(world)->get_edit_context().get_edit_type();
+
+		_toolbars.set_edit_world(world, edit_type);
+
 		request_world_resize(true);
 		refresh_world_texture();
 
-		ui::layout_tree_t&				   tree			= _ui->get_tree();
-		const editor_world_edit_context_t& edit_context = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
+		ui::layout_tree_t& tree = _ui->get_tree();
 
-		tree.set_visible(_toolbars.get_root(), !edit_context.is_edits_disabled());
 		tree.set_visible(_world_view, true);
 		tree.set_visible(_empty_label, false);
 	}

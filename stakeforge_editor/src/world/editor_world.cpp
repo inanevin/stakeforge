@@ -69,7 +69,7 @@ namespace sfg
 #define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX		   24576
 #define EDITOR_WORLD_LIGHT_MAX					   1024
 
-	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle, bool edits_disabled)
+	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type)
 	{
 		world_init_config_t world_config = init_config;
 		world_config.debug_draw			 = {
@@ -85,7 +85,7 @@ namespace sfg
 		};
 
 		_world.init(world_config);
-		_edit_context.init(edits_disabled);
+		_edit_context.init(edit_type);
 		_edit_context.set_world(handle);
 		_gizmo.init();
 
@@ -261,7 +261,7 @@ namespace sfg
 
 	void editor_world_t::update_gizmo_hover(vec2f_t relative_position)
 	{
-		if (_edit_context.is_edits_disabled() || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
 			return;
 
 		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
@@ -275,7 +275,7 @@ namespace sfg
 
 	bool editor_world_t::begin_gizmo_action(vec2f_t relative_position)
 	{
-		if (_edit_context.is_edits_disabled() || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
 			return false;
 
 		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
@@ -284,7 +284,7 @@ namespace sfg
 
 	void editor_world_t::update_gizmo_action(vec2f_t relative_position)
 	{
-		if (_edit_context.is_edits_disabled() || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
 			return;
 
 		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
@@ -293,7 +293,7 @@ namespace sfg
 
 	void editor_world_t::end_gizmo_action()
 	{
-		if (_edit_context.is_edits_disabled() || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
 			return;
 
 		_gizmo.end_action(_world, _edit_context);
@@ -308,7 +308,7 @@ namespace sfg
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
-		if (_edit_context.is_edits_disabled())
+		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control)
 			return;
 
 		++_next_pick_request_id;
@@ -581,7 +581,7 @@ namespace sfg
 		data.gizmo		= {};
 		data.world_view = _edit_context.get_world_view();
 
-		const bool		  gizmo_enabled = !_edit_context.is_edits_disabled() && _play_mode != editor_play_mode_e::play && _play_mode != editor_play_mode_e::play_paused;
+		const bool		  gizmo_enabled = _edit_context.get_edit_type() == editor_world_edit_type_e::full_control && _play_mode != editor_play_mode_e::play && _play_mode != editor_play_mode_e::play_paused;
 		const entity_id_t anchor		= gizmo_enabled ? _edit_context.get_mutable_entity_anchor(_world) : NULL_ENTITY_ID;
 
 		if (anchor != NULL_ENTITY_ID)

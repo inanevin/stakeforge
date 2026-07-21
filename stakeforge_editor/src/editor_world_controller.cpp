@@ -100,7 +100,7 @@ namespace sfg
 		s_instance = nullptr;
 	}
 
-	editor_world_handle_t editor_world_controller_t::create_world(const world_init_config_t& init_config, bool edits_disabled)
+	editor_world_handle_t editor_world_controller_t::create_world(const world_init_config_t& init_config, editor_world_edit_type_e edit_type)
 	{
 		editor_app_t::get().stop_render();
 
@@ -112,7 +112,7 @@ namespace sfg
 		_worlds.get(handle)				   = new editor_world_t();
 		editor_world_t* const editor_world = _worlds.get(handle);
 
-		editor_world->init(world_config, handle, edits_disabled);
+		editor_world->init(world_config, handle, edit_type);
 
 		return handle;
 	}

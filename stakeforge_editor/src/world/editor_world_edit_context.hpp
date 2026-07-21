@@ -153,7 +153,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(bool edits_disabled);
+		void init(editor_world_edit_type_e edit_type);
 		void uninit();
 		void set_world(editor_world_handle_t world);
 		void clear();
@@ -319,9 +319,9 @@ namespace sfg
 		// queries
 		// -----------------------------------------------------------------------------
 
-		inline bool is_edits_disabled() const
+		inline editor_world_edit_type_e get_edit_type() const
 		{
-			return _edits_disabled;
+			return _edit_type;
 		}
 
 		editor_world_folder_handle_t get_folder_handle(u64 guid) const;
@@ -420,6 +420,6 @@ namespace sfg
 		bool																		  _physics_debug_enabled  = false;
 		bool																		  _shoot_rays_enabled	  = false;
 		bool																		  _do_step				  = false;
-		bool																		  _edits_disabled		  = false;
+		editor_world_edit_type_e													  _edit_type			  = editor_world_edit_type_e::full_control;
 	};
 }
