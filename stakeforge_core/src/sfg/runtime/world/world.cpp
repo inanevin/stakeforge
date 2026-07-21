@@ -79,6 +79,8 @@ namespace sfg
 		_engine_components.prefab_table	   = &get_component_table(type_id_t<component_prefab_reference_t>::value);
 		_system_components.transform_table = &get_component_table(type_id_t<component_system_transform_t>::value);
 
+		_animation_controller.init(*this);
+
 		if (config.physics_enabled)
 		{
 			_physics_world.init(*this, config.physics);
@@ -88,6 +90,8 @@ namespace sfg
 	void world_t::uninit()
 	{
 		SFG_ASSERT(!_is_playing);
+
+		_animation_controller.uninit();
 
 		if (_physics_world.is_init())
 		{

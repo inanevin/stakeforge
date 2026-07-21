@@ -10,6 +10,7 @@
 #include <sfg/runtime/resources/resource_type.hpp>
 #include <sfg/runtime/world/ecs_component_type.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
+#include <sfg/runtime/world/world_animation_controller.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/runtime/physics/physics_world.hpp>
 
@@ -180,14 +181,15 @@ namespace sfg
 		vector_t<u32>					  _text_allocation_free_list;
 		vector_t<entity_id_t>			  _entity_free_list;
 		vector_t<world_resource_t>		  _used_resources;
-		world_debug_draw_t				  _debug_draw		   = {};
-		physics_world_t					  _physics_world	   = {};
-		text_allocator_t				  _text_allocator	   = {};
-		engine_components_t				  _engine_components   = {};
-		system_components_t				  _system_components   = {};
-		entity_id_t						  _entity_head		   = 0;
-		u32								  _play_resource_count = 0;
-		bool							  _is_playing		   = false;
+		world_debug_draw_t				  _debug_draw			= {};
+		physics_world_t					  _physics_world		= {};
+		world_animation_controller_t	  _animation_controller = {};
+		text_allocator_t				  _text_allocator		= {};
+		engine_components_t				  _engine_components	= {};
+		system_components_t				  _system_components	= {};
+		entity_id_t						  _entity_head			= 0;
+		u32								  _play_resource_count	= 0;
+		bool							  _is_playing			= false;
 	};
 
 }
