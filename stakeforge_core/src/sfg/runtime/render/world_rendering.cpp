@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "render_view.hpp"
 #include "render_resources.hpp"
 #include "render_globals.hpp"
+#include "world_gpu_bone.hpp"
 #include "world_gpu_entity.hpp"
 #include "world_gpu_light.hpp"
 #include "world_render_context.hpp"
@@ -110,6 +111,7 @@ namespace sfg
 		const engine_shadow_settings_t& shadows = snapshot.shadows;
 
 		gpu_entity_t* entity_buffer = reinterpret_cast<gpu_entity_t*>(ctx.get_mapped_entity_buffer(frame_index));
+		gpu_bone_t*	  bone_buffer	= reinterpret_cast<gpu_bone_t*>(ctx.get_mapped_bone_buffer(frame_index));
 
 		// prep entity buffer.
 		{
@@ -131,6 +133,14 @@ namespace sfg
 					.forward	   = vec4f_t(forward.x, forward.y, forward.z, 0.0f),
 				};
 			}
+		}
+
+		// prep bone buffer.
+		{
+			SFG_ASSERT(snapshot.bones.size() <= ctx.get_bone_max());
+
+			for (size_t i = 0; i < snapshot.bones.size(); ++i)
+				bone_buffer[i] = snapshot.bones[i].gpu_bone;
 		}
 
 		// main cam view.
