@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/math/mat4x3.hpp>
 
 struct tg3_model;
 struct tg3_primitive;
@@ -35,13 +36,19 @@ struct tg3_skin;
 
 namespace sfg
 {
-	class mat4x3_t;
+	enum class glb_axis_e : u8;
 	class quat_t;
 	struct primitive_skinned_def_t;
 	struct primitive_static_def_t;
 	struct physics_collision_mesh_def_t;
 	struct vec3f_t;
 	struct vec4f_t;
+
+	struct glb_basis_conversion_t
+	{
+		mat4x3_t transform		   = mat4x3_t::identity;
+		mat4x3_t inverse_transform = mat4x3_t::identity;
+	};
 
 	class editor_glb_import_util_t final
 	{
@@ -55,15 +62,17 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		static vec3f_t	convert_vector(const vec3f_t& value);
-		static vec4f_t	convert_tangent(const vec4f_t& value);
-		static quat_t	convert_rotation(const quat_t& value);
-		static mat4x3_t convert_transform(const mat4x3_t& value);
+		static glb_basis_conversion_t make_basis(glb_axis_e up_axis, glb_axis_e forward_axis);
+		static vec3f_t				  convert_vector(const glb_basis_conversion_t& basis, const vec3f_t& value);
+		static vec3f_t				  convert_scale(const glb_basis_conversion_t& basis, const vec3f_t& value);
+		static vec4f_t				  convert_tangent(const glb_basis_conversion_t& basis, const vec4f_t& value);
+		static quat_t				  convert_rotation(const glb_basis_conversion_t& basis, const quat_t& value);
+		static mat4x3_t				  convert_transform(const glb_basis_conversion_t& basis, const mat4x3_t& value);
 
 		static i32	find_attribute(const tg3_primitive& primitive, const char* name);
-		static bool read_inverse_bind_matrix(const tg3_model& model, const tg3_skin& skin, u32 joint_index, mat4x3_t& out_matrix);
-		static bool import_static_primitive(const tg3_model& model, const tg3_primitive& primitive, u32 material_index, primitive_static_def_t& out);
-		static bool import_skinned_primitive(const tg3_model& model, const tg3_primitive& primitive, u32 material_index, primitive_skinned_def_t& out);
-		static bool import_collision_primitive(const tg3_model& model, const tg3_primitive& primitive, physics_collision_mesh_def_t& out);
+		static bool read_inverse_bind_matrix(const tg3_model& model, const tg3_skin& skin, const glb_basis_conversion_t& basis, u32 joint_index, mat4x3_t& out_matrix);
+		static bool import_static_primitive(const tg3_model& model, const tg3_primitive& primitive, const glb_basis_conversion_t& basis, u32 material_index, primitive_static_def_t& out);
+		static bool import_skinned_primitive(const tg3_model& model, const tg3_primitive& primitive, const glb_basis_conversion_t& basis, u32 material_index, primitive_skinned_def_t& out);
+		static bool import_collision_primitive(const tg3_model& model, const tg3_primitive& primitive, const glb_basis_conversion_t& basis, physics_collision_mesh_def_t& out);
 	};
 }

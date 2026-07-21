@@ -359,6 +359,11 @@ namespace sfg
 		static_cast<editor_panel_assets_t*>(user_data)->clear_pending_import();
 	}
 
+	void editor_panel_assets_t::on_cook_options_error_acknowledged(void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->show_pending_import_options();
+	}
+
 	void editor_panel_assets_t::on_import_orm_texture_submitted(void* user_data)
 	{
 		static_cast<editor_panel_assets_t*>(user_data)->submit_import_orm_texture();

@@ -37,10 +37,22 @@ namespace sfg
 	struct editor_asset_t;
 	struct editor_asset_import_context_t;
 
+	enum class glb_axis_e : u8
+	{
+		positive_x,
+		negative_x,
+		positive_y,
+		negative_y,
+		positive_z,
+		negative_z,
+	};
+
 	struct glb_cook_config_t
 	{
 		texture_payload_type_e	   texture_payload_type = texture_payload_type_e::ktx2_uastc;
 		texture_ktx2_compression_e ktx2_compression		= texture_ktx2_compression_e::default_quality;
+		glb_axis_e				   source_up_axis		= glb_axis_e::positive_y;
+		glb_axis_e				   source_forward_axis	= glb_axis_e::positive_z;
 		bool					   import_textures		= true;
 		bool					   import_materials		= true;
 		bool					   import_animations	= true;
@@ -48,6 +60,8 @@ namespace sfg
 		bool					   import_collisions	= true;
 		bool					   combine_meshes		= false;
 		bool					   generate_mipmaps		= false;
+
+		bool is_basis_valid() const;
 	};
 
 	class editor_glb_importer_t final
@@ -61,12 +75,19 @@ namespace sfg
 		static bool import_glb(const char* target_directory, const char* source_full_path, const glb_cook_config_t& cook_config, const editor_asset_import_context_t& context, vector_t<editor_asset_t>& out_assets, vector_t<string_t>& out_asset_paths);
 	};
 
+	SFG_DEFINE_TYPE_ID(glb_axis_e);
 	SFG_DEFINE_TYPE_ID(glb_cook_config_t);
+
+	struct glb_axis_reflection_t
+	{
+		glb_axis_reflection_t();
+	};
 
 	struct glb_cook_config_reflection_t
 	{
 		glb_cook_config_reflection_t();
 	};
 
+	inline glb_axis_reflection_t		g_reflect_glb_axis;
 	inline glb_cook_config_reflection_t g_reflect_glb_cook_config;
 }

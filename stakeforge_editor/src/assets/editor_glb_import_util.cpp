@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "editor_glb_import_util.hpp"
+#include "editor_glb_importer.hpp"
 
 #include <sfg/data/string_view.hpp>
 #include <sfg/data/vector.hpp>
@@ -225,37 +226,99 @@ namespace sfg
 		}
 	}
 
-	vec3f_t editor_glb_import_util_t::convert_vector(const vec3f_t& value)
+	glb_basis_conversion_t editor_glb_import_util_t::make_basis(glb_axis_e up_axis, glb_axis_e forward_axis)
 	{
-		return {-value.x, value.y, -value.z};
-	}
+		vec3f_t source_up	   = vec3f_t::zero;
+		vec3f_t source_forward = vec3f_t::zero;
 
-	vec4f_t editor_glb_import_util_t::convert_tangent(const vec4f_t& value)
-	{
-		return {-value.x, value.y, -value.z, value.w};
-	}
+		switch (up_axis)
+		{
+		case glb_axis_e::positive_x:
+			source_up = {1.0f, 0.0f, 0.0f};
+			break;
+		case glb_axis_e::negative_x:
+			source_up = {-1.0f, 0.0f, 0.0f};
+			break;
+		case glb_axis_e::positive_y:
+			source_up = {0.0f, 1.0f, 0.0f};
+			break;
+		case glb_axis_e::negative_y:
+			source_up = {0.0f, -1.0f, 0.0f};
+			break;
+		case glb_axis_e::positive_z:
+			source_up = {0.0f, 0.0f, 1.0f};
+			break;
+		case glb_axis_e::negative_z:
+			source_up = {0.0f, 0.0f, -1.0f};
+			break;
+		}
 
-	quat_t editor_glb_import_util_t::convert_rotation(const quat_t& value)
-	{
-		return {-value.x, value.y, -value.z, value.w};
-	}
+		switch (forward_axis)
+		{
+		case glb_axis_e::positive_x:
+			source_forward = {1.0f, 0.0f, 0.0f};
+			break;
+		case glb_axis_e::negative_x:
+			source_forward = {-1.0f, 0.0f, 0.0f};
+			break;
+		case glb_axis_e::positive_y:
+			source_forward = {0.0f, 1.0f, 0.0f};
+			break;
+		case glb_axis_e::negative_y:
+			source_forward = {0.0f, -1.0f, 0.0f};
+			break;
+		case glb_axis_e::positive_z:
+			source_forward = {0.0f, 0.0f, 1.0f};
+			break;
+		case glb_axis_e::negative_z:
+			source_forward = {0.0f, 0.0f, -1.0f};
+			break;
+		}
 
-	mat4x3_t editor_glb_import_util_t::convert_transform(const mat4x3_t& value)
-	{
+		const vec3f_t source_right = vec3f_t::cross(source_forward, source_up);
+
+		const mat4x3_t source_basis(source_right.x, source_right.y, source_right.z, source_up.x, source_up.y, source_up.z, source_forward.x, source_forward.y, source_forward.z, 0.0f, 0.0f, 0.0f);
+		const mat4x3_t target_basis(vec3f_t::right.x, vec3f_t::right.y, vec3f_t::right.z, vec3f_t::up.x, vec3f_t::up.y, vec3f_t::up.z, vec3f_t::forward.x, vec3f_t::forward.y, vec3f_t::forward.z, 0.0f, 0.0f, 0.0f);
+		const mat4x3_t transform = target_basis * source_basis.inverse();
+
 		return {
-			value[0],
-			-value[1],
-			value[2],
-			-value[3],
-			value[4],
-			-value[5],
-			value[6],
-			-value[7],
-			value[8],
-			-value[9],
-			value[10],
-			-value[11],
+			.transform		   = transform,
+			.inverse_transform = transform.inverse(),
 		};
+	}
+
+	vec3f_t editor_glb_import_util_t::convert_vector(const glb_basis_conversion_t& basis, const vec3f_t& value)
+	{
+		return basis.transform * value;
+	}
+
+	vec3f_t editor_glb_import_util_t::convert_scale(const glb_basis_conversion_t& basis, const vec3f_t& value)
+	{
+		return mat3x3_t::abs(basis.transform.to_linear3x3()) * value;
+	}
+
+	vec4f_t editor_glb_import_util_t::convert_tangent(const glb_basis_conversion_t& basis, const vec4f_t& value)
+	{
+		const vec3f_t tangent = convert_vector(basis, {value.x, value.y, value.z});
+
+		return {tangent.x, tangent.y, tangent.z, value.w};
+	}
+
+	quat_t editor_glb_import_util_t::convert_rotation(const glb_basis_conversion_t& basis, const quat_t& value)
+	{
+		const mat4x3_t converted = convert_transform(basis, mat4x3_t::rotation(value));
+		vec3f_t		   position	 = vec3f_t::zero;
+		quat_t		   rotation	 = quat_t::identity;
+		vec3f_t		   scale	 = vec3f_t::one;
+
+		converted.decompose(position, rotation, scale);
+
+		return rotation;
+	}
+
+	mat4x3_t editor_glb_import_util_t::convert_transform(const glb_basis_conversion_t& basis, const mat4x3_t& value)
+	{
+		return basis.transform * value * basis.inverse_transform;
 	}
 
 	i32 editor_glb_import_util_t::find_attribute(const tg3_primitive& primitive, const char* name)
@@ -269,9 +332,10 @@ namespace sfg
 		return -1;
 	}
 
-	bool editor_glb_import_util_t::read_inverse_bind_matrix(const tg3_model& model, const tg3_skin& skin, u32 joint_index, mat4x3_t& out_matrix)
+	bool editor_glb_import_util_t::read_inverse_bind_matrix(const tg3_model& model, const tg3_skin& skin, const glb_basis_conversion_t& basis, u32 joint_index, mat4x3_t& out_matrix)
 	{
 		out_matrix = mat4x3_t::identity;
+
 		if (skin.inverse_bind_matrices < 0)
 			return true;
 
@@ -282,6 +346,7 @@ namespace sfg
 		}
 
 		const tg3_accessor& accessor = model.accessors[skin.inverse_bind_matrices];
+
 		if (accessor.component_type != TG3_COMPONENT_TYPE_FLOAT || accessor.type != TG3_TYPE_MAT4 || accessor.count <= joint_index || accessor.buffer_view < 0 || accessor.sparse.is_sparse != 0)
 		{
 			SFG_ERR("glb inverse bind matrix accessor has unsupported layout");
@@ -295,6 +360,7 @@ namespace sfg
 		}
 
 		const tg3_buffer_view& buffer_view = model.buffer_views[accessor.buffer_view];
+
 		if (buffer_view.buffer < 0 || static_cast<u32>(buffer_view.buffer) >= model.buffers_count)
 		{
 			SFG_ERR("glb inverse bind matrix buffer is out of range");
@@ -302,6 +368,7 @@ namespace sfg
 		}
 
 		const tg3_buffer& buffer = model.buffers[buffer_view.buffer];
+
 		if (buffer.data.data == nullptr)
 		{
 			SFG_ERR("glb inverse bind matrix buffer has no data");
@@ -309,6 +376,7 @@ namespace sfg
 		}
 
 		const i32 stride = tg3_accessor_byte_stride(&accessor, &buffer_view);
+
 		if (stride < static_cast<i32>(sizeof(f32) * 16))
 		{
 			SFG_ERR("glb inverse bind matrix stride is too small");
@@ -316,6 +384,7 @@ namespace sfg
 		}
 
 		const u64 matrix_offset = buffer_view.byte_offset + accessor.byte_offset + static_cast<u64>(stride) * joint_index;
+
 		if (matrix_offset > buffer.data.count || sizeof(f32) * 16 > buffer.data.count - matrix_offset)
 		{
 			SFG_ERR("glb inverse bind matrix data is out of range");
@@ -324,11 +393,12 @@ namespace sfg
 
 		f32 matrix[16] = {};
 		SFG_MEMCPY(matrix, buffer.data.data + matrix_offset, sizeof(matrix));
-		out_matrix = convert_transform(mat4x3_t(matrix[0], matrix[1], matrix[2], matrix[4], matrix[5], matrix[6], matrix[8], matrix[9], matrix[10], matrix[12], matrix[13], matrix[14]));
+
+		out_matrix = convert_transform(basis, mat4x3_t(matrix[0], matrix[1], matrix[2], matrix[4], matrix[5], matrix[6], matrix[8], matrix[9], matrix[10], matrix[12], matrix[13], matrix[14]));
 		return true;
 	}
 
-	bool editor_glb_import_util_t::import_static_primitive(const tg3_model& model, const tg3_primitive& primitive, u32 material_index, primitive_static_def_t& out)
+	bool editor_glb_import_util_t::import_static_primitive(const tg3_model& model, const tg3_primitive& primitive, const glb_basis_conversion_t& basis, u32 material_index, primitive_static_def_t& out)
 	{
 		if (primitive.mode != TG3_MODE_TRIANGLES)
 		{
@@ -337,37 +407,42 @@ namespace sfg
 		}
 
 		const u32 vertex_count = get_primitive_vertex_count(model, primitive);
+
 		if (vertex_count == 0)
 		{
 			SFG_ERR("glb primitive has no vertices");
 			return false;
 		}
 
-		vector_t<f32> positions;
+		vector_t<f32> positions = {};
+
 		if (!read_float_attribute(model, find_attribute(primitive, "POSITION"), TG3_TYPE_VEC3, vertex_count, positions))
 		{
 			SFG_ERR("failed to read GLB POSITION attribute");
 			return false;
 		}
 
-		vector_t<f32> normals;
+		vector_t<f32> normals		  = {};
 		const i32	  normal_accessor = find_attribute(primitive, "NORMAL");
+
 		if (normal_accessor >= 0 && !read_float_attribute(model, normal_accessor, TG3_TYPE_VEC3, vertex_count, normals))
 		{
 			SFG_ERR("failed to read GLB NORMAL attribute");
 			return false;
 		}
 
-		vector_t<f32> tangents;
+		vector_t<f32> tangents		   = {};
 		const i32	  tangent_accessor = find_attribute(primitive, "TANGENT");
+
 		if (tangent_accessor >= 0 && !read_float_attribute(model, tangent_accessor, TG3_TYPE_VEC4, vertex_count, tangents))
 		{
 			SFG_ERR("failed to read GLB TANGENT attribute");
 			return false;
 		}
 
-		vector_t<f32> uvs;
+		vector_t<f32> uvs		  = {};
 		const i32	  uv_accessor = find_attribute(primitive, "TEXCOORD_0");
+
 		if (uv_accessor >= 0 && !read_float_attribute(model, uv_accessor, TG3_TYPE_VEC2, vertex_count, uvs))
 		{
 			SFG_ERR("failed to read GLB TEXCOORD_0 attribute");
@@ -376,14 +451,18 @@ namespace sfg
 
 		out.vertices.resize(vertex_count);
 		out.material_index = material_index;
+
 		for (u32 i = 0; i < vertex_count; ++i)
 		{
 			vertex_static_t& vertex = out.vertices[i];
-			vertex.pos				= convert_vector({positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]});
+			vertex.pos				= convert_vector(basis, {positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]});
+
 			if (!normals.empty())
-				vertex.normal = convert_vector({normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2]});
+				vertex.normal = convert_vector(basis, {normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2]});
+
 			if (!tangents.empty())
-				vertex.tangent = convert_tangent({tangents[i * 4], tangents[i * 4 + 1], tangents[i * 4 + 2], tangents[i * 4 + 3]});
+				vertex.tangent = convert_tangent(basis, {tangents[i * 4], tangents[i * 4 + 1], tangents[i * 4 + 2], tangents[i * 4 + 3]});
+
 			if (!uvs.empty())
 				vertex.uv = {uvs[i * 2], uvs[i * 2 + 1]};
 		}
@@ -393,6 +472,7 @@ namespace sfg
 			SFG_ERR("failed to read GLB static primitive indices");
 			return false;
 		}
+
 		if (tangent_accessor < 0 && normal_accessor >= 0 && uv_accessor >= 0 && !mesh_util_t::generate_tangents(out))
 		{
 			SFG_ERR("failed to generate GLB static primitive tangents");
@@ -402,7 +482,7 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_glb_import_util_t::import_collision_primitive(const tg3_model& model, const tg3_primitive& primitive, physics_collision_mesh_def_t& out)
+	bool editor_glb_import_util_t::import_collision_primitive(const tg3_model& model, const tg3_primitive& primitive, const glb_basis_conversion_t& basis, physics_collision_mesh_def_t& out)
 	{
 		if (primitive.mode != TG3_MODE_TRIANGLES)
 		{
@@ -411,20 +491,23 @@ namespace sfg
 		}
 
 		const u32 vertex_count = get_primitive_vertex_count(model, primitive);
+
 		if (vertex_count == 0 || out.vertices.size() > UINT32_MAX - vertex_count)
 		{
 			SFG_ERR("glb collision primitive has invalid vertex count");
 			return false;
 		}
 
-		vector_t<f32> positions;
+		vector_t<f32> positions = {};
+
 		if (!read_float_attribute(model, find_attribute(primitive, "POSITION"), TG3_TYPE_VEC3, vertex_count, positions))
 		{
 			SFG_ERR("failed to read GLB collision POSITION attribute");
 			return false;
 		}
 
-		vector_t<primitive_index> indices;
+		vector_t<primitive_index> indices = {};
+
 		if (!read_indices(model, primitive.indices, vertex_count, indices) || indices.empty() || indices.size() % 3 != 0)
 		{
 			SFG_ERR("failed to read GLB collision primitive indices");
@@ -433,17 +516,19 @@ namespace sfg
 
 		const primitive_index base_vertex = static_cast<primitive_index>(out.vertices.size());
 		out.vertices.reserve(out.vertices.size() + vertex_count);
+
 		for (u32 i = 0; i < vertex_count; ++i)
-			out.vertices.push_back(convert_vector({positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]}));
+			out.vertices.push_back(convert_vector(basis, {positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]}));
 
 		out.indices.reserve(out.indices.size() + indices.size());
+
 		for (primitive_index index : indices)
 			out.indices.push_back(base_vertex + index);
 
 		return true;
 	}
 
-	bool editor_glb_import_util_t::import_skinned_primitive(const tg3_model& model, const tg3_primitive& primitive, u32 material_index, primitive_skinned_def_t& out)
+	bool editor_glb_import_util_t::import_skinned_primitive(const tg3_model& model, const tg3_primitive& primitive, const glb_basis_conversion_t& basis, u32 material_index, primitive_skinned_def_t& out)
 	{
 		if (primitive.mode != TG3_MODE_TRIANGLES)
 		{
@@ -452,53 +537,60 @@ namespace sfg
 		}
 
 		const u32 vertex_count = get_primitive_vertex_count(model, primitive);
+
 		if (vertex_count == 0)
 		{
 			SFG_ERR("glb primitive has no vertices");
 			return false;
 		}
 
-		vector_t<f32> positions;
+		vector_t<f32> positions = {};
+
 		if (!read_float_attribute(model, find_attribute(primitive, "POSITION"), TG3_TYPE_VEC3, vertex_count, positions))
 		{
 			SFG_ERR("failed to read GLB POSITION attribute");
 			return false;
 		}
 
-		vector_t<f32> normals;
+		vector_t<f32> normals		  = {};
 		const i32	  normal_accessor = find_attribute(primitive, "NORMAL");
+
 		if (normal_accessor >= 0 && !read_float_attribute(model, normal_accessor, TG3_TYPE_VEC3, vertex_count, normals))
 		{
 			SFG_ERR("failed to read GLB NORMAL attribute");
 			return false;
 		}
 
-		vector_t<f32> tangents;
+		vector_t<f32> tangents		   = {};
 		const i32	  tangent_accessor = find_attribute(primitive, "TANGENT");
+
 		if (tangent_accessor >= 0 && !read_float_attribute(model, tangent_accessor, TG3_TYPE_VEC4, vertex_count, tangents))
 		{
 			SFG_ERR("failed to read GLB TANGENT attribute");
 			return false;
 		}
 
-		vector_t<f32> uvs;
+		vector_t<f32> uvs		  = {};
 		const i32	  uv_accessor = find_attribute(primitive, "TEXCOORD_0");
+
 		if (uv_accessor >= 0 && !read_float_attribute(model, uv_accessor, TG3_TYPE_VEC2, vertex_count, uvs))
 		{
 			SFG_ERR("failed to read GLB TEXCOORD_0 attribute");
 			return false;
 		}
 
-		vector_t<f32> weights;
+		vector_t<f32> weights		   = {};
 		const i32	  weights_accessor = find_attribute(primitive, "WEIGHTS_0");
+
 		if (weights_accessor >= 0 && !read_float_attribute(model, weights_accessor, TG3_TYPE_VEC4, vertex_count, weights))
 		{
 			SFG_ERR("failed to read GLB WEIGHTS_0 attribute");
 			return false;
 		}
 
-		vector_t<vec4u_t> joints;
+		vector_t<vec4u_t> joints		  = {};
 		const i32		  joints_accessor = find_attribute(primitive, "JOINTS_0");
+
 		if (joints_accessor >= 0 && !read_joint_attribute(model, joints_accessor, vertex_count, joints))
 		{
 			SFG_ERR("failed to read GLB JOINTS_0 attribute");
@@ -507,18 +599,24 @@ namespace sfg
 
 		out.vertices.resize(vertex_count);
 		out.material_index = material_index;
+
 		for (u32 i = 0; i < vertex_count; ++i)
 		{
 			vertex_skinned_t& vertex = out.vertices[i];
-			vertex.pos				 = convert_vector({positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]});
+			vertex.pos				 = convert_vector(basis, {positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2]});
+
 			if (!normals.empty())
-				vertex.normal = convert_vector({normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2]});
+				vertex.normal = convert_vector(basis, {normals[i * 3], normals[i * 3 + 1], normals[i * 3 + 2]});
+
 			if (!tangents.empty())
-				vertex.tangent = convert_tangent({tangents[i * 4], tangents[i * 4 + 1], tangents[i * 4 + 2], tangents[i * 4 + 3]});
+				vertex.tangent = convert_tangent(basis, {tangents[i * 4], tangents[i * 4 + 1], tangents[i * 4 + 2], tangents[i * 4 + 3]});
+
 			if (!uvs.empty())
 				vertex.uv = {uvs[i * 2], uvs[i * 2 + 1]};
+
 			if (!weights.empty())
 				vertex.bone_weights = {weights[i * 4], weights[i * 4 + 1], weights[i * 4 + 2], weights[i * 4 + 3]};
+
 			if (!joints.empty())
 				vertex.bone_indices = joints[i];
 		}
@@ -528,6 +626,7 @@ namespace sfg
 			SFG_ERR("failed to read GLB skinned primitive indices");
 			return false;
 		}
+
 		if (tangent_accessor < 0 && normal_accessor >= 0 && uv_accessor >= 0 && !mesh_util_t::generate_tangents(out))
 		{
 			SFG_ERR("failed to generate GLB skinned primitive tangents");

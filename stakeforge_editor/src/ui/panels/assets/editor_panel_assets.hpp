@@ -135,6 +135,7 @@ namespace sfg
 		void open_action_menu(const vec2f_t& pos, bool allow_folder_actions);
 		void open_asset_action_menu(const vec2f_t& pos);
 		void import_assets(const vector_t<string_t>& paths);
+		void show_pending_import_options();
 		void request_import_orm_texture();
 		void show_import_orm_texture_modal();
 		void submit_import_orm_texture();
@@ -245,6 +246,7 @@ namespace sfg
 		static void on_asset_rename_popup_closed(const char* value, void* user_data);
 		static void on_cook_options_imported(void* user_data);
 		static void on_cook_options_cancelled(void* user_data);
+		static void on_cook_options_error_acknowledged(void* user_data);
 		static void on_import_orm_texture_submitted(void* user_data);
 		static void on_import_orm_texture_cancelled(void* user_data);
 		static void on_import_orm_texture_error_acknowledged(void* user_data);

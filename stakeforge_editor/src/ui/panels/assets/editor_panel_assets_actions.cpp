@@ -58,11 +58,18 @@ namespace sfg
 	{
 		clear_pending_import();
 		collect_pending_import_options(paths);
+
 		if (_pending_import_options.empty())
 			return;
 
-		frame_vector_t<editor_modal_cook_option_desc_t> modal_options;
+		show_pending_import_options();
+	}
+
+	void editor_panel_assets_t::show_pending_import_options()
+	{
+		frame_vector_t<editor_modal_cook_option_desc_t> modal_options = {};
 		modal_options.reserve(_pending_import_options.size());
+
 		for (editor_asset_import_options_t& option : _pending_import_options)
 		{
 			switch (option.type)
@@ -83,6 +90,7 @@ namespace sfg
 				break;
 			}
 		}
+
 		_cook_options_modal.set_options(modal_options.data(), static_cast<u16>(modal_options.size()));
 
 		const editor_modal_button_desc_t buttons[] = {
@@ -225,7 +233,22 @@ namespace sfg
 
 	void editor_panel_assets_t::submit_pending_import()
 	{
+		const auto invalid_model_options =
+			std::find_if(_pending_import_options.begin(), _pending_import_options.end(), [](const editor_asset_import_options_t& option) { return option.type == editor_asset_import_type_e::model && !option.glb_cook_config.is_basis_valid(); });
+
+		if (invalid_model_options != _pending_import_options.end())
+		{
+			const editor_modal_button_desc_t buttons[] = {
+				{.text = "Back", .callback = on_cook_options_error_acknowledged, .user_data = this},
+			};
+
+			editor_modal_controller_t::find(*_ui)->request_modal(
+				"Invalid Model Axes", "Source Up Axis and Source Forward Axis must use different X, Y, or Z axes.", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::error);
+			return;
+		}
+
 		editor_import_settings_t& import_settings = editor_settings_t::get().import;
+
 		for (const editor_asset_import_options_t& option : _pending_import_options)
 		{
 			switch (option.type)
@@ -246,15 +269,18 @@ namespace sfg
 				break;
 			}
 		}
+
 		editor_settings_t::get().save();
 
-		frame_vector_t<string_t> import_paths;
+		frame_vector_t<string_t> import_paths = {};
 		import_paths.reserve(_pending_import_paths.size());
+
 		for (const string_t& path : _pending_import_paths)
 			import_paths.push_back(path);
 
-		frame_vector_t<editor_asset_import_options_t> import_options;
+		frame_vector_t<editor_asset_import_options_t> import_options = {};
 		import_options.reserve(_pending_import_options.size());
+
 		for (const editor_asset_import_options_t& option : _pending_import_options)
 			import_options.push_back(option);
 
