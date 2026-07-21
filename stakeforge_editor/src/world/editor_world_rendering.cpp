@@ -158,6 +158,7 @@ namespace sfg
 
 				for (u32 i = 0; i < mat.texture_count; ++i)
 					mat_constants[mat_constant_count++] = render_resources.get_sampler_gpu_index(mat.material_samplers[i]);
+
 				backend.cmd_bind_constants(cmd, {.data = mat_constants, .offset = constant_mat0, .count = mat_constant_count, .param_index = 0});
 			}
 
@@ -303,6 +304,7 @@ namespace sfg
 
 				for (u32 i = 0; i < mat.texture_count; ++i)
 					mat_constants[mat_constant_count++] = render_resources.get_sampler_gpu_index(mat.material_samplers[i]);
+
 				backend.cmd_bind_constants(cmd, {.data = mat_constants, .offset = constant_mat0, .count = mat_constant_count, .param_index = 0});
 			}
 
@@ -394,9 +396,10 @@ namespace sfg
 			const vec3f_t xy_offset = rotation * vec3f_t(editor_world_gizmo_t::PLANE_CENTER, editor_world_gizmo_t::PLANE_CENTER, 0.0f);
 			const vec3f_t yz_offset = rotation * vec3f_t(0.0f, editor_world_gizmo_t::PLANE_CENTER, -editor_world_gizmo_t::PLANE_CENTER);
 			const vec3f_t zx_offset = rotation * vec3f_t(editor_world_gizmo_t::PLANE_CENTER, 0.0f, -editor_world_gizmo_t::PLANE_CENTER);
-			gizmo_data.offsets[4]	= vec4f_t(xy_offset.x, xy_offset.y, xy_offset.z, 0.0f);
-			gizmo_data.offsets[5]	= vec4f_t(yz_offset.x, yz_offset.y, yz_offset.z, 0.0f);
-			gizmo_data.offsets[6]	= vec4f_t(zx_offset.x, zx_offset.y, zx_offset.z, 0.0f);
+
+			gizmo_data.offsets[4] = vec4f_t(xy_offset.x, xy_offset.y, xy_offset.z, 0.0f);
+			gizmo_data.offsets[5] = vec4f_t(yz_offset.x, yz_offset.y, yz_offset.z, 0.0f);
+			gizmo_data.offsets[6] = vec4f_t(zx_offset.x, zx_offset.y, zx_offset.z, 0.0f);
 
 			gizmo_data.colors[0]   = theme.color_accent0;
 			gizmo_data.colors[1]   = theme.color_accent_green;
@@ -413,6 +416,7 @@ namespace sfg
 
 			if (highlight_axis != editor_gizmo_axis_e::invalid)
 				gizmo_data.colors[static_cast<u32>(highlight_axis)] = theme.color_accent2;
+
 			gizmo_data.params = vec4f_t(editor_world_gizmo_t::PIXEL_SIZE, static_cast<f32>(size.y), math::tan(snapshot.main_view.fov_degrees * DEG_2_RAD * 0.5f), editor_world_gizmo_t::MIN_WORLD_SIZE);
 			SFG_MEMCPY(ctx.get_mapped_gizmo_data(frame_index), &gizmo_data, sizeof(editor_world_gizmo_gpu_data_t));
 		}
@@ -610,6 +614,7 @@ namespace sfg
 
 				backend.cmd_bind_vertex_buffers(cmd, {.buffer = central_vertex_buffer, .slot = 0, .vertex_size = central_mesh.vertex_stride, .offset = 0});
 				backend.cmd_bind_index_buffers(cmd, {.buffer = central_index_buffer, .offset = 0, .index_size = central_mesh.index_stride});
+
 				const u32 obj_constants[2] = {static_cast<u32>(editor_gizmo_axis_e::central), EDITOR_WORLD_GIZMO_SCALE_FULL};
 				backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
 				backend.cmd_draw_indexed_instanced(cmd,
