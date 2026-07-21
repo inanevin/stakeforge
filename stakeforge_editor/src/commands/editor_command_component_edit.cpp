@@ -166,6 +166,9 @@ namespace sfg
 
 			world_t&		   world	= editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
 			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			for (u32 i = 0; i < payload.count; i++)
+				world.mark_entity_teleported(entities[i]);
+
 			scan_resources(world, {.data = entities, .size = payload.count});
 			return true;
 		}
@@ -178,6 +181,10 @@ namespace sfg
 
 			world_t&		   world	= editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
 			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+
+			for (u32 i = 0; i < payload.count; i++)
+				world.mark_entity_teleported(entities[i]);
+
 			scan_resources(world, {.data = entities, .size = payload.count});
 			return true;
 		}
