@@ -168,6 +168,11 @@ namespace sfg
 			return _play_mode;
 		}
 
+		inline const quat_t& get_view_rotation() const
+		{
+			return _view_rotation;
+		}
+
 	private:
 		void publish_snapshot();
 		void consume_entity_pick_result();
@@ -194,6 +199,7 @@ namespace sfg
 		atomic_t<u8>				_snapshot_mailbox							 = {};
 		u32							_last_render_pick_request_id				 = 0;
 		u32							_next_pick_request_id						 = 0;
+		quat_t						_view_rotation								 = quat_t::identity;
 		vec2u16_t					_render_resolution							 = vec2u16_t::zero;
 		bool						_object_id_readback_valid[BACK_BUFFER_COUNT] = {};
 		u8							_producer_slot								 = 0;

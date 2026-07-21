@@ -99,6 +99,7 @@ namespace sfg
 		_pending_pick_request		 = {};
 		_last_render_pick_request_id = 0;
 		_next_pick_request_id		 = 0;
+		_view_rotation				 = quat_t::identity;
 		_camera_type				 = editor_world_camera_type_e::fly;
 		_play_mode					 = editor_play_mode_e::none;
 		_play_snapshot.shrink(0);
@@ -171,6 +172,7 @@ namespace sfg
 		_pending_pick_request		 = {};
 		_last_render_pick_request_id = 0;
 		_next_pick_request_id		 = 0;
+		_view_rotation				 = quat_t::identity;
 		_tick_callback				 = nullptr;
 		_tick_callback_user_data	 = nullptr;
 
@@ -578,6 +580,7 @@ namespace sfg
 	{
 		world_render_snapshot_t& snapshot = _snapshot_slots[_producer_slot];
 		world_snapshot_producer_t::produce(_world, snapshot, engine_runtime_t::get().get_project_settings());
+		_view_rotation = snapshot.main_view.rot;
 
 		editor_world_snapshot_data_t&	data			= *static_cast<editor_world_snapshot_data_t*>(snapshot.user_data);
 		const span_t<const entity_id_t> selected		= _edit_context.get_selected_entities();

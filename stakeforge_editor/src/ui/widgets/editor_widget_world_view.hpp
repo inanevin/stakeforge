@@ -43,7 +43,9 @@ namespace sfg
 		enum class mouse_button_e : u8;
 		struct input_router_t;
 		struct key_event_t;
+		class paint_layer_t;
 		class ui_context;
+		class vg_canvas_t;
 	}
 
 	class editor_widget_world_view_t final
@@ -86,6 +88,7 @@ namespace sfg
 		static void on_world_view_focus_lost(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
 		static void on_world_view_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_world_view_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
+		static void draw_world_axes(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 
 	private:
@@ -95,6 +98,7 @@ namespace sfg
 		vec2u16_t							_last_resize_request	  = vec2u16_t::zero;
 		ui::widget_id_t						_root					  = NULL_WIDGET;
 		ui::widget_id_t						_world_view				  = NULL_WIDGET;
+		ui::widget_id_t						_world_axes				  = NULL_WIDGET;
 		ui::widget_id_t						_empty_label			  = NULL_WIDGET;
 		window_runtime_t*					_camera_runtime			  = nullptr;
 		u8									_resize_ticks			  = 0;

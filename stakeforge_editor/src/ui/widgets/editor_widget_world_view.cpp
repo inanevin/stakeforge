@@ -42,13 +42,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/rectf.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
+#include <sfg/runtime/resources/font.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/ui/vg/vg_canvas.hpp>
 
 namespace sfg
 {
 #define EDITOR_WORLD_VIEW_CAMERA_BASE_MOVE_SPEED  12.0f
 #define EDITOR_WORLD_VIEW_CAMERA_BOOST_MULTIPLIER 8.0f
+#define EDITOR_WORLD_VIEW_AXIS_WIDGET_SCALE		  5.0f
+#define EDITOR_WORLD_VIEW_AXIS_LENGTH_SCALE		  1.25f
+#define EDITOR_WORLD_VIEW_AXIS_LABEL_OFFSET		  6.0f
+#define EDITOR_WORLD_VIEW_AXIS_LINE_THICKNESS	  2.0f
 
 	namespace
 	{
@@ -95,6 +102,23 @@ namespace sfg
 		paint.set_rect(_world_view, rect, state);
 		ui.set_pre_layout_tick(_world_view, on_world_view_tick, this);
 
+		_world_axes = ui.allocate_widget();
+		ui.set_widget_debug_name(_world_axes, "world_view_axes");
+		tree.attach(_world_view, _world_axes);
+		tree.draw_order(_world_axes) = tree.draw_order_const(_world_view) + 1;
+
+		ui::layout_in_t& axes_in = tree.in(_world_axes);
+		axes_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
+		axes_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		axes_in.pos_value		 = {0.0f, 1.0f};
+		axes_in.anchor_y		 = ui::anchor_e::end;
+		axes_in.size_mode_x		 = ui::axis_mode_e::fixed;
+		axes_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		axes_in.size_value		 = {theme.item_height * EDITOR_WORLD_VIEW_AXIS_WIDGET_SCALE, theme.item_height * EDITOR_WORLD_VIEW_AXIS_WIDGET_SCALE};
+		axes_in.flags |= ui::wf_overlay;
+
+		paint.set_custom(_world_axes, draw_world_axes, this);
+
 		ui::listener_bundle_t listener = {};
 		listener.on_press			   = on_world_view_press;
 		listener.on_release			   = on_world_view_release;
@@ -134,14 +158,19 @@ namespace sfg
 	{
 		cancel_gizmo_action();
 		end_camera_control();
+
 		editor_payload_controller_t::get().unregister_listener(this);
 		_toolbars.uninit();
+
 		_ui->deallocate_widget(_empty_label);
+		_ui->deallocate_widget(_world_axes);
 		_ui->deallocate_widget(_world_view);
+
 		_edit_world				  = {};
 		_last_resize_request	  = vec2u16_t::zero;
 		_camera_runtime			  = nullptr;
 		_empty_label			  = NULL_WIDGET;
+		_world_axes				  = NULL_WIDGET;
 		_world_view				  = NULL_WIDGET;
 		_root					  = NULL_WIDGET;
 		_resize_ticks			  = 0;
@@ -523,6 +552,75 @@ namespace sfg
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
 		if (!widget._edit_world.is_null())
 			widget.pass_camera_input({.wheel_delta = delta});
+	}
+
+	void editor_widget_world_view_t::draw_world_axes(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
+	{
+		const editor_widget_world_view_t& widget	 = *static_cast<editor_widget_world_view_t*>(user_data);
+		const ui::layout_out_t&			  out		 = widget._ui->get_tree().out(id);
+		const editor_theme_t&			  theme		 = editor_theme_t::get();
+		const f32						  scale		 = ui::get_valid_scale(widget._ui->get_ui_scale());
+		const vec2f_t					  center	 = {out.pos.x + out.size.x * 0.5f, out.pos.y + out.size.y * 0.5f};
+		const f32						  length	 = theme.item_height * EDITOR_WORLD_VIEW_AXIS_LENGTH_SCALE * scale;
+		const u32						  draw_order = widget._ui->get_tree().draw_order_const(id);
+
+		const quat_t  view_inverse = editor_world_controller_t::get().get_editor_world(widget._edit_world)->get_view_rotation().inverse();
+		const vec3f_t world_axes[] = {vec3f_t::right, vec3f_t::up, vec3f_t::forward};
+		const vec4f_t colors[]	   = {theme.color_accent0, theme.color_accent_green, theme.color_accent1};
+		const char	  labels[]	   = {'X', 'Y', 'Z'};
+
+		ui::ui_render_state_t line_state = {};
+		line_state.pipeline				 = paint.get_pipelines().default_pipeline;
+
+		const ui::glyph_raster_mode_e raster_mode = editor_text_rasterization_t::get_rasterization_type();
+		ui::ui_render_state_t		  text_state  = {};
+
+		switch (raster_mode)
+		{
+		case ui::glyph_raster_mode_e::lcd:
+			text_state.pipeline = paint.get_pipelines().text_pipeline;
+			break;
+		case ui::glyph_raster_mode_e::grayscale:
+			text_state.pipeline = paint.get_pipelines().grayscale_text_pipeline;
+			break;
+		case ui::glyph_raster_mode_e::sdf:
+			text_state.pipeline = paint.get_pipelines().sdf_pipeline;
+			break;
+		}
+
+		const font_runtime_t* font = resource_manager_t::get().find_runtime<font_runtime_t>(theme.font_title_bold);
+
+		for (u32 i = 0; i < 3; ++i)
+		{
+			const vec3f_t			  camera_axis = view_inverse * world_axes[i];
+			const vec2f_t			  direction	  = {camera_axis.x, -camera_axis.y};
+			const vec2f_t			  endpoint	  = center + direction * length;
+			const ui::vg_line_paint_t line_paint  = {
+				.color		  = colors[i],
+				.thickness	  = EDITOR_WORLD_VIEW_AXIS_LINE_THICKNESS * scale,
+				.aa_thickness = theme.aa_thickness * scale,
+			};
+
+			canvas.add_line(center, endpoint, line_paint, line_state, draw_order);
+
+			if (font == nullptr || font->face == nullptr)
+				continue;
+
+			const ui::vg_text_paint_t text_paint = {
+				.font		 = font,
+				.color		 = colors[i],
+				.size_px	 = theme.text_default_px_size * scale,
+				.raster_px	 = ui::get_text_raster_px(theme.text_default_px_size * scale, widget._ui->get_dpi_scale()),
+				.raster_mode = raster_mode,
+			};
+			const vec2f_t text_size = ui::vg_canvas_t::measure_text(labels + i, 1, text_paint);
+			vec2f_t		  label_pos = endpoint - text_size * 0.5f;
+
+			if (!direction.is_zero())
+				label_pos += direction.normalized() * (EDITOR_WORLD_VIEW_AXIS_LABEL_OFFSET * scale);
+
+			canvas.add_text(labels + i, 1, label_pos, text_paint, text_state, draw_order);
+		}
 	}
 
 	bool editor_widget_world_view_t::on_payload_drop(const editor_payload_t& payload, void* user_data)
