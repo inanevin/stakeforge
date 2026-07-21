@@ -44,8 +44,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 
-#include <iterator>
-#include <algorithm>
 namespace sfg
 {
 	namespace
@@ -148,14 +146,16 @@ namespace sfg
 		snapshot.post_process = {};
 		world.get_debug_draw().write_snapshot(snapshot.debug_draw);
 
-		const ecs_component_table_t& transform_table	 = world.get_component_table(type_id_t<component_system_transform_t>::value);
-		const ecs_component_table_t& alive_table		 = world.get_component_table(type_id_t<component_alive_t>::value);
-		const ecs_component_table_t& camera_table		 = world.get_component_table(type_id_t<component_camera_t>::value);
-		const ecs_component_table_t& post_process_table	 = world.get_component_table(type_id_t<component_post_process_t>::value);
-		const ecs_component_table_t& skybox_table		 = world.get_component_table(type_id_t<component_skybox_t>::value);
-		const ecs_component_table_t& light_table		 = world.get_component_table(type_id_t<component_light_t>::value);
-		const ecs_component_table_t& disabled_table		 = world.get_component_table(type_id_t<component_disabled_t>::value);
-		const ecs_component_table_t& mesh_renderer_table = world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
+		const ecs_component_table_t& transform_table					= world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& alive_table						= world.get_component_table(type_id_t<component_alive_t>::value);
+		const ecs_component_table_t& camera_table						= world.get_component_table(type_id_t<component_camera_t>::value);
+		const ecs_component_table_t& post_process_table					= world.get_component_table(type_id_t<component_post_process_t>::value);
+		const ecs_component_table_t& skybox_table						= world.get_component_table(type_id_t<component_skybox_t>::value);
+		const ecs_component_table_t& light_table						= world.get_component_table(type_id_t<component_light_t>::value);
+		const ecs_component_table_t& disabled_table						= world.get_component_table(type_id_t<component_disabled_t>::value);
+		const ecs_component_table_t& mesh_renderer_table				= world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
+		const ecs_component_table_t& skinned_mesh_renderer_table		= world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
+		const ecs_component_table_t& system_skinned_mesh_renderer_table = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
 
 		const resource_manager_t&  rm	  = resource_manager_t::get();
 		const chunk_allocator32_t& rm_aux = rm.get_memory();
@@ -347,6 +347,76 @@ namespace sfg
 					draw.material_index = draw_material_index;
 					draw.entity_index	= entity_index;
 					draw.skinning_index = UINT32_MAX;
+					draw.index_count	= prim.index_count;
+					draw.vertex_count	= UINT32_MAX;
+					draw.start_index	= prim.start_index;
+					draw.start_vertex	= prim.start_vertex;
+					draw.start_instance = 0;
+					draw.vertex_stride	= mesh_runtime->vertex_stride;
+					draw.index_stride	= mesh_runtime->index_stride;
+				}
+			}
+		}
+
+		// extract skinned mesh renderers
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				transform_table.ref(),
+				alive_table.ref(),
+				skinned_mesh_renderer_table.ref(),
+				system_skinned_mesh_renderer_table.ref(),
+				!disabled_table.ref(),
+			};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				const component_system_transform_t&				transform					 = ecs_helpers_t::row_get<component_system_transform_t>(row, 0);
+				const component_skinned_mesh_renderer_t&		skinned_mesh_renderer		 = ecs_helpers_t::row_get<component_skinned_mesh_renderer_t>(row, 2);
+				const component_system_skinned_mesh_renderer_t& system_skinned_mesh_renderer = ecs_helpers_t::row_get<component_system_skinned_mesh_renderer_t>(row, 3);
+
+				if (skinned_mesh_renderer.mesh == NULL_RESOURCE_HANDLE || skinned_mesh_renderer.skeleton == NULL_RESOURCE_HANDLE)
+					continue;
+
+				if (system_skinned_mesh_renderer.skin_instance_index == UINT32_MAX)
+					continue;
+
+				const resource_entry_t* entry = rm.find_entry(skinned_mesh_renderer.mesh);
+				if (entry == nullptr)
+					continue;
+
+				const mesh_runtime_t*			mesh_runtime   = rm_aux.get<mesh_runtime_t>(entry->runtime);
+				const mesh_internals_t*			mesh_internals = rm_aux.get<mesh_internals_t>(entry->internals);
+				const mesh_primitive_runtime_t* primitives	   = rm_aux.get<mesh_primitive_runtime_t>(mesh_runtime->primitives);
+
+				const render_resource_handle_t vertex_buffer = mesh_internals->vertex_buffer;
+				const render_resource_handle_t index_buffer	 = mesh_internals->index_buffer;
+				const u32					   idx			 = static_cast<u32>(snapshot.bones.size());
+
+				for (u32 i = 0; i < mesh_runtime->primitive_count; i++)
+				{
+					const mesh_primitive_runtime_t& prim = primitives[i];
+
+					if (skinned_mesh_renderer.materials.size() <= prim.material_index)
+						continue;
+
+					const resource_handle_t mat_handle = skinned_mesh_renderer.materials[prim.material_index];
+
+					const u32 draw_material_index = push_material_from_guid(material_guid_to_index, snapshot, mat_handle);
+					if (draw_material_index == UINT32_MAX)
+						continue;
+
+					const u32 entity_index = push_render_object(entity_to_render_id, snapshot, row.id, transform_table);
+
+					world_draw_t& draw	= snapshot.draws.emplace_back();
+					draw.aabb			= mesh_internals->local_bounds;
+					draw.sort_key		= mat_handle;
+					draw.vertex_buffer	= vertex_buffer;
+					draw.index_buffer	= index_buffer;
+					draw.pass_mask		= snapshot.materials[draw_material_index].pass_mask;
+					draw.draw_flags		= 0;
+					draw.material_index = draw_material_index;
+					draw.entity_index	= entity_index;
+					draw.skinning_index = idx;
 					draw.index_count	= prim.index_count;
 					draw.vertex_count	= UINT32_MAX;
 					draw.start_index	= prim.start_index;
