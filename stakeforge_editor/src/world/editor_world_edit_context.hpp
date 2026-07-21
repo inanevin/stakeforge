@@ -77,6 +77,27 @@ namespace sfg
 		default_,
 	};
 
+	enum class editor_world_view_e : u8
+	{
+		invalid,
+		final,
+		gbuffer_albedo,
+		gbuffer_orm,
+		gbuffer_normal,
+		gbuffer_emissive,
+		lighting,
+		post_process,
+	};
+
+	enum class editor_play_mode_e : u8
+	{
+		none,
+		play,
+		play_physics,
+		play_paused,
+		play_physics_paused,
+	};
+
 	struct editor_selection_listener_t
 	{
 		editor_selection_listener_fn fn		   = nullptr;
@@ -132,7 +153,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init();
+		void init(bool edits_disabled);
 		void uninit();
 		void set_world(editor_world_handle_t world);
 		void clear();
@@ -248,6 +269,40 @@ namespace sfg
 			return _world_view_settings;
 		}
 
+		inline void set_world_view(editor_world_view_e view)
+		{
+			_world_view = view;
+		}
+
+		inline editor_world_view_e get_world_view() const
+		{
+			return _world_view;
+		}
+
+		// -----------------------------------------------------------------------------
+		// play
+		// -----------------------------------------------------------------------------
+
+		inline void set_play_mode(editor_play_mode_e mode)
+		{
+			_play_mode = mode;
+		}
+
+		inline editor_play_mode_e get_play_mode() const
+		{
+			return _play_mode;
+		}
+
+		inline void set_do_step(bool do_step)
+		{
+			_do_step = do_step;
+		}
+
+		inline bool is_do_step() const
+		{
+			return _do_step;
+		}
+
 		// -----------------------------------------------------------------------------
 		// selection
 		// -----------------------------------------------------------------------------
@@ -263,6 +318,11 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// queries
 		// -----------------------------------------------------------------------------
+
+		inline bool is_edits_disabled() const
+		{
+			return _edits_disabled;
+		}
 
 		editor_world_folder_handle_t get_folder_handle(u64 guid) const;
 		editor_world_folder_handle_t get_entity_folder(entity_guid_t guid) const;
@@ -352,10 +412,14 @@ namespace sfg
 		editor_transform_control_type_e												  _transform_control_type = editor_transform_control_type_e::move;
 		editor_transform_locality_e													  _transform_locality	  = editor_transform_locality_e::local;
 		editor_transform_snapping_e													  _transform_snapping	  = editor_transform_snapping_e::none;
+		editor_world_view_e															  _world_view			  = editor_world_view_e::final;
+		editor_play_mode_e															  _play_mode			  = editor_play_mode_e::none;
 		bool																		  _grid_enabled			  = false;
 		bool																		  _bounding_boxes_enabled = false;
 		editor_world_view_settings_t												  _world_view_settings	  = {};
 		bool																		  _physics_debug_enabled  = false;
 		bool																		  _shoot_rays_enabled	  = false;
+		bool																		  _do_step				  = false;
+		bool																		  _edits_disabled		  = false;
 	};
 }

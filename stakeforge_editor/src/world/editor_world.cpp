@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_camera_fly.hpp"
 #include "world/editor_world_camera_orbit.hpp"
 #include "world/editor_world_rendering.hpp"
+#include "world/editor_world_util.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/data/char_util.hpp>
 #include <sfg/data/frame_vector.hpp>
@@ -35,13 +36,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/aabb.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/mat4x3.hpp>
-#include <sfg/math/math.hpp>
 #include <sfg/runtime/physics/physics_world.hpp>
 #include <sfg/runtime/render/render_view.hpp>
 #include <sfg/runtime/render/world_render_view.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
-#include <sfg/runtime/resources/physics_collision_mesh.hpp>
-#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
@@ -71,7 +69,7 @@ namespace sfg
 #define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX		   24576
 #define EDITOR_WORLD_LIGHT_MAX					   1024
 
-	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle)
+	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle, bool edits_disabled)
 	{
 		world_init_config_t world_config = init_config;
 		world_config.debug_draw			 = {
@@ -87,7 +85,7 @@ namespace sfg
 		};
 
 		_world.init(world_config);
-		_edit_context.init();
+		_edit_context.init(edits_disabled);
 		_edit_context.set_world(handle);
 		_gizmo.init();
 
@@ -258,7 +256,7 @@ namespace sfg
 
 	void editor_world_t::update_gizmo_hover(vec2f_t relative_position)
 	{
-		if (_play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+		if (_edit_context.is_edits_disabled() || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
 			return;
 
 		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
@@ -272,7 +270,7 @@ namespace sfg
 
 	bool editor_world_t::begin_gizmo_action(vec2f_t relative_position)
 	{
-		if (_play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+		if (_edit_context.is_edits_disabled() || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
 			return false;
 
 		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
@@ -281,7 +279,7 @@ namespace sfg
 
 	void editor_world_t::update_gizmo_action(vec2f_t relative_position)
 	{
-		if (_play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+		if (_edit_context.is_edits_disabled() || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
 			return;
 
 		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
@@ -290,7 +288,7 @@ namespace sfg
 
 	void editor_world_t::end_gizmo_action()
 	{
-		if (_play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+		if (_edit_context.is_edits_disabled() || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
 			return;
 
 		_gizmo.end_action(_world, _edit_context);
@@ -304,6 +302,9 @@ namespace sfg
 	void editor_world_t::request_entity_pick(vec2f_t relative_position, bool incremental_selection)
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+
+		if (_edit_context.is_edits_disabled())
+			return;
 
 		++_next_pick_request_id;
 
@@ -356,9 +357,8 @@ namespace sfg
 		if (!physics.raycast_closest({.origin = ray.origin, .direction = ray.direction, .distance = camera.far_plane}, hit))
 			return;
 
-		const component_rigid_body_t* rigid_body = ecs_helpers_t::table_find_as_const<component_rigid_body_t>(_world.get_component_table(type_id_t<component_rigid_body_t>::value), hit.entity);
-
-		if (rigid_body == nullptr || rigid_body->motion_type != physics_motion_type_e::dynamic_body)
+		const component_physical_t* body = ecs_helpers_t::table_find_as_const<component_physical_t>(_world.get_component_table(type_id_t<component_physical_t>::value), hit.entity);
+		if (body == nullptr || body->motion_type != physics_motion_type_e::dynamic_body)
 			return;
 
 		physics.add_body_force(hit.entity, ray.direction * _edit_context.get_world_view_settings().physics_ray_force);
@@ -521,126 +521,8 @@ namespace sfg
 
 		const span_t<const entity_id_t> selected = _edit_context.get_selected_entities();
 
-		if (selected.size != 0)
-		{
-			world_debug_draw_t&			 debug_draw		 = _world.get_debug_draw();
-			const editor_theme_t&		 theme			 = editor_theme_t::get();
-			const vec4f_t&				 accent_warn	 = theme.color_accent_warn;
-			const vec4f_t&				 accent1		 = theme.color_accent1;
-			const color_t				 debug_color	 = {accent_warn.x, accent_warn.y, accent_warn.z, accent_warn.w};
-			const color_t				 collider_color	 = {accent1.x, accent1.y, accent1.z, accent1.w};
-			const ecs_component_table_t& transform_table = _world.get_component_table(type_id_t<component_system_transform_t>::value);
-			const ecs_component_table_t& camera_table	 = _world.get_component_table(type_id_t<component_camera_t>::value);
-			const ecs_component_table_t& light_table	 = _world.get_component_table(type_id_t<component_light_t>::value);
-			const ecs_component_table_t& collider_table	 = _world.get_component_table(type_id_t<component_collider_t>::value);
-
-			for (size_t i = 0; i < selected.size; ++i)
-			{
-				const entity_id_t					entity	  = selected.data[i];
-				const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
-				const component_camera_t*			camera	  = ecs_helpers_t::table_find_as_const<component_camera_t>(camera_table, entity);
-
-				if (camera != nullptr)
-				{
-					SFG_ASSERT(_render_resolution.x != 0 && _render_resolution.y != 0);
-					debug_draw.draw_frustum(transform.abs_pos,
-											transform.abs_rot.get_forward(),
-											transform.abs_rot.get_up(),
-											camera->fov_degrees,
-											static_cast<f32>(_render_resolution.x) / static_cast<f32>(_render_resolution.y),
-											camera->near_plane,
-											camera->far_plane,
-											debug_color,
-											2.0f,
-											debug_draw_depth_e::always_visible);
-				}
-
-				const component_collider_t* collider = ecs_helpers_t::table_find_as_const<component_collider_t>(collider_table, entity);
-
-				if (collider != nullptr)
-				{
-					const vec3f_t abs_scale		= vec3f_t::abs(transform.abs_scale);
-					const quat_t  body_rotation = transform.abs_rot * collider->local_rotation;
-					const vec3f_t body_position = transform.abs_pos + transform.abs_rot * (collider->local_position * transform.abs_scale);
-
-					switch (collider->shape)
-					{
-					case physics_shape_type_e::box: {
-						const mat4x3_t collider_transform = mat4x3_t::transform(body_position, body_rotation, vec3f_t::one);
-						debug_draw.draw_box(collider_transform, vec3f_t::max(collider->half_extent * abs_scale, {0.001f, 0.001f, 0.001f}), collider_color, 2.0f, debug_draw_depth_e::always_visible);
-						break;
-					}
-					case physics_shape_type_e::sphere: {
-						const f32 radius = math::max(collider->radius * math::max(abs_scale.x, math::max(abs_scale.y, abs_scale.z)), 0.001f);
-						debug_draw.draw_sphere(body_position, radius, collider_color, 2.0f, debug_draw_depth_e::always_visible);
-						break;
-					}
-					case physics_shape_type_e::capsule: {
-						const f32 radius	  = math::max(collider->radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
-						const f32 half_height = math::max(collider->half_height * abs_scale.y, 0.001f);
-						debug_draw.draw_capsule(body_position, radius, half_height, body_rotation.get_up(), collider_color, 2.0f, debug_draw_depth_e::always_visible);
-						break;
-					}
-					case physics_shape_type_e::cylinder: {
-						const f32 radius	  = math::max(collider->radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
-						const f32 half_height = math::max(collider->half_height * abs_scale.y, 0.001f);
-						debug_draw.draw_cylinder(body_position, radius, half_height, body_rotation.get_up(), collider_color, 2.0f, debug_draw_depth_e::always_visible);
-						break;
-					}
-					case physics_shape_type_e::mesh: {
-						const physics_collision_mesh_runtime_t* collision_mesh = resource_manager_t::get().find_runtime<physics_collision_mesh_runtime_t>(collider->collision_mesh);
-
-						if (collision_mesh == nullptr)
-							break;
-
-						const chunk_allocator_t& memory	  = resource_manager_t::get().get_memory();
-						const vec3f_t*			 vertices = memory.get<vec3f_t>(collision_mesh->vertices);
-						const primitive_index*	 indices  = memory.get<primitive_index>(collision_mesh->indices);
-
-						for (u32 i = 0; i < collision_mesh->index_count; i += 3)
-						{
-							const vec3f_t p0 = body_position + body_rotation * (vertices[indices[i]] * transform.abs_scale);
-							const vec3f_t p1 = body_position + body_rotation * (vertices[indices[i + 1]] * transform.abs_scale);
-							const vec3f_t p2 = body_position + body_rotation * (vertices[indices[i + 2]] * transform.abs_scale);
-							debug_draw.draw_triangle(p0, p1, p2, collider_color);
-						}
-
-						break;
-					}
-					}
-				}
-
-				const component_light_t* light = ecs_helpers_t::table_find_as_const<component_light_t>(light_table, entity);
-
-				if (light == nullptr)
-					continue;
-
-				const vec3f_t forward = transform.abs_rot.get_forward();
-
-				switch (light->type)
-				{
-				case light_type_e::directional: {
-					const vec3f_t offset = transform.abs_rot.get_right() * 0.25f;
-					debug_draw.draw_line(transform.abs_pos - offset, transform.abs_pos - offset + forward * 2.0f, debug_color, 2.0f, debug_draw_depth_e::always_visible);
-					debug_draw.draw_line(transform.abs_pos, transform.abs_pos + forward * 2.0f, debug_color, 2.0f, debug_draw_depth_e::always_visible);
-					debug_draw.draw_line(transform.abs_pos + offset, transform.abs_pos + offset + forward * 2.0f, debug_color, 2.0f, debug_draw_depth_e::always_visible);
-					break;
-				}
-				case light_type_e::point:
-					if (light->range > 0.0f)
-						debug_draw.draw_sphere(transform.abs_pos, light->range, debug_color, 2.0f, debug_draw_depth_e::always_visible);
-					break;
-				case light_type_e::spot:
-					if (light->range > 0.0f && light->outer_cone_degrees > 0.0f)
-						debug_draw.draw_frustum(transform.abs_pos, forward, transform.abs_rot.get_up(), light->outer_cone_degrees * 2.0f, 1.0f, 0.0f, light->range, debug_color, 2.0f, debug_draw_depth_e::always_visible);
-					break;
-				case light_type_e::area:
-					if (light->area_size.x > 0.0f && light->area_size.y > 0.0f)
-						debug_draw.draw_rectangle(transform.abs_pos, transform.abs_rot.get_right(), transform.abs_rot.get_up(), light->area_size, debug_color, 2.0f, debug_draw_depth_e::always_visible);
-					break;
-				}
-			}
-		}
+		if (_play_mode == editor_play_mode_e::none && selected.size != 0)
+			editor_world_util_t::draw_selection_gizmos(_world, selected, _render_resolution);
 
 		if (_edit_context.is_bounding_boxes_enabled() && _latest_snapshot_slot != UINT8_MAX)
 		{
@@ -691,9 +573,10 @@ namespace sfg
 			.scale	 = _edit_context.get_world_view_settings().grid_scale,
 			.enabled = _edit_context.is_grid_enabled(),
 		};
-		data.gizmo = {};
+		data.gizmo		= {};
+		data.world_view = _edit_context.get_world_view();
 
-		const bool		  gizmo_enabled = _play_mode != editor_play_mode_e::play && _play_mode != editor_play_mode_e::play_paused;
+		const bool		  gizmo_enabled = !_edit_context.is_edits_disabled() && _play_mode != editor_play_mode_e::play && _play_mode != editor_play_mode_e::play_paused;
 		const entity_id_t anchor		= gizmo_enabled ? _edit_context.get_mutable_entity_anchor(_world) : NULL_ENTITY_ID;
 
 		if (anchor != NULL_ENTITY_ID)

@@ -69,7 +69,7 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		editor_world_handle_t create_world(const world_init_config_t& init_config);
+		editor_world_handle_t create_world(const world_init_config_t& init_config, bool edits_disabled = false);
 		void				  destroy_world(editor_world_handle_t handle);
 		void				  destroy_worlds();
 		void				  resize_world(editor_world_handle_t handle, vec2u16_t render_resolution);

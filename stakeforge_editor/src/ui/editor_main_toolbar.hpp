@@ -27,9 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "ui/editor_global_toolbar.hpp"
 #include "ui/widgets/editor_widgets_dropdown.hpp"
 #include "ui/widgets/editor_widgets_icon_button.hpp"
+#include <sfg/common/size_definitions.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg::ui
@@ -39,6 +39,9 @@ namespace sfg::ui
 
 namespace sfg
 {
+	enum class editor_world_view_e : u8;
+	enum class editor_play_mode_e : u8;
+
 	class editor_main_toolbar_t final
 	{
 	public:
@@ -71,10 +74,7 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline editor_main_toolbar_world_view_e get_world_view() const
-		{
-			return editor_global_toolbar_t::get().get_world_view();
-		}
+		editor_world_view_e get_world_view() const;
 
 	private:
 		void refresh_play_controls();
@@ -93,16 +93,18 @@ namespace sfg
 		editor_icon_button_t _play_physics_button;
 		editor_icon_button_t _pause_button;
 		editor_icon_button_t _step_button;
-		ui::ui_context*		 _ui			 = nullptr;
-		ui::widget_id_t		 _root			 = NULL_WIDGET;
-		ui::widget_id_t		 _world_frame	 = NULL_WIDGET;
-		ui::widget_id_t		 _world_label	 = NULL_WIDGET;
-		ui::widget_id_t		 _play_frame	 = NULL_WIDGET;
-		editor_play_mode_e	 _displayed_mode = editor_play_mode_e::none;
+		ui::ui_context*		 _ui					 = nullptr;
+		ui::widget_id_t		 _root					 = NULL_WIDGET;
+		ui::widget_id_t		 _world_frame			 = NULL_WIDGET;
+		ui::widget_id_t		 _world_label			 = NULL_WIDGET;
+		ui::widget_id_t		 _play_frame			 = NULL_WIDGET;
+		editor_world_view_e	 _pending_world_view	 = {};
+		editor_play_mode_e	 _displayed_mode		 = {};
+		bool				 _has_pending_world_view = false;
 	};
 
-	void to_json(nlohmann::json& j, const editor_main_toolbar_world_view_e& view);
-	void from_json(const nlohmann::json& j, editor_main_toolbar_world_view_e& view);
+	void to_json(nlohmann::json& j, const editor_world_view_e& view);
+	void from_json(const nlohmann::json& j, editor_world_view_e& view);
 	void to_json(nlohmann::json& j, const editor_main_toolbar_t& toolbar);
 	void from_json(const nlohmann::json& j, editor_main_toolbar_t& toolbar);
 }

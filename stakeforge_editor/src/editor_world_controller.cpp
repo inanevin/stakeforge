@@ -38,7 +38,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
-#include "ui/editor_global_toolbar.hpp"
 #include "ui/panels/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_world.hpp"
 #include "ui/panels/editor_panel_inspector.hpp"
@@ -100,7 +99,7 @@ namespace sfg
 		s_instance = nullptr;
 	}
 
-	editor_world_handle_t editor_world_controller_t::create_world(const world_init_config_t& init_config)
+	editor_world_handle_t editor_world_controller_t::create_world(const world_init_config_t& init_config, bool edits_disabled)
 	{
 		editor_app_t::get().stop_render();
 
@@ -112,7 +111,7 @@ namespace sfg
 		_worlds.get(handle)				   = new editor_world_t();
 		editor_world_t* const editor_world = _worlds.get(handle);
 
-		editor_world->init(world_config, handle);
+		editor_world->init(world_config, handle, edits_disabled);
 
 		return handle;
 	}
@@ -187,10 +186,10 @@ namespace sfg
 		if (_main_world.is_null())
 			return;
 
-		editor_global_toolbar_t::get().set_play_mode(editor_play_mode_e::none);
-		editor_global_toolbar_t::get().set_do_step(false);
-
-		editor_world_t* const editor_world = _worlds.get(_main_world);
+		editor_world_t* const		 editor_world = _worlds.get(_main_world);
+		editor_world_edit_context_t& context	  = editor_world->get_edit_context();
+		context.set_play_mode(editor_play_mode_e::none);
+		context.set_do_step(false);
 
 		if (editor_world->get_play_mode() == editor_play_mode_e::none)
 			return;
@@ -250,10 +249,17 @@ namespace sfg
 
 	void editor_world_controller_t::tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps)
 	{
-		editor_global_toolbar_t& toolbar   = editor_global_toolbar_t::get();
-		const editor_play_mode_e play_mode = toolbar.get_play_mode();
-		const bool				 do_step   = toolbar.is_do_step();
-		toolbar.set_do_step(false);
+		editor_play_mode_e play_mode = editor_play_mode_e::none;
+		bool			   do_step	 = false;
+
+		if (!_main_world.is_null())
+		{
+			editor_world_edit_context_t& context = _worlds.get(_main_world)->get_edit_context();
+			play_mode							 = context.get_play_mode();
+			do_step								 = context.is_do_step();
+			context.set_do_step(false);
+		}
+
 		update_main_world_play_mode(play_mode);
 
 		for (editor_world_t* editor_world : _worlds)
@@ -446,7 +452,7 @@ namespace sfg
 
 	bool editor_world_controller_t::load_main_world(sid_t asset_guid)
 	{
-		if (editor_global_toolbar_t::get().get_play_mode() != editor_play_mode_e::none)
+		if (!_main_world.is_null() && _worlds.get(_main_world)->get_edit_context().get_play_mode() != editor_play_mode_e::none)
 			return false;
 
 		editor_app_t::get().stop_render();
@@ -550,11 +556,12 @@ namespace sfg
 		if (_main_world.is_null())
 			return false;
 
-		if (editor_global_toolbar_t::get().get_play_mode() != editor_play_mode_e::none)
-			return false;
-
 		nlohmann::json		  world_json   = nlohmann::json::object();
 		editor_world_t* const editor_world = _worlds.get(_main_world);
+
+		if (editor_world->get_edit_context().get_play_mode() != editor_play_mode_e::none)
+			return false;
+
 		world_cooker_t::world_to_json(editor_world->get_world(), world_json);
 
 		editor_world->get_edit_context().write_folders_to_json(world_json["folders"]);

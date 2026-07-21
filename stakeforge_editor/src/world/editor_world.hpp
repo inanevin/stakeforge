@@ -31,7 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_gizmo.hpp"
 #include "world/editor_world_handle.hpp"
 #include "world/editor_world_render_context.hpp"
-#include "ui/editor_global_toolbar.hpp"
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/vector.hpp>
@@ -75,6 +74,7 @@ namespace sfg
 		editor_world_gizmo_snapshot_data_t gizmo		= {};
 		editor_world_pick_request_t		   pick_request = {};
 		editor_world_grid_snapshot_data_t  grid			= {};
+		editor_world_view_e				   world_view	= editor_world_view_e::final;
 	};
 
 	class editor_world_t final
@@ -91,7 +91,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const world_init_config_t& init_config, editor_world_handle_t handle);
+		void init(const world_init_config_t& init_config, editor_world_handle_t handle, bool edits_disabled);
 		void uninit();
 
 		// -----------------------------------------------------------------------------

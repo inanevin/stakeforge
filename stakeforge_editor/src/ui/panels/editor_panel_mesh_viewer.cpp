@@ -181,8 +181,9 @@ namespace sfg
 		};
 
 		editor_world_controller_t& controller = editor_world_controller_t::get();
-		_world								  = controller.create_world(init_config);
+		_world								  = controller.create_world(init_config, true);
 		editor_world_t* const editor_world	  = controller.get_editor_world(_world);
+
 		editor_world->install_camera(editor_world_camera_type_e::orbit);
 		create_environment();
 		_world_view.set_edit_world(_world);

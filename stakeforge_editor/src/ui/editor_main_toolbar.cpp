@@ -26,10 +26,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/editor_main_toolbar.hpp"
+#include "editor_world_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
+#include "world/editor_world.hpp"
 
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -39,19 +41,23 @@ namespace sfg
 	namespace
 	{
 		const editor_dropdown_item_t WORLD_VIEW_ITEMS[] = {
-			{.text = "Final", .value = static_cast<u16>(editor_main_toolbar_world_view_e::final)},
-			{.text = "GBuffer Albedo", .value = static_cast<u16>(editor_main_toolbar_world_view_e::gbuffer_albedo)},
-			{.text = "GBuffer ORM", .value = static_cast<u16>(editor_main_toolbar_world_view_e::gbuffer_orm)},
-			{.text = "GBuffer Normal", .value = static_cast<u16>(editor_main_toolbar_world_view_e::gbuffer_normal)},
-			{.text = "GBuffer Emissive", .value = static_cast<u16>(editor_main_toolbar_world_view_e::gbuffer_emissive)},
-			{.text = "Lighting", .value = static_cast<u16>(editor_main_toolbar_world_view_e::lighting)},
-			{.text = "Post Process", .value = static_cast<u16>(editor_main_toolbar_world_view_e::post_process)},
+			{.text = "Final", .value = static_cast<u16>(editor_world_view_e::final)},
+			{.text = "GBuffer Albedo", .value = static_cast<u16>(editor_world_view_e::gbuffer_albedo)},
+			{.text = "GBuffer ORM", .value = static_cast<u16>(editor_world_view_e::gbuffer_orm)},
+			{.text = "GBuffer Normal", .value = static_cast<u16>(editor_world_view_e::gbuffer_normal)},
+			{.text = "GBuffer Emissive", .value = static_cast<u16>(editor_world_view_e::gbuffer_emissive)},
+			{.text = "Lighting", .value = static_cast<u16>(editor_world_view_e::lighting)},
+			{.text = "Post Process", .value = static_cast<u16>(editor_world_view_e::post_process)},
 		};
 	}
 
 	void editor_main_toolbar_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
-		_ui							= &ui;
+		_ui						= &ui;
+		_pending_world_view		= editor_world_view_e::final;
+		_displayed_mode			= editor_play_mode_e::none;
+		_has_pending_world_view = false;
+
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -229,28 +235,53 @@ namespace sfg
 		_world_view_dropdown.uninit();
 		_ui->deallocate_widget(_root);
 
-		_ui				= nullptr;
-		_root			= NULL_WIDGET;
-		_world_frame	= NULL_WIDGET;
-		_world_label	= NULL_WIDGET;
-		_play_frame		= NULL_WIDGET;
-		_displayed_mode = editor_play_mode_e::none;
+		_ui						= nullptr;
+		_root					= NULL_WIDGET;
+		_world_frame			= NULL_WIDGET;
+		_world_label			= NULL_WIDGET;
+		_play_frame				= NULL_WIDGET;
+		_pending_world_view		= editor_world_view_e::final;
+		_displayed_mode			= editor_play_mode_e::none;
+		_has_pending_world_view = false;
 	}
 
 	void editor_main_toolbar_t::serialize(nlohmann::json& j) const
 	{
 		j				= nlohmann::json::object();
-		j["world_view"] = editor_global_toolbar_t::get().get_world_view();
+		j["world_view"] = get_world_view();
 	}
 
 	void editor_main_toolbar_t::deserialize(const nlohmann::json& j)
 	{
-		editor_main_toolbar_world_view_e world_view = j.value<editor_main_toolbar_world_view_e>("world_view", editor_main_toolbar_world_view_e::final);
-		if (world_view == editor_main_toolbar_world_view_e::invalid)
-			world_view = editor_main_toolbar_world_view_e::final;
-		editor_global_toolbar_t::get().set_world_view(world_view);
+		_pending_world_view = j.value<editor_world_view_e>("world_view", editor_world_view_e::final);
+
+		if (_pending_world_view == editor_world_view_e::invalid)
+			_pending_world_view = editor_world_view_e::final;
+
+		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
+		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+
+		if (main_world.is_null())
+			_has_pending_world_view = true;
+		else
+		{
+			world_controller.get_editor_world(main_world)->get_edit_context().set_world_view(_pending_world_view);
+			_has_pending_world_view = false;
+		}
+
 		if (_ui != nullptr)
 			_world_view_dropdown.refresh_title();
+	}
+
+	editor_world_view_e editor_main_toolbar_t::get_world_view() const
+	{
+		const editor_world_controller_t& world_controller = editor_world_controller_t::get();
+		const editor_world_handle_t		 main_world		  = world_controller.get_main_world_handle();
+
+		if (main_world.is_null())
+			return _pending_world_view;
+
+		return world_controller.get_editor_world(main_world)->get_edit_context().get_world_view();
 	}
 
 	bool editor_main_toolbar_t::is_window_drag_region(const vec2f_t& pos) const
@@ -265,11 +296,12 @@ namespace sfg
 
 	void editor_main_toolbar_t::refresh_play_controls()
 	{
-		editor_global_toolbar_t& toolbar		 = editor_global_toolbar_t::get();
-		const editor_play_mode_e mode			 = toolbar.get_play_mode();
-		const bool				 is_play		 = mode == editor_play_mode_e::play || mode == editor_play_mode_e::play_paused;
-		const bool				 is_play_physics = mode == editor_play_mode_e::play_physics || mode == editor_play_mode_e::play_physics_paused;
-		const bool				 is_paused		 = mode == editor_play_mode_e::play_paused || mode == editor_play_mode_e::play_physics_paused;
+		const editor_world_controller_t& world_controller = editor_world_controller_t::get();
+		const editor_world_handle_t		 main_world		  = world_controller.get_main_world_handle();
+		const editor_play_mode_e		 mode			  = main_world.is_null() ? editor_play_mode_e::none : world_controller.get_editor_world(main_world)->get_edit_context().get_play_mode();
+		const bool						 is_play		  = mode == editor_play_mode_e::play || mode == editor_play_mode_e::play_paused;
+		const bool						 is_play_physics  = mode == editor_play_mode_e::play_physics || mode == editor_play_mode_e::play_physics_paused;
+		const bool						 is_paused		  = mode == editor_play_mode_e::play_paused || mode == editor_play_mode_e::play_physics_paused;
 
 		_play_button.set_toggled(is_play);
 		_play_button.set_disabled(is_play_physics);
@@ -282,45 +314,67 @@ namespace sfg
 		_displayed_mode = mode;
 	}
 
-	u16 editor_main_toolbar_t::get_selected_world_view(void*)
+	u16 editor_main_toolbar_t::get_selected_world_view(void* user_data)
 	{
-		return static_cast<u16>(editor_global_toolbar_t::get().get_world_view());
+		const editor_main_toolbar_t& toolbar = *static_cast<const editor_main_toolbar_t*>(user_data);
+
+		return static_cast<u16>(toolbar.get_world_view());
 	}
 
-	void editor_main_toolbar_t::on_world_view_pressed(u16 value, void*)
+	void editor_main_toolbar_t::on_world_view_pressed(u16 value, void* user_data)
 	{
-		editor_global_toolbar_t::get().set_world_view(static_cast<editor_main_toolbar_world_view_e>(value));
+		editor_main_toolbar_t&		toolbar			 = *static_cast<editor_main_toolbar_t*>(user_data);
+		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
+		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+
+		SFG_ASSERT(!main_world.is_null());
+		world_controller.get_editor_world(main_world)->get_edit_context().set_world_view(static_cast<editor_world_view_e>(value));
+		toolbar._pending_world_view		= static_cast<editor_world_view_e>(value);
+		toolbar._has_pending_world_view = false;
 	}
 
 	void editor_main_toolbar_t::on_play_toggled(bool toggled, void* user_data)
 	{
-		editor_main_toolbar_t& toolbar = *static_cast<editor_main_toolbar_t*>(user_data);
-		editor_global_toolbar_t::get().set_play_mode(toggled ? editor_play_mode_e::play : editor_play_mode_e::none);
+		editor_main_toolbar_t&		toolbar			 = *static_cast<editor_main_toolbar_t*>(user_data);
+		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
+		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+
+		SFG_ASSERT(!main_world.is_null());
+		world_controller.get_editor_world(main_world)->get_edit_context().set_play_mode(toggled ? editor_play_mode_e::play : editor_play_mode_e::none);
 		toolbar.refresh_play_controls();
 	}
 
 	void editor_main_toolbar_t::on_play_physics_toggled(bool toggled, void* user_data)
 	{
-		editor_main_toolbar_t& toolbar = *static_cast<editor_main_toolbar_t*>(user_data);
-		editor_global_toolbar_t::get().set_play_mode(toggled ? editor_play_mode_e::play_physics : editor_play_mode_e::none);
+		editor_main_toolbar_t&		toolbar			 = *static_cast<editor_main_toolbar_t*>(user_data);
+		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
+		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+
+		SFG_ASSERT(!main_world.is_null());
+		world_controller.get_editor_world(main_world)->get_edit_context().set_play_mode(toggled ? editor_play_mode_e::play_physics : editor_play_mode_e::none);
 		toolbar.refresh_play_controls();
 	}
 
 	void editor_main_toolbar_t::on_pause_toggled(bool toggled, void* user_data)
 	{
-		editor_main_toolbar_t&	 toolbar = *static_cast<editor_main_toolbar_t*>(user_data);
-		editor_global_toolbar_t& global	 = editor_global_toolbar_t::get();
-		const editor_play_mode_e mode	 = global.get_play_mode();
+		editor_main_toolbar_t&		toolbar			 = *static_cast<editor_main_toolbar_t*>(user_data);
+		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
+		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+
+		SFG_ASSERT(!main_world.is_null());
+
+		editor_world_edit_context_t& context = world_controller.get_editor_world(main_world)->get_edit_context();
+		const editor_play_mode_e	 mode	 = context.get_play_mode();
 
 		if (toggled)
 		{
 			SFG_ASSERT(mode == editor_play_mode_e::play || mode == editor_play_mode_e::play_physics);
-			global.set_play_mode(mode == editor_play_mode_e::play ? editor_play_mode_e::play_paused : editor_play_mode_e::play_physics_paused);
+			context.set_play_mode(mode == editor_play_mode_e::play ? editor_play_mode_e::play_paused : editor_play_mode_e::play_physics_paused);
 		}
 		else
 		{
 			SFG_ASSERT(mode == editor_play_mode_e::play_paused || mode == editor_play_mode_e::play_physics_paused);
-			global.set_play_mode(mode == editor_play_mode_e::play_paused ? editor_play_mode_e::play : editor_play_mode_e::play_physics);
+			context.set_play_mode(mode == editor_play_mode_e::play_paused ? editor_play_mode_e::play : editor_play_mode_e::play_physics);
 		}
 
 		toolbar.refresh_play_controls();
@@ -328,40 +382,63 @@ namespace sfg
 
 	void editor_main_toolbar_t::on_step_pressed(bool toggled, void* user_data)
 	{
-		editor_global_toolbar_t::get().set_do_step(true);
+		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
+		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+
+		SFG_ASSERT(!main_world.is_null());
+		world_controller.get_editor_world(main_world)->get_edit_context().set_do_step(true);
 	}
 
 	void editor_main_toolbar_t::on_play_controls_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
 	{
-		editor_main_toolbar_t&		   toolbar = *static_cast<editor_main_toolbar_t*>(user_data);
-		const editor_global_toolbar_t& global  = editor_global_toolbar_t::get();
-		if (toolbar._displayed_mode != global.get_play_mode())
+		editor_main_toolbar_t&		toolbar			 = *static_cast<editor_main_toolbar_t*>(user_data);
+		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
+		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+
+		if (main_world.is_null())
+			return;
+
+		editor_world_edit_context_t& context = world_controller.get_editor_world(main_world)->get_edit_context();
+
+		if (toolbar._has_pending_world_view)
+		{
+			context.set_world_view(toolbar._pending_world_view);
+			toolbar._has_pending_world_view = false;
+			toolbar._world_view_dropdown.refresh_title();
+		}
+		else if (toolbar._pending_world_view != context.get_world_view())
+		{
+			toolbar._pending_world_view = context.get_world_view();
+			toolbar._world_view_dropdown.refresh_title();
+		}
+
+		if (toolbar._displayed_mode != context.get_play_mode())
 			toolbar.refresh_play_controls();
 	}
 
-	void to_json(nlohmann::json& j, const editor_main_toolbar_world_view_e& view)
+	void to_json(nlohmann::json& j, const editor_world_view_e& view)
 	{
 		switch (view)
 		{
-		case editor_main_toolbar_world_view_e::final:
+		case editor_world_view_e::final:
 			j = "final";
 			break;
-		case editor_main_toolbar_world_view_e::gbuffer_albedo:
+		case editor_world_view_e::gbuffer_albedo:
 			j = "gbuffer_albedo";
 			break;
-		case editor_main_toolbar_world_view_e::gbuffer_orm:
+		case editor_world_view_e::gbuffer_orm:
 			j = "gbuffer_orm";
 			break;
-		case editor_main_toolbar_world_view_e::gbuffer_normal:
+		case editor_world_view_e::gbuffer_normal:
 			j = "gbuffer_normal";
 			break;
-		case editor_main_toolbar_world_view_e::gbuffer_emissive:
+		case editor_world_view_e::gbuffer_emissive:
 			j = "gbuffer_emissive";
 			break;
-		case editor_main_toolbar_world_view_e::lighting:
+		case editor_world_view_e::lighting:
 			j = "lighting";
 			break;
-		case editor_main_toolbar_world_view_e::post_process:
+		case editor_world_view_e::post_process:
 			j = "post_process";
 			break;
 		default:
@@ -370,25 +447,25 @@ namespace sfg
 		}
 	}
 
-	void from_json(const nlohmann::json& j, editor_main_toolbar_world_view_e& view)
+	void from_json(const nlohmann::json& j, editor_world_view_e& view)
 	{
 		const string_t s = j.get<string_t>();
 		if (s == "final")
-			view = editor_main_toolbar_world_view_e::final;
+			view = editor_world_view_e::final;
 		else if (s == "gbuffer_albedo")
-			view = editor_main_toolbar_world_view_e::gbuffer_albedo;
+			view = editor_world_view_e::gbuffer_albedo;
 		else if (s == "gbuffer_orm")
-			view = editor_main_toolbar_world_view_e::gbuffer_orm;
+			view = editor_world_view_e::gbuffer_orm;
 		else if (s == "gbuffer_normal")
-			view = editor_main_toolbar_world_view_e::gbuffer_normal;
+			view = editor_world_view_e::gbuffer_normal;
 		else if (s == "gbuffer_emissive")
-			view = editor_main_toolbar_world_view_e::gbuffer_emissive;
+			view = editor_world_view_e::gbuffer_emissive;
 		else if (s == "lighting")
-			view = editor_main_toolbar_world_view_e::lighting;
+			view = editor_world_view_e::lighting;
 		else if (s == "post_process")
-			view = editor_main_toolbar_world_view_e::post_process;
+			view = editor_world_view_e::post_process;
 		else
-			view = editor_main_toolbar_world_view_e::invalid;
+			view = editor_world_view_e::invalid;
 	}
 
 	void to_json(nlohmann::json& j, const editor_main_toolbar_t& toolbar)

@@ -32,7 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface_controller.hpp"
-#include "ui/editor_global_toolbar.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/widgets/editor_splash_screen.hpp"
@@ -227,14 +226,9 @@ namespace sfg
 
 		editor_asset_manager_util_t::ensure_default_meshes();
 
-		editor_global_toolbar_t::get().init();
-
 		const surface_handle_t payload_surface = surfaces.create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
 		if (payload_surface.is_null())
-		{
-			editor_global_toolbar_t::get().uninit();
 			return false;
-		}
 
 		_payload_controller.init(surfaces.get_surface(payload_surface));
 		_payload_controller.set_unhandled_listener(editor_surface_controller_t::on_payload_unhandled, this);
@@ -252,7 +246,6 @@ namespace sfg
 			editor_asset_thumbnail_database_t::get().uninit();
 			_world_controller.uninit();
 			_command_system.uninit();
-			editor_global_toolbar_t::get().uninit();
 		};
 
 		const editor_layout_t& layout = editor_settings_t::get().layout;
@@ -326,7 +319,6 @@ namespace sfg
 		editor_asset_thumbnail_database_t::get().uninit();
 		_world_controller.uninit();
 		_command_system.uninit();
-		editor_global_toolbar_t::get().uninit();
 	}
 
 	void editor_app_t::switch_mode(editor_app_mode_e mode)

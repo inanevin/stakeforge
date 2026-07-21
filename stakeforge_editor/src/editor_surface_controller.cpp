@@ -32,7 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_settings.hpp"
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_modal_controller.hpp"
-#include "ui/editor_global_toolbar.hpp"
 #include "ui/editor_payload_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -44,10 +43,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_secondary_base.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_splash_screen.hpp"
-#include "ui/widgets/editor_widget_world_view.hpp"
-#include <sfg/runtime/engine/engine_runtime.hpp>
 #include "ui/widgets/editor_widget_project_creator.hpp"
+#include "ui/widgets/editor_widget_world_view.hpp"
 #include "ui/widgets/editor_widget_window_frame.hpp"
+#include "world/editor_world.hpp"
+#include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -371,10 +371,11 @@ namespace sfg
 			else if (editor_widget_world_view_t::on_window_event(runtime, ev))
 				return;
 
-			const bool ctrl = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+			const bool					ctrl	   = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+			const editor_world_handle_t main_world = world_controller.get_main_world_handle();
 
-			if (!modal_active && !popup_active && ctrl && ev.button == static_cast<u16>(input_code::key_s) && ev.sub_type == window_event_sub_type_e::press && !world_controller.get_main_world_handle().is_null() &&
-				editor_global_toolbar_t::get().get_play_mode() == editor_play_mode_e::none)
+			if (!modal_active && !popup_active && ctrl && ev.button == static_cast<u16>(input_code::key_s) && ev.sub_type == window_event_sub_type_e::press && !main_world.is_null() &&
+				world_controller.get_editor_world(main_world)->get_edit_context().get_play_mode() == editor_play_mode_e::none)
 			{
 				world_controller.save_main_world();
 				return;
