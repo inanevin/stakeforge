@@ -1,0 +1,452 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#include "editor_world_util.hpp"
+#include "ui/panels/editor_theme.hpp"
+#include <sfg/io/assert.hpp>
+#include <sfg/math/color.hpp>
+#include <sfg/math/mat4x3.hpp>
+#include <sfg/math/math.hpp>
+#include <sfg/math/vec2u16.hpp>
+#include <sfg/runtime/resources/physics_collision_mesh.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
+#include <sfg/runtime/world/system_components.hpp>
+#include <sfg/runtime/world/world.hpp>
+#include <sfg/runtime/world/world_debug_draw.hpp>
+
+namespace sfg
+{
+#define EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS	  0.06f
+#define EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH	  0.5f
+#define EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH 0.12f
+#define EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS 0.05f
+#define EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS	  0.4f
+#define EDITOR_CONSTRAINT_GIZMO_CONE_LENGTH		  0.65f
+#define EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT	  999999.0f
+
+	void editor_world_util_t::draw_selection_gizmos(world_t& world, span_t<const entity_id_t> selected_entities, const vec2u16_t& render_resolution)
+	{
+		world_debug_draw_t&			 debug_draw		 = world.get_debug_draw();
+		const editor_theme_t&		 theme			 = editor_theme_t::get();
+		const vec4f_t&				 accent_warn	 = theme.color_accent_warn;
+		const vec4f_t&				 accent1		 = theme.color_accent1;
+		const color_t				 debug_color	 = {accent_warn.x, accent_warn.y, accent_warn.z, accent_warn.w};
+		const color_t				 collider_color	 = {accent1.x, accent1.y, accent1.z, accent1.w};
+		const ecs_component_table_t& transform_table = world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& camera_table	 = world.get_component_table(type_id_t<component_camera_t>::value);
+		const ecs_component_table_t& light_table	 = world.get_component_table(type_id_t<component_light_t>::value);
+		const ecs_component_table_t& physical_table	 = world.get_component_table(type_id_t<component_physical_t>::value);
+
+		for (size_t i = 0; i < selected_entities.size; ++i)
+		{
+			const entity_id_t					entity	  = selected_entities.data[i];
+			const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
+			const component_camera_t*			camera	  = ecs_helpers_t::table_find_as_const<component_camera_t>(camera_table, entity);
+
+			if (camera != nullptr)
+			{
+				SFG_ASSERT(render_resolution.x != 0 && render_resolution.y != 0);
+
+				debug_draw.draw_frustum(transform.abs_pos,
+										transform.abs_rot.get_forward(),
+										transform.abs_rot.get_up(),
+										camera->fov_degrees,
+										static_cast<f32>(render_resolution.x) / static_cast<f32>(render_resolution.y),
+										camera->near_plane,
+										camera->far_plane,
+										debug_color,
+										2.0f,
+										debug_draw_depth_e::always_visible);
+			}
+
+			const component_physical_t* physical = ecs_helpers_t::table_find_as_const<component_physical_t>(physical_table, entity);
+
+			if (physical != nullptr)
+			{
+				const vec3f_t abs_scale		= vec3f_t::abs(transform.abs_scale);
+				const quat_t  body_rotation = transform.abs_rot * physical->local_rotation;
+				const vec3f_t body_position = transform.abs_pos + transform.abs_rot * (physical->local_position * transform.abs_scale);
+
+				switch (physical->shape)
+				{
+				case physics_shape_type_e::box: {
+					const mat4x3_t collider_transform = mat4x3_t::transform(body_position, body_rotation, vec3f_t::one);
+
+					debug_draw.draw_box(collider_transform, vec3f_t::max(physical->half_extent * abs_scale, {0.001f, 0.001f, 0.001f}), collider_color, 2.0f, debug_draw_depth_e::always_visible);
+					break;
+				}
+				case physics_shape_type_e::sphere: {
+					const f32 radius = math::max(physical->radius * math::max(abs_scale.x, math::max(abs_scale.y, abs_scale.z)), 0.001f);
+
+					debug_draw.draw_sphere(body_position, radius, collider_color, 2.0f, debug_draw_depth_e::always_visible);
+					break;
+				}
+				case physics_shape_type_e::capsule: {
+					const f32 radius	  = math::max(physical->radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
+					const f32 half_height = math::max(physical->half_height * abs_scale.y, 0.001f);
+
+					debug_draw.draw_capsule(body_position, radius, half_height, body_rotation.get_up(), collider_color, 2.0f, debug_draw_depth_e::always_visible);
+					break;
+				}
+				case physics_shape_type_e::cylinder: {
+					const f32 radius	  = math::max(physical->radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
+					const f32 half_height = math::max(physical->half_height * abs_scale.y, 0.001f);
+
+					debug_draw.draw_cylinder(body_position, radius, half_height, body_rotation.get_up(), collider_color, 2.0f, debug_draw_depth_e::always_visible);
+					break;
+				}
+				case physics_shape_type_e::mesh: {
+					const physics_collision_mesh_runtime_t* collision_mesh = resource_manager_t::get().find_runtime<physics_collision_mesh_runtime_t>(physical->collision_mesh);
+
+					if (collision_mesh == nullptr)
+						break;
+
+					const chunk_allocator_t& memory	  = resource_manager_t::get().get_memory();
+					const vec3f_t*			 vertices = memory.get<vec3f_t>(collision_mesh->vertices);
+					const primitive_index*	 indices  = memory.get<primitive_index>(collision_mesh->indices);
+
+					for (u32 index = 0; index < collision_mesh->index_count; index += 3)
+					{
+						const vec3f_t p0 = body_position + body_rotation * (vertices[indices[index]] * transform.abs_scale);
+						const vec3f_t p1 = body_position + body_rotation * (vertices[indices[index + 1]] * transform.abs_scale);
+						const vec3f_t p2 = body_position + body_rotation * (vertices[indices[index + 2]] * transform.abs_scale);
+
+						debug_draw.draw_triangle(p0, p1, p2, collider_color);
+					}
+
+					break;
+				}
+				}
+			}
+
+			draw_constraint_gizmos(world, entity, transform, debug_draw);
+
+			const component_light_t* light = ecs_helpers_t::table_find_as_const<component_light_t>(light_table, entity);
+
+			if (light == nullptr)
+				continue;
+
+			const vec3f_t forward = transform.abs_rot.get_forward();
+
+			switch (light->type)
+			{
+			case light_type_e::directional: {
+				const vec3f_t offset = transform.abs_rot.get_right() * 0.25f;
+
+				debug_draw.draw_line(transform.abs_pos - offset, transform.abs_pos - offset + forward * 2.0f, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+				debug_draw.draw_line(transform.abs_pos, transform.abs_pos + forward * 2.0f, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+				debug_draw.draw_line(transform.abs_pos + offset, transform.abs_pos + offset + forward * 2.0f, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			}
+			case light_type_e::point:
+				if (light->range > 0.0f)
+					debug_draw.draw_sphere(transform.abs_pos, light->range, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			case light_type_e::spot:
+				if (light->range > 0.0f && light->outer_cone_degrees > 0.0f)
+					debug_draw.draw_frustum(transform.abs_pos, forward, transform.abs_rot.get_up(), light->outer_cone_degrees * 2.0f, 1.0f, 0.0f, light->range, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			case light_type_e::area:
+				if (light->area_size.x > 0.0f && light->area_size.y > 0.0f)
+					debug_draw.draw_rectangle(transform.abs_pos, transform.abs_rot.get_right(), transform.abs_rot.get_up(), light->area_size, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			}
+		}
+	}
+
+	void editor_world_util_t::draw_constraint_gizmos(world_t& world, entity_id_t entity, const component_system_transform_t& transform, world_debug_draw_t& debug_draw)
+	{
+		const editor_theme_t&		 theme			   = editor_theme_t::get();
+		const vec4f_t&				 accent2		   = theme.color_accent2;
+		const vec4f_t&				 accent2_dim	   = theme.color_accent2_dim;
+		const vec4f_t&				 accent1		   = theme.color_accent1;
+		const vec4f_t&				 highlight		   = theme.color_highlight;
+		const color_t				 enabled_color	   = {accent2.x, accent2.y, accent2.z, accent2.w};
+		const color_t				 disabled_color	   = {accent2_dim.x, accent2_dim.y, accent2_dim.z, accent2_dim.w};
+		const color_t				 secondary_color   = {accent1.x, accent1.y, accent1.z, accent1.w};
+		const color_t				 limit_color	   = {highlight.x, highlight.y, highlight.z, highlight.w};
+		const ecs_component_table_t& transform_table   = world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& fixed_table	   = world.get_component_table(type_id_t<component_fixed_constraint_t>::value);
+		const ecs_component_table_t& distance_table	   = world.get_component_table(type_id_t<component_distance_constraint_t>::value);
+		const ecs_component_table_t& point_table	   = world.get_component_table(type_id_t<component_point_constraint_t>::value);
+		const ecs_component_table_t& hinge_table	   = world.get_component_table(type_id_t<component_hinge_constraint_t>::value);
+		const ecs_component_table_t& cone_table		   = world.get_component_table(type_id_t<component_cone_constraint_t>::value);
+		const ecs_component_table_t& slider_table	   = world.get_component_table(type_id_t<component_slider_constraint_t>::value);
+		const ecs_component_table_t& swing_twist_table = world.get_component_table(type_id_t<component_swing_twist_constraint_t>::value);
+		const ecs_component_table_t& six_dof_table	   = world.get_component_table(type_id_t<component_six_dof_constraint_t>::value);
+		const ecs_component_table_t& pulley_table	   = world.get_component_table(type_id_t<component_pulley_constraint_t>::value);
+		const ecs_component_table_t& vehicle_table	   = world.get_component_table(type_id_t<component_vehicle_constraint_t>::value);
+
+		auto find_target_transform = [&world, &transform_table, entity](entity_guid_t target_guid) -> const component_system_transform_t* {
+			if (target_guid == NULL_ENTITY_GUID)
+				return nullptr;
+
+			const entity_id_t target_entity = world.find_by_guid(target_guid);
+
+			if (target_entity == NULL_ENTITY_ID || target_entity == entity)
+				return nullptr;
+
+			return ecs_helpers_t::table_find_as_const<component_system_transform_t>(transform_table, target_entity);
+		};
+
+		auto draw_anchor_pair = [&debug_draw](const vec3f_t& local_point, const vec3f_t& target_point, const color_t& color) {
+			debug_draw.draw_sphere(local_point, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			debug_draw.draw_sphere(target_point, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			debug_draw.draw_line(local_point, target_point, color, 2.0f, debug_draw_depth_e::always_visible);
+		};
+
+		auto draw_frame = [&debug_draw, &secondary_color, &limit_color](const vec3f_t& point, const quat_t& rotation, const color_t& color) {
+			debug_draw.draw_arrow(point, point + rotation.get_right() * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(point, point + rotation.get_up() * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, limit_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(point, point + rotation.get_forward() * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, secondary_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+		};
+
+		auto draw_angular_limit = [&debug_draw](const vec3f_t& point, const vec3f_t& axis, const vec3f_t& reference, f32 min_degrees, f32 max_degrees, const color_t& color) {
+			const vec3f_t start_direction = reference.rotate(axis, min_degrees).normalized();
+			const vec3f_t end_direction	  = reference.rotate(axis, max_degrees).normalized();
+			const f32	  angle_radians	  = math::degrees_to_radians(max_degrees - min_degrees);
+
+			if (math::abs(angle_radians) > MATH_EPS)
+				debug_draw.draw_arc(point, axis, start_direction, EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, angle_radians, color, 2.0f, debug_draw_depth_e::always_visible, 24);
+
+			debug_draw.draw_line(point, point + start_direction * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(point, point + end_direction * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible);
+		};
+
+		if (const component_fixed_constraint_t* component = ecs_helpers_t::table_find_as_const<component_fixed_constraint_t>(fixed_table, entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+			const quat_t						local_frame		 = transform.abs_rot * component->local_rotation;
+			const quat_t						target_frame	 = target_transform != nullptr ? target_transform->abs_rot * component->target_rotation : component->target_rotation;
+
+			draw_anchor_pair(local_point, target_point, color);
+			draw_frame(local_point, local_frame, color);
+			draw_frame(target_point, target_frame, color);
+		}
+
+		if (const component_distance_constraint_t* component = ecs_helpers_t::table_find_as_const<component_distance_constraint_t>(distance_table, entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+
+			draw_anchor_pair(local_point, target_point, color);
+
+			if (component->min_distance > 0.0f && component->min_distance < EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT)
+				debug_draw.draw_sphere(local_point, component->min_distance, limit_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+
+			if (component->max_distance > 0.0f && component->max_distance < EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT)
+				debug_draw.draw_sphere(local_point, component->max_distance, limit_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+		}
+
+		if (const component_point_constraint_t* component = ecs_helpers_t::table_find_as_const<component_point_constraint_t>(point_table, entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+
+			draw_anchor_pair(local_point, target_point, color);
+		}
+
+		if (const component_hinge_constraint_t* component = ecs_helpers_t::table_find_as_const<component_hinge_constraint_t>(hinge_table, entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+			const vec3f_t						local_axis		 = (transform.abs_rot * component->local_hinge_axis).normalized();
+			const vec3f_t						target_axis		 = (target_transform != nullptr ? target_transform->abs_rot * component->target_hinge_axis : component->target_hinge_axis).normalized();
+			const vec3f_t						local_normal	 = (transform.abs_rot * component->local_normal_axis).normalized();
+			const vec3f_t						target_normal	 = (target_transform != nullptr ? target_transform->abs_rot * component->target_normal_axis : component->target_normal_axis).normalized();
+
+			draw_anchor_pair(local_point, target_point, color);
+			debug_draw.draw_arrow(local_point, local_point + local_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(target_point, target_point + target_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, secondary_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(local_point, local_point + local_normal * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, limit_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(target_point, target_point + target_normal * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, limit_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			draw_angular_limit(local_point, local_axis, local_normal, component->limit_min_degrees, component->limit_max_degrees, limit_color);
+		}
+
+		if (const component_cone_constraint_t* component = ecs_helpers_t::table_find_as_const<component_cone_constraint_t>(cone_table, entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+			const vec3f_t						local_axis		 = (transform.abs_rot * component->local_twist_axis).normalized();
+			const vec3f_t						target_axis		 = (target_transform != nullptr ? target_transform->abs_rot * component->target_twist_axis : component->target_twist_axis).normalized();
+			const f32							half_angle		 = math::degrees_to_radians(component->half_cone_angle_degrees);
+
+			draw_anchor_pair(local_point, target_point, color);
+			debug_draw.draw_cone(local_point, local_axis, EDITOR_CONSTRAINT_GIZMO_CONE_LENGTH, half_angle, limit_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+			debug_draw.draw_arrow(target_point, target_point + target_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, secondary_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+		}
+
+		if (const component_slider_constraint_t* component = ecs_helpers_t::table_find_as_const<component_slider_constraint_t>(slider_table, entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+			const vec3f_t						local_axis		 = (transform.abs_rot * component->local_slider_axis).normalized();
+			const vec3f_t						target_axis		 = (target_transform != nullptr ? target_transform->abs_rot * component->target_slider_axis : component->target_slider_axis).normalized();
+			const vec3f_t						local_normal	 = (transform.abs_rot * component->local_normal_axis).normalized();
+			const vec3f_t						target_normal	 = (target_transform != nullptr ? target_transform->abs_rot * component->target_normal_axis : component->target_normal_axis).normalized();
+
+			draw_anchor_pair(local_point, target_point, color);
+			debug_draw.draw_arrow(local_point - local_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH,
+								  local_point + local_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH,
+								  color,
+								  EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH,
+								  EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS,
+								  2.0f,
+								  debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(target_point, target_point + target_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, secondary_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(local_point, local_point + local_normal * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(target_point, target_point + target_normal * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible);
+
+			if (math::abs(component->limit_min) < EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT && math::abs(component->limit_max) < EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT)
+			{
+				const vec3f_t limit_min = local_point + local_axis * component->limit_min;
+				const vec3f_t limit_max = local_point + local_axis * component->limit_max;
+
+				debug_draw.draw_line(limit_min, limit_max, limit_color, 3.0f, debug_draw_depth_e::always_visible);
+				debug_draw.draw_sphere(limit_min, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible, 12);
+				debug_draw.draw_sphere(limit_max, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			}
+		}
+
+		if (const component_swing_twist_constraint_t* component = ecs_helpers_t::table_find_as_const<component_swing_twist_constraint_t>(swing_twist_table, entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+			const vec3f_t						local_axis		 = (transform.abs_rot * component->local_twist_axis).normalized();
+			const vec3f_t						target_axis		 = (target_transform != nullptr ? target_transform->abs_rot * component->target_twist_axis : component->target_twist_axis).normalized();
+			const vec3f_t						local_plane		 = (transform.abs_rot * component->local_plane_axis).normalized();
+			const vec3f_t						target_plane	 = (target_transform != nullptr ? target_transform->abs_rot * component->target_plane_axis : component->target_plane_axis).normalized();
+			const vec2f_t						half_angles		 = {math::degrees_to_radians(component->normal_half_cone_angle_degrees), math::degrees_to_radians(component->plane_half_cone_angle_degrees)};
+
+			draw_anchor_pair(local_point, target_point, color);
+			debug_draw.draw_cone(local_point, local_axis, local_plane, EDITOR_CONSTRAINT_GIZMO_CONE_LENGTH, half_angles, limit_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+			debug_draw.draw_arrow(target_point, target_point + target_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, secondary_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(target_point, target_point + target_plane * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible);
+			draw_angular_limit(local_point, local_axis, local_plane, component->twist_min_angle_degrees, component->twist_max_angle_degrees, limit_color);
+		}
+
+		if (const component_six_dof_constraint_t* component = ecs_helpers_t::table_find_as_const<component_six_dof_constraint_t>(six_dof_table, entity))
+		{
+			const component_system_transform_t* target_transform   = find_target_transform(component->target_entity);
+			const color_t&						color			   = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		   = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	   = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+			const quat_t						local_frame		   = transform.abs_rot * component->local_rotation;
+			const quat_t						target_frame	   = target_transform != nullptr ? target_transform->abs_rot * component->target_rotation : component->target_rotation;
+			const vec3f_t						axes[3]			   = {local_frame.get_right(), local_frame.get_up(), local_frame.get_forward()};
+			const vec3f_t						references[3]	   = {local_frame.get_up(), local_frame.get_forward(), local_frame.get_right()};
+			const f32							translation_min[3] = {component->translation_limit_min.x, component->translation_limit_min.y, component->translation_limit_min.z};
+			const f32							translation_max[3] = {component->translation_limit_max.x, component->translation_limit_max.y, component->translation_limit_max.z};
+			const f32							rotation_min[3]	   = {component->rotation_limit_min_degrees.x, component->rotation_limit_min_degrees.y, component->rotation_limit_min_degrees.z};
+			const f32							rotation_max[3]	   = {component->rotation_limit_max_degrees.x, component->rotation_limit_max_degrees.y, component->rotation_limit_max_degrees.z};
+
+			draw_anchor_pair(local_point, target_point, color);
+			draw_frame(local_point, local_frame, color);
+			draw_frame(target_point, target_frame, color);
+
+			for (u32 axis_index = 0; axis_index < 3; ++axis_index)
+			{
+				if (math::abs(translation_min[axis_index]) < EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT && math::abs(translation_max[axis_index]) < EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT)
+				{
+					const vec3f_t limit_min = local_point + axes[axis_index] * translation_min[axis_index];
+					const vec3f_t limit_max = local_point + axes[axis_index] * translation_max[axis_index];
+
+					debug_draw.draw_line(limit_min, limit_max, limit_color, 3.0f, debug_draw_depth_e::always_visible);
+				}
+
+				draw_angular_limit(local_point, axes[axis_index], references[axis_index], rotation_min[axis_index], rotation_max[axis_index], limit_color);
+			}
+		}
+
+		if (const component_pulley_constraint_t* component = ecs_helpers_t::table_find_as_const<component_pulley_constraint_t>(pulley_table, entity))
+		{
+			const component_system_transform_t* target_transform   = find_target_transform(component->target_entity);
+			const color_t&						color			   = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		   = transform.abs_mat * component->local_body_point;
+			const vec3f_t						target_point	   = target_transform != nullptr ? target_transform->abs_mat * component->target_body_point : component->target_body_point;
+			const vec3f_t						fixed_point		   = component->fixed_point;
+			const vec3f_t						target_fixed_point = component->target_fixed_point;
+
+			debug_draw.draw_sphere(local_point, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			debug_draw.draw_sphere(target_point, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			debug_draw.draw_sphere(fixed_point, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			debug_draw.draw_sphere(target_fixed_point, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			debug_draw.draw_line(local_point, fixed_point, color, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(fixed_point, target_fixed_point, secondary_color, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(target_fixed_point, target_point, color, 2.0f, debug_draw_depth_e::always_visible);
+		}
+
+		if (const component_vehicle_constraint_t* component = ecs_helpers_t::table_find_as_const<component_vehicle_constraint_t>(vehicle_table, entity))
+		{
+			const color_t& color   = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t  up	   = (transform.abs_rot * component->up).normalized();
+			const vec3f_t  forward = (transform.abs_rot * component->forward).normalized();
+
+			debug_draw.draw_arrow(transform.abs_pos, transform.abs_pos + up * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, limit_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(transform.abs_pos, transform.abs_pos + forward * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+
+			if (component->max_pitch_roll_angle_degrees > 0.0f && component->max_pitch_roll_angle_degrees < 180.0f)
+				debug_draw.draw_cone(transform.abs_pos, up, EDITOR_CONSTRAINT_GIZMO_CONE_LENGTH, math::degrees_to_radians(component->max_pitch_roll_angle_degrees), limit_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+
+			for (const physics_vehicle_wheel_t& wheel : component->wheels)
+			{
+				const vec3f_t wheel_position	   = transform.abs_mat * wheel.position;
+				const vec3f_t suspension_direction = (transform.abs_rot * wheel.suspension_direction).normalized();
+				const vec3f_t wheel_up			   = (transform.abs_rot * wheel.wheel_up).normalized();
+				const vec3f_t wheel_forward		   = (transform.abs_rot * wheel.wheel_forward).normalized();
+				const vec3f_t steering_axis		   = (transform.abs_rot * wheel.steering_axis).normalized();
+				const vec3f_t wheel_right		   = vec3f_t::cross(wheel_up, wheel_forward).normalized();
+				const vec3f_t suspension_min	   = wheel_position + suspension_direction * wheel.suspension_min_length;
+				const vec3f_t suspension_max	   = wheel_position + suspension_direction * wheel.suspension_max_length;
+				const vec3f_t wheel_center		   = (suspension_min + suspension_max) * 0.5f;
+
+				debug_draw.draw_line(suspension_min, suspension_max, color, 2.0f, debug_draw_depth_e::always_visible);
+				debug_draw.draw_sphere(wheel_position, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible, 12);
+				debug_draw.draw_cylinder(wheel_center, wheel.radius, wheel.width * 0.5f, wheel_right, secondary_color, 2.0f, debug_draw_depth_e::always_visible, 20);
+				debug_draw.draw_arrow(
+					wheel_position, wheel_position + steering_axis * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, limit_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+				draw_angular_limit(wheel_position, steering_axis, wheel_forward, -wheel.max_steer_angle_degrees, wheel.max_steer_angle_degrees, limit_color);
+			}
+		}
+	}
+}

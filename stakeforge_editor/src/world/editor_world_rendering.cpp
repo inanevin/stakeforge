@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_rendering.hpp"
 #include "world/editor_world.hpp"
 #include "world/editor_world_render_context.hpp"
-#include "ui/editor_global_toolbar.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/data/bitmask.hpp>
 #include <sfg/gfx/backend/backend.hpp>
@@ -98,13 +97,16 @@ namespace sfg
 		u32			 bound_material = UINT32_MAX;
 
 		const u32 draw_size = static_cast<u32>(snapshot.draws.size());
+
 		for (u32 i = 0; i < draw_size; i++)
 		{
 			const world_draw_t& draw = snapshot.draws[i];
+
 			if ((prep_data.draw_culls[i].cull_mask & (1 << 0llu)) != 0)
 				continue;
 
 			const world_render_entity_t& entity = snapshot.entities[draw.entity_index];
+
 			if (std::find(snapshot_data.selected_entities.begin(), snapshot_data.selected_entities.end(), entity.entity_id) == snapshot_data.selected_entities.end())
 				continue;
 
@@ -116,6 +118,7 @@ namespace sfg
 			variant_flags.set(shader_variant_flags_skinned, draw.skinning_index != UINT32_MAX);
 
 			const render_resource_handle_t shader_handle = mat.find_pso(variant_flags);
+
 			if (shader_handle.is_null())
 				continue;
 
@@ -136,6 +139,7 @@ namespace sfg
 			}
 
 			const gfx_handle_t pipeline = render_resources.get_shader_hw(shader_handle);
+
 			if (pipeline != bound_pipeline)
 			{
 				bound_pipeline = pipeline;
@@ -148,8 +152,10 @@ namespace sfg
 				gpu_index_t mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
 				u8			mat_constant_count								 = 0;
 				mat_constants[mat_constant_count++]							 = render_resources.get_resource_gpu_index(mat.material_buffer);
+
 				for (u32 i = 0; i < mat.texture_count; ++i)
 					mat_constants[mat_constant_count++] = render_resources.get_texture_gpu_index(mat.material_textures[i], 0);
+
 				for (u32 i = 0; i < mat.texture_count; ++i)
 					mat_constants[mat_constant_count++] = render_resources.get_sampler_gpu_index(mat.material_samplers[i]);
 				backend.cmd_bind_constants(cmd, {.data = mat_constants, .offset = constant_mat0, .count = mat_constant_count, .param_index = 0});
@@ -241,9 +247,11 @@ namespace sfg
 		u32			 bound_material = UINT32_MAX;
 
 		const u32 draw_size = static_cast<u32>(snapshot.draws.size());
+
 		for (u32 i = 0; i < draw_size; i++)
 		{
 			const world_draw_t& draw = snapshot.draws[i];
+
 			if ((prep_data.draw_culls[i].cull_mask & (1 << 0llu)) != 0)
 				continue;
 
@@ -255,6 +263,7 @@ namespace sfg
 			variant_flags.set(shader_variant_flags_skinned, draw.skinning_index != UINT32_MAX);
 
 			const render_resource_handle_t shader_handle = mat.find_pso(variant_flags);
+
 			if (shader_handle.is_null())
 				continue;
 
@@ -275,6 +284,7 @@ namespace sfg
 			}
 
 			const gfx_handle_t pipeline = render_resources.get_shader_hw(shader_handle);
+
 			if (pipeline != bound_pipeline)
 			{
 				bound_pipeline = pipeline;
@@ -287,8 +297,10 @@ namespace sfg
 				gpu_index_t mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
 				u8			mat_constant_count								 = 0;
 				mat_constants[mat_constant_count++]							 = render_resources.get_resource_gpu_index(mat.material_buffer);
+
 				for (u32 i = 0; i < mat.texture_count; ++i)
 					mat_constants[mat_constant_count++] = render_resources.get_texture_gpu_index(mat.material_textures[i], 0);
+
 				for (u32 i = 0; i < mat.texture_count; ++i)
 					mat_constants[mat_constant_count++] = render_resources.get_sampler_gpu_index(mat.material_samplers[i]);
 				backend.cmd_bind_constants(cmd, {.data = mat_constants, .offset = constant_mat0, .count = mat_constant_count, .param_index = 0});
@@ -331,7 +343,7 @@ namespace sfg
 	{
 		const editor_world_snapshot_data_t& snapshot_data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
 		const vec2u16_t						size		  = ctx.get_size();
-		render_view_t						view;
+		render_view_t						view		  = {};
 		view.calculate(snapshot.main_view, size, interpolation_alpha);
 
 		const f32			  grid_period  = snapshot_data.grid.scale * 10000.0f;
@@ -357,6 +369,7 @@ namespace sfg
 		SFG_MEMCPY(ctx.get_mapped_composite_data(frame_index), &composite_data, sizeof(editor_world_composite_data_t));
 
 		const bool render_gizmo = snapshot_data.gizmo.control_type != editor_transform_control_type_e::invalid;
+
 		if (render_gizmo)
 		{
 			static const quat_t axis_rotations[3] = {
@@ -369,6 +382,7 @@ namespace sfg
 			const quat_t  rotation = quat_t::slerp(snapshot_data.gizmo.prev_rotation, snapshot_data.gizmo.rotation, interpolation_alpha);
 
 			editor_world_gizmo_gpu_data_t gizmo_data = {};
+
 			for (u32 i = 0; i < 3; ++i)
 				gizmo_data.models[i] = mat4x4_t::transform(position, rotation * axis_rotations[i], vec3f_t::one);
 
@@ -396,6 +410,7 @@ namespace sfg
 			gizmo_data.colors[6].w = 0.4f;
 
 			const editor_gizmo_axis_e highlight_axis = snapshot_data.gizmo.active_axis != editor_gizmo_axis_e::invalid ? snapshot_data.gizmo.active_axis : snapshot_data.gizmo.hovered_axis;
+
 			if (highlight_axis != editor_gizmo_axis_e::invalid)
 				gizmo_data.colors[static_cast<u32>(highlight_axis)] = theme.color_accent2;
 			gizmo_data.params = vec4f_t(editor_world_gizmo_t::PIXEL_SIZE, static_cast<f32>(size.y), math::tan(snapshot.main_view.fov_degrees * DEG_2_RAD * 0.5f), editor_world_gizmo_t::MIN_WORLD_SIZE);
@@ -405,25 +420,26 @@ namespace sfg
 		const world_render_context_t& world_ctx = ctx.get_world_render_context();
 
 		gpu_index_t source_texture_index = NULL_GPU_INDEX;
-		switch (editor_global_toolbar_t::get().get_world_view())
+
+		switch (snapshot_data.world_view)
 		{
-		case editor_main_toolbar_world_view_e::gbuffer_albedo:
+		case editor_world_view_e::gbuffer_albedo:
 			source_texture_index = world_ctx.get_gbuffer_albedo_index(frame_index);
 			break;
-		case editor_main_toolbar_world_view_e::gbuffer_orm:
+		case editor_world_view_e::gbuffer_orm:
 			source_texture_index = world_ctx.get_gbuffer_orm_index(frame_index);
 			break;
-		case editor_main_toolbar_world_view_e::gbuffer_normal:
+		case editor_world_view_e::gbuffer_normal:
 			source_texture_index = world_ctx.get_gbuffer_normal_index(frame_index);
 			break;
-		case editor_main_toolbar_world_view_e::gbuffer_emissive:
+		case editor_world_view_e::gbuffer_emissive:
 			source_texture_index = world_ctx.get_gbuffer_emissive_index(frame_index);
 			break;
-		case editor_main_toolbar_world_view_e::lighting:
+		case editor_world_view_e::lighting:
 			source_texture_index = world_ctx.get_lighting_texture_index(frame_index);
 			break;
-		case editor_main_toolbar_world_view_e::post_process:
-		case editor_main_toolbar_world_view_e::final:
+		case editor_world_view_e::post_process:
+		case editor_world_view_e::final:
 		default:
 			source_texture_index = world_ctx.get_world_texture_index(frame_index);
 			break;
@@ -487,6 +503,7 @@ namespace sfg
 		if (render_gizmo)
 		{
 			u8 mesh_index = 0;
+
 			switch (snapshot_data.gizmo.control_type)
 			{
 			case editor_transform_control_type_e::move:
@@ -525,6 +542,7 @@ namespace sfg
 
 				backend.cmd_bind_vertex_buffers(cmd, {.buffer = orientation_vertex_buffer, .slot = 0, .vertex_size = orientation_mesh.vertex_stride, .offset = 0});
 				backend.cmd_bind_index_buffers(cmd, {.buffer = orientation_index_buffer, .offset = 0, .index_size = orientation_mesh.index_stride});
+
 				for (u32 axis = 0; axis < 3; ++axis)
 				{
 					const u32 obj_constants[2] = {axis, EDITOR_WORLD_GIZMO_ROTATION_ORIENTATION_SCALE};
@@ -604,6 +622,7 @@ namespace sfg
 												   });
 			}
 		}
+
 		backend.cmd_end_render_pass(cmd, {});
 
 		END_DEBUG_EVENT((&backend), cmd);
