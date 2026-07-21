@@ -199,6 +199,7 @@ namespace sfg
 		bitmask_opts_t		   bitmask_opts	   = {};
 		const char*			   name			   = nullptr;
 		const char*			   display_name	   = nullptr;
+		const char*			   category		   = nullptr;
 		const char*			   tooltip		   = nullptr;
 		fn_default_init		   default_init_fn = nullptr;
 		sid_t				   type_id		   = 0;
@@ -211,6 +212,7 @@ namespace sfg
 	{
 		const char*							   name			   = "";
 		const char*							   display_name	   = nullptr;
+		const char*							   category		   = nullptr;
 		const char*							   tooltip		   = "";
 		fn_default_init						   default_init_fn = nullptr;
 		vector_t<reflected_field_descriptor_t> fields;

@@ -861,6 +861,9 @@ namespace sfg
 		if (descriptor.display_name != nullptr)
 			type.display_name = _text_allocator.allocate(descriptor.display_name);
 
+		if (descriptor.category != nullptr)
+			type.category = _text_allocator.allocate(descriptor.category);
+
 		type.type_id	  = descriptor.type_id;
 		type.size		  = descriptor.size;
 		type.alignment	  = descriptor.alignment;

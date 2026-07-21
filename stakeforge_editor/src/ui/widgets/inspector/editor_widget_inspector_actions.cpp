@@ -130,11 +130,13 @@ namespace sfg
 		for (const ecs_component_table_t& component_table : component_tables)
 		{
 			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
+
 			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flag_no_ui))
 				continue;
 
-			const char*					   category			= "Component";
+			const char*					   category			= reflected_type->category != nullptr ? reflected_type->category : "Component";
 			add_component_menu_category_t* category_storage = nullptr;
+
 			for (add_component_menu_category_t& candidate : _add_component_categories)
 			{
 				if (std::strcmp(candidate.category, category) == 0)
@@ -143,6 +145,7 @@ namespace sfg
 					break;
 				}
 			}
+
 			if (category_storage == nullptr)
 			{
 				_add_component_categories.push_back({.category = category});
@@ -154,12 +157,15 @@ namespace sfg
 		}
 
 		_add_component_root_rows.reserve(_add_component_categories.size());
+
 		for (add_component_menu_category_t& category : _add_component_categories)
 		{
 			if (category.rows.empty())
 				continue;
+
 			_add_component_root_rows.push_back({.text = category.category, .children = category.rows.data(), .child_count = static_cast<u16>(category.rows.size())});
 		}
+
 		if (_add_component_root_rows.empty())
 			return;
 
