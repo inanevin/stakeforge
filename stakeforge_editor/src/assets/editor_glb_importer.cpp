@@ -97,6 +97,8 @@ namespace sfg
 			vector_t<string_t> names;
 		};
 
+		void get_node_transform(const tg3_node& node, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale);
+
 		string_t get_asset_name(const tg3_str& name)
 		{
 			string_t result;
@@ -787,12 +789,6 @@ namespace sfg
 							 vector_t<editor_asset_t>&			  out_assets,
 							 vector_t<string_t>&				  out_asset_paths)
 		{
-			if (skin.joints_count > skeleton_loader_t::MAX_JOINTS)
-			{
-				SFG_ERR("glb skeleton has too many joints: {0} / {1}", skin.joints_count, skeleton_loader_t::MAX_JOINTS);
-				return false;
-			}
-
 			string_t asset_name = get_asset_name(skin.name);
 			if (asset_name.empty())
 			{
@@ -850,6 +846,13 @@ namespace sfg
 				skeleton_joint_def_t& joint = skeleton.joints[i];
 				joint.name					= name;
 				joint.name_hash				= hashing_t::to_sid(name);
+
+				vec3f_t local_pos	= vec3f_t::zero;
+				quat_t	local_rot	= quat_t::identity;
+				vec3f_t local_scale = vec3f_t::one;
+				get_node_transform(node, local_pos, local_rot, local_scale);
+				joint.local = mat4x3_t::transform(local_pos, local_rot, local_scale);
+
 				if (!editor_glb_import_util_t::read_inverse_bind_matrix(model, skin, i, joint.inverse_bind))
 				{
 					SFG_ERR("failed to read GLB inverse bind matrix for joint {0}", i);

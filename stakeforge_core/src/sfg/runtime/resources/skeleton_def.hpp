@@ -40,6 +40,7 @@ namespace sfg
 
 	struct skeleton_joint_def_t
 	{
+		mat4x3_t local		  = mat4x3_t::identity;
 		mat4x3_t inverse_bind = mat4x3_t::identity;
 		string_t name		  = {};
 		sid_t	 name_hash	  = NULL_SID;

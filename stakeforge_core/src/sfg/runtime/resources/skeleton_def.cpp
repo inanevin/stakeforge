@@ -45,6 +45,7 @@ namespace sfg
 					{.name = "name", .display_name = "Name", .offset = offsetof(skeleton_joint_def_t, name), .size = sizeof(string_t), .type = reflected_value_type_e::string},
 					{.name = "name_hash", .display_name = "Name Hash", .offset = offsetof(skeleton_joint_def_t, name_hash), .size = sizeof(sid_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u64},
 					{.name = "parent_index", .display_name = "Parent Index", .offset = offsetof(skeleton_joint_def_t, parent_index), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+					{.name = "local", .display_name = "Local", .sub_type_id = type_id_t<mat4x3_t>::value, .offset = offsetof(skeleton_joint_def_t, local), .size = sizeof(mat4x3_t), .type = reflected_value_type_e::object},
 					{.name = "inverse_bind", .display_name = "Inverse Bind", .sub_type_id = type_id_t<mat4x3_t>::value, .offset = offsetof(skeleton_joint_def_t, inverse_bind), .size = sizeof(mat4x3_t), .type = reflected_value_type_e::object},
 				},
 			.type_id   = type_id_t<skeleton_joint_def_t>::value,

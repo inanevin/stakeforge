@@ -36,25 +36,42 @@ namespace sfg
 		}
 
 		const u32 joint_count = static_cast<u32>(skeleton.joints.size());
-		SFG_ASSERT(joint_count <= MAX_JOINTS);
+		SFG_ASSERT(joint_count != 0);
 
 		runtime->joint_count	  = joint_count;
 		runtime->root_joint_index = skeleton.root_joint_index;
+		runtime->joints			  = mem.allocate_bytes(sizeof(skeleton_joint_runtime_t) * joint_count, alignof(skeleton_joint_runtime_t));
+
+		skeleton_joint_runtime_t* runtime_joints = mem.get<skeleton_joint_runtime_t>(runtime->joints);
+
 		for (u32 i = 0; i < joint_count; ++i)
 		{
 			const skeleton_joint_def_t& joint = skeleton.joints[i];
-			runtime->joints[i]				  = {
-							   .inverse_bind = joint.inverse_bind,
-							   .name_hash	 = joint.name_hash,
-							   .parent_index = joint.parent_index,
-			   };
+			const chunk_handle32_t		name  = mem.allocate_text(joint.name.c_str());
+
+			runtime_joints[i] = {
+				.local		  = joint.local,
+				.inverse_bind = joint.inverse_bind,
+				.name_hash	  = joint.name_hash,
+				.name		  = name,
+				.parent_index = joint.parent_index,
+			};
 		}
 
 		return true;
 	}
 
-	void skeleton_loader_t::unload(resource_entry_t&, resource_context_t&)
+	void skeleton_loader_t::unload(resource_entry_t& entry, resource_context_t& ctx)
 	{
+		chunk_allocator_t&		  mem	  = ctx.resource_manager.get_memory();
+		skeleton_runtime_t*		  runtime = mem.get<skeleton_runtime_t>(entry.runtime);
+		skeleton_joint_runtime_t* joints  = mem.get<skeleton_joint_runtime_t>(runtime->joints);
+
+		for (u32 i = 0; i < runtime->joint_count; ++i)
+			mem.free(joints[i].name);
+
+		mem.free(runtime->joints);
+		*runtime = {};
 	}
 
 	const resource_type_desc_t skeleton_resource_desc = {
