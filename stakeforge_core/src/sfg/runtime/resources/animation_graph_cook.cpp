@@ -25,37 +25,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#pragma once
+#include "animation_graph_cook.hpp"
 
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
-
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/runtime/resources/resource_type.hpp>
+#include <sfg/io/log.hpp>
 
 namespace sfg
 {
-	enum class editor_asset_type_e : u8
+	bool animation_graph_cooker::cook_from_file(const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
-		invalid,
-		audio,
-		font,
-		mesh,
-		skeleton,
-		animation,
-		material,
-		shader,
-		texture,
-		texture_sampler,
-		physical_material,
-		prefab,
-		animation_graph,
-		hdr_skybox,
-		physics_collision_mesh,
-		world,
-		count,
-	};
+		SFG_ERR("animation graph cooking is not implemented");
 
-	void				to_json(nlohmann::json& j, const editor_asset_type_e& t);
-	void				from_json(const nlohmann::json& j, editor_asset_type_e& t);
-	editor_asset_type_e editor_asset_type_from_resource_type(resource_type_e type);
+		return false;
+	}
 }

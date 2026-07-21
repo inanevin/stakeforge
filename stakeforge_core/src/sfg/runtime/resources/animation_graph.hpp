@@ -27,35 +27,26 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
-
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/runtime/resources/resource_type.hpp>
+#include "common_resources.hpp"
 
 namespace sfg
 {
-	enum class editor_asset_type_e : u8
+	struct animation_graph_runtime_t
 	{
-		invalid,
-		audio,
-		font,
-		mesh,
-		skeleton,
-		animation,
-		material,
-		shader,
-		texture,
-		texture_sampler,
-		physical_material,
-		prefab,
-		animation_graph,
-		hdr_skybox,
-		physics_collision_mesh,
-		world,
-		count,
+		u32 reserved = 0;
 	};
 
-	void				to_json(nlohmann::json& j, const editor_asset_type_e& t);
-	void				from_json(const nlohmann::json& j, editor_asset_type_e& t);
-	editor_asset_type_e editor_asset_type_from_resource_type(resource_type_e type);
+	struct animation_graph_internals_t
+	{
+		u32 reserved = 0;
+	};
+
+	class animation_graph_loader_t final
+	{
+	public:
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
+		static void unload(resource_entry_t& entry, resource_context_t& ctx);
+	};
+
+	extern const resource_type_desc_t animation_graph_resource_desc;
 }

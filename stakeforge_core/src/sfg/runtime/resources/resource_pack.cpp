@@ -17,7 +17,7 @@
 #if !defined(SFG_EMBED_ASSETS)
 #include "animation_cook.hpp"
 #include "animation_def.hpp"
-#include "animation_state_machine_cook.hpp"
+#include "animation_graph_cook.hpp"
 #include "audio_cook.hpp"
 #include "font_cook.hpp"
 #include "material_cook.hpp"
@@ -93,97 +93,135 @@ namespace sfg
 			if (schema == "sfg.schema.texture")
 			{
 				texture_cook_config_t cfg = {};
+
 				if (!reflection_registry_t::get().type_from_json(type_id_t<texture_cook_config_t>::value, &cfg, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize texture cook config");
+
 					return false;
 				}
+
 				return texture_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
+
 			if (schema == "sfg.schema.shader")
 			{
 				shader_cook_config_t cfg = {};
+
 				if (!reflection_registry_t::get().type_from_json(type_id_t<shader_cook_config_t>::value, &cfg, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize shader cook config");
+
 					return false;
 				}
+
 				shader_data_definition_t definition = {};
+
 				return shader_cooker::cook_from_file(cfg, full_path, out_header, stream, definition);
 			}
+
 			if (schema == "sfg.schema.audio")
 			{
 				audio_cook_config_t cfg = {};
+
 				if (!reflection_registry_t::get().type_from_json(type_id_t<audio_cook_config_t>::value, &cfg, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize audio cook config");
+
 					return false;
 				}
+
 				return audio_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
+
 			if (schema == "sfg.schema.font")
 			{
 				font_cook_config_t cfg = {};
+
 				if (!reflection_registry_t::get().type_from_json(type_id_t<font_cook_config_t>::value, &cfg, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize font cook config");
+
 					return false;
 				}
+
 				return font_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
+
 			if (schema == "sfg.schema.material")
 			{
 				material_def_t def = {};
+
 				config.get_to(def);
+
 				return material_cooker::cook_from_def(def, out_header, stream);
 			}
+
 			if (schema == "sfg.schema.animation")
 			{
 				animation_def_t def = {};
+
 				if (!reflection_registry_t::get().type_from_json(type_id_t<animation_def_t>::value, &def, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize animation definition");
+
 					return false;
 				}
+
 				return animation_cooker::cook_from_def(def, out_header, stream);
 			}
+
 			if (schema == "sfg.schema.texture_sampler")
 			{
 				sampler_desc_t desc = {};
+
 				if (!reflection_registry_t::get().type_from_json(type_id_t<sampler_desc_t>::value, &desc, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize texture sampler description");
+
 					return false;
 				}
+
 				return texture_sampler_cooker::cook_from_desc(desc, out_header, stream);
 			}
+
 			if (schema == "sfg.schema.hdr_skybox")
 			{
 				skybox_hdr_cook_config_t cfg = {};
+
 				if (!reflection_registry_t::get().type_from_json(type_id_t<skybox_hdr_cook_config_t>::value, &cfg, nullptr, config))
 				{
 					SFG_ERR("failed to deserialize HDR skybox cook config");
+
 					return false;
 				}
+
 				return skybox_hdr_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
-			if (schema == "sfg.schema.animation_state_machine")
+
+			if (schema == "sfg.schema.animation_graph")
 			{
-				return animation_state_machine_cooker::cook_from_file(full_path, out_header, stream);
+				return animation_graph_cooker::cook_from_file(full_path, out_header, stream);
 			}
+
 			if (schema == "sfg.schema.prefab")
 			{
 				const string_t prefab_source = file_system_t::read_file_as_string(full_path);
-				out_header					 = {
+
+				out_header = {
 					.type		 = resource_type_e::prefab,
 					.magic		 = prefab_loader_t::WIRE_MAGIC,
 					.version	 = prefab_loader_t::WIRE_VERSION,
 					.source_tick = file_system_t::get_last_modified_ticks(full_path),
 				};
+
 				stream << prefab_source;
+
 				return true;
 			}
+
 			SFG_ERR("unknown cook schema: {0}", schema.c_str());
+
 			return false;
 		}
 

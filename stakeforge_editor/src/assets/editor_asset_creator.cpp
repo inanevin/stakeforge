@@ -174,13 +174,13 @@ namespace sfg
 			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_animation_state_machine_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
+		bool create_animation_graph_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const editor_asset_write_none_desc_t write_desc{
 				.parent_path	 = parent_path,
 				.name			 = desc.name,
 				.guid			 = desc.guid,
-				.asset_type		 = editor_asset_type_e::animation_state_machine,
+				.asset_type		 = editor_asset_type_e::animation_graph,
 				.sub_type		 = desc.sub_type,
 				.allow_overwrite = desc.allow_overwrite,
 			};
@@ -224,9 +224,9 @@ namespace sfg
 
 	bool editor_asset_creator_t::create_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset)
 	{
-		editor_asset_t asset = {};
-		string_t	   asset_path;
-		bool		   result = false;
+		editor_asset_t asset	  = {};
+		string_t	   asset_path = {};
+		bool		   result	  = false;
 
 		const editor_asset_tree_t& tree		   = editor_asset_manager_t::get().get_asset_tree();
 		const editor_asset_node_t& parent_node = tree.value(desc.parent_node);
@@ -262,10 +262,10 @@ namespace sfg
 			if (result)
 				result = editor_asset_cooker_t::cook_physical_material(asset, desc.name);
 			break;
-		case editor_asset_type_e::animation_state_machine:
-			result = create_animation_state_machine_asset(desc, parent_path, &asset, &asset_path);
+		case editor_asset_type_e::animation_graph:
+			result = create_animation_graph_asset(desc, parent_path, &asset, &asset_path);
 			if (result)
-				result = editor_asset_cooker_t::cook_animation_state_machine(asset, desc.name);
+				result = editor_asset_cooker_t::cook_animation_graph(asset, desc.name);
 			break;
 		case editor_asset_type_e::prefab:
 			result = create_prefab_asset(desc, parent_path, &asset, &asset_path);

@@ -321,10 +321,11 @@ namespace sfg
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
-	bool editor_asset_cooker_t::cook_animation_state_machine(const editor_asset_t& asset, const char* asset_name)
+	bool editor_asset_cooker_t::cook_animation_graph(const editor_asset_t& asset, const char* asset_name)
 	{
 		SFG_ASSERT(false);
-		SFG_ERR("animation state machine cooking is not implemented for asset {0}", asset.guid);
+		SFG_ERR("animation graph cooking is not implemented for asset {0}", asset.guid);
+
 		return false;
 	}
 

@@ -69,8 +69,8 @@ namespace sfg
 		case editor_asset_type_e::prefab:
 			j = "prefab";
 			break;
-		case editor_asset_type_e::animation_state_machine:
-			j = "animation_state_machine";
+		case editor_asset_type_e::animation_graph:
+			j = "animation_graph";
 			break;
 		case editor_asset_type_e::hdr_skybox:
 			j = "hdr_skybox";
@@ -113,8 +113,8 @@ namespace sfg
 			t = editor_asset_type_e::physical_material;
 		else if (s == "prefab")
 			t = editor_asset_type_e::prefab;
-		else if (s == "animation_state_machine")
-			t = editor_asset_type_e::animation_state_machine;
+		else if (s == "animation_graph")
+			t = editor_asset_type_e::animation_graph;
 		else if (s == "hdr_skybox")
 			t = editor_asset_type_e::hdr_skybox;
 		else if (s == "physics_collision_mesh")
@@ -151,8 +151,8 @@ namespace sfg
 			return editor_asset_type_e::physical_material;
 		case resource_type_e::prefab:
 			return editor_asset_type_e::prefab;
-		case resource_type_e::animation_state_machine:
-			return editor_asset_type_e::animation_state_machine;
+		case resource_type_e::animation_graph:
+			return editor_asset_type_e::animation_graph;
 		case resource_type_e::hdr_skybox:
 			return editor_asset_type_e::hdr_skybox;
 		case resource_type_e::physics_collision_mesh:

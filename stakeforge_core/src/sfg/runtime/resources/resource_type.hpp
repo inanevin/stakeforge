@@ -32,20 +32,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_AUDIO					"reflection_resource_subtype_audio"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_FONT					"reflection_resource_subtype_font"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MESH					"reflection_resource_subtype_mesh"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SKELETON				"reflection_resource_subtype_skeleton"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION				"reflection_resource_subtype_animation"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MATERIAL				"reflection_resource_subtype_material"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SHADER					"reflection_resource_subtype_shader"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_TEXTURE					"reflection_resource_subtype_texture"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_TEXTURE_SAMPLER			"reflection_resource_subtype_texture_sampler"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICAL_MATERIAL		"reflection_resource_subtype_physical_material"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PREFAB					"reflection_resource_subtype_prefab"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_STATE_MACHINE "reflection_resource_subtype_animation_state_machine"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_HDR_SKYBOX				"reflection_resource_subtype_hdr_skybox"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICS_COLLISION_MESH	"reflection_resource_subtype_physics_collision_mesh"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_AUDIO				   "reflection_resource_subtype_audio"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_FONT				   "reflection_resource_subtype_font"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MESH				   "reflection_resource_subtype_mesh"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SKELETON			   "reflection_resource_subtype_skeleton"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION			   "reflection_resource_subtype_animation"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MATERIAL			   "reflection_resource_subtype_material"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SHADER				   "reflection_resource_subtype_shader"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_TEXTURE				   "reflection_resource_subtype_texture"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_TEXTURE_SAMPLER		   "reflection_resource_subtype_texture_sampler"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICAL_MATERIAL	   "reflection_resource_subtype_physical_material"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PREFAB				   "reflection_resource_subtype_prefab"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_GRAPH		   "reflection_resource_subtype_animation_graph"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_HDR_SKYBOX			   "reflection_resource_subtype_hdr_skybox"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICS_COLLISION_MESH "reflection_resource_subtype_physics_collision_mesh"_hs
 
 	enum class resource_type_e : u8
 	{
@@ -61,7 +61,7 @@ namespace sfg
 		texture_sampler,
 		physical_material,
 		prefab,
-		animation_state_machine,
+		animation_graph,
 		hdr_skybox,
 		physics_collision_mesh,
 		count,
@@ -93,8 +93,8 @@ namespace sfg
 			return resource_type_e::physical_material;
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PREFAB)
 			return resource_type_e::prefab;
-		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_STATE_MACHINE)
-			return resource_type_e::animation_state_machine;
+		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_GRAPH)
+			return resource_type_e::animation_graph;
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_HDR_SKYBOX)
 			return resource_type_e::hdr_skybox;
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICS_COLLISION_MESH)

@@ -39,7 +39,7 @@ namespace sfg
 	namespace
 	{
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_ANIMATION_ROWS[] = {
-			{.text = "Animation State Machine", .command = assets_action_menu_create_animation_state_machine},
+			{.text = "Animation Graph", .command = assets_action_menu_create_animation_graph},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GRAPHICS_ROWS[] = {

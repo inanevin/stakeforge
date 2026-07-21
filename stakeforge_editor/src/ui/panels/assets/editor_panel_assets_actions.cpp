@@ -481,8 +481,8 @@ namespace sfg
 		case assets_action_menu_create_world:
 			text = "world";
 			break;
-		case assets_action_menu_create_animation_state_machine:
-			text = "animation_state_machine";
+		case assets_action_menu_create_animation_graph:
+			text = "animation_graph";
 			break;
 		case assets_action_menu_create_opaque_shader:
 			text = "opaque_shader";
@@ -592,8 +592,8 @@ namespace sfg
 		case assets_action_menu_create_world:
 			out_desc.asset_type = editor_asset_type_e::world;
 			return true;
-		case assets_action_menu_create_animation_state_machine:
-			out_desc.asset_type = editor_asset_type_e::animation_state_machine;
+		case assets_action_menu_create_animation_graph:
+			out_desc.asset_type = editor_asset_type_e::animation_graph;
 			return true;
 		case assets_action_menu_create_opaque_shader:
 			out_desc.asset_type = editor_asset_type_e::shader;

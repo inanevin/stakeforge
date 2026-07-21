@@ -12,7 +12,7 @@
 #include <cstring>
 
 #include "animation.hpp"
-#include "animation_state_machine.hpp"
+#include "animation_graph.hpp"
 #include "audio.hpp"
 #include "font.hpp"
 #include "material.hpp"
@@ -96,7 +96,7 @@ namespace sfg
 		&texture_sampler_resource_desc,
 		&physical_material_resource_desc,
 		&prefab_resource_desc,
-		&animation_state_machine_resource_desc,
+		&animation_graph_resource_desc,
 		&skybox_hdr_resource_desc,
 		&physics_collision_mesh_resource_desc,
 	};
@@ -140,8 +140,8 @@ namespace sfg
 			return "Physical Material";
 		case resource_type_e::prefab:
 			return "Prefab";
-		case resource_type_e::animation_state_machine:
-			return "Animation State Machine";
+		case resource_type_e::animation_graph:
+			return "Animation Graph";
 		case resource_type_e::hdr_skybox:
 			return "HDR Skybox";
 		case resource_type_e::physics_collision_mesh:
@@ -183,7 +183,7 @@ namespace sfg
 					{.name = "texture_sampler", .display_name = "Texture Sampler"},
 					{.name = "physical_material", .display_name = "Physical Material"},
 					{.name = "prefab", .display_name = "Prefab"},
-					{.name = "animation_state_machine", .display_name = "Animation State Machine"},
+					{.name = "animation_graph", .display_name = "Animation Graph"},
 					{.name = "hdr_skybox", .display_name = "HDR Skybox"},
 					{.name = "physics_collision_mesh", .display_name = "Physics Collision Mesh"},
 				},
