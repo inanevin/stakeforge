@@ -31,11 +31,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class world_t;
+
 	struct editor_world_handle_tag_t
 	{
 	};
 
-	using editor_world_handle_t = pool_handle_t<u32, editor_world_handle_tag_t>;
+	using editor_world_handle_t		   = pool_handle_t<u32, editor_world_handle_tag_t>;
+	using editor_world_tick_callback_t = void (*)(world_t& world, f32 delta_time, void* user_data);
 
 	enum class editor_world_edit_type_e : u8
 	{

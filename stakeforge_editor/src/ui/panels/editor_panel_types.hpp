@@ -41,6 +41,7 @@ namespace sfg
 		resources,
 		project_settings,
 		mesh_viewer,
+		skeleton_viewer,
 		max,
 	};
 

@@ -100,7 +100,7 @@ namespace sfg
 		s_instance = nullptr;
 	}
 
-	editor_world_handle_t editor_world_controller_t::create_world(const world_init_config_t& init_config, editor_world_edit_type_e edit_type)
+	editor_world_handle_t editor_world_controller_t::create_world(const world_init_config_t& init_config, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
 	{
 		editor_app_t::get().stop_render();
 
@@ -112,7 +112,7 @@ namespace sfg
 		_worlds.get(handle)				   = new editor_world_t();
 		editor_world_t* const editor_world = _worlds.get(handle);
 
-		editor_world->init(world_config, handle, edit_type);
+		editor_world->init(world_config, handle, edit_type, tick_callback, tick_callback_user_data);
 
 		return handle;
 	}
@@ -272,9 +272,10 @@ namespace sfg
 		for (editor_world_t* editor_world : _worlds)
 			editor_world->begin_frame();
 
-		const i64 now	   = time_t::get_cpu_microseconds();
-		const i64 delta_us = now - _previous_time_us;
-		_previous_time_us  = now;
+		const i64 now				  = time_t::get_cpu_microseconds();
+		const i64 delta_us			  = now - _previous_time_us;
+		const f32 frame_delta_seconds = static_cast<f32>(delta_us) / 1000000.0f;
+		_previous_time_us			  = now;
 
 		u32		  steps	   = 0;
 		const i64 fixed_us = world_tick_rate == 0 ? 0 : 1000000 / static_cast<i64>(world_tick_rate);
@@ -321,6 +322,7 @@ namespace sfg
 			if (steps == 0 && !main_world_paused)
 				editor_world->update_world_transforms(false);
 
+			editor_world->invoke_tick_callback(frame_delta_seconds);
 			editor_world->draw_debug();
 			editor_world->produce_snapshot();
 		}

@@ -91,7 +91,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type);
+		void init(const world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data);
 		void uninit();
 
 		// -----------------------------------------------------------------------------
@@ -116,6 +116,7 @@ namespace sfg
 		void						   request_entity_pick(vec2f_t relative_position, bool incremental_selection);
 		void						   shoot_ray_from_camera(vec2f_t relative_position);
 		void						   begin_frame();
+		void						   invoke_tick_callback(f32 delta_time);
 		void						   draw_debug();
 		void						   update_play_mode(editor_play_mode_e mode);
 		void						   update_world_transforms(bool advance_interpolation);
@@ -177,9 +178,11 @@ namespace sfg
 		world_render_snapshot_t	 _snapshot_slots[3] = {};
 		world_render_prep_data_t _render_prep_data	= {};
 
-		editor_world_camera_t*	   _camera = nullptr;
-		ostream_t				   _play_snapshot;
-		editor_world_camera_type_e _camera_type = editor_world_camera_type_e::fly;
+		editor_world_tick_callback_t _tick_callback			  = nullptr;
+		void*						 _tick_callback_user_data = nullptr;
+		editor_world_camera_t*		 _camera				  = nullptr;
+		ostream_t					 _play_snapshot;
+		editor_world_camera_type_e	 _camera_type = editor_world_camera_type_e::fly;
 
 		editor_world_render_context_t _render_context = {};
 

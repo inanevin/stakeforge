@@ -69,7 +69,7 @@ namespace sfg
 #define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX		   24576
 #define EDITOR_WORLD_LIGHT_MAX					   1024
 
-	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type)
+	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
 	{
 		world_init_config_t world_config = init_config;
 		world_config.debug_draw			 = {
@@ -88,6 +88,8 @@ namespace sfg
 		_edit_context.init(edit_type);
 		_edit_context.set_world(handle);
 		_gizmo.init();
+		_tick_callback			 = tick_callback;
+		_tick_callback_user_data = tick_callback_user_data;
 
 		_producer_slot		  = 0;
 		_consumer_slot		  = 1;
@@ -169,6 +171,8 @@ namespace sfg
 		_pending_pick_request		 = {};
 		_last_render_pick_request_id = 0;
 		_next_pick_request_id		 = 0;
+		_tick_callback				 = nullptr;
+		_tick_callback_user_data	 = nullptr;
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 			_object_id_readback_valid[i] = false;
@@ -511,6 +515,12 @@ namespace sfg
 	{
 		consume_entity_pick_result();
 		_world.get_debug_draw().begin_frame();
+	}
+
+	void editor_world_t::invoke_tick_callback(f32 delta_time)
+	{
+		if (_tick_callback != nullptr)
+			_tick_callback(_world, delta_time, _tick_callback_user_data);
 	}
 
 	void editor_world_t::draw_debug()

@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/log/editor_panel_log.hpp"
 #include "ui/panels/editor_panel_mesh_viewer.hpp"
+#include "ui/panels/editor_panel_skeleton_viewer.hpp"
 #include "ui/panels/editor_panel_project_settings.hpp"
 #include "ui/panels/editor_panel_resources.hpp"
 #include "ui/panels/editor_panel_world.hpp"
@@ -50,6 +51,7 @@ namespace sfg
 			{.type = editor_panel_type_e::resources},
 			{.type = editor_panel_type_e::project_settings},
 			{.type = editor_panel_type_e::mesh_viewer, .allows_multiple_instances = true},
+			{.type = editor_panel_type_e::skeleton_viewer, .allows_multiple_instances = true},
 		};
 
 		static_assert(static_cast<u8>(editor_panel_type_e::max) == static_cast<u8>(sizeof(PANEL_DESCS) / sizeof(PANEL_DESCS[0])));
@@ -77,6 +79,8 @@ namespace sfg
 			return new editor_panel_project_settings_t();
 		case editor_panel_type_e::mesh_viewer:
 			return new editor_panel_mesh_viewer_t();
+		case editor_panel_type_e::skeleton_viewer:
+			return new editor_panel_skeleton_viewer_t();
 		default:
 			return nullptr;
 		}
