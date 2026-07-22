@@ -103,6 +103,7 @@ namespace sfg
 		void uninit();
 		void close();
 		void update_field_data(editor_dropdown_field_t field);
+		void set_items(const editor_dropdown_item_t* items, u16 item_count);
 		void refresh_field_data();
 		void refresh_title();
 		void set_mixed(bool mixed);

@@ -183,6 +183,23 @@ namespace sfg
 		refresh_field_data();
 	}
 
+	void editor_dropdown_t::set_items(const editor_dropdown_item_t* items, u16 item_count)
+	{
+		SFG_ASSERT(items != nullptr);
+		SFG_ASSERT(item_count != 0);
+
+		close();
+		_items.resize(0);
+		_items.reserve(item_count);
+
+		for (u16 item_index = 0; item_index < item_count; ++item_index)
+			_items.push_back(items[item_index]);
+
+		_config.items	   = _items.data();
+		_config.item_count = item_count;
+		refresh_title();
+	}
+
 	void editor_dropdown_t::refresh_field_data()
 	{
 		_selected_value = read_field_value(_fields[0]);
