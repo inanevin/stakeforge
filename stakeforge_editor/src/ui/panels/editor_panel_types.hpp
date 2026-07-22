@@ -42,6 +42,7 @@ namespace sfg
 		project_settings,
 		mesh_viewer,
 		skeleton_viewer,
+		animation_graph,
 		max,
 	};
 
