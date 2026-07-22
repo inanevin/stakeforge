@@ -810,6 +810,12 @@ namespace sfg
 			status += ")";
 			context.report_status(status.c_str());
 
+			if (skin.joints_count > MAX_SKELETON_BONES)
+			{
+				SFG_ERR("glb skeleton has too many bones: {0} (maximum is {1})", skin.joints_count, MAX_SKELETON_BONES);
+				return false;
+			}
+
 			vector_t<u32> node_to_joint_index = {};
 			node_to_joint_index.resize(model.nodes_count);
 
