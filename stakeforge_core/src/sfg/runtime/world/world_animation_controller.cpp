@@ -52,9 +52,13 @@ namespace sfg
 		_world = nullptr;
 	}
 
-	void world_animation_controller_t::tick(f32 delta_time)
+	void world_animation_controller_t::tick_prep(f32 delta_time)
 	{
 		sync_create_destroy_skinned_renderers();
+	}
+
+	void world_animation_controller_t::tick_logic(f32 delta_time)
+	{
 	}
 
 	void world_animation_controller_t::sync_create_destroy_skinned_renderers()
@@ -84,12 +88,11 @@ namespace sfg
 		{
 			struct skinned_renderer_create_t
 			{
-				entity_id_t id		   = NULL_ENTITY_ID;
-				u32			bone_count = 0;
+				resource_handle_t skeleton = NULL_RESOURCE_HANDLE;
+				entity_id_t		  id	   = NULL_ENTITY_ID;
 			};
 
 			const resource_manager_t&		resource_manager = resource_manager_t::get();
-			const chunk_allocator32_t&		resource_memory	 = resource_manager.get_memory();
 			const ecs_component_table_ref_t table_refs[]	 = {
 				skinned_mesh_renderer_table.ref(),
 				!disabled_table.ref(),
@@ -105,26 +108,50 @@ namespace sfg
 				if (skeleton_entry == nullptr)
 					continue;
 
-				const skeleton_runtime_t* skeleton = resource_memory.get<skeleton_runtime_t>(skeleton_entry->runtime);
 				create_renderers.push_back({
-					.id			= row.id,
-					.bone_count = skeleton->joint_count,
+					.skeleton = skinned_mesh_renderer.skeleton,
+					.id		  = row.id,
 				});
 			}
 
 			for (const skinned_renderer_create_t& create : create_renderers)
 			{
-				create_skinned_renderer(create.id, create.bone_count);
+				create_skinned_renderer(create.id, create.skeleton);
 			}
 		}
 	}
 
-	void world_animation_controller_t::create_skinned_renderer(entity_id_t id, u32 bone_count)
+	void world_animation_controller_t::create_skinned_renderer(entity_id_t id, resource_handle_t skeleton_handle)
 	{
+		const resource_manager_t&  resource_manager = resource_manager_t::get();
+		const resource_entry_t*	   skeleton_entry	= resource_manager.find_entry(skeleton_handle);
+		const chunk_allocator32_t& resource_memory	= resource_manager.get_memory();
+		const skeleton_runtime_t*  skeleton			= resource_memory.get<skeleton_runtime_t>(skeleton_entry->runtime);
+
+		const skeleton_joint_runtime_t* joints			 = resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
+		const u32*						evaluation_order = resource_memory.get<u32>(skeleton->evaluation_order);
+		frame_vector_t<mat4x3_t>		absolute_transforms(skeleton->joint_count, mat4x3_t::identity);
+
+		for (u32 i = 0; i < skeleton->joint_count; ++i)
+		{
+			const u32						joint_index = evaluation_order[i];
+			const skeleton_joint_runtime_t& joint		= joints[joint_index];
+			absolute_transforms[joint_index]			= joint.parent_index == SKELETON_JOINT_NO_PARENT ? joint.local : absolute_transforms[joint.parent_index] * joint.local;
+		}
+
+		const mat4x3_t		   root_inverse = skeleton->root_joint_index == SKELETON_JOINT_NO_PARENT ? mat4x3_t::identity : absolute_transforms[skeleton->root_joint_index].inverse();
+		const chunk_handle32_t bones_handle = allocate_bones(skeleton->joint_count);
+		bone_t* const		   bones		= _bone_memory.get<bone_t>(bones_handle);
+
+		for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
+		{
+			bones[joint_index].bone_transform = root_inverse * absolute_transforms[joint_index] * joints[joint_index].inverse_bind;
+		}
+
 		ecs_component_table_t&					  system_skinned_mesh_renderer_table = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
 		component_system_skinned_mesh_renderer_t& system_skinned_mesh_renderer		 = ecs_helpers_t::table_add_or_get_as<component_system_skinned_mesh_renderer_t>(system_skinned_mesh_renderer_table, id);
 
-		system_skinned_mesh_renderer.bones_handle = allocate_bones(bone_count);
+		system_skinned_mesh_renderer.bones_handle = bones_handle;
 	}
 
 	void world_animation_controller_t::destroy_skinned_renderer(entity_id_t id)

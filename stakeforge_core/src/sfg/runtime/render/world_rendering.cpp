@@ -633,8 +633,8 @@ namespace sfg
 			backend.cmd_set_viewport(cmd, {.min_depth = 0.0f, .max_depth = 1.0f, .width = view.resolution.x, .height = view.resolution.y});
 			backend.cmd_set_scissors(cmd, {.width = view.resolution.x, .height = view.resolution.y});
 
-			const gpu_index_t rp_constants[2] = {ctx.get_shadow_view_data_index(frame_index, static_cast<u16>(view_index)), ctx.get_entity_buffer_index(frame_index)};
-			backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+			const gpu_index_t rp_constants[3] = {ctx.get_shadow_view_data_index(frame_index, static_cast<u16>(view_index)), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
+			backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
 			gfx_handle_t bound_vertex	= {};
 			gfx_handle_t bound_index	= {};
@@ -723,8 +723,8 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
-		gpu_index_t rp_constants[2] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index)};
-		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+		gpu_index_t rp_constants[3] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
+		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
 		gfx_handle_t bound_vertex	= {};
 		gfx_handle_t bound_index	= {};
@@ -768,6 +768,9 @@ namespace sfg
 				if (mat.use_alpha_cutoff)
 					flags |= shader_variant_flags_alpha_cutoff;
 
+				if (draw.skinning_index != UINT32_MAX)
+					flags |= shader_variant_flags_skinned;
+
 				const render_resource_handle_t shader_handle = mat.find_pso(flags);
 
 				if (shader_handle.is_null())
@@ -779,7 +782,8 @@ namespace sfg
 				bind_material(backend, cmd, bound_material, draw.material_index, mat);
 			}
 
-			backend.cmd_bind_constants(cmd, {.data = &draw.entity_index, .offset = constant_obj0, .count = 1, .param_index = 0});
+			const gpu_index_t obj_constants[] = {draw.entity_index, draw.skinning_index};
+			backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = std::size(obj_constants), .param_index = 0});
 
 			backend.cmd_draw_indexed_instanced(cmd,
 											   {
@@ -901,8 +905,8 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
-		gpu_index_t rp_constants[2] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index)};
-		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+		gpu_index_t rp_constants[3] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
+		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
 		gfx_handle_t bound_vertex	= {};
 		gfx_handle_t bound_index	= {};
@@ -947,6 +951,9 @@ namespace sfg
 				if (mat.use_alpha_cutoff)
 					flags |= shader_variant_flags_alpha_cutoff;
 
+				if (draw.skinning_index != UINT32_MAX)
+					flags |= shader_variant_flags_skinned;
+
 				const render_resource_handle_t shader_handle = mat.find_pso(flags);
 
 				if (shader_handle.is_null())
@@ -958,7 +965,8 @@ namespace sfg
 				bind_material(backend, cmd, bound_material, draw.material_index, mat);
 			}
 
-			backend.cmd_bind_constants(cmd, {.data = &draw.entity_index, .offset = constant_obj0, .count = 1, .param_index = 0});
+			const gpu_index_t obj_constants[] = {draw.entity_index, draw.skinning_index};
+			backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = std::size(obj_constants), .param_index = 0});
 
 			backend.cmd_draw_indexed_instanced(cmd,
 											   {

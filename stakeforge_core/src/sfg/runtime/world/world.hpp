@@ -57,6 +57,8 @@ namespace sfg
 		void end_play();
 		void clear_entities();
 		void tick_physics(f32 dt);
+		void tick_animation_prep(f32 dt);
+		void tick_animation_logic(f32 dt);
 
 		// -----------------------------------------------------------------------------
 		// entity
@@ -147,6 +149,11 @@ namespace sfg
 		inline const physics_world_t& get_physics() const
 		{
 			return _physics_world;
+		}
+
+		inline const world_animation_controller_t& get_animation_controller() const
+		{
+			return _animation_controller;
 		}
 
 	private:

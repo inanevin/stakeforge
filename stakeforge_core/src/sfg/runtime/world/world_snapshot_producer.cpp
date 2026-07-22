@@ -388,9 +388,21 @@ namespace sfg
 				const mesh_internals_t*			mesh_internals = rm_aux.get<mesh_internals_t>(entry->internals);
 				const mesh_primitive_runtime_t* primitives	   = rm_aux.get<mesh_primitive_runtime_t>(mesh_runtime->primitives);
 
-				const render_resource_handle_t vertex_buffer = mesh_internals->vertex_buffer;
-				const render_resource_handle_t index_buffer	 = mesh_internals->index_buffer;
-				const u32					   idx			 = static_cast<u32>(snapshot.bones.size());
+				const render_resource_handle_t							 vertex_buffer = mesh_internals->vertex_buffer;
+				const render_resource_handle_t							 index_buffer  = mesh_internals->index_buffer;
+				const u32												 idx		   = static_cast<u32>(snapshot.bones.size());
+				const span_t<const world_animation_controller_t::bone_t> bones		   = world.get_animation_controller().get_bones(system_skinned_mesh_renderer.bones_handle);
+
+				for (size_t i = 0; i < bones.size; ++i)
+				{
+					const world_animation_controller_t::bone_t& bone = bones.data[i];
+					snapshot.bones.push_back({
+						.gpu_bone =
+							{
+								.model = bone.bone_transform.to_matrix4x4(),
+							},
+					});
+				}
 
 				for (u32 i = 0; i < mesh_runtime->primitive_count; i++)
 				{

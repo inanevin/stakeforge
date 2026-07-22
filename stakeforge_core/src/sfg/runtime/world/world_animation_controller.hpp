@@ -28,8 +28,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/span.hpp>
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
+#include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
@@ -60,11 +62,24 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void tick(f32 delta_time);
+		void tick_prep(f32 delta_time);
+		void tick_logic(f32 delta_time);
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline span_t<const bone_t> get_bones(chunk_handle32_t handle) const
+		{
+			return {
+				.data = _bone_memory.get<bone_t>(handle),
+				.size = handle.size / sizeof(bone_t),
+			};
+		}
 
 	private:
 		void sync_create_destroy_skinned_renderers();
-		void create_skinned_renderer(entity_id_t id, u32 bone_count);
+		void create_skinned_renderer(entity_id_t id, resource_handle_t skeleton_handle);
 		void destroy_skinned_renderer(entity_id_t id);
 
 		chunk_handle32_t allocate_bones(u32 bone_count);

@@ -88,11 +88,12 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
-		gpu_index_t rp_constants[2] = {
+		gpu_index_t rp_constants[] = {
 			ctx.get_world_render_context().get_opaque_render_pass_data_index(frame_index),
 			ctx.get_world_render_context().get_entity_buffer_index(frame_index),
+			ctx.get_world_render_context().get_bone_buffer_index(frame_index),
 		};
-		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = std::size(rp_constants), .param_index = 0});
 
 		gfx_handle_t bound_vertex	= {};
 		gfx_handle_t bound_index	= {};
@@ -241,11 +242,12 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
-		gpu_index_t rp_constants[2] = {
+		gpu_index_t rp_constants[] = {
 			world_ctx.get_opaque_render_pass_data_index(frame_index),
 			world_ctx.get_entity_buffer_index(frame_index),
+			world_ctx.get_bone_buffer_index(frame_index),
 		};
-		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = std::size(rp_constants), .param_index = 0});
 
 		gfx_handle_t bound_vertex	= {};
 		gfx_handle_t bound_index	= {};

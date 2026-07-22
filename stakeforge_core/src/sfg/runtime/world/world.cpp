@@ -178,6 +178,16 @@ namespace sfg
 		_physics_world.tick(dt);
 	}
 
+	void world_t::tick_animation_prep(f32 dt)
+	{
+		_animation_controller.tick_prep(dt);
+	}
+
+	void world_t::tick_animation_logic(f32 dt)
+	{
+		_animation_controller.tick_logic(dt);
+	}
+
 	void world_t::recreate_physical(entity_id_t id)
 	{
 		if (!_physics_world.is_init())
