@@ -701,6 +701,14 @@ namespace sfg::ui
 		}
 	}
 
+	void vg_canvas_t::add_cubic_bezier(const vec2f_t& p0, const vec2f_t& p1, const vec2f_t& p2, const vec2f_t& p3, u32 segments, const vg_line_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
+	{
+		vg_path_cubic_bezier(_path1, p0, p1, p2, p3, segments);
+
+		for (u32 segment_index = 0; segment_index < segments; ++segment_index)
+			add_line(_path1[segment_index], _path1[segment_index + 1], paint, state, draw_order);
+	}
+
 	void vg_canvas_t::add_circle(const vec2f_t& center, f32 radius, const vg_circle_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
 	{
 		const vec2f_t bb_min	  = {center.x - radius - paint.thickness, center.y - radius - paint.thickness};

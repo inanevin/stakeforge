@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "vg_path.hpp"
+#include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 
 namespace sfg::ui
@@ -165,6 +166,29 @@ namespace sfg::ui
 			const f32 t = static_cast<f32>(i) / static_cast<f32>(segments);
 			const f32 a = math::lerp(start, end, t);
 			out_path[i] = {center.x + math::cos(a) * radius, center.y + math::sin(a) * radius};
+		}
+	}
+
+	vec2f_t vg_cubic_bezier_point(const vec2f_t& p0, const vec2f_t& p1, const vec2f_t& p2, const vec2f_t& p3, f32 t)
+	{
+		const f32 inverse_t			= 1.0f - t;
+		const f32 inverse_t_squared = inverse_t * inverse_t;
+		const f32 t_squared			= t * t;
+
+		return p0 * (inverse_t_squared * inverse_t) + p1 * (3.0f * inverse_t_squared * t) + p2 * (3.0f * inverse_t * t_squared) + p3 * (t_squared * t);
+	}
+
+	void vg_path_cubic_bezier(vector_t<vec2f_t>& out_path, const vec2f_t& p0, const vec2f_t& p1, const vec2f_t& p2, const vec2f_t& p3, u32 segments)
+	{
+		SFG_ASSERT(segments != 0);
+
+		out_path.resize(segments + 1);
+
+		for (u32 segment_index = 0; segment_index <= segments; ++segment_index)
+		{
+			const f32 t = static_cast<f32>(segment_index) / static_cast<f32>(segments);
+
+			out_path[segment_index] = vg_cubic_bezier_point(p0, p1, p2, p3, t);
 		}
 	}
 }
