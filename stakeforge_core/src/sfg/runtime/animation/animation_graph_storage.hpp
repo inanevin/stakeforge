@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "animation_bone.hpp"
 #include "animation_graph_types.hpp"
-#include "animation_pose.hpp"
 
 #include <sfg/data/span.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
@@ -55,15 +54,15 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void process_graph(chunk_handle32_t first_node, span_t<animation_bone_t> bones, f32 delta_time);
+		void process_graph(chunk_handle32_t nodes, u32 node_count, span_t<animation_bone_t> bones, f32 delta_time);
 
 	private:
-		void			 process_node(animation_graph_node_t& node, f32 delta_time);
-		void			 process_node_asm(animation_graph_node_asm_t& node, chunk_handle32_t mask_handle, f32 delta_time);
-		void			 process_node_bone_control(animation_graph_node_bone_control_t& node, f32 delta_time);
-		void			 process_node_ik(animation_graph_node_ik_t& node, f32 delta_time);
-		animation_pose_t process_asm_state(animation_graph_asm_state_t& state, chunk_handle32_t mask_handle, f32 sample_time);
-		animation_pose_t sample_clip(resource_handle_t clip, f32 sample_time, const animation_graph_mask_t* mask);
+		void process_node(chunk_handle32_t nodes, u32 node_count, f32 delta_time);
+		void process_node_asm(animation_graph_node_asm_t& node, chunk_handle32_t mask_handle, span_t<animation_graph_bone_t> pose_bones, f32 delta_time);
+		void process_node_bone_control(animation_graph_node_bone_control_t& node, span_t<animation_graph_bone_t> pose_bones, f32 delta_time);
+		void process_node_ik(animation_graph_node_ik_t& node, span_t<animation_graph_bone_t> pose_bones, f32 delta_time);
+		void process_asm_state(animation_graph_asm_state_t& state, chunk_handle32_t mask_handle, f32 sample_time, span_t<animation_graph_bone_t> pose_bones);
+		void sample_clip(resource_handle_t clip, f32 sample_time, const animation_graph_mask_t* mask, span_t<animation_graph_bone_t> pose_bones);
 
 	private:
 		chunk_allocator32_t _nodes			 = {};
@@ -72,5 +71,7 @@ namespace sfg
 		chunk_allocator32_t _clips			 = {};
 		chunk_allocator32_t _asm_states		 = {};
 		chunk_allocator32_t _asm_transitions = {};
+		chunk_allocator32_t _poses			 = {};
+		chunk_allocator32_t _pose_bones		 = {};
 	};
 }

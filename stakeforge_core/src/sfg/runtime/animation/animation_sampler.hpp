@@ -27,7 +27,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "animation_pose.hpp"
+#include "animation_graph_types.hpp"
+
+#include <sfg/data/span.hpp>
 
 namespace sfg
 {
@@ -40,11 +42,11 @@ namespace sfg
 	class animation_sampler_t final
 	{
 	public:
-		static animation_pose_t sample_animation(const animation_runtime_t* animation, f32 sample_time, const u64* bitmask0, const u64* bitmask1);
+		static void sample_animation(const animation_runtime_t* animation, f32 sample_time, const u64* bitmasks, span_t<animation_graph_bone_t> pose_bones);
 
 	private:
 		static vec3f_t sample_channel(const animation_channel_v3_def_t& channel, f32 sample_time);
 		static quat_t  sample_channel(const animation_channel_q_def_t& channel, f32 sample_time);
-		static bool	   is_masked(u32 node_index, const u64* bitmask0, const u64* bitmask1);
+		static bool	   is_masked(u32 node_index, const u64* bitmasks);
 	};
 }

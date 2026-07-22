@@ -32,9 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-
-#define ANIMATION_SAMPLER_MAX_BONES 128
-
 	namespace
 	{
 		struct sampled_bone_t
@@ -46,18 +43,22 @@ namespace sfg
 		};
 	}
 
-	animation_pose_t animation_sampler_t::sample_animation(const animation_runtime_t* animation, f32 sample_time, const u64* bitmask0, const u64* bitmask1)
+	void animation_sampler_t::sample_animation(const animation_runtime_t* animation, f32 sample_time, const u64* bitmasks, span_t<animation_graph_bone_t> pose_bones)
 	{
 		SFG_ASSERT(animation != nullptr);
+		SFG_ASSERT(pose_bones.size <= MAX_SKELETON_BONES);
 
-		sampled_bone_t sampled_bones[ANIMATION_SAMPLER_MAX_BONES] = {};
+		sampled_bone_t sampled_bones[MAX_SKELETON_BONES] = {};
+
+		for (size_t bone_index = 0; bone_index < pose_bones.size; ++bone_index)
+			pose_bones.data[bone_index].active = 0;
 
 		for (const animation_channel_v3_def_t& channel : animation->def.position_channels)
 		{
 			const u32 node_index = static_cast<u32>(channel.node_index);
-			SFG_ASSERT(node_index < ANIMATION_SAMPLER_MAX_BONES);
+			SFG_ASSERT(node_index < pose_bones.size);
 
-			if (is_masked(node_index, bitmask0, bitmask1))
+			if (is_masked(node_index, bitmasks))
 				continue;
 
 			sampled_bones[node_index].position = sample_channel(channel, sample_time);
@@ -67,9 +68,9 @@ namespace sfg
 		for (const animation_channel_q_def_t& channel : animation->def.rotation_channels)
 		{
 			const u32 node_index = static_cast<u32>(channel.node_index);
-			SFG_ASSERT(node_index < ANIMATION_SAMPLER_MAX_BONES);
+			SFG_ASSERT(node_index < pose_bones.size);
 
-			if (is_masked(node_index, bitmask0, bitmask1))
+			if (is_masked(node_index, bitmasks))
 				continue;
 
 			sampled_bones[node_index].rotation = sample_channel(channel, sample_time);
@@ -79,40 +80,26 @@ namespace sfg
 		for (const animation_channel_v3_def_t& channel : animation->def.scale_channels)
 		{
 			const u32 node_index = static_cast<u32>(channel.node_index);
-			SFG_ASSERT(node_index < ANIMATION_SAMPLER_MAX_BONES);
+			SFG_ASSERT(node_index < pose_bones.size);
 
-			if (is_masked(node_index, bitmask0, bitmask1))
+			if (is_masked(node_index, bitmasks))
 				continue;
 
 			sampled_bones[node_index].scale	 = sample_channel(channel, sample_time);
 			sampled_bones[node_index].active = true;
 		}
 
-		u32 active_bone_count = 0;
-
-		for (u32 node_index = 0; node_index < ANIMATION_SAMPLER_MAX_BONES; ++node_index)
-		{
-			if (sampled_bones[node_index].active)
-				++active_bone_count;
-		}
-
-		animation_pose_t pose = {};
-		pose.bones.reserve(active_bone_count);
-
-		for (u32 node_index = 0; node_index < ANIMATION_SAMPLER_MAX_BONES; ++node_index)
+		for (u32 node_index = 0; node_index < pose_bones.size; ++node_index)
 		{
 			const sampled_bone_t& sampled_bone = sampled_bones[node_index];
 
 			if (!sampled_bone.active)
 				continue;
 
-			pose.bones.push_back({
-				.local_matrix = mat4x3_t::transform(sampled_bone.position, sampled_bone.rotation, sampled_bone.scale),
-				.bone_index	  = node_index,
-			});
+			animation_graph_bone_t& pose_bone = pose_bones.data[node_index];
+			pose_bone.local_matrix			  = mat4x3_t::transform(sampled_bone.position, sampled_bone.rotation, sampled_bone.scale);
+			pose_bone.active				  = 1;
 		}
-
-		return pose;
 	}
 
 	vec3f_t animation_sampler_t::sample_channel(const animation_channel_v3_def_t& channel, f32 sample_time)
@@ -253,15 +240,13 @@ namespace sfg
 		return quat_t::identity;
 	}
 
-	bool animation_sampler_t::is_masked(u32 node_index, const u64* bitmask0, const u64* bitmask1)
+	bool animation_sampler_t::is_masked(u32 node_index, const u64* bitmasks)
 	{
-		SFG_ASSERT(node_index < ANIMATION_SAMPLER_MAX_BONES);
+		SFG_ASSERT(node_index < MAX_SKELETON_BONES);
 
-		if (node_index < 64)
-			return bitmask0 != nullptr && ((*bitmask0 & (u64{1} << node_index)) != 0);
+		const u32 mask_index = node_index / 64;
+		const u32 bit_index	 = node_index % 64;
 
-		const u32 mask_index = node_index - 64;
-
-		return bitmask1 != nullptr && ((*bitmask1 & (u64{1} << mask_index)) != 0);
+		return bitmasks != nullptr && ((bitmasks[mask_index] & (u64{1} << bit_index)) != 0);
 	}
 }

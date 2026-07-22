@@ -38,11 +38,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 
-#define ANIMATION_GRAPH_NODE_MEMORY_PERCENT		 30
-#define ANIMATION_GRAPH_PARAM_MEMORY_PERCENT	 15
-#define ANIMATION_GRAPH_MASK_MEMORY_PERCENT		 10
-#define ANIMATION_GRAPH_CLIP_MEMORY_PERCENT		 15
-#define ANIMATION_GRAPH_ASM_STATE_MEMORY_PERCENT 20
+#define ANIMATION_GRAPH_NODE_MEMORY_PERCENT			  12
+#define ANIMATION_GRAPH_PARAM_MEMORY_PERCENT		  6
+#define ANIMATION_GRAPH_MASK_MEMORY_PERCENT			  3
+#define ANIMATION_GRAPH_CLIP_MEMORY_PERCENT			  6
+#define ANIMATION_GRAPH_ASM_STATE_MEMORY_PERCENT	  8
+#define ANIMATION_GRAPH_ASM_TRANSITION_MEMORY_PERCENT 8
+#define ANIMATION_GRAPH_POSE_MEMORY_PERCENT			  7
 
 	animation_graph_storage_t::~animation_graph_storage_t() = default;
 
@@ -53,7 +55,9 @@ namespace sfg
 		const u32 mask_memory			= storage_memory * ANIMATION_GRAPH_MASK_MEMORY_PERCENT / 100;
 		const u32 clip_memory			= storage_memory * ANIMATION_GRAPH_CLIP_MEMORY_PERCENT / 100;
 		const u32 asm_state_memory		= storage_memory * ANIMATION_GRAPH_ASM_STATE_MEMORY_PERCENT / 100;
-		const u32 asm_transition_memory = storage_memory - node_memory - param_memory - mask_memory - clip_memory - asm_state_memory;
+		const u32 asm_transition_memory = storage_memory * ANIMATION_GRAPH_ASM_TRANSITION_MEMORY_PERCENT / 100;
+		const u32 pose_memory			= storage_memory * ANIMATION_GRAPH_POSE_MEMORY_PERCENT / 100;
+		const u32 pose_bone_memory		= storage_memory - node_memory - param_memory - mask_memory - clip_memory - asm_state_memory - asm_transition_memory - pose_memory;
 
 		_nodes.init(node_memory);
 		_params.init(param_memory);
@@ -61,10 +65,14 @@ namespace sfg
 		_clips.init(clip_memory);
 		_asm_states.init(asm_state_memory);
 		_asm_transitions.init(asm_transition_memory);
+		_poses.init(pose_memory);
+		_pose_bones.init(pose_bone_memory);
 	}
 
 	void animation_graph_storage_t::uninit()
 	{
+		_pose_bones.uninit();
+		_poses.uninit();
 		_asm_transitions.uninit();
 		_asm_states.uninit();
 		_clips.uninit();
@@ -73,36 +81,43 @@ namespace sfg
 		_nodes.uninit();
 	}
 
-	void animation_graph_storage_t::process_graph(chunk_handle32_t first_node, span_t<animation_bone_t> bones, f32 delta_time)
+	void animation_graph_storage_t::process_graph(chunk_handle32_t nodes, u32 node_count, span_t<animation_bone_t> bones, f32 delta_time)
 	{
-		chunk_handle32_t node_handle = first_node;
+		process_node(nodes, node_count, delta_time);
+	}
 
-		while (node_handle)
+	void animation_graph_storage_t::process_node(chunk_handle32_t nodes, u32 node_count, f32 delta_time)
+	{
+		animation_graph_node_t* graph_nodes = _nodes.get<animation_graph_node_t>(nodes);
+
+		for (u32 node_index = 0; node_index < node_count; ++node_index)
 		{
-			animation_graph_node_t& node = *_nodes.get<animation_graph_node_t>(node_handle);
+			animation_graph_node_t&				 node = graph_nodes[node_index];
+			animation_graph_pose_t&				 pose = *_poses.get<animation_graph_pose_t>(node.pose_handle);
+			const span_t<animation_graph_bone_t> pose_bones{
+				.data = _pose_bones.get<animation_graph_bone_t>(pose.bones),
+				.size = pose.bone_count,
+			};
 
-			process_node(node, delta_time);
-			node_handle = node.next_node;
+			for (size_t bone_index = 0; bone_index < pose_bones.size; ++bone_index)
+				pose_bones.data[bone_index].active = 0;
+
+			switch (node.type)
+			{
+			case animation_graph_node_type_e::asm_node:
+				process_node_asm(node.node_asm, node.mask_handle, pose_bones, delta_time);
+				break;
+			case animation_graph_node_type_e::bone_controller:
+				process_node_bone_control(node.node_bone_control, pose_bones, delta_time);
+				break;
+			case animation_graph_node_type_e::ik:
+				process_node_ik(node.node_ik, pose_bones, delta_time);
+				break;
+			}
 		}
 	}
 
-	void animation_graph_storage_t::process_node(animation_graph_node_t& node, f32 delta_time)
-	{
-		switch (node.type)
-		{
-		case animation_graph_node_type_e::asm_node:
-			process_node_asm(node.node_asm, node.mask_handle, delta_time);
-			break;
-		case animation_graph_node_type_e::bone_controller:
-			process_node_bone_control(node.node_bone_control, delta_time);
-			break;
-		case animation_graph_node_type_e::ik:
-			process_node_ik(node.node_ik, delta_time);
-			break;
-		}
-	}
-
-	void animation_graph_storage_t::process_node_asm(animation_graph_node_asm_t& node, chunk_handle32_t mask_handle, f32 delta_time)
+	void animation_graph_storage_t::process_node_asm(animation_graph_node_asm_t& node, chunk_handle32_t mask_handle, span_t<animation_graph_bone_t> pose_bones, f32 delta_time)
 	{
 		if (!node.first_state)
 		{
@@ -204,7 +219,7 @@ namespace sfg
 		else
 			current_state._current_time = 0.0f;
 
-		animation_pose_t current_pose = process_asm_state(current_state, mask_handle, current_state._current_time);
+		process_asm_state(current_state, mask_handle, current_state._current_time, pose_bones);
 
 		if (transition_target_node != nullptr)
 		{
@@ -215,24 +230,64 @@ namespace sfg
 			else
 				transition_target_node->_current_time = 0.0f;
 
-			animation_pose_t transition_target_pose = process_asm_state(*transition_target_node, mask_handle, transition_target_node->_current_time);
+			frame_vector_t<animation_graph_bone_t> transition_target_bones(pose_bones.size);
+			const span_t<animation_graph_bone_t>   transition_target_pose{
+				.data = transition_target_bones.data(),
+				.size = transition_target_bones.size(),
+			};
+
+			process_asm_state(*transition_target_node, mask_handle, transition_target_node->_current_time, transition_target_pose);
+
+			for (size_t bone_index = 0; bone_index < pose_bones.size; ++bone_index)
+			{
+				animation_graph_bone_t&		  final_bone			 = pose_bones.data[bone_index];
+				const animation_graph_bone_t& transition_target_bone = transition_target_pose.data[bone_index];
+
+				if (transition_target_bone.active == 0)
+					continue;
+
+				if (final_bone.active == 0)
+				{
+					final_bone = transition_target_bone;
+					continue;
+				}
+
+				vec3f_t final_position = vec3f_t::zero;
+				quat_t	final_rotation = quat_t::identity;
+				vec3f_t final_scale	   = vec3f_t::one;
+
+				final_bone.local_matrix.decompose(final_position, final_rotation, final_scale);
+
+				vec3f_t transition_target_position = vec3f_t::zero;
+				quat_t	transition_target_rotation = quat_t::identity;
+				vec3f_t transition_target_scale	   = vec3f_t::one;
+
+				transition_target_bone.local_matrix.decompose(transition_target_position, transition_target_rotation, transition_target_scale);
+
+				final_bone.local_matrix = mat4x3_t::transform(vec3f_t::lerp(final_position, transition_target_position, transition_target_blend),
+															  quat_t::slerp(final_rotation, transition_target_rotation, transition_target_blend),
+															  vec3f_t::lerp(final_scale, transition_target_scale, transition_target_blend));
+			}
 		}
 	}
 
-	void animation_graph_storage_t::process_node_bone_control(animation_graph_node_bone_control_t& node, f32 delta_time)
+	void animation_graph_storage_t::process_node_bone_control(animation_graph_node_bone_control_t& node, span_t<animation_graph_bone_t> pose_bones, f32 delta_time)
 	{
 	}
 
-	void animation_graph_storage_t::process_node_ik(animation_graph_node_ik_t& node, f32 delta_time)
+	void animation_graph_storage_t::process_node_ik(animation_graph_node_ik_t& node, span_t<animation_graph_bone_t> pose_bones, f32 delta_time)
 	{
 	}
 
-	animation_pose_t animation_graph_storage_t::process_asm_state(animation_graph_asm_state_t& state, chunk_handle32_t mask_handle, f32 sample_time)
+	void animation_graph_storage_t::process_asm_state(animation_graph_asm_state_t& state, chunk_handle32_t mask_handle, f32 sample_time, span_t<animation_graph_bone_t> pose_bones)
 	{
+		for (size_t bone_index = 0; bone_index < pose_bones.size; ++bone_index)
+			pose_bones.data[bone_index].active = 0;
+
 		if (state.clip_count == 0)
 		{
 			SFG_WARN("animation state has no clips");
-			return {};
+			return;
 		}
 
 		const animation_graph_mask_t* mask	= mask_handle ? _masks.get<animation_graph_mask_t>(mask_handle) : nullptr;
@@ -249,7 +304,7 @@ namespace sfg
 			if (parameter.type != animation_param_type_e::f32)
 			{
 				SFG_WARN("animation parameter type does not match blend type! parameter type: {0}, blend type: 1d", (u32)parameter.type);
-				return {};
+				return;
 			}
 
 			u32 lower_index = UINT32_MAX;
@@ -282,7 +337,7 @@ namespace sfg
 			if (parameter.type != animation_param_type_e::vec2)
 			{
 				SFG_WARN("animation parameter type does not match blend type! parameter type: {0}, blend type: 2d", (u32)parameter.type);
-				return {};
+				return;
 			}
 
 			const f32 epsilon_sq   = MATH_EPS * MATH_EPS;
@@ -320,76 +375,72 @@ namespace sfg
 		}
 		}
 
-		animation_pose_t		final_pose		   = {};
-		frame_vector_t<vec3f_t> blended_positions  = {};
-		frame_vector_t<quat_t>	blended_rotations  = {};
-		frame_vector_t<vec3f_t> blended_scales	   = {};
-		f32						accumulated_weight = 0.0f;
+		frame_vector_t<animation_graph_bone_t> sampled_bones(pose_bones.size);
+		frame_vector_t<f32>					   accumulated_weights(pose_bones.size, 0.0f);
+		const span_t<animation_graph_bone_t>   sampled_pose{
+			.data = sampled_bones.data(),
+			.size = sampled_bones.size(),
+		};
 
 		for (u32 i = 0; i < state.clip_count; ++i)
 		{
 			if (blend_weights[i] <= 0.0f)
 				continue;
 
-			animation_pose_t pose = sample_clip(clips[i].clip, sample_time, mask);
+			sample_clip(clips[i].clip, sample_time, mask, sampled_pose);
 
-			if (final_pose.bones.empty())
+			for (size_t bone_index = 0; bone_index < pose_bones.size; ++bone_index)
 			{
-				final_pose.bones.resize(pose.bones.size());
-				blended_positions.resize(pose.bones.size(), vec3f_t::zero);
-				blended_rotations.resize(pose.bones.size(), quat_t::identity);
-				blended_scales.resize(pose.bones.size(), vec3f_t::one);
+				animation_graph_bone_t&		  final_bone   = pose_bones.data[bone_index];
+				const animation_graph_bone_t& sampled_bone = sampled_pose.data[bone_index];
 
-				for (size_t bone_index = 0; bone_index < pose.bones.size(); ++bone_index)
+				if (sampled_bone.active == 0)
+					continue;
+
+				if (final_bone.active == 0)
 				{
-					final_pose.bones[bone_index].bone_index = pose.bones[bone_index].bone_index;
-					pose.bones[bone_index].local_matrix.decompose(blended_positions[bone_index], blended_rotations[bone_index], blended_scales[bone_index]);
+					final_bone						= sampled_bone;
+					accumulated_weights[bone_index] = blend_weights[i];
+					continue;
 				}
 
-				accumulated_weight = blend_weights[i];
-			}
-			else
-			{
-				const f32 total_weight = accumulated_weight + blend_weights[i];
+				const f32 total_weight = accumulated_weights[bone_index] + blend_weights[i];
 				const f32 blend		   = blend_weights[i] / total_weight;
 
-				for (size_t bone_index = 0; bone_index < pose.bones.size(); ++bone_index)
-				{
-					vec3f_t position = vec3f_t::zero;
-					quat_t	rotation = quat_t::identity;
-					vec3f_t scale	 = vec3f_t::one;
-					pose.bones[bone_index].local_matrix.decompose(position, rotation, scale);
+				vec3f_t final_position = vec3f_t::zero;
+				quat_t	final_rotation = quat_t::identity;
+				vec3f_t final_scale	   = vec3f_t::one;
 
-					blended_positions[bone_index] = vec3f_t::lerp(blended_positions[bone_index], position, blend);
-					blended_rotations[bone_index] = quat_t::slerp(blended_rotations[bone_index], rotation, blend);
-					blended_scales[bone_index]	  = vec3f_t::lerp(blended_scales[bone_index], scale, blend);
-				}
+				final_bone.local_matrix.decompose(final_position, final_rotation, final_scale);
 
-				accumulated_weight = total_weight;
+				vec3f_t sampled_position = vec3f_t::zero;
+				quat_t	sampled_rotation = quat_t::identity;
+				vec3f_t sampled_scale	 = vec3f_t::one;
+
+				sampled_bone.local_matrix.decompose(sampled_position, sampled_rotation, sampled_scale);
+
+				final_bone.local_matrix			= mat4x3_t::transform(vec3f_t::lerp(final_position, sampled_position, blend), quat_t::slerp(final_rotation, sampled_rotation, blend), vec3f_t::lerp(final_scale, sampled_scale, blend));
+				accumulated_weights[bone_index] = total_weight;
 			}
 		}
-
-		// blend sampled poses using blend_weights.
-		for (size_t bone_index = 0; bone_index < final_pose.bones.size(); ++bone_index)
-			final_pose.bones[bone_index].local_matrix = mat4x3_t::transform(blended_positions[bone_index], blended_rotations[bone_index], blended_scales[bone_index]);
-
-		return final_pose;
 	}
 
-	animation_pose_t animation_graph_storage_t::sample_clip(resource_handle_t clip, f32 sample_time, const animation_graph_mask_t* mask)
+	void animation_graph_storage_t::sample_clip(resource_handle_t clip, f32 sample_time, const animation_graph_mask_t* mask, span_t<animation_graph_bone_t> pose_bones)
 	{
+		for (size_t bone_index = 0; bone_index < pose_bones.size; ++bone_index)
+			pose_bones.data[bone_index].active = 0;
+
 		resource_manager_t&		   resource_manager = resource_manager_t::get();
 		const animation_runtime_t* animation		= resource_manager.find_runtime<animation_runtime_t>(clip);
 
 		if (animation == nullptr)
 		{
 			SFG_WARN("animation clip is not loaded: {0}", clip);
-			return {};
+			return;
 		}
 
-		const u64* bitmask0 = mask != nullptr ? &mask->bitmasks[0] : nullptr;
-		const u64* bitmask1 = mask != nullptr ? &mask->bitmasks[1] : nullptr;
+		const u64* bitmasks = mask != nullptr ? mask->bitmasks : nullptr;
 
-		return animation_sampler_t::sample_animation(animation, sample_time, bitmask0, bitmask1);
+		animation_sampler_t::sample_animation(animation, sample_time, bitmasks, pose_bones);
 	}
 }

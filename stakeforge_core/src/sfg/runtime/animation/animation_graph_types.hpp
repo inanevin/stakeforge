@@ -28,11 +28,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/math/mat4x3.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/memory/chunk_handle.hpp>
-#include <sfg/runtime/resources/resource_handle.hpp>
+#include <sfg/runtime/resources/common_resources.hpp>
 
 namespace sfg
 {
@@ -68,6 +69,25 @@ namespace sfg
 		greater,
 	};
 
+	enum class animation_graph_bone_control_type_e : u8
+	{
+		rotation_override,
+		rotation_additive,
+		position_override,
+		position_additive,
+		transform_override,
+		transform_additive,
+		look_at,
+	};
+
+	enum class animation_graph_bone_control_space_e : u8
+	{
+		local,
+		component,
+		world,
+		bone,
+	};
+
 	struct alignas(32) animation_graph_param_t
 	{
 		union {
@@ -82,7 +102,19 @@ namespace sfg
 
 	struct animation_graph_mask_t
 	{
-		u64 bitmasks[2] = {};
+		u64 bitmasks[(MAX_SKELETON_BONES + 63) / 64] = {};
+	};
+
+	struct animation_graph_bone_t
+	{
+		mat4x3_t local_matrix = mat4x3_t::identity;
+		u8		 active		  = 0;
+	};
+
+	struct animation_graph_pose_t
+	{
+		chunk_handle32_t bones		= {};
+		u32				 bone_count = 0;
 	};
 
 	struct animation_graph_clip_t
@@ -127,6 +159,11 @@ namespace sfg
 
 	struct animation_graph_node_bone_control_t
 	{
+		chunk_handle32_t					 bone_indices  = {};
+		chunk_handle32_t					 parameters	   = {};
+		u32									 bone_count	   = 0;
+		animation_graph_bone_control_type_e	 control_type  = animation_graph_bone_control_type_e::rotation_override;
+		animation_graph_bone_control_space_e control_space = animation_graph_bone_control_space_e::local;
 	};
 
 	struct animation_graph_node_ik_t
@@ -140,7 +177,7 @@ namespace sfg
 			animation_graph_node_bone_control_t node_bone_control;
 			animation_graph_node_ik_t			node_ik;
 		};
-		chunk_handle32_t			next_node	= {};
+		chunk_handle32_t			pose_handle = {};
 		chunk_handle32_t			mask_handle = {};
 		animation_graph_node_type_e type		= animation_graph_node_type_e::asm_node;
 	};
