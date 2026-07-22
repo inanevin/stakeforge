@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world.hpp"
 
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/runtime/animation/animation_graph_util.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
 
@@ -48,6 +49,8 @@ namespace sfg
 
 	void world_animation_controller_t::uninit()
 	{
+		_animation_graphs.clear();
+
 		_bone_memory.uninit();
 		_animation_graph_storage.uninit();
 
@@ -150,6 +153,7 @@ namespace sfg
 		ecs_component_table_t&		 system_animation_graph_table		= _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
 		const ecs_component_table_t& disabled_table						= _world->get_component_table(type_id_t<component_disabled_t>::value);
 		const ecs_component_table_t& system_skinned_mesh_renderer_table = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
+		const ecs_component_table_t& skinned_mesh_renderer_table		= _world->get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
 		const ecs_component_table_t& animation_graph_table				= _world->get_component_table(type_id_t<component_animation_graph_t>::value);
 
 		// destroy disabled
@@ -192,37 +196,73 @@ namespace sfg
 
 		// create anim graph
 		{
+			struct animation_graph_create_t
+			{
+				resource_handle_t skeleton = NULL_RESOURCE_HANDLE;
+				entity_id_t		  id	   = NULL_ENTITY_ID;
+			};
+
 			const ecs_component_table_ref_t table_refs[] = {
 				!disabled_table.ref(),
 				system_skinned_mesh_renderer_table.ref(),
 				animation_graph_table.ref(),
 				!system_animation_graph_table.ref(),
 			};
-			frame_vector_t<entity_id_t> create_entities = {};
+			frame_vector_t<animation_graph_create_t> create_graphs = {};
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				create_entities.push_back(row.id);
+				const component_skinned_mesh_renderer_t& skinned_mesh_renderer = ecs_helpers_t::table_get_as_const<component_skinned_mesh_renderer_t>(skinned_mesh_renderer_table, row.id);
+
+				create_graphs.push_back({
+					.skeleton = skinned_mesh_renderer.skeleton,
+					.id		  = row.id,
+				});
 			}
 
-			for (const entity_id_t id : create_entities)
+			const resource_manager_t&  resource_manager = resource_manager_t::get();
+			const chunk_allocator32_t& resource_memory	= resource_manager.get_memory();
+
+			for (const animation_graph_create_t& create : create_graphs)
 			{
-				create_animation_graph(id);
+				const resource_entry_t*	  skeleton_entry = resource_manager.find_entry(create.skeleton);
+				const skeleton_runtime_t* skeleton		 = resource_memory.get<skeleton_runtime_t>(skeleton_entry->runtime);
+
+				create_animation_graph(create.id, *skeleton);
 			}
 		}
 	}
 
-	void world_animation_controller_t::create_animation_graph(entity_id_t id)
+	void world_animation_controller_t::create_animation_graph(entity_id_t id, const skeleton_runtime_t& skeleton)
 	{
-		ecs_component_table_t& system_animation_graph_table = _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+		const resource_manager_t&  resource_manager = resource_manager_t::get();
+		const chunk_allocator32_t& resource_memory	= resource_manager.get_memory();
+		chunk_allocator32_t&	   pose_memory		= _animation_graph_storage.get_pose_memory();
+		chunk_allocator32_t&	   pose_bone_memory = _animation_graph_storage.get_pose_bone_memory();
+		chunk_allocator32_t&	   aux_memory		= _animation_graph_storage.get_aux_memory();
+		const pool_handle32		   graph_handle		= _animation_graphs.add();
+		animation_graph_t&		   graph			= _animation_graphs.get(graph_handle);
 
-		ecs_helpers_t::table_add_or_get_as<component_system_animation_graph_t>(system_animation_graph_table, id);
+		graph.initial_pose = animation_graph_util_t::create_pose_from_skeleton(skeleton, resource_memory, pose_memory, pose_bone_memory, aux_memory);
+
+		ecs_component_table_t&				system_animation_graph_table = _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+		component_system_animation_graph_t& system_animation_graph		 = ecs_helpers_t::table_add_or_get_as<component_system_animation_graph_t>(system_animation_graph_table, id);
+
+		system_animation_graph.graph_handle = graph_handle;
 	}
 
 	void world_animation_controller_t::destroy_animation_graph(entity_id_t id)
 	{
-		ecs_component_table_t& system_animation_graph_table = _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+		ecs_component_table_t&					  system_animation_graph_table = _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+		const component_system_animation_graph_t& system_animation_graph	   = ecs_helpers_t::table_get_as<component_system_animation_graph_t>(system_animation_graph_table, id);
+		const animation_graph_t&				  graph						   = _animation_graphs.get(system_animation_graph.graph_handle);
+		chunk_allocator32_t&					  pose_memory				   = _animation_graph_storage.get_pose_memory();
+		chunk_allocator32_t&					  pose_bone_memory			   = _animation_graph_storage.get_pose_bone_memory();
+		chunk_allocator32_t&					  aux_memory				   = _animation_graph_storage.get_aux_memory();
 
+		animation_graph_util_t::destroy_pose(graph.initial_pose, pose_memory, pose_bone_memory, aux_memory);
+
+		_animation_graphs.remove(system_animation_graph.graph_handle);
 		ecs_t::table_remove(system_animation_graph_table, id);
 	}
 

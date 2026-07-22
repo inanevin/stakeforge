@@ -108,13 +108,14 @@ namespace sfg
 	struct animation_graph_bone_t
 	{
 		mat4x3_t local_matrix = mat4x3_t::identity;
-		u8		 active		  = 0;
+		u32		 parent_index = UINT32_MAX;
 	};
 
 	struct animation_graph_pose_t
 	{
-		chunk_handle32_t bones		= {};
-		u32				 bone_count = 0;
+		chunk_handle32_t bones			  = {};
+		chunk_handle32_t evaluation_order = {};
+		u32				 bone_count		  = 0;
 	};
 
 	struct animation_graph_clip_t
@@ -145,6 +146,7 @@ namespace sfg
 		f32									  compare_value = 0.0f;
 		f32									  duration		= 0.0f;
 		animation_graph_asm_transition_type_e type			= animation_graph_asm_transition_type_e::equals;
+		bool								  is_blended	= false;
 	};
 
 	struct animation_graph_node_asm_t

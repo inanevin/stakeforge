@@ -39,7 +39,7 @@ namespace sfg
 			vec3f_t position = vec3f_t::zero;
 			quat_t	rotation = quat_t::identity;
 			vec3f_t scale	 = vec3f_t::one;
-			bool	active	 = false;
+			bool	written	 = false;
 		};
 	}
 
@@ -48,10 +48,9 @@ namespace sfg
 		SFG_ASSERT(animation != nullptr);
 		SFG_ASSERT(pose_bones.size <= MAX_SKELETON_BONES);
 
-		sampled_bone_t sampled_bones[MAX_SKELETON_BONES] = {};
-
-		for (size_t bone_index = 0; bone_index < pose_bones.size; ++bone_index)
-			pose_bones.data[bone_index].active = 0;
+		sampled_bone_t sampled_bones[MAX_SKELETON_BONES]   = {};
+		u32			   sampled_indices[MAX_SKELETON_BONES] = {};
+		u32			   sampled_bone_count				   = 0;
 
 		for (const animation_channel_v3_def_t& channel : animation->def.position_channels)
 		{
@@ -61,8 +60,16 @@ namespace sfg
 			if (is_masked(node_index, bitmasks))
 				continue;
 
-			sampled_bones[node_index].position = sample_channel(channel, sample_time);
-			sampled_bones[node_index].active   = true;
+			sampled_bone_t& sampled_bone = sampled_bones[node_index];
+
+			if (!sampled_bone.written)
+			{
+				pose_bones.data[node_index].local_matrix.decompose(sampled_bone.position, sampled_bone.rotation, sampled_bone.scale);
+				sampled_bone.written				  = true;
+				sampled_indices[sampled_bone_count++] = node_index;
+			}
+
+			sampled_bone.position = sample_channel(channel, sample_time);
 		}
 
 		for (const animation_channel_q_def_t& channel : animation->def.rotation_channels)
@@ -73,8 +80,16 @@ namespace sfg
 			if (is_masked(node_index, bitmasks))
 				continue;
 
-			sampled_bones[node_index].rotation = sample_channel(channel, sample_time);
-			sampled_bones[node_index].active   = true;
+			sampled_bone_t& sampled_bone = sampled_bones[node_index];
+
+			if (!sampled_bone.written)
+			{
+				pose_bones.data[node_index].local_matrix.decompose(sampled_bone.position, sampled_bone.rotation, sampled_bone.scale);
+				sampled_bone.written				  = true;
+				sampled_indices[sampled_bone_count++] = node_index;
+			}
+
+			sampled_bone.rotation = sample_channel(channel, sample_time);
 		}
 
 		for (const animation_channel_v3_def_t& channel : animation->def.scale_channels)
@@ -85,20 +100,25 @@ namespace sfg
 			if (is_masked(node_index, bitmasks))
 				continue;
 
-			sampled_bones[node_index].scale	 = sample_channel(channel, sample_time);
-			sampled_bones[node_index].active = true;
+			sampled_bone_t& sampled_bone = sampled_bones[node_index];
+
+			if (!sampled_bone.written)
+			{
+				pose_bones.data[node_index].local_matrix.decompose(sampled_bone.position, sampled_bone.rotation, sampled_bone.scale);
+				sampled_bone.written				  = true;
+				sampled_indices[sampled_bone_count++] = node_index;
+			}
+
+			sampled_bone.scale = sample_channel(channel, sample_time);
 		}
 
-		for (u32 node_index = 0; node_index < pose_bones.size; ++node_index)
+		for (u32 sampled_bone_index = 0; sampled_bone_index < sampled_bone_count; ++sampled_bone_index)
 		{
+			const u32			  node_index   = sampled_indices[sampled_bone_index];
 			const sampled_bone_t& sampled_bone = sampled_bones[node_index];
-
-			if (!sampled_bone.active)
-				continue;
 
 			animation_graph_bone_t& pose_bone = pose_bones.data[node_index];
 			pose_bone.local_matrix			  = mat4x3_t::transform(sampled_bone.position, sampled_bone.rotation, sampled_bone.scale);
-			pose_bone.active				  = 1;
 		}
 	}
 

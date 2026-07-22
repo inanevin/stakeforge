@@ -54,10 +54,28 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void process_graph(chunk_handle32_t nodes, u32 node_count, span_t<animation_bone_t> bones, f32 delta_time);
+		void process_graph(chunk_handle32_t nodes, u32 node_count, chunk_handle32_t initial_pose, span_t<animation_bone_t> bones, f32 delta_time);
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline chunk_allocator32_t& get_pose_memory()
+		{
+			return _poses;
+		}
+
+		inline chunk_allocator32_t& get_pose_bone_memory()
+		{
+			return _pose_bones;
+		}
+
+		inline chunk_allocator32_t& get_aux_memory()
+		{
+			return _aux;
+		}
 
 	private:
-		void process_node(chunk_handle32_t nodes, u32 node_count, f32 delta_time);
 		void process_node_asm(animation_graph_node_asm_t& node, chunk_handle32_t mask_handle, span_t<animation_graph_bone_t> pose_bones, f32 delta_time);
 		void process_node_bone_control(animation_graph_node_bone_control_t& node, span_t<animation_graph_bone_t> pose_bones, f32 delta_time);
 		void process_node_ik(animation_graph_node_ik_t& node, span_t<animation_graph_bone_t> pose_bones, f32 delta_time);
@@ -73,5 +91,6 @@ namespace sfg
 		chunk_allocator32_t _asm_transitions = {};
 		chunk_allocator32_t _poses			 = {};
 		chunk_allocator32_t _pose_bones		 = {};
+		chunk_allocator32_t _aux			 = {};
 	};
 }
