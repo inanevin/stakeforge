@@ -38,9 +38,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void world_animation_controller_t::init(world_t& world, u32 bone_reserve)
+	void world_animation_controller_t::init(world_t& world, u32 bone_reserve, u32 animation_graph_memory_reserve)
 	{
-		_bone_memory.init(sizeof(bone_t) * bone_reserve);
+		_animation_graph_storage.init(animation_graph_memory_reserve);
+		_bone_memory.init(sizeof(animation_bone_t) * bone_reserve);
 
 		_world = &world;
 	}
@@ -48,6 +49,7 @@ namespace sfg
 	void world_animation_controller_t::uninit()
 	{
 		_bone_memory.uninit();
+		_animation_graph_storage.uninit();
 
 		_world = nullptr;
 	}
@@ -242,9 +244,9 @@ namespace sfg
 			absolute_transforms[joint_index]			= joint.parent_index == SKELETON_JOINT_NO_PARENT ? joint.local : absolute_transforms[joint.parent_index] * joint.local;
 		}
 
-		const mat4x3_t		   root_inverse = skeleton->root_joint_index == SKELETON_JOINT_NO_PARENT ? mat4x3_t::identity : absolute_transforms[skeleton->root_joint_index].inverse();
-		const chunk_handle32_t bones_handle = allocate_bones(skeleton->joint_count);
-		bone_t* const		   bones		= _bone_memory.get<bone_t>(bones_handle);
+		const mat4x3_t			root_inverse = skeleton->root_joint_index == SKELETON_JOINT_NO_PARENT ? mat4x3_t::identity : absolute_transforms[skeleton->root_joint_index].inverse();
+		const chunk_handle32_t	bones_handle = allocate_bones(skeleton->joint_count);
+		animation_bone_t* const bones		 = _bone_memory.get<animation_bone_t>(bones_handle);
 
 		for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
 		{
@@ -268,7 +270,7 @@ namespace sfg
 
 	chunk_handle32_t world_animation_controller_t::allocate_bones(u32 bone_count)
 	{
-		return _bone_memory.allocate<bone_t>(bone_count);
+		return _bone_memory.allocate<animation_bone_t>(bone_count);
 	}
 
 	void world_animation_controller_t::deallocate_bones(chunk_handle32_t handle)

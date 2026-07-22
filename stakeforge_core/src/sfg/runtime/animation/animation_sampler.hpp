@@ -27,27 +27,24 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/math/vec2u16.hpp>
-#include <sfg/runtime/physics/physics_config.hpp>
-#include <sfg/runtime/world/world_debug_draw_config.hpp>
+#include "animation_pose.hpp"
 
 namespace sfg
 {
-	struct world_init_config_t
+	struct animation_runtime_t;
+	struct animation_channel_v3_def_t;
+	struct animation_channel_q_def_t;
+	struct vec3f_t;
+	class quat_t;
+
+	class animation_sampler_t final
 	{
-		world_debug_draw_config_t debug_draw					 = {};
-		physics_runtime_config_t  physics						 = {};
-		vec2u16_t				  render_resolution				 = vec2u16_t(512, 512);
-		u32						  render_entity_max				 = 256;
-		u32						  render_bone_max				 = 256;
-		u32						  render_bone_reserve			 = 256;
-		u32						  animation_graph_memory_reserve = 1 * 1024 * 1024;
-		u32						  component_table_reserve		 = 64;
-		u32						  free_list_reserve				 = 1024;
-		u32						  used_resource_reserve			 = 512;
-		u32						  text_allocation_reserve		 = 1024;
-		u32						  text_byte_reserve				 = 64 * 1024;
-		bool					  physics_enabled				 = false;
+	public:
+		static animation_pose_t sample_animation(const animation_runtime_t* animation, f32 sample_time, const u64* bitmask0, const u64* bitmask1);
+
+	private:
+		static vec3f_t sample_channel(const animation_channel_v3_def_t& channel, f32 sample_time);
+		static quat_t  sample_channel(const animation_channel_q_def_t& channel, f32 sample_time);
+		static bool	   is_masked(u32 node_index, const u64* bitmask0, const u64* bitmask1);
 	};
 }

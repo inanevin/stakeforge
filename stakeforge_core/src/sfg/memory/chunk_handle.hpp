@@ -39,5 +39,15 @@ namespace sfg
 		{
 			return size != 0;
 		}
+
+		bool operator==(chunk_handle32_t other) const
+		{
+			return head == other.head && size == other.size;
+		}
+
+		bool operator!=(chunk_handle32_t other) const
+		{
+			return (head != other.head) || (size != other.size);
+		}
 	};
 }

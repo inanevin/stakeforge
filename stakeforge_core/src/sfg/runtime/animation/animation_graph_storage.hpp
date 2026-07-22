@@ -27,67 +27,50 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
+#include "animation_bone.hpp"
+#include "animation_graph_types.hpp"
+#include "animation_pose.hpp"
+
 #include <sfg/data/span.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
-#include <sfg/runtime/animation/animation_bone.hpp>
-#include <sfg/runtime/animation/animation_graph_storage.hpp>
-#include <sfg/runtime/resources/resource_handle.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
-	class world_t;
-
-	class world_animation_controller_t final
+	class animation_graph_storage_t final
 	{
 	public:
-		world_animation_controller_t()												 = default;
-		~world_animation_controller_t()												 = default;
-		world_animation_controller_t(const world_animation_controller_t&)			 = delete;
-		world_animation_controller_t& operator=(const world_animation_controller_t&) = delete;
+		animation_graph_storage_t() = default;
+		~animation_graph_storage_t();
+		animation_graph_storage_t(const animation_graph_storage_t&)			   = delete;
+		animation_graph_storage_t& operator=(const animation_graph_storage_t&) = delete;
 
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(world_t& world, u32 bone_reserve, u32 animation_graph_memory_reserve);
+		void init(u32 storage_memory);
 		void uninit();
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void tick_prep(f32 delta_time);
-		void tick_logic(f32 delta_time);
-
-		// -----------------------------------------------------------------------------
-		// accessors
-		// -----------------------------------------------------------------------------
-
-		inline span_t<const animation_bone_t> get_bones(chunk_handle32_t handle) const
-		{
-			return {
-				.data = _bone_memory.get<animation_bone_t>(handle),
-				.size = handle.size / sizeof(animation_bone_t),
-			};
-		}
+		void process_graph(chunk_handle32_t first_node, span_t<animation_bone_t> bones, f32 delta_time);
 
 	private:
-		void sync_create_destroy_skinned_renderers();
-		void create_skinned_renderer(entity_id_t id, resource_handle_t skeleton_handle);
-		void destroy_skinned_renderer(entity_id_t id);
-
-		void sync_create_destroy_animation_graph();
-		void create_animation_graph(entity_id_t id);
-		void destroy_animation_graph(entity_id_t id);
-
-		chunk_handle32_t allocate_bones(u32 bone_count);
-		void			 deallocate_bones(chunk_handle32_t handle);
+		void			 process_node(animation_graph_node_t& node, f32 delta_time);
+		void			 process_node_asm(animation_graph_node_asm_t& node, chunk_handle32_t mask_handle, f32 delta_time);
+		void			 process_node_bone_control(animation_graph_node_bone_control_t& node, f32 delta_time);
+		void			 process_node_ik(animation_graph_node_ik_t& node, f32 delta_time);
+		animation_pose_t process_asm_state(animation_graph_asm_state_t& state, chunk_handle32_t mask_handle, f32 sample_time);
+		animation_pose_t sample_clip(resource_handle_t clip, f32 sample_time, const animation_graph_mask_t* mask);
 
 	private:
-		animation_graph_storage_t _animation_graph_storage = {};
-		chunk_allocator32_t		  _bone_memory			   = {};
-		world_t*				  _world				   = nullptr;
+		chunk_allocator32_t _nodes			 = {};
+		chunk_allocator32_t _params			 = {};
+		chunk_allocator32_t _masks			 = {};
+		chunk_allocator32_t _clips			 = {};
+		chunk_allocator32_t _asm_states		 = {};
+		chunk_allocator32_t _asm_transitions = {};
 	};
 }

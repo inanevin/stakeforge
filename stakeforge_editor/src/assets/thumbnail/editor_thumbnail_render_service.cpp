@@ -64,16 +64,17 @@ namespace sfg
 	void editor_thumbnail_render_service_t::init()
 	{
 		_world_config = {
-			.render_resolution		 = vec2u16_t(EDITOR_THUMBNAIL_RENDER_SIZE, EDITOR_THUMBNAIL_RENDER_SIZE),
-			.render_entity_max		 = 10,
-			.render_bone_max		 = 128,
-			.render_bone_reserve	 = 128,
-			.component_table_reserve = 32,
-			.free_list_reserve		 = 16,
-			.used_resource_reserve	 = 32,
-			.text_allocation_reserve = 32,
-			.text_byte_reserve		 = 4096,
-			.physics_enabled		 = false,
+			.render_resolution				= vec2u16_t(EDITOR_THUMBNAIL_RENDER_SIZE, EDITOR_THUMBNAIL_RENDER_SIZE),
+			.render_entity_max				= 10,
+			.render_bone_max				= 128,
+			.render_bone_reserve			= 128,
+			.animation_graph_memory_reserve = 64 * 1024,
+			.component_table_reserve		= 32,
+			.free_list_reserve				= 16,
+			.used_resource_reserve			= 32,
+			.text_allocation_reserve		= 32,
+			.text_byte_reserve				= 4096,
+			.physics_enabled				= false,
 		};
 
 		gfx_backend& backend	= gfx_backend::get();

@@ -79,7 +79,7 @@ namespace sfg
 		_engine_components.prefab_table	   = &get_component_table(type_id_t<component_prefab_reference_t>::value);
 		_system_components.transform_table = &get_component_table(type_id_t<component_system_transform_t>::value);
 
-		_animation_controller.init(*this, config.render_bone_max);
+		_animation_controller.init(*this, config.render_bone_max, config.animation_graph_memory_reserve);
 
 		if (config.physics_enabled)
 		{

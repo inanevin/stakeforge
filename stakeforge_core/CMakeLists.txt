@@ -104,6 +104,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/world/render_pass/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/event_stream/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/proxy/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/resources/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/animation/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/engine/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/render/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/resources/*.cpp
@@ -160,6 +161,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/serialize/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/app/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/project/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/resources/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/animation/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/engine/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/render/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/resources/*.hpp

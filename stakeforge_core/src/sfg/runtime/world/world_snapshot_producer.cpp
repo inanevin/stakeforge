@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_debug_draw.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/data/frame_hash_map.hpp>
+#include <sfg/runtime/animation/animation_bone.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
@@ -388,14 +389,14 @@ namespace sfg
 				const mesh_internals_t*			mesh_internals = rm_aux.get<mesh_internals_t>(entry->internals);
 				const mesh_primitive_runtime_t* primitives	   = rm_aux.get<mesh_primitive_runtime_t>(mesh_runtime->primitives);
 
-				const render_resource_handle_t							 vertex_buffer = mesh_internals->vertex_buffer;
-				const render_resource_handle_t							 index_buffer  = mesh_internals->index_buffer;
-				const u32												 idx		   = static_cast<u32>(snapshot.bones.size());
-				const span_t<const world_animation_controller_t::bone_t> bones		   = world.get_animation_controller().get_bones(system_skinned_mesh_renderer.bones_handle);
+				const render_resource_handle_t		 vertex_buffer = mesh_internals->vertex_buffer;
+				const render_resource_handle_t		 index_buffer  = mesh_internals->index_buffer;
+				const u32							 idx		   = static_cast<u32>(snapshot.bones.size());
+				const span_t<const animation_bone_t> bones		   = world.get_animation_controller().get_bones(system_skinned_mesh_renderer.bones_handle);
 
 				for (size_t i = 0; i < bones.size; ++i)
 				{
-					const world_animation_controller_t::bone_t& bone = bones.data[i];
+					const animation_bone_t& bone = bones.data[i];
 					snapshot.bones.push_back({
 						.gpu_bone =
 							{
