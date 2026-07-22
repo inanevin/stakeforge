@@ -59,6 +59,7 @@ namespace sfg
 		void tick_physics(f32 dt);
 		void tick_animation_prep(f32 dt);
 		void tick_animation_logic(f32 dt);
+		void tick_post();
 
 		// -----------------------------------------------------------------------------
 		// entity
@@ -156,6 +157,11 @@ namespace sfg
 			return _animation_controller;
 		}
 
+		inline entity_id_t get_main_camera_entity() const
+		{
+			return _main_camera_entity;
+		}
+
 	private:
 		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
@@ -195,6 +201,7 @@ namespace sfg
 		engine_components_t				  _engine_components	= {};
 		system_components_t				  _system_components	= {};
 		entity_id_t						  _entity_head			= 0;
+		entity_id_t						  _main_camera_entity	= NULL_ENTITY_ID;
 		u32								  _play_resource_count	= 0;
 		bool							  _is_playing			= false;
 	};

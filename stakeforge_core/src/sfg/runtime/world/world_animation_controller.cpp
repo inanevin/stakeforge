@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world.hpp"
 
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/runtime/animation/animation_graph_util.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
@@ -49,8 +50,6 @@ namespace sfg
 
 	void world_animation_controller_t::uninit()
 	{
-		_animation_graphs.clear();
-
 		_bone_memory.uninit();
 		_animation_graph_storage.uninit();
 
@@ -65,14 +64,16 @@ namespace sfg
 
 	void world_animation_controller_t::tick_logic(f32 delta_time)
 	{
-		ecs_component_table_t&		 system_skinned_mesh_renderer_table = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
-		const ecs_component_table_t& system_animation_graph_table		= _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
-		const ecs_component_table_t& system_transform_table				= _world->get_component_table(type_id_t<component_system_transform_t>::value);
-		const ecs_component_table_t& animation_graph_table				= _world->get_component_table(type_id_t<component_animation_graph_t>::value);
-		const ecs_component_table_t& disabled_table						= _world->get_component_table(type_id_t<component_disabled_t>::value);
-		const ecs_component_table_t& skinned_mesh_renderer_table		= _world->get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
-		const resource_manager_t&	 resource_manager					= resource_manager_t::get();
-		const chunk_allocator32_t&	 resource_memory					= resource_manager.get_memory();
+		ecs_component_table_t&				system_skinned_mesh_renderer_table = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
+		ecs_component_table_t&				system_animation_graph_table	   = _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+		const ecs_component_table_t&		system_transform_table			   = _world->get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t&		animation_graph_table			   = _world->get_component_table(type_id_t<component_animation_graph_t>::value);
+		const ecs_component_table_t&		disabled_table					   = _world->get_component_table(type_id_t<component_disabled_t>::value);
+		const ecs_component_table_t&		skinned_mesh_renderer_table		   = _world->get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
+		const resource_manager_t&			resource_manager				   = resource_manager_t::get();
+		const chunk_allocator32_t&			resource_memory					   = resource_manager.get_memory();
+		const entity_id_t					main_camera_entity				   = _world->get_main_camera_entity();
+		const component_system_transform_t* main_camera_transform			   = main_camera_entity == NULL_ENTITY_ID ? nullptr : ecs_helpers_t::table_find_as_const<component_system_transform_t>(system_transform_table, main_camera_entity);
 
 		// finalize static poses once
 		{
@@ -112,21 +113,66 @@ namespace sfg
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
 				component_system_skinned_mesh_renderer_t& system_skinned_mesh_renderer = ecs_helpers_t::row_get_mutable<component_system_skinned_mesh_renderer_t>(row, 1);
-				const component_system_animation_graph_t& system_animation_graph	   = ecs_helpers_t::row_get<component_system_animation_graph_t>(row, 2);
+				component_system_animation_graph_t&		  system_animation_graph	   = ecs_helpers_t::row_get_mutable<component_system_animation_graph_t>(row, 2);
 				const component_animation_graph_t&		  animation_graph			   = ecs_helpers_t::row_get<component_animation_graph_t>(row, 3);
 				const component_system_transform_t&		  system_transform			   = ecs_helpers_t::row_get<component_system_transform_t>(row, 4);
 
 				const component_skinned_mesh_renderer_t& skinned_mesh_renderer = ecs_helpers_t::table_get_as_const<component_skinned_mesh_renderer_t>(skinned_mesh_renderer_table, row.id);
 				const resource_entry_t*					 skeleton_entry		   = resource_manager.find_entry(skinned_mesh_renderer.skeleton);
 				const skeleton_runtime_t&				 skeleton			   = *resource_memory.get<skeleton_runtime_t>(skeleton_entry->runtime);
-				const animation_graph_t&				 graph				   = _animation_graphs.get(system_animation_graph.graph_handle);
+
+				if (!system_skinned_mesh_renderer.final_bones_calculated)
+				{
+					animation_graph_util_t::finalize_bones(skeleton, resource_memory, system_skinned_mesh_renderer.bones_handle, system_skinned_mesh_renderer.inverse_binds_handle, _bone_memory);
+					system_skinned_mesh_renderer.final_bones_calculated = true;
+				}
+
+				if (animation_graph.is_culled && main_camera_transform != nullptr)
+				{
+					const vec3f_t camera_to_entity = (system_transform.abs_pos - main_camera_transform->abs_pos).normalized();
+					const f32	  camera_dot	   = vec3f_t::dot(main_camera_transform->abs_rot.get_forward(), camera_to_entity);
+					const f32	  cull_dot_limit   = math::cos(math::degrees_to_radians(animation_graph.cull_angle_limit));
+
+					if (camera_dot < cull_dot_limit)
+						continue;
+				}
+
+				u32 effective_tick_rate = animation_graph.tick_rate;
+
+				if (animation_graph.throttling_enabled && main_camera_transform != nullptr)
+				{
+					const f32 distance			 = vec3f_t::distance(system_transform.abs_pos, main_camera_transform->abs_pos);
+					f32		  throttle_tick_rate = 1.0f;
+
+					if (distance > animation_graph.throttle_begin_distance)
+					{
+						if (distance >= animation_graph.throttle_full_distance)
+							throttle_tick_rate = static_cast<f32>(animation_graph.max_throttle_tick_rate);
+						else
+							throttle_tick_rate = math::remap(distance, animation_graph.throttle_begin_distance, animation_graph.throttle_full_distance, 1.0f, static_cast<f32>(animation_graph.max_throttle_tick_rate));
+					}
+
+					const u32 rounded_throttle_tick_rate = static_cast<u32>(math::round(throttle_tick_rate));
+					effective_tick_rate					 = effective_tick_rate > rounded_throttle_tick_rate ? effective_tick_rate : rounded_throttle_tick_rate;
+				}
+
+				system_animation_graph.accumulated_delta_time += delta_time * animation_graph.speed;
+				++system_animation_graph.tick_frame_count;
+
+				if (system_animation_graph.tick_frame_count < effective_tick_rate)
+					continue;
+
+				const f32 graph_delta_time = system_animation_graph.accumulated_delta_time;
+
+				system_animation_graph.accumulated_delta_time = 0.0f;
+				system_animation_graph.tick_frame_count		  = 0;
 
 				const span_t<animation_bone_t> bones{
 					.data = _bone_memory.get<animation_bone_t>(system_skinned_mesh_renderer.bones_handle),
 					.size = skeleton.joint_count,
 				};
 
-				_animation_graph_storage.process_graph(graph.nodes, graph.node_count, graph.initial_pose, system_transform.abs_mat, bones, delta_time);
+				_animation_graph_storage.process_graph(system_animation_graph.nodes, system_animation_graph.node_count, system_animation_graph.initial_pose, system_transform.abs_mat, bones, graph_delta_time);
 				animation_graph_util_t::finalize_bones(skeleton, resource_memory, system_skinned_mesh_renderer.bones_handle, system_skinned_mesh_renderer.inverse_binds_handle, _bone_memory);
 
 				system_skinned_mesh_renderer.final_bones_calculated = true;
@@ -307,29 +353,23 @@ namespace sfg
 		chunk_allocator32_t&	   pose_memory		= _animation_graph_storage.get_pose_memory();
 		chunk_allocator32_t&	   pose_bone_memory = _animation_graph_storage.get_pose_bone_memory();
 		chunk_allocator32_t&	   aux_memory		= _animation_graph_storage.get_aux_memory();
-		const pool_handle32		   graph_handle		= _animation_graphs.add();
-		animation_graph_t&		   graph			= _animation_graphs.get(graph_handle);
-
-		graph.initial_pose = animation_graph_util_t::create_pose_from_skeleton(skeleton, resource_memory, pose_memory, pose_bone_memory, aux_memory);
 
 		ecs_component_table_t&				system_animation_graph_table = _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
 		component_system_animation_graph_t& system_animation_graph		 = ecs_helpers_t::table_add_or_get_as<component_system_animation_graph_t>(system_animation_graph_table, id);
 
-		system_animation_graph.graph_handle = graph_handle;
+		system_animation_graph.initial_pose = animation_graph_util_t::create_pose_from_skeleton(skeleton, resource_memory, pose_memory, pose_bone_memory, aux_memory);
 	}
 
 	void world_animation_controller_t::destroy_animation_graph(entity_id_t id)
 	{
 		ecs_component_table_t&					  system_animation_graph_table = _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
 		const component_system_animation_graph_t& system_animation_graph	   = ecs_helpers_t::table_get_as<component_system_animation_graph_t>(system_animation_graph_table, id);
-		const animation_graph_t&				  graph						   = _animation_graphs.get(system_animation_graph.graph_handle);
 		chunk_allocator32_t&					  pose_memory				   = _animation_graph_storage.get_pose_memory();
 		chunk_allocator32_t&					  pose_bone_memory			   = _animation_graph_storage.get_pose_bone_memory();
 		chunk_allocator32_t&					  aux_memory				   = _animation_graph_storage.get_aux_memory();
 
-		animation_graph_util_t::destroy_pose(graph.initial_pose, pose_memory, pose_bone_memory, aux_memory);
+		animation_graph_util_t::destroy_pose(system_animation_graph.initial_pose, pose_memory, pose_bone_memory, aux_memory);
 
-		_animation_graphs.remove(system_animation_graph.graph_handle);
 		ecs_t::table_remove(system_animation_graph_table, id);
 	}
 

@@ -96,7 +96,11 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_animation_graph";
 
-		pool_handle32 graph_handle = {};
+		chunk_handle32_t initial_pose			= {};
+		chunk_handle32_t nodes					= {};
+		f32				 accumulated_delta_time = 0.0f;
+		u32				 node_count				= 0;
+		u32				 tick_frame_count		= 0;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_animation_graph_t);

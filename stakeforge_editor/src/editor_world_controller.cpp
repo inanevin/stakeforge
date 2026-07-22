@@ -381,6 +381,7 @@ namespace sfg
 			world.tick_physics(dt_seconds);
 
 			world.tick_animation_prep(dt_seconds);
+			world.tick_post();
 			return;
 		}
 
@@ -428,6 +429,8 @@ namespace sfg
 
 			break;
 		}
+
+		world.tick_post();
 	}
 
 	void editor_world_controller_t::update_physics_settings(const u64* collision_masks, u64 active_layers, u32 physics_rate, u32 max_sub_steps)

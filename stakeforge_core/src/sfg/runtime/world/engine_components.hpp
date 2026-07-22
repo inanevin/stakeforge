@@ -106,7 +106,15 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_animation_graph";
 
-		resource_handle_t animation_graph = NULL_RESOURCE_HANDLE;
+		resource_handle_t animation_graph		  = NULL_RESOURCE_HANDLE;
+		f32				  speed					  = 1.0f;
+		f32				  throttle_begin_distance = 20.0f;
+		f32				  throttle_full_distance  = 100.0f;
+		f32				  cull_angle_limit		  = 100.0f;
+		u32				  tick_rate				  = 1;
+		u32				  max_throttle_tick_rate  = 30;
+		bool			  throttling_enabled	  = false;
+		bool			  is_culled				  = false;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_animation_graph_t);

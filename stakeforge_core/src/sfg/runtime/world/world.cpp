@@ -111,6 +111,7 @@ namespace sfg
 		_engine_components	 = {};
 		_system_components	 = {};
 		_entity_head		 = 0;
+		_main_camera_entity	 = NULL_ENTITY_ID;
 		_play_resource_count = 0;
 		_is_playing			 = false;
 	}
@@ -165,7 +166,8 @@ namespace sfg
 		_text_allocation_free_list.resize(0);
 		_entity_free_list.resize(0);
 		_text_allocator.reset();
-		_entity_head = 0;
+		_entity_head		= 0;
+		_main_camera_entity = NULL_ENTITY_ID;
 	}
 
 	void world_t::tick_physics(f32 dt)
@@ -186,6 +188,36 @@ namespace sfg
 	void world_t::tick_animation_logic(f32 dt)
 	{
 		_animation_controller.tick_logic(dt);
+	}
+
+	void world_t::tick_post()
+	{
+		const ecs_component_table_t& alive_table	 = get_component_table(type_id_t<component_alive_t>::value);
+		const ecs_component_table_t& camera_table	 = get_component_table(type_id_t<component_camera_t>::value);
+		const ecs_component_table_t& transform_table = get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& disabled_table	 = get_component_table(type_id_t<component_disabled_t>::value);
+
+		const ecs_component_table_ref_t table_refs[] = {
+			alive_table.ref(),
+			camera_table.ref(),
+			transform_table.ref(),
+			!disabled_table.ref(),
+		};
+
+		i8 min_priority = 0;
+
+		_main_camera_entity = NULL_ENTITY_ID;
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+		{
+			const component_camera_t& camera = ecs_helpers_t::row_get<component_camera_t>(row, 1);
+
+			if (_main_camera_entity == NULL_ENTITY_ID || camera.priority < min_priority)
+			{
+				min_priority		= camera.priority;
+				_main_camera_entity = row.id;
+			}
+		}
 	}
 
 	void world_t::recreate_physical(entity_id_t id)

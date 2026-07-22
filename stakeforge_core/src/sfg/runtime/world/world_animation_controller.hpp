@@ -30,7 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
-#include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/animation/animation_bone.hpp>
 #include <sfg/runtime/animation/animation_graph_storage.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
@@ -87,17 +86,9 @@ namespace sfg
 		chunk_handle32_t allocate_bones(u32 bone_count);
 		void			 deallocate_bones(chunk_handle32_t handle);
 
-		struct animation_graph_t
-		{
-			chunk_handle32_t initial_pose = {};
-			chunk_handle32_t nodes		  = {};
-			u32				 node_count	  = 0;
-		};
-
 	private:
-		dynamic_gen_pool_t<animation_graph_t, u32, void> _animation_graphs		  = {};
-		animation_graph_storage_t						 _animation_graph_storage = {};
-		chunk_allocator32_t								 _bone_memory			  = {};
-		world_t*										 _world					  = nullptr;
+		animation_graph_storage_t _animation_graph_storage = {};
+		chunk_allocator32_t		  _bone_memory			   = {};
+		world_t*				  _world				   = nullptr;
 	};
 }
