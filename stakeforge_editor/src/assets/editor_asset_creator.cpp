@@ -34,6 +34,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/resources/animation_graph_def.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -176,7 +178,21 @@ namespace sfg
 
 		bool create_animation_graph_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
-			const editor_asset_write_none_desc_t write_desc{
+			animation_graph_def_t definition = {};
+			definition.name					 = desc.name;
+
+			nlohmann::json embedded_source = nlohmann::json::object();
+
+			if (!reflection_registry_t::get().type_to_json(type_id_t<animation_graph_def_t>::value, &definition, nullptr, embedded_source))
+			{
+				SFG_ERR("failed to serialize initial animation graph definition");
+				return false;
+			}
+
+			embedded_source["schema"] = "sfg.schema.animation_graph";
+
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &embedded_source,
 				.parent_path	 = parent_path,
 				.name			 = desc.name,
 				.guid			 = desc.guid,
@@ -184,7 +200,8 @@ namespace sfg
 				.sub_type		 = desc.sub_type,
 				.allow_overwrite = desc.allow_overwrite,
 			};
-			return editor_asset_writer_t::write_none_source_asset(write_desc, out_asset, out_asset_path);
+
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
 		bool create_prefab_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
