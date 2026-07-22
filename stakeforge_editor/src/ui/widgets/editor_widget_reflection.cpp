@@ -103,6 +103,9 @@ namespace sfg
 		root_in.size_value		 = {1.0f, 1.0f};
 		root_in.flow			 = ui::flow_e::column;
 
+		if (config.elevate_draw_order)
+			tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
+
 		set_reflection(config);
 	}
 

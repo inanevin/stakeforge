@@ -65,12 +65,13 @@ namespace sfg
 
 	struct editor_widget_reflection_config_t
 	{
-		vector_t<editor_widget_reflection_fold_state_t>* fold_states = nullptr;
-		editor_widget_callbacks_t						 callbacks	 = {};
-		span_t<void*>									 objects	 = {};
-		sid_t											 type_id	 = 0;
-		editor_world_handle_t							 world		 = {};
-		bool											 block_edits = false;
+		vector_t<editor_widget_reflection_fold_state_t>* fold_states		= nullptr;
+		editor_widget_callbacks_t						 callbacks			= {};
+		span_t<void*>									 objects			= {};
+		sid_t											 type_id			= 0;
+		editor_world_handle_t							 world				= {};
+		bool											 block_edits		= false;
+		bool											 elevate_draw_order = false;
 	};
 
 	class editor_widget_reflection_t final
