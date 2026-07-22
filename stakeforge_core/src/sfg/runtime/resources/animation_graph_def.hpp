@@ -134,17 +134,6 @@ namespace sfg
 		u32									  entry_node_id		 = ANIMATION_GRAPH_DEF_NULL_ID;
 		u32									  output_node_id	 = ANIMATION_GRAPH_DEF_NULL_ID;
 		u32									  next_id			 = 1;
-
-		u32											allocate_id();
-		animation_graph_param_def_t*				find_parameter(u32 id);
-		const animation_graph_param_def_t*			find_parameter(u32 id) const;
-		animation_graph_node_def_t*					find_node(u32 id);
-		const animation_graph_node_def_t*			find_node(u32 id) const;
-		animation_graph_asm_state_def_t*			find_state(u32 node_id, u32 state_id);
-		const animation_graph_asm_state_def_t*		find_state(u32 node_id, u32 state_id) const;
-		animation_graph_asm_transition_def_t*		find_transition(u32 node_id, u32 transition_id);
-		const animation_graph_asm_transition_def_t* find_transition(u32 node_id, u32 transition_id) const;
-		bool										is_valid() const;
 	};
 
 	SFG_DEFINE_TYPE_ID(animation_graph_param_def_t);

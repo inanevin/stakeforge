@@ -104,7 +104,7 @@ namespace sfg
 			return static_cast<u16>(PANEL_MENU_COMMAND_BASE + static_cast<u16>(type));
 		}
 
-		static_assert(static_cast<u16>(editor_panel_type_e::max) == 10);
+		static_assert(static_cast<u16>(editor_panel_type_e::max) == 11);
 
 		bool is_editor_debug_bounds_enabled(void*)
 		{
@@ -158,6 +158,7 @@ namespace sfg
 			{.text = editor_panel_type_to_string(editor_panel_type_e::world), .command = panel_menu_command(editor_panel_type_e::world)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::inspector), .command = panel_menu_command(editor_panel_type_e::inspector)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::animation), .command = panel_menu_command(editor_panel_type_e::animation)},
+			{.text = editor_panel_type_to_string(editor_panel_type_e::animation_graph), .command = panel_menu_command(editor_panel_type_e::animation_graph)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::resources), .command = panel_menu_command(editor_panel_type_e::resources)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::project_settings), .command = panel_menu_command(editor_panel_type_e::project_settings)},
 			{.text = "Editor", .kind = editor_action_menu_row_kind_e::title},

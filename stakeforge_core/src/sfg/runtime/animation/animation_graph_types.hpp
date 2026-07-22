@@ -88,6 +88,13 @@ namespace sfg
 		world,
 	};
 
+	SFG_DEFINE_TYPE_ID(animation_graph_node_type_e);
+	SFG_DEFINE_TYPE_ID(animation_param_type_e);
+	SFG_DEFINE_TYPE_ID(animation_graph_asm_state_type_e);
+	SFG_DEFINE_TYPE_ID(animation_graph_asm_transition_type_e);
+	SFG_DEFINE_TYPE_ID(animation_graph_bone_control_type_e);
+	SFG_DEFINE_TYPE_ID(animation_graph_bone_control_space_e);
+
 	struct alignas(32) animation_graph_param_t
 	{
 		union {
@@ -184,4 +191,11 @@ namespace sfg
 		chunk_handle32_t			mask_handle = {};
 		animation_graph_node_type_e type		= animation_graph_node_type_e::asm_node;
 	};
+
+	struct animation_graph_types_reflection_t
+	{
+		animation_graph_types_reflection_t();
+	};
+
+	inline animation_graph_types_reflection_t g_reflect_animation_graph_types;
 }
