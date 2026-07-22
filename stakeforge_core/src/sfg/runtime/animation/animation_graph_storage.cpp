@@ -87,7 +87,7 @@ namespace sfg
 		_nodes.uninit();
 	}
 
-	void animation_graph_storage_t::process_graph(chunk_handle32_t nodes, u32 node_count, chunk_handle32_t initial_pose, span_t<animation_bone_t> bones, f32 delta_time)
+	void animation_graph_storage_t::process_graph(chunk_handle32_t nodes, u32 node_count, chunk_handle32_t initial_pose, const mat4x3_t& entity_transform, span_t<animation_bone_t> bones, f32 delta_time)
 	{
 		chunk_handle32_t previous_pose_handle = initial_pose;
 
@@ -114,7 +114,7 @@ namespace sfg
 					process_node_asm(node.node_asm, node.mask_handle, pose_bones, delta_time);
 					break;
 				case animation_graph_node_type_e::bone_controller:
-					process_node_bone_control(node.node_bone_control, pose_bones, delta_time);
+					process_node_bone_control(node.node_bone_control, entity_transform, pose_bones, delta_time);
 					break;
 				case animation_graph_node_type_e::ik:
 					process_node_ik(node.node_ik, pose_bones, delta_time);
@@ -167,12 +167,18 @@ namespace sfg
 				case animation_param_type_e::f32:
 					transition_value = parameter.f32_value;
 					break;
+				case animation_param_type_e::vec2:
+					transition_value = parameter.vec2_value.x;
+					break;
 				case animation_param_type_e::vec3:
 					transition_value = parameter.vec3_value.x;
 					break;
 				case animation_param_type_e::quat:
 					transition_value = parameter.quat_value.x;
 					break;
+				case animation_param_type_e::transform:
+					SFG_WARN("transform parameters cannot drive animation transitions");
+					continue;
 				case animation_param_type_e::boolean:
 					transition_value = parameter.bool_value;
 					break;
@@ -282,8 +288,107 @@ namespace sfg
 		}
 	}
 
-	void animation_graph_storage_t::process_node_bone_control(animation_graph_node_bone_control_t& node, span_t<animation_graph_bone_t> pose_bones, f32 delta_time)
+	void animation_graph_storage_t::process_node_bone_control(animation_graph_node_bone_control_t& node, const mat4x3_t& entity_transform, span_t<animation_graph_bone_t> pose_bones, f32 delta_time)
 	{
+		if (node.bone_count == 0)
+		{
+			SFG_WARN("bone control node has no bones");
+			return;
+		}
+
+		animation_param_type_e parameter_type = animation_param_type_e::f32;
+
+		switch (node.control_type)
+		{
+		case animation_graph_bone_control_type_e::rotation_override:
+		case animation_graph_bone_control_type_e::rotation_additive:
+			parameter_type = animation_param_type_e::quat;
+			break;
+		case animation_graph_bone_control_type_e::position_override:
+		case animation_graph_bone_control_type_e::position_additive:
+		case animation_graph_bone_control_type_e::look_at:
+			parameter_type = animation_param_type_e::vec3;
+			break;
+		case animation_graph_bone_control_type_e::transform_override:
+		case animation_graph_bone_control_type_e::transform_additive:
+			parameter_type = animation_param_type_e::transform;
+			break;
+		}
+
+		const u32*					   bone_indices = _aux.get<u32>(node.bone_indices);
+		const animation_graph_param_t* parameters	= _params.get<animation_graph_param_t>(node.parameters);
+
+		for (u32 i = 0; i < node.bone_count; ++i)
+		{
+			const u32					   bone_index = bone_indices[i];
+			const animation_graph_param_t& parameter  = parameters[i];
+
+			SFG_ASSERT(bone_index < pose_bones.size);
+
+			if (parameter.type != parameter_type)
+			{
+				SFG_WARN("bone control parameter type does not match control type");
+				continue;
+			}
+
+			animation_graph_bone_t& pose_bone				= pose_bones.data[bone_index];
+			mat4x3_t				parent_to_control_space = mat4x3_t::identity;
+
+			if (node.control_space != animation_graph_bone_control_space_e::local)
+			{
+				u32 parent_index = pose_bone.parent_index;
+
+				while (parent_index != UINT32_MAX)
+				{
+					const animation_graph_bone_t& parent_bone = pose_bones.data[parent_index];
+
+					parent_to_control_space = parent_bone.local_matrix * parent_to_control_space;
+					parent_index			= parent_bone.parent_index;
+				}
+
+				if (node.control_space == animation_graph_bone_control_space_e::world)
+					parent_to_control_space = entity_transform * parent_to_control_space;
+			}
+
+			mat4x3_t control_transform = parent_to_control_space * pose_bone.local_matrix;
+			vec3f_t	 control_position  = vec3f_t::zero;
+			quat_t	 control_rotation  = quat_t::identity;
+			vec3f_t	 control_scale	   = vec3f_t::one;
+
+			control_transform.decompose(control_position, control_rotation, control_scale);
+
+			switch (node.control_type)
+			{
+			case animation_graph_bone_control_type_e::rotation_override:
+				control_rotation  = parameter.quat_value;
+				control_transform = mat4x3_t::transform(control_position, control_rotation, control_scale);
+				break;
+			case animation_graph_bone_control_type_e::rotation_additive:
+				control_rotation  = parameter.quat_value * control_rotation;
+				control_transform = mat4x3_t::transform(control_position, control_rotation, control_scale);
+				break;
+			case animation_graph_bone_control_type_e::position_override:
+				control_position  = parameter.vec3_value;
+				control_transform = mat4x3_t::transform(control_position, control_rotation, control_scale);
+				break;
+			case animation_graph_bone_control_type_e::position_additive:
+				control_position += parameter.vec3_value;
+				control_transform = mat4x3_t::transform(control_position, control_rotation, control_scale);
+				break;
+			case animation_graph_bone_control_type_e::transform_override:
+				control_transform = parameter.transform_value;
+				break;
+			case animation_graph_bone_control_type_e::transform_additive:
+				control_transform = parameter.transform_value * control_transform;
+				break;
+			case animation_graph_bone_control_type_e::look_at:
+				control_rotation  = quat_t::look_at(control_position, parameter.vec3_value, vec3f_t::up);
+				control_transform = mat4x3_t::transform(control_position, control_rotation, control_scale);
+				break;
+			}
+
+			pose_bone.local_matrix = node.control_space == animation_graph_bone_control_space_e::local ? control_transform : parent_to_control_space.inverse() * control_transform;
+		}
 	}
 
 	void animation_graph_storage_t::process_node_ik(animation_graph_node_ik_t& node, span_t<animation_graph_bone_t> pose_bones, f32 delta_time)
