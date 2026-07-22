@@ -90,6 +90,13 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_system_skinned_mesh_renderer_t);
 
+	struct component_system_animation_graph_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_animation_graph";
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_animation_graph_t);
+
 	struct component_system_physics_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_physics";

@@ -55,6 +55,7 @@ namespace sfg
 	void world_animation_controller_t::tick_prep(f32 delta_time)
 	{
 		sync_create_destroy_skinned_renderers();
+		sync_create_destroy_animation_graph();
 	}
 
 	void world_animation_controller_t::tick_logic(f32 delta_time)
@@ -67,6 +68,7 @@ namespace sfg
 		const ecs_component_table_t& disabled_table						= _world->get_component_table(type_id_t<component_disabled_t>::value);
 		const ecs_component_table_t& skinned_mesh_renderer_table		= _world->get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
 
+		// destroy disabled
 		{
 			const ecs_component_table_ref_t table_refs[] = {
 				system_skinned_mesh_renderer_table.ref(),
@@ -85,6 +87,26 @@ namespace sfg
 			}
 		}
 
+		// destroy missing skinned mesh
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				system_skinned_mesh_renderer_table.ref(),
+				!skinned_mesh_renderer_table.ref(),
+			};
+			frame_vector_t<entity_id_t> destroy_entities = {};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				destroy_entities.push_back(row.id);
+			}
+
+			for (const entity_id_t id : destroy_entities)
+			{
+				destroy_skinned_renderer(id);
+			}
+		}
+
+		// create skinned mesh
 		{
 			struct skinned_renderer_create_t
 			{
@@ -119,6 +141,87 @@ namespace sfg
 				create_skinned_renderer(create.id, create.skeleton);
 			}
 		}
+	}
+
+	void world_animation_controller_t::sync_create_destroy_animation_graph()
+	{
+		ecs_component_table_t&		 system_animation_graph_table		= _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+		const ecs_component_table_t& disabled_table						= _world->get_component_table(type_id_t<component_disabled_t>::value);
+		const ecs_component_table_t& system_skinned_mesh_renderer_table = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
+		const ecs_component_table_t& animation_graph_table				= _world->get_component_table(type_id_t<component_animation_graph_t>::value);
+
+		// destroy disabled
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				system_animation_graph_table.ref(),
+				disabled_table.ref(),
+			};
+			frame_vector_t<entity_id_t> destroy_entities = {};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				destroy_entities.push_back(row.id);
+			}
+
+			for (const entity_id_t id : destroy_entities)
+			{
+				destroy_animation_graph(id);
+			}
+		}
+
+		// destroy missing skinned mesh
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				system_animation_graph_table.ref(),
+				!system_skinned_mesh_renderer_table.ref(),
+			};
+			frame_vector_t<entity_id_t> destroy_entities = {};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				destroy_entities.push_back(row.id);
+			}
+
+			for (const entity_id_t id : destroy_entities)
+			{
+				destroy_animation_graph(id);
+			}
+		}
+
+		// create anim graph
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				!disabled_table.ref(),
+				system_skinned_mesh_renderer_table.ref(),
+				animation_graph_table.ref(),
+				!system_animation_graph_table.ref(),
+			};
+			frame_vector_t<entity_id_t> create_entities = {};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				create_entities.push_back(row.id);
+			}
+
+			for (const entity_id_t id : create_entities)
+			{
+				create_animation_graph(id);
+			}
+		}
+	}
+
+	void world_animation_controller_t::create_animation_graph(entity_id_t id)
+	{
+		ecs_component_table_t& system_animation_graph_table = _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+
+		ecs_helpers_t::table_add_or_get_as<component_system_animation_graph_t>(system_animation_graph_table, id);
+	}
+
+	void world_animation_controller_t::destroy_animation_graph(entity_id_t id)
+	{
+		ecs_component_table_t& system_animation_graph_table = _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+
+		ecs_t::table_remove(system_animation_graph_table, id);
 	}
 
 	void world_animation_controller_t::create_skinned_renderer(entity_id_t id, resource_handle_t skeleton_handle)

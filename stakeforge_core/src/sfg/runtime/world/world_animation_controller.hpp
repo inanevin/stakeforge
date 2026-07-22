@@ -82,6 +82,10 @@ namespace sfg
 		void create_skinned_renderer(entity_id_t id, resource_handle_t skeleton_handle);
 		void destroy_skinned_renderer(entity_id_t id);
 
+		void sync_create_destroy_animation_graph();
+		void create_animation_graph(entity_id_t id);
+		void destroy_animation_graph(entity_id_t id);
+
 		chunk_handle32_t allocate_bones(u32 bone_count);
 		void			 deallocate_bones(chunk_handle32_t handle);
 
