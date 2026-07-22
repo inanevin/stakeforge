@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "animation_graph_util.hpp"
+#include "animation_bone.hpp"
 
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
@@ -94,5 +95,27 @@ namespace sfg
 			state._current_time = state.loop ? math::fmodf(state._current_time, state._duration) : math::min(state._current_time, state._duration);
 		else
 			state._current_time = 0.0f;
+	}
+
+	void animation_graph_util_t::finalize_bones(const skeleton_runtime_t& skeleton, const chunk_allocator_t& skeleton_memory, chunk_handle32_t bones_handle, chunk_handle32_t inverse_binds_handle, chunk_allocator_t& bone_memory)
+	{
+		const skeleton_joint_runtime_t* joints			 = skeleton_memory.get<skeleton_joint_runtime_t>(skeleton.joints);
+		const u32*						evaluation_order = skeleton_memory.get<u32>(skeleton.evaluation_order);
+		animation_bone_t*				bones			 = bone_memory.get<animation_bone_t>(bones_handle);
+		const animation_bone_t*			inverse_binds	 = bone_memory.get<animation_bone_t>(inverse_binds_handle);
+
+		for (u32 i = 0; i < skeleton.joint_count; ++i)
+		{
+			const u32 joint_index  = evaluation_order[i];
+			const u32 parent_index = joints[joint_index].parent_index;
+
+			if (parent_index != SKELETON_JOINT_NO_PARENT)
+				bones[joint_index].bone_transform = bones[parent_index].bone_transform * bones[joint_index].bone_transform;
+		}
+
+		const mat4x3_t root_inverse = skeleton.root_joint_index == SKELETON_JOINT_NO_PARENT ? mat4x3_t::identity : bones[skeleton.root_joint_index].bone_transform.inverse();
+
+		for (u32 joint_index = 0; joint_index < skeleton.joint_count; ++joint_index)
+			bones[joint_index].bone_transform = root_inverse * bones[joint_index].bone_transform * inverse_binds[joint_index].bone_transform;
 	}
 }

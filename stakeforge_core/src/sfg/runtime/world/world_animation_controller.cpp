@@ -42,7 +42,7 @@ namespace sfg
 	void world_animation_controller_t::init(world_t& world, u32 bone_reserve, u32 animation_graph_memory_reserve)
 	{
 		_animation_graph_storage.init(animation_graph_memory_reserve);
-		_bone_memory.init(sizeof(animation_bone_t) * bone_reserve);
+		_bone_memory.init(sizeof(animation_bone_t) * bone_reserve * 2);
 
 		_world = &world;
 	}
@@ -65,6 +65,66 @@ namespace sfg
 
 	void world_animation_controller_t::tick_logic(f32 delta_time)
 	{
+		ecs_component_table_t&		 system_skinned_mesh_renderer_table = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
+		const ecs_component_table_t& system_animation_graph_table		= _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+		const ecs_component_table_t& disabled_table						= _world->get_component_table(type_id_t<component_disabled_t>::value);
+		const ecs_component_table_t& skinned_mesh_renderer_table		= _world->get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
+		const resource_manager_t&	 resource_manager					= resource_manager_t::get();
+		const chunk_allocator32_t&	 resource_memory					= resource_manager.get_memory();
+
+		// finalize static poses once
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				!disabled_table.ref(),
+				system_skinned_mesh_renderer_table.ref(),
+				!system_animation_graph_table.ref(),
+			};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				component_system_skinned_mesh_renderer_t& system_skinned_mesh_renderer = ecs_helpers_t::row_get_mutable<component_system_skinned_mesh_renderer_t>(row, 1);
+
+				if (system_skinned_mesh_renderer.final_bones_calculated)
+					continue;
+
+				const component_skinned_mesh_renderer_t& skinned_mesh_renderer = ecs_helpers_t::table_get_as_const<component_skinned_mesh_renderer_t>(skinned_mesh_renderer_table, row.id);
+				const resource_entry_t*					 skeleton_entry		   = resource_manager.find_entry(skinned_mesh_renderer.skeleton);
+				const skeleton_runtime_t&				 skeleton			   = *resource_memory.get<skeleton_runtime_t>(skeleton_entry->runtime);
+
+				animation_graph_util_t::finalize_bones(skeleton, resource_memory, system_skinned_mesh_renderer.bones_handle, system_skinned_mesh_renderer.inverse_binds_handle, _bone_memory);
+
+				system_skinned_mesh_renderer.final_bones_calculated = true;
+			}
+		}
+
+		// process animated poses every tick
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				!disabled_table.ref(),
+				system_skinned_mesh_renderer_table.ref(),
+				system_animation_graph_table.ref(),
+			};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				component_system_skinned_mesh_renderer_t& system_skinned_mesh_renderer = ecs_helpers_t::row_get_mutable<component_system_skinned_mesh_renderer_t>(row, 1);
+				const component_system_animation_graph_t& system_animation_graph	   = ecs_helpers_t::row_get<component_system_animation_graph_t>(row, 2);
+				const component_skinned_mesh_renderer_t&  skinned_mesh_renderer		   = ecs_helpers_t::table_get_as_const<component_skinned_mesh_renderer_t>(skinned_mesh_renderer_table, row.id);
+				const resource_entry_t*					  skeleton_entry			   = resource_manager.find_entry(skinned_mesh_renderer.skeleton);
+				const skeleton_runtime_t&				  skeleton					   = *resource_memory.get<skeleton_runtime_t>(skeleton_entry->runtime);
+				const animation_graph_t&				  graph						   = _animation_graphs.get(system_animation_graph.graph_handle);
+
+				const span_t<animation_bone_t> bones{
+					.data = _bone_memory.get<animation_bone_t>(system_skinned_mesh_renderer.bones_handle),
+					.size = skeleton.joint_count,
+				};
+
+				_animation_graph_storage.process_graph(graph.nodes, graph.node_count, graph.initial_pose, bones, delta_time);
+				animation_graph_util_t::finalize_bones(skeleton, resource_memory, system_skinned_mesh_renderer.bones_handle, system_skinned_mesh_renderer.inverse_binds_handle, _bone_memory);
+
+				system_skinned_mesh_renderer.final_bones_calculated = true;
+			}
+		}
 	}
 
 	void world_animation_controller_t::sync_create_destroy_skinned_renderers()
@@ -273,30 +333,24 @@ namespace sfg
 		const chunk_allocator32_t& resource_memory	= resource_manager.get_memory();
 		const skeleton_runtime_t*  skeleton			= resource_memory.get<skeleton_runtime_t>(skeleton_entry->runtime);
 
-		const skeleton_joint_runtime_t* joints			 = resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
-		const u32*						evaluation_order = resource_memory.get<u32>(skeleton->evaluation_order);
-		frame_vector_t<mat4x3_t>		absolute_transforms(skeleton->joint_count, mat4x3_t::identity);
-
-		for (u32 i = 0; i < skeleton->joint_count; ++i)
-		{
-			const u32						joint_index = evaluation_order[i];
-			const skeleton_joint_runtime_t& joint		= joints[joint_index];
-			absolute_transforms[joint_index]			= joint.parent_index == SKELETON_JOINT_NO_PARENT ? joint.local : absolute_transforms[joint.parent_index] * joint.local;
-		}
-
-		const mat4x3_t			root_inverse = skeleton->root_joint_index == SKELETON_JOINT_NO_PARENT ? mat4x3_t::identity : absolute_transforms[skeleton->root_joint_index].inverse();
-		const chunk_handle32_t	bones_handle = allocate_bones(skeleton->joint_count);
-		animation_bone_t* const bones		 = _bone_memory.get<animation_bone_t>(bones_handle);
+		const skeleton_joint_runtime_t* joints				 = resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
+		const chunk_handle32_t			bones_handle		 = allocate_bones(skeleton->joint_count);
+		const chunk_handle32_t			inverse_binds_handle = allocate_bones(skeleton->joint_count);
+		animation_bone_t*				bones				 = _bone_memory.get<animation_bone_t>(bones_handle);
+		animation_bone_t*				inverse_binds		 = _bone_memory.get<animation_bone_t>(inverse_binds_handle);
 
 		for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
 		{
-			bones[joint_index].bone_transform = root_inverse * absolute_transforms[joint_index] * joints[joint_index].inverse_bind;
+			bones[joint_index].bone_transform		  = joints[joint_index].local;
+			inverse_binds[joint_index].bone_transform = joints[joint_index].inverse_bind;
 		}
 
 		ecs_component_table_t&					  system_skinned_mesh_renderer_table = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
 		component_system_skinned_mesh_renderer_t& system_skinned_mesh_renderer		 = ecs_helpers_t::table_add_or_get_as<component_system_skinned_mesh_renderer_t>(system_skinned_mesh_renderer_table, id);
 
-		system_skinned_mesh_renderer.bones_handle = bones_handle;
+		system_skinned_mesh_renderer.bones_handle			= bones_handle;
+		system_skinned_mesh_renderer.inverse_binds_handle	= inverse_binds_handle;
+		system_skinned_mesh_renderer.final_bones_calculated = false;
 	}
 
 	void world_animation_controller_t::destroy_skinned_renderer(entity_id_t id)
@@ -305,6 +359,7 @@ namespace sfg
 		const component_system_skinned_mesh_renderer_t& system_skinned_mesh_renderer	   = ecs_helpers_t::table_get_as<component_system_skinned_mesh_renderer_t>(system_skinned_mesh_renderer_table, id);
 
 		deallocate_bones(system_skinned_mesh_renderer.bones_handle);
+		deallocate_bones(system_skinned_mesh_renderer.inverse_binds_handle);
 		ecs_t::table_remove(system_skinned_mesh_renderer_table, id);
 	}
 

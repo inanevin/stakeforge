@@ -85,7 +85,9 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_skinned_mesh_renderer";
 
-		chunk_handle32_t bones_handle = {};
+		chunk_handle32_t bones_handle			= {};
+		chunk_handle32_t inverse_binds_handle	= {};
+		bool			 final_bones_calculated = false;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_skinned_mesh_renderer_t);

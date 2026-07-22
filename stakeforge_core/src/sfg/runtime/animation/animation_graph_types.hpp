@@ -85,7 +85,6 @@ namespace sfg
 		local,
 		component,
 		world,
-		bone,
 	};
 
 	struct alignas(32) animation_graph_param_t

@@ -90,6 +90,8 @@ namespace sfg
 		struct animation_graph_t
 		{
 			chunk_handle32_t initial_pose = {};
+			chunk_handle32_t nodes		  = {};
+			u32				 node_count	  = 0;
 		};
 
 	private:
