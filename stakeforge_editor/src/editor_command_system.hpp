@@ -65,6 +65,8 @@ namespace sfg
 		shader_edit,
 		texture_sampler_edit,
 		physical_material_edit,
+		animation_graph_edit,
+		animation_graph_navigation,
 	};
 
 	enum class editor_command_state_e : u8
