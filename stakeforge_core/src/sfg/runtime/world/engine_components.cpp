@@ -231,6 +231,29 @@ namespace sfg
 			});
 		}
 
+		void register_component_animation_graph_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name			 = "component_animation_graph",
+				.display_name	 = "Animation Graph",
+				.category		 = "Animation",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_animation_graph_t*>(ptr), component_animation_graph_t{}); },
+				.fields =
+					{
+						{.name		   = "animation_graph",
+						 .display_name = "Animation Graph",
+						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_GRAPH,
+						 .offset	   = offsetof(component_animation_graph_t, animation_graph),
+						 .size		   = sizeof(resource_handle_t),
+						 .type		   = reflected_value_type_e::u64},
+					},
+				.type_id   = type_id_t<component_animation_graph_t>::value,
+				.size	   = sizeof(component_animation_graph_t),
+				.alignment = alignof(component_animation_graph_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
 		void register_component_camera_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -2190,6 +2213,7 @@ namespace sfg
 		register_component_name_reflection(registry);
 		register_component_mesh_renderer_reflection(registry);
 		register_component_skinned_mesh_renderer_reflection(registry);
+		register_component_animation_graph_reflection(registry);
 		register_component_camera_reflection(registry);
 		register_component_light_reflection(registry);
 		register_component_post_process_reflection(registry);

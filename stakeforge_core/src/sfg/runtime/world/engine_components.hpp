@@ -102,6 +102,15 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_skinned_mesh_renderer_t);
 
+	struct component_animation_graph_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_animation_graph";
+
+		resource_handle_t animation_graph = NULL_RESOURCE_HANDLE;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_animation_graph_t);
+
 	struct component_camera_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_camera";
