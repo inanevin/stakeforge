@@ -151,6 +151,7 @@ namespace sfg
 		_mixed					= false;
 		_edit_active			= false;
 		_edit_dirty				= false;
+		_focused				= false;
 	}
 
 	void editor_input_field_t::select_all()
@@ -773,6 +774,7 @@ namespace sfg
 		field.reset_caret_blink();
 		field._edit_active = false;
 		field._edit_dirty  = false;
+		field._focused	   = true;
 
 		if (via_navigation)
 			field.select_all();
@@ -797,6 +799,7 @@ namespace sfg
 		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
 		field.commit_number_text();
 		field.submit_edit();
+		field._focused = false;
 	}
 
 	void editor_input_field_t::on_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)

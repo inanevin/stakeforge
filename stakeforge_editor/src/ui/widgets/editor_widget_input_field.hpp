@@ -102,7 +102,7 @@ namespace sfg
 
 		inline bool is_editing() const
 		{
-			return _edit_active;
+			return _focused;
 		}
 
 	private:
@@ -167,5 +167,6 @@ namespace sfg
 		bool						_mixed						  = false;
 		bool						_edit_active				  = false;
 		bool						_edit_dirty					  = false;
+		bool						_focused					  = false;
 	};
 }
