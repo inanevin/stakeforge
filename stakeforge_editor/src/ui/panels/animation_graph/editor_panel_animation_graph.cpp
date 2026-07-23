@@ -160,9 +160,11 @@ namespace sfg
 		_asset_name = asset_name;
 		_inspector.set_asset_name(_asset_name.c_str());
 
-		_grid.set_mode(editor_animation_graph_display_mode_e::display_nodes);
+		_context.set_display_mode(editor_animation_graph_display_mode_e::display_nodes);
 		_context.set_display_node_id(ANIMATION_GRAPH_DEF_NULL_ID);
 		_context.set_selected_node_id(ANIMATION_GRAPH_DEF_NULL_ID);
+		_context.set_selected_sub_node_id(ANIMATION_GRAPH_DEF_NULL_ID);
+		_grid.set_mode(editor_animation_graph_display_mode_e::display_nodes);
 
 		set_sub_item_id(graph_id);
 		refresh_title(_asset_name.c_str(), "AG: ");

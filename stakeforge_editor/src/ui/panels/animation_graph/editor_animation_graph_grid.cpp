@@ -57,27 +57,31 @@ namespace sfg
 #define ANIMATION_GRAPH_GRID_DUPLICATE_NODE_COMMAND		 5
 #define ANIMATION_GRAPH_GRID_MAKE_ENTRY_COMMAND			 6
 #define ANIMATION_GRAPH_GRID_MAKE_EXIT_COMMAND			 7
+#define ANIMATION_GRAPH_GRID_CREATE_ASM_STATE_COMMAND	 8
+#define ANIMATION_GRAPH_GRID_DELETE_ASM_STATE_COMMAND	 9
+#define ANIMATION_GRAPH_GRID_DUPLICATE_ASM_STATE_COMMAND 10
+#define ANIMATION_GRAPH_GRID_MAKE_START_STATE_COMMAND	 11
 #define ANIMATION_GRAPH_GRID_CONNECTION_SEGMENTS		 24
 #define ANIMATION_GRAPH_GRID_CONNECTION_MIN_CONTROL		 48.0f
 #define ANIMATION_GRAPH_GRID_CONNECTION_THICKNESS		 2.0f
 
 	namespace
 	{
-		const editor_action_menu_row_desc_t ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS[] = {
+		editor_action_menu_row_desc_t ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS[] = {
 			{.text = "Create ASM", .command = ANIMATION_GRAPH_GRID_CREATE_ASM_COMMAND},
 			{.text = "Create Bone Control", .command = ANIMATION_GRAPH_GRID_CREATE_BONE_CONTROL_COMMAND},
 			{.text = "Create IK", .command = ANIMATION_GRAPH_GRID_CREATE_IK_COMMAND},
-		};
-
-		const editor_action_menu_row_desc_t ANIMATION_GRAPH_GRID_NODE_ACTION_MENU_ROWS[] = {
 			{.text = "Delete", .shortcut = "DEL", .command = ANIMATION_GRAPH_GRID_DELETE_NODE_COMMAND},
 			{.text = "Duplicate", .shortcut = "CTRL+D", .command = ANIMATION_GRAPH_GRID_DUPLICATE_NODE_COMMAND},
 			{.text = "Make Entry", .command = ANIMATION_GRAPH_GRID_MAKE_ENTRY_COMMAND},
 			{.text = "Make Exit", .command = ANIMATION_GRAPH_GRID_MAKE_EXIT_COMMAND},
 		};
 
-		const editor_action_menu_row_desc_t ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[] = {
-			{.text = "Create State"},
+		editor_action_menu_row_desc_t ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[] = {
+			{.text = "Create State", .command = ANIMATION_GRAPH_GRID_CREATE_ASM_STATE_COMMAND},
+			{.text = "Delete", .shortcut = "DEL", .command = ANIMATION_GRAPH_GRID_DELETE_ASM_STATE_COMMAND},
+			{.text = "Duplicate", .shortcut = "CTRL+D", .command = ANIMATION_GRAPH_GRID_DUPLICATE_ASM_STATE_COMMAND},
+			{.text = "Make Start", .command = ANIMATION_GRAPH_GRID_MAKE_START_STATE_COMMAND},
 		};
 
 		void draw_animation_graph_connection(ui::vg_canvas_t& canvas, const vec2f_t& from, const vec2f_t& to, f32 scale, const ui::vg_line_paint_t& line_paint, const ui::ui_render_state_t& state, u32 draw_order)
@@ -117,6 +121,7 @@ namespace sfg
 		ui::listener_bundle_t listener = {};
 		listener.on_press			   = on_press;
 		listener.on_click			   = on_click;
+		listener.on_double_click	   = on_double_click;
 		listener.on_drag_begin		   = on_drag_begin;
 		listener.on_drag			   = on_drag;
 		listener.on_drag_end		   = on_drag_end;
@@ -135,6 +140,28 @@ namespace sfg
 		title_in.pos_value		  = {theme.margin_horizontal * 2, theme.margin_vertical * 2};
 
 		update_text("GRAPH");
+
+		_back_button.init(ui,
+						  _root,
+						  {
+							  .text				  = "Back",
+							  .width			  = {.mode = editor_widget_width_e::fixed, .value = theme.item_width},
+							  .elevate_draw_order = true,
+						  });
+
+		ui::layout_in_t& back_in = ui.get_tree().in(_back_button.get_root());
+		back_in.pos_mode_x		 = ui::pos_mode_e::offset_in_parent;
+		back_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		back_in.pos_value		 = {0.0f, 0.9f};
+		back_in.anchor_y		 = ui::anchor_e::end;
+		back_in.pos_value.x		 = theme.margin_horizontal * 2;
+
+		ui::listener_bundle_t back_listener = {};
+		back_listener.on_click				= on_back;
+		back_listener.user_data				= this;
+		ui.get_input().set_listener(_back_button.get_root(), back_listener);
+		ui.get_tree().set_visible(_back_button.get_root(), false, false);
+
 		set_zoom_instant(1.0f);
 	}
 
@@ -142,6 +169,7 @@ namespace sfg
 	{
 		destroy_nodes();
 
+		_back_button.uninit();
 		_ui->deallocate_widget(_title);
 		_ui->deallocate_widget(_root);
 
@@ -153,6 +181,8 @@ namespace sfg
 		_context_menu_node_id		  = ANIMATION_GRAPH_DEF_NULL_ID;
 		_drag_node_index			  = UINT32_MAX;
 		_drag_pin_node_index		  = UINT32_MAX;
+		_last_clicked_node_id		  = UINT32_MAX;
+		_double_click_node_id		  = UINT32_MAX;
 		_root						  = NULL_WIDGET;
 		_title						  = NULL_WIDGET;
 		_zoom						  = 1.0f;
@@ -162,10 +192,10 @@ namespace sfg
 
 	void editor_animation_graph_grid_t::set_mode(editor_animation_graph_display_mode_e mode)
 	{
-		if (_config.context->get_display_mode() == mode)
-			return;
+		_ui->get_tree().set_visible(_back_button.get_root(), mode != editor_animation_graph_display_mode_e::display_nodes, true);
 
-		_config.context->set_display_mode(mode);
+		_last_clicked_node_id = UINT32_MAX;
+		_double_click_node_id = UINT32_MAX;
 		set_zoom_instant(1.0f);
 		refresh_nodes();
 	}
@@ -204,7 +234,7 @@ namespace sfg
 			_nodes.push_back(node);
 		}
 
-		change_selection(_config.context->get_selected_node_id());
+		change_selection(_config.context->get_selected_sub_node_id());
 	}
 
 	void editor_animation_graph_grid_t::change_selection(u32 node_id)
@@ -273,20 +303,32 @@ namespace sfg
 		const bool display_nodes = _config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes;
 
 		_context_menu_editor_position = ((pos - center) / scale - _offset) / _zoom;
-		_context_menu_node_id		  = display_nodes ? find_node_at(pos) : ANIMATION_GRAPH_DEF_NULL_ID;
+		_context_menu_node_id		  = find_node_at(pos);
+
+		const bool hit_node = _context_menu_node_id != ANIMATION_GRAPH_DEF_NULL_ID;
+
+		for (u32 i = 0; i < 3; ++i)
+			ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS[i].disabled = hit_node;
+
+		for (u32 i = 3; i < 7; ++i)
+			ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS[i].disabled = !hit_node;
+
+		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[0].disabled = hit_node;
+		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[1].disabled = !hit_node;
+		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[2].disabled = !hit_node;
+		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[3].disabled = !hit_node;
 
 		editor_action_menu_desc_t desc = {};
 
-		if (_context_menu_node_id != ANIMATION_GRAPH_DEF_NULL_ID)
+		if (display_nodes)
 		{
-			desc.rows	   = ANIMATION_GRAPH_GRID_NODE_ACTION_MENU_ROWS;
-			desc.row_count = static_cast<u16>(sizeof(ANIMATION_GRAPH_GRID_NODE_ACTION_MENU_ROWS) / sizeof(ANIMATION_GRAPH_GRID_NODE_ACTION_MENU_ROWS[0]));
+			desc.rows	   = ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS;
+			desc.row_count = static_cast<u16>(sizeof(ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS) / sizeof(ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS[0]));
 		}
 		else
 		{
-			desc.rows	   = display_nodes ? ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS : ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS;
-			desc.row_count = display_nodes ? static_cast<u16>(sizeof(ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS) / sizeof(ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS[0]))
-										   : static_cast<u16>(sizeof(ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS) / sizeof(ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[0]));
+			desc.rows	   = ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS;
+			desc.row_count = static_cast<u16>(sizeof(ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS) / sizeof(ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[0]));
 		}
 
 		desc.command_fn		   = on_context_menu_command;
@@ -351,6 +393,18 @@ namespace sfg
 		case ANIMATION_GRAPH_GRID_MAKE_EXIT_COMMAND:
 			editor_command_animation_graph_make_exit_t::make(*grid._config.context, grid._context_menu_node_id);
 			break;
+		case ANIMATION_GRAPH_GRID_CREATE_ASM_STATE_COMMAND:
+			editor_command_animation_graph_add_asm_state_t::add(*grid._config.context, grid._context_menu_editor_position, "State");
+			break;
+		case ANIMATION_GRAPH_GRID_DELETE_ASM_STATE_COMMAND:
+			editor_command_animation_graph_delete_asm_state_t::remove(*grid._config.context, grid._context_menu_node_id);
+			break;
+		case ANIMATION_GRAPH_GRID_DUPLICATE_ASM_STATE_COMMAND:
+			editor_command_animation_graph_duplicate_asm_state_t::duplicate(*grid._config.context, grid._context_menu_node_id);
+			break;
+		case ANIMATION_GRAPH_GRID_MAKE_START_STATE_COMMAND:
+			editor_command_animation_graph_make_start_state_t::make(*grid._config.context, grid._context_menu_node_id);
+			break;
 		default:
 			break;
 		}
@@ -412,6 +466,7 @@ namespace sfg
 			for (size_t i = 0; i < grid._nodes.size(); ++i)
 			{
 				grid._nodes[i]->clear_entry_and_exit();
+				grid._nodes[i]->set_start_state(node_it->asm_node.states[i].id == node_it->asm_node.first_state_id);
 
 				ui::layout_in_t& node_in = ui.get_tree().in(grid._nodes[i]->get_root());
 				node_in.pos_value		 = center + (grid._offset + node_it->asm_node.states[i].editor_position * grid._zoom) * scale;
@@ -433,11 +488,66 @@ namespace sfg
 		if (btn != ui::mouse_button_e::left && btn != ui::mouse_button_e::right)
 			return;
 
-		editor_animation_graph_grid_t& grid = *static_cast<editor_animation_graph_grid_t*>(user_data);
-		editor_command_animation_graph_select_node_t::select(*grid._config.context, grid.find_node_at(pos));
+		editor_animation_graph_grid_t& grid	   = *static_cast<editor_animation_graph_grid_t*>(user_data);
+		const u32					   node_id = grid.find_node_at(pos);
+
+		if (btn == ui::mouse_button_e::left)
+		{
+			grid._double_click_node_id = node_id == grid._last_clicked_node_id ? node_id : ANIMATION_GRAPH_DEF_NULL_ID;
+			grid._last_clicked_node_id = node_id;
+		}
+
+		if (grid._config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes)
+			editor_command_animation_graph_select_node_t::select(*grid._config.context, node_id);
+		else
+			editor_command_animation_graph_select_node_t::select_sub_node(*grid._config.context, node_id);
 
 		if (btn == ui::mouse_button_e::right)
 			grid.open_context_menu(pos);
+	}
+
+	void editor_animation_graph_grid_t::on_double_click(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		editor_animation_graph_grid_t& grid = *static_cast<editor_animation_graph_grid_t*>(user_data);
+
+		if (grid._config.context->get_display_mode() != editor_animation_graph_display_mode_e::display_nodes)
+			return;
+
+		const u32 node_index = grid.find_node_index_at(pos);
+
+		if (node_index == UINT32_MAX)
+			return;
+
+		const animation_graph_node_def_t& node = grid._config.context->get_graph().nodes[node_index];
+
+		if (node.id != grid._double_click_node_id)
+			return;
+
+		grid._last_clicked_node_id = ANIMATION_GRAPH_DEF_NULL_ID;
+		grid._double_click_node_id = ANIMATION_GRAPH_DEF_NULL_ID;
+
+		switch (node.type)
+		{
+		case animation_graph_node_type_e::asm_node:
+			editor_command_animation_graph_set_display_mode_t::set(*grid._config.context, editor_animation_graph_display_mode_e::display_state_machine, node.id);
+			break;
+		case animation_graph_node_type_e::bone_controller:
+		case animation_graph_node_type_e::ik:
+			break;
+		}
+	}
+
+	void editor_animation_graph_grid_t::on_back(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		editor_animation_graph_grid_t& grid = *static_cast<editor_animation_graph_grid_t*>(user_data);
+
+		editor_command_animation_graph_set_display_mode_t::set(*grid._config.context, editor_animation_graph_display_mode_e::display_nodes, ANIMATION_GRAPH_DEF_NULL_ID);
 	}
 
 	void editor_animation_graph_grid_t::on_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
@@ -446,17 +556,28 @@ namespace sfg
 			return;
 
 		editor_animation_graph_grid_t& grid				= *static_cast<editor_animation_graph_grid_t*>(user_data);
-		const u32					   selected_node_id = grid._config.context->get_selected_node_id();
+		const bool					   display_nodes	= grid._config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes;
+		const u32					   selected_node_id = display_nodes ? grid._config.context->get_selected_node_id() : grid._config.context->get_selected_sub_node_id();
 
-		if (grid._config.context->get_display_mode() != editor_animation_graph_display_mode_e::display_nodes || selected_node_id == ANIMATION_GRAPH_DEF_NULL_ID)
+		if (selected_node_id == ANIMATION_GRAPH_DEF_NULL_ID)
 			return;
 
 		const bool ctrl_pressed = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
 
 		if (ev.key == static_cast<u16>(input_code::key_delete))
-			editor_command_animation_graph_delete_node_t::remove(*grid._config.context, selected_node_id);
+		{
+			if (display_nodes)
+				editor_command_animation_graph_delete_node_t::remove(*grid._config.context, selected_node_id);
+			else
+				editor_command_animation_graph_delete_asm_state_t::remove(*grid._config.context, selected_node_id);
+		}
 		else if (ev.key == static_cast<u16>(input_code::key_d) && ctrl_pressed)
-			editor_command_animation_graph_duplicate_node_t::duplicate(*grid._config.context, selected_node_id);
+		{
+			if (display_nodes)
+				editor_command_animation_graph_duplicate_node_t::duplicate(*grid._config.context, selected_node_id);
+			else
+				editor_command_animation_graph_duplicate_asm_state_t::duplicate(*grid._config.context, selected_node_id);
+		}
 	}
 
 	void editor_animation_graph_grid_t::on_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data)
@@ -470,7 +591,10 @@ namespace sfg
 		if (drag_index == UINT32_MAX)
 			return;
 
-		editor_command_animation_graph_select_node_t::select(*grid._config.context, grid._nodes[drag_index]->get_id());
+		if (grid._config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes)
+			editor_command_animation_graph_select_node_t::select(*grid._config.context, grid._nodes[drag_index]->get_id());
+		else
+			editor_command_animation_graph_select_node_t::select_sub_node(*grid._config.context, grid._nodes[drag_index]->get_id());
 	}
 
 	void editor_animation_graph_grid_t::on_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data)

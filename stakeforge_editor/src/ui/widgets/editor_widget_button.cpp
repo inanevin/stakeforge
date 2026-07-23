@@ -72,6 +72,9 @@ namespace sfg
 		ui.set_widget_debug_name(_root, "button");
 		tree.attach(parent, _root);
 
+		if (config.elevate_draw_order)
+			tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
+
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flags			 = ui::wf_visible | ui::wf_input;
 		apply_editor_widget_width(root_in, config.width);

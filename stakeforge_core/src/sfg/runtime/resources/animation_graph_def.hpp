@@ -84,12 +84,10 @@ namespace sfg
 
 	struct animation_graph_node_asm_def_t
 	{
-		vector_t<animation_graph_asm_state_def_t>	   states			  = {};
-		vector_t<animation_graph_asm_transition_def_t> transitions		  = {};
-		vector_t<u32>								   masked_bones		  = {};
-		vec2f_t										   editor_view_offset = vec2f_t::zero;
-		f32											   editor_view_zoom	  = 1.0f;
-		u32											   first_state_id	  = ANIMATION_GRAPH_DEF_NULL_ID;
+		vector_t<animation_graph_asm_state_def_t>	   states		  = {};
+		vector_t<animation_graph_asm_transition_def_t> transitions	  = {};
+		vector_t<u32>								   masked_bones	  = {};
+		u32											   first_state_id = ANIMATION_GRAPH_DEF_NULL_ID;
 	};
 
 	struct animation_graph_bone_control_entry_def_t

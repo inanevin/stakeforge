@@ -29,8 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/panels/animation_graph/editor_animation_graph_widget_common.hpp"
 
-#include <sfg/data/span.hpp>
-#include <sfg/data/vector.hpp>
 #include <sfg/memory/pool_handle.hpp>
 #include <sfg/runtime/resources/animation_graph_def.hpp>
 
@@ -64,7 +62,7 @@ namespace sfg
 		void set_display_mode(editor_animation_graph_display_mode_e mode);
 		void set_display_node_id(u32 node_id);
 		void set_selected_node_id(u32 node_id);
-		void set_selection(span_t<const u32> selection);
+		void set_selected_sub_node_id(u32 node_id);
 		u32	 acquire_node_id();
 
 		// -----------------------------------------------------------------------------
@@ -86,6 +84,11 @@ namespace sfg
 			return _selected_node_id;
 		}
 
+		inline u32 get_selected_sub_node_id() const
+		{
+			return _selected_sub_node_id;
+		}
+
 		inline animation_graph_def_t& get_graph()
 		{
 			return _graph;
@@ -96,23 +99,18 @@ namespace sfg
 			return _graph;
 		}
 
-		inline span_t<const u32> get_selection() const
-		{
-			return {.data = _selection.data(), .size = _selection.size()};
-		}
-
 	private:
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 
 	private:
-		animation_graph_def_t							  _graph			= {};
-		vector_t<u32>									  _selection		= {};
-		editor_animation_graph_grid_t*					  _grid				= nullptr;
-		editor_animation_graph_widget_inspector_t*		  _inspector		= nullptr;
-		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener = {};
-		u32												  _display_node_id	= ANIMATION_GRAPH_DEF_NULL_ID;
-		u32												  _selected_node_id = ANIMATION_GRAPH_DEF_NULL_ID;
-		u32												  _id_counter		= 1;
-		editor_animation_graph_display_mode_e			  _display_mode		= editor_animation_graph_display_mode_e::display_nodes;
+		animation_graph_def_t							  _graph				= {};
+		editor_animation_graph_grid_t*					  _grid					= nullptr;
+		editor_animation_graph_widget_inspector_t*		  _inspector			= nullptr;
+		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener		= {};
+		u32												  _display_node_id		= UINT32_MAX;
+		u32												  _selected_node_id		= UINT32_MAX;
+		u32												  _selected_sub_node_id = UINT32_MAX;
+		u32												  _id_counter			= 1;
+		editor_animation_graph_display_mode_e			  _display_mode			= editor_animation_graph_display_mode_e::display_nodes;
 	};
 }

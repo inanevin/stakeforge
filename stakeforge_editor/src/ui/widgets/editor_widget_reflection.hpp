@@ -56,6 +56,14 @@ namespace sfg
 	struct reflected_field_t;
 	struct reflected_type_t;
 
+	struct editor_widget_reflection_dropdown_item_t
+	{
+		const char* text  = nullptr;
+		u64			value = 0;
+	};
+
+	using editor_widget_reflection_dropdown_items_fn = span_t<const editor_widget_reflection_dropdown_item_t> (*)(sid_t field_id, sid_t owner_field_id, void* user_data);
+
 	struct editor_widget_reflection_fold_state_t
 	{
 		sid_t type_id  = 0;
@@ -65,13 +73,15 @@ namespace sfg
 
 	struct editor_widget_reflection_config_t
 	{
-		vector_t<editor_widget_reflection_fold_state_t>* fold_states		= nullptr;
-		editor_widget_callbacks_t						 callbacks			= {};
-		span_t<void*>									 objects			= {};
-		sid_t											 type_id			= 0;
-		editor_world_handle_t							 world				= {};
-		bool											 block_edits		= false;
-		bool											 elevate_draw_order = false;
+		vector_t<editor_widget_reflection_fold_state_t>* fold_states			  = nullptr;
+		editor_widget_callbacks_t						 callbacks				  = {};
+		span_t<void*>									 objects				  = {};
+		sid_t											 type_id				  = 0;
+		editor_world_handle_t							 world					  = {};
+		editor_widget_reflection_dropdown_items_fn		 dropdown_items			  = nullptr;
+		void*											 dropdown_items_user_data = nullptr;
+		bool											 block_edits			  = false;
+		bool											 elevate_draw_order		  = false;
 	};
 
 	class editor_widget_reflection_t final
@@ -146,7 +156,8 @@ namespace sfg
 		void refresh_dependency_visibility();
 		void create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, editor_world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider);
 		void create_checkbox(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
-		bool create_dropdown(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
+		bool create_dropdown(
+			ui::widget_id_t parent, const reflected_field_t* const field, sid_t owner_field_id, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		void create_bitmask_dropdown(
 			ui::widget_id_t parent, const reflected_type_t& type, const reflected_field_t& field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		void create_input_field(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
@@ -223,11 +234,13 @@ namespace sfg
 		vector_t<ui::widget_id_t>						 _dividers;
 		vector_t<ui::widget_id_t>						 _rows;
 		vector_t<ui::widget_id_t>						 _tooltip_owners;
-		vector_t<editor_widget_reflection_fold_state_t>* _fold_states = nullptr;
-		ui::ui_context*									 _ui		  = nullptr;
-		sid_t											 _type_id	  = 0;
-		editor_world_handle_t							 _world		  = {};
-		ui::widget_id_t									 _root		  = NULL_WIDGET;
-		ui::widget_id_t									 _blocker	  = NULL_WIDGET;
+		vector_t<editor_widget_reflection_fold_state_t>* _fold_states			   = nullptr;
+		editor_widget_reflection_dropdown_items_fn		 _dropdown_items		   = nullptr;
+		void*											 _dropdown_items_user_data = nullptr;
+		ui::ui_context*									 _ui					   = nullptr;
+		sid_t											 _type_id				   = 0;
+		editor_world_handle_t							 _world					   = {};
+		ui::widget_id_t									 _root					   = NULL_WIDGET;
+		ui::widget_id_t									 _blocker				   = NULL_WIDGET;
 	};
 }

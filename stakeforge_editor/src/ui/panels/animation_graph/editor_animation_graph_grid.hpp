@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "ui/panels/animation_graph/editor_animation_graph_widget_common.hpp"
+#include "ui/widgets/editor_widget_button.hpp"
 
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
@@ -99,6 +100,8 @@ namespace sfg
 		static void on_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_double_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_back(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_drag_begin(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
@@ -108,6 +111,7 @@ namespace sfg
 
 	private:
 		vector_t<editor_animation_graph_widget_node_t*> _nodes						  = {};
+		editor_widget_button_t							_back_button				  = {};
 		ui::ui_context*									_ui							  = nullptr;
 		config_t										_config						  = {};
 		vec2f_t											_offset						  = vec2f_t::zero;
@@ -116,6 +120,8 @@ namespace sfg
 		u32												_context_menu_node_id		  = UINT32_MAX;
 		u32												_drag_node_index			  = UINT32_MAX;
 		u32												_drag_pin_node_index		  = UINT32_MAX;
+		u32												_last_clicked_node_id		  = UINT32_MAX;
+		u32												_double_click_node_id		  = UINT32_MAX;
 		ui::widget_id_t									_root						  = NULL_WIDGET;
 		ui::widget_id_t									_title						  = NULL_WIDGET;
 		f32												_zoom						  = 1.0f;

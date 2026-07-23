@@ -38,8 +38,9 @@ namespace sfg
 {
 	struct editor_widget_button_config_t
 	{
-		const char*					 text  = nullptr;
-		editor_widget_width_config_t width = {};
+		const char*					 text				= nullptr;
+		editor_widget_width_config_t width				= {};
+		bool						 elevate_draw_order = false;
 	};
 
 	class editor_widget_button_t final

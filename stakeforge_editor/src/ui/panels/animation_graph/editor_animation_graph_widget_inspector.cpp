@@ -27,13 +27,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/panels/animation_graph/editor_animation_graph_widget_inspector.hpp"
 #include "ui/panels/animation_graph/editor_animation_graph_context.hpp"
+#include "assets/editor_asset.hpp"
+#include "assets/editor_asset_io.hpp"
+#include "assets/editor_asset_manager.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
 
 #include <sfg/io/assert.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -129,6 +134,12 @@ namespace sfg
 									  .fold_states		  = &_asm_node_fold_states,
 									  .elevate_draw_order = true,
 								  });
+		_asm_state_reflection.init(ui,
+								   _root,
+								   {
+									   .fold_states		   = &_asm_state_fold_states,
+									   .elevate_draw_order = true,
+								   });
 		_bone_control_reflection.init(ui,
 									  _root,
 									  {
@@ -142,6 +153,7 @@ namespace sfg
 								.elevate_draw_order = true,
 							});
 		ui.get_tree().set_visible(_asm_node_reflection.get_root(), false, false);
+		ui.get_tree().set_visible(_asm_state_reflection.get_root(), false, false);
 		ui.get_tree().set_visible(_bone_control_reflection.get_root(), false, false);
 		ui.get_tree().set_visible(_ik_reflection.get_root(), false, false);
 	}
@@ -151,14 +163,19 @@ namespace sfg
 		_ui->cancel_mutations(this);
 		_ik_reflection.uninit();
 		_bone_control_reflection.uninit();
+		_asm_state_reflection.uninit();
 		_asm_node_reflection.uninit();
 		_reflection.uninit();
 		_ui->deallocate_widget(_root);
 
 		_fold_states.resize(0);
 		_asm_node_fold_states.resize(0);
+		_asm_state_fold_states.resize(0);
 		_bone_control_fold_states.resize(0);
 		_ik_fold_states.resize(0);
+		_bone_dropdown_items.resize(0);
+		_parameter_dropdown_items.resize(0);
+		_skeleton				= {};
 		_ui						= nullptr;
 		_config					= {};
 		_asset_name_label		= NULL_WIDGET;
@@ -189,26 +206,57 @@ namespace sfg
 								  });
 	}
 
+	void editor_animation_graph_widget_inspector_t::refresh_dropdown_items()
+	{
+		const animation_graph_def_t& graph = _config.context->get_graph();
+
+		_bone_dropdown_items.resize(0);
+		_bone_dropdown_items.reserve(_skeleton.joints.size() + 1);
+		_bone_dropdown_items.push_back({.text = "None", .value = UINT32_MAX});
+
+		for (u32 joint_index = 0; joint_index < _skeleton.joints.size(); ++joint_index)
+		{
+			const skeleton_joint_def_t& joint = _skeleton.joints[joint_index];
+
+			_bone_dropdown_items.push_back({
+				.text  = joint.name.empty() ? "Unnamed Bone" : joint.name.c_str(),
+				.value = joint_index,
+			});
+		}
+
+		_parameter_dropdown_items.resize(0);
+		_parameter_dropdown_items.reserve(graph.parameters.size() + 1);
+		_parameter_dropdown_items.push_back({.text = "None", .value = ANIMATION_GRAPH_DEF_NULL_ID});
+
+		for (const animation_graph_param_def_t& parameter : graph.parameters)
+		{
+			_parameter_dropdown_items.push_back({
+				.text  = parameter.name.empty() ? "Unnamed Parameter" : parameter.name.c_str(),
+				.value = parameter.id,
+			});
+		}
+	}
+
 	void editor_animation_graph_widget_inspector_t::refresh_inspector_immediate()
 	{
-		animation_graph_def_t& graph = _config.context->get_graph();
-		ui::layout_tree_t&	   tree	 = _ui->get_tree();
+		animation_graph_def_t&						graph		 = _config.context->get_graph();
+		ui::layout_tree_t&							tree		 = _ui->get_tree();
+		const editor_animation_graph_display_mode_e display_mode = _config.context->get_display_mode();
 
 		tree.set_visible(_reflection.get_root(), false, false);
 		tree.set_visible(_asm_node_reflection.get_root(), false, false);
+		tree.set_visible(_asm_state_reflection.get_root(), false, false);
 		tree.set_visible(_bone_control_reflection.get_root(), false, false);
 		tree.set_visible(_ik_reflection.get_root(), false, false);
 		tree.set_visible(_invalid_skeleton_frame, false, false);
 
-		if (_config.context->get_display_mode() != editor_animation_graph_display_mode_e::display_nodes)
-			return;
-
-		const u32  selected_node_id = _config.context->get_selected_node_id();
+		const u32  selected_node_id = display_mode == editor_animation_graph_display_mode_e::display_nodes ? _config.context->get_selected_node_id() : _config.context->get_display_node_id();
 		const auto selected_node_it = std::find_if(graph.nodes.begin(), graph.nodes.end(), [selected_node_id](const animation_graph_node_def_t& node) { return node.id == selected_node_id; });
 
-		if (selected_node_id == ANIMATION_GRAPH_DEF_NULL_ID || selected_node_it == graph.nodes.end())
+		if (display_mode == editor_animation_graph_display_mode_e::display_nodes && (selected_node_id == ANIMATION_GRAPH_DEF_NULL_ID || selected_node_it == graph.nodes.end()))
 		{
 			void* graph_object = &graph;
+
 			tree.set_visible(_reflection.get_root(), true, false);
 			_reflection.save_fold_states();
 			_reflection.set_reflection({
@@ -219,9 +267,70 @@ namespace sfg
 			return;
 		}
 
+		SFG_ASSERT(selected_node_it != graph.nodes.end());
+
 		if (graph.target_skeleton == NULL_RESOURCE_HANDLE)
 		{
 			tree.set_visible(_invalid_skeleton_frame, true, false);
+			return;
+		}
+
+		const editor_asset_t* skeleton_asset = editor_asset_manager_t::get().find_asset(graph.target_skeleton);
+
+		if (skeleton_asset == nullptr || skeleton_asset->asset_type != editor_asset_type_e::skeleton || skeleton_asset->embedded_source.empty())
+		{
+			tree.set_visible(_invalid_skeleton_frame, true, false);
+			return;
+		}
+
+		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*skeleton_asset);
+
+		_skeleton = {};
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &_skeleton, nullptr, embedded_source))
+		{
+			tree.set_visible(_invalid_skeleton_frame, true, false);
+			return;
+		}
+
+		refresh_dropdown_items();
+
+		if (display_mode == editor_animation_graph_display_mode_e::display_state_machine)
+		{
+			SFG_ASSERT(selected_node_it->type == animation_graph_node_type_e::asm_node);
+
+			const u32 selected_state_id = _config.context->get_selected_sub_node_id();
+
+			if (selected_state_id != ANIMATION_GRAPH_DEF_NULL_ID)
+			{
+				const auto selected_state_it = std::find_if(selected_node_it->asm_node.states.begin(), selected_node_it->asm_node.states.end(), [selected_state_id](const animation_graph_asm_state_def_t& state) { return state.id == selected_state_id; });
+				SFG_ASSERT(selected_state_it != selected_node_it->asm_node.states.end());
+
+				void* asm_state = &*selected_state_it;
+
+				tree.set_visible(_asm_state_reflection.get_root(), true, false);
+				_asm_state_reflection.save_fold_states();
+				_asm_state_reflection.set_reflection({
+					.fold_states			  = &_asm_state_fold_states,
+					.objects				  = {.data = &asm_state, .size = 1},
+					.type_id				  = type_id_t<animation_graph_asm_state_def_t>::value,
+					.dropdown_items			  = resolve_dropdown_items,
+					.dropdown_items_user_data = this,
+				});
+				return;
+			}
+
+			void* asm_node = &selected_node_it->asm_node;
+
+			tree.set_visible(_asm_node_reflection.get_root(), true, false);
+			_asm_node_reflection.save_fold_states();
+			_asm_node_reflection.set_reflection({
+				.fold_states			  = &_asm_node_fold_states,
+				.objects				  = {.data = &asm_node, .size = 1},
+				.type_id				  = type_id_t<animation_graph_node_asm_def_t>::value,
+				.dropdown_items			  = resolve_dropdown_items,
+				.dropdown_items_user_data = this,
+			});
 			return;
 		}
 
@@ -232,9 +341,11 @@ namespace sfg
 			tree.set_visible(_asm_node_reflection.get_root(), true, false);
 			_asm_node_reflection.save_fold_states();
 			_asm_node_reflection.set_reflection({
-				.fold_states = &_asm_node_fold_states,
-				.objects	 = {.data = &asm_node, .size = 1},
-				.type_id	 = type_id_t<animation_graph_node_asm_def_t>::value,
+				.fold_states			  = &_asm_node_fold_states,
+				.objects				  = {.data = &asm_node, .size = 1},
+				.type_id				  = type_id_t<animation_graph_node_asm_def_t>::value,
+				.dropdown_items			  = resolve_dropdown_items,
+				.dropdown_items_user_data = this,
 			});
 			break;
 		}
@@ -243,9 +354,11 @@ namespace sfg
 			tree.set_visible(_bone_control_reflection.get_root(), true, false);
 			_bone_control_reflection.save_fold_states();
 			_bone_control_reflection.set_reflection({
-				.fold_states = &_bone_control_fold_states,
-				.objects	 = {.data = &bone_control, .size = 1},
-				.type_id	 = type_id_t<animation_graph_node_bone_control_def_t>::value,
+				.fold_states			  = &_bone_control_fold_states,
+				.objects				  = {.data = &bone_control, .size = 1},
+				.type_id				  = type_id_t<animation_graph_node_bone_control_def_t>::value,
+				.dropdown_items			  = resolve_dropdown_items,
+				.dropdown_items_user_data = this,
 			});
 			break;
 		}
@@ -261,6 +374,22 @@ namespace sfg
 			break;
 		}
 		}
+	}
+
+	span_t<const editor_widget_reflection_dropdown_item_t> editor_animation_graph_widget_inspector_t::resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, void* user_data)
+	{
+		editor_animation_graph_widget_inspector_t& inspector = *static_cast<editor_animation_graph_widget_inspector_t*>(user_data);
+
+		if (field_id == "bone_index"_hs)
+			return {.data = inspector._bone_dropdown_items.data(), .size = inspector._bone_dropdown_items.size()};
+
+		if (owner_field_id == "masked_bones"_hs)
+			return {.data = inspector._bone_dropdown_items.data(), .size = inspector._bone_dropdown_items.size()};
+
+		if (field_id == "parameter_id"_hs || field_id == "blend_parameter_id"_hs)
+			return {.data = inspector._parameter_dropdown_items.data(), .size = inspector._parameter_dropdown_items.size()};
+
+		return {};
 	}
 
 	void editor_animation_graph_widget_inspector_t::on_refresh_mutation(ui::ui_context& ui, void* user_data)

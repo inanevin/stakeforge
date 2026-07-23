@@ -58,19 +58,20 @@ namespace sfg
 		vec4f_t color_divider_dark	= color_frame;
 		vec4f_t color_editor_border = color_utils_t::srgb_to_linear(color_t::from255(4, 4, 4, 255.0f)).to_vector();
 
-		vec4f_t color_accent0_light = color_utils_t::srgb_to_linear(color_t::from255(180.0f, 0.0f, 119.0f, 255.0f)).to_vector();
-		vec4f_t color_accent0		= color_utils_t::srgb_to_linear(color_t::from255(151.0f, 0.0f, 119.0f, 255.0f)).to_vector();
-		vec4f_t color_accent0_dim	= color_utils_t::srgb_to_linear(color_t::from255(91.0f, 0.0f, 72.0f, 255.0f)).to_vector();
-		vec4f_t color_accent1		= color_utils_t::srgb_to_linear(color_t::from255(90, 190, 255, 255.0f)).to_vector();
-		vec4f_t color_accent1_dim	= color_utils_t::srgb_to_linear(color_t::from255(7, 131, 214, 200.0f)).to_vector();
-		vec4f_t color_accent_green	= color_utils_t::srgb_to_linear(color_t::from255(90.0f, 210.0f, 125.0f, 255.0f)).to_vector();
-		vec4f_t color_accent2		= color_utils_t::srgb_to_linear(color_t::from255(255.0f, 102.0f, 0.0f, 255.0f)).to_vector();
-		vec4f_t color_accent2_dim	= color_utils_t::srgb_to_linear(color_t::from255(255.0f, 102.0f, 0.0f, 125.0f)).to_vector();
-		vec4f_t color_highlight		= color_utils_t::srgb_to_linear(color_t::from255(245.0f, 194.0f, 82.0f, 255.0f)).to_vector();
-		vec4f_t color_accent_warn	= color_utils_t::srgb_to_linear(color_t::from255(245.0f, 194.0f, 82.0f, 255.0f)).to_vector();
-		vec4f_t color_accent_err	= color_utils_t::srgb_to_linear(color_t::from255(214.0f, 65.0f, 57.0f, 255.0f)).to_vector();
-		vec4f_t color_outline		= color_utils_t::srgb_to_linear(color_t::from255(14.0f, 14.0f, 14.0f, 255.0f)).to_vector();
-		vec4f_t color_outline_light = color_utils_t::srgb_to_linear(color_t::from255(45.f, 45.f, 45.f, 255.0f)).to_vector();
+		vec4f_t color_accent0_light	   = color_utils_t::srgb_to_linear(color_t::from255(180.0f, 0.0f, 119.0f, 255.0f)).to_vector();
+		vec4f_t color_accent0		   = color_utils_t::srgb_to_linear(color_t::from255(151.0f, 0.0f, 119.0f, 255.0f)).to_vector();
+		vec4f_t color_accent0_dim	   = color_utils_t::srgb_to_linear(color_t::from255(91.0f, 0.0f, 72.0f, 255.0f)).to_vector();
+		vec4f_t color_accent1		   = color_utils_t::srgb_to_linear(color_t::from255(90, 190, 255, 255.0f)).to_vector();
+		vec4f_t color_accent1_dim	   = color_utils_t::srgb_to_linear(color_t::from255(7, 131, 214, 200.0f)).to_vector();
+		vec4f_t color_accent_green	   = color_utils_t::srgb_to_linear(color_t::from255(90.0f, 210.0f, 125.0f, 255.0f)).to_vector();
+		vec4f_t color_accent_green_dim = color_utils_t::srgb_to_linear(color_t::from255(90.0f, 210.0f, 125.0f, 100.0f)).to_vector();
+		vec4f_t color_accent2		   = color_utils_t::srgb_to_linear(color_t::from255(255.0f, 102.0f, 0.0f, 255.0f)).to_vector();
+		vec4f_t color_accent2_dim	   = color_utils_t::srgb_to_linear(color_t::from255(255.0f, 102.0f, 0.0f, 125.0f)).to_vector();
+		vec4f_t color_highlight		   = color_utils_t::srgb_to_linear(color_t::from255(245.0f, 194.0f, 82.0f, 255.0f)).to_vector();
+		vec4f_t color_accent_warn	   = color_utils_t::srgb_to_linear(color_t::from255(245.0f, 194.0f, 82.0f, 255.0f)).to_vector();
+		vec4f_t color_accent_err	   = color_utils_t::srgb_to_linear(color_t::from255(214.0f, 65.0f, 57.0f, 255.0f)).to_vector();
+		vec4f_t color_outline		   = color_utils_t::srgb_to_linear(color_t::from255(14.0f, 14.0f, 14.0f, 255.0f)).to_vector();
+		vec4f_t color_outline_light	   = color_utils_t::srgb_to_linear(color_t::from255(45.f, 45.f, 45.f, 255.0f)).to_vector();
 
 		sid_t font_default		 = "editor/resource_pack/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf"_hs;
 		sid_t font_default_mono	 = "editor/resource_pack/fonts/IBMPlex-Mono/IBMPlexMono-Regular.ttf"_hs;

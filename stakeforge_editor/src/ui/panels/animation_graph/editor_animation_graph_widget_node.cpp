@@ -168,6 +168,7 @@ namespace sfg
 		_id				   = ANIMATION_GRAPH_DEF_NULL_ID;
 		_is_entry		   = false;
 		_is_exit		   = false;
+		_is_start_state	   = false;
 	}
 
 	void editor_animation_graph_widget_node_t::set_zoom(f32 zoom)
@@ -202,6 +203,23 @@ namespace sfg
 									  .outline_color	 = selected ? theme.color_accent1 : theme.color_accent0_dim,
 									  .rounding			 = theme.item_rounding,
 									  .outline_thickness = theme.divider_thickness * 2,
+								  });
+	}
+
+	void editor_animation_graph_widget_node_t::set_start_state(bool start_state)
+	{
+		if (_is_start_state == start_state)
+			return;
+
+		_is_start_state				= start_state;
+		const editor_theme_t& theme = editor_theme_t::get();
+		const vec4f_t&		  color = start_state ? theme.color_accent_green_dim : theme.color_accent1_dim;
+
+		_ui->get_paint().set_rect(_title_frame,
+								  {
+									  .fill_color_a = color,
+									  .fill_color_b = color,
+									  .rounding		= theme.item_rounding,
 								  });
 	}
 

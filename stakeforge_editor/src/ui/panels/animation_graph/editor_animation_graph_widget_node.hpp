@@ -66,6 +66,7 @@ namespace sfg
 
 		void set_zoom(f32 zoom);
 		void set_selected(bool selected);
+		void set_start_state(bool start_state);
 		void update_title(const char* title);
 		void make_entry();
 		void make_exit();
@@ -114,5 +115,6 @@ namespace sfg
 		u32				_id				   = ANIMATION_GRAPH_DEF_NULL_ID;
 		bool			_is_entry		   = false;
 		bool			_is_exit		   = false;
+		bool			_is_start_state	   = false;
 	};
 }

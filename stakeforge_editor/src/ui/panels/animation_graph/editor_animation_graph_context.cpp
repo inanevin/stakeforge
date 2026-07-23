@@ -48,15 +48,15 @@ namespace sfg
 	{
 		editor_command_system_t::get().remove_listener(_command_listener);
 
-		_selection.resize(0);
-		_grid			  = nullptr;
-		_inspector		  = nullptr;
-		_command_listener = {};
-		_graph			  = {};
-		_display_node_id  = ANIMATION_GRAPH_DEF_NULL_ID;
-		_selected_node_id = ANIMATION_GRAPH_DEF_NULL_ID;
-		_id_counter		  = 1;
-		_display_mode	  = editor_animation_graph_display_mode_e::display_nodes;
+		_grid				  = nullptr;
+		_inspector			  = nullptr;
+		_command_listener	  = {};
+		_graph				  = {};
+		_display_node_id	  = ANIMATION_GRAPH_DEF_NULL_ID;
+		_selected_node_id	  = ANIMATION_GRAPH_DEF_NULL_ID;
+		_selected_sub_node_id = ANIMATION_GRAPH_DEF_NULL_ID;
+		_id_counter			  = 1;
+		_display_mode		  = editor_animation_graph_display_mode_e::display_nodes;
 	}
 
 	void editor_animation_graph_context_t::set_display_mode(editor_animation_graph_display_mode_e mode)
@@ -74,15 +74,9 @@ namespace sfg
 		_selected_node_id = node_id;
 	}
 
-	void editor_animation_graph_context_t::set_selection(span_t<const u32> selection)
+	void editor_animation_graph_context_t::set_selected_sub_node_id(u32 node_id)
 	{
-		if (selection.size == 0)
-		{
-			_selection.resize(0);
-			return;
-		}
-
-		_selection.assign(selection.data, selection.data + selection.size);
+		_selected_sub_node_id = node_id;
 	}
 
 	u32 editor_animation_graph_context_t::acquire_node_id()
@@ -106,11 +100,21 @@ namespace sfg
 		case editor_command_type_e::animation_graph_add_node:
 		case editor_command_type_e::animation_graph_delete_node:
 		case editor_command_type_e::animation_graph_duplicate_node:
+		case editor_command_type_e::animation_graph_add_asm_state:
+		case editor_command_type_e::animation_graph_delete_asm_state:
+		case editor_command_type_e::animation_graph_duplicate_asm_state:
 			context._grid->refresh_nodes();
 			context._inspector->refresh_inspector();
 			break;
-		case editor_command_type_e::animation_graph_select_node:
-			context._grid->change_selection(context._selected_node_id);
+		case editor_command_type_e::animation_graph_select_node: {
+			const u32 selected_node_id = context._display_mode == editor_animation_graph_display_mode_e::display_nodes ? context._selected_node_id : context._selected_sub_node_id;
+
+			context._grid->change_selection(selected_node_id);
+			context._inspector->refresh_inspector();
+			break;
+		}
+		case editor_command_type_e::animation_graph_set_display_mode:
+			context._grid->set_mode(context._display_mode);
 			context._inspector->refresh_inspector();
 			break;
 		default:

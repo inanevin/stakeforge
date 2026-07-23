@@ -118,14 +118,16 @@ namespace sfg
 		_ui->deallocate_widget(_root);
 
 		_objects.resize(0);
-		_callbacks		 = {};
-		_field_callbacks = {};
-		_fold_states	 = nullptr;
-		_ui				 = nullptr;
-		_type_id		 = 0;
-		_world			 = {};
-		_root			 = NULL_WIDGET;
-		_blocker		 = NULL_WIDGET;
+		_callbacks				  = {};
+		_field_callbacks		  = {};
+		_fold_states			  = nullptr;
+		_dropdown_items			  = nullptr;
+		_dropdown_items_user_data = nullptr;
+		_ui						  = nullptr;
+		_type_id				  = 0;
+		_world					  = {};
+		_root					  = NULL_WIDGET;
+		_blocker				  = NULL_WIDGET;
 	}
 
 	void editor_widget_reflection_t::set_reflection(const editor_widget_reflection_config_t& config)
@@ -133,8 +135,10 @@ namespace sfg
 		_ui->cancel_mutations(this);
 		clear_widgets();
 
-		_fold_states = config.fold_states;
-		_callbacks	 = config.callbacks;
+		_fold_states			  = config.fold_states;
+		_callbacks				  = config.callbacks;
+		_dropdown_items			  = config.dropdown_items;
+		_dropdown_items_user_data = config.dropdown_items_user_data;
 
 		_field_callbacks = {
 			.edit_begin		= on_field_edit_begin,
@@ -375,7 +379,7 @@ namespace sfg
 				for (size_t idx = 0; idx < objects.size; ++idx)
 					fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
 
-				if (create_dropdown(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, false, indentation))
+				if (create_dropdown(parent, field, field->field_identifier, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, false, indentation))
 					break;
 
 				create_input_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, false, indentation);
@@ -449,31 +453,50 @@ namespace sfg
 			_rows.push_back(row.row);
 	}
 
-	bool editor_widget_reflection_t::create_dropdown(ui::widget_id_t parent, const reflected_field_t* field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
+	bool editor_widget_reflection_t::create_dropdown(
+		ui::widget_id_t parent, const reflected_field_t* field, sid_t owner_field_id, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
 	{
 		if (field->value_type != reflected_value_type_e::u8 && field->value_type != reflected_value_type_e::u16 && field->value_type != reflected_value_type_e::u32)
 			return false;
 
 		frame_vector_t<editor_dropdown_item_t> items;
-		if (field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER)
-		{
-			const vector_t<physics_collision_layer_definition_t>& layers = editor_project_t::get().settings.project_settings.physics.collision_layers;
-			items.reserve(layers.size());
-			for (u32 i = 0; i < layers.size(); ++i)
-				items.push_back({.text = layers[i].name.empty() ? "Unnamed Layer" : layers[i].name.c_str(), .value = layers[i].slot});
-		}
-		else
-		{
-			const reflected_type_t* enum_type = reflection_registry_t::get().find_type(field->sub_type_id);
-			if (enum_type == nullptr || !enum_type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
-				return false;
 
-			const u32 enum_item_count = enum_type->fields.end - enum_type->fields.start;
-			items.reserve(enum_item_count);
-			for (u32 i = 0; i < enum_item_count; ++i)
+		if (_dropdown_items != nullptr)
+		{
+			const span_t<const editor_widget_reflection_dropdown_item_t> resolved_items = _dropdown_items(field->field_identifier, owner_field_id, _dropdown_items_user_data);
+
+			items.reserve(resolved_items.size);
+
+			for (size_t item_index = 0; item_index < resolved_items.size; ++item_index)
+				items.push_back({.text = resolved_items.data[item_index].text, .value = resolved_items.data[item_index].value});
+		}
+
+		if (items.empty())
+		{
+			if (field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER)
 			{
-				const reflected_field_t* enum_field = reflection_registry_t::get().get_field(enum_type->fields.start + i);
-				items.push_back({.text = enum_field->display_name != nullptr ? enum_field->display_name : enum_field->name, .value = static_cast<u16>(i)});
+				const vector_t<physics_collision_layer_definition_t>& layers = editor_project_t::get().settings.project_settings.physics.collision_layers;
+				items.reserve(layers.size());
+
+				for (u32 i = 0; i < layers.size(); ++i)
+					items.push_back({.text = layers[i].name.empty() ? "Unnamed Layer" : layers[i].name.c_str(), .value = layers[i].slot});
+			}
+			else
+			{
+				const reflected_type_t* enum_type = reflection_registry_t::get().find_type(field->sub_type_id);
+
+				if (enum_type == nullptr || !enum_type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
+					return false;
+
+				const u32 enum_item_count = enum_type->fields.end - enum_type->fields.start;
+				items.reserve(enum_item_count);
+
+				for (u32 i = 0; i < enum_item_count; ++i)
+				{
+					const reflected_field_t* enum_field = reflection_registry_t::get().get_field(enum_type->fields.start + i);
+
+					items.push_back({.text = enum_field->display_name != nullptr ? enum_field->display_name : enum_field->name, .value = static_cast<u16>(i)});
+				}
 			}
 		}
 
@@ -907,7 +930,7 @@ namespace sfg
 				for (size_t i = 0; i < containers.size; ++i)
 					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
 
-				if (create_dropdown(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index))
+				if (create_dropdown(parent, &element_field, field->field_identifier, {.data = element_fields.data(), .size = element_fields.size()}, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index))
 					break;
 
 				create_input_field(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
