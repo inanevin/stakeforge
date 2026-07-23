@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
@@ -59,13 +60,32 @@ namespace sfg
 			return false;
 		}
 
+		const animation_graph_node_def_t* source_node = def.nodes.empty() ? nullptr : def.find_node(def.entry_node_id);
+		u32								  node_count  = 0;
+
+		while (source_node != nullptr)
+		{
+			if (node_count == def.nodes.size())
+			{
+				SFG_ERR("animation graph contains a cycle: {0}", entry.hash);
+				return false;
+			}
+
+			++node_count;
+
+			if (source_node->id == def.output_node_id)
+				break;
+
+			source_node = def.find_node(source_node->next_node_id);
+		}
+
 		chunk_allocator_t&		   mem	   = ctx.resource_manager.get_memory();
 		animation_graph_runtime_t* runtime = mem.get<animation_graph_runtime_t>(entry.runtime);
 
-		/*
 		*runtime				 = {};
 		runtime->target_skeleton = def.target_skeleton;
 		runtime->parameter_count = static_cast<u32>(def.parameters.size());
+		runtime->node_count		 = node_count;
 
 		if (runtime->parameter_count != 0)
 		{
@@ -96,26 +116,11 @@ namespace sfg
 				case animation_param_type_e::quat:
 					destination.value.quat_value = source.quat_value;
 					break;
-				case animation_param_type_e::transform:
-					destination.value.transform_value = source.transform_value;
-					break;
 				case animation_param_type_e::boolean:
 					destination.value.bool_value = source.bool_value;
 					break;
 				}
 			}
-		}
-
-		const animation_graph_node_def_t* source_node = def.nodes.empty() ? nullptr : def.find_node(def.entry_node_id);
-
-		while (source_node != nullptr)
-		{
-			++runtime->node_count;
-
-			if (source_node->id == def.output_node_id)
-				break;
-
-			source_node = def.find_node(source_node->next_node_id);
 		}
 
 		if (runtime->node_count == 0)
@@ -142,7 +147,10 @@ namespace sfg
 				destination_asm.transition_count = static_cast<u32>(source_asm.transitions.size());
 
 				for (const u32 bone_index : source_asm.masked_bones)
+				{
+					SFG_ASSERT(bone_index < MAX_SKELETON_BONES);
 					destination_asm.mask.bitmasks[bone_index / 64] |= 1ull << (bone_index % 64);
+				}
 
 				if (destination_asm.state_count != 0)
 				{
@@ -265,7 +273,7 @@ namespace sfg
 
 			source_node = source_node->id == def.output_node_id ? nullptr : def.find_node(source_node->next_node_id);
 		}
-		*/
+
 		return true;
 	}
 
@@ -274,7 +282,6 @@ namespace sfg
 		chunk_allocator_t&		   mem	   = ctx.resource_manager.get_memory();
 		animation_graph_runtime_t* runtime = mem.get<animation_graph_runtime_t>(entry.runtime);
 
-		/*
 		if (runtime->node_count != 0)
 		{
 			animation_graph_resource_node_t* nodes = mem.get<animation_graph_resource_node_t>(runtime->nodes);
@@ -312,7 +319,6 @@ namespace sfg
 
 		if (runtime->parameter_count != 0)
 			mem.free(runtime->parameters);
-			*/
 
 		*runtime = {};
 	}

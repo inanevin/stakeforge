@@ -95,12 +95,11 @@ namespace sfg
 	struct alignas(32) animation_graph_param_t
 	{
 		union {
-			f32		 f32_value = 0.0f;
-			vec2f_t	 vec2_value;
-			vec3f_t	 vec3_value;
-			quat_t	 quat_value;
-			mat4x3_t transform_value;
-			bool	 bool_value;
+			f32		f32_value = 0.0f;
+			vec2f_t vec2_value;
+			vec3f_t vec3_value;
+			quat_t	quat_value;
+			bool	bool_value;
 		};
 		animation_param_type_e type = animation_param_type_e::f32;
 	};

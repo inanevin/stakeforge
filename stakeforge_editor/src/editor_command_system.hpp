@@ -168,6 +168,7 @@ namespace sfg
 		void uninit();
 		void clear();
 		void clear_world(editor_world_handle_t world);
+		void clear_user_data(void* user_data);
 
 		// -----------------------------------------------------------------------------
 		// impl

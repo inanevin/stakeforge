@@ -56,7 +56,6 @@ namespace sfg
 					{.name = "vec2", .display_name = "Vector 2"},
 					{.name = "vec3", .display_name = "Vector 3"},
 					{.name = "quat", .display_name = "Rotation"},
-					{.name = "transform", .display_name = "Transform"},
 					{.name = "boolean", .display_name = "Boolean"},
 				},
 			.type_id   = type_id_t<animation_param_type_e>::value,

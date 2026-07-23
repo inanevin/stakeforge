@@ -52,6 +52,65 @@ namespace sfg
 			.source_tick = hashing_t::hash_u64(def_stream.get_raw(), def_stream.get_size()),
 		};
 
+		if (def.target_skeleton != NULL_RESOURCE_HANDLE)
+		{
+			out_header.dependencies[out_header.dependency_count] = {
+				.handle = def.target_skeleton,
+				.type	= resource_type_e::skeleton,
+			};
+			++out_header.dependency_count;
+		}
+
+		for (const animation_graph_node_def_t& node : def.nodes)
+		{
+			if (node.type != animation_graph_node_type_e::asm_node)
+				continue;
+
+			for (const u32 bone_index : node.asm_node.masked_bones)
+			{
+				if (bone_index >= MAX_SKELETON_BONES)
+				{
+					SFG_ERR("animation graph masked bone index is out of range: {0}", bone_index);
+					return false;
+				}
+			}
+
+			for (const animation_graph_asm_state_def_t& state : node.asm_node.states)
+			{
+				for (const animation_graph_clip_def_t& clip : state.clips)
+				{
+					if (clip.clip == NULL_RESOURCE_HANDLE)
+						continue;
+
+					bool dependency_exists = false;
+
+					for (u32 dependency_index = 0; dependency_index < out_header.dependency_count; ++dependency_index)
+					{
+						const resource_dependency_t& dependency = out_header.dependencies[dependency_index];
+						dependency_exists						= dependency.handle == clip.clip && dependency.type == resource_type_e::animation;
+
+						if (dependency_exists)
+							break;
+					}
+
+					if (dependency_exists)
+						continue;
+
+					if (out_header.dependency_count == MAX_DEPENDENCIES)
+					{
+						SFG_ERR("animation graph has more than {0} resource dependencies", MAX_DEPENDENCIES);
+						return false;
+					}
+
+					out_header.dependencies[out_header.dependency_count] = {
+						.handle = clip.clip,
+						.type	= resource_type_e::animation,
+					};
+					++out_header.dependency_count;
+				}
+			}
+		}
+
 		stream.write_raw(def_stream.get_raw(), def_stream.get_size());
 
 		return true;

@@ -131,6 +131,9 @@ namespace sfg
 		u32									  entry_node_id		 = ANIMATION_GRAPH_DEF_NULL_ID;
 		u32									  output_node_id	 = ANIMATION_GRAPH_DEF_NULL_ID;
 		u32									  next_id			 = 1;
+
+		animation_graph_node_def_t*		  find_node(u32 node_id);
+		const animation_graph_node_def_t* find_node(u32 node_id) const;
 	};
 
 	SFG_DEFINE_TYPE_ID(animation_graph_param_def_t);

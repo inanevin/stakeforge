@@ -32,6 +32,19 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	animation_graph_node_def_t* animation_graph_def_t::find_node(u32 node_id)
+	{
+		const auto node_it = std::find_if(nodes.begin(), nodes.end(), [node_id](const animation_graph_node_def_t& node) { return node.id == node_id; });
+
+		return node_it == nodes.end() ? nullptr : &*node_it;
+	}
+
+	const animation_graph_node_def_t* animation_graph_def_t::find_node(u32 node_id) const
+	{
+		const auto node_it = std::find_if(nodes.begin(), nodes.end(), [node_id](const animation_graph_node_def_t& node) { return node.id == node_id; });
+
+		return node_it == nodes.end() ? nullptr : &*node_it;
+	}
 
 	animation_graph_def_reflection_t::animation_graph_def_reflection_t()
 	{
@@ -72,7 +85,7 @@ namespace sfg
 					 .offset		= offsetof(animation_graph_param_def_t, quat_value),
 					 .size			= sizeof(quat_t),
 					 .type			= reflected_value_type_e::object},
-					{.ui_definition = {.dependency_field = "type"_hs, .dependency_value = 5, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+					{.ui_definition = {.dependency_field = "type"_hs, .dependency_value = 4, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
 					 .name			= "bool_value",
 					 .display_name	= "Default",
 					 .offset		= offsetof(animation_graph_param_def_t, bool_value),

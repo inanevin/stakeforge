@@ -46,7 +46,10 @@ namespace sfg
 
 	void editor_animation_graph_context_t::uninit()
 	{
-		editor_command_system_t::get().remove_listener(_command_listener);
+		editor_command_system_t& command_system = editor_command_system_t::get();
+
+		command_system.clear_user_data(this);
+		command_system.remove_listener(_command_listener);
 
 		_grid					= nullptr;
 		_inspector				= nullptr;

@@ -104,6 +104,37 @@ namespace sfg
 			++_generation;
 	}
 
+	void editor_command_system_t::clear_user_data(void* user_data)
+	{
+		size_t write_cursor = 0;
+		u32	   cursor		= _cursor;
+		bool   removed		= false;
+
+		for (size_t read_cursor = 0; read_cursor < _history.size(); ++read_cursor)
+		{
+			const editor_command_handle_t handle  = _history[read_cursor];
+			editor_command_t&			  command = _commands.get(handle);
+
+			if (command.user_data == user_data)
+			{
+				if (read_cursor < _cursor)
+					--cursor;
+
+				destroy_command(handle);
+				removed = true;
+				continue;
+			}
+
+			_history[write_cursor++] = handle;
+		}
+
+		_history.resize(write_cursor);
+		_cursor = cursor;
+
+		if (removed)
+			++_generation;
+	}
+
 	editor_command_handle_t editor_command_system_t::issue_command(const editor_command_issue_desc_t& desc, const void* payload_data)
 	{
 		truncate_redo();

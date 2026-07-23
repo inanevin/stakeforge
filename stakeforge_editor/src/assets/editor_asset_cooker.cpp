@@ -139,6 +139,8 @@ namespace sfg
 			return cook_texture_sampler(asset, asset_name);
 		case editor_asset_type_e::physical_material:
 			return cook_physical_material(asset, asset_name);
+		case editor_asset_type_e::animation_graph:
+			return cook_animation_graph(asset, asset_name);
 		case editor_asset_type_e::hdr_skybox:
 			return cook_hdr_skybox(asset, asset_name);
 		case editor_asset_type_e::font:
@@ -165,6 +167,7 @@ namespace sfg
 		case editor_asset_type_e::texture:
 		case editor_asset_type_e::texture_sampler:
 		case editor_asset_type_e::physical_material:
+		case editor_asset_type_e::animation_graph:
 		case editor_asset_type_e::hdr_skybox:
 		case editor_asset_type_e::font:
 		case editor_asset_type_e::prefab:
