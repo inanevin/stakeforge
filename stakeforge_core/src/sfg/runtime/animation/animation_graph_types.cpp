@@ -103,8 +103,6 @@ namespace sfg
 					{.name = "rotation_additive", .display_name = "Rotation Additive"},
 					{.name = "position_override", .display_name = "Position Override"},
 					{.name = "position_additive", .display_name = "Position Additive"},
-					{.name = "transform_override", .display_name = "Transform Override"},
-					{.name = "transform_additive", .display_name = "Transform Additive"},
 					{.name = "look_at", .display_name = "Look At"},
 				},
 			.type_id   = type_id_t<animation_graph_bone_control_type_e>::value,

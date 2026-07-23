@@ -142,7 +142,7 @@
             }
         },
         {
-            "name": "thumb_audio",
+            "name": "thumb_world",
             "path": "editor/resource_pack/textures/thumbnails/world.png",
             "type": 8,
             "config": {
@@ -153,8 +153,44 @@
                 "use_streaming": false
             }
         },
+            {
+            "name": "thumb_animation_graph",
+            "path": "editor/resource_pack/textures/thumbnails/animation_graph.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            }
+        },
+            {
+            "name": "animation_clip",
+            "path": "editor/resource_pack/textures/thumbnails/animation_clip.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            }
+        },
+            {
+            "name": "thumb_skeleton",
+            "path": "editor/resource_pack/textures/thumbnails/skeleton.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            }
+        },
         {
-            "name": "thumb_audio",
+            "name": "thumb_sampler",
             "path": "editor/resource_pack/textures/thumbnails/texture_sampler.png",
             "type": 8,
             "config": {
@@ -166,7 +202,7 @@
             }
         },
         {
-            "name": "thumb_audio",
+            "name": "thumb_material",
             "path": "editor/resource_pack/textures/thumbnails/physical_material.png",
             "type": 8,
             "config": {
@@ -178,7 +214,7 @@
             }
         },
         {
-            "name": "thumb_audio",
+            "name": "thumb_shader",
             "path": "editor/resource_pack/textures/thumbnails/shader.png",
             "type": 8,
             "config": {

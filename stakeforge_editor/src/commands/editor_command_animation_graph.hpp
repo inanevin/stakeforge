@@ -27,10 +27,40 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/memory/chunk_handle.hpp>
 #include <sfg/runtime/resources/animation_graph_def.hpp>
 
 namespace sfg
 {
+	class editor_animation_graph_context_t;
+
+	struct editor_command_animation_graph_node_payload_t
+	{
+		chunk_handle32_t node_stream		= {};
+		u32				 node_id			= ANIMATION_GRAPH_DEF_NULL_ID;
+		u32				 node_index			= 0;
+		u32				 previous_selection = ANIMATION_GRAPH_DEF_NULL_ID;
+	};
+
+	struct editor_command_animation_graph_select_node_payload_t
+	{
+		u32 previous_node_id = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32 post_node_id	 = ANIMATION_GRAPH_DEF_NULL_ID;
+	};
+
+	struct editor_command_animation_graph_designate_node_payload_t
+	{
+		u32 previous_node_id = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32 post_node_id	 = ANIMATION_GRAPH_DEF_NULL_ID;
+	};
+
+	struct editor_command_animation_graph_connect_nodes_payload_t
+	{
+		u32 source_node_id	 = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32 previous_node_id = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32 post_node_id	 = ANIMATION_GRAPH_DEF_NULL_ID;
+	};
+
 	enum class editor_animation_graph_change_e : u8
 	{
 		graph_properties,
@@ -65,6 +95,111 @@ namespace sfg
 		f32		zoom				  = 1.0f;
 		u8		mode				  = 0;
 		u8		selection_type		  = 0;
+	};
+
+	class editor_command_animation_graph_add_node_t final
+	{
+	public:
+		editor_command_animation_graph_add_node_t()															   = delete;
+		~editor_command_animation_graph_add_node_t()														   = delete;
+		editor_command_animation_graph_add_node_t(const editor_command_animation_graph_add_node_t&)			   = delete;
+		editor_command_animation_graph_add_node_t& operator=(const editor_command_animation_graph_add_node_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool add(editor_animation_graph_context_t& context, animation_graph_node_type_e type, const vec2f_t& editor_position, const char* name);
+	};
+
+	class editor_command_animation_graph_delete_node_t final
+	{
+	public:
+		editor_command_animation_graph_delete_node_t()																 = delete;
+		~editor_command_animation_graph_delete_node_t()																 = delete;
+		editor_command_animation_graph_delete_node_t(const editor_command_animation_graph_delete_node_t&)			 = delete;
+		editor_command_animation_graph_delete_node_t& operator=(const editor_command_animation_graph_delete_node_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool remove(editor_animation_graph_context_t& context, u32 node_id);
+	};
+
+	class editor_command_animation_graph_duplicate_node_t final
+	{
+	public:
+		editor_command_animation_graph_duplicate_node_t()																   = delete;
+		~editor_command_animation_graph_duplicate_node_t()																   = delete;
+		editor_command_animation_graph_duplicate_node_t(const editor_command_animation_graph_duplicate_node_t&)			   = delete;
+		editor_command_animation_graph_duplicate_node_t& operator=(const editor_command_animation_graph_duplicate_node_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool duplicate(editor_animation_graph_context_t& context, u32 node_id);
+	};
+
+	class editor_command_animation_graph_select_node_t final
+	{
+	public:
+		editor_command_animation_graph_select_node_t()																 = delete;
+		~editor_command_animation_graph_select_node_t()																 = delete;
+		editor_command_animation_graph_select_node_t(const editor_command_animation_graph_select_node_t&)			 = delete;
+		editor_command_animation_graph_select_node_t& operator=(const editor_command_animation_graph_select_node_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool select(editor_animation_graph_context_t& context, u32 node_id);
+	};
+
+	class editor_command_animation_graph_make_entry_t final
+	{
+	public:
+		editor_command_animation_graph_make_entry_t()															   = delete;
+		~editor_command_animation_graph_make_entry_t()															   = delete;
+		editor_command_animation_graph_make_entry_t(const editor_command_animation_graph_make_entry_t&)			   = delete;
+		editor_command_animation_graph_make_entry_t& operator=(const editor_command_animation_graph_make_entry_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool make(editor_animation_graph_context_t& context, u32 node_id);
+	};
+
+	class editor_command_animation_graph_make_exit_t final
+	{
+	public:
+		editor_command_animation_graph_make_exit_t()															 = delete;
+		~editor_command_animation_graph_make_exit_t()															 = delete;
+		editor_command_animation_graph_make_exit_t(const editor_command_animation_graph_make_exit_t&)			 = delete;
+		editor_command_animation_graph_make_exit_t& operator=(const editor_command_animation_graph_make_exit_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool make(editor_animation_graph_context_t& context, u32 node_id);
+	};
+
+	class editor_command_animation_graph_connect_nodes_t final
+	{
+	public:
+		editor_command_animation_graph_connect_nodes_t()																 = delete;
+		~editor_command_animation_graph_connect_nodes_t()																 = delete;
+		editor_command_animation_graph_connect_nodes_t(const editor_command_animation_graph_connect_nodes_t&)			 = delete;
+		editor_command_animation_graph_connect_nodes_t& operator=(const editor_command_animation_graph_connect_nodes_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool connect(editor_animation_graph_context_t& context, u32 source_node_id, u32 target_node_id);
 	};
 
 	class editor_command_animation_graph_edit_t final

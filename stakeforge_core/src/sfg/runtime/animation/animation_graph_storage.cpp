@@ -176,9 +176,6 @@ namespace sfg
 				case animation_param_type_e::quat:
 					transition_value = parameter.quat_value.x;
 					break;
-				case animation_param_type_e::transform:
-					SFG_WARN("transform parameters cannot drive animation transitions");
-					continue;
 				case animation_param_type_e::boolean:
 					transition_value = parameter.bool_value;
 					break;
@@ -309,10 +306,6 @@ namespace sfg
 		case animation_graph_bone_control_type_e::look_at:
 			parameter_type = animation_param_type_e::vec3;
 			break;
-		case animation_graph_bone_control_type_e::transform_override:
-		case animation_graph_bone_control_type_e::transform_additive:
-			parameter_type = animation_param_type_e::transform;
-			break;
 		}
 
 		const u32*					   bone_indices = _aux.get<u32>(node.bone_indices);
@@ -374,12 +367,6 @@ namespace sfg
 			case animation_graph_bone_control_type_e::position_additive:
 				control_position += parameter.vec3_value;
 				control_transform = mat4x3_t::transform(control_position, control_rotation, control_scale);
-				break;
-			case animation_graph_bone_control_type_e::transform_override:
-				control_transform = parameter.transform_value;
-				break;
-			case animation_graph_bone_control_type_e::transform_additive:
-				control_transform = parameter.transform_value * control_transform;
 				break;
 			case animation_graph_bone_control_type_e::look_at:
 				control_rotation  = quat_t::look_at(control_position, parameter.vec3_value, vec3f_t::up);

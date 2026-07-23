@@ -25,10 +25,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/panels/animation_graph/editor_panel_animation_graph.hpp"
+#include "assets/editor_asset.hpp"
+#include "assets/editor_asset_io.hpp"
+#include "assets/editor_asset_manager.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 
+#include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -84,6 +89,19 @@ namespace sfg
 		left_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		left_in.size_value		 = {_pane_split, 1.0f};
 
+		_context.init(&_grid, &_inspector);
+
+		_grid.init(ui,
+				   _left_pane,
+				   {
+					   .context		   = &_context,
+					   .grid_size	   = 64,
+					   .line_thickness = theme.divider_thickness * 2,
+				   });
+
+		if (_graph_id != NULL_SID)
+			load_graph();
+
 		const editor_split_border_t::config_t split_config{
 			.on_drag   = on_split_border_drag,
 			.user_data = this,
@@ -101,6 +119,8 @@ namespace sfg
 		tree.attach(_root, _right_pane);
 
 		ui::layout_in_t& right_in = tree.in(_right_pane);
+		right_in.flags			  = ui::wf_visible | ui::wf_input | ui::wf_scroll_y;
+		right_in.child_clip_mode  = ui::clip_mode_e::scissor_rect;
 		right_in.size_mode_x	  = ui::axis_mode_e::fill;
 		right_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 		right_in.size_value		  = vec2f_t::one;
@@ -111,12 +131,21 @@ namespace sfg
 									.fill_color_b = theme.color_panel,
 								});
 
+		_inspector.init(ui, _right_pane, {.context = &_context});
+		_inspector.set_asset_name(_asset_name.c_str());
+		_right_scrollbar.init(ui, {.target = _right_pane, .axes = editor_scrollbar_axis_y});
+		_inspector.refresh_inspector();
+
 		apply_pane_split();
 	}
 
 	void editor_panel_animation_graph_t::uninit()
 	{
+		_inspector.uninit();
+		_right_scrollbar.uninit();
 		_split_border.uninit();
+		_grid.uninit();
+		_context.uninit();
 		_ui->deallocate_widget(_left_pane);
 		_ui->deallocate_widget(_right_pane);
 		editor_panel_t::uninit();
@@ -129,14 +158,45 @@ namespace sfg
 	{
 		_graph_id	= graph_id;
 		_asset_name = asset_name;
+		_inspector.set_asset_name(_asset_name.c_str());
+
+		_grid.set_mode(editor_animation_graph_display_mode_e::display_nodes);
+		_context.set_display_node_id(ANIMATION_GRAPH_DEF_NULL_ID);
+		_context.set_selected_node_id(ANIMATION_GRAPH_DEF_NULL_ID);
 
 		set_sub_item_id(graph_id);
 		refresh_title(_asset_name.c_str(), "AG: ");
+		load_graph();
+		_inspector.refresh_inspector();
 	}
 
 	void editor_panel_animation_graph_t::apply_pane_split()
 	{
 		_ui->get_tree().in(_left_pane).size_value.x = _pane_split;
+	}
+
+	void editor_panel_animation_graph_t::load_graph()
+	{
+		const editor_asset_t*  asset = editor_asset_manager_t::get().find_asset(_graph_id);
+		animation_graph_def_t& graph = _context.get_graph();
+		graph						 = {};
+
+		if (asset == nullptr || asset->asset_type != editor_asset_type_e::animation_graph || asset->embedded_source.empty())
+		{
+			SFG_ERR("failed to find animation graph asset {0}", _graph_id);
+			_grid.refresh_nodes();
+			return;
+		}
+
+		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<animation_graph_def_t>::value, &graph, nullptr, embedded_source))
+		{
+			SFG_ERR("failed to deserialize animation graph definition for asset {0}", _graph_id);
+			graph = {};
+		}
+
+		_grid.refresh_nodes();
 	}
 
 	void editor_panel_animation_graph_t::on_split_border_drag(editor_split_border_t&, const vec2f_t& pos, const vec2f_t&, void* user_data)

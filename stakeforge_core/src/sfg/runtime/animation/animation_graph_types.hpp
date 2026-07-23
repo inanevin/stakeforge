@@ -50,7 +50,6 @@ namespace sfg
 		vec2,
 		vec3,
 		quat,
-		transform,
 		boolean,
 	};
 
@@ -76,8 +75,6 @@ namespace sfg
 		rotation_additive,
 		position_override,
 		position_additive,
-		transform_override,
-		transform_additive,
 		look_at,
 	};
 

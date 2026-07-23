@@ -305,6 +305,13 @@ namespace sfg
 			return "editor/resource_pack/textures/thumbnails/physical_material.png"_hs;
 		case editor_asset_type_e::world:
 			return "editor/resource_pack/textures/thumbnails/world.png"_hs;
+		case editor_asset_type_e::animation:
+			return "editor/resource_pack/textures/thumbnails/animation_clip.png"_hs;
+		case editor_asset_type_e::animation_graph:
+			return "editor/resource_pack/textures/thumbnails/animation_graph.png"_hs;
+		case editor_asset_type_e::skeleton:
+			return "editor/resource_pack/textures/thumbnails/skeleton.png"_hs;
+
 		default:
 			return NULL_SID;
 		}

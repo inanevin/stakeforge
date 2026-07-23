@@ -41,15 +41,14 @@ namespace sfg
 
 	struct animation_graph_param_def_t
 	{
-		string_t			   name			   = {};
-		mat4x3_t			   transform_value = mat4x3_t::identity;
-		quat_t				   quat_value	   = quat_t::identity;
-		vec3f_t				   vec3_value	   = vec3f_t::zero;
-		vec2f_t				   vec2_value	   = vec2f_t::zero;
-		f32					   f32_value	   = 0.0f;
-		u32					   id			   = ANIMATION_GRAPH_DEF_NULL_ID;
-		animation_param_type_e type			   = animation_param_type_e::f32;
-		bool				   bool_value	   = false;
+		string_t			   name		  = {};
+		quat_t				   quat_value = quat_t::identity;
+		vec3f_t				   vec3_value = vec3f_t::zero;
+		vec2f_t				   vec2_value = vec2f_t::zero;
+		f32					   f32_value  = 0.0f;
+		u32					   id		  = ANIMATION_GRAPH_DEF_NULL_ID;
+		animation_param_type_e type		  = animation_param_type_e::f32;
+		bool				   bool_value = false;
 	};
 
 	struct animation_graph_clip_def_t

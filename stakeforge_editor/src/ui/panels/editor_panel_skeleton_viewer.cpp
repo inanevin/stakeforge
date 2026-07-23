@@ -267,11 +267,16 @@ namespace sfg
 		if (skeleton == nullptr || _joint_draw_data.empty())
 			return;
 
-		world_debug_draw_t& debug_draw = world.get_debug_draw();
+		chunk_allocator_t&				resource_memory = resource_manager.get_memory();
+		const skeleton_joint_runtime_t* joints			= resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
+		const editor_theme_t&			theme			= editor_theme_t::get();
+		world_debug_draw_t&				debug_draw		= world.get_debug_draw();
 
-		for (const joint_draw_data_t& draw_data : _joint_draw_data)
+		for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
 		{
-			const vec3f_t position = draw_data.transform.get_translation();
+			const joint_draw_data_t& draw_data	= _joint_draw_data[joint_index];
+			const vec3f_t			 position	= draw_data.transform.get_translation();
+			const char*				 joint_name = resource_memory.get_text(joints[joint_index].name);
 
 			if (draw_data.parent_index != SKELETON_JOINT_NO_PARENT)
 			{
@@ -284,9 +289,11 @@ namespace sfg
 			const vec3f_t axis_x = draw_data.transform.get_column(0).normalized();
 			const vec3f_t axis_y = draw_data.transform.get_column(1).normalized();
 			const vec3f_t axis_z = draw_data.transform.get_column(2).normalized();
+
 			debug_draw.draw_line(position, position + axis_x * _axis_length, color_t::red, 1.5f, debug_draw_depth_e::depth_tested);
 			debug_draw.draw_line(position, position + axis_y * _axis_length, color_t::green, 1.5f, debug_draw_depth_e::depth_tested);
 			debug_draw.draw_line(position, position + axis_z * _axis_length, color_t::blue, 1.5f, debug_draw_depth_e::depth_tested);
+			debug_draw.draw_text_3d(position, joint_name, color_t::white, theme.text_small_px_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
 		}
 	}
 

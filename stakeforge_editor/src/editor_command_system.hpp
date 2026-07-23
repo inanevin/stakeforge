@@ -65,6 +65,13 @@ namespace sfg
 		shader_edit,
 		texture_sampler_edit,
 		physical_material_edit,
+		animation_graph_add_node,
+		animation_graph_delete_node,
+		animation_graph_duplicate_node,
+		animation_graph_select_node,
+		animation_graph_make_entry,
+		animation_graph_make_exit,
+		animation_graph_connect_nodes,
 		animation_graph_edit,
 		animation_graph_navigation,
 	};
