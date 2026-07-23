@@ -82,13 +82,19 @@ namespace sfg
 		static void on_refresh_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
-		editor_widget_reflection_t						_reflection			  = {};
-		editor_widget_reflection_t						_asm_node_reflection  = {};
-		vector_t<editor_widget_reflection_fold_state_t> _fold_states		  = {};
-		vector_t<editor_widget_reflection_fold_state_t> _asm_node_fold_states = {};
-		ui::ui_context*									_ui					  = nullptr;
-		config_t										_config				  = {};
-		ui::widget_id_t									_asset_name_label	  = NULL_WIDGET;
-		ui::widget_id_t									_root				  = NULL_WIDGET;
+		editor_widget_reflection_t						_reflection				  = {};
+		editor_widget_reflection_t						_asm_node_reflection	  = {};
+		editor_widget_reflection_t						_bone_control_reflection  = {};
+		editor_widget_reflection_t						_ik_reflection			  = {};
+		vector_t<editor_widget_reflection_fold_state_t> _fold_states			  = {};
+		vector_t<editor_widget_reflection_fold_state_t> _asm_node_fold_states	  = {};
+		vector_t<editor_widget_reflection_fold_state_t> _bone_control_fold_states = {};
+		vector_t<editor_widget_reflection_fold_state_t> _ik_fold_states			  = {};
+		ui::ui_context*									_ui						  = nullptr;
+		config_t										_config					  = {};
+		ui::widget_id_t									_asset_name_label		  = NULL_WIDGET;
+		ui::widget_id_t									_invalid_skeleton_frame	  = NULL_WIDGET;
+		ui::widget_id_t									_invalid_skeleton_label	  = NULL_WIDGET;
+		ui::widget_id_t									_root					  = NULL_WIDGET;
 	};
 }

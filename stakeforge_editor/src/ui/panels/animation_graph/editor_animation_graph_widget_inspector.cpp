@@ -50,11 +50,11 @@ namespace sfg
 
 		ui::layout_in_t& root_in = ui.get_tree().in(_root);
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
-		root_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
+		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
 		root_in.size_value		 = vec2f_t::one;
 		root_in.flow			 = ui::flow_e::column;
 
-		const editor_property_row_t asset_row = editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Asset");
+		const editor_property_row_t asset_row = editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Asset", false, false, editor_theme_t::get().margin_horizontal);
 		const editor_theme_t&		theme	  = editor_theme_t::get();
 
 		_asset_name_label = ui.allocate_widget();
@@ -71,6 +71,50 @@ namespace sfg
 		asset_name_in.size_value	   = {1.0f, theme.text_default_px_size};
 
 		set_asset_name("");
+
+		_invalid_skeleton_frame = ui.allocate_widget();
+		ui.set_widget_debug_name(_invalid_skeleton_frame, "animation_graph_inspector_invalid_skeleton_frame");
+		ui.get_tree().attach(_root, _invalid_skeleton_frame);
+
+		ui::layout_in_t& invalid_skeleton_frame_in = ui.get_tree().in(_invalid_skeleton_frame);
+		invalid_skeleton_frame_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
+		invalid_skeleton_frame_in.size_mode_y	   = ui::axis_mode_e::fixed;
+		invalid_skeleton_frame_in.size_value	   = {1.0f, theme.item_area_height};
+
+		ui.get_paint().set_rect(_invalid_skeleton_frame,
+								{
+									.fill_color_a	   = theme.color_frame,
+									.fill_color_b	   = theme.color_frame,
+									.outline_color	   = theme.color_outline_light,
+									.rounding		   = theme.item_rounding,
+									.outline_thickness = theme.outline_thickness,
+								});
+
+		_invalid_skeleton_label = ui.allocate_widget();
+		ui.set_widget_debug_name(_invalid_skeleton_label, "animation_graph_inspector_invalid_skeleton_label");
+		ui.get_tree().attach(_invalid_skeleton_frame, _invalid_skeleton_label);
+		ui.get_tree().draw_order(_invalid_skeleton_label) = ui.get_tree().draw_order_const(_invalid_skeleton_frame) + 1;
+
+		ui::layout_in_t& invalid_skeleton_label_in = ui.get_tree().in(_invalid_skeleton_label);
+		invalid_skeleton_label_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+		invalid_skeleton_label_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
+		invalid_skeleton_label_in.pos_value		   = {0.5f, 0.5f};
+		invalid_skeleton_label_in.anchor_x		   = ui::anchor_e::center;
+		invalid_skeleton_label_in.anchor_y		   = ui::anchor_e::center;
+
+		ui.set_widget_text(_invalid_skeleton_label, "Graph does not have a valid skeleton, can't do further edits");
+		ui.get_paint().set_text(_invalid_skeleton_label,
+								ui.widget_text(_invalid_skeleton_label),
+								ui.widget_text_len(_invalid_skeleton_label),
+								{
+									.font		 = theme.font_default,
+									.color		 = theme.color_accent_err,
+									.point_size	 = theme.text_default_px_size,
+									.spacing	 = 0,
+									.raster_mode = editor_text_rasterization_t::get_rasterization_type(),
+								});
+		ui.get_tree().set_visible(_invalid_skeleton_frame, false, false);
+
 		editor_dividers_t::add_divider_hor(ui, _root, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
 
 		_reflection.init(ui,
@@ -85,22 +129,42 @@ namespace sfg
 									  .fold_states		  = &_asm_node_fold_states,
 									  .elevate_draw_order = true,
 								  });
+		_bone_control_reflection.init(ui,
+									  _root,
+									  {
+										  .fold_states		  = &_bone_control_fold_states,
+										  .elevate_draw_order = true,
+									  });
+		_ik_reflection.init(ui,
+							_root,
+							{
+								.fold_states		= &_ik_fold_states,
+								.elevate_draw_order = true,
+							});
 		ui.get_tree().set_visible(_asm_node_reflection.get_root(), false, false);
+		ui.get_tree().set_visible(_bone_control_reflection.get_root(), false, false);
+		ui.get_tree().set_visible(_ik_reflection.get_root(), false, false);
 	}
 
 	void editor_animation_graph_widget_inspector_t::uninit()
 	{
 		_ui->cancel_mutations(this);
+		_ik_reflection.uninit();
+		_bone_control_reflection.uninit();
 		_asm_node_reflection.uninit();
 		_reflection.uninit();
 		_ui->deallocate_widget(_root);
 
 		_fold_states.resize(0);
 		_asm_node_fold_states.resize(0);
-		_ui				  = nullptr;
-		_config			  = {};
-		_asset_name_label = NULL_WIDGET;
-		_root			  = NULL_WIDGET;
+		_bone_control_fold_states.resize(0);
+		_ik_fold_states.resize(0);
+		_ui						= nullptr;
+		_config					= {};
+		_asset_name_label		= NULL_WIDGET;
+		_invalid_skeleton_frame = NULL_WIDGET;
+		_invalid_skeleton_label = NULL_WIDGET;
+		_root					= NULL_WIDGET;
 	}
 
 	void editor_animation_graph_widget_inspector_t::refresh_inspector()
@@ -127,33 +191,76 @@ namespace sfg
 
 	void editor_animation_graph_widget_inspector_t::refresh_inspector_immediate()
 	{
-		animation_graph_def_t& graph			= _config.context->get_graph();
-		const u32			   selected_node_id = _config.context->get_selected_node_id();
-		const auto			   selected_node_it = std::find_if(graph.nodes.begin(), graph.nodes.end(), [selected_node_id](const animation_graph_node_def_t& node) { return node.id == selected_node_id; });
-		const bool			   display_asm_node = _config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes && selected_node_it != graph.nodes.end();
+		animation_graph_def_t& graph = _config.context->get_graph();
+		ui::layout_tree_t&	   tree	 = _ui->get_tree();
 
-		_ui->get_tree().set_visible(_reflection.get_root(), !display_asm_node, false);
-		_ui->get_tree().set_visible(_asm_node_reflection.get_root(), display_asm_node, false);
+		tree.set_visible(_reflection.get_root(), false, false);
+		tree.set_visible(_asm_node_reflection.get_root(), false, false);
+		tree.set_visible(_bone_control_reflection.get_root(), false, false);
+		tree.set_visible(_ik_reflection.get_root(), false, false);
+		tree.set_visible(_invalid_skeleton_frame, false, false);
 
-		if (display_asm_node)
+		if (_config.context->get_display_mode() != editor_animation_graph_display_mode_e::display_nodes)
+			return;
+
+		const u32  selected_node_id = _config.context->get_selected_node_id();
+		const auto selected_node_it = std::find_if(graph.nodes.begin(), graph.nodes.end(), [selected_node_id](const animation_graph_node_def_t& node) { return node.id == selected_node_id; });
+
+		if (selected_node_id == ANIMATION_GRAPH_DEF_NULL_ID || selected_node_it == graph.nodes.end())
 		{
+			void* graph_object = &graph;
+			tree.set_visible(_reflection.get_root(), true, false);
+			_reflection.save_fold_states();
+			_reflection.set_reflection({
+				.fold_states = &_fold_states,
+				.objects	 = {.data = &graph_object, .size = 1},
+				.type_id	 = type_id_t<animation_graph_def_t>::value,
+			});
+			return;
+		}
+
+		if (graph.target_skeleton == NULL_RESOURCE_HANDLE)
+		{
+			tree.set_visible(_invalid_skeleton_frame, true, false);
+			return;
+		}
+
+		switch (selected_node_it->type)
+		{
+		case animation_graph_node_type_e::asm_node: {
 			void* asm_node = &selected_node_it->asm_node;
+			tree.set_visible(_asm_node_reflection.get_root(), true, false);
 			_asm_node_reflection.save_fold_states();
 			_asm_node_reflection.set_reflection({
 				.fold_states = &_asm_node_fold_states,
 				.objects	 = {.data = &asm_node, .size = 1},
 				.type_id	 = type_id_t<animation_graph_node_asm_def_t>::value,
 			});
-			return;
+			break;
 		}
-
-		void* graph_object = &graph;
-		_reflection.save_fold_states();
-		_reflection.set_reflection({
-			.fold_states = &_fold_states,
-			.objects	 = {.data = &graph_object, .size = 1},
-			.type_id	 = type_id_t<animation_graph_def_t>::value,
-		});
+		case animation_graph_node_type_e::bone_controller: {
+			void* bone_control = &selected_node_it->bone_control_node;
+			tree.set_visible(_bone_control_reflection.get_root(), true, false);
+			_bone_control_reflection.save_fold_states();
+			_bone_control_reflection.set_reflection({
+				.fold_states = &_bone_control_fold_states,
+				.objects	 = {.data = &bone_control, .size = 1},
+				.type_id	 = type_id_t<animation_graph_node_bone_control_def_t>::value,
+			});
+			break;
+		}
+		case animation_graph_node_type_e::ik: {
+			void* ik = &selected_node_it->ik_node;
+			tree.set_visible(_ik_reflection.get_root(), true, false);
+			_ik_reflection.save_fold_states();
+			_ik_reflection.set_reflection({
+				.fold_states = &_ik_fold_states,
+				.objects	 = {.data = &ik, .size = 1},
+				.type_id	 = type_id_t<animation_graph_node_ik_def_t>::value,
+			});
+			break;
+		}
+		}
 	}
 
 	void editor_animation_graph_widget_inspector_t::on_refresh_mutation(ui::ui_context& ui, void* user_data)

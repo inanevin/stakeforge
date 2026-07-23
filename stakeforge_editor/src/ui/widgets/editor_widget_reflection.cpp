@@ -491,10 +491,14 @@ namespace sfg
 						   .width	   = editor_dropdown_width_e::parent_relative,
 						   .pos_y	   = editor_dropdown_pos_y_e::center,
 					   });
+
 		fit_control(dropdown->get_root());
+
 		if (removable_item)
 			install_sub_item_button(row.right, dropdown->get_root(), container_data, element_index);
+
 		_dropdowns.push_back(dropdown);
+
 		if (track_row)
 			_rows.push_back(row.row);
 		return true;
@@ -577,11 +581,15 @@ namespace sfg
 						.max_value	 = max_value,
 						.is_integer	 = integer,
 					});
+
 		fit_control(input->get_root());
+
 		if (field->value_type == reflected_value_type_e::string && (field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_DIRECTORY || field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_PATH))
 			install_path_picker_button(row.right, input, field->sub_type_id);
+
 		if (removable_item)
 			install_sub_item_button(row.right, input->get_root(), container_data, element_index);
+
 		_inputs.push_back(input);
 		if (track_row)
 			_rows.push_back(row.row);
