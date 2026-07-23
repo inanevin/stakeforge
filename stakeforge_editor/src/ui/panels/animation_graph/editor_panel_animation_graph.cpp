@@ -90,6 +90,7 @@ namespace sfg
 		left_in.size_value		 = {_pane_split, 1.0f};
 
 		_context.init(&_grid, &_inspector);
+		_context.set_asset_id(_graph_id);
 
 		_grid.init(ui,
 				   _left_pane,
@@ -159,11 +160,13 @@ namespace sfg
 		_graph_id	= graph_id;
 		_asset_name = asset_name;
 		_inspector.set_asset_name(_asset_name.c_str());
+		_context.set_asset_id(_graph_id);
 
 		_context.set_display_mode(editor_animation_graph_display_mode_e::display_nodes);
 		_context.set_display_node_id(ANIMATION_GRAPH_DEF_NULL_ID);
 		_context.set_selected_node_id(ANIMATION_GRAPH_DEF_NULL_ID);
 		_context.set_selected_sub_node_id(ANIMATION_GRAPH_DEF_NULL_ID);
+		_context.set_selected_transition_id(ANIMATION_GRAPH_DEF_NULL_ID);
 		_grid.set_mode(editor_animation_graph_display_mode_e::display_nodes);
 
 		set_sub_item_id(graph_id);

@@ -92,6 +92,7 @@ namespace sfg
 		u32	 find_pin_index_at(const vec2f_t& pos) const;
 		u32	 find_node_index_at(const vec2f_t& pos) const;
 		u32	 find_node_at(const vec2f_t& pos) const;
+		u32	 find_transition_at(const vec2f_t& pos) const;
 		void open_context_menu(const vec2f_t& pos);
 		void update_text(const char* text);
 		void set_zoom_instant(f32 zoom);
@@ -118,6 +119,7 @@ namespace sfg
 		vec2f_t											_zoom_pivot					  = vec2f_t::zero;
 		vec2f_t											_context_menu_editor_position = vec2f_t::zero;
 		u32												_context_menu_node_id		  = UINT32_MAX;
+		u32												_context_menu_transition_id	  = UINT32_MAX;
 		u32												_drag_node_index			  = UINT32_MAX;
 		u32												_drag_pin_node_index		  = UINT32_MAX;
 		u32												_last_clicked_node_id		  = UINT32_MAX;

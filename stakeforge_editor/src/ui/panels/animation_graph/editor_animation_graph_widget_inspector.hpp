@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "ui/widgets/editor_widget_button.hpp"
 #include "ui/widgets/editor_widget_reflection.hpp"
 
 #include <sfg/runtime/resources/skeleton_def.hpp>
@@ -34,7 +35,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg::ui
 {
+	class input_router_t;
 	class ui_context;
+	enum class mouse_button_e : u8;
 }
 
 namespace sfg
@@ -80,29 +83,34 @@ namespace sfg
 	private:
 		void refresh_dropdown_items();
 		void refresh_inspector_immediate();
+		void save();
 
 		static span_t<const editor_widget_reflection_dropdown_item_t> resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, void* user_data);
 		static void													  on_refresh_mutation(ui::ui_context& ui, void* user_data);
+		static void													  on_save(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
-		skeleton_def_t									   _skeleton				 = {};
-		editor_widget_reflection_t						   _reflection				 = {};
-		editor_widget_reflection_t						   _asm_node_reflection		 = {};
-		editor_widget_reflection_t						   _asm_state_reflection	 = {};
-		editor_widget_reflection_t						   _bone_control_reflection	 = {};
-		editor_widget_reflection_t						   _ik_reflection			 = {};
-		vector_t<editor_widget_reflection_dropdown_item_t> _bone_dropdown_items		 = {};
-		vector_t<editor_widget_reflection_dropdown_item_t> _parameter_dropdown_items = {};
-		vector_t<editor_widget_reflection_fold_state_t>	   _fold_states				 = {};
-		vector_t<editor_widget_reflection_fold_state_t>	   _asm_node_fold_states	 = {};
-		vector_t<editor_widget_reflection_fold_state_t>	   _asm_state_fold_states	 = {};
-		vector_t<editor_widget_reflection_fold_state_t>	   _bone_control_fold_states = {};
-		vector_t<editor_widget_reflection_fold_state_t>	   _ik_fold_states			 = {};
-		ui::ui_context*									   _ui						 = nullptr;
-		config_t										   _config					 = {};
-		ui::widget_id_t									   _asset_name_label		 = NULL_WIDGET;
-		ui::widget_id_t									   _invalid_skeleton_frame	 = NULL_WIDGET;
-		ui::widget_id_t									   _invalid_skeleton_label	 = NULL_WIDGET;
-		ui::widget_id_t									   _root					 = NULL_WIDGET;
+		skeleton_def_t									   _skeleton				   = {};
+		editor_widget_button_t							   _save_button				   = {};
+		editor_widget_reflection_t						   _reflection				   = {};
+		editor_widget_reflection_t						   _asm_node_reflection		   = {};
+		editor_widget_reflection_t						   _asm_state_reflection	   = {};
+		editor_widget_reflection_t						   _asm_transition_reflection  = {};
+		editor_widget_reflection_t						   _bone_control_reflection	   = {};
+		editor_widget_reflection_t						   _ik_reflection			   = {};
+		vector_t<editor_widget_reflection_dropdown_item_t> _bone_dropdown_items		   = {};
+		vector_t<editor_widget_reflection_dropdown_item_t> _parameter_dropdown_items   = {};
+		vector_t<editor_widget_reflection_fold_state_t>	   _fold_states				   = {};
+		vector_t<editor_widget_reflection_fold_state_t>	   _asm_node_fold_states	   = {};
+		vector_t<editor_widget_reflection_fold_state_t>	   _asm_state_fold_states	   = {};
+		vector_t<editor_widget_reflection_fold_state_t>	   _asm_transition_fold_states = {};
+		vector_t<editor_widget_reflection_fold_state_t>	   _bone_control_fold_states   = {};
+		vector_t<editor_widget_reflection_fold_state_t>	   _ik_fold_states			   = {};
+		ui::ui_context*									   _ui						   = nullptr;
+		config_t										   _config					   = {};
+		ui::widget_id_t									   _asset_name_label		   = NULL_WIDGET;
+		ui::widget_id_t									   _invalid_skeleton_frame	   = NULL_WIDGET;
+		ui::widget_id_t									   _invalid_skeleton_label	   = NULL_WIDGET;
+		ui::widget_id_t									   _root					   = NULL_WIDGET;
 	};
 }

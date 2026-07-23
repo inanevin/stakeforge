@@ -423,23 +423,37 @@ namespace sfg
 	bool editor_asset_cooker_t::cook_animation(const editor_asset_t& asset, const char* asset_name)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::animation);
-		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
-
-		animation_def_t		 def			 = {};
-		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
-
-		if (!reflection_registry_t::get().type_from_json(type_id_t<animation_def_t>::value, &def, nullptr, embedded_source))
-		{
-			SFG_ERR("failed to deserialize animation definition for asset {0}", asset.guid);
-			return false;
-		}
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded || asset.source_type == editor_asset_source_type_e::file_blob);
 
 		resource_header_t header = {};
-		ostream_t		  stream;
-		if (!animation_cooker::cook_from_def(def, header, stream))
+		ostream_t		  stream = {};
+
+		if (asset.source_type == editor_asset_source_type_e::file_blob)
 		{
-			SFG_ERR("failed to cook animation asset {0}", asset.guid);
-			return false;
+			const string_t source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+
+			if (!animation_cooker::cook_from_file(source_full_path.c_str(), header, stream))
+			{
+				SFG_ERR("failed to cook animation asset {0}", asset.guid);
+				return false;
+			}
+		}
+		else
+		{
+			animation_def_t		 def			 = {};
+			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
+
+			if (!reflection_registry_t::get().type_from_json(type_id_t<animation_def_t>::value, &def, nullptr, embedded_source))
+			{
+				SFG_ERR("failed to deserialize animation definition for asset {0}", asset.guid);
+				return false;
+			}
+
+			if (!animation_cooker::cook_from_def(def, header, stream))
+			{
+				SFG_ERR("failed to cook animation asset {0}", asset.guid);
+				return false;
+			}
 		}
 
 		return save_cooked_asset(asset, header, stream, asset_name);

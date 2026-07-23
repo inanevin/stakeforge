@@ -199,11 +199,6 @@ namespace sfg
 				return skybox_hdr_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
 
-			if (schema == "sfg.schema.animation_graph")
-			{
-				return animation_graph_cooker::cook_from_file(full_path, out_header, stream);
-			}
-
 			if (schema == "sfg.schema.prefab")
 			{
 				const string_t prefab_source = file_system_t::read_file_as_string(full_path);

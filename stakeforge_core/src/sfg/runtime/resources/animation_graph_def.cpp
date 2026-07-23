@@ -158,7 +158,7 @@ namespace sfg
 					{.name = "id", .display_name = "ID", .offset = offsetof(animation_graph_asm_transition_def_t, id), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
 					{.name = "from_state_id", .display_name = "From State", .offset = offsetof(animation_graph_asm_transition_def_t, from_state_id), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
 					{.name = "to_state_id", .display_name = "To State", .offset = offsetof(animation_graph_asm_transition_def_t, to_state_id), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
-					{.name = "parameter_id", .display_name = "Parameter ID", .offset = offsetof(animation_graph_asm_transition_def_t, parameter_id), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
+					{.name = "parameter_id", .display_name = "Parameter", .offset = offsetof(animation_graph_asm_transition_def_t, parameter_id), .size = sizeof(u32), .type = reflected_value_type_e::u32},
 					{.name		   = "type",
 					 .display_name = "Comparison",
 					 .sub_type_id  = type_id_t<animation_graph_asm_transition_type_e>::value,

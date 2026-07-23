@@ -38,7 +38,6 @@ namespace sfg
 	class animation_graph_cooker final
 	{
 	public:
-		static bool cook_from_file(const char* full_path, resource_header_t& out_header, ostream_t& stream);
 		static bool cook_from_def(const animation_graph_def_t& def, resource_header_t& out_header, ostream_t& stream);
 	};
 }

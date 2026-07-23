@@ -41,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/ui/vg/vg_canvas.hpp>
+#include <sfg/runtime/ui/vg/vg_path.hpp>
 
 namespace sfg
 {
@@ -61,12 +62,20 @@ namespace sfg
 #define ANIMATION_GRAPH_GRID_DELETE_ASM_STATE_COMMAND	 9
 #define ANIMATION_GRAPH_GRID_DUPLICATE_ASM_STATE_COMMAND 10
 #define ANIMATION_GRAPH_GRID_MAKE_START_STATE_COMMAND	 11
+#define ANIMATION_GRAPH_GRID_DELETE_TRANSITION_COMMAND	 12
 #define ANIMATION_GRAPH_GRID_CONNECTION_SEGMENTS		 24
 #define ANIMATION_GRAPH_GRID_CONNECTION_MIN_CONTROL		 48.0f
 #define ANIMATION_GRAPH_GRID_CONNECTION_THICKNESS		 2.0f
+#define ANIMATION_GRAPH_GRID_CONNECTION_HIT_RADIUS		 6.0f
 
 	namespace
 	{
+		struct animation_graph_connection_points_t
+		{
+			vec2f_t control_from = vec2f_t::zero;
+			vec2f_t control_to	 = vec2f_t::zero;
+		};
+
 		editor_action_menu_row_desc_t ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS[] = {
 			{.text = "Create ASM", .command = ANIMATION_GRAPH_GRID_CREATE_ASM_COMMAND},
 			{.text = "Create Bone Control", .command = ANIMATION_GRAPH_GRID_CREATE_BONE_CONTROL_COMMAND},
@@ -82,15 +91,24 @@ namespace sfg
 			{.text = "Delete", .shortcut = "DEL", .command = ANIMATION_GRAPH_GRID_DELETE_ASM_STATE_COMMAND},
 			{.text = "Duplicate", .shortcut = "CTRL+D", .command = ANIMATION_GRAPH_GRID_DUPLICATE_ASM_STATE_COMMAND},
 			{.text = "Make Start", .command = ANIMATION_GRAPH_GRID_MAKE_START_STATE_COMMAND},
+			{.text = "Delete Transition", .shortcut = "DEL", .command = ANIMATION_GRAPH_GRID_DELETE_TRANSITION_COMMAND},
 		};
+
+		animation_graph_connection_points_t get_animation_graph_connection_points(const vec2f_t& from, const vec2f_t& to, f32 scale)
+		{
+			const f32 control_distance = math::max(math::abs(to.x - from.x) * 0.5f, ANIMATION_GRAPH_GRID_CONNECTION_MIN_CONTROL * scale);
+
+			return {
+				.control_from = from + vec2f_t{control_distance, 0.0f},
+				.control_to	  = to - vec2f_t{control_distance, 0.0f},
+			};
+		}
 
 		void draw_animation_graph_connection(ui::vg_canvas_t& canvas, const vec2f_t& from, const vec2f_t& to, f32 scale, const ui::vg_line_paint_t& line_paint, const ui::ui_render_state_t& state, u32 draw_order)
 		{
-			const f32	  control_distance = math::max(math::abs(to.x - from.x) * 0.5f, ANIMATION_GRAPH_GRID_CONNECTION_MIN_CONTROL * scale);
-			const vec2f_t control_from	   = from + vec2f_t{control_distance, 0.0f};
-			const vec2f_t control_to	   = to - vec2f_t{control_distance, 0.0f};
+			const animation_graph_connection_points_t points = get_animation_graph_connection_points(from, to, scale);
 
-			canvas.add_cubic_bezier(from, control_from, control_to, to, ANIMATION_GRAPH_GRID_CONNECTION_SEGMENTS, line_paint, state, draw_order);
+			canvas.add_cubic_bezier(from, points.control_from, points.control_to, to, ANIMATION_GRAPH_GRID_CONNECTION_SEGMENTS, line_paint, state, draw_order);
 		}
 	}
 
@@ -179,6 +197,7 @@ namespace sfg
 		_zoom_pivot					  = vec2f_t::zero;
 		_context_menu_editor_position = vec2f_t::zero;
 		_context_menu_node_id		  = ANIMATION_GRAPH_DEF_NULL_ID;
+		_context_menu_transition_id	  = ANIMATION_GRAPH_DEF_NULL_ID;
 		_drag_node_index			  = UINT32_MAX;
 		_drag_pin_node_index		  = UINT32_MAX;
 		_last_clicked_node_id		  = UINT32_MAX;
@@ -293,6 +312,56 @@ namespace sfg
 		return node_index != UINT32_MAX ? _nodes[node_index]->get_id() : ANIMATION_GRAPH_DEF_NULL_ID;
 	}
 
+	u32 editor_animation_graph_grid_t::find_transition_at(const vec2f_t& pos) const
+	{
+		if (_config.context->get_display_mode() != editor_animation_graph_display_mode_e::display_state_machine)
+			return ANIMATION_GRAPH_DEF_NULL_ID;
+
+		const animation_graph_def_t& graph			 = _config.context->get_graph();
+		const u32					 display_node_id = _config.context->get_display_node_id();
+		const auto					 node_it		 = std::find_if(graph.nodes.begin(), graph.nodes.end(), [display_node_id](const animation_graph_node_def_t& node) { return node.id == display_node_id; });
+
+		SFG_ASSERT(node_it != graph.nodes.end());
+		SFG_ASSERT(node_it->type == animation_graph_node_type_e::asm_node);
+		SFG_ASSERT(_nodes.size() == node_it->asm_node.states.size());
+
+		const f32 scale			 = ui::get_valid_scale(_ui->get_ui_scale());
+		const f32 hit_radius	 = ANIMATION_GRAPH_GRID_CONNECTION_HIT_RADIUS * scale;
+		const f32 hit_radius_sqr = hit_radius * hit_radius;
+
+		for (size_t transition_index = node_it->asm_node.transitions.size(); transition_index > 0; --transition_index)
+		{
+			const animation_graph_asm_transition_def_t& transition = node_it->asm_node.transitions[transition_index - 1];
+			const auto									source_it  = std::find_if(node_it->asm_node.states.begin(), node_it->asm_node.states.end(), [&transition](const animation_graph_asm_state_def_t& state) { return state.id == transition.from_state_id; });
+			const auto									target_it  = std::find_if(node_it->asm_node.states.begin(), node_it->asm_node.states.end(), [&transition](const animation_graph_asm_state_def_t& state) { return state.id == transition.to_state_id; });
+
+			SFG_ASSERT(source_it != node_it->asm_node.states.end());
+			SFG_ASSERT(target_it != node_it->asm_node.states.end());
+
+			const size_t							  source_index	 = static_cast<size_t>(source_it - node_it->asm_node.states.begin());
+			const size_t							  target_index	 = static_cast<size_t>(target_it - node_it->asm_node.states.begin());
+			const ui::layout_out_t&					  source_pin_out = _ui->get_tree().out(_nodes[source_index]->get_pin_frame());
+			const ui::layout_out_t&					  target_out	 = _ui->get_tree().out(_nodes[target_index]->get_root());
+			const vec2f_t							  from			 = source_pin_out.pos + source_pin_out.size * 0.5f;
+			const vec2f_t							  to			 = target_out.pos + vec2f_t{0.0f, target_out.size.y * 0.5f};
+			const animation_graph_connection_points_t points		 = get_animation_graph_connection_points(from, to, scale);
+			vec2f_t									  previous		 = from;
+
+			for (u32 segment = 1; segment <= ANIMATION_GRAPH_GRID_CONNECTION_SEGMENTS; ++segment)
+			{
+				const f32	  t		= static_cast<f32>(segment) / static_cast<f32>(ANIMATION_GRAPH_GRID_CONNECTION_SEGMENTS);
+				const vec2f_t point = ui::vg_cubic_bezier_point(from, points.control_from, points.control_to, to, t);
+
+				if (vec2f_t::distance_sqr_to_segment(pos, previous, point) <= hit_radius_sqr)
+					return transition.id;
+
+				previous = point;
+			}
+		}
+
+		return ANIMATION_GRAPH_DEF_NULL_ID;
+	}
+
 	void editor_animation_graph_grid_t::open_context_menu(const vec2f_t& pos)
 	{
 		editor_action_menu_controller_t* menu	= editor_action_menu_controller_t::find(*_ui);
@@ -304,8 +373,10 @@ namespace sfg
 
 		_context_menu_editor_position = ((pos - center) / scale - _offset) / _zoom;
 		_context_menu_node_id		  = find_node_at(pos);
+		_context_menu_transition_id	  = !display_nodes && _context_menu_node_id == ANIMATION_GRAPH_DEF_NULL_ID ? find_transition_at(pos) : ANIMATION_GRAPH_DEF_NULL_ID;
 
-		const bool hit_node = _context_menu_node_id != ANIMATION_GRAPH_DEF_NULL_ID;
+		const bool hit_node		  = _context_menu_node_id != ANIMATION_GRAPH_DEF_NULL_ID;
+		const bool hit_transition = _context_menu_transition_id != ANIMATION_GRAPH_DEF_NULL_ID;
 
 		for (u32 i = 0; i < 3; ++i)
 			ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS[i].disabled = hit_node;
@@ -313,10 +384,11 @@ namespace sfg
 		for (u32 i = 3; i < 7; ++i)
 			ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS[i].disabled = !hit_node;
 
-		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[0].disabled = hit_node;
+		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[0].disabled = hit_node || hit_transition;
 		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[1].disabled = !hit_node;
 		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[2].disabled = !hit_node;
 		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[3].disabled = !hit_node;
+		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[4].disabled = !hit_transition;
 
 		editor_action_menu_desc_t desc = {};
 
@@ -405,6 +477,9 @@ namespace sfg
 		case ANIMATION_GRAPH_GRID_MAKE_START_STATE_COMMAND:
 			editor_command_animation_graph_make_start_state_t::make(*grid._config.context, grid._context_menu_node_id);
 			break;
+		case ANIMATION_GRAPH_GRID_DELETE_TRANSITION_COMMAND:
+			editor_command_animation_graph_asm_node_delete_transition_t::remove(*grid._config.context, grid._context_menu_transition_id);
+			break;
 		default:
 			break;
 		}
@@ -477,7 +552,7 @@ namespace sfg
 	void editor_animation_graph_grid_t::on_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		editor_animation_graph_grid_t& grid			= *static_cast<editor_animation_graph_grid_t*>(user_data);
-		const bool					   can_drag_pin = btn == ui::mouse_button_e::left && grid._config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes;
+		const bool					   can_drag_pin = btn == ui::mouse_button_e::left;
 
 		grid._drag_pin_node_index = can_drag_pin ? grid.find_pin_index_at(pos) : UINT32_MAX;
 		grid._drag_node_index	  = btn == ui::mouse_button_e::left && grid._drag_pin_node_index == UINT32_MAX ? grid.find_node_index_at(pos) : UINT32_MAX;
@@ -500,7 +575,17 @@ namespace sfg
 		if (grid._config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes)
 			editor_command_animation_graph_select_node_t::select(*grid._config.context, node_id);
 		else
-			editor_command_animation_graph_select_node_t::select_sub_node(*grid._config.context, node_id);
+		{
+			const u32 transition_id = node_id == ANIMATION_GRAPH_DEF_NULL_ID ? grid.find_transition_at(pos) : ANIMATION_GRAPH_DEF_NULL_ID;
+
+			if (transition_id != ANIMATION_GRAPH_DEF_NULL_ID)
+				editor_command_animation_graph_select_transition_t::select(*grid._config.context, transition_id);
+			else
+			{
+				editor_command_animation_graph_select_transition_t::select(*grid._config.context, ANIMATION_GRAPH_DEF_NULL_ID);
+				editor_command_animation_graph_select_node_t::select_sub_node(*grid._config.context, node_id);
+			}
+		}
 
 		if (btn == ui::mouse_button_e::right)
 			grid.open_context_menu(pos);
@@ -555,9 +640,16 @@ namespace sfg
 		if (ev.action != ui::key_action_e::press)
 			return;
 
-		editor_animation_graph_grid_t& grid				= *static_cast<editor_animation_graph_grid_t*>(user_data);
-		const bool					   display_nodes	= grid._config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes;
-		const u32					   selected_node_id = display_nodes ? grid._config.context->get_selected_node_id() : grid._config.context->get_selected_sub_node_id();
+		editor_animation_graph_grid_t& grid					  = *static_cast<editor_animation_graph_grid_t*>(user_data);
+		const bool					   display_nodes		  = grid._config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes;
+		const u32					   selected_node_id		  = display_nodes ? grid._config.context->get_selected_node_id() : grid._config.context->get_selected_sub_node_id();
+		const u32					   selected_transition_id = grid._config.context->get_selected_transition_id();
+
+		if (ev.key == static_cast<u16>(input_code::key_delete) && !display_nodes && selected_transition_id != ANIMATION_GRAPH_DEF_NULL_ID)
+		{
+			editor_command_animation_graph_asm_node_delete_transition_t::remove(*grid._config.context, selected_transition_id);
+			return;
+		}
 
 		if (selected_node_id == ANIMATION_GRAPH_DEF_NULL_ID)
 			return;
@@ -589,12 +681,23 @@ namespace sfg
 		const u32					   drag_index = grid._drag_pin_node_index != UINT32_MAX ? grid._drag_pin_node_index : grid._drag_node_index;
 
 		if (drag_index == UINT32_MAX)
+		{
+			if (grid._config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_state_machine)
+			{
+				editor_command_animation_graph_select_transition_t::select(*grid._config.context, ANIMATION_GRAPH_DEF_NULL_ID);
+				editor_command_animation_graph_select_node_t::select_sub_node(*grid._config.context, ANIMATION_GRAPH_DEF_NULL_ID);
+			}
+
 			return;
+		}
 
 		if (grid._config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes)
 			editor_command_animation_graph_select_node_t::select(*grid._config.context, grid._nodes[drag_index]->get_id());
 		else
+		{
+			editor_command_animation_graph_select_transition_t::select(*grid._config.context, ANIMATION_GRAPH_DEF_NULL_ID);
 			editor_command_animation_graph_select_node_t::select_sub_node(*grid._config.context, grid._nodes[drag_index]->get_id());
+		}
 	}
 
 	void editor_animation_graph_grid_t::on_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data)
@@ -645,7 +748,11 @@ namespace sfg
 			{
 				const u32 source_node_id = grid._nodes[grid._drag_pin_node_index]->get_id();
 				const u32 target_node_id = grid._nodes[target_node_index]->get_id();
-				editor_command_animation_graph_connect_nodes_t::connect(*grid._config.context, source_node_id, target_node_id);
+
+				if (grid._config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes)
+					editor_command_animation_graph_connect_nodes_t::connect(*grid._config.context, source_node_id, target_node_id);
+				else
+					editor_command_animation_graph_asm_node_add_transition_t::add(*grid._config.context, source_node_id, target_node_id);
 			}
 		}
 
@@ -700,11 +807,7 @@ namespace sfg
 		for (f32 y = first_y; y < max_y; y += grid_size)
 			canvas.add_line({out.pos.x, y}, {max_x, y}, line_paint, state, draw_order);
 
-		if (grid._config.context->get_display_mode() != editor_animation_graph_display_mode_e::display_nodes)
-			return;
-
 		const animation_graph_def_t& graph = grid._config.context->get_graph();
-		SFG_ASSERT(grid._nodes.size() == graph.nodes.size());
 
 		const ui::vg_line_paint_t connection_paint{
 			.color		  = theme.color_text2,
@@ -712,25 +815,61 @@ namespace sfg
 			.aa_thickness = theme.aa_thickness * scale,
 		};
 
-		for (size_t source_index = 0; source_index < graph.nodes.size(); ++source_index)
+		if (grid._config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes)
 		{
-			const u32 target_node_id = graph.nodes[source_index].next_node_id;
+			SFG_ASSERT(grid._nodes.size() == graph.nodes.size());
 
-			if (target_node_id == ANIMATION_GRAPH_DEF_NULL_ID)
-				continue;
+			for (size_t source_index = 0; source_index < graph.nodes.size(); ++source_index)
+			{
+				const u32 target_node_id = graph.nodes[source_index].next_node_id;
 
-			const auto target_it = std::find_if(graph.nodes.begin(), graph.nodes.end(), [target_node_id](const animation_graph_node_def_t& node) { return node.id == target_node_id; });
+				if (target_node_id == ANIMATION_GRAPH_DEF_NULL_ID)
+					continue;
 
-			if (target_it == graph.nodes.end())
-				continue;
+				const auto target_it = std::find_if(graph.nodes.begin(), graph.nodes.end(), [target_node_id](const animation_graph_node_def_t& node) { return node.id == target_node_id; });
 
-			const size_t			target_index   = static_cast<size_t>(target_it - graph.nodes.begin());
-			const ui::layout_out_t& source_pin_out = grid._ui->get_tree().out(grid._nodes[source_index]->get_pin_frame());
-			const ui::layout_out_t& target_out	   = grid._ui->get_tree().out(grid._nodes[target_index]->get_root());
-			const vec2f_t			from		   = source_pin_out.pos + source_pin_out.size * 0.5f;
-			const vec2f_t			to			   = target_out.pos + vec2f_t{0.0f, target_out.size.y * 0.5f};
+				if (target_it == graph.nodes.end())
+					continue;
 
-			draw_animation_graph_connection(canvas, from, to, scale, connection_paint, state, draw_order);
+				const size_t			target_index   = static_cast<size_t>(target_it - graph.nodes.begin());
+				const ui::layout_out_t& source_pin_out = grid._ui->get_tree().out(grid._nodes[source_index]->get_pin_frame());
+				const ui::layout_out_t& target_out	   = grid._ui->get_tree().out(grid._nodes[target_index]->get_root());
+				const vec2f_t			from		   = source_pin_out.pos + source_pin_out.size * 0.5f;
+				const vec2f_t			to			   = target_out.pos + vec2f_t{0.0f, target_out.size.y * 0.5f};
+
+				draw_animation_graph_connection(canvas, from, to, scale, connection_paint, state, draw_order);
+			}
+		}
+		else
+		{
+			const u32  display_node_id = grid._config.context->get_display_node_id();
+			const auto node_it		   = std::find_if(graph.nodes.begin(), graph.nodes.end(), [display_node_id](const animation_graph_node_def_t& node) { return node.id == display_node_id; });
+
+			SFG_ASSERT(node_it != graph.nodes.end());
+			SFG_ASSERT(node_it->type == animation_graph_node_type_e::asm_node);
+			SFG_ASSERT(grid._nodes.size() == node_it->asm_node.states.size());
+
+			const u32 selected_transition_id = grid._config.context->get_selected_transition_id();
+
+			for (const animation_graph_asm_transition_def_t& transition : node_it->asm_node.transitions)
+			{
+				const auto source_it = std::find_if(node_it->asm_node.states.begin(), node_it->asm_node.states.end(), [&transition](const animation_graph_asm_state_def_t& state_def) { return state_def.id == transition.from_state_id; });
+				const auto target_it = std::find_if(node_it->asm_node.states.begin(), node_it->asm_node.states.end(), [&transition](const animation_graph_asm_state_def_t& state_def) { return state_def.id == transition.to_state_id; });
+
+				SFG_ASSERT(source_it != node_it->asm_node.states.end());
+				SFG_ASSERT(target_it != node_it->asm_node.states.end());
+
+				const size_t			source_index	 = static_cast<size_t>(source_it - node_it->asm_node.states.begin());
+				const size_t			target_index	 = static_cast<size_t>(target_it - node_it->asm_node.states.begin());
+				const ui::layout_out_t& source_pin_out	 = grid._ui->get_tree().out(grid._nodes[source_index]->get_pin_frame());
+				const ui::layout_out_t& target_out		 = grid._ui->get_tree().out(grid._nodes[target_index]->get_root());
+				const vec2f_t			from			 = source_pin_out.pos + source_pin_out.size * 0.5f;
+				const vec2f_t			to				 = target_out.pos + vec2f_t{0.0f, target_out.size.y * 0.5f};
+				ui::vg_line_paint_t		transition_paint = connection_paint;
+				transition_paint.color					 = transition.id == selected_transition_id ? theme.color_accent1 : theme.color_text2;
+
+				draw_animation_graph_connection(canvas, from, to, scale, transition_paint, state, draw_order);
+			}
 		}
 
 		if (grid._drag_pin_node_index != UINT32_MAX)

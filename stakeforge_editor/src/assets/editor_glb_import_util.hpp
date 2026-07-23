@@ -31,12 +31,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/mat4x3.hpp>
 
 struct tg3_model;
+struct tg3_animation;
 struct tg3_primitive;
 struct tg3_skin;
 
 namespace sfg
 {
 	enum class glb_axis_e : u8;
+	struct animation_def_t;
 	class quat_t;
 	struct primitive_skinned_def_t;
 	struct primitive_static_def_t;
@@ -67,9 +69,11 @@ namespace sfg
 		static vec3f_t				  convert_scale(const glb_basis_conversion_t& basis, const vec3f_t& value);
 		static vec4f_t				  convert_tangent(const glb_basis_conversion_t& basis, const vec4f_t& value);
 		static quat_t				  convert_rotation(const glb_basis_conversion_t& basis, const quat_t& value);
+		static quat_t				  convert_rotation_tangent(const glb_basis_conversion_t& basis, const quat_t& value);
 		static mat4x3_t				  convert_transform(const glb_basis_conversion_t& basis, const mat4x3_t& value);
 
 		static i32	find_attribute(const tg3_primitive& primitive, const char* name);
+		static bool import_animation(const tg3_model& model, const tg3_animation& animation, const glb_basis_conversion_t& basis, animation_def_t& out);
 		static bool read_inverse_bind_matrix(const tg3_model& model, const tg3_skin& skin, const glb_basis_conversion_t& basis, u32 joint_index, mat4x3_t& out_matrix);
 		static bool import_static_primitive(const tg3_model& model, const tg3_primitive& primitive, const glb_basis_conversion_t& basis, u32 material_index, primitive_static_def_t& out);
 		static bool import_skinned_primitive(const tg3_model& model, const tg3_primitive& primitive, const glb_basis_conversion_t& basis, u32 material_index, primitive_skinned_def_t& out);

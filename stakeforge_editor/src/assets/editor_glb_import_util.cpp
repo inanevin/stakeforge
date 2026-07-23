@@ -38,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/vec4f.hpp>
 #include <sfg/math/vec4u.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/runtime/resources/animation_def.hpp>
 #include <sfg/runtime/resources/mesh_def.hpp>
 #include <sfg/runtime/resources/mesh_util.hpp>
 #include <sfg/runtime/resources/physics_collision_mesh_def.hpp>
@@ -306,14 +307,20 @@ namespace sfg
 
 	quat_t editor_glb_import_util_t::convert_rotation(const glb_basis_conversion_t& basis, const quat_t& value)
 	{
-		const mat4x3_t converted = convert_transform(basis, mat4x3_t::rotation(value));
-		vec3f_t		   position	 = vec3f_t::zero;
-		quat_t		   rotation	 = quat_t::identity;
-		vec3f_t		   scale	 = vec3f_t::one;
+		quat_t converted = convert_rotation_tangent(basis, value);
 
-		converted.decompose(position, rotation, scale);
+		converted.normalize();
 
-		return rotation;
+		return converted;
+	}
+
+	quat_t editor_glb_import_util_t::convert_rotation_tangent(const glb_basis_conversion_t& basis, const quat_t& value)
+	{
+		const mat3x3_t transform		= basis.transform.to_linear3x3();
+		const vec3f_t  converted_vector = transform * vec3f_t(value.x, value.y, value.z);
+		const f32	   sign				= transform.determinant() < 0.0f ? -1.0f : 1.0f;
+
+		return {converted_vector.x * sign, converted_vector.y * sign, converted_vector.z * sign, value.w};
 	}
 
 	mat4x3_t editor_glb_import_util_t::convert_transform(const glb_basis_conversion_t& basis, const mat4x3_t& value)
@@ -330,6 +337,277 @@ namespace sfg
 				return attr.value;
 		}
 		return -1;
+	}
+
+	bool editor_glb_import_util_t::import_animation(const tg3_model& model, const tg3_animation& animation, const glb_basis_conversion_t& basis, animation_def_t& out)
+	{
+		if (model.skins_count == 0)
+		{
+			SFG_ERR("glb animation has no skeleton");
+			return false;
+		}
+
+		vector_t<u32> node_to_joint_index = {};
+
+		node_to_joint_index.resize(model.nodes_count);
+
+		bool found_compatible_skin = false;
+
+		// find a skin that contains every transform channel
+		for (u32 skin_index = 0; skin_index < model.skins_count; ++skin_index)
+		{
+			for (u32& joint_index : node_to_joint_index)
+				joint_index = UINT32_MAX;
+
+			const tg3_skin& skin		  = model.skins[skin_index];
+			bool			skin_is_valid = true;
+
+			for (u32 joint_index = 0; joint_index < skin.joints_count; ++joint_index)
+			{
+				const i32 node_index = skin.joints[joint_index];
+
+				if (node_index < 0 || static_cast<u32>(node_index) >= model.nodes_count || node_to_joint_index[node_index] != UINT32_MAX)
+				{
+					skin_is_valid = false;
+					break;
+				}
+
+				node_to_joint_index[node_index] = joint_index;
+			}
+
+			if (!skin_is_valid)
+				continue;
+
+			for (u32 channel_index = 0; channel_index < animation.channels_count; ++channel_index)
+			{
+				const tg3_animation_channel& channel = animation.channels[channel_index];
+				const string_view_t			 path(channel.target.path.data, channel.target.path.len);
+
+				if (path == "weights")
+					continue;
+
+				if (channel.target.node < 0 || static_cast<u32>(channel.target.node) >= model.nodes_count || node_to_joint_index[channel.target.node] == UINT32_MAX)
+				{
+					skin_is_valid = false;
+					break;
+				}
+			}
+
+			if (skin_is_valid)
+			{
+				found_compatible_skin = true;
+				break;
+			}
+		}
+
+		if (!found_compatible_skin)
+		{
+			SFG_ERR("glb animation does not target a compatible skeleton");
+			return false;
+		}
+
+		u32 position_channel_count = 0;
+		u32 rotation_channel_count = 0;
+		u32 scale_channel_count	   = 0;
+
+		for (u32 channel_index = 0; channel_index < animation.channels_count; ++channel_index)
+		{
+			const tg3_animation_channel& channel = animation.channels[channel_index];
+			const string_view_t			 path(channel.target.path.data, channel.target.path.len);
+
+			if (path == "translation")
+				++position_channel_count;
+			else if (path == "rotation")
+				++rotation_channel_count;
+			else if (path == "scale")
+				++scale_channel_count;
+			else if (path != "weights")
+			{
+				SFG_ERR("glb animation channel path is unsupported");
+				return false;
+			}
+		}
+
+		out.position_channels.reserve(position_channel_count);
+		out.rotation_channels.reserve(rotation_channel_count);
+		out.scale_channels.reserve(scale_channel_count);
+
+		vector_t<f32> keyframe_times  = {};
+		vector_t<f32> keyframe_values = {};
+
+		for (u32 channel_index = 0; channel_index < animation.channels_count; ++channel_index)
+		{
+			const tg3_animation_channel& source_channel = animation.channels[channel_index];
+			const string_view_t			 path(source_channel.target.path.data, source_channel.target.path.len);
+
+			if (path == "weights")
+				continue;
+
+			if (source_channel.sampler < 0 || static_cast<u32>(source_channel.sampler) >= animation.samplers_count)
+			{
+				SFG_ERR("glb animation channel sampler is out of range: {0}", source_channel.sampler);
+				return false;
+			}
+
+			const tg3_animation_sampler& sampler		 = animation.samplers[source_channel.sampler];
+			const tg3_accessor*			 input_accessor	 = get_accessor(model, sampler.input);
+			const tg3_accessor*			 output_accessor = get_accessor(model, sampler.output);
+
+			if (input_accessor == nullptr || input_accessor->component_type != TG3_COMPONENT_TYPE_FLOAT || input_accessor->type != TG3_TYPE_SCALAR || input_accessor->count == 0 || input_accessor->count > UINT32_MAX)
+			{
+				SFG_ERR("glb animation input accessor is invalid: {0}", sampler.input);
+				return false;
+			}
+
+			const i32 output_type = path == "rotation" ? TG3_TYPE_VEC4 : TG3_TYPE_VEC3;
+
+			if (output_accessor == nullptr || output_accessor->component_type != TG3_COMPONENT_TYPE_FLOAT || output_accessor->type != output_type)
+			{
+				SFG_ERR("glb animation output accessor is invalid: {0}", sampler.output);
+				return false;
+			}
+
+			animation_interpolation_e interpolation = animation_interpolation_e::linear;
+			const string_view_t		  interpolation_name(sampler.interpolation.data, sampler.interpolation.len);
+
+			if (interpolation_name == "STEP")
+				interpolation = animation_interpolation_e::step;
+			else if (interpolation_name == "CUBICSPLINE")
+				interpolation = animation_interpolation_e::cubic_spline;
+			else if (interpolation_name != "LINEAR")
+			{
+				SFG_ERR("glb animation interpolation is unsupported");
+				return false;
+			}
+
+			const u32 keyframe_count = static_cast<u32>(input_accessor->count);
+
+			if (interpolation == animation_interpolation_e::cubic_spline && keyframe_count > UINT32_MAX / 3)
+			{
+				SFG_ERR("glb animation keyframe count is too large");
+				return false;
+			}
+
+			const u32 output_count = interpolation == animation_interpolation_e::cubic_spline ? keyframe_count * 3 : keyframe_count;
+
+			keyframe_times.resize(0);
+			keyframe_values.resize(0);
+
+			if (!read_float_attribute(model, sampler.input, TG3_TYPE_SCALAR, keyframe_count, keyframe_times) || !read_float_attribute(model, sampler.output, output_type, output_count, keyframe_values))
+			{
+				SFG_ERR("failed to read GLB animation sampler {0}", source_channel.sampler);
+				return false;
+			}
+
+			for (u32 keyframe_index = 0; keyframe_index < keyframe_count; ++keyframe_index)
+			{
+				if (keyframe_index != 0 && keyframe_times[keyframe_index] <= keyframe_times[keyframe_index - 1])
+				{
+					SFG_ERR("glb animation keyframe times are not increasing");
+					return false;
+				}
+
+				if (keyframe_times[keyframe_index] > out.duration)
+					out.duration = keyframe_times[keyframe_index];
+			}
+
+			const i32 joint_index = static_cast<i32>(node_to_joint_index[source_channel.target.node]);
+
+			if (path == "rotation")
+			{
+				animation_channel_q_def_t& channel = out.rotation_channels.emplace_back();
+
+				channel.interpolation = interpolation;
+				channel.node_index	  = joint_index;
+
+				if (interpolation == animation_interpolation_e::cubic_spline)
+				{
+					channel.keyframes_spline.resize(keyframe_count);
+
+					for (u32 keyframe_index = 0; keyframe_index < keyframe_count; ++keyframe_index)
+					{
+						const size_t				   base		= static_cast<size_t>(keyframe_index) * 12;
+						animation_keyframe_q_spline_t& keyframe = channel.keyframes_spline[keyframe_index];
+
+						keyframe.in_tangent	 = convert_rotation_tangent(basis, {keyframe_values[base], keyframe_values[base + 1], keyframe_values[base + 2], keyframe_values[base + 3]});
+						keyframe.value		 = convert_rotation(basis, {keyframe_values[base + 4], keyframe_values[base + 5], keyframe_values[base + 6], keyframe_values[base + 7]});
+						keyframe.out_tangent = convert_rotation_tangent(basis, {keyframe_values[base + 8], keyframe_values[base + 9], keyframe_values[base + 10], keyframe_values[base + 11]});
+						keyframe.time		 = keyframe_times[keyframe_index];
+					}
+				}
+				else
+				{
+					channel.keyframes.resize(keyframe_count);
+
+					for (u32 keyframe_index = 0; keyframe_index < keyframe_count; ++keyframe_index)
+					{
+						const size_t			base	 = static_cast<size_t>(keyframe_index) * 4;
+						animation_keyframe_q_t& keyframe = channel.keyframes[keyframe_index];
+
+						keyframe.value = convert_rotation(basis, {keyframe_values[base], keyframe_values[base + 1], keyframe_values[base + 2], keyframe_values[base + 3]});
+						keyframe.time  = keyframe_times[keyframe_index];
+					}
+				}
+
+				continue;
+			}
+
+			animation_channel_v3_def_t& channel = path == "translation" ? out.position_channels.emplace_back() : out.scale_channels.emplace_back();
+
+			channel.interpolation = interpolation;
+			channel.node_index	  = joint_index;
+
+			if (interpolation == animation_interpolation_e::cubic_spline)
+			{
+				channel.keyframes_spline.resize(keyframe_count);
+
+				for (u32 keyframe_index = 0; keyframe_index < keyframe_count; ++keyframe_index)
+				{
+					const size_t					base	 = static_cast<size_t>(keyframe_index) * 9;
+					animation_keyframe_v3_spline_t& keyframe = channel.keyframes_spline[keyframe_index];
+					const vec3f_t					in_tangent(keyframe_values[base], keyframe_values[base + 1], keyframe_values[base + 2]);
+					const vec3f_t					value(keyframe_values[base + 3], keyframe_values[base + 4], keyframe_values[base + 5]);
+					const vec3f_t					out_tangent(keyframe_values[base + 6], keyframe_values[base + 7], keyframe_values[base + 8]);
+
+					if (path == "translation")
+					{
+						keyframe.in_tangent	 = convert_vector(basis, in_tangent);
+						keyframe.value		 = convert_vector(basis, value);
+						keyframe.out_tangent = convert_vector(basis, out_tangent);
+					}
+					else
+					{
+						keyframe.in_tangent	 = convert_scale(basis, in_tangent);
+						keyframe.value		 = convert_scale(basis, value);
+						keyframe.out_tangent = convert_scale(basis, out_tangent);
+					}
+
+					keyframe.time = keyframe_times[keyframe_index];
+				}
+			}
+			else
+			{
+				channel.keyframes.resize(keyframe_count);
+
+				for (u32 keyframe_index = 0; keyframe_index < keyframe_count; ++keyframe_index)
+				{
+					const size_t			 base	  = static_cast<size_t>(keyframe_index) * 3;
+					animation_keyframe_v3_t& keyframe = channel.keyframes[keyframe_index];
+					const vec3f_t			 value(keyframe_values[base], keyframe_values[base + 1], keyframe_values[base + 2]);
+
+					keyframe.value = path == "translation" ? convert_vector(basis, value) : convert_scale(basis, value);
+					keyframe.time  = keyframe_times[keyframe_index];
+				}
+			}
+		}
+
+		if (out.position_channels.empty() && out.rotation_channels.empty() && out.scale_channels.empty())
+		{
+			SFG_ERR("glb animation has no supported channels");
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_glb_import_util_t::read_inverse_bind_matrix(const tg3_model& model, const tg3_skin& skin, const glb_basis_conversion_t& basis, u32 joint_index, mat4x3_t& out_matrix)

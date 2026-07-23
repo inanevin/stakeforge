@@ -44,6 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/mat4x4.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/resources/animation_def.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/physics_collision_mesh_def.hpp>
@@ -956,6 +957,92 @@ namespace sfg
 			return true;
 		}
 
+		bool import_animation(const char*						   target_directory,
+							  const char*						   source_full_path,
+							  const tg3_model&					   model,
+							  const tg3_animation&				   animation,
+							  const glb_basis_conversion_t&		   basis,
+							  u32								   animation_index,
+							  glb_asset_name_registry_t&		   asset_names,
+							  const editor_asset_import_context_t& context,
+							  vector_t<editor_asset_t>&			   out_assets,
+							  vector_t<string_t>&				   out_asset_paths)
+		{
+			string_t asset_name = get_asset_name(animation.name);
+
+			if (asset_name.empty())
+			{
+				asset_name = file_system_t::get_filename_from_path(source_full_path);
+				asset_name += "_animation_";
+				asset_name += std::to_string(animation_index);
+			}
+
+			asset_name = reserve_glb_asset_name(asset_names, asset_name);
+
+			string_t status = "Importing animation ";
+
+			status += asset_name;
+			status += " (";
+			status += std::to_string(animation_index + 1);
+			status += "/";
+			status += std::to_string(model.animations_count);
+			status += ")";
+			context.report_status(status.c_str());
+
+			animation_def_t animation_def{
+				.name	   = asset_name,
+				.name_hash = hashing_t::to_sid(asset_name),
+			};
+
+			if (!editor_glb_import_util_t::import_animation(model, animation, basis, animation_def))
+			{
+				SFG_ERR("failed to build GLB animation definition {0}", asset_name.c_str());
+				return false;
+			}
+
+			const string_t blob_path  = editor_asset_path_t::make_blob_path(target_directory, asset_name.c_str());
+			ostream_t	   def_stream = {};
+
+			if (!serialize_reflected_to_stream(animation_def, def_stream))
+			{
+				SFG_ERR("failed to serialize GLB animation definition {0}", asset_name.c_str());
+				return false;
+			}
+
+			if (!write_blob(blob_path.c_str(), def_stream.get_raw(), def_stream.get_size()))
+			{
+				SFG_ERR("failed to write GLB animation blob {0}", blob_path.c_str());
+				return false;
+			}
+
+			editor_asset_t								  asset = {};
+			const editor_asset_write_existing_file_desc_t write_desc{
+				.parent_path	  = target_directory,
+				.name			  = asset_name.c_str(),
+				.source_full_path = blob_path.c_str(),
+				.asset_type		  = editor_asset_type_e::animation,
+				.source_type	  = editor_asset_source_type_e::file_blob,
+			};
+
+			string_t asset_path = {};
+
+			if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))
+			{
+				SFG_ERR("failed to write GLB animation asset {0}", asset_name.c_str());
+				return false;
+			}
+
+			if (!editor_asset_cooker_t::cook_animation(asset, asset_name.c_str()))
+			{
+				SFG_ERR("failed to cook GLB animation asset {0}", asset.guid);
+				return false;
+			}
+
+			out_assets.push_back(asset);
+			out_asset_paths.push_back(std::move(asset_path));
+			return true;
+		}
+
 		void collect_mesh_materials(
 			const tg3_model& model, const tg3_mesh* meshes, u32 mesh_count, const hash_map_t<u32, sid_t>& material_guid_map, vector_t<resource_handle_t>& out_materials, vector_t<u32>* out_local_material_indices, u32* out_default_material_index)
 		{
@@ -1737,7 +1824,8 @@ namespace sfg
 			};
 
 			const u32 reserve_texture_count	  = cook_config.import_textures ? model.textures_count * 2 : 0;
-			const u32 reserve_animation_count = cook_config.import_animations ? model.skins_count : 0;
+			const u32 reserve_skeleton_count  = cook_config.import_animations ? model.skins_count : 0;
+			const u32 reserve_animation_count = cook_config.import_animations ? model.animations_count : 0;
 			const u32 reserve_material_count  = cook_config.import_materials ? model.materials_count : 0;
 			const u32 reserve_mesh_count	  = cook_config.import_meshes ? (cook_config.combine_meshes ? 1 : model.meshes_count) : 0;
 			const u32 reserve_collision_count = cook_config.import_collisions ? (cook_config.combine_meshes ? 1 : model.meshes_count) : 0;
@@ -1752,9 +1840,9 @@ namespace sfg
 			texture_imports.reserve(reserve_texture_count);
 			glb_asset_name_registry_t asset_names = {};
 
-			asset_names.names.reserve(reserve_texture_count + reserve_animation_count + reserve_material_count + reserve_mesh_count + reserve_collision_count + 1);
-			out_assets.reserve(out_assets.size() + reserve_texture_count + reserve_animation_count + reserve_material_count + reserve_mesh_count + reserve_collision_count);
-			out_asset_paths.reserve(out_asset_paths.size() + reserve_texture_count + reserve_animation_count + reserve_material_count + reserve_mesh_count + reserve_collision_count);
+			asset_names.names.reserve(reserve_texture_count + reserve_skeleton_count + reserve_animation_count + reserve_material_count + reserve_mesh_count + reserve_collision_count + 1);
+			out_assets.reserve(out_assets.size() + reserve_texture_count + reserve_skeleton_count + reserve_animation_count + reserve_material_count + reserve_mesh_count + reserve_collision_count);
+			out_asset_paths.reserve(out_asset_paths.size() + reserve_texture_count + reserve_skeleton_count + reserve_animation_count + reserve_material_count + reserve_mesh_count + reserve_collision_count);
 
 			if (cook_config.import_textures)
 			{
@@ -1940,6 +2028,15 @@ namespace sfg
 						SFG_ERR("failed to import GLB skeleton {0}", i);
 						result = false;
 						break;
+					}
+				}
+
+				for (u32 i = 0; result && i < model.animations_count; ++i)
+				{
+					if (!import_animation(target_directory, source_full_path, model, model.animations[i], basis, i, asset_names, context, out_assets, out_asset_paths))
+					{
+						SFG_ERR("failed to import GLB animation {0}", i);
+						result = false;
 					}
 				}
 			}

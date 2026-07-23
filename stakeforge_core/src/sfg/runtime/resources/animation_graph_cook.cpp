@@ -35,13 +35,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	bool animation_graph_cooker::cook_from_file(const char* full_path, resource_header_t& out_header, ostream_t& stream)
-	{
-		SFG_ERR("animation graph file cooking requires an embedded definition: {0}", full_path);
-
-		return false;
-	}
-
 	bool animation_graph_cooker::cook_from_def(const animation_graph_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
 		ostream_t def_stream = {};

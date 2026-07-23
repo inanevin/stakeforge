@@ -30,16 +30,40 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "animation.hpp"
 #include "animation_def.hpp"
 #include <sfg/common/hashing.hpp>
+#include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/serialization/compression.hpp>
+#include <sfg/serialization/serialization.hpp>
 
 namespace sfg
 {
+	bool animation_cooker::cook_from_file(const char* full_path, resource_header_t& out_header, ostream_t& stream)
+	{
+		istream_t animation_def_stream = serializer_t::load_from_file_compressed(full_path);
+
+		if (animation_def_stream.empty())
+		{
+			SFG_ERR("failed to read animation definition file: {0}", full_path);
+			return false;
+		}
+
+		animation_def_t def = {};
+
+		if (!reflection_registry_t::get().type_from_stream(type_id_t<animation_def_t>::value, &def, nullptr, animation_def_stream))
+		{
+			SFG_ERR("failed to deserialize animation definition file: {0}", full_path);
+			return false;
+		}
+
+		return cook_from_def(def, out_header, stream);
+	}
+
 	bool animation_cooker::cook_from_def(const animation_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
-		ostream_t animation_stream;
+		ostream_t animation_stream = {};
+
 		if (!reflection_registry_t::get().type_to_stream(type_id_t<animation_def_t>::value, const_cast<animation_def_t*>(&def), nullptr, animation_stream))
 		{
 			SFG_ERR("failed to serialize animation definition");

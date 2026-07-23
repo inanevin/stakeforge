@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/animation_graph/editor_animation_graph_widget_inspector.hpp"
 #include "ui/panels/animation_graph/editor_animation_graph_context.hpp"
 #include "assets/editor_asset.hpp"
+#include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -36,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_misc.hpp"
 
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -52,15 +54,17 @@ namespace sfg
 
 		ui.set_widget_debug_name(_root, "animation_graph_inspector");
 		ui.get_tree().attach(parent, _root);
+		const editor_theme_t& theme = editor_theme_t::get();
 
 		ui::layout_in_t& root_in = ui.get_tree().in(_root);
 		root_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		root_in.size_mode_y		 = ui::axis_mode_e::sum_children;
 		root_in.size_value		 = vec2f_t::one;
-		root_in.flow			 = ui::flow_e::column;
+		root_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
+
+		root_in.flow = ui::flow_e::column;
 
 		const editor_property_row_t asset_row = editor_misc_widgets_t::make_property_row_with_label(ui, _root, "Asset", false, false, editor_theme_t::get().margin_horizontal);
-		const editor_theme_t&		theme	  = editor_theme_t::get();
 
 		_asset_name_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_asset_name_label, "animation_graph_inspector_asset_name");
@@ -85,6 +89,7 @@ namespace sfg
 		invalid_skeleton_frame_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		invalid_skeleton_frame_in.size_mode_y	   = ui::axis_mode_e::fixed;
 		invalid_skeleton_frame_in.size_value	   = {1.0f, theme.item_area_height};
+		invalid_skeleton_frame_in.child_clip_mode  = ui::clip_mode_e::cpu_rect;
 
 		ui.get_paint().set_rect(_invalid_skeleton_frame,
 								{
@@ -140,6 +145,12 @@ namespace sfg
 									   .fold_states		   = &_asm_state_fold_states,
 									   .elevate_draw_order = true,
 								   });
+		_asm_transition_reflection.init(ui,
+										_root,
+										{
+											.fold_states		= &_asm_transition_fold_states,
+											.elevate_draw_order = true,
+										});
 		_bone_control_reflection.init(ui,
 									  _root,
 									  {
@@ -154,15 +165,30 @@ namespace sfg
 							});
 		ui.get_tree().set_visible(_asm_node_reflection.get_root(), false, false);
 		ui.get_tree().set_visible(_asm_state_reflection.get_root(), false, false);
+		ui.get_tree().set_visible(_asm_transition_reflection.get_root(), false, false);
 		ui.get_tree().set_visible(_bone_control_reflection.get_root(), false, false);
 		ui.get_tree().set_visible(_ik_reflection.get_root(), false, false);
+
+		_save_button.init(ui,
+						  _root,
+						  {
+							  .text				  = "Save",
+							  .elevate_draw_order = true,
+						  });
+
+		ui::listener_bundle_t save_listener = {};
+		save_listener.on_click				= on_save;
+		save_listener.user_data				= this;
+		ui.get_input().set_listener(_save_button.get_root(), save_listener);
 	}
 
 	void editor_animation_graph_widget_inspector_t::uninit()
 	{
 		_ui->cancel_mutations(this);
+		_save_button.uninit();
 		_ik_reflection.uninit();
 		_bone_control_reflection.uninit();
+		_asm_transition_reflection.uninit();
 		_asm_state_reflection.uninit();
 		_asm_node_reflection.uninit();
 		_reflection.uninit();
@@ -171,6 +197,7 @@ namespace sfg
 		_fold_states.resize(0);
 		_asm_node_fold_states.resize(0);
 		_asm_state_fold_states.resize(0);
+		_asm_transition_fold_states.resize(0);
 		_bone_control_fold_states.resize(0);
 		_ik_fold_states.resize(0);
 		_bone_dropdown_items.resize(0);
@@ -246,6 +273,7 @@ namespace sfg
 		tree.set_visible(_reflection.get_root(), false, false);
 		tree.set_visible(_asm_node_reflection.get_root(), false, false);
 		tree.set_visible(_asm_state_reflection.get_root(), false, false);
+		tree.set_visible(_asm_transition_reflection.get_root(), false, false);
 		tree.set_visible(_bone_control_reflection.get_root(), false, false);
 		tree.set_visible(_ik_reflection.get_root(), false, false);
 		tree.set_visible(_invalid_skeleton_frame, false, false);
@@ -298,6 +326,29 @@ namespace sfg
 		if (display_mode == editor_animation_graph_display_mode_e::display_state_machine)
 		{
 			SFG_ASSERT(selected_node_it->type == animation_graph_node_type_e::asm_node);
+
+			const u32 selected_transition_id = _config.context->get_selected_transition_id();
+
+			if (selected_transition_id != ANIMATION_GRAPH_DEF_NULL_ID)
+			{
+				const auto selected_transition_it = std::find_if(
+					selected_node_it->asm_node.transitions.begin(), selected_node_it->asm_node.transitions.end(), [selected_transition_id](const animation_graph_asm_transition_def_t& transition) { return transition.id == selected_transition_id; });
+
+				SFG_ASSERT(selected_transition_it != selected_node_it->asm_node.transitions.end());
+
+				void* asm_transition = &*selected_transition_it;
+
+				tree.set_visible(_asm_transition_reflection.get_root(), true, false);
+				_asm_transition_reflection.save_fold_states();
+				_asm_transition_reflection.set_reflection({
+					.fold_states			  = &_asm_transition_fold_states,
+					.objects				  = {.data = &asm_transition, .size = 1},
+					.type_id				  = type_id_t<animation_graph_asm_transition_def_t>::value,
+					.dropdown_items			  = resolve_dropdown_items,
+					.dropdown_items_user_data = this,
+				});
+				return;
+			}
 
 			const u32 selected_state_id = _config.context->get_selected_sub_node_id();
 
@@ -376,6 +427,46 @@ namespace sfg
 		}
 	}
 
+	void editor_animation_graph_widget_inspector_t::save()
+	{
+		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
+		const sid_t						 asset_id	   = _config.context->get_asset_id();
+		const editor_asset_node_handle_t asset_node_id = asset_manager.find_asset_node_handle(asset_id);
+
+		if (asset_node_id.is_null())
+		{
+			SFG_ERR("failed to find animation graph asset node {0}", asset_id);
+			return;
+		}
+
+		const editor_asset_node_t& asset_node = asset_manager.get_asset_tree().value(asset_node_id);
+		editor_asset_t			   asset	  = {};
+
+		if (!editor_asset_io_t::read_asset(asset_node.full_path.c_str(), asset))
+			return;
+
+		nlohmann::json		   embedded_source = nlohmann::json::object();
+		animation_graph_def_t& graph		   = _config.context->get_graph();
+
+		if (!reflection_registry_t::get().type_to_json(type_id_t<animation_graph_def_t>::value, &graph, nullptr, embedded_source))
+		{
+			SFG_ERR("failed to serialize animation graph definition for asset {0}", asset_id);
+			return;
+		}
+
+		embedded_source["schema"] = "sfg.schema.animation_graph";
+		editor_asset_io_t::set_embedded_source_json(asset, embedded_source);
+
+		if (!editor_asset_io_t::write_asset(asset_node.full_path.c_str(), asset))
+			return;
+
+		if (!editor_asset_cooker_t::cook_animation_graph(asset))
+			return;
+
+		if (!asset_manager.reload_asset_node(asset_node_id))
+			SFG_ERR("failed to reload animation graph asset node {0}", asset_id);
+	}
+
 	span_t<const editor_widget_reflection_dropdown_item_t> editor_animation_graph_widget_inspector_t::resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, void* user_data)
 	{
 		editor_animation_graph_widget_inspector_t& inspector = *static_cast<editor_animation_graph_widget_inspector_t*>(user_data);
@@ -395,5 +486,10 @@ namespace sfg
 	void editor_animation_graph_widget_inspector_t::on_refresh_mutation(ui::ui_context& ui, void* user_data)
 	{
 		static_cast<editor_animation_graph_widget_inspector_t*>(user_data)->refresh_inspector_immediate();
+	}
+
+	void editor_animation_graph_widget_inspector_t::on_save(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	{
+		static_cast<editor_animation_graph_widget_inspector_t*>(user_data)->save();
 	}
 }

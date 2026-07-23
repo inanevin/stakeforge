@@ -43,6 +43,12 @@ namespace sfg
 
 	namespace
 	{
+		struct animation_graph_removed_transition_t
+		{
+			animation_graph_asm_transition_def_t transition = {};
+			u32									 index		= 0;
+		};
+
 		chunk_handle32_t animation_graph_node_to_aux(editor_command_system_t& system, const animation_graph_node_def_t& node)
 		{
 			ostream_t stream = {};
@@ -199,7 +205,22 @@ namespace sfg
 			if (!add_animation_graph_asm_state_from_aux(system, context, payload))
 				return false;
 
+			animation_graph_def_t& graph   = context.get_graph();
+			const auto			   node_it = std::find_if(graph.nodes.begin(), graph.nodes.end(), [&payload](const animation_graph_node_def_t& node) { return node.id == payload.parent_node_id; });
+
+			SFG_ASSERT(node_it != graph.nodes.end());
+
+			if (payload.transition_count > 0)
+			{
+				const animation_graph_removed_transition_t* removed_transitions = system.get_aux_data().get<animation_graph_removed_transition_t>(payload.transition_stream);
+
+				for (u32 i = 0; i < payload.transition_count; ++i)
+					node_it->asm_node.transitions.insert(node_it->asm_node.transitions.begin() + removed_transitions[i].index, removed_transitions[i].transition);
+			}
+
+			node_it->asm_node.first_state_id = payload.previous_first_state_id;
 			context.set_selected_sub_node_id(payload.previous_selection);
+			context.set_selected_transition_id(payload.previous_transition_selection);
 			return true;
 		}
 
@@ -216,8 +237,120 @@ namespace sfg
 
 			SFG_ASSERT(state_it != node_it->asm_node.states.end());
 
+			node_it->asm_node.transitions.erase(std::remove_if(node_it->asm_node.transitions.begin(),
+															   node_it->asm_node.transitions.end(),
+															   [&payload](const animation_graph_asm_transition_def_t& transition) { return transition.from_state_id == payload.state_id || transition.to_state_id == payload.state_id; }),
+												node_it->asm_node.transitions.end());
 			node_it->asm_node.states.erase(state_it);
+
+			if (node_it->asm_node.first_state_id == payload.state_id)
+				node_it->asm_node.first_state_id = ANIMATION_GRAPH_DEF_NULL_ID;
+
 			context.set_selected_sub_node_id(ANIMATION_GRAPH_DEF_NULL_ID);
+
+			bool removed_selected_transition = false;
+
+			if (payload.transition_count > 0)
+			{
+				const animation_graph_removed_transition_t* removed_transitions = system.get_aux_data().get<animation_graph_removed_transition_t>(payload.transition_stream);
+
+				for (u32 i = 0; i < payload.transition_count; ++i)
+					removed_selected_transition |= removed_transitions[i].transition.id == payload.previous_transition_selection;
+			}
+
+			if (removed_selected_transition)
+				context.set_selected_transition_id(ANIMATION_GRAPH_DEF_NULL_ID);
+
+			return true;
+		}
+
+		bool animation_graph_add_asm_transition_undo(editor_command_system_t& system, editor_command_t& command)
+		{
+			const editor_command_animation_graph_asm_transition_payload_t& payload = system.get_payload_as<editor_command_animation_graph_asm_transition_payload_t>(command);
+			editor_animation_graph_context_t&							   context = *static_cast<editor_animation_graph_context_t*>(command.user_data);
+			animation_graph_def_t&										   graph   = context.get_graph();
+			const auto													   node_it = std::find_if(graph.nodes.begin(), graph.nodes.end(), [&payload](const animation_graph_node_def_t& node) { return node.id == payload.parent_node_id; });
+
+			SFG_ASSERT(node_it != graph.nodes.end());
+			SFG_ASSERT(node_it->type == animation_graph_node_type_e::asm_node);
+
+			const auto transition_it = std::find_if(node_it->asm_node.transitions.begin(), node_it->asm_node.transitions.end(), [&payload](const animation_graph_asm_transition_def_t& transition) { return transition.id == payload.transition.id; });
+
+			SFG_ASSERT(transition_it != node_it->asm_node.transitions.end());
+
+			node_it->asm_node.transitions.erase(transition_it);
+			context.set_selected_transition_id(payload.previous_selection);
+			context.set_selected_sub_node_id(payload.previous_sub_selection);
+			return true;
+		}
+
+		bool animation_graph_add_asm_transition_redo(editor_command_system_t& system, editor_command_t& command)
+		{
+			const editor_command_animation_graph_asm_transition_payload_t& payload = system.get_payload_as<editor_command_animation_graph_asm_transition_payload_t>(command);
+			editor_animation_graph_context_t&							   context = *static_cast<editor_animation_graph_context_t*>(command.user_data);
+			animation_graph_def_t&										   graph   = context.get_graph();
+			const auto													   node_it = std::find_if(graph.nodes.begin(), graph.nodes.end(), [&payload](const animation_graph_node_def_t& node) { return node.id == payload.parent_node_id; });
+
+			SFG_ASSERT(node_it != graph.nodes.end());
+			SFG_ASSERT(node_it->type == animation_graph_node_type_e::asm_node);
+
+			node_it->asm_node.transitions.insert(node_it->asm_node.transitions.begin() + payload.transition_index, payload.transition);
+			context.set_selected_transition_id(payload.transition.id);
+			context.set_selected_sub_node_id(ANIMATION_GRAPH_DEF_NULL_ID);
+			return true;
+		}
+
+		bool animation_graph_delete_asm_transition_undo(editor_command_system_t& system, editor_command_t& command)
+		{
+			const editor_command_animation_graph_asm_transition_payload_t& payload = system.get_payload_as<editor_command_animation_graph_asm_transition_payload_t>(command);
+			editor_animation_graph_context_t&							   context = *static_cast<editor_animation_graph_context_t*>(command.user_data);
+			animation_graph_def_t&										   graph   = context.get_graph();
+			const auto													   node_it = std::find_if(graph.nodes.begin(), graph.nodes.end(), [&payload](const animation_graph_node_def_t& node) { return node.id == payload.parent_node_id; });
+
+			SFG_ASSERT(node_it != graph.nodes.end());
+			SFG_ASSERT(node_it->type == animation_graph_node_type_e::asm_node);
+
+			node_it->asm_node.transitions.insert(node_it->asm_node.transitions.begin() + payload.transition_index, payload.transition);
+			context.set_selected_transition_id(payload.previous_selection);
+			return true;
+		}
+
+		bool animation_graph_delete_asm_transition_redo(editor_command_system_t& system, editor_command_t& command)
+		{
+			const editor_command_animation_graph_asm_transition_payload_t& payload = system.get_payload_as<editor_command_animation_graph_asm_transition_payload_t>(command);
+			editor_animation_graph_context_t&							   context = *static_cast<editor_animation_graph_context_t*>(command.user_data);
+			animation_graph_def_t&										   graph   = context.get_graph();
+			const auto													   node_it = std::find_if(graph.nodes.begin(), graph.nodes.end(), [&payload](const animation_graph_node_def_t& node) { return node.id == payload.parent_node_id; });
+
+			SFG_ASSERT(node_it != graph.nodes.end());
+			SFG_ASSERT(node_it->type == animation_graph_node_type_e::asm_node);
+
+			const auto transition_it = std::find_if(node_it->asm_node.transitions.begin(), node_it->asm_node.transitions.end(), [&payload](const animation_graph_asm_transition_def_t& transition) { return transition.id == payload.transition.id; });
+
+			SFG_ASSERT(transition_it != node_it->asm_node.transitions.end());
+
+			node_it->asm_node.transitions.erase(transition_it);
+			context.set_selected_transition_id(ANIMATION_GRAPH_DEF_NULL_ID);
+			return true;
+		}
+
+		bool animation_graph_select_transition_undo(editor_command_system_t& system, editor_command_t& command)
+		{
+			const editor_command_animation_graph_select_transition_payload_t& payload = system.get_payload_as<editor_command_animation_graph_select_transition_payload_t>(command);
+			editor_animation_graph_context_t&								  context = *static_cast<editor_animation_graph_context_t*>(command.user_data);
+
+			context.set_selected_transition_id(payload.previous_transition_id);
+			context.set_selected_sub_node_id(payload.previous_sub_node_id);
+			return true;
+		}
+
+		bool animation_graph_select_transition_redo(editor_command_system_t& system, editor_command_t& command)
+		{
+			const editor_command_animation_graph_select_transition_payload_t& payload = system.get_payload_as<editor_command_animation_graph_select_transition_payload_t>(command);
+			editor_animation_graph_context_t&								  context = *static_cast<editor_animation_graph_context_t*>(command.user_data);
+
+			context.set_selected_transition_id(payload.post_transition_id);
+			context.set_selected_sub_node_id(payload.post_sub_node_id);
 			return true;
 		}
 
@@ -249,6 +382,7 @@ namespace sfg
 			context.set_display_mode(static_cast<editor_animation_graph_display_mode_e>(payload.previous_mode));
 			context.set_display_node_id(payload.previous_display_node_id);
 			context.set_selected_sub_node_id(payload.previous_sub_node_id);
+			context.set_selected_transition_id(payload.previous_transition_id);
 			return true;
 		}
 
@@ -260,6 +394,7 @@ namespace sfg
 			context.set_display_mode(static_cast<editor_animation_graph_display_mode_e>(payload.post_mode));
 			context.set_display_node_id(payload.post_display_node_id);
 			context.set_selected_sub_node_id(payload.post_sub_node_id);
+			context.set_selected_transition_id(payload.post_transition_id);
 			return true;
 		}
 
@@ -368,6 +503,12 @@ namespace sfg
 			{
 				system.get_aux_data().free(payload.state_stream);
 				payload.state_stream = {};
+			}
+
+			if (payload.transition_stream)
+			{
+				system.get_aux_data().free(payload.transition_stream);
+				payload.transition_stream = {};
 			}
 
 			return true;
@@ -561,12 +702,48 @@ namespace sfg
 		if (!state_stream)
 			return false;
 
+		u32 transition_count = 0;
+
+		for (const animation_graph_asm_transition_def_t& transition : node_it->asm_node.transitions)
+		{
+			if (transition.from_state_id == state_id || transition.to_state_id == state_id)
+				++transition_count;
+		}
+
+		chunk_handle32_t transition_stream = {};
+
+		if (transition_count > 0)
+		{
+			transition_stream	= command_system.get_aux_data().allocate_bytes(transition_count * sizeof(animation_graph_removed_transition_t), alignof(animation_graph_removed_transition_t));
+			u8* transition_data = command_system.get_aux_data().get<u8>(transition_stream);
+			u32 removed_index	= 0;
+
+			for (u32 transition_index = 0; transition_index < node_it->asm_node.transitions.size(); ++transition_index)
+			{
+				const animation_graph_asm_transition_def_t& transition = node_it->asm_node.transitions[transition_index];
+
+				if (transition.from_state_id != state_id && transition.to_state_id != state_id)
+					continue;
+
+				const animation_graph_removed_transition_t removed_transition{
+					.transition = transition,
+					.index		= transition_index,
+				};
+				SFG_MEMCPY(transition_data + removed_index * sizeof(animation_graph_removed_transition_t), &removed_transition, sizeof(animation_graph_removed_transition_t));
+				++removed_index;
+			}
+		}
+
 		const editor_command_animation_graph_asm_state_payload_t payload{
-			.state_stream		= state_stream,
-			.parent_node_id		= node_id,
-			.state_id			= state_id,
-			.state_index		= static_cast<u32>(state_it - node_it->asm_node.states.begin()),
-			.previous_selection = context.get_selected_sub_node_id(),
+			.state_stream				   = state_stream,
+			.transition_stream			   = transition_stream,
+			.parent_node_id				   = node_id,
+			.state_id					   = state_id,
+			.state_index				   = static_cast<u32>(state_it - node_it->asm_node.states.begin()),
+			.previous_selection			   = context.get_selected_sub_node_id(),
+			.previous_first_state_id	   = node_it->asm_node.first_state_id,
+			.previous_transition_selection = context.get_selected_transition_id(),
+			.transition_count			   = transition_count,
 		};
 		const editor_command_issue_desc_t desc{
 			.undo		= animation_graph_delete_asm_state_undo,
@@ -630,6 +807,113 @@ namespace sfg
 		if (handle.is_null())
 		{
 			SFG_ERR("failed to issue animation graph duplicate ASM state command");
+			return false;
+		}
+
+		return true;
+	}
+
+	bool editor_command_animation_graph_asm_node_add_transition_t::add(editor_animation_graph_context_t& context, u32 from_state_id, u32 to_state_id)
+	{
+		animation_graph_def_t& graph		  = context.get_graph();
+		const u32			   parent_node_id = context.get_display_node_id();
+		const auto			   node_it		  = std::find_if(graph.nodes.begin(), graph.nodes.end(), [parent_node_id](const animation_graph_node_def_t& node) { return node.id == parent_node_id; });
+
+		SFG_ASSERT(node_it != graph.nodes.end());
+		SFG_ASSERT(node_it->type == animation_graph_node_type_e::asm_node);
+		SFG_ASSERT(std::find_if(node_it->asm_node.states.begin(), node_it->asm_node.states.end(), [from_state_id](const animation_graph_asm_state_def_t& state) { return state.id == from_state_id; }) != node_it->asm_node.states.end());
+		SFG_ASSERT(std::find_if(node_it->asm_node.states.begin(), node_it->asm_node.states.end(), [to_state_id](const animation_graph_asm_state_def_t& state) { return state.id == to_state_id; }) != node_it->asm_node.states.end());
+
+		const animation_graph_asm_transition_def_t transition{
+			.id			   = context.acquire_node_id(),
+			.from_state_id = from_state_id,
+			.to_state_id   = to_state_id,
+		};
+		const editor_command_animation_graph_asm_transition_payload_t payload{
+			.transition				= transition,
+			.parent_node_id			= parent_node_id,
+			.transition_index		= static_cast<u32>(node_it->asm_node.transitions.size()),
+			.previous_selection		= context.get_selected_transition_id(),
+			.previous_sub_selection = context.get_selected_sub_node_id(),
+		};
+		const editor_command_issue_desc_t desc{
+			.undo		= animation_graph_add_asm_transition_undo,
+			.redo		= animation_graph_add_asm_transition_redo,
+			.user_data	= &context,
+			.debug_name = "Animation Graph ASM Node Add Transition",
+			.type		= editor_command_type_e::animation_graph_asm_node_add_transition,
+		};
+		const editor_command_handle_t handle = editor_command_system_t::get().issue_command(desc, payload);
+
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue animation graph ASM node add transition command");
+			return false;
+		}
+
+		return true;
+	}
+
+	bool editor_command_animation_graph_asm_node_delete_transition_t::remove(editor_animation_graph_context_t& context, u32 transition_id)
+	{
+		animation_graph_def_t& graph		  = context.get_graph();
+		const u32			   parent_node_id = context.get_display_node_id();
+		const auto			   node_it		  = std::find_if(graph.nodes.begin(), graph.nodes.end(), [parent_node_id](const animation_graph_node_def_t& node) { return node.id == parent_node_id; });
+
+		SFG_ASSERT(node_it != graph.nodes.end());
+		SFG_ASSERT(node_it->type == animation_graph_node_type_e::asm_node);
+
+		const auto transition_it = std::find_if(node_it->asm_node.transitions.begin(), node_it->asm_node.transitions.end(), [transition_id](const animation_graph_asm_transition_def_t& transition) { return transition.id == transition_id; });
+
+		SFG_ASSERT(transition_it != node_it->asm_node.transitions.end());
+
+		const editor_command_animation_graph_asm_transition_payload_t payload{
+			.transition			= *transition_it,
+			.parent_node_id		= parent_node_id,
+			.transition_index	= static_cast<u32>(transition_it - node_it->asm_node.transitions.begin()),
+			.previous_selection = context.get_selected_transition_id(),
+		};
+		const editor_command_issue_desc_t desc{
+			.undo		= animation_graph_delete_asm_transition_undo,
+			.redo		= animation_graph_delete_asm_transition_redo,
+			.user_data	= &context,
+			.debug_name = "Animation Graph ASM Node Delete Transition",
+			.type		= editor_command_type_e::animation_graph_asm_node_delete_transition,
+		};
+		const editor_command_handle_t handle = editor_command_system_t::get().issue_command(desc, payload);
+
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue animation graph ASM node delete transition command");
+			return false;
+		}
+
+		return true;
+	}
+
+	bool editor_command_animation_graph_select_transition_t::select(editor_animation_graph_context_t& context, u32 transition_id)
+	{
+		if (context.get_selected_transition_id() == transition_id)
+			return true;
+
+		const editor_command_animation_graph_select_transition_payload_t payload{
+			.previous_transition_id = context.get_selected_transition_id(),
+			.post_transition_id		= transition_id,
+			.previous_sub_node_id	= context.get_selected_sub_node_id(),
+			.post_sub_node_id		= transition_id == ANIMATION_GRAPH_DEF_NULL_ID ? context.get_selected_sub_node_id() : ANIMATION_GRAPH_DEF_NULL_ID,
+		};
+		const editor_command_issue_desc_t desc{
+			.undo		= animation_graph_select_transition_undo,
+			.redo		= animation_graph_select_transition_redo,
+			.user_data	= &context,
+			.debug_name = "Animation Graph Select Transition",
+			.type		= editor_command_type_e::animation_graph_select_transition,
+		};
+		const editor_command_handle_t handle = editor_command_system_t::get().issue_command(desc, payload);
+
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue animation graph select transition command");
 			return false;
 		}
 
@@ -704,6 +988,8 @@ namespace sfg
 			.post_display_node_id	  = display_node_id,
 			.previous_sub_node_id	  = context.get_selected_sub_node_id(),
 			.post_sub_node_id		  = ANIMATION_GRAPH_DEF_NULL_ID,
+			.previous_transition_id	  = context.get_selected_transition_id(),
+			.post_transition_id		  = ANIMATION_GRAPH_DEF_NULL_ID,
 			.previous_mode			  = static_cast<u8>(context.get_display_mode()),
 			.post_mode				  = static_cast<u8>(mode),
 		};

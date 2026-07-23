@@ -45,11 +45,32 @@ namespace sfg
 
 	struct editor_command_animation_graph_asm_state_payload_t
 	{
-		chunk_handle32_t state_stream		= {};
-		u32				 parent_node_id		= ANIMATION_GRAPH_DEF_NULL_ID;
-		u32				 state_id			= ANIMATION_GRAPH_DEF_NULL_ID;
-		u32				 state_index		= 0;
-		u32				 previous_selection = ANIMATION_GRAPH_DEF_NULL_ID;
+		chunk_handle32_t state_stream				   = {};
+		chunk_handle32_t transition_stream			   = {};
+		u32				 parent_node_id				   = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32				 state_id					   = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32				 state_index				   = 0;
+		u32				 previous_selection			   = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32				 previous_first_state_id	   = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32				 previous_transition_selection = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32				 transition_count			   = 0;
+	};
+
+	struct editor_command_animation_graph_asm_transition_payload_t
+	{
+		animation_graph_asm_transition_def_t transition				= {};
+		u32									 parent_node_id			= ANIMATION_GRAPH_DEF_NULL_ID;
+		u32									 transition_index		= 0;
+		u32									 previous_selection		= ANIMATION_GRAPH_DEF_NULL_ID;
+		u32									 previous_sub_selection = ANIMATION_GRAPH_DEF_NULL_ID;
+	};
+
+	struct editor_command_animation_graph_select_transition_payload_t
+	{
+		u32 previous_transition_id = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32 post_transition_id	   = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32 previous_sub_node_id   = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32 post_sub_node_id	   = ANIMATION_GRAPH_DEF_NULL_ID;
 	};
 
 	struct editor_command_animation_graph_select_node_payload_t
@@ -66,6 +87,8 @@ namespace sfg
 		u32 post_display_node_id	 = ANIMATION_GRAPH_DEF_NULL_ID;
 		u32 previous_sub_node_id	 = ANIMATION_GRAPH_DEF_NULL_ID;
 		u32 post_sub_node_id		 = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32 previous_transition_id	 = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32 post_transition_id		 = ANIMATION_GRAPH_DEF_NULL_ID;
 		u8	previous_mode			 = 0;
 		u8	post_mode				 = 0;
 	};
@@ -214,6 +237,51 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		static bool duplicate(editor_animation_graph_context_t& context, u32 state_id);
+	};
+
+	class editor_command_animation_graph_asm_node_add_transition_t final
+	{
+	public:
+		editor_command_animation_graph_asm_node_add_transition_t()																			 = delete;
+		~editor_command_animation_graph_asm_node_add_transition_t()																			 = delete;
+		editor_command_animation_graph_asm_node_add_transition_t(const editor_command_animation_graph_asm_node_add_transition_t&)			 = delete;
+		editor_command_animation_graph_asm_node_add_transition_t& operator=(const editor_command_animation_graph_asm_node_add_transition_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool add(editor_animation_graph_context_t& context, u32 from_state_id, u32 to_state_id);
+	};
+
+	class editor_command_animation_graph_asm_node_delete_transition_t final
+	{
+	public:
+		editor_command_animation_graph_asm_node_delete_transition_t()																			   = delete;
+		~editor_command_animation_graph_asm_node_delete_transition_t()																			   = delete;
+		editor_command_animation_graph_asm_node_delete_transition_t(const editor_command_animation_graph_asm_node_delete_transition_t&)			   = delete;
+		editor_command_animation_graph_asm_node_delete_transition_t& operator=(const editor_command_animation_graph_asm_node_delete_transition_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool remove(editor_animation_graph_context_t& context, u32 transition_id);
+	};
+
+	class editor_command_animation_graph_select_transition_t final
+	{
+	public:
+		editor_command_animation_graph_select_transition_t()																	 = delete;
+		~editor_command_animation_graph_select_transition_t()																	 = delete;
+		editor_command_animation_graph_select_transition_t(const editor_command_animation_graph_select_transition_t&)			 = delete;
+		editor_command_animation_graph_select_transition_t& operator=(const editor_command_animation_graph_select_transition_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool select(editor_animation_graph_context_t& context, u32 transition_id);
 	};
 
 	class editor_command_animation_graph_select_node_t final
