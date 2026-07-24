@@ -53,6 +53,7 @@ namespace sfg
 #define EDITOR_ASSET_COLOR(R, G, B)			 color_utils_t::srgb_to_linear(color_t::from255(R, G, B, 255.0f)).to_vector()
 #define EDITOR_ASSET_DELETION_LISTENER_MAX	 64
 #define EDITOR_COOKED_RESOURCE_SCAN_INTERVAL 30
+#define EDITOR_SOURCE_FILE_SCAN_INTERVAL	 30
 
 	bool editor_asset_manager_t::init()
 	{
@@ -89,7 +90,7 @@ namespace sfg
 	{
 		SFG_ASSERT(s_instance == this);
 
-		flush_asset_save_cook_jobs();
+		flush_asset_cook_jobs();
 
 		if (_import_in_progress)
 			editor_app_t::get().get_editor_work_executor().wait_for_all();
@@ -104,20 +105,22 @@ namespace sfg
 		_asset_deletion_listeners.uninit();
 
 		{
-			LOCK_GUARD(_asset_save_cook_mtx);
-			_asset_save_cook_states.clear();
+			LOCK_GUARD(_asset_cook_mtx);
+			_asset_cook_states.clear();
 		}
 
 		_import_status_dirty.store(false, std::memory_order_relaxed);
-		_asset_save_cook_worker_count.store(0, std::memory_order_relaxed);
-		_next_asset_save_cook_revision = 1;
+		_asset_cook_worker_count.store(0, std::memory_order_relaxed);
+		_next_asset_cook_revision = 1;
 
-		_import_progress_pending				 = 0.0f;
-		_cooked_resource_scan_ticks				 = 0;
-		_import_completed_pending				 = false;
-		_import_in_progress						 = false;
-		_is_cooked_resource_tracking_initialized = false;
-		_import_target_directory_node			 = {};
+		_import_progress_pending	  = 0.0f;
+		_cooked_resource_scan_ticks	  = 0;
+		_source_file_scan_ticks		  = 0;
+		_import_completed_pending	  = false;
+		_import_in_progress			  = false;
+		_cooked_file_track_inited	  = false;
+		_source_file_track_inited	  = false;
+		_import_target_directory_node = {};
 
 		s_instance = nullptr;
 	}
@@ -171,7 +174,7 @@ namespace sfg
 		}
 
 		// track file changes for cooked resources
-		if (_is_cooked_resource_tracking_initialized)
+		if (_cooked_file_track_inited)
 		{
 			++_cooked_resource_scan_ticks;
 
@@ -182,17 +185,35 @@ namespace sfg
 				process_changed_cooked_resources();
 			}
 		}
+
+		// track source file changes
+		if (_source_file_track_inited)
+		{
+			++_source_file_scan_ticks;
+
+			if (_source_file_scan_ticks >= EDITOR_SOURCE_FILE_SCAN_INTERVAL)
+			{
+				_source_file_scan_ticks = 0;
+				scan_source_files();
+				process_changed_source_files();
+			}
+		}
 	}
 
 	void editor_asset_manager_t::clear()
 	{
-		SFG_ASSERT(_asset_save_cook_worker_count.load(std::memory_order_acquire) == 0);
+		SFG_ASSERT(_asset_cook_worker_count.load(std::memory_order_acquire) == 0);
 
 		_database.clear();
 		_cooked_resource_tracking_states.clear();
+		_source_file_to_tracking.clear();
+		_asset_to_source_tracking.clear();
 		_changed_cooked_resources.resize(0);
-		_cooked_resource_scan_ticks				 = 0;
-		_is_cooked_resource_tracking_initialized = false;
+		_changed_source_assets.resize(0);
+		_cooked_resource_scan_ticks = 0;
+		_source_file_scan_ticks		= 0;
+		_cooked_file_track_inited	= false;
+		_source_file_track_inited	= false;
 		_generation++;
 	}
 
@@ -219,7 +240,22 @@ namespace sfg
 			}
 		}
 
-		_is_cooked_resource_tracking_initialized = true;
+		_cooked_file_track_inited = true;
+	}
+
+	void editor_asset_manager_t::initialize_source_file_tracking()
+	{
+		_source_file_to_tracking.clear();
+		_source_file_to_tracking.reserve(_database.get_assets().size());
+		_asset_to_source_tracking.clear();
+		_asset_to_source_tracking.reserve(_database.get_assets().size());
+		_changed_source_assets.resize(0);
+		_source_file_scan_ticks = 0;
+
+		for (const auto& asset_pair : _database.get_assets())
+			track_source_asset(asset_pair.second);
+
+		_source_file_track_inited = true;
 	}
 
 	void editor_asset_manager_t::register_descriptor(const editor_asset_descriptor_t& desc)
@@ -265,11 +301,14 @@ namespace sfg
 			const editor_asset_node_handle_t node = _database.emplace_node(editor_asset_node_t{.asset_id = asset_id, .name = name, .full_path = path, .type = editor_asset_node_type_e::asset});
 			_database.attach_node(parent, node);
 
-			if (_is_cooked_resource_tracking_initialized)
+			if (_cooked_file_track_inited)
 			{
 				track_cooked_resource(asset_id, asset_id, cooked_resource_kind_e::asset, true);
 				track_cooked_resource(thumbnail_id, asset_id, cooked_resource_kind_e::thumbnail, true);
 			}
+
+			if (_source_file_track_inited)
+				track_source_asset(*_database.find_asset(asset_id));
 
 			notify_changed();
 			return node;
@@ -323,16 +362,22 @@ namespace sfg
 		const sid_t asset_id	 = asset.guid;
 		const sid_t thumbnail_id = asset.thumbnail_guid;
 
+		if (_source_file_track_inited && old_guid != asset_id)
+			untrack_source_asset(old_guid);
+
 		_database.erase_asset(old_guid);
 		asset_node.asset_id = asset_id;
 		_database.upsert_asset(std::move(asset));
 		_database.rebuild_indices();
 
-		if (_is_cooked_resource_tracking_initialized)
+		if (_cooked_file_track_inited)
 		{
 			track_cooked_resource(asset_id, asset_id, cooked_resource_kind_e::asset, true);
 			track_cooked_resource(thumbnail_id, asset_id, cooked_resource_kind_e::thumbnail, true);
 		}
+
+		if (_source_file_track_inited)
+			track_source_asset(*_database.find_asset(asset_id));
 
 		notify_changed();
 		return true;
@@ -504,7 +549,7 @@ namespace sfg
 		}
 
 		// finish pending writes before filesystem mutation
-		flush_asset_save_cook_jobs();
+		flush_asset_cook_jobs();
 
 		// delete the main path first
 		const bool removed_from_disk = root_node.type == editor_asset_node_type_e::folder ? file_system_t::delete_directory(root_path.c_str()) : !file_system_t::exists(root_path.c_str()) || !file_system_t::delete_file(root_path.c_str());
@@ -536,6 +581,7 @@ namespace sfg
 
 			untrack_cooked_resource(asset.asset_guid);
 			untrack_cooked_resource(asset.thumbnail_guid);
+			untrack_source_asset(asset.asset_guid);
 		}
 
 		// commit deletion to the asset database
@@ -602,13 +648,29 @@ namespace sfg
 
 	void editor_asset_manager_t::update_node_path(editor_asset_node_handle_t node, const char* new_path)
 	{
+		const editor_asset_node_t&	   asset_node = _database.get_asset_tree().value(node);
+		const string_t				   old_path	  = asset_node.full_path;
+		const editor_asset_node_type_e node_type  = asset_node.type;
+
 		_database.update_node_path(node, new_path);
+
+		if (_source_file_track_inited && (node_type == editor_asset_node_type_e::folder || node_type == editor_asset_node_type_e::file))
+			update_moved_source_paths(old_path.c_str(), new_path, node_type == editor_asset_node_type_e::folder);
+
 		notify_changed();
 	}
 
 	void editor_asset_manager_t::move_node(editor_asset_node_handle_t node, editor_asset_node_handle_t new_parent, const char* new_path)
 	{
+		const editor_asset_node_t&	   asset_node = _database.get_asset_tree().value(node);
+		const string_t				   old_path	  = asset_node.full_path;
+		const editor_asset_node_type_e node_type  = asset_node.type;
+
 		_database.move_node(node, new_parent, new_path);
+
+		if (_source_file_track_inited && (node_type == editor_asset_node_type_e::folder || node_type == editor_asset_node_type_e::file))
+			update_moved_source_paths(old_path.c_str(), new_path, node_type == editor_asset_node_type_e::folder);
+
 		notify_changed();
 	}
 
@@ -647,71 +709,114 @@ namespace sfg
 		*asset = updated;
 		notify_changed();
 
-		bool schedule_worker = false;
-
-		{
-			LOCK_GUARD(_asset_save_cook_mtx);
-
-			auto [it, inserted]						 = _asset_save_cook_states.try_emplace(asset_id);
-			asset_save_cook_state_t& save_cook_state = it->second;
-			save_cook_state.asset					 = std::move(updated);
-			save_cook_state.asset_path				 = asset_node.full_path;
-			save_cook_state.display_name			 = asset_node.name;
-			save_cook_state.revision				 = _next_asset_save_cook_revision++;
-			schedule_worker							 = inserted;
-
-			if (schedule_worker)
-				_asset_save_cook_worker_count.fetch_add(1, std::memory_order_release);
-		}
-
-		if (schedule_worker)
-			editor_app_t::get().get_editor_work_executor().silent_async([this, asset_id]() { save_and_cook_asset_worker(asset_id); });
+		schedule_asset_cook(asset_id, std::move(updated), asset_node.full_path.c_str(), asset_node.name.c_str(), true);
 
 		return true;
 	}
 
-	void editor_asset_manager_t::flush_asset_save_cook_jobs()
+	bool editor_asset_manager_t::cook_asset_async(sid_t asset_id)
 	{
-		if (_asset_save_cook_worker_count.load(std::memory_order_acquire) == 0)
+		const editor_asset_t* asset = _database.find_asset(asset_id);
+		if (asset == nullptr)
+		{
+			SFG_ERR("failed to find file source asset {0}", asset_id);
+			return false;
+		}
+
+		if (asset->source_type != editor_asset_source_type_e::file && asset->source_type != editor_asset_source_type_e::file_blob)
+		{
+			SFG_ERR("asset {0} does not have a file source", asset_id);
+			return false;
+		}
+
+		const editor_asset_node_handle_t node = _database.find_asset_node(asset_id);
+		if (node.is_null())
+		{
+			SFG_ERR("failed to find file source asset node {0}", asset_id);
+			return false;
+		}
+
+		const editor_asset_node_t& asset_node = _database.get_asset_tree().value(node);
+
+		schedule_asset_cook(asset_id, *asset, "", asset_node.name.c_str(), false);
+
+		return true;
+	}
+
+	void editor_asset_manager_t::schedule_asset_cook(sid_t asset_id, editor_asset_t asset, const char* asset_path, const char* display_name, bool save_asset)
+	{
+		bool schedule_worker = false;
+
+		{
+			LOCK_GUARD(_asset_cook_mtx);
+
+			auto [it, inserted]			   = _asset_cook_states.try_emplace(asset_id);
+			asset_cook_state_t& cook_state = it->second;
+			cook_state.asset			   = std::move(asset);
+			cook_state.asset_path		   = asset_path;
+			cook_state.display_name		   = display_name;
+			cook_state.revision			   = _next_asset_cook_revision++;
+			cook_state.save_asset		   = save_asset;
+			schedule_worker				   = inserted;
+
+			if (schedule_worker)
+				_asset_cook_worker_count.fetch_add(1, std::memory_order_release);
+		}
+
+		if (schedule_worker)
+			editor_app_t::get().get_editor_work_executor().silent_async([this, asset_id]() { asset_cook_worker(asset_id); });
+	}
+
+	void editor_asset_manager_t::flush_asset_cook_jobs()
+	{
+		if (_asset_cook_worker_count.load(std::memory_order_acquire) == 0)
 			return;
 
 		editor_app_t::get().get_editor_work_executor().wait_for_all();
-		SFG_ASSERT(_asset_save_cook_worker_count.load(std::memory_order_acquire) == 0);
+		SFG_ASSERT(_asset_cook_worker_count.load(std::memory_order_acquire) == 0);
 	}
 
-	void editor_asset_manager_t::save_and_cook_asset_worker(sid_t asset_id)
+	void editor_asset_manager_t::asset_cook_worker(sid_t asset_id)
 	{
 		while (true)
 		{
-			asset_save_cook_state_t save_cook_state = {};
+			asset_cook_state_t cook_state = {};
 
 			{
-				LOCK_GUARD(_asset_save_cook_mtx);
+				LOCK_GUARD(_asset_cook_mtx);
 
-				const auto it = _asset_save_cook_states.find(asset_id);
-				SFG_ASSERT(it != _asset_save_cook_states.end());
-				save_cook_state = it->second;
+				const auto it = _asset_cook_states.find(asset_id);
+				SFG_ASSERT(it != _asset_cook_states.end());
+				cook_state = it->second;
 			}
 
-			const bool saved_and_cooked = editor_asset_io_t::write_asset(save_cook_state.asset_path.c_str(), save_cook_state.asset) && editor_asset_cooker_t::cook_asset(save_cook_state.asset, save_cook_state.display_name.c_str());
+			const bool asset_saved	= !cook_state.save_asset || editor_asset_io_t::write_asset(cook_state.asset_path.c_str(), cook_state.asset);
+			const bool asset_cooked = asset_saved && editor_asset_cooker_t::cook_asset(cook_state.asset, cook_state.display_name.c_str());
 
-			if (!saved_and_cooked)
-				SFG_ERR("failed to save and cook embedded asset {0}", asset_id);
+			if (!asset_cooked)
+			{
+				if (cook_state.save_asset)
+					SFG_ERR("failed to save and cook embedded asset {0}", asset_id);
+				else
+					SFG_ERR("failed to cook file source asset {0}", asset_id);
+			}
+			else if (cook_state.save_asset)
+				SFG_TRACE("asynchronously saved and cooked asset! {0}", cook_state.display_name);
 			else
-				SFG_TRACE("asyncly saved and cooked asset! {0}", save_cook_state.display_name);
+				SFG_TRACE("asynchronously cooked asset! {0}", cook_state.display_name);
 
 			bool is_completed = false;
 
 			{
-				LOCK_GUARD(_asset_save_cook_mtx);
+				LOCK_GUARD(_asset_cook_mtx);
 
-				const auto it = _asset_save_cook_states.find(asset_id);
-				SFG_ASSERT(it != _asset_save_cook_states.end());
+				const auto it = _asset_cook_states.find(asset_id);
+				SFG_ASSERT(it != _asset_cook_states.end());
 
-				if (it->second.revision == save_cook_state.revision)
+				if (it->second.revision == cook_state.revision)
 				{
-					_asset_save_cook_states.erase(it);
-					_asset_save_cook_worker_count.fetch_sub(1, std::memory_order_release);
+					_asset_cook_states.erase(it);
+					_asset_cook_worker_count.fetch_sub(1, std::memory_order_release);
 					is_completed = true;
 				}
 			}
@@ -803,6 +908,141 @@ namespace sfg
 
 		const auto changed_end = std::remove(_changed_cooked_resources.begin(), _changed_cooked_resources.end(), resource_id);
 		_changed_cooked_resources.erase(changed_end, _changed_cooked_resources.end());
+	}
+
+	void editor_asset_manager_t::track_source_asset(const editor_asset_t& asset)
+	{
+		if ((asset.source_type != editor_asset_source_type_e::file && asset.source_type != editor_asset_source_type_e::file_blob) || asset.source_relative.empty() || !editor_asset_cooker_t::is_cookable(asset.asset_type))
+			return;
+
+		const string_t source_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		const sid_t	   source_id   = editor_asset_path_t::hash_path(source_path.c_str());
+		const auto	   existing	   = _asset_to_source_tracking.find(asset.guid);
+
+		if (existing != _asset_to_source_tracking.end())
+		{
+			if (existing->second == source_id)
+			{
+				const auto tracking_it = _source_file_to_tracking.find(source_id);
+				SFG_ASSERT(tracking_it != _source_file_to_tracking.end());
+
+				const source_file_tracking_state_t& tracking_state = tracking_it->second;
+				SFG_ASSERT(editor_asset_path_t::is_same_path(tracking_state.full_path.c_str(), source_path.c_str()));
+				return;
+			}
+
+			return;
+		}
+
+		auto [tracking_it, inserted]				 = _source_file_to_tracking.try_emplace(source_id);
+		source_file_tracking_state_t& tracking_state = tracking_it->second;
+
+		if (inserted)
+		{
+			tracking_state.full_path			  = source_path;
+			tracking_state.accepted_last_modified = file_system_t::get_last_modified_ticks(source_path.c_str());
+			tracking_state.pending_last_modified  = tracking_state.accepted_last_modified;
+		}
+		else
+			SFG_ASSERT(editor_asset_path_t::is_same_path(tracking_state.full_path.c_str(), source_path.c_str()));
+
+		tracking_state.asset_ids.push_back(asset.guid);
+		_asset_to_source_tracking.emplace(asset.guid, source_id);
+	}
+
+	void editor_asset_manager_t::scan_source_files()
+	{
+		// we want to see the same last modified at least twice to avoid weird/fast file edits trigering stuff
+		for (auto& tracking_pair : _source_file_to_tracking)
+		{
+			source_file_tracking_state_t& tracking_state = tracking_pair.second;
+			const u64					  last_modified	 = file_system_t::get_last_modified_ticks(tracking_state.full_path.c_str());
+
+			if (last_modified == 0)
+			{
+				tracking_state.pending_last_modified = 0;
+				continue;
+			}
+
+			if (tracking_state.pending_last_modified != last_modified)
+			{
+				tracking_state.pending_last_modified = last_modified;
+				continue;
+			}
+
+			if (tracking_state.accepted_last_modified == last_modified)
+				continue;
+
+			tracking_state.accepted_last_modified = last_modified;
+
+			SFG_TRACE("detected source file change! {0}", tracking_state.full_path);
+
+			for (const sid_t asset_id : tracking_state.asset_ids)
+				_changed_source_assets.push_back(asset_id);
+		}
+	}
+
+	void editor_asset_manager_t::process_changed_source_files()
+	{
+		for (const sid_t asset_id : _changed_source_assets)
+			cook_asset_async(asset_id);
+
+		_changed_source_assets.resize(0);
+	}
+
+	void editor_asset_manager_t::untrack_source_asset(sid_t asset_id)
+	{
+		const auto source_asset_it = _asset_to_source_tracking.find(asset_id);
+		const auto tracking_it	   = _source_file_to_tracking.find(source_asset_it->second);
+		SFG_ASSERT(source_asset_it != _asset_to_source_tracking.end());
+		SFG_ASSERT(tracking_it != _source_file_to_tracking.end());
+
+		vector_t<sid_t>& asset_ids = tracking_it->second.asset_ids;
+		const auto		 asset_it  = std::find(asset_ids.begin(), asset_ids.end(), asset_id);
+		SFG_ASSERT(asset_it != asset_ids.end());
+
+		asset_ids.erase(asset_it);
+
+		if (asset_ids.empty())
+			_source_file_to_tracking.erase(tracking_it);
+
+		_asset_to_source_tracking.erase(source_asset_it);
+		const auto changed_end = std::remove(_changed_source_assets.begin(), _changed_source_assets.end(), asset_id);
+		_changed_source_assets.erase(changed_end, _changed_source_assets.end());
+	}
+
+	void editor_asset_manager_t::update_moved_source_paths(const char* old_path, const char* new_path, bool directory)
+	{
+		const string_t	old_absolute_path = file_system_t::get_absolute_path(old_path);
+		const string_t	new_absolute_path = file_system_t::get_absolute_path(new_path);
+		const string_t	old_directory	  = directory ? editor_asset_path_t::normalize_directory(old_absolute_path.c_str()) : "";
+		const string_t	new_directory	  = directory ? editor_asset_path_t::normalize_directory(new_absolute_path.c_str()) : "";
+		const string_t& assets_path		  = editor_project_t::get()._runtime.assets_path;
+
+		for (auto& asset_pair : _database.get_assets())
+		{
+			editor_asset_t& asset = asset_pair.second;
+
+			if ((asset.source_type != editor_asset_source_type_e::file && asset.source_type != editor_asset_source_type_e::file_blob) || asset.source_relative.empty())
+				continue;
+
+			const string_t source_path	= editor_asset_path_t::get_source_full_path(assets_path.c_str(), asset);
+			const bool	   source_moved = directory ? editor_asset_path_t::is_path_in_directory(source_path.c_str(), old_directory.c_str()) : editor_asset_path_t::is_same_path(source_path.c_str(), old_absolute_path.c_str());
+
+			if (!source_moved)
+				continue;
+
+			string_t moved_source_path = new_absolute_path;
+
+			if (directory)
+			{
+				moved_source_path = new_directory;
+				moved_source_path += source_path.substr(old_directory.size());
+			}
+
+			asset.source_relative = editor_asset_path_t::get_source_relative(assets_path.c_str(), moved_source_path.c_str());
+			track_source_asset(asset);
+		}
 	}
 
 	const editor_asset_descriptor_t* editor_asset_manager_t::find_asset_descriptor(const string_t& extension) const

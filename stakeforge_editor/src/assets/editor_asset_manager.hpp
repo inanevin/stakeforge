@@ -75,8 +75,9 @@ namespace sfg
 		void uninit();
 		void tick();
 		void clear();
-		void flush_asset_save_cook_jobs();
+		void flush_asset_cook_jobs();
 		void initialize_cooked_resource_tracking();
+		void initialize_source_file_tracking();
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -155,12 +156,13 @@ namespace sfg
 		}
 
 	private:
-		struct asset_save_cook_state_t
+		struct asset_cook_state_t
 		{
 			editor_asset_t asset		= {};
 			string_t	   asset_path	= {};
 			string_t	   display_name = {};
 			u64			   revision		= 0;
+			bool		   save_asset	= false;
 		};
 
 		enum class cooked_resource_kind_e : u8
@@ -177,14 +179,29 @@ namespace sfg
 			cooked_resource_kind_e kind			 = cooked_resource_kind_e::asset;
 		};
 
+		struct source_file_tracking_state_t
+		{
+			string_t		full_path			   = {};
+			vector_t<sid_t> asset_ids			   = {};
+			u64				accepted_last_modified = 0;
+			u64				pending_last_modified  = 0;
+		};
+
 		friend class editor_asset_manager_util_t;
 
 		static void				   on_import_progress(void* user_data, f32 progress, const char* text, bool is_completed, span_t<const string_t> imported_asset_paths);
-		void					   save_and_cook_asset_worker(sid_t asset_id);
+		bool					   cook_asset_async(sid_t asset_id);
+		void					   schedule_asset_cook(sid_t asset_id, editor_asset_t asset, const char* asset_path, const char* display_name, bool save_asset);
+		void					   asset_cook_worker(sid_t asset_id);
 		void					   scan_cooked_resources();
 		void					   process_changed_cooked_resources();
 		void					   track_cooked_resource(sid_t resource_id, sid_t asset_id, cooked_resource_kind_e kind, bool report_existing_file);
 		void					   untrack_cooked_resource(sid_t resource_id);
+		void					   track_source_asset(const editor_asset_t& asset);
+		void					   scan_source_files();
+		void					   process_changed_source_files();
+		void					   untrack_source_asset(sid_t asset_id);
+		void					   update_moved_source_paths(const char* old_path, const char* new_path, bool directory);
 		void					   notify_asset_deletion(span_t<const sid_t> asset_ids);
 		editor_asset_node_handle_t find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const;
 		editor_asset_node_handle_t get_or_create_child_folder(editor_asset_node_handle_t parent, const string_t& name);
@@ -199,21 +216,26 @@ namespace sfg
 		vector_t<string_t>																		_import_asset_paths_pending;
 		vector_t<string_t>																		_import_asset_paths_visible;
 		mutex_t																					_import_status_mtx;
-		hash_map_t<sid_t, asset_save_cook_state_t>												_asset_save_cook_states;
+		hash_map_t<sid_t, asset_cook_state_t>													_asset_cook_states;
 		hash_map_t<sid_t, cooked_resource_tracking_state_t>										_cooked_resource_tracking_states;
+		hash_map_t<sid_t, source_file_tracking_state_t>											_source_file_to_tracking;
+		hash_map_t<sid_t, sid_t>																_asset_to_source_tracking;
 		vector_t<sid_t>																			_changed_cooked_resources;
-		mutex_t																					_asset_save_cook_mtx;
-		u64																						_next_asset_save_cook_revision			 = 1;
-		editor_asset_node_handle_t																_import_target_directory_node			 = {};
-		atomic_t<u32>																			_asset_save_cook_worker_count			 = 0;
-		f32																						_import_progress_pending				 = 0.0f;
-		atomic_t<bool>																			_import_status_dirty					 = false;
-		u32																						_generation								 = 0;
-		u32																						_last_integrity_generation				 = 0;
-		u16																						_cooked_resource_scan_ticks				 = 0;
-		bool																					_import_completed_pending				 = false;
-		bool																					_import_in_progress						 = false;
-		bool																					_is_cooked_resource_tracking_initialized = false;
+		vector_t<sid_t>																			_changed_source_assets;
+		mutex_t																					_asset_cook_mtx;
+		u64																						_next_asset_cook_revision	  = 1;
+		editor_asset_node_handle_t																_import_target_directory_node = {};
+		atomic_t<u32>																			_asset_cook_worker_count	  = 0;
+		f32																						_import_progress_pending	  = 0.0f;
+		atomic_t<bool>																			_import_status_dirty		  = false;
+		u32																						_generation					  = 0;
+		u32																						_last_integrity_generation	  = 0;
+		u16																						_cooked_resource_scan_ticks	  = 0;
+		u16																						_source_file_scan_ticks		  = 0;
+		bool																					_import_completed_pending	  = false;
+		bool																					_import_in_progress			  = false;
+		bool																					_cooked_file_track_inited	  = false;
+		bool																					_source_file_track_inited	  = false;
 
 		static inline editor_asset_manager_t* s_instance = nullptr;
 	};

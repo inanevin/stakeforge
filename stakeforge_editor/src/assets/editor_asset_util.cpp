@@ -302,7 +302,7 @@ namespace sfg
 		SFG_ASSERT(node.type == editor_asset_node_type_e::folder);
 		SFG_ASSERT(!node.full_path.empty());
 
-		asset_manager.flush_asset_save_cook_jobs();
+		asset_manager.flush_asset_cook_jobs();
 
 		const string_t old_folder_path = file_system_t::get_absolute_path(node.full_path.c_str());
 		string_t	   renamed_path	   = new_path;
@@ -314,7 +314,7 @@ namespace sfg
 
 		const string_t renamed_folder_path = file_system_t::get_absolute_path(renamed_path.c_str());
 		const string_t assets_path		   = file_system_t::get_absolute_path(editor_project_t::get()._runtime.assets_path.c_str());
-		if (!remap_asset_sources_in_folder(renamed_folder_path, assets_path, old_folder_path, renamed_folder_path))
+		if (!remap_asset_sources_in_folder(assets_path, assets_path, old_folder_path, renamed_folder_path))
 		{
 			SFG_ERR("failed to remap asset sources in renamed folder {0}", renamed_folder_path.c_str());
 			return false;
@@ -352,7 +352,7 @@ namespace sfg
 			return false;
 		}
 
-		asset_manager.flush_asset_save_cook_jobs();
+		asset_manager.flush_asset_cook_jobs();
 
 		string_t assets_path = file_system_t::get_absolute_path(editor_project_t::get()._runtime.assets_path.c_str());
 		file_system_t::fix_path_end_slash(assets_path);
@@ -455,7 +455,7 @@ namespace sfg
 		SFG_ASSERT(node.asset_id == asset.guid);
 		SFG_ASSERT(!node.full_path.empty());
 
-		asset_manager.flush_asset_save_cook_jobs();
+		asset_manager.flush_asset_cook_jobs();
 
 		const string_t renamed_path = new_path;
 		if (!file_system_t::change_directory_name(node.full_path.c_str(), renamed_path.c_str()))
@@ -497,7 +497,7 @@ namespace sfg
 			return false;
 		}
 
-		asset_manager.flush_asset_save_cook_jobs();
+		asset_manager.flush_asset_cook_jobs();
 
 		editor_asset_t moved_asset		  = asset;
 		bool		   move_source		  = false;

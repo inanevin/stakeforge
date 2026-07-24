@@ -235,9 +235,13 @@ namespace sfg
 
 		_command_system.init();
 		_world_controller.init();
+
 		editor_asset_thumbnail_manager_t::get().init();
 		editor_thumbnail_render_service_t::get().init();
+
 		_asset_manager.initialize_cooked_resource_tracking();
+		_asset_manager.initialize_source_file_tracking();
+
 		editor_asset_thumbnail_manager_t::get().load_all_ready();
 
 		const auto cleanup = [this]() {
@@ -315,7 +319,7 @@ namespace sfg
 
 	void editor_app_t::uninit_normal_mode()
 	{
-		_asset_manager.flush_asset_save_cook_jobs();
+		_asset_manager.flush_asset_cook_jobs();
 		editor_thumbnail_render_service_t::get().uninit();
 		editor_asset_thumbnail_manager_t::get().uninit();
 		_world_controller.uninit();
