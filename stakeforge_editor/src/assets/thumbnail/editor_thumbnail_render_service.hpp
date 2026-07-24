@@ -69,6 +69,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void request_thumbnail(const editor_asset_t& asset);
+		void cancel_asset(sid_t asset_guid);
 		void tick();
 		bool has_pending_work() const;
 

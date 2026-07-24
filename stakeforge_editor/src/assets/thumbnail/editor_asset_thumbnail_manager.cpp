@@ -124,6 +124,27 @@ namespace sfg
 		_render_requests.push_back(asset_guid);
 	}
 
+	void editor_asset_thumbnail_manager_t::remove_asset(sid_t asset_guid, sid_t thumbnail_guid)
+	{
+		const auto request_end = std::remove(_render_requests.begin(), _render_requests.end(), asset_guid);
+		_render_requests.erase(request_end, _render_requests.end());
+
+		editor_thumbnail_render_service_t::get().cancel_asset(asset_guid);
+
+		const auto loaded_thumbnail = std::find(_loaded_thumbnail_resources.begin(), _loaded_thumbnail_resources.end(), thumbnail_guid);
+
+		if (loaded_thumbnail == _loaded_thumbnail_resources.end())
+			return;
+
+		resource_manager_t& resource_manager = resource_manager_t::get();
+		SFG_ASSERT(resource_manager.find_entry(thumbnail_guid) != nullptr);
+
+		resource_manager.unload_resource(thumbnail_guid);
+		SFG_ASSERT(resource_manager.find_entry(thumbnail_guid) == nullptr);
+
+		_loaded_thumbnail_resources.erase(loaded_thumbnail);
+	}
+
 	void editor_asset_thumbnail_manager_t::unload_loaded_thumbnail_resources()
 	{
 		resource_manager_t& resource_manager = resource_manager_t::get();

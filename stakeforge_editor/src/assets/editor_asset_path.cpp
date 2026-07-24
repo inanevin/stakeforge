@@ -151,6 +151,27 @@ namespace sfg
 		return !get_source_relative(assets_path, source_full_path).empty();
 	}
 
+	bool editor_asset_path_t::is_same_path(const char* lhs, const char* rhs)
+	{
+		string_t normalized_lhs = file_system_t::get_absolute_path(lhs);
+		string_t normalized_rhs = file_system_t::get_absolute_path(rhs);
+		string_util::to_lower(normalized_lhs);
+		string_util::to_lower(normalized_rhs);
+
+		return normalized_lhs == normalized_rhs;
+	}
+
+	bool editor_asset_path_t::is_path_in_directory(const char* path, const char* directory)
+	{
+		string_t normalized_path	  = file_system_t::get_absolute_path(path);
+		string_t normalized_directory = file_system_t::get_absolute_path(directory);
+		file_system_t::fix_path_end_slash(normalized_directory);
+		string_util::to_lower(normalized_path);
+		string_util::to_lower(normalized_directory);
+
+		return normalized_path.rfind(normalized_directory, 0) == 0;
+	}
+
 	u64 editor_asset_path_t::hash_path(const char* path)
 	{
 		string_t normalized = file_system_t::get_absolute_path(path);

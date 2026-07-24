@@ -318,27 +318,32 @@ namespace sfg
 
 		if (!allow_overwrite)
 		{
-			vector_t<string_t> rows;
+			vector_t<string_t> rows = {};
+
 			for (editor_asset_node_handle_t node : nodes)
 			{
 				if (node.is_null() || !tree.is_valid(node))
 					continue;
 
 				const editor_asset_node_t& asset_node = tree.value(node);
+
 				if (asset_node.type != editor_asset_node_type_e::asset)
 					continue;
 
 				const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
+
 				if (asset == nullptr)
 					continue;
 
 				const string_t					 file_name = file_system_t::get_filename_and_extension_from_path(asset_node.full_path);
 				const string_t					 new_path  = target_directory + file_name;
 				const editor_asset_node_handle_t existing  = asset_manager.find_node_by_path(new_path.c_str());
+
 				if (existing == node)
 					continue;
 
-				string_t row;
+				string_t row = {};
+
 				if (find_matching_asset_override(new_path.c_str(), asset->asset_type, &row))
 					rows.push_back(row);
 			}
@@ -348,8 +353,10 @@ namespace sfg
 				_pending_override_target_folder = target_folder_node;
 				_pending_override_asset_nodes.resize(0);
 				_pending_override_asset_nodes.reserve(nodes.size());
+
 				for (editor_asset_node_handle_t node : nodes)
 					_pending_override_asset_nodes.push_back(node);
+
 				request_assets_override(asset_override_operation_e::move_assets, "One or more assets already exist in the target folder. Overwrite matching asset types?", rows);
 				return true;
 			}
@@ -362,10 +369,12 @@ namespace sfg
 				continue;
 
 			const editor_asset_node_t& asset_node = tree.value(node);
+
 			if (asset_node.type != editor_asset_node_type_e::asset)
 				continue;
 
 			const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
+
 			if (asset == nullptr)
 				continue;
 
@@ -373,14 +382,17 @@ namespace sfg
 			const string_t					 new_path	 = target_directory + file_name;
 			const editor_asset_t			 asset_value = *asset;
 			const editor_asset_node_handle_t existing	 = asset_manager.find_node_by_path(new_path.c_str());
+
 			if (allow_overwrite && !existing.is_null() && existing != node && tree.is_valid(existing))
 			{
 				const editor_asset_node_t& existing_node = tree.value(existing);
+
 				if (existing_node.type == editor_asset_node_type_e::asset)
 				{
 					const editor_asset_t* existing_asset = asset_manager.find_asset(existing_node.asset_id);
-					if (existing_asset != nullptr && existing_asset->asset_type == asset_value.asset_type && editor_asset_util_t::delete_asset(*existing_asset, existing))
-						asset_manager.remove_node_subtree(existing);
+
+					if (existing_asset != nullptr && existing_asset->asset_type == asset_value.asset_type)
+						asset_manager.delete_node_subtree(existing);
 				}
 			}
 

@@ -30,7 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager_util.hpp"
 #include "assets/editor_asset_path.hpp"
-#include "assets/editor_asset_util.hpp"
 #include "assets/thumbnail/editor_asset_thumbnail_manager.hpp"
 #include "assets/thumbnail/editor_asset_thumbnailer.hpp"
 #include "editor_app.hpp"
@@ -38,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/data/frame_hash_map.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/color_utils.hpp>
@@ -413,10 +413,150 @@ namespace sfg
 		}
 	}
 
-	void editor_asset_manager_t::remove_node_subtree(editor_asset_node_handle_t node)
+	bool editor_asset_manager_t::delete_node_subtree(editor_asset_node_handle_t node)
 	{
+		struct deleted_asset_t
+		{
+			sid_t				asset_guid	   = NULL_SID;
+			sid_t				thumbnail_guid = NULL_SID;
+			editor_asset_type_e asset_type	   = editor_asset_type_e::invalid;
+		};
+
+		const editor_asset_tree_t& tree = _database.get_asset_tree();
+		SFG_ASSERT(tree.is_valid(node));
+		SFG_ASSERT(node != _database.get_root_node());
+
+		const editor_asset_node_t& root_node = tree.value(node);
+		SFG_ASSERT((root_node.flags & editor_asset_node_flag_promoted) == 0);
+
+		const string_t root_path   = root_node.full_path;
+		const string_t assets_path = editor_project_t::get()._runtime.assets_path;
+
+		// build the complete deletion set
+		size_t deleted_asset_count = 0;
+
+		tree.for_each_depth_first(node, [&](editor_asset_node_handle_t current, u32 depth) {
+			if (tree.value(current).type == editor_asset_node_type_e::asset)
+				deleted_asset_count++;
+		});
+
+		frame_vector_t<deleted_asset_t> deleted_assets = {};
+		deleted_assets.reserve(deleted_asset_count);
+
+		frame_hash_map_t<sid_t, bool> deleted_asset_ids = {};
+		deleted_asset_ids.reserve(deleted_asset_count);
+
+		frame_hash_map_t<u64, string_t> deleted_blob_paths = {};
+		deleted_blob_paths.reserve(deleted_asset_count);
+
+		tree.for_each_depth_first(node, [&](editor_asset_node_handle_t current, u32 depth) {
+			const editor_asset_node_t& current_node = tree.value(current);
+
+			if (current_node.type != editor_asset_node_type_e::asset)
+				return;
+
+			const editor_asset_t* asset = _database.find_asset(current_node.asset_id);
+			SFG_ASSERT(asset != nullptr);
+
+			deleted_assets.push_back({
+				.asset_guid		= asset->guid,
+				.thumbnail_guid = asset->thumbnail_guid,
+				.asset_type		= asset->asset_type,
+			});
+			deleted_asset_ids.emplace(asset->guid, true);
+
+			if (asset->source_type == editor_asset_source_type_e::file_blob)
+			{
+				const string_t blob_path = editor_asset_path_t::get_source_full_path(assets_path.c_str(), *asset);
+				deleted_blob_paths.try_emplace(editor_asset_path_t::hash_path(blob_path.c_str()), blob_path);
+			}
+		});
+
+		// protect sources still used outside the subtree
+		for (const auto& asset_pair : _database.get_assets())
+		{
+			const editor_asset_t& asset = asset_pair.second;
+
+			if (deleted_asset_ids.find(asset.guid) != deleted_asset_ids.end() || asset.source_relative.empty())
+				continue;
+
+			const string_t source_path		 = editor_asset_path_t::get_source_full_path(assets_path.c_str(), asset);
+			const bool	   source_is_deleted = root_node.type == editor_asset_node_type_e::folder ? editor_asset_path_t::is_path_in_directory(source_path.c_str(), root_path.c_str())
+																								  : root_node.type == editor_asset_node_type_e::file && editor_asset_path_t::is_same_path(source_path.c_str(), root_path.c_str());
+
+			if (source_is_deleted)
+			{
+				SFG_ERR("can't delete {0} because asset {1} uses source {2}", root_path, asset.guid, source_path);
+				return false;
+			}
+
+			const auto blob_path = deleted_blob_paths.find(editor_asset_path_t::hash_path(source_path.c_str()));
+
+			if (blob_path != deleted_blob_paths.end() && editor_asset_path_t::is_same_path(blob_path->second.c_str(), source_path.c_str()))
+				deleted_blob_paths.erase(blob_path);
+		}
+
+		// finish pending writes before filesystem mutation
+		flush_asset_save_cook_jobs();
+
+		// delete the main path first
+		const bool removed_from_disk = root_node.type == editor_asset_node_type_e::folder ? file_system_t::delete_directory(root_path.c_str()) : !file_system_t::exists(root_path.c_str()) || !file_system_t::delete_file(root_path.c_str());
+
+		if (!removed_from_disk)
+		{
+			SFG_ERR("failed to delete {0}", root_path);
+			return false;
+		}
+
+		// cancel thumbnail work and unload live resources
+		editor_asset_thumbnail_manager_t& thumbnail_manager = editor_asset_thumbnail_manager_t::get();
+		resource_manager_t&				  resource_manager	= resource_manager_t::get();
+
+		for (const deleted_asset_t& asset : deleted_assets)
+			thumbnail_manager.remove_asset(asset.asset_guid, asset.thumbnail_guid);
+
+		for (const deleted_asset_t& asset : deleted_assets)
+		{
+			if (resource_manager.find_entry(asset.asset_guid) != nullptr)
+			{
+				resource_manager.unload_resource(asset.asset_guid, true);
+				SFG_ASSERT(resource_manager.find_entry(asset.asset_guid) == nullptr);
+			}
+
+			untrack_cooked_resource(asset.asset_guid);
+			untrack_cooked_resource(asset.thumbnail_guid);
+		}
+
+		// commit deletion to the asset database
 		_database.remove_node_subtree(node);
 		notify_changed();
+
+		// remove cooked binaries and unowned blobs
+		for (const deleted_asset_t& asset : deleted_assets)
+		{
+			const string_t cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.asset_guid);
+
+			if (file_system_t::exists(cache_path.c_str()) && file_system_t::delete_file(cache_path.c_str()))
+				SFG_ERR("failed to delete cooked asset {0}", cache_path);
+
+			if (asset.thumbnail_guid == NULL_SID || asset.thumbnail_guid == editor_asset_thumbnailer_t::get_builtin_thumbnail_guid(asset.asset_type))
+				continue;
+
+			const string_t thumbnail_cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.thumbnail_guid);
+
+			if (file_system_t::exists(thumbnail_cache_path.c_str()) && file_system_t::delete_file(thumbnail_cache_path.c_str()))
+				SFG_ERR("failed to delete thumbnail asset {0}", thumbnail_cache_path);
+		}
+
+		for (const auto& blob_pair : deleted_blob_paths)
+		{
+			const string_t& blob_path = blob_pair.second;
+
+			if (file_system_t::exists(blob_path.c_str()) && file_system_t::delete_file(blob_path.c_str()))
+				SFG_ERR("failed to delete asset blob {0}", blob_path);
+		}
+
+		return true;
 	}
 
 	void editor_asset_manager_t::update_node_path(editor_asset_node_handle_t node, const char* new_path)
@@ -560,26 +700,7 @@ namespace sfg
 
 	void editor_asset_manager_t::process_changed_cooked_resources()
 	{
-		resource_manager_t& resource_manager	 = resource_manager_t::get();
-		bool				requires_render_stop = false;
-
-		for (const sid_t resource_id : _changed_cooked_resources)
-		{
-			const auto tracking_it = _cooked_resource_tracking_states.find(resource_id);
-			SFG_ASSERT(tracking_it != _cooked_resource_tracking_states.end());
-
-			const cooked_resource_tracking_state_t& tracking_state = tracking_it->second;
-
-			if (tracking_state.kind == cooked_resource_kind_e::thumbnail || resource_manager.find_entry(resource_id) != nullptr)
-			{
-				requires_render_stop = true;
-				break;
-			}
-		}
-
-		if (requires_render_stop)
-			editor_app_t::get().stop_render();
-
+		resource_manager_t&				  resource_manager	= resource_manager_t::get();
 		editor_asset_thumbnail_manager_t& thumbnail_manager = editor_asset_thumbnail_manager_t::get();
 
 		for (const sid_t resource_id : _changed_cooked_resources)
@@ -633,6 +754,14 @@ namespace sfg
 		tracking_state.asset_id							 = asset_id;
 		tracking_state.last_modified					 = report_existing_file ? 0 : file_system_t::get_last_modified_ticks(tracking_state.cache_path.c_str());
 		tracking_state.kind								 = kind;
+	}
+
+	void editor_asset_manager_t::untrack_cooked_resource(sid_t resource_id)
+	{
+		_cooked_resource_tracking_states.erase(resource_id);
+
+		const auto changed_end = std::remove(_changed_cooked_resources.begin(), _changed_cooked_resources.end(), resource_id);
+		_changed_cooked_resources.erase(changed_end, _changed_cooked_resources.end());
 	}
 
 	const editor_asset_descriptor_t* editor_asset_manager_t::find_asset_descriptor(const string_t& extension) const

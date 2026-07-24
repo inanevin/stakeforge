@@ -299,16 +299,20 @@ namespace sfg
 	{
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
+
 		for (u64 folder_hash : _selected_folder_hashes)
 		{
 			const folder_row_t* row = find_row_by_hash(folder_hash);
+
 			if (row == nullptr || row->node.is_null() || !tree.is_valid(row->node))
 				continue;
-			if (!editor_asset_util_t::delete_folder(row->node))
+
+			if (!asset_manager.delete_node_subtree(row->node))
 				continue;
-			asset_manager.remove_node_subtree(row->node);
+
 			if (auto it = std::find(_favourite_folder_hashes.begin(), _favourite_folder_hashes.end(), folder_hash); it != _favourite_folder_hashes.end())
 				_favourite_folder_hashes.erase(it);
+
 			if (auto it = std::find(_expanded_folder_hashes.begin(), _expanded_folder_hashes.end(), folder_hash); it != _expanded_folder_hashes.end())
 				_expanded_folder_hashes.erase(it);
 		}
@@ -345,31 +349,32 @@ namespace sfg
 	{
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
+
 		if (_selected_asset_nodes.empty())
 			return;
 
-		string_t last_duplicate_path;
 		for (editor_asset_node_handle_t node : _selected_asset_nodes)
 		{
 			if (node.is_null() || !tree.is_valid(node))
 				continue;
 
 			const editor_asset_node_t& asset_node = tree.value(node);
+
 			if (asset_node.type == editor_asset_node_type_e::asset)
 			{
 				const editor_asset_t* asset = asset_manager.find_asset(asset_node.asset_id);
 				SFG_ASSERT(asset != nullptr);
 
 				const sid_t guid = asset->guid;
-				if (!editor_asset_util_t::delete_asset(*asset, node))
+
+				if (!asset_manager.delete_node_subtree(node))
 					continue;
-				asset_manager.remove_node_subtree(node);
 
 				if (auto it = std::find(_favourite_asset_guids.begin(), _favourite_asset_guids.end(), guid); it != _favourite_asset_guids.end())
 					_favourite_asset_guids.erase(it);
 			}
-			else if (asset_node.type == editor_asset_node_type_e::file && editor_asset_util_t::delete_file(node))
-				asset_manager.remove_node_subtree(node);
+			else if (asset_node.type == editor_asset_node_type_e::file)
+				asset_manager.delete_node_subtree(node);
 		}
 
 		_selected_asset_node = {};

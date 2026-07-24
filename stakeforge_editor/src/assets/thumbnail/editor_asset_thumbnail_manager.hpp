@@ -61,6 +61,7 @@ namespace sfg
 		void load_all_ready();
 		void refresh_thumbnail_resource(sid_t thumbnail_guid);
 		void request_render(sid_t asset_guid);
+		void remove_asset(sid_t asset_guid, sid_t thumbnail_guid);
 
 	private:
 		void unload_loaded_thumbnail_resources();

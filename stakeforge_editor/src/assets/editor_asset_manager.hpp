@@ -78,7 +78,7 @@ namespace sfg
 		bool					   reload_asset_node(editor_asset_node_handle_t node);
 		void					   sync_directory_from_disk(editor_asset_node_handle_t directory_node);
 		void					   sync_imported_asset_paths(editor_asset_node_handle_t directory_node, span_t<const string_t> paths);
-		void					   remove_node_subtree(editor_asset_node_handle_t node);
+		bool					   delete_node_subtree(editor_asset_node_handle_t node);
 		void					   update_node_path(editor_asset_node_handle_t node, const char* new_path);
 		void					   move_node(editor_asset_node_handle_t node, editor_asset_node_handle_t new_parent, const char* new_path);
 		void					   notify_changed();
@@ -170,6 +170,7 @@ namespace sfg
 		void					   scan_cooked_resources();
 		void					   process_changed_cooked_resources();
 		void					   track_cooked_resource(sid_t resource_id, sid_t asset_id, cooked_resource_kind_e kind, bool report_existing_file);
+		void					   untrack_cooked_resource(sid_t resource_id);
 		editor_asset_node_handle_t find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const;
 		editor_asset_node_handle_t get_or_create_child_folder(editor_asset_node_handle_t parent, const string_t& name);
 

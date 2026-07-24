@@ -214,10 +214,12 @@ namespace sfg
 	void editor_thumbnail_render_service_t::request_thumbnail(const editor_asset_t& asset)
 	{
 		auto pending_it = std::find_if(_pending_renders.begin(), _pending_renders.end(), [&](const pending_render_t& pending_render) { return pending_render.request.thumbnail_guid == asset.thumbnail_guid; });
+
 		if (pending_it != _pending_renders.end())
 			return;
 
 		auto it = std::find_if(_requests.begin(), _requests.end(), [&](const thumbnail_request_t& request) { return request.thumbnail_guid == asset.thumbnail_guid; });
+
 		if (it != _requests.end())
 		{
 			*it = {.asset_guid = asset.guid, .thumbnail_guid = asset.thumbnail_guid, .asset_type = asset.asset_type};
@@ -225,6 +227,7 @@ namespace sfg
 		}
 
 		it = std::find_if(_requests.begin(), _requests.end(), [&](const thumbnail_request_t& request) { return request.asset_guid == asset.guid; });
+
 		if (it != _requests.end())
 		{
 			*it = {.asset_guid = asset.guid, .thumbnail_guid = asset.thumbnail_guid, .asset_type = asset.asset_type};
@@ -232,6 +235,30 @@ namespace sfg
 		}
 
 		_requests.push_back({.asset_guid = asset.guid, .thumbnail_guid = asset.thumbnail_guid, .asset_type = asset.asset_type});
+	}
+
+	void editor_thumbnail_render_service_t::cancel_asset(sid_t asset_guid)
+	{
+		const auto request_end = std::remove_if(_requests.begin(), _requests.end(), [&](const thumbnail_request_t& request) { return request.asset_guid == asset_guid; });
+		_requests.erase(request_end, _requests.end());
+
+		for (pending_render_t& pending_render : _pending_renders)
+		{
+			const bool is_cancelled = pending_render.request.asset_guid == asset_guid;
+
+			if (!is_cancelled)
+			{
+				const auto duplicate =
+					std::find_if(_requests.begin(), _requests.end(), [&](const thumbnail_request_t& request) { return request.asset_guid == pending_render.request.asset_guid || request.thumbnail_guid == pending_render.request.thumbnail_guid; });
+
+				if (duplicate == _requests.end())
+					_requests.push_back(pending_render.request);
+			}
+
+			release_world(pending_render.world_index);
+		}
+
+		_pending_renders.resize(0);
 	}
 
 	void editor_thumbnail_render_service_t::tick()
