@@ -39,6 +39,7 @@ namespace sfg
 	public:
 		static bool		 write_to_file(string_view_t file_input, const char* target_path);
 		static bool		 save_to_file(const char* path, const ostream_t& stream);
+		static bool		 save_to_file_atomic(const char* path, const ostream_t& stream);
 		static bool		 save_to_file_compressed(const char* path, const ostream_t& stream);
 		static istream_t load_from_file(const char* path);
 		static istream_t load_from_file_slice(const char* path, u64 offset, u64 size);

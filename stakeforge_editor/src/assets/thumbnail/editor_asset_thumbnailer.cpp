@@ -235,8 +235,9 @@ namespace sfg
 			.force_4_channels = true,
 		};
 
-		resource_header_t header = {};
-		ostream_t		  payload;
+		resource_header_t header  = {};
+		ostream_t		  payload = {};
+
 		if (!texture_cooker::cook_from_data(config, pixels, header, payload))
 		{
 			SFG_ERR("failed to cook thumbnail for asset {0}", asset.guid);
@@ -260,7 +261,7 @@ namespace sfg
 		}
 
 		ostream_t stream = header.make_stream(payload);
-		if (!serializer_t::save_to_file(cache_path.c_str(), stream))
+		if (!serializer_t::save_to_file_atomic(cache_path.c_str(), stream))
 		{
 			SFG_ERR("failed to save thumbnail {0}", cache_path.c_str());
 			return false;

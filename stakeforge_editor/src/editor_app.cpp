@@ -225,6 +225,7 @@ namespace sfg
 		SFG_ASSERT(surfaces.is_empty());
 
 		editor_asset_manager_util_t::ensure_default_meshes();
+		_asset_manager.initialize_cooked_resource_tracking();
 
 		const surface_handle_t payload_surface = surfaces.create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
 		if (payload_surface.is_null())

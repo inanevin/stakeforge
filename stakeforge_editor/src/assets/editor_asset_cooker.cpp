@@ -103,7 +103,7 @@ namespace sfg
 			}
 
 			ostream_t stream = header.make_stream(payload);
-			if (!serializer_t::save_to_file(cache_path.c_str(), stream))
+			if (!serializer_t::save_to_file_atomic(cache_path.c_str(), stream))
 			{
 				SFG_ERR("failed to save cooked asset {0}", cache_path.c_str());
 				return false;

@@ -27,8 +27,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "serialization.hpp"
 
 #include "compression.hpp"
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/data/string.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <fstream>
@@ -74,6 +76,30 @@ namespace sfg
 		if (!wf.good())
 		{
 			SFG_ERR("error occured while writing the file! {0}", path);
+			return false;
+		}
+
+		return true;
+	}
+
+	bool serializer_t::save_to_file_atomic(const char* path, const ostream_t& stream)
+	{
+		string_t temporary_path = path;
+		temporary_path += ".";
+		temporary_path += std::to_string(hashing_t::generate_guid64());
+		temporary_path += ".tmp";
+
+		if (!save_to_file(temporary_path.c_str(), stream))
+		{
+			if (file_system_t::exists(temporary_path.c_str()))
+				file_system_t::delete_file(temporary_path.c_str());
+
+			return false;
+		}
+
+		if (!file_system_t::replace_file(temporary_path.c_str(), path))
+		{
+			file_system_t::delete_file(temporary_path.c_str());
 			return false;
 		}
 

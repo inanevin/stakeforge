@@ -545,6 +545,25 @@ namespace sfg
 		return true;
 	}
 
+	bool file_system_t::replace_file(const char* source_path, const char* target_path)
+	{
+#ifdef SFG_PLATFORM_WINDOWS
+		if (!MoveFileExA(source_path, target_path, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+		{
+			SFG_ERR("failed to replace file {0} with {1}, error {2}", target_path, source_path, GetLastError());
+			return false;
+		}
+#else
+		if (std::rename(source_path, target_path) != 0)
+		{
+			SFG_ERR("failed to replace file {0} with {1}", target_path, source_path);
+			return false;
+		}
+#endif
+
+		return true;
+	}
+
 	void file_system_t::copy_file_to_directory(const char* file, const char* targetParentFolder)
 	{
 		try

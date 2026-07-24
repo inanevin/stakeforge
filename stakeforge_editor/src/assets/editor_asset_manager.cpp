@@ -47,7 +47,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_ASSET_COLOR(R, G, B) color_utils_t::srgb_to_linear(color_t::from255(R, G, B, 255.0f)).to_vector()
+#define EDITOR_ASSET_COLOR(R, G, B)			 color_utils_t::srgb_to_linear(color_t::from255(R, G, B, 255.0f)).to_vector()
+#define EDITOR_COOKED_RESOURCE_SCAN_INTERVAL 30
 
 	bool editor_asset_manager_t::init()
 	{
@@ -105,10 +106,12 @@ namespace sfg
 		_asset_save_cook_worker_count.store(0, std::memory_order_relaxed);
 		_next_asset_save_cook_revision = 1;
 
-		_import_progress_pending	  = 0.0f;
-		_import_completed_pending	  = false;
-		_import_in_progress			  = false;
-		_import_target_directory_node = {};
+		_import_progress_pending				 = 0.0f;
+		_cooked_resource_scan_ticks				 = 0;
+		_import_completed_pending				 = false;
+		_import_in_progress						 = false;
+		_is_cooked_resource_tracking_initialized = false;
+		_import_target_directory_node			 = {};
 
 		s_instance = nullptr;
 	}
@@ -117,6 +120,7 @@ namespace sfg
 	{
 		ZoneScoped;
 
+		// import modal
 		if (_import_in_progress && _import_status_dirty.exchange(false, std::memory_order_acquire))
 		{
 			f32		 progress	  = 0.0f;
@@ -153,10 +157,23 @@ namespace sfg
 			}
 		}
 
+		// integrity check.
 		if (_last_integrity_generation != _generation && !_database.get_root_node().is_null())
 		{
 			editor_asset_manager_util_t::ensure_integrity(*this);
 			_last_integrity_generation = _generation;
+		}
+
+		// track file changes for cooked resources
+		if (_is_cooked_resource_tracking_initialized)
+		{
+			++_cooked_resource_scan_ticks;
+
+			if (_cooked_resource_scan_ticks >= EDITOR_COOKED_RESOURCE_SCAN_INTERVAL)
+			{
+				_cooked_resource_scan_ticks = 0;
+				scan_cooked_resources();
+			}
 		}
 	}
 
@@ -165,7 +182,28 @@ namespace sfg
 		SFG_ASSERT(_asset_save_cook_worker_count.load(std::memory_order_acquire) == 0);
 
 		_database.clear();
+		_cooked_resource_tracking_states.clear();
+		_changed_cooked_resources.resize(0);
+		_cooked_resource_scan_ticks				 = 0;
+		_is_cooked_resource_tracking_initialized = false;
 		_generation++;
+	}
+
+	void editor_asset_manager_t::initialize_cooked_resource_tracking()
+	{
+		_cooked_resource_tracking_states.clear();
+		_cooked_resource_tracking_states.reserve(_database.get_assets().size() * 2);
+		_changed_cooked_resources.resize(0);
+		_cooked_resource_scan_ticks = 0;
+
+		for (const auto& asset_pair : _database.get_assets())
+		{
+			const editor_asset_t& asset = asset_pair.second;
+			track_cooked_resource(asset.guid, false);
+			track_cooked_resource(asset.thumbnail_guid, false);
+		}
+
+		_is_cooked_resource_tracking_initialized = true;
 	}
 
 	void editor_asset_manager_t::register_descriptor(const editor_asset_descriptor_t& desc)
@@ -203,11 +241,20 @@ namespace sfg
 				return {};
 			}
 
-			const sid_t	   asset_id = asset.guid;
-			const string_t name		= file_system_t::remove_extensions_from_path(file_system_t::get_filename_and_extension_from_path(path));
+			const sid_t	   asset_id		= asset.guid;
+			const sid_t	   thumbnail_id = asset.thumbnail_guid;
+			const string_t name			= file_system_t::remove_extensions_from_path(file_system_t::get_filename_and_extension_from_path(path));
+
 			_database.upsert_asset(std::move(asset));
 			const editor_asset_node_handle_t node = _database.emplace_node(editor_asset_node_t{.asset_id = asset_id, .name = name, .full_path = path, .type = editor_asset_node_type_e::asset});
 			_database.attach_node(parent, node);
+
+			if (_is_cooked_resource_tracking_initialized)
+			{
+				track_cooked_resource(asset_id, true);
+				track_cooked_resource(thumbnail_id, true);
+			}
+
 			notify_changed();
 			return node;
 		}
@@ -256,11 +303,21 @@ namespace sfg
 		if (asset.guid == NULL_SID)
 			return false;
 
-		const sid_t old_guid = asset_node.asset_id;
+		const sid_t old_guid	 = asset_node.asset_id;
+		const sid_t asset_id	 = asset.guid;
+		const sid_t thumbnail_id = asset.thumbnail_guid;
+
 		_database.erase_asset(old_guid);
-		asset_node.asset_id = asset.guid;
+		asset_node.asset_id = asset_id;
 		_database.upsert_asset(std::move(asset));
 		_database.rebuild_indices();
+
+		if (_is_cooked_resource_tracking_initialized)
+		{
+			track_cooked_resource(asset_id, true);
+			track_cooked_resource(thumbnail_id, true);
+		}
+
 		notify_changed();
 		return true;
 	}
@@ -419,6 +476,11 @@ namespace sfg
 		return true;
 	}
 
+	void editor_asset_manager_t::clear_changed_cooked_resources()
+	{
+		_changed_cooked_resources.resize(0);
+	}
+
 	void editor_asset_manager_t::flush_asset_save_cook_jobs()
 	{
 		if (_asset_save_cook_worker_count.load(std::memory_order_acquire) == 0)
@@ -466,6 +528,40 @@ namespace sfg
 			if (is_completed)
 				return;
 		}
+	}
+
+	void editor_asset_manager_t::scan_cooked_resources()
+	{
+		for (auto& tracking_pair : _cooked_resource_tracking_states)
+		{
+			const sid_t						  resource_id	 = tracking_pair.first;
+			cooked_resource_tracking_state_t& tracking_state = tracking_pair.second;
+			const u64						  last_modified	 = file_system_t::get_last_modified_ticks(tracking_state.cache_path.c_str());
+
+			if (last_modified == 0 || tracking_state.last_modified == last_modified)
+				continue;
+
+			tracking_state.last_modified = last_modified;
+
+			const auto changed_it = std::find(_changed_cooked_resources.begin(), _changed_cooked_resources.end(), resource_id);
+			if (changed_it == _changed_cooked_resources.end())
+				_changed_cooked_resources.push_back(resource_id);
+		}
+	}
+
+	void editor_asset_manager_t::track_cooked_resource(sid_t resource_id, bool report_existing_file)
+	{
+		if (resource_id == NULL_SID)
+			return;
+
+		auto [it, inserted] = _cooked_resource_tracking_states.try_emplace(resource_id);
+
+		if (!inserted)
+			return;
+
+		cooked_resource_tracking_state_t& tracking_state = it->second;
+		tracking_state.cache_path						 = editor_asset_path_t::get_cache_path_for_guid(resource_id);
+		tracking_state.last_modified					 = report_existing_file ? 0 : file_system_t::get_last_modified_ticks(tracking_state.cache_path.c_str());
 	}
 
 	const editor_asset_descriptor_t* editor_asset_manager_t::find_asset_descriptor(const string_t& extension) const

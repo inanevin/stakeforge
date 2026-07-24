@@ -57,7 +57,7 @@ namespace sfg
 			}
 
 			const string_t path = cache_path(cache_dir, sid);
-			if (!serializer_t::save_to_file(path.c_str(), cooked))
+			if (!serializer_t::save_to_file_atomic(path.c_str(), cooked))
 			{
 				SFG_ERR("failed to write cache {0}", path.c_str());
 				return false;

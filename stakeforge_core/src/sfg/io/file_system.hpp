@@ -90,6 +90,7 @@ namespace sfg
 		static void		get_sys_time_ints(i32& hours, i32& minutes, i32& seconds);
 		static void		copy_directory(const char* copyDir, const char* target_parent_folder);
 		static bool		copy_file(const char* file, const char* target_file);
+		static bool		replace_file(const char* source_path, const char* target_path);
 		static void		copy_file_to_directory(const char* file, const char* target_parent_folder);
 		static void		get_files_recursive(const char* directory, vector_t<string_t>& out_files);
 		static void		get_entries_recursive(const char* directory, vector_t<file_system_entry_t>& out_entries);
