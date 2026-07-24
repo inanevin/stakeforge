@@ -211,16 +211,16 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_post_process_t);
 
-	struct component_skybox_t
+	struct component_environment_t
 	{
-		static inline constexpr const char* DEBUG_NAME = "component_skybox";
+		static inline constexpr const char* DEBUG_NAME = "component_environment";
 
-		resource_handle_t skybox_asset = NULL_RESOURCE_HANDLE;
-		f32				  intensity	   = 1.0f;
-		f32				  exposure	   = 1.0f;
+		resource_handle_t skybox_material = NULL_RESOURCE_HANDLE;
+		color_t			  ambient_color	  = color_t::black;
+		f32				  intensity		  = 1.0f;
 	};
 
-	SFG_DEFINE_TYPE_ID(component_skybox_t);
+	SFG_DEFINE_TYPE_ID(component_environment_t);
 
 	struct component_prefab_reference_t
 	{
@@ -589,7 +589,7 @@ namespace sfg
 		resource_handle_t		 physical_material_handle_value = NULL_RESOURCE_HANDLE;
 		resource_handle_t		 prefab_handle_value			= NULL_RESOURCE_HANDLE;
 		resource_handle_t		 animation_graph_handle_value	= NULL_RESOURCE_HANDLE;
-		resource_handle_t		 hdr_skybox_handle_value		= NULL_RESOURCE_HANDLE;
+		resource_handle_t		 cubemap_handle_value			= NULL_RESOURCE_HANDLE;
 		entity_guid_t			 entity_guid_value				= NULL_ENTITY_GUID;
 		quat_t					 quat_value						= {};
 		color_t					 color_value					= color_t::red;

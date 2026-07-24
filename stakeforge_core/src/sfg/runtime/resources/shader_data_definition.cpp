@@ -48,6 +48,8 @@ namespace sfg
 		{
 		case shader_texture_type_e::texture2d:
 			return "texture2d";
+		case shader_texture_type_e::texture_cube:
+			return "texture_cube";
 		default:
 			return "invalid";
 		}
@@ -89,6 +91,9 @@ namespace sfg
 	{
 		if (value == "texture2d")
 			return shader_texture_type_e::texture2d;
+		if (value == "texture_cube")
+			return shader_texture_type_e::texture_cube;
+
 		return shader_texture_type_e::invalid;
 	}
 

@@ -258,11 +258,12 @@ namespace sfg
 
 	void editor_panel_skeleton_viewer_t::create_environment()
 	{
-		world_t& world			   = editor_world_controller_t::get().get_editor_world(_world)->get_world();
-		_environment_entity		   = world.create_entity("skeleton_viewer_environment");
-		component_skybox_t& skybox = ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(type_id_t<component_skybox_t>::value), _environment_entity);
-		skybox.skybox_asset		   = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
-		skybox.exposure			   = 0.25f;
+		world_t& world						 = editor_world_controller_t::get().get_editor_world(_world)->get_world();
+		_environment_entity					 = world.create_entity("skeleton_viewer_environment");
+		component_environment_t& environment = ecs_helpers_t::table_add_or_get_as<component_environment_t>(world.get_component_table(type_id_t<component_environment_t>::value), _environment_entity);
+		environment.skybox_material			 = DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID;
+		environment.intensity				 = 0.25f;
+
 		world.scan_for_resources(_environment_entity, true);
 	}
 

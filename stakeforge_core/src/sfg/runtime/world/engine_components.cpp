@@ -507,28 +507,34 @@ namespace sfg
 			});
 		}
 
-		void register_component_skybox_reflection(reflection_registry_t& registry)
+		void register_component_environment_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
-				.name			 = "component_skybox",
-				.display_name	 = "Skybox",
+				.name			 = "component_environment",
+				.display_name	 = "Environment",
 				.category		 = "Graphics",
-				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_skybox_t*>(ptr), component_skybox_t{}); },
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_environment_t*>(ptr), component_environment_t{}); },
 				.fields =
 					{
-						{.name		   = "skybox_asset",
-						 .display_name = "Skybox",
-						 .tooltip	   = "HDR skybox resource used for the scene background and lighting.",
-						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_HDR_SKYBOX,
-						 .offset	   = offsetof(component_skybox_t, skybox_asset),
+						{.name		   = "skybox_material",
+						 .display_name = "Skybox Material",
+						 .tooltip	   = "Material used to render the scene sky.",
+						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MATERIAL,
+						 .offset	   = offsetof(component_environment_t, skybox_material),
 						 .size		   = sizeof(resource_handle_t),
 						 .type		   = reflected_value_type_e::u64},
-						{.name = "intensity", .display_name = "Intensity", .tooltip = "Multiplier applied to skybox lighting contribution.", .offset = offsetof(component_skybox_t, intensity), .size = sizeof(f32), .type = reflected_value_type_e::f32},
-						{.name = "exposure", .display_name = "Exposure", .tooltip = "Exposure multiplier applied when sampling the skybox.", .offset = offsetof(component_skybox_t, exposure), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+						{.name		   = "ambient_color",
+						 .display_name = "Ambient Color",
+						 .tooltip	   = "Ambient light color applied to shaded surfaces.",
+						 .sub_type_id  = type_id_t<color_t>::value,
+						 .offset	   = offsetof(component_environment_t, ambient_color),
+						 .size		   = sizeof(color_t),
+						 .type		   = reflected_value_type_e::object},
+						{.name = "intensity", .display_name = "Skybox Intensity", .tooltip = "Multiplier applied to the rendered sky color.", .offset = offsetof(component_environment_t, intensity), .size = sizeof(f32), .type = reflected_value_type_e::f32},
 					},
-				.type_id   = type_id_t<component_skybox_t>::value,
-				.size	   = sizeof(component_skybox_t),
-				.alignment = alignof(component_skybox_t),
+				.type_id   = type_id_t<component_environment_t>::value,
+				.size	   = sizeof(component_environment_t),
+				.alignment = alignof(component_environment_t),
 				.flags	   = reflected_type_flag_component,
 			});
 		}
@@ -2179,11 +2185,11 @@ namespace sfg
 						 .offset	   = offsetof(component_debug_widgets_t, animation_graph_handle_value),
 						 .size		   = sizeof(resource_handle_t),
 						 .type		   = reflected_value_type_e::u64},
-						{.name		   = "hdr_skybox_handle_value",
-						 .display_name = "HDR Skybox Handle",
-						 .tooltip	   = "Debug reflected HDR skybox handle.",
-						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_HDR_SKYBOX,
-						 .offset	   = offsetof(component_debug_widgets_t, hdr_skybox_handle_value),
+						{.name		   = "cubemap_handle_value",
+						 .display_name = "Cubemap Handle",
+						 .tooltip	   = "Debug reflected cubemap handle.",
+						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_CUBEMAP,
+						 .offset	   = offsetof(component_debug_widgets_t, cubemap_handle_value),
 						 .size		   = sizeof(resource_handle_t),
 						 .type		   = reflected_value_type_e::u64},
 						{.name		   = "entity_guid_value",
@@ -2309,7 +2315,7 @@ namespace sfg
 		register_component_camera_reflection(registry);
 		register_component_light_reflection(registry);
 		register_component_post_process_reflection(registry);
-		register_component_skybox_reflection(registry);
+		register_component_environment_reflection(registry);
 		register_component_prefab_reference_reflection(registry);
 		register_component_entity_tags_reflection(registry);
 		register_physics_component_reflection(registry);

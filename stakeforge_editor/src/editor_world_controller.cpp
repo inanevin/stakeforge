@@ -469,10 +469,10 @@ namespace sfg
 		editor_world->install_camera(editor_world_camera_type_e::fly);
 		world_t& world = editor_world->get_world();
 
-		const entity_id_t	environment = world.create_entity("environment");
-		component_skybox_t& skybox		= ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(type_id_t<component_skybox_t>::value), environment);
-		skybox.skybox_asset				= DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
-		skybox.exposure					= 0.25f;
+		const entity_id_t		 environment		   = world.create_entity("environment");
+		component_environment_t& environment_component = ecs_helpers_t::table_add_or_get_as<component_environment_t>(world.get_component_table(type_id_t<component_environment_t>::value), environment);
+		environment_component.skybox_material		   = DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID;
+		environment_component.intensity				   = 0.25f;
 
 		ecs_component_table_t& debug_widgets_table	= world.get_component_table(type_id_t<component_debug_widgets_t>::value);
 		const bool			   debug_widgets_exists = ecs_t::table_has(debug_widgets_table, environment);
@@ -485,7 +485,7 @@ namespace sfg
 			reflected_type->default_init_fn(debug_widgets);
 		}
 
-		world.add_resource(resource_type_e::hdr_skybox, DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID);
+		world.add_resource(resource_type_e::material, DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID);
 		world.load_all_used_resources();
 	}
 

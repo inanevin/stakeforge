@@ -1,20 +1,11 @@
 {
     "version": 0,
     "guid": 1012,
-    "asset_type": "hdr_skybox",
+    "asset_type": "cubemap",
     "sub_type": 0,
     "embedded_source": null,
     "cook_options": {
-        "radiance_size": [512, 512],
-        "irradiance_size": [32, 32],
-        "prefilter_size": [128, 128],
-        "brdf_lut_size": [256, 256],
-        "irradiance_sample_count": 512,
-        "prefilter_sample_count": 128,
-        "brdf_lut_sample_count": 512,
-        "intensity": 1.0,
-        "rotation": 0.0,
-        "prefilter_mips": 8
+        "size": [512, 512]
     },
     "source_relative": "",
     "source_type": "file"

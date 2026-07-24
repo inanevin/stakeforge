@@ -29,7 +29,7 @@ namespace sfg
 
 			const resource_dependency_t dependency = {
 				.handle = texture.texture,
-				.type	= resource_type_e::texture,
+				.type	= texture.type == shader_texture_type_e::texture_cube ? resource_type_e::cubemap : resource_type_e::texture,
 			};
 
 			stream << dependency;
@@ -68,7 +68,7 @@ namespace sfg
 
 	bool material_cooker::collect_source_tick(const material_def_t& def, u64& out)
 	{
-		ostream_t material_stream;
+		ostream_t material_stream = {};
 		material_stream << def;
 		out = hashing_t::hash_u64(material_stream.get_raw(), material_stream.get_size());
 		return true;

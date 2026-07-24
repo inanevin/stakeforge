@@ -108,7 +108,7 @@ namespace sfg
 
 		if (!allow_overwrite)
 		{
-			vector_t<string_t> rows;
+			vector_t<string_t> rows = {};
 			for (size_t i = 0; i < entities.size; ++i)
 			{
 				const editor_entity_payload_t& entity_payload = entities.data[i];
@@ -122,7 +122,7 @@ namespace sfg
 				const char* const entity_name = world.get_entity_name(entity_payload.entity);
 				const string_t	  name		  = entity_name != nullptr && editor_directories_t::is_valid_asset_name(entity_name) ? entity_name : "prefab";
 				const string_t	  asset_path  = editor_asset_path_t::make_asset_path(parent.full_path.c_str(), name.c_str());
-				string_t		  row;
+				string_t		  row		  = {};
 				if (find_matching_asset_override(asset_path.c_str(), editor_asset_type_e::prefab, &row))
 					rows.push_back(row);
 			}
@@ -167,7 +167,7 @@ namespace sfg
 			return;
 
 		panel.clear_asset_grid_selection();
-		vector_t<string_t> paths;
+		vector_t<string_t> paths = {};
 		process::select_files("Import Assets", ASSETS_IMPORT_FILE_EXTENSIONS, paths);
 		if (!paths.empty())
 			panel.import_assets(paths);
@@ -190,10 +190,12 @@ namespace sfg
 		case assets_action_menu_create_post_process_shader:
 		case assets_action_menu_create_ui_shader:
 		case assets_action_menu_create_ui_text_shader:
+		case assets_action_menu_create_skybox_shader:
 		case assets_action_menu_create_texture_sampler:
 		case assets_action_menu_create_gbuffer_material:
 		case assets_action_menu_create_unlit_material:
 		case assets_action_menu_create_forward_material:
+		case assets_action_menu_create_skybox_material:
 		case assets_action_menu_create_physical_material:
 			panel._create_asset_popup_command = command;
 			return;

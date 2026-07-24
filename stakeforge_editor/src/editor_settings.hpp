@@ -30,7 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_layout.hpp"
 
 #include <sfg/runtime/resources/audio_cook.hpp>
-#include <sfg/runtime/resources/skybox_hdr_cook.hpp>
+#include <sfg/runtime/resources/cubemap_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
@@ -38,10 +38,10 @@ namespace sfg
 {
 	struct editor_import_settings_t
 	{
-		texture_cook_config_t	 texture	= {};
-		audio_cook_config_t		 audio		= {};
-		skybox_hdr_cook_config_t skybox_hdr = {};
-		glb_cook_config_t		 glb		= {};
+		texture_cook_config_t texture = {};
+		audio_cook_config_t	  audio	  = {};
+		cubemap_cook_config_t cubemap = {};
+		glb_cook_config_t	  glb	  = {};
 	};
 
 	struct editor_settings_t

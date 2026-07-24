@@ -39,6 +39,7 @@ namespace sfg
 					{.name = "bloom_upsample", .display_name = "Bloom Upsample"},
 					{.name = "unlit_shader", .display_name = "Unlit Shader"},
 					{.name = "debug_triangle", .display_name = "Debug Triangle"},
+					{.name = "skybox_shader", .display_name = "Skybox Shader"},
 				},
 			.type_id   = type_id_t<shader_type_e>::value,
 			.size	   = sizeof(shader_type_e),

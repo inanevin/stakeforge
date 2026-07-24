@@ -40,6 +40,7 @@ namespace sfg
 	{
 		invalid,
 		texture2d,
+		texture_cube,
 	};
 
 	enum class shader_param_type_e : u8

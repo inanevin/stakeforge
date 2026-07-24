@@ -238,14 +238,21 @@ namespace sfg
 
 		bool parse_texture_definition(const vector_t<string_t>& args, shader_data_definition_t& out)
 		{
-			if (args.size() != 2 || args[1] != "sfg_texture2d" || out.textures.full())
+			if (args.size() != 2 || out.textures.full())
 				return false;
 
 			shader_texture_definition_t definition = {};
+
 			if (!copy_definition_name(args[0], definition.texture_name, sizeof(definition.texture_name)))
 				return false;
 
-			definition.type = shader_texture_type_e::texture2d;
+			if (args[1] == "sfg_texture2d")
+				definition.type = shader_texture_type_e::texture2d;
+			else if (args[1] == "sfg_texturecube")
+				definition.type = shader_texture_type_e::texture_cube;
+			else
+				return false;
+
 			out.textures.push_back(definition);
 			return true;
 		}
@@ -325,7 +332,7 @@ namespace sfg
 
 		template <typename Fn> bool parse_macro_definitions(const string_t& source, const char* macro, const char* full_path, Fn&& fn)
 		{
-			vector_t<string_t> args;
+			vector_t<string_t> args		   = {};
 			size_t			   search_from = 0;
 			size_t			   open		   = 0;
 			size_t			   close	   = 0;
@@ -345,7 +352,7 @@ namespace sfg
 
 		bool parse_param_definitions(const string_t& source, const char* full_path, shader_data_definition_t& out)
 		{
-			vector_t<string_t> args;
+			vector_t<string_t> args		   = {};
 			size_t			   search_from = 0;
 			for (;;)
 			{
@@ -411,7 +418,7 @@ namespace sfg
 
 		string_t make_compile_source(const string_t& source)
 		{
-			string_t out;
+			string_t out = {};
 			out.reserve(source.size() + 192);
 			out += "#define SFG_MATERIAL_TEXTURE(...)\n";
 			out += "#define SFG_MATERIAL_SAMPLER(...)\n";
@@ -444,9 +451,10 @@ namespace sfg
 			SFG_ERR("failed to read source {0}", full_path);
 			return false;
 		}
+
 		strip_utf8_bom(source);
 
-		vector_t<string_t> include_paths;
+		vector_t<string_t> include_paths = {};
 		build_include_paths(cfg, full_path, include_paths);
 
 		out_definition = {};
@@ -455,8 +463,8 @@ namespace sfg
 
 		const string_t compile_source = make_compile_source(source);
 
-		vector_t<cook_compile_variant_t> compiles;
-		vector_t<cook_pso_variant_t>	 psos;
+		vector_t<cook_compile_variant_t> compiles = {};
+		vector_t<cook_pso_variant_t>	 psos	  = {};
 
 		switch (cfg.type)
 		{
@@ -493,6 +501,13 @@ namespace sfg
 			if (!shader_cook_variants_t::cook_ui_text_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook UI text shader variants: {0}", full_path);
+				return false;
+			}
+			break;
+		case shader_type_e::skybox_shader:
+			if (!shader_cook_variants_t::cook_skybox_shader(compile_source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook skybox shader variants: {0}", full_path);
 				return false;
 			}
 			break;
@@ -596,6 +611,7 @@ namespace sfg
 			SFG_ERR("too many compile variants ({0}, max {1})", compile_variant_count, SFG_SHADER_MAX_COMPILE_VARIANTS);
 			return false;
 		}
+
 		if (pso_variant_count > SFG_SHADER_MAX_PSO_VARIANTS)
 		{
 			SFG_ERR("too many pso variants ({0}, max {1})", pso_variant_count, SFG_SHADER_MAX_PSO_VARIANTS);
@@ -609,7 +625,7 @@ namespace sfg
 			.source_tick = collect_source_tick(cfg, full_path),
 		};
 
-		ostream_t payload;
+		ostream_t payload = {};
 		payload << cfg.type;
 		payload << compile_variant_count;
 
@@ -662,10 +678,10 @@ namespace sfg
 	{
 		u64 source_tick = file_system_t::get_last_modified_ticks(full_path);
 
-		vector_t<string_t> include_paths;
+		vector_t<string_t> include_paths = {};
 		build_include_paths(cfg, full_path, include_paths);
 
-		vector_t<string_t> include_lines;
+		vector_t<string_t> include_lines = {};
 		file_system_t::find_lines_with_keyword(full_path, "#include", include_lines);
 
 		for (const string_t& line : include_lines)

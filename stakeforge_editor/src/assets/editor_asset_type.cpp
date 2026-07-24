@@ -72,8 +72,8 @@ namespace sfg
 		case editor_asset_type_e::animation_graph:
 			j = "animation_graph";
 			break;
-		case editor_asset_type_e::hdr_skybox:
-			j = "hdr_skybox";
+		case editor_asset_type_e::cubemap:
+			j = "cubemap";
 			break;
 		case editor_asset_type_e::physics_collision_mesh:
 			j = "physics_collision_mesh";
@@ -115,8 +115,8 @@ namespace sfg
 			t = editor_asset_type_e::prefab;
 		else if (s == "animation_graph")
 			t = editor_asset_type_e::animation_graph;
-		else if (s == "hdr_skybox")
-			t = editor_asset_type_e::hdr_skybox;
+		else if (s == "cubemap" || s == "hdr_skybox")
+			t = editor_asset_type_e::cubemap;
 		else if (s == "physics_collision_mesh")
 			t = editor_asset_type_e::physics_collision_mesh;
 		else if (s == "world")
@@ -153,8 +153,8 @@ namespace sfg
 			return editor_asset_type_e::prefab;
 		case resource_type_e::animation_graph:
 			return editor_asset_type_e::animation_graph;
-		case resource_type_e::hdr_skybox:
-			return editor_asset_type_e::hdr_skybox;
+		case resource_type_e::cubemap:
+			return editor_asset_type_e::cubemap;
 		case resource_type_e::physics_collision_mesh:
 			return editor_asset_type_e::physics_collision_mesh;
 		default:

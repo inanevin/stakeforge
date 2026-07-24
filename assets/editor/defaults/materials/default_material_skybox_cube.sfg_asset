@@ -1,0 +1,23 @@
+{
+    "version": 0,
+    "guid": 1027,
+    "asset_type": "material",
+    "sub_type": 3,
+    "embedded_source": {
+        "schema": "sfg.schema.material",
+        "pass_flags": 0,
+        "shader": 1025,
+        "textures": [
+            {"name": "cubemap", "texture": 1012, "type": "texture_cube"}
+        ],
+        "samplers": [
+            {"name": "cubemap", "sampler": 1009}
+        ],
+        "parameters": [],
+        "double_sided": false,
+        "use_alpha_cutoff": false
+    },
+    "cook_options": {},
+    "source_relative": "",
+    "source_type": "embedded"
+}

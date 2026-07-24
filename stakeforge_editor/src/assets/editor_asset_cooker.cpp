@@ -58,7 +58,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/skeleton_cook.hpp>
 #include <sfg/runtime/resources/skeleton_def.hpp>
-#include <sfg/runtime/resources/skybox_hdr_cook.hpp>
+#include <sfg/runtime/resources/cubemap_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
 #include <sfg/serialization/serialization.hpp>
@@ -141,8 +141,8 @@ namespace sfg
 			return cook_physical_material(asset, asset_name);
 		case editor_asset_type_e::animation_graph:
 			return cook_animation_graph(asset, asset_name);
-		case editor_asset_type_e::hdr_skybox:
-			return cook_hdr_skybox(asset, asset_name);
+		case editor_asset_type_e::cubemap:
+			return cook_cubemap(asset, asset_name);
 		case editor_asset_type_e::font:
 			return cook_font(asset, asset_name);
 		case editor_asset_type_e::prefab:
@@ -168,7 +168,7 @@ namespace sfg
 		case editor_asset_type_e::texture_sampler:
 		case editor_asset_type_e::physical_material:
 		case editor_asset_type_e::animation_graph:
-		case editor_asset_type_e::hdr_skybox:
+		case editor_asset_type_e::cubemap:
 		case editor_asset_type_e::font:
 		case editor_asset_type_e::prefab:
 			return true;
@@ -218,8 +218,8 @@ namespace sfg
 			return false;
 		}
 
-		resource_header_t header = {};
-		ostream_t		  stream;
+		resource_header_t header		   = {};
+		ostream_t		  stream		   = {};
 		const string_t	  source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 		if (!audio_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
 		{
@@ -243,8 +243,8 @@ namespace sfg
 			return false;
 		}
 
-		resource_header_t		 header = {};
-		ostream_t				 stream;
+		resource_header_t		 header			  = {};
+		ostream_t				 stream			  = {};
 		const string_t			 source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 		shader_data_definition_t definition		  = {};
 		if (!shader_cooker::cook_from_file(config, source_full_path.c_str(), header, stream, definition))
@@ -268,7 +268,7 @@ namespace sfg
 		embedded_source.get_to(def);
 
 		resource_header_t header = {};
-		ostream_t		  stream;
+		ostream_t		  stream = {};
 		if (!material_cooker::cook_from_def(def, header, stream))
 		{
 			SFG_ERR("failed to cook material asset {0}", asset.guid);
@@ -292,7 +292,7 @@ namespace sfg
 		}
 
 		resource_header_t header = {};
-		ostream_t		  stream;
+		ostream_t		  stream = {};
 		if (!texture_sampler_cooker::cook_from_desc(desc, header, stream))
 		{
 			SFG_ERR("failed to cook texture sampler asset {0}", asset.guid);
@@ -316,7 +316,7 @@ namespace sfg
 		}
 
 		resource_header_t header = {};
-		ostream_t		  stream;
+		ostream_t		  stream = {};
 		if (!physical_material_cooker::cook_from_def(def, header, stream))
 		{
 			SFG_ERR("failed to cook physical material asset {0}", asset.guid);
@@ -366,7 +366,7 @@ namespace sfg
 		}
 
 		resource_header_t header = {};
-		ostream_t		  stream;
+		ostream_t		  stream = {};
 
 		const string_t source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 
@@ -385,7 +385,7 @@ namespace sfg
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
 
 		resource_header_t header = {};
-		ostream_t		  stream;
+		ostream_t		  stream = {};
 
 		const string_t source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 
@@ -413,7 +413,7 @@ namespace sfg
 		}
 
 		resource_header_t header = {};
-		ostream_t		  stream;
+		ostream_t		  stream = {};
 		if (!skeleton_cooker::cook_from_def(def, header, stream))
 		{
 			SFG_ERR("failed to cook skeleton asset {0}", asset.guid);
@@ -467,8 +467,8 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::mesh);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file_blob);
 
-		resource_header_t header = {};
-		ostream_t		  stream;
+		resource_header_t header		   = {};
+		ostream_t		  stream		   = {};
 		const string_t	  source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 		if (!mesh_cooker::cook_from_file(source_full_path.c_str(), header, stream))
 		{
@@ -484,8 +484,8 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::physics_collision_mesh);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file_blob);
 
-		resource_header_t header = {};
-		ostream_t		  stream;
+		resource_header_t header		   = {};
+		ostream_t		  stream		   = {};
 		const string_t	  source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 		if (!physics_collision_mesh_cooker::cook_from_file(source_full_path.c_str(), header, stream))
 		{
@@ -496,25 +496,27 @@ namespace sfg
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
-	bool editor_asset_cooker_t::cook_hdr_skybox(const editor_asset_t& asset, const char* asset_name)
+	bool editor_asset_cooker_t::cook_cubemap(const editor_asset_t& asset, const char* asset_name)
 	{
-		SFG_ASSERT(asset.asset_type == editor_asset_type_e::hdr_skybox);
+		SFG_ASSERT(asset.asset_type == editor_asset_type_e::cubemap);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file);
 
-		skybox_hdr_cook_config_t config		  = {};
-		const nlohmann::json	 cook_options = editor_asset_io_t::get_cook_options_json(asset);
-		if (!reflection_registry_t::get().type_from_json(type_id_t<skybox_hdr_cook_config_t>::value, &config, nullptr, cook_options))
+		cubemap_cook_config_t config	   = {};
+		const nlohmann::json  cook_options = editor_asset_io_t::get_cook_options_json(asset);
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<cubemap_cook_config_t>::value, &config, nullptr, cook_options))
 		{
-			SFG_ERR("failed to deserialize HDR skybox cook options for asset {0}", asset.guid);
+			SFG_ERR("failed to deserialize cubemap cook options for asset {0}", asset.guid);
 			return false;
 		}
 
-		resource_header_t header = {};
-		ostream_t		  stream;
+		resource_header_t header		   = {};
+		ostream_t		  stream		   = {};
 		const string_t	  source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
-		if (!skybox_hdr_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
+
+		if (!cubemap_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
 		{
-			SFG_ERR("failed to cook HDR skybox asset {0}", asset.guid);
+			SFG_ERR("failed to cook cubemap asset {0}", asset.guid);
 			return false;
 		}
 
@@ -534,7 +536,7 @@ namespace sfg
 			.source_tick = hashing_t::hash_u64(reinterpret_cast<const u8*>(prefab_source.data()), prefab_source.size()),
 		};
 
-		ostream_t stream;
+		ostream_t stream = {};
 		stream << prefab_source;
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}

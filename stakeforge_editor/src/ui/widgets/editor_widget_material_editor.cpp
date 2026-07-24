@@ -180,7 +180,7 @@ namespace sfg
 
 		_labels.push_back(editor_misc_widgets_t::make_section_label(*_ui, _root, "Material"));
 
-		vector_t<u64*> shader_fields;
+		vector_t<u64*> shader_fields = {};
 		shader_fields.reserve(_materials.size());
 		for (material_def_t& material : _materials)
 			shader_fields.push_back(reinterpret_cast<u64*>(&material.shader));
@@ -203,12 +203,12 @@ namespace sfg
 		for (const material_def_t& material : _materials)
 			_pass_flags.push_back(material.pass_flags.value());
 
-		vector_t<u8*> pass_fields;
+		vector_t<u8*> pass_fields = {};
 		pass_fields.reserve(_pass_flags.size());
 		for (u32& pass_flags : _pass_flags)
 			pass_fields.push_back(reinterpret_cast<u8*>(&pass_flags));
 
-		frame_vector_t<editor_dropdown_item_t> pass_items;
+		frame_vector_t<editor_dropdown_item_t> pass_items = {};
 		build_world_pass_items(pass_items);
 
 		const editor_property_row_t pass_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, "Pass Mask");
@@ -228,7 +228,7 @@ namespace sfg
 		_dropdowns.push_back(pass);
 		append_property_row(pass_row.row);
 
-		vector_t<u8*> double_sided_fields;
+		vector_t<u8*> double_sided_fields = {};
 		double_sided_fields.reserve(_materials.size());
 		for (material_def_t& material : _materials)
 			double_sided_fields.push_back(reinterpret_cast<u8*>(&material.double_sided));
@@ -242,7 +242,7 @@ namespace sfg
 		_checkboxes.push_back(double_sided);
 		append_property_row(double_sided_row.row);
 
-		vector_t<u8*> alpha_cutoff_fields;
+		vector_t<u8*> alpha_cutoff_fields = {};
 		alpha_cutoff_fields.reserve(_materials.size());
 		for (material_def_t& material : _materials)
 			alpha_cutoff_fields.push_back(reinterpret_cast<u8*>(&material.use_alpha_cutoff));
@@ -270,20 +270,21 @@ namespace sfg
 
 		for (size_t texture_index = 0; texture_index < _shader_definition.textures.size(); ++texture_index)
 		{
-			vector_t<u64*> fields;
+			vector_t<u64*> fields = {};
 			fields.reserve(_materials.size());
 			for (material_def_t& material : _materials)
 				fields.push_back(reinterpret_cast<u64*>(&material.textures[texture_index].texture));
 
-			const char*					label	= _shader_definition.textures[texture_index].texture_name;
-			const editor_property_row_t row		= editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, label != nullptr ? label : "Texture");
-			editor_widget_reference_t*	control = new editor_widget_reference_t();
+			const char*					label	   = _shader_definition.textures[texture_index].texture_name;
+			const editor_asset_type_e	asset_type = _shader_definition.textures[texture_index].type == shader_texture_type_e::texture_cube ? editor_asset_type_e::cubemap : editor_asset_type_e::texture;
+			const editor_property_row_t row		   = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, label != nullptr ? label : "Texture");
+			editor_widget_reference_t*	control	   = new editor_widget_reference_t();
 			control->init(*_ui,
 						  row.right,
 						  {
 							  .callbacks  = callbacks,
 							  .fields	  = {.data = fields.data(), .size = fields.size()},
-							  .asset_type = editor_asset_type_e::texture,
+							  .asset_type = asset_type,
 							  .type		  = editor_widget_reference_type_e::asset,
 						  });
 			fit_control(control->get_root());
@@ -296,7 +297,7 @@ namespace sfg
 
 		for (size_t sampler_index = 0; sampler_index < _shader_definition.samplers.size(); ++sampler_index)
 		{
-			vector_t<u64*> fields;
+			vector_t<u64*> fields = {};
 			fields.reserve(_materials.size());
 			for (material_def_t& material : _materials)
 				fields.push_back(reinterpret_cast<u64*>(&material.samplers[sampler_index].sampler));
@@ -328,7 +329,7 @@ namespace sfg
 
 			if (definition.hint == shader_param_hint_e::toggle)
 			{
-				vector_t<u8*> fields;
+				vector_t<u8*> fields = {};
 				fields.reserve(_materials.size());
 				for (material_def_t& material : _materials)
 					fields.push_back(reinterpret_cast<u8*>(&material.parameters[parameter_index].value_u32[0]));
@@ -346,7 +347,7 @@ namespace sfg
 			switch (definition.type)
 			{
 			case shader_param_type_e::f32: {
-				vector_t<u8*> fields;
+				vector_t<u8*> fields = {};
 				fields.reserve(_materials.size());
 				for (material_def_t& material : _materials)
 					fields.push_back(reinterpret_cast<u8*>(&material.parameters[parameter_index].value[0]));
@@ -373,7 +374,7 @@ namespace sfg
 				break;
 			}
 			case shader_param_type_e::u32: {
-				vector_t<u8*> fields;
+				vector_t<u8*> fields = {};
 				fields.reserve(_materials.size());
 				for (material_def_t& material : _materials)
 					fields.push_back(reinterpret_cast<u8*>(&material.parameters[parameter_index].value_u32[0]));
@@ -401,7 +402,7 @@ namespace sfg
 				break;
 			}
 			case shader_param_type_e::vec2: {
-				vector_t<vec2f_t*> fields;
+				vector_t<vec2f_t*> fields = {};
 				fields.reserve(_materials.size());
 				for (material_def_t& material : _materials)
 					fields.push_back(reinterpret_cast<vec2f_t*>(material.parameters[parameter_index].value));
@@ -415,7 +416,7 @@ namespace sfg
 			case shader_param_type_e::vec4: {
 				if (definition.hint == shader_param_hint_e::color)
 				{
-					vector_t<color_t*> fields;
+					vector_t<color_t*> fields = {};
 					fields.reserve(_materials.size());
 					for (material_def_t& material : _materials)
 						fields.push_back(reinterpret_cast<color_t*>(material.parameters[parameter_index].value));
@@ -427,7 +428,7 @@ namespace sfg
 					break;
 				}
 
-				vector_t<vec4f_t*> fields;
+				vector_t<vec4f_t*> fields = {};
 				fields.reserve(_materials.size());
 				for (material_def_t& material : _materials)
 					fields.push_back(reinterpret_cast<vec4f_t*>(material.parameters[parameter_index].value));
@@ -631,7 +632,7 @@ namespace sfg
 		if (!_shader_edit_active)
 			return;
 
-		vector_t<resource_handle_t> post_shaders;
+		vector_t<resource_handle_t> post_shaders = {};
 		post_shaders.reserve(_materials.size());
 		for (const material_def_t& material : _materials)
 			post_shaders.push_back(material.shader);
@@ -672,7 +673,7 @@ namespace sfg
 			return;
 
 		_refresh_materials_pending = false;
-		vector_t<sid_t> materials;
+		vector_t<sid_t> materials  = {};
 		materials.assign(_pending_material_ids.begin(), _pending_material_ids.end());
 		_pending_material_ids.resize(0);
 		set_materials({.data = materials.data(), .size = materials.size()});

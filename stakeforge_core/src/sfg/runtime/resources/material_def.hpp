@@ -46,8 +46,9 @@ namespace sfg
 
 	struct material_texture_value_t
 	{
-		string_t		  name	  = {};
-		resource_handle_t texture = NULL_RESOURCE_HANDLE;
+		string_t			  name	  = {};
+		resource_handle_t	  texture = NULL_RESOURCE_HANDLE;
+		shader_texture_type_e type	  = shader_texture_type_e::texture2d;
 	};
 
 	struct material_sampler_value_t

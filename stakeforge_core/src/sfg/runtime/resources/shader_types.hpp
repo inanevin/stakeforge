@@ -31,6 +31,7 @@ namespace sfg
 		bloom_upsample,
 		unlit_shader,
 		debug_triangle,
+		skybox_shader,
 		count,
 	};
 

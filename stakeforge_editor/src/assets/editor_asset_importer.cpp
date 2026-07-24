@@ -40,7 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/audio_cook.hpp>
-#include <sfg/runtime/resources/skybox_hdr_cook.hpp>
+#include <sfg/runtime/resources/cubemap_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <sfg/vendor/stb/stb_image_write.h>
@@ -59,7 +59,7 @@ namespace sfg
 			if (extension == "glb")
 				return editor_asset_import_type_e::model;
 			if (extension == "hdr")
-				return editor_asset_import_type_e::hdr_skybox;
+				return editor_asset_import_type_e::cubemap;
 			if (extension == "ttf")
 				return editor_asset_import_type_e::font;
 			return editor_asset_import_type_e::invalid;
@@ -136,8 +136,8 @@ namespace sfg
 		case editor_asset_import_type_e::model:
 			out_options.glb_cook_config = {};
 			return true;
-		case editor_asset_import_type_e::hdr_skybox:
-			out_options.skybox_cook_config = {};
+		case editor_asset_import_type_e::cubemap:
+			out_options.cubemap_cook_config = {};
 			return true;
 		case editor_asset_import_type_e::font:
 			return true;
@@ -181,8 +181,9 @@ namespace sfg
 			return false;
 		}
 
-		editor_asset_t asset = {};
-		string_t	   asset_path;
+		editor_asset_t asset	  = {};
+		string_t	   asset_path = {};
+
 		switch (import_type)
 		{
 		case editor_asset_import_type_e::texture: {
@@ -267,34 +268,40 @@ namespace sfg
 			}
 			break;
 		}
-		case editor_asset_import_type_e::hdr_skybox: {
-			string_t status = "Importing HDR skybox: ";
+		case editor_asset_import_type_e::cubemap: {
+			string_t status = "Importing cubemap: ";
 			status += asset_name;
 			context.report_status(status.c_str());
-			const skybox_hdr_cook_config_t& skybox_config = import_options->skybox_cook_config;
-			nlohmann::json					cook_options  = nlohmann::json::object();
-			if (!reflection_registry_t::get().type_to_json(type_id_t<skybox_hdr_cook_config_t>::value, const_cast<skybox_hdr_cook_config_t*>(&skybox_config), nullptr, cook_options))
+
+			const cubemap_cook_config_t& cubemap_config = import_options->cubemap_cook_config;
+			nlohmann::json				 cook_options	= nlohmann::json::object();
+
+			if (!reflection_registry_t::get().type_to_json(type_id_t<cubemap_cook_config_t>::value, const_cast<cubemap_cook_config_t*>(&cubemap_config), nullptr, cook_options))
 			{
-				SFG_ERR("failed to serialize HDR skybox import options for {0}", source_path.c_str());
+				SFG_ERR("failed to serialize cubemap import options for {0}", source_path.c_str());
 				return false;
 			}
+
 			const editor_asset_write_existing_file_desc_t write_desc{
 				.cook_options	  = &cook_options,
 				.parent_path	  = target_directory,
 				.name			  = asset_name.c_str(),
 				.source_full_path = source_path.c_str(),
-				.asset_type		  = editor_asset_type_e::hdr_skybox,
+				.asset_type		  = editor_asset_type_e::cubemap,
 			};
+
 			if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))
 			{
-				SFG_ERR("failed to create imported HDR skybox asset {0}", asset_name.c_str());
+				SFG_ERR("failed to create imported cubemap asset {0}", asset_name.c_str());
 				return false;
 			}
-			if (!editor_asset_cooker_t::cook_hdr_skybox(asset, asset_name.c_str()))
+
+			if (!editor_asset_cooker_t::cook_cubemap(asset, asset_name.c_str()))
 			{
-				SFG_ERR("failed to cook imported HDR skybox asset {0}", asset.guid);
+				SFG_ERR("failed to cook imported cubemap asset {0}", asset.guid);
 				return false;
 			}
+
 			break;
 		}
 		default:

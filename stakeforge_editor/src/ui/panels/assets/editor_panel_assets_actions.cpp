@@ -84,8 +84,8 @@ namespace sfg
 			case editor_asset_import_type_e::model:
 				modal_options.push_back({.object = &option.glb_cook_config, .title = "Model", .type_id = type_id_t<glb_cook_config_t>::value});
 				break;
-			case editor_asset_import_type_e::hdr_skybox:
-				modal_options.push_back({.object = &option.skybox_cook_config, .title = "HDR Skybox", .type_id = type_id_t<skybox_hdr_cook_config_t>::value});
+			case editor_asset_import_type_e::cubemap:
+				modal_options.push_back({.object = &option.cubemap_cook_config, .title = "Cubemap", .type_id = type_id_t<cubemap_cook_config_t>::value});
 				break;
 			default:
 				break;
@@ -218,8 +218,8 @@ namespace sfg
 			case editor_asset_import_type_e::model:
 				option.glb_cook_config = import_settings.glb;
 				break;
-			case editor_asset_import_type_e::hdr_skybox:
-				option.skybox_cook_config = import_settings.skybox_hdr;
+			case editor_asset_import_type_e::cubemap:
+				option.cubemap_cook_config = import_settings.cubemap;
 				break;
 			default:
 				break;
@@ -263,8 +263,8 @@ namespace sfg
 			case editor_asset_import_type_e::model:
 				import_settings.glb = option.glb_cook_config;
 				break;
-			case editor_asset_import_type_e::hdr_skybox:
-				import_settings.skybox_hdr = option.skybox_cook_config;
+			case editor_asset_import_type_e::cubemap:
+				import_settings.cubemap = option.cubemap_cook_config;
 				break;
 			default:
 				break;
@@ -323,9 +323,9 @@ namespace sfg
 
 	void editor_panel_assets_t::duplicate_folder()
 	{
-		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
-		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
-		string_t				   last_duplicate_path;
+		editor_asset_manager_t&	   asset_manager	   = editor_asset_manager_t::get();
+		const editor_asset_tree_t& tree				   = asset_manager.get_asset_tree();
+		string_t				   last_duplicate_path = {};
 		for (u64 folder_hash : _selected_folder_hashes)
 		{
 			const folder_row_t* row = find_row_by_hash(folder_hash);
@@ -389,7 +389,7 @@ namespace sfg
 		if (_selected_asset_nodes.empty())
 			return;
 
-		string_t last_duplicate_path;
+		string_t last_duplicate_path = {};
 		for (editor_asset_node_handle_t node : _selected_asset_nodes)
 		{
 			const editor_asset_node_t& asset_node = tree.value(node);
@@ -547,6 +547,9 @@ namespace sfg
 		case assets_action_menu_create_ui_text_shader:
 			text = "ui_text_shader";
 			break;
+		case assets_action_menu_create_skybox_shader:
+			text = "skybox_shader";
+			break;
 		case assets_action_menu_create_texture_sampler:
 			text = "texture_sampler";
 			break;
@@ -558,6 +561,9 @@ namespace sfg
 			break;
 		case assets_action_menu_create_forward_material:
 			text = "forward_material";
+			break;
+		case assets_action_menu_create_skybox_material:
+			text = "skybox_material";
 			break;
 		case assets_action_menu_create_physical_material:
 			text = "physical_material";
@@ -586,9 +592,9 @@ namespace sfg
 		if (!make_create_asset_desc(command, name, false, desc))
 			return;
 
-		vector_t<string_t> rows;
+		vector_t<string_t> rows		  = {};
 		const string_t	   asset_path = editor_asset_path_t::make_asset_path(get_selected_folder_path(), name);
-		string_t		   row;
+		string_t		   row		  = {};
 		if (find_matching_asset_override(asset_path.c_str(), desc.asset_type, &row))
 		{
 			rows.push_back(row);
@@ -664,6 +670,10 @@ namespace sfg
 			out_desc.asset_type = editor_asset_type_e::shader;
 			out_desc.sub_type	= static_cast<u8>(shader_type_e::ui_text_shader);
 			return true;
+		case assets_action_menu_create_skybox_shader:
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::skybox_shader);
+			return true;
 		case assets_action_menu_create_texture_sampler:
 			out_desc.asset_type = editor_asset_type_e::texture_sampler;
 			return true;
@@ -678,6 +688,10 @@ namespace sfg
 		case assets_action_menu_create_forward_material:
 			out_desc.asset_type = editor_asset_type_e::material;
 			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::forward);
+			return true;
+		case assets_action_menu_create_skybox_material:
+			out_desc.asset_type = editor_asset_type_e::material;
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::skybox);
 			return true;
 		case assets_action_menu_create_physical_material:
 			out_desc.asset_type = editor_asset_type_e::physical_material;
@@ -706,7 +720,7 @@ namespace sfg
 
 	void editor_panel_assets_t::request_assets_override(asset_override_operation_e operation, const char* description, const vector_t<string_t>& rows)
 	{
-		frame_vector_t<const char*> row_ptrs;
+		frame_vector_t<const char*> row_ptrs = {};
 		row_ptrs.reserve(rows.size());
 		for (const string_t& row : rows)
 			row_ptrs.push_back(row.c_str());

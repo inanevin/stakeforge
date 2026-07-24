@@ -22,7 +22,7 @@
 #include "prefab.hpp"
 #include "shader.hpp"
 #include "skeleton.hpp"
-#include "skybox_hdr.hpp"
+#include "cubemap.hpp"
 #include "texture.hpp"
 #include "texture_sampler.hpp"
 
@@ -72,7 +72,7 @@ namespace sfg
 
 	ostream_t resource_header_t::make_stream(const ostream_t& payload) const
 	{
-		ostream_t stream;
+		ostream_t stream = {};
 		stream.create(sizeof(resource_header_t) + payload.get_size());
 		serialize(stream);
 		stream.write_raw(payload.get_raw(), payload.get_size());
@@ -93,7 +93,7 @@ namespace sfg
 		&physical_material_resource_desc,
 		&prefab_resource_desc,
 		&animation_graph_resource_desc,
-		&skybox_hdr_resource_desc,
+		&cubemap_resource_desc,
 		&physics_collision_mesh_resource_desc,
 	};
 
@@ -138,8 +138,8 @@ namespace sfg
 			return "Prefab";
 		case resource_type_e::animation_graph:
 			return "Animation Graph";
-		case resource_type_e::hdr_skybox:
-			return "HDR Skybox";
+		case resource_type_e::cubemap:
+			return "Cubemap";
 		case resource_type_e::physics_collision_mesh:
 			return "Physics Collision Mesh";
 		default:
@@ -180,7 +180,7 @@ namespace sfg
 					{.name = "physical_material", .display_name = "Physical Material"},
 					{.name = "prefab", .display_name = "Prefab"},
 					{.name = "animation_graph", .display_name = "Animation Graph"},
-					{.name = "hdr_skybox", .display_name = "HDR Skybox"},
+					{.name = "cubemap", .display_name = "Cubemap"},
 					{.name = "physics_collision_mesh", .display_name = "Physics Collision Mesh"},
 				},
 			.type_id   = type_id_t<resource_type_e>::value,

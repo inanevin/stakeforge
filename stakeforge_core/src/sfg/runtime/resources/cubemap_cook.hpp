@@ -27,35 +27,31 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
-
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/runtime/resources/resource_type.hpp>
+#include "cubemap.hpp"
+#include <sfg/common/type_id.hpp>
 
 namespace sfg
 {
-	enum class editor_asset_type_e : u8
+	class ostream_t;
+	struct resource_header_t;
+
+	struct cubemap_cook_config_t
 	{
-		invalid,
-		audio,
-		font,
-		mesh,
-		skeleton,
-		animation,
-		material,
-		shader,
-		texture,
-		texture_sampler,
-		physical_material,
-		prefab,
-		animation_graph,
-		cubemap,
-		physics_collision_mesh,
-		world,
-		count,
+		vec2u16_t size = {512, 512};
 	};
 
-	void				to_json(nlohmann::json& j, const editor_asset_type_e& t);
-	void				from_json(const nlohmann::json& j, editor_asset_type_e& t);
-	editor_asset_type_e editor_asset_type_from_resource_type(resource_type_e type);
+	class cubemap_cooker final
+	{
+	public:
+		static bool cook_from_file(const cubemap_cook_config_t& config, const char* full_path, resource_header_t& out_header, ostream_t& stream);
+	};
+
+	SFG_DEFINE_TYPE_ID(cubemap_cook_config_t);
+
+	struct cubemap_cook_config_reflection_t
+	{
+		cubemap_cook_config_reflection_t();
+	};
+
+	inline cubemap_cook_config_reflection_t g_reflect_cubemap_cook_config;
 }

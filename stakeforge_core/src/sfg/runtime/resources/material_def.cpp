@@ -50,7 +50,10 @@ namespace sfg
 		const u8 texture_count = static_cast<u8>(textures.size());
 		stream << texture_count;
 		for (const material_texture_value_t& texture : textures)
+		{
 			stream << texture.texture;
+			stream << texture.type;
+		}
 
 		const u8 sampler_count = static_cast<u8>(samplers.size());
 		stream << sampler_count;
@@ -88,7 +91,10 @@ namespace sfg
 		stream >> texture_count;
 		textures.resize(texture_count);
 		for (material_texture_value_t& texture : textures)
+		{
 			stream >> texture.texture;
+			stream >> texture.type;
+		}
 
 		u8 sampler_count = 0;
 		stream >> sampler_count;
@@ -122,6 +128,7 @@ namespace sfg
 		{
 			material_texture_value_t& value = out.textures.emplace_back();
 			value.name						= texture.texture_name != nullptr ? texture.texture_name : "";
+			value.type						= texture.type;
 		}
 
 		for (const shader_sampler_definition_t& sampler : shader_def.samplers)
@@ -152,6 +159,7 @@ namespace sfg
 	{
 		j["name"]	 = value.name;
 		j["texture"] = value.texture;
+		j["type"]	 = shader_texture_type_to_string(value.type);
 	}
 
 	void from_json(const nlohmann::json& j, material_texture_value_t& value)
@@ -165,6 +173,7 @@ namespace sfg
 
 		value.name	  = j.value<string_t>("name", {});
 		value.texture = j.value<resource_handle_t>("texture", NULL_RESOURCE_HANDLE);
+		value.type	  = shader_texture_type_from_string(j.value<string_t>("type", "texture2d"));
 	}
 
 	void to_json(nlohmann::json& j, const material_sampler_value_t& value)

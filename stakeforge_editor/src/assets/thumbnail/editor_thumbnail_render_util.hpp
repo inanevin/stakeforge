@@ -74,7 +74,6 @@ namespace sfg
 		static void setup_world_for_prefab(editor_thumbnail_world_t& thumbnail_world, resource_handle_t asset_guid);
 		static void setup_world_for_material(editor_thumbnail_world_t& thumbnail_world, resource_handle_t asset_guid);
 		static void setup_world_for_mesh(editor_thumbnail_world_t& thumbnail_world, resource_handle_t asset_guid);
-		static void setup_world_for_skybox(editor_thumbnail_world_t& thumbnail_world, resource_handle_t asset_guid);
 		static void setup_world_for_animation(editor_thumbnail_world_t& thumbnail_world, resource_handle_t asset_guid);
 		static void setup_world_for_collision_mesh(editor_thumbnail_world_t& thumbnail_world, resource_handle_t asset_guid);
 	};

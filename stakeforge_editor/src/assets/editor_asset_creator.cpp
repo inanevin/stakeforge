@@ -63,6 +63,8 @@ namespace sfg
 				return EDITOR_TEMPLATE_MATERIALS "material_forward.sfg_asset";
 			case editor_material_type_e::unlit:
 				return EDITOR_TEMPLATE_MATERIALS "material_unlit.sfg_asset";
+			case editor_material_type_e::skybox:
+				return EDITOR_TEMPLATE_MATERIALS "material_skybox.sfg_asset";
 			default:
 				return EDITOR_TEMPLATE_MATERIALS "material_gbuffer.sfg_asset";
 			}
@@ -84,6 +86,8 @@ namespace sfg
 				return COMMON_SHADERS "world/forward.hlsl";
 			case shader_type_e::ui_text_shader:
 				return COMMON_SHADERS "world/forward.hlsl";
+			case shader_type_e::skybox_shader:
+				return COMMON_SHADERS "world/skybox_cube.hlsl";
 			default:
 				return COMMON_SHADERS "world/gbuffer_lit.hlsl";
 			}
@@ -91,8 +95,8 @@ namespace sfg
 
 		bool create_shader_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
-			const shader_type_e shader_type = static_cast<shader_type_e>(desc.sub_type);
-			nlohmann::json		cook_options;
+			const shader_type_e shader_type	 = static_cast<shader_type_e>(desc.sub_type);
+			nlohmann::json		cook_options = {};
 			build_shader_template_cook_options(shader_type, cook_options);
 			const editor_asset_write_file_desc_t write_desc{
 				.cook_options			  = &cook_options,
@@ -111,8 +115,8 @@ namespace sfg
 
 		bool create_material_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
-			const editor_material_type_e material_type = static_cast<editor_material_type_e>(desc.sub_type);
-			nlohmann::json				 embedded_source;
+			const editor_material_type_e material_type	 = static_cast<editor_material_type_e>(desc.sub_type);
+			nlohmann::json				 embedded_source = {};
 			if (!editor_asset_writer_t::read_embedded_source(get_material_template_relative(material_type), embedded_source))
 			{
 				SFG_ERR("failed to read material asset template {0}", get_material_template_relative(material_type));
@@ -134,7 +138,7 @@ namespace sfg
 		bool create_texture_sampler_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const char*	   template_relative = EDITOR_TEMPLATE_SAMPLERS "sampler_linear_repeat.sfg_asset";
-			nlohmann::json embedded_source;
+			nlohmann::json embedded_source	 = {};
 			if (!editor_asset_writer_t::read_embedded_source(template_relative, embedded_source))
 			{
 				SFG_ERR("failed to read texture sampler asset template {0}", template_relative);
@@ -157,7 +161,7 @@ namespace sfg
 		bool create_physical_material_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const char*	   template_relative = EDITOR_TEMPLATE_MATERIALS "physical_material.sfg_asset";
-			nlohmann::json embedded_source;
+			nlohmann::json embedded_source	 = {};
 			if (!editor_asset_writer_t::read_embedded_source(template_relative, embedded_source))
 			{
 				SFG_ERR("failed to read physical material asset template {0}", template_relative);

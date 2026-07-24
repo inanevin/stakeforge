@@ -37,22 +37,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_render_view.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/runtime/project/project_settings.hpp>
 
 namespace sfg
 {
-	struct world_render_skybox_t
+	struct world_render_environment_t
 	{
-		render_resource_handle_t radiance		   = {};
-		render_resource_handle_t irradiance		   = {};
-		render_resource_handle_t prefilter		   = {};
-		render_resource_handle_t brdf_lut		   = {};
-		f32						 intensity		   = 1.0f;
-		f32						 exposure		   = 1.0f;
-		f32						 rotation		   = 0.0f;
-		f32						 prefilter_max_lod = 0.0f;
+		vec4f_t ambient_color  = vec4f_t::zero;
+		u32		material_index = UINT32_MAX;
+		f32		intensity	   = 1.0f;
 	};
 
 	struct world_render_ssao_t
@@ -130,7 +126,7 @@ namespace sfg
 		void*							  user_data		= nullptr;
 		engine_shadow_settings_t		  shadows		= {};
 		world_render_view_t				  main_view		= {};
-		world_render_skybox_t			  skybox		= {};
+		world_render_environment_t		  environment	= {};
 		world_render_post_process_t		  post_process	= {};
 		world_debug_draw_snapshot_t		  debug_draw	= {};
 		vector_t<world_render_material_t> materials		= {};

@@ -273,7 +273,6 @@ namespace sfg
 		case editor_asset_type_e::animation:
 		case editor_asset_type_e::material:
 		case editor_asset_type_e::mesh:
-		case editor_asset_type_e::hdr_skybox:
 		case editor_asset_type_e::prefab:
 		case editor_asset_type_e::physics_collision_mesh:
 			return true;
@@ -301,6 +300,8 @@ namespace sfg
 		case editor_asset_type_e::physical_material:
 			return "editor/resource_pack/textures/thumbnails/physical_material.png"_hs;
 		case editor_asset_type_e::world:
+			return "editor/resource_pack/textures/thumbnails/world.png"_hs;
+		case editor_asset_type_e::cubemap:
 			return "editor/resource_pack/textures/thumbnails/world.png"_hs;
 		case editor_asset_type_e::animation:
 			return "editor/resource_pack/textures/thumbnails/animation_clip.png"_hs;

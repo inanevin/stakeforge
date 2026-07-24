@@ -27,6 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/thumbnail/editor_thumbnail_render_util.hpp"
 #include "assets/editor_asset.hpp"
+#include "assets/editor_asset_builtin_types.hpp"
+#include "assets/editor_asset_manager.hpp"
 #include "ui/panels/editor_theme.hpp"
 
 #include <sfg/io/assert.hpp>
@@ -59,10 +61,12 @@ namespace sfg
 	{
 		world_t& world = *thumbnail_world.world;
 
-		thumbnail_world.environment_entity = world.create_entity("thumbnail_environment");
-		component_skybox_t& skybox		   = ecs_helpers_t::table_add_or_get_as<component_skybox_t>(world.get_component_table(type_id_t<component_skybox_t>::value), thumbnail_world.environment_entity);
-		skybox.skybox_asset				   = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID;
-		world.add_resource(resource_type_e::hdr_skybox, DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID);
+		thumbnail_world.environment_entity	 = world.create_entity("thumbnail_environment");
+		component_environment_t& environment = ecs_helpers_t::table_add_or_get_as<component_environment_t>(world.get_component_table(type_id_t<component_environment_t>::value), thumbnail_world.environment_entity);
+		environment.skybox_material			 = DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID;
+		environment.intensity				 = 0.25f;
+
+		world.add_resource(resource_type_e::material, DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID);
 		world.scan_for_resources(thumbnail_world.environment_entity, true);
 
 		thumbnail_world.camera_entity = world.create_entity("thumbnail_camera");
@@ -97,9 +101,6 @@ namespace sfg
 			break;
 		case editor_asset_type_e::mesh:
 			setup_world_for_mesh(thumbnail_world, asset_guid);
-			break;
-		case editor_asset_type_e::hdr_skybox:
-			setup_world_for_skybox(thumbnail_world, asset_guid);
 			break;
 		case editor_asset_type_e::animation:
 			setup_world_for_animation(thumbnail_world, asset_guid);
@@ -183,7 +184,20 @@ namespace sfg
 
 	void editor_thumbnail_render_util_t::setup_world_for_material(editor_thumbnail_world_t& thumbnail_world, resource_handle_t asset_guid)
 	{
-		world_t& world				   = *thumbnail_world.world;
+		world_t&			  world = *thumbnail_world.world;
+		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(asset_guid);
+		SFG_ASSERT(asset != nullptr);
+
+		if (asset->sub_type == static_cast<u8>(editor_material_type_e::skybox))
+		{
+			component_environment_t& environment = ecs_helpers_t::table_get_as<component_environment_t>(world.get_component_table(type_id_t<component_environment_t>::value), thumbnail_world.environment_entity);
+			environment.skybox_material			 = asset_guid;
+			environment.intensity				 = 1.0f;
+
+			world.scan_for_resources(thumbnail_world.environment_entity, true);
+			return;
+		}
+
 		thumbnail_world.display_entity = world.create_entity("thumbnail_material");
 
 		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), thumbnail_world.display_entity);
@@ -210,16 +224,6 @@ namespace sfg
 
 		const mesh_internals_t* runtime = resource_manager_t::get().find_internals<mesh_internals_t>(asset_guid);
 		place_camera_for_aabb(world, thumbnail_world.camera_entity, runtime->local_bounds);
-	}
-
-	void editor_thumbnail_render_util_t::setup_world_for_skybox(editor_thumbnail_world_t& thumbnail_world, resource_handle_t asset_guid)
-	{
-		world_t& world = *thumbnail_world.world;
-
-		component_skybox_t& skybox = ecs_helpers_t::table_get_as<component_skybox_t>(world.get_component_table(type_id_t<component_skybox_t>::value), thumbnail_world.environment_entity);
-		skybox.skybox_asset		   = asset_guid;
-
-		world.scan_for_resources(thumbnail_world.environment_entity, true);
 	}
 
 	void editor_thumbnail_render_util_t::setup_world_for_animation(editor_thumbnail_world_t& thumbnail_world, resource_handle_t asset_guid)

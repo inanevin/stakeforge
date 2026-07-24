@@ -159,7 +159,10 @@ namespace sfg
 		}
 
 		for (u32 i = 0; i < runtime->texture_count; ++i)
+		{
 			runtime->texture_guids[i] = material.textures[i].texture;
+			runtime->texture_types[i] = material.textures[i].type;
+		}
 
 		for (u32 i = 0; i < runtime->sampler_count; ++i)
 			runtime->sampler_guids[i] = material.samplers[i].sampler;

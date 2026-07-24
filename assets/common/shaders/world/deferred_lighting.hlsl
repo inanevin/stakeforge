@@ -43,11 +43,13 @@ struct vs_output
 
 struct render_pass_data
 {
+	float4x4 skybox_view_proj;
 	float4x4 inv_view_proj;
 	float4x4 inv_view;
 	float4x4 view;
 	float4 camera_pos;
 	float4 skybox_params;
+	float4 ambient_color;
 	uint4 light_counts;
 };
 
@@ -57,6 +59,7 @@ SamplerComparisonState smp_shadow : static_sampler_shadow_2d;
 SamplerComparisonState smp_shadow_cube : static_sampler_shadow_cube;
 
 static const uint SFG_INVALID_GPU_INDEX = 0xffffffffu;
+/*
 static const float SFG_SKYBOX_PREFILTER_MAX_LOD = 7.0;
 
 float3 get_sky_color(uint skybox_radiance, float2 uv, render_pass_data rp_data)
@@ -98,6 +101,7 @@ float3 get_sky_lighting(uint skybox_irradiance, uint skybox_prefilter, uint skyb
 
 	return (kD * diffuse * ao + specular) * rp_data.skybox_params.x * rp_data.skybox_params.y;
 }
+*/
 
 vs_output VSMain(uint vertex_id : SV_VertexID)
 {
@@ -126,17 +130,19 @@ float4 PSMain(vs_output input) : SV_TARGET
 	Texture2D tex_gbuffer_emissive = sfg_get_texture<Texture2D>(sfg_constant_rp4);
 	Texture2D tex_gbuffer_depth	 = sfg_get_texture<Texture2D>(sfg_constant_rp5);
 	Texture2D tex_ao					 = sfg_get_texture<Texture2D>(sfg_constant_rp6);
+	/*
 	const uint skybox_radiance		 = sfg_constant_rp7;
 	const uint skybox_irradiance	 = sfg_constant_rp8;
 	const uint skybox_prefilter		 = sfg_constant_rp9;
 	const uint skybox_brdf_lut		 = sfg_constant_rp10;
-	StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(sfg_constant_rp11);
-	StructuredBuffer<gpu_shadow_view> shadow_buffer = sfg_get_ssbo<gpu_shadow_view>(sfg_constant_rp12);
+	*/
+	StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(sfg_constant_rp7);
+	StructuredBuffer<gpu_shadow_view> shadow_buffer = sfg_get_ssbo<gpu_shadow_view>(sfg_constant_rp8);
 
 	const int2	 pixel		  = int2(input.pos.xy);
 	const float	 device_depth = tex_gbuffer_depth.Load(int3(pixel, 0)).r;
 	if (is_background(device_depth))
-		return float4(get_sky_color(skybox_radiance, input.uv, rp_data), 1.0);
+		return float4(0.0, 0.0, 0.0, 1.0);
 
 	const float4 orm	   = tex_gbuffer_orm.Load(int3(pixel, 0));
 	const float3 emissive = tex_gbuffer_emissive.Load(int3(pixel, 0)).xyz;
@@ -151,7 +157,10 @@ float4 PSMain(vs_output input) : SV_TARGET
 	const float	 roughness = saturate(orm.g);
 	const float	 metallic  = saturate(orm.b);
 	const float3 N		   = oct_decode(normal.xy);
-	float3 lighting = get_sky_lighting(skybox_irradiance, skybox_prefilter, skybox_brdf_lut, N, V, albedo, ao, roughness, metallic, rp_data);
+	float3 lighting = rp_data.ambient_color.rgb * albedo * ao;
+	/*
+	lighting += get_sky_lighting(skybox_irradiance, skybox_prefilter, skybox_brdf_lut, N, V, albedo, ao, roughness, metallic, rp_data);
+	*/
 	uint light_offset = 0;
 
 	[loop]

@@ -36,6 +36,7 @@ namespace sfg
 		gbuffer,
 		forward,
 		unlit,
+		skybox,
 	};
 
 	enum class editor_texture_sampler_type_e : u8

@@ -49,10 +49,12 @@ namespace sfg
 			{.text = "Post Process Shader", .command = assets_action_menu_create_post_process_shader},
 			{.text = "UI Shader", .command = assets_action_menu_create_ui_shader},
 			{.text = "UI Text Shader", .command = assets_action_menu_create_ui_text_shader},
+			{.text = "Skybox Shader", .command = assets_action_menu_create_skybox_shader},
 			{.text = "Texture Sampler", .command = assets_action_menu_create_texture_sampler},
 			{.text = "GBuffer Material", .command = assets_action_menu_create_gbuffer_material},
 			{.text = "Unlit Material", .command = assets_action_menu_create_unlit_material},
 			{.text = "Forward Material", .command = assets_action_menu_create_forward_material},
+			{.text = "Skybox Material", .command = assets_action_menu_create_skybox_material},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GAMEPLAY_ROWS[] = {

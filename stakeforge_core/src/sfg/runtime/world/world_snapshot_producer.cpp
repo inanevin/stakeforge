@@ -33,8 +33,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/animation/animation_bone.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
+#include <sfg/runtime/resources/cubemap.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
-#include <sfg/runtime/resources/skybox_hdr.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/material.hpp>
 #include <sfg/runtime/resources/texture_sampler.hpp>
@@ -62,7 +62,7 @@ namespace sfg
 			else
 			{
 				const resource_entry_t* mat_entry = rm.find_entry(mat_handle);
-				if (mat_entry == nullptr)
+				if (mat_entry == nullptr || mat_entry->type != resource_type_e::material)
 					return UINT32_MAX;
 
 				material_runtime_t*	  mat_runtime	= rm_aux.get<material_runtime_t>(mat_entry->runtime);
@@ -71,6 +71,17 @@ namespace sfg
 				const shader_internals_t* shader = rm.find_internals<shader_internals_t>(mat_runtime->shader_guid);
 				if (shader == nullptr)
 					return UINT32_MAX;
+
+				for (u32 i = 0; i < mat_runtime->texture_count; ++i)
+				{
+					if (mat_runtime->texture_types[i] == shader_texture_type_e::texture_cube)
+					{
+						const resource_entry_t* cubemap_entry = rm.find_entry(mat_runtime->texture_guids[i]);
+
+						if (cubemap_entry == nullptr || cubemap_entry->type != resource_type_e::cubemap || cubemap_entry->internals.size == 0)
+							return UINT32_MAX;
+					}
+				}
 
 				const u32 idx					   = static_cast<u32>(snapshot.materials.size());
 				material_guid_to_index[mat_handle] = idx;
@@ -92,8 +103,20 @@ namespace sfg
 
 				for (u32 j = 0; j < mat_runtime->texture_count; j++)
 				{
-					const texture_internals_t* texture_internals = rm.find_internals<texture_internals_t>(mat_runtime->texture_guids[j]);
-					render_mat.material_textures[j]				 = texture_internals ? texture_internals->texture : render_resources_t::get().get_invalid_texture();
+					switch (mat_runtime->texture_types[j])
+					{
+					case shader_texture_type_e::texture_cube: {
+						const resource_entry_t*	   cubemap_entry	 = rm.find_entry(mat_runtime->texture_guids[j]);
+						const cubemap_internals_t* cubemap_internals = rm_aux.get<cubemap_internals_t>(cubemap_entry->internals);
+						render_mat.material_textures[j]				 = cubemap_internals->texture;
+						break;
+					}
+					default: {
+						const texture_internals_t* texture_internals = rm.find_internals<texture_internals_t>(mat_runtime->texture_guids[j]);
+						render_mat.material_textures[j]				 = texture_internals != nullptr ? texture_internals->texture : render_resources_t::get().get_invalid_texture();
+						break;
+					}
+					}
 
 					render_mat.material_samplers[j] = render_resources_t::get().get_default_linear_sampler();
 					if (mat_runtime->sampler_count != 0)
@@ -138,20 +161,22 @@ namespace sfg
 	{
 		snapshot.shadows	   = project_settings.shadows;
 		snapshot.quality_level = project_settings.quality_level;
+
 		snapshot.materials.resize(0);
 		snapshot.entities.resize(0);
 		snapshot.bones.resize(0);
 		snapshot.lights.resize(0);
 		snapshot.draws.resize(0);
-		snapshot.skybox		  = {};
+		snapshot.environment  = {};
 		snapshot.post_process = {};
+
 		world.get_debug_draw().write_snapshot(snapshot.debug_draw);
 
 		const ecs_component_table_t& transform_table					= world.get_component_table(type_id_t<component_system_transform_t>::value);
 		const ecs_component_table_t& alive_table						= world.get_component_table(type_id_t<component_alive_t>::value);
 		const ecs_component_table_t& camera_table						= world.get_component_table(type_id_t<component_camera_t>::value);
 		const ecs_component_table_t& post_process_table					= world.get_component_table(type_id_t<component_post_process_t>::value);
-		const ecs_component_table_t& skybox_table						= world.get_component_table(type_id_t<component_skybox_t>::value);
+		const ecs_component_table_t& environment_table					= world.get_component_table(type_id_t<component_environment_t>::value);
 		const ecs_component_table_t& light_table						= world.get_component_table(type_id_t<component_light_t>::value);
 		const ecs_component_table_t& disabled_table						= world.get_component_table(type_id_t<component_disabled_t>::value);
 		const ecs_component_table_t& mesh_renderer_table				= world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
@@ -161,8 +186,8 @@ namespace sfg
 		const resource_manager_t&  rm	  = resource_manager_t::get();
 		const chunk_allocator32_t& rm_aux = rm.get_memory();
 
-		frame_hash_map_t<entity_id_t, u32>		 entity_to_render_id;
-		frame_hash_map_t<resource_handle_t, u32> material_guid_to_index;
+		frame_hash_map_t<entity_id_t, u32>		 entity_to_render_id	= {};
+		frame_hash_map_t<resource_handle_t, u32> material_guid_to_index = {};
 
 		// extract main camera
 		{
@@ -226,33 +251,42 @@ namespace sfg
 			}
 		}
 
-		// extract skybox
+		// extract environment
 		{
 			const ecs_component_table_ref_t table_refs[] = {
 				alive_table.ref(),
-				skybox_table.ref(),
+				environment_table.ref(),
 				!disabled_table.ref(),
 			};
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_skybox_t& skybox = ecs_helpers_t::row_get<component_skybox_t>(row, 1);
-				const resource_entry_t*	  entry	 = rm.find_entry(skybox.skybox_asset);
-				if (entry == nullptr || entry->type != resource_type_e::hdr_skybox)
-					continue;
+				const component_environment_t& environment = ecs_helpers_t::row_get<component_environment_t>(row, 1);
+				snapshot.environment.intensity			   = environment.intensity;
+				snapshot.environment.ambient_color		   = environment.ambient_color.to_vector();
 
-				const skybox_hdr_internals_t* internals = rm.get_memory().get<skybox_hdr_internals_t>(entry->internals);
-				const skybox_hdr_runtime_t*	  runtime	= rm.get_memory().get<skybox_hdr_runtime_t>(entry->runtime);
-				snapshot.skybox							= {
-					.radiance		   = internals->radiance_texture,
-					.irradiance		   = internals->irradiance_texture,
-					.prefilter		   = internals->prefilter_texture,
-					.brdf_lut		   = internals->brdf_lut_texture,
-					.intensity		   = runtime->intensity * skybox.intensity,
-					.exposure		   = skybox.exposure,
-					.rotation		   = runtime->rotation,
-					.prefilter_max_lod = static_cast<f32>(runtime->prefilter.mip_count - 1),
-				};
+				const resource_entry_t* material_entry = rm.find_entry(environment.skybox_material);
+
+				if (material_entry == nullptr || material_entry->type != resource_type_e::material)
+					break;
+
+				const material_runtime_t* material_runtime = rm.get_memory().get<material_runtime_t>(material_entry->runtime);
+				const resource_entry_t*	  shader_entry	   = rm.find_entry(material_runtime->shader_guid);
+
+				if (shader_entry == nullptr || shader_entry->type != resource_type_e::shader)
+					break;
+
+				const shader_runtime_t* shader_runtime = rm.get_memory().get<shader_runtime_t>(shader_entry->runtime);
+
+				if (shader_runtime->type != shader_type_e::skybox_shader)
+					break;
+
+				const u32 material_index = push_material_from_guid(material_guid_to_index, snapshot, environment.skybox_material);
+
+				if (material_index == UINT32_MAX)
+					break;
+
+				snapshot.environment.material_index = material_index;
 				break;
 			}
 		}

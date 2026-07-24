@@ -121,9 +121,10 @@ namespace sfg
 			out["type"]			= static_cast<u8>(shader_type);
 		}
 
-		string_t get_shader_default_source_relative(shader_type_e shader_type)
+		string_t get_shader_default_source_relative(shader_type_e shader_type, const char* source_base_name)
 		{
 			string_t result = COMMON_SHADERS;
+
 			switch (shader_type)
 			{
 			case shader_type_e::transparent_shader:
@@ -132,10 +133,14 @@ namespace sfg
 			case shader_type_e::unlit_shader:
 				result += "world/gbuffer_unlit.hlsl";
 				break;
+			case shader_type_e::skybox_shader:
+				result += string_t(source_base_name) == "default_shader_skybox_gradient" ? "world/skybox_gradient.hlsl" : "world/skybox_cube.hlsl";
+				break;
 			default:
 				result += "world/gbuffer_lit.hlsl";
 				break;
 			}
+
 			return result;
 		}
 
@@ -155,18 +160,18 @@ namespace sfg
 			return result;
 		}
 
-		string_t get_skybox_default_source_relative(const char* skybox_name)
+		string_t get_cubemap_default_source_relative(const char* cubemap_name)
 		{
 			string_t result = EDITOR_DEFAULT_SKY;
-			result += skybox_name != nullptr ? skybox_name : "";
+			result += cubemap_name != nullptr ? cubemap_name : "";
 			result += ".hdr";
 			return result;
 		}
 
-		string_t get_skybox_default_asset_relative(const char* skybox_name)
+		string_t get_cubemap_default_asset_relative(const char* cubemap_name)
 		{
 			string_t result = EDITOR_DEFAULT_SKY;
-			result += skybox_name != nullptr ? skybox_name : "";
+			result += cubemap_name != nullptr ? cubemap_name : "";
 			result += ".sfg_asset";
 			return result;
 		}
@@ -177,6 +182,8 @@ namespace sfg
 				{.asset_name = "default_shader_gbuffer", .source_base_name = "default_shader_gbuffer", .guid = DEFAULT_GBUFFER_SHADER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
 				{.asset_name = "default_shader_forward", .source_base_name = "default_shader_forward", .guid = DEFAULT_FORWARD_SHADER_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
 				{.asset_name = "default_shader_unlit", .source_base_name = "default_shader_unlit", .guid = DEFAULT_UNLIT_SHADER_ASSET_GUID, .shader_type = shader_type_e::unlit_shader},
+				{.asset_name = "default_shader_skybox_cube", .source_base_name = "default_shader_skybox_cube", .guid = DEFAULT_CUBE_SKYBOX_SHADER_ASSET_GUID, .shader_type = shader_type_e::skybox_shader},
+				{.asset_name = "default_shader_skybox_gradient", .source_base_name = "default_shader_skybox_gradient", .guid = DEFAULT_GRADIENT_SKYBOX_SHADER_ASSET_GUID, .shader_type = shader_type_e::skybox_shader},
 			};
 
 			for (const default_shader_asset_desc_t& desc : default_shader_assets)
@@ -185,9 +192,9 @@ namespace sfg
 				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, editor_asset_type_e::shader, sub_type))
 					continue;
 
-				nlohmann::json cook_options;
+				nlohmann::json cook_options = {};
 				build_shader_default_cook_options(desc.shader_type, cook_options);
-				const string_t source_relative = get_shader_default_source_relative(desc.shader_type);
+				const string_t source_relative = get_shader_default_source_relative(desc.shader_type, desc.source_base_name);
 
 				const editor_asset_write_file_desc_t write_desc{
 					.cook_options			  = &cook_options,
@@ -201,9 +208,9 @@ namespace sfg
 					.sub_type				  = sub_type,
 					.allow_overwrite		  = true,
 				};
-				editor_asset_t asset = {};
-				string_t	   asset_path;
-				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
+				editor_asset_t asset	  = {};
+				string_t	   asset_path = {};
+				bool		   created	  = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
 
 				if (created)
 				{
@@ -234,7 +241,7 @@ namespace sfg
 				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, editor_asset_type_e::texture, 0))
 					continue;
 
-				nlohmann::json cook_options;
+				nlohmann::json cook_options			  = {};
 				const string_t texture_asset_relative = get_texture_default_asset_relative(desc.source_base_name);
 				const bool	   read_cook_options	  = editor_asset_writer_t::read_cook_options(texture_asset_relative.c_str(), cook_options);
 				SFG_ASSERT(read_cook_options);
@@ -252,9 +259,9 @@ namespace sfg
 					.asset_type				  = editor_asset_type_e::texture,
 					.allow_overwrite		  = true,
 				};
-				editor_asset_t asset = {};
-				string_t	   asset_path;
-				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
+				editor_asset_t asset	  = {};
+				string_t	   asset_path = {};
+				bool		   created	  = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
 				if (created)
 					created = editor_asset_cooker_t::cook_texture(asset, desc.asset_name);
 
@@ -262,25 +269,25 @@ namespace sfg
 			}
 		}
 
-		void ensure_skybox_assets(const char* default_assets_dir)
+		void ensure_cubemap_assets(const char* default_assets_dir)
 		{
-			const default_file_asset_desc_t default_skybox_assets[] = {
-				{.asset_name = "default_sky_qwantani_dusk_2", .source_base_name = "default_sky_qwantani_dusk_2", .guid = DEFAULT_QWANTANI_DUSK_SKYBOX_ASSET_GUID},
+			const default_file_asset_desc_t default_cubemap_assets[] = {
+				{.asset_name = "default_sky_qwantani_dusk_2", .source_base_name = "default_sky_qwantani_dusk_2", .guid = DEFAULT_QWANTANI_DUSK_CUBEMAP_ASSET_GUID},
 			};
 
-			for (const default_file_asset_desc_t& desc : default_skybox_assets)
+			for (const default_file_asset_desc_t& desc : default_cubemap_assets)
 			{
-				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, editor_asset_type_e::hdr_skybox, 0))
+				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, editor_asset_type_e::cubemap, 0))
 					continue;
 
-				nlohmann::json cook_options;
-				const string_t skybox_asset_relative = get_skybox_default_asset_relative(desc.source_base_name);
-				const bool	   read_cook_options	 = editor_asset_writer_t::read_cook_options(skybox_asset_relative.c_str(), cook_options);
+				nlohmann::json cook_options			  = {};
+				const string_t cubemap_asset_relative = get_cubemap_default_asset_relative(desc.source_base_name);
+				const bool	   read_cook_options	  = editor_asset_writer_t::read_cook_options(cubemap_asset_relative.c_str(), cook_options);
 				SFG_ASSERT(read_cook_options);
 				if (!read_cook_options)
 					continue;
 
-				const string_t						 source_relative = get_skybox_default_source_relative(desc.source_base_name);
+				const string_t						 source_relative = get_cubemap_default_source_relative(desc.source_base_name);
 				const editor_asset_write_file_desc_t write_desc{
 					.cook_options			  = &cook_options,
 					.parent_path			  = default_assets_dir,
@@ -289,14 +296,14 @@ namespace sfg
 					.source_extension		  = "hdr",
 					.source_template_relative = source_relative.c_str(),
 					.guid					  = desc.guid,
-					.asset_type				  = editor_asset_type_e::hdr_skybox,
+					.asset_type				  = editor_asset_type_e::cubemap,
 					.allow_overwrite		  = true,
 				};
-				editor_asset_t asset = {};
-				string_t	   asset_path;
-				bool		   created = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
+				editor_asset_t asset	  = {};
+				string_t	   asset_path = {};
+				bool		   created	  = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
 				if (created)
-					created = editor_asset_cooker_t::cook_hdr_skybox(asset, desc.asset_name);
+					created = editor_asset_cooker_t::cook_cubemap(asset, desc.asset_name);
 
 				SFG_ASSERT(created);
 			}
@@ -320,6 +327,16 @@ namespace sfg
 				 .guid				  = DEFAULT_UNLIT_MATERIAL_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::material,
 				 .sub_type			  = static_cast<u8>(editor_material_type_e::unlit)},
+				{.asset_name		  = "default_material_skybox_cube",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_material_skybox_cube.sfg_asset",
+				 .guid				  = DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::material,
+				 .sub_type			  = static_cast<u8>(editor_material_type_e::skybox)},
+				{.asset_name		  = "default_material_skybox_gradient",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_material_skybox_gradient.sfg_asset",
+				 .guid				  = DEFAULT_GRADIENT_SKYBOX_MATERIAL_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::material,
+				 .sub_type			  = static_cast<u8>(editor_material_type_e::skybox)},
 				{.asset_name = "default_physical_material", .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_physical_material.sfg_asset", .guid = DEFAULT_PHYSICAL_MATERIAL_ASSET_GUID, .asset_type = editor_asset_type_e::physical_material},
 				{.asset_name		  = "default_sampler_linear",
 				 .asset_relative_path = EDITOR_DEFAULT_SAMPLERS "default_sampler_linear.sfg_asset",
@@ -358,7 +375,7 @@ namespace sfg
 				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, desc.asset_type, desc.sub_type))
 					continue;
 
-				nlohmann::json embedded_source;
+				nlohmann::json embedded_source		= {};
 				const bool	   read_embedded_source = editor_asset_writer_t::read_embedded_source(desc.asset_relative_path, embedded_source);
 				SFG_ASSERT(read_embedded_source);
 				if (!read_embedded_source)
@@ -373,9 +390,9 @@ namespace sfg
 					.sub_type		 = desc.sub_type,
 					.allow_overwrite = true,
 				};
-				editor_asset_t asset = {};
-				string_t	   asset_path;
-				bool		   created = editor_asset_writer_t::write_embedded_asset(write_desc, &asset, &asset_path);
+				editor_asset_t asset	  = {};
+				string_t	   asset_path = {};
+				bool		   created	  = editor_asset_writer_t::write_embedded_asset(write_desc, &asset, &asset_path);
 				if (created && desc.asset_type == editor_asset_type_e::material)
 					created = editor_asset_cooker_t::cook_material(asset, desc.asset_name);
 				else if (created && desc.asset_type == editor_asset_type_e::physical_material)
@@ -392,7 +409,7 @@ namespace sfg
 	{
 		ensure_shader_assets(default_assets_dir);
 		ensure_texture_assets(default_assets_dir);
-		ensure_skybox_assets(default_assets_dir);
+		ensure_cubemap_assets(default_assets_dir);
 		ensure_embedded_assets(default_assets_dir);
 	}
 }

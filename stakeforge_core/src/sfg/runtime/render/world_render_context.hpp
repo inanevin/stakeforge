@@ -32,13 +32,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/mat4x4.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec4f.hpp>
-#include "world_render_shadow.hpp"
+#include "world_render_shadow_context.hpp"
 
 namespace sfg
 {
-#define WORLD_RENDER_BLOOM_LEVEL_COUNT			5
-#define WORLD_RENDER_SHADOW_VIEW_CAPACITY		64
-#define WORLD_RENDER_SHADOW_ALLOCATION_CAPACITY 32
+#define WORLD_RENDER_BLOOM_LEVEL_COUNT 5
 
 	struct render_pass_data_opaque_gpu_t
 	{
@@ -47,12 +45,14 @@ namespace sfg
 
 	struct render_pass_data_lighting_gpu_t
 	{
-		mat4x4_t inv_view_proj	 = mat4x4_t::identity;
-		mat4x4_t inv_view		 = mat4x4_t::identity;
-		mat4x4_t view			 = mat4x4_t::identity;
-		vec4f_t	 camera_pos		 = vec4f_t::zero;
-		vec4f_t	 skybox_params	 = vec4f_t::zero;
-		u32		 light_counts[4] = {};
+		mat4x4_t skybox_view_proj = mat4x4_t::identity;
+		mat4x4_t inv_view_proj	  = mat4x4_t::identity;
+		mat4x4_t inv_view		  = mat4x4_t::identity;
+		mat4x4_t view			  = mat4x4_t::identity;
+		vec4f_t	 camera_pos		  = vec4f_t::zero;
+		vec4f_t	 skybox_params	  = vec4f_t::zero;
+		vec4f_t	 ambient_color	  = vec4f_t::zero;
+		u32		 light_counts[4]  = {};
 	};
 
 	struct render_pass_data_post_process_gpu_t
@@ -117,18 +117,6 @@ namespace sfg
 		u8		  enable_bloom		  = 1;
 	};
 
-	struct world_render_shadow_allocation_t
-	{
-		gfx_handle_t texture		  = {};
-		gpu_index_t	 texture_index	  = NULL_GPU_INDEX;
-		vec2u16_t	 resolution		  = vec2u16_t::zero;
-		u32			 stable_id		  = UINT32_MAX;
-		u8			 type			  = 0;
-		u8			 layer_count	  = 0;
-		u64			 last_used_serial = 0;
-		u64			 retire_serial	  = 0;
-	};
-
 	class world_render_context_t final
 	{
 	public:
@@ -142,13 +130,9 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
-		void									init(const world_render_context_config_t& config);
-		void									uninit();
-		void									resize(vec2u16_t size);
-		world_render_shadow_allocation_t*		get_or_create_shadow_allocation(u32 stable_id, u8 type, vec2u16_t resolution, u8 layer_count);
-		const world_render_shadow_allocation_t* find_shadow_allocation(u32 stable_id, u8 type) const;
-		void									begin_shadow_allocations();
-		void									end_shadow_allocations();
+		void init(const world_render_context_config_t& config);
+		void uninit();
+		void resize(vec2u16_t size);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -193,34 +177,14 @@ namespace sfg
 			return _pfd[frame_index].cmd_bloom;
 		}
 
-		inline gfx_handle_t get_command_buffer_shadows(u8 frame_index) const
+		inline world_render_shadow_context_t& get_shadow_context()
 		{
-			return _pfd[frame_index].cmd_shadows;
+			return _shadow_context;
 		}
 
-		inline u8* get_mapped_shadow_views(u8 frame_index) const
+		inline const world_render_shadow_context_t& get_shadow_context() const
 		{
-			return _pfd[frame_index].mapped_shadow_views;
-		}
-
-		inline gpu_index_t get_shadow_view_buffer_index(u8 frame_index) const
-		{
-			return _pfd[frame_index].shadow_view_buffer_index;
-		}
-
-		inline gpu_index_t get_shadow_view_data_index(u8 frame_index, u16 view) const
-		{
-			return _pfd[frame_index].shadow_view_data_indices[view];
-		}
-
-		inline u8* get_mapped_shadow_view_data(u8 frame_index, u16 view) const
-		{
-			return _pfd[frame_index].mapped_shadow_view_data[view];
-		}
-
-		inline u16 get_shadow_view_max() const
-		{
-			return _config.shadow_view_max;
+			return _shadow_context;
 		}
 
 		inline u32 get_entity_max() const
@@ -624,92 +588,85 @@ namespace sfg
 
 		struct per_frame_data_t
 		{
-			u8*			 mapped_debug_triangle_vertices								 = nullptr;
-			u8*			 mapped_debug_triangle_indices								 = nullptr;
-			gfx_handle_t debug_triangle_vertex_buffer								 = {};
-			gfx_handle_t debug_triangle_index_buffer								 = {};
-			u8*			 mapped_shadow_views										 = nullptr;
-			u8*			 mapped_shadow_view_data[WORLD_RENDER_SHADOW_VIEW_CAPACITY]	 = {};
-			u8*			 mapped_debug_line_vertices									 = nullptr;
-			u8*			 mapped_debug_line_indices									 = nullptr;
-			u8*			 mapped_debug_line_data										 = nullptr;
-			u8*			 mapped_debug_text_vertices									 = nullptr;
-			u8*			 mapped_debug_text_indices									 = nullptr;
-			u8*			 mapped_debug_text_data										 = nullptr;
-			u8*			 mapped_opaque_render_pass_data								 = nullptr;
-			u8*			 mapped_lighting_render_pass_data							 = nullptr;
-			u8*			 mapped_post_process_render_pass_data						 = nullptr;
-			u8*			 mapped_entity_buffer										 = nullptr;
-			u8*			 mapped_light_buffer										 = nullptr;
-			u8*			 mapped_ssao_render_pass_data								 = nullptr;
-			u8*			 mapped_bloom_render_pass_data								 = nullptr;
-			u8*			 mapped_bone_buffer											 = nullptr;
-			gfx_handle_t cmd_depth													 = {};
-			gfx_handle_t cmd_gbuffer												 = {};
-			gfx_handle_t cmd_lighting												 = {};
-			gfx_handle_t cmd_forward												 = {};
-			gfx_handle_t cmd_post													 = {};
-			gfx_handle_t cmd_ssao													 = {};
-			gfx_handle_t cmd_bloom													 = {};
-			gfx_handle_t cmd_shadows												 = {};
-			gfx_handle_t shadow_view_buffer											 = {};
-			gfx_handle_t shadow_view_data[WORLD_RENDER_SHADOW_VIEW_CAPACITY]		 = {};
-			gpu_index_t	 shadow_view_buffer_index									 = NULL_GPU_INDEX;
-			gpu_index_t	 shadow_view_data_indices[WORLD_RENDER_SHADOW_VIEW_CAPACITY] = {};
-			gfx_handle_t opaque_render_pass_data									 = {};
-			gfx_handle_t lighting_render_pass_data									 = {};
-			gfx_handle_t post_process_render_pass_data								 = {};
-			gfx_handle_t ssao_render_pass_data										 = {};
-			gfx_handle_t bloom_render_pass_data										 = {};
-			gfx_handle_t entity_buffer												 = {};
-			gfx_handle_t bone_buffer												 = {};
-			gfx_handle_t light_buffer												 = {};
-			gfx_handle_t debug_line_data											 = {};
-			gfx_handle_t debug_line_vertex_buffer									 = {};
-			gfx_handle_t debug_line_index_buffer									 = {};
-			gfx_handle_t debug_text_data											 = {};
-			gfx_handle_t debug_text_vertex_buffer									 = {};
-			gfx_handle_t debug_text_index_buffer									 = {};
-			gfx_handle_t lighting_texture											 = {};
-			gfx_handle_t post_process_texture										 = {};
-			gfx_handle_t depth_texture												 = {};
-			gfx_handle_t gbuffer_albedo												 = {};
-			gfx_handle_t gbuffer_normal												 = {};
-			gfx_handle_t gbuffer_orm												 = {};
-			gfx_handle_t gbuffer_emissive											 = {};
-			gfx_handle_t ao_texture													 = {};
-			gfx_handle_t ao_half_texture											 = {};
-			gfx_handle_t bloom_downsample											 = {};
-			gfx_handle_t bloom_upsample												 = {};
-			gfx_handle_t ssao_semaphore												 = {};
-			gfx_handle_t bloom_semaphore											 = {};
-			mutable u64	 ssao_semaphore_value										 = 0;
-			mutable u64	 bloom_semaphore_value										 = 0;
-			gpu_index_t	 lighting_texture_index										 = NULL_GPU_INDEX;
-			gpu_index_t	 post_process_texture_index									 = NULL_GPU_INDEX;
-			gpu_index_t	 depth_texture_index										 = NULL_GPU_INDEX;
-			gpu_index_t	 gbuffer_albedo_index										 = NULL_GPU_INDEX;
-			gpu_index_t	 gbuffer_normal_index										 = NULL_GPU_INDEX;
-			gpu_index_t	 gbuffer_orm_index											 = NULL_GPU_INDEX;
-			gpu_index_t	 gbuffer_emissive_index										 = NULL_GPU_INDEX;
-			gpu_index_t	 ao_texture_index											 = NULL_GPU_INDEX;
-			gpu_index_t	 ao_texture_uav_index										 = NULL_GPU_INDEX;
-			gpu_index_t	 ao_half_texture_index										 = NULL_GPU_INDEX;
-			gpu_index_t	 ao_half_texture_uav_index									 = NULL_GPU_INDEX;
-			gpu_index_t	 bloom_downsample_index[WORLD_RENDER_BLOOM_LEVEL_COUNT]		 = {};
-			gpu_index_t	 bloom_downsample_uav_index[WORLD_RENDER_BLOOM_LEVEL_COUNT]	 = {};
-			gpu_index_t	 bloom_upsample_index[WORLD_RENDER_BLOOM_LEVEL_COUNT]		 = {};
-			gpu_index_t	 bloom_upsample_uav_index[WORLD_RENDER_BLOOM_LEVEL_COUNT]	 = {};
-			gpu_index_t	 opaque_render_pass_data_index								 = NULL_GPU_INDEX;
-			gpu_index_t	 lighting_render_pass_data_index							 = NULL_GPU_INDEX;
-			gpu_index_t	 post_process_render_pass_data_index						 = NULL_GPU_INDEX;
-			gpu_index_t	 ssao_render_pass_data_index								 = NULL_GPU_INDEX;
-			gpu_index_t	 bloom_render_pass_data_index								 = NULL_GPU_INDEX;
-			gpu_index_t	 entity_buffer_index										 = NULL_GPU_INDEX;
-			gpu_index_t	 bone_buffer_index											 = NULL_GPU_INDEX;
-			gpu_index_t	 light_buffer_index											 = NULL_GPU_INDEX;
-			gpu_index_t	 debug_line_data_index										 = NULL_GPU_INDEX;
-			gpu_index_t	 debug_text_data_index										 = NULL_GPU_INDEX;
+			u8*			 mapped_debug_triangle_vertices								= nullptr;
+			u8*			 mapped_debug_triangle_indices								= nullptr;
+			gfx_handle_t debug_triangle_vertex_buffer								= {};
+			gfx_handle_t debug_triangle_index_buffer								= {};
+			u8*			 mapped_debug_line_vertices									= nullptr;
+			u8*			 mapped_debug_line_indices									= nullptr;
+			u8*			 mapped_debug_line_data										= nullptr;
+			u8*			 mapped_debug_text_vertices									= nullptr;
+			u8*			 mapped_debug_text_indices									= nullptr;
+			u8*			 mapped_debug_text_data										= nullptr;
+			u8*			 mapped_opaque_render_pass_data								= nullptr;
+			u8*			 mapped_lighting_render_pass_data							= nullptr;
+			u8*			 mapped_post_process_render_pass_data						= nullptr;
+			u8*			 mapped_entity_buffer										= nullptr;
+			u8*			 mapped_light_buffer										= nullptr;
+			u8*			 mapped_ssao_render_pass_data								= nullptr;
+			u8*			 mapped_bloom_render_pass_data								= nullptr;
+			u8*			 mapped_bone_buffer											= nullptr;
+			gfx_handle_t cmd_depth													= {};
+			gfx_handle_t cmd_gbuffer												= {};
+			gfx_handle_t cmd_lighting												= {};
+			gfx_handle_t cmd_forward												= {};
+			gfx_handle_t cmd_post													= {};
+			gfx_handle_t cmd_ssao													= {};
+			gfx_handle_t cmd_bloom													= {};
+			gfx_handle_t opaque_render_pass_data									= {};
+			gfx_handle_t lighting_render_pass_data									= {};
+			gfx_handle_t post_process_render_pass_data								= {};
+			gfx_handle_t ssao_render_pass_data										= {};
+			gfx_handle_t bloom_render_pass_data										= {};
+			gfx_handle_t entity_buffer												= {};
+			gfx_handle_t bone_buffer												= {};
+			gfx_handle_t light_buffer												= {};
+			gfx_handle_t debug_line_data											= {};
+			gfx_handle_t debug_line_vertex_buffer									= {};
+			gfx_handle_t debug_line_index_buffer									= {};
+			gfx_handle_t debug_text_data											= {};
+			gfx_handle_t debug_text_vertex_buffer									= {};
+			gfx_handle_t debug_text_index_buffer									= {};
+			gfx_handle_t lighting_texture											= {};
+			gfx_handle_t post_process_texture										= {};
+			gfx_handle_t depth_texture												= {};
+			gfx_handle_t gbuffer_albedo												= {};
+			gfx_handle_t gbuffer_normal												= {};
+			gfx_handle_t gbuffer_orm												= {};
+			gfx_handle_t gbuffer_emissive											= {};
+			gfx_handle_t ao_texture													= {};
+			gfx_handle_t ao_half_texture											= {};
+			gfx_handle_t bloom_downsample											= {};
+			gfx_handle_t bloom_upsample												= {};
+			gfx_handle_t ssao_semaphore												= {};
+			gfx_handle_t bloom_semaphore											= {};
+			mutable u64	 ssao_semaphore_value										= 0;
+			mutable u64	 bloom_semaphore_value										= 0;
+			gpu_index_t	 lighting_texture_index										= NULL_GPU_INDEX;
+			gpu_index_t	 post_process_texture_index									= NULL_GPU_INDEX;
+			gpu_index_t	 depth_texture_index										= NULL_GPU_INDEX;
+			gpu_index_t	 gbuffer_albedo_index										= NULL_GPU_INDEX;
+			gpu_index_t	 gbuffer_normal_index										= NULL_GPU_INDEX;
+			gpu_index_t	 gbuffer_orm_index											= NULL_GPU_INDEX;
+			gpu_index_t	 gbuffer_emissive_index										= NULL_GPU_INDEX;
+			gpu_index_t	 ao_texture_index											= NULL_GPU_INDEX;
+			gpu_index_t	 ao_texture_uav_index										= NULL_GPU_INDEX;
+			gpu_index_t	 ao_half_texture_index										= NULL_GPU_INDEX;
+			gpu_index_t	 ao_half_texture_uav_index									= NULL_GPU_INDEX;
+			gpu_index_t	 bloom_downsample_index[WORLD_RENDER_BLOOM_LEVEL_COUNT]		= {};
+			gpu_index_t	 bloom_downsample_uav_index[WORLD_RENDER_BLOOM_LEVEL_COUNT] = {};
+			gpu_index_t	 bloom_upsample_index[WORLD_RENDER_BLOOM_LEVEL_COUNT]		= {};
+			gpu_index_t	 bloom_upsample_uav_index[WORLD_RENDER_BLOOM_LEVEL_COUNT]	= {};
+			gpu_index_t	 opaque_render_pass_data_index								= NULL_GPU_INDEX;
+			gpu_index_t	 lighting_render_pass_data_index							= NULL_GPU_INDEX;
+			gpu_index_t	 post_process_render_pass_data_index						= NULL_GPU_INDEX;
+			gpu_index_t	 ssao_render_pass_data_index								= NULL_GPU_INDEX;
+			gpu_index_t	 bloom_render_pass_data_index								= NULL_GPU_INDEX;
+			gpu_index_t	 entity_buffer_index										= NULL_GPU_INDEX;
+			gpu_index_t	 bone_buffer_index											= NULL_GPU_INDEX;
+			gpu_index_t	 light_buffer_index											= NULL_GPU_INDEX;
+			gpu_index_t	 debug_line_data_index										= NULL_GPU_INDEX;
+			gpu_index_t	 debug_text_data_index										= NULL_GPU_INDEX;
 		};
 
 		struct shaders_t
@@ -725,13 +682,12 @@ namespace sfg
 		};
 
 	private:
-		per_frame_data_t				 _pfd[BACK_BUFFER_COUNT]									  = {};
-		shaders_t						 _shaders													  = {};
-		world_render_context_config_t	 _config													  = {};
-		gfx_handle_t					 _ssao_noise_texture										  = {};
-		gfx_handle_t					 _ssao_noise_staging										  = {};
-		gpu_index_t						 _ssao_noise_texture_index									  = NULL_GPU_INDEX;
-		world_render_shadow_allocation_t _shadow_allocations[WORLD_RENDER_SHADOW_ALLOCATION_CAPACITY] = {};
-		u64								 _shadow_serial												  = 0;
+		per_frame_data_t			  _pfd[BACK_BUFFER_COUNT]	= {};
+		world_render_shadow_context_t _shadow_context			= {};
+		shaders_t					  _shaders					= {};
+		world_render_context_config_t _config					= {};
+		gfx_handle_t				  _ssao_noise_texture		= {};
+		gfx_handle_t				  _ssao_noise_staging		= {};
+		gpu_index_t					  _ssao_noise_texture_index = NULL_GPU_INDEX;
 	};
 }

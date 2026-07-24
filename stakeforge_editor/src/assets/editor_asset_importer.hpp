@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/resources/audio_cook.hpp>
-#include <sfg/runtime/resources/skybox_hdr_cook.hpp>
+#include <sfg/runtime/resources/cubemap_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 
 namespace sfg
@@ -49,7 +49,7 @@ namespace sfg
 		font,
 		texture,
 		model,
-		hdr_skybox,
+		cubemap,
 		orm_texture,
 	};
 
@@ -73,7 +73,7 @@ namespace sfg
 	{
 		texture_cook_config_t	   texture_cook_config = {};
 		audio_cook_config_t		   audio_cook_config   = {};
-		skybox_hdr_cook_config_t   skybox_cook_config  = {};
+		cubemap_cook_config_t	   cubemap_cook_config = {};
 		glb_cook_config_t		   glb_cook_config	   = {};
 		editor_asset_import_type_e type				   = editor_asset_import_type_e::invalid;
 	};

@@ -26,7 +26,7 @@
 #include "prefab.hpp"
 #include "resource_manifest.hpp"
 #include "shader_cook.hpp"
-#include "skybox_hdr_cook.hpp"
+#include "cubemap_cook.hpp"
 #include "texture_cook.hpp"
 #include "texture_sampler_cook.hpp"
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -185,18 +185,18 @@ namespace sfg
 				return texture_sampler_cooker::cook_from_desc(desc, out_header, stream);
 			}
 
-			if (schema == "sfg.schema.hdr_skybox")
+			if (schema == "sfg.schema.cubemap")
 			{
-				skybox_hdr_cook_config_t cfg = {};
+				cubemap_cook_config_t cfg = {};
 
-				if (!reflection_registry_t::get().type_from_json(type_id_t<skybox_hdr_cook_config_t>::value, &cfg, nullptr, config))
+				if (!reflection_registry_t::get().type_from_json(type_id_t<cubemap_cook_config_t>::value, &cfg, nullptr, config))
 				{
-					SFG_ERR("failed to deserialize HDR skybox cook config");
+					SFG_ERR("failed to deserialize cubemap cook config");
 
 					return false;
 				}
 
-				return skybox_hdr_cooker::cook_from_file(cfg, full_path, out_header, stream);
+				return cubemap_cooker::cook_from_file(cfg, full_path, out_header, stream);
 			}
 
 			if (schema == "sfg.schema.prefab")
@@ -222,8 +222,8 @@ namespace sfg
 
 		bool cook_and_cache(const string_t& source_path, sid_t sid, const nlohmann::json& config, const string_t& cache_dir)
 		{
-			const string_t	  schema = config.value<string_t>("schema", "");
-			ostream_t		  payload;
+			const string_t	  schema	 = config.value<string_t>("schema", "");
+			ostream_t		  payload	 = {};
 			resource_header_t out_header = {};
 			if (!cook_for_schema(schema, config, source_path.c_str(), out_header, payload))
 			{
@@ -378,7 +378,7 @@ namespace sfg
 					return false;
 				}
 
-				ostream_t def_stream;
+				ostream_t def_stream = {};
 				if (!reflection_registry_t::get().type_to_stream(type_id_t<animation_def_t>::value, &def, nullptr, def_stream))
 				{
 					SFG_ERR("failed to serialize animation definition for {0}", entry.path.c_str());
@@ -396,7 +396,7 @@ namespace sfg
 					return false;
 				}
 
-				ostream_t desc_stream;
+				ostream_t desc_stream = {};
 				if (!reflection_registry_t::get().type_to_stream(type_id_t<sampler_desc_t>::value, &desc, nullptr, desc_stream))
 				{
 					SFG_ERR("failed to serialize texture sampler description for {0}", entry.path.c_str());
