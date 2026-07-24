@@ -180,6 +180,21 @@ namespace sfg
 		{
 			animation_graph_def_t definition = {};
 			definition.name					 = desc.name;
+			definition.nodes.push_back({});
+			definition.entry_node_id  = 1;
+			definition.output_node_id = 1;
+			definition.next_id		  = 3;
+
+			animation_graph_node_def_t& node = definition.nodes.back();
+			node.type						 = animation_graph_node_type_e::asm_node;
+			node.id							 = 1;
+			node.asm_node.states.push_back({});
+			node.asm_node.first_state_id = 2;
+			node.name					 = "ASM Node";
+
+			animation_graph_asm_state_def_t& state = node.asm_node.states.back();
+			state.id							   = 2;
+			state.name							   = "State";
 
 			nlohmann::json embedded_source = nlohmann::json::object();
 

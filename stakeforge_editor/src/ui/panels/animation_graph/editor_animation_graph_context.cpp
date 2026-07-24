@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/panels/animation_graph/editor_animation_graph_context.hpp"
+#include "commands/editor_command_animation_graph.hpp"
 #include "editor_command_system.hpp"
 #include "ui/panels/animation_graph/editor_animation_graph_grid.hpp"
 #include "ui/panels/animation_graph/editor_animation_graph_widget_inspector.hpp"
@@ -48,20 +49,27 @@ namespace sfg
 	{
 		editor_command_system_t& command_system = editor_command_system_t::get();
 
+		editor_command_animation_graph_edit_t::cancel(*this);
 		command_system.clear_user_data(this);
 		command_system.remove_listener(_command_listener);
 
-		_grid					= nullptr;
-		_inspector				= nullptr;
-		_command_listener		= {};
-		_graph					= {};
-		_asset_id				= NULL_SID;
-		_display_node_id		= ANIMATION_GRAPH_DEF_NULL_ID;
-		_selected_node_id		= ANIMATION_GRAPH_DEF_NULL_ID;
-		_selected_sub_node_id	= ANIMATION_GRAPH_DEF_NULL_ID;
-		_selected_transition_id = ANIMATION_GRAPH_DEF_NULL_ID;
-		_id_counter				= 1;
-		_display_mode			= editor_animation_graph_display_mode_e::display_nodes;
+		_grid								  = nullptr;
+		_inspector							  = nullptr;
+		_command_listener					  = {};
+		_graph								  = {};
+		_asset_id							  = NULL_SID;
+		_display_node_id					  = ANIMATION_GRAPH_DEF_NULL_ID;
+		_selected_node_id					  = ANIMATION_GRAPH_DEF_NULL_ID;
+		_selected_sub_node_id				  = ANIMATION_GRAPH_DEF_NULL_ID;
+		_selected_transition_id				  = ANIMATION_GRAPH_DEF_NULL_ID;
+		_edit_previous_display_node_id		  = ANIMATION_GRAPH_DEF_NULL_ID;
+		_edit_previous_selected_node_id		  = ANIMATION_GRAPH_DEF_NULL_ID;
+		_edit_previous_selected_sub_node_id	  = ANIMATION_GRAPH_DEF_NULL_ID;
+		_edit_previous_selected_transition_id = ANIMATION_GRAPH_DEF_NULL_ID;
+		_id_counter							  = 1;
+		_edit_previous_stream				  = {};
+		_display_mode						  = editor_animation_graph_display_mode_e::display_nodes;
+		_edit_previous_mode					  = editor_animation_graph_display_mode_e::display_nodes;
 	}
 
 	void editor_animation_graph_context_t::set_display_mode(editor_animation_graph_display_mode_e mode)
@@ -98,9 +106,25 @@ namespace sfg
 	{
 		_id_counter = _graph.next_id;
 
+		for (const animation_graph_node_def_t& node : _graph.nodes)
+		{
+			_id_counter = std::max(_id_counter, node.id + 1);
+
+			if (node.type != animation_graph_node_type_e::asm_node)
+				continue;
+
+			for (const animation_graph_asm_state_def_t& state : node.asm_node.states)
+				_id_counter = std::max(_id_counter, state.id + 1);
+
+			for (const animation_graph_asm_transition_def_t& transition : node.asm_node.transitions)
+				_id_counter = std::max(_id_counter, transition.id + 1);
+		}
+
+		const u32 acquired_id = _id_counter;
+
 		++_id_counter;
 		_graph.next_id = _id_counter;
-		return _id_counter - 1;
+		return acquired_id;
 	}
 
 	void editor_animation_graph_context_t::ensure_graph_node_designations()
@@ -152,25 +176,15 @@ namespace sfg
 
 		switch (command.type)
 		{
-		case editor_command_type_e::animation_graph_add_node:
-		case editor_command_type_e::animation_graph_delete_node:
-		case editor_command_type_e::animation_graph_duplicate_node:
-			context.ensure_graph_node_designations();
+		case editor_command_type_e::animation_graph_edit: {
 			context._grid->refresh_nodes();
+
+			const u32 selected_node_id = context._display_mode == editor_animation_graph_display_mode_e::display_nodes ? context._selected_node_id : context._selected_sub_node_id;
+
+			context._grid->change_selection(selected_node_id);
 			context._inspector->refresh_inspector();
 			break;
-		case editor_command_type_e::animation_graph_add_asm_state:
-		case editor_command_type_e::animation_graph_delete_asm_state:
-		case editor_command_type_e::animation_graph_duplicate_asm_state:
-			context.ensure_asm_state_designations();
-			context._grid->refresh_nodes();
-			context._inspector->refresh_inspector();
-			break;
-		case editor_command_type_e::animation_graph_asm_node_add_transition:
-		case editor_command_type_e::animation_graph_asm_node_delete_transition:
-			context._grid->refresh_nodes();
-			context._inspector->refresh_inspector();
-			break;
+		}
 		case editor_command_type_e::animation_graph_select_transition:
 			context._grid->change_selection(context._selected_sub_node_id);
 			context._inspector->refresh_inspector();

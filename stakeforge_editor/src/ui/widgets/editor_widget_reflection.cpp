@@ -456,10 +456,10 @@ namespace sfg
 	bool editor_widget_reflection_t::create_dropdown(
 		ui::widget_id_t parent, const reflected_field_t* field, sid_t owner_field_id, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
 	{
-		if (field->value_type != reflected_value_type_e::u8 && field->value_type != reflected_value_type_e::u16 && field->value_type != reflected_value_type_e::u32)
+		if (field->value_type != reflected_value_type_e::u8 && field->value_type != reflected_value_type_e::u16 && field->value_type != reflected_value_type_e::u32 && field->value_type != reflected_value_type_e::u64)
 			return false;
 
-		frame_vector_t<editor_dropdown_item_t> items;
+		frame_vector_t<editor_dropdown_item_t> items = {};
 
 		if (_dropdown_items != nullptr)
 		{
@@ -524,6 +524,7 @@ namespace sfg
 
 		if (track_row)
 			_rows.push_back(row.row);
+
 		return true;
 	}
 

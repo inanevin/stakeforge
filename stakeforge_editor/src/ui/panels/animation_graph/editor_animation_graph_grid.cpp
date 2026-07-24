@@ -217,6 +217,11 @@ namespace sfg
 		_double_click_node_id = UINT32_MAX;
 		set_zoom_instant(1.0f);
 		refresh_nodes();
+
+		if (mode == editor_animation_graph_display_mode_e::display_nodes)
+			update_text("GRAPH");
+		else if (mode == editor_animation_graph_display_mode_e::display_state_machine)
+			update_text("STATE MACHINE");
 	}
 
 	void editor_animation_graph_grid_t::refresh_nodes()
@@ -377,15 +382,18 @@ namespace sfg
 
 		const bool hit_node		  = _context_menu_node_id != ANIMATION_GRAPH_DEF_NULL_ID;
 		const bool hit_transition = _context_menu_transition_id != ANIMATION_GRAPH_DEF_NULL_ID;
+		const bool only_node	  = _nodes.size() == 1;
 
 		for (u32 i = 0; i < 3; ++i)
 			ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS[i].disabled = hit_node;
 
-		for (u32 i = 3; i < 7; ++i)
+		ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS[3].disabled = !hit_node || only_node;
+
+		for (u32 i = 4; i < 7; ++i)
 			ANIMATION_GRAPH_GRID_NODES_ACTION_MENU_ROWS[i].disabled = !hit_node;
 
 		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[0].disabled = hit_node || hit_transition;
-		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[1].disabled = !hit_node;
+		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[1].disabled = !hit_node || only_node;
 		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[2].disabled = !hit_node;
 		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[3].disabled = !hit_node;
 		ANIMATION_GRAPH_GRID_STATE_MACHINE_ACTION_MENU_ROWS[4].disabled = !hit_transition;
@@ -445,40 +453,40 @@ namespace sfg
 		switch (command)
 		{
 		case ANIMATION_GRAPH_GRID_CREATE_ASM_COMMAND:
-			editor_command_animation_graph_add_node_t::add(*grid._config.context, animation_graph_node_type_e::asm_node, grid._context_menu_editor_position, "ASM");
+			editor_command_animation_graph_edit_t::add_node(*grid._config.context, animation_graph_node_type_e::asm_node, grid._context_menu_editor_position, "ASM");
 			break;
 		case ANIMATION_GRAPH_GRID_CREATE_BONE_CONTROL_COMMAND:
-			editor_command_animation_graph_add_node_t::add(*grid._config.context, animation_graph_node_type_e::bone_controller, grid._context_menu_editor_position, "Bone Control");
+			editor_command_animation_graph_edit_t::add_node(*grid._config.context, animation_graph_node_type_e::bone_controller, grid._context_menu_editor_position, "Bone Control");
 			break;
 		case ANIMATION_GRAPH_GRID_CREATE_IK_COMMAND:
-			editor_command_animation_graph_add_node_t::add(*grid._config.context, animation_graph_node_type_e::ik, grid._context_menu_editor_position, "IK");
+			editor_command_animation_graph_edit_t::add_node(*grid._config.context, animation_graph_node_type_e::ik, grid._context_menu_editor_position, "IK");
 			break;
 		case ANIMATION_GRAPH_GRID_DELETE_NODE_COMMAND:
-			editor_command_animation_graph_delete_node_t::remove(*grid._config.context, grid._config.context->get_selected_node_id());
+			editor_command_animation_graph_edit_t::delete_node(*grid._config.context, grid._config.context->get_selected_node_id());
 			break;
 		case ANIMATION_GRAPH_GRID_DUPLICATE_NODE_COMMAND:
-			editor_command_animation_graph_duplicate_node_t::duplicate(*grid._config.context, grid._config.context->get_selected_node_id());
+			editor_command_animation_graph_edit_t::duplicate_node(*grid._config.context, grid._config.context->get_selected_node_id());
 			break;
 		case ANIMATION_GRAPH_GRID_MAKE_ENTRY_COMMAND:
-			editor_command_animation_graph_make_entry_t::make(*grid._config.context, grid._context_menu_node_id);
+			editor_command_animation_graph_edit_t::make_entry(*grid._config.context, grid._context_menu_node_id);
 			break;
 		case ANIMATION_GRAPH_GRID_MAKE_EXIT_COMMAND:
-			editor_command_animation_graph_make_exit_t::make(*grid._config.context, grid._context_menu_node_id);
+			editor_command_animation_graph_edit_t::make_exit(*grid._config.context, grid._context_menu_node_id);
 			break;
 		case ANIMATION_GRAPH_GRID_CREATE_ASM_STATE_COMMAND:
-			editor_command_animation_graph_add_asm_state_t::add(*grid._config.context, grid._context_menu_editor_position, "State");
+			editor_command_animation_graph_edit_t::add_asm_state(*grid._config.context, grid._context_menu_editor_position, "State");
 			break;
 		case ANIMATION_GRAPH_GRID_DELETE_ASM_STATE_COMMAND:
-			editor_command_animation_graph_delete_asm_state_t::remove(*grid._config.context, grid._context_menu_node_id);
+			editor_command_animation_graph_edit_t::delete_asm_state(*grid._config.context, grid._context_menu_node_id);
 			break;
 		case ANIMATION_GRAPH_GRID_DUPLICATE_ASM_STATE_COMMAND:
-			editor_command_animation_graph_duplicate_asm_state_t::duplicate(*grid._config.context, grid._context_menu_node_id);
+			editor_command_animation_graph_edit_t::duplicate_asm_state(*grid._config.context, grid._context_menu_node_id);
 			break;
 		case ANIMATION_GRAPH_GRID_MAKE_START_STATE_COMMAND:
-			editor_command_animation_graph_make_start_state_t::make(*grid._config.context, grid._context_menu_node_id);
+			editor_command_animation_graph_edit_t::make_start_state(*grid._config.context, grid._context_menu_node_id);
 			break;
 		case ANIMATION_GRAPH_GRID_DELETE_TRANSITION_COMMAND:
-			editor_command_animation_graph_asm_node_delete_transition_t::remove(*grid._config.context, grid._context_menu_transition_id);
+			editor_command_animation_graph_edit_t::delete_asm_transition(*grid._config.context, grid._context_menu_transition_id);
 			break;
 		default:
 			break;
@@ -647,7 +655,7 @@ namespace sfg
 
 		if (ev.key == static_cast<u16>(input_code::key_delete) && !display_nodes && selected_transition_id != ANIMATION_GRAPH_DEF_NULL_ID)
 		{
-			editor_command_animation_graph_asm_node_delete_transition_t::remove(*grid._config.context, selected_transition_id);
+			editor_command_animation_graph_edit_t::delete_asm_transition(*grid._config.context, selected_transition_id);
 			return;
 		}
 
@@ -659,16 +667,16 @@ namespace sfg
 		if (ev.key == static_cast<u16>(input_code::key_delete))
 		{
 			if (display_nodes)
-				editor_command_animation_graph_delete_node_t::remove(*grid._config.context, selected_node_id);
+				editor_command_animation_graph_edit_t::delete_node(*grid._config.context, selected_node_id);
 			else
-				editor_command_animation_graph_delete_asm_state_t::remove(*grid._config.context, selected_node_id);
+				editor_command_animation_graph_edit_t::delete_asm_state(*grid._config.context, selected_node_id);
 		}
 		else if (ev.key == static_cast<u16>(input_code::key_d) && ctrl_pressed)
 		{
 			if (display_nodes)
-				editor_command_animation_graph_duplicate_node_t::duplicate(*grid._config.context, selected_node_id);
+				editor_command_animation_graph_edit_t::duplicate_node(*grid._config.context, selected_node_id);
 			else
-				editor_command_animation_graph_duplicate_asm_state_t::duplicate(*grid._config.context, selected_node_id);
+				editor_command_animation_graph_edit_t::duplicate_asm_state(*grid._config.context, selected_node_id);
 		}
 	}
 
@@ -698,6 +706,9 @@ namespace sfg
 			editor_command_animation_graph_select_transition_t::select(*grid._config.context, ANIMATION_GRAPH_DEF_NULL_ID);
 			editor_command_animation_graph_select_node_t::select_sub_node(*grid._config.context, grid._nodes[drag_index]->get_id());
 		}
+
+		if (grid._drag_node_index != UINT32_MAX && !editor_command_animation_graph_edit_t::begin(*grid._config.context))
+			grid._drag_node_index = UINT32_MAX;
 	}
 
 	void editor_animation_graph_grid_t::on_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data)
@@ -750,11 +761,13 @@ namespace sfg
 				const u32 target_node_id = grid._nodes[target_node_index]->get_id();
 
 				if (grid._config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes)
-					editor_command_animation_graph_connect_nodes_t::connect(*grid._config.context, source_node_id, target_node_id);
+					editor_command_animation_graph_edit_t::connect_nodes(*grid._config.context, source_node_id, target_node_id);
 				else
-					editor_command_animation_graph_asm_node_add_transition_t::add(*grid._config.context, source_node_id, target_node_id);
+					editor_command_animation_graph_edit_t::add_asm_transition(*grid._config.context, source_node_id, target_node_id);
 			}
 		}
+		else if (grid._drag_node_index != UINT32_MAX)
+			editor_command_animation_graph_edit_t::submit(*grid._config.context, "Animation Graph Move Node", false);
 
 		grid._drag_node_index	  = UINT32_MAX;
 		grid._drag_pin_node_index = UINT32_MAX;

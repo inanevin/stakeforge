@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
@@ -62,8 +63,21 @@ namespace sfg
 			return false;
 		}
 
-		const animation_graph_node_def_t* source_node = def.nodes.empty() ? nullptr : def.find_node(def.entry_node_id);
-		u32								  node_count  = 0;
+		if (def.entry_node_id == ANIMATION_GRAPH_DEF_NULL_ID || def.output_node_id == ANIMATION_GRAPH_DEF_NULL_ID)
+		{
+			SFG_WARN("animation graph is missing entry or exit node ids!");
+			return false;
+		}
+
+		if (def.nodes.empty())
+		{
+			SFG_WARN("animation graph has no nodes");
+			return false;
+		}
+
+		const animation_graph_node_def_t* source_node = def.find_node(def.entry_node_id);
+
+		u32 node_count = 0;
 
 		while (source_node != nullptr)
 		{
@@ -79,6 +93,18 @@ namespace sfg
 				break;
 
 			source_node = def.find_node(source_node->next_node_id);
+
+			if (source_node == nullptr)
+			{
+				SFG_ERR("animation graph exit node is unreachable!");
+				return false;
+			}
+		}
+
+		if (node_count == 0)
+		{
+			SFG_ERR("animation graph is empty!");
+			return false;
 		}
 
 		chunk_allocator_t&		   mem	   = ctx.resource_manager.get_memory();
@@ -89,37 +115,39 @@ namespace sfg
 		runtime->parameter_count = static_cast<u32>(def.parameters.size());
 		runtime->node_count		 = node_count;
 
+		animation_graph_param_t* parameters = nullptr;
+
 		if (runtime->parameter_count != 0)
 		{
-			runtime->parameters = mem.allocate_bytes(sizeof(animation_graph_resource_param_t) * runtime->parameter_count, alignof(animation_graph_resource_param_t));
+			runtime->parameters = mem.allocate_bytes(sizeof(animation_graph_param_t) * runtime->parameter_count, alignof(animation_graph_param_t));
 
-			animation_graph_resource_param_t* parameters = mem.get<animation_graph_resource_param_t>(runtime->parameters);
+			parameters = mem.get<animation_graph_param_t>(runtime->parameters);
 
 			for (u32 parameter_index = 0; parameter_index < runtime->parameter_count; ++parameter_index)
 			{
 				const animation_graph_param_def_t& source	   = def.parameters[parameter_index];
-				animation_graph_resource_param_t&  destination = parameters[parameter_index];
+				animation_graph_param_t&		   destination = parameters[parameter_index];
 
-				destination			   = {};
-				destination.name_hash  = TO_SID(source.name.c_str());
-				destination.value.type = source.type;
+				destination			  = {};
+				destination.name_hash = TO_SID(source.name.c_str());
+				destination.type	  = source.type;
 
 				switch (source.type)
 				{
 				case animation_param_type_e::f32:
-					destination.value.f32_value = source.f32_value;
+					destination.f32_value = source.f32_value;
 					break;
 				case animation_param_type_e::vec2:
-					destination.value.vec2_value = source.vec2_value;
+					destination.vec2_value = source.vec2_value;
 					break;
 				case animation_param_type_e::vec3:
-					destination.value.vec3_value = source.vec3_value;
+					destination.vec3_value = source.vec3_value;
 					break;
 				case animation_param_type_e::quat:
-					destination.value.quat_value = source.quat_value;
+					destination.quat_value = source.quat_value;
 					break;
 				case animation_param_type_e::boolean:
-					destination.value.bool_value = source.bool_value;
+					destination.bool_value = source.bool_value;
 					break;
 				}
 			}
@@ -172,7 +200,7 @@ namespace sfg
 
 						for (u32 parameter_index = 0; parameter_index < runtime->parameter_count; ++parameter_index)
 						{
-							if (def.parameters[parameter_index].id == source_state.blend_parameter_id)
+							if (parameters[parameter_index].name_hash == source_state.blend_parameter_id)
 							{
 								destination_state.blend_parameter_index = parameter_index;
 								break;
@@ -200,7 +228,7 @@ namespace sfg
 								};
 
 								if (animation != nullptr && animation->duration > destination_state.duration)
-									destination_state.duration = animation->duration;
+									destination_state.duration = math::max(destination_state.duration, animation->duration);
 							}
 						}
 					}
@@ -235,7 +263,7 @@ namespace sfg
 
 						for (u32 parameter_index = 0; parameter_index < runtime->parameter_count; ++parameter_index)
 						{
-							if (def.parameters[parameter_index].id == source_transition.parameter_id)
+							if (parameters[parameter_index].name_hash == source_transition.parameter_id)
 							{
 								destination_transition.parameter_index = parameter_index;
 								break;
@@ -268,7 +296,7 @@ namespace sfg
 
 						for (u32 parameter_index = 0; parameter_index < runtime->parameter_count; ++parameter_index)
 						{
-							if (def.parameters[parameter_index].id == source_bone.parameter_id)
+							if (parameters[parameter_index].name_hash == source_bone.parameter_id)
 							{
 								destination_bone.parameter_index = parameter_index;
 								break;

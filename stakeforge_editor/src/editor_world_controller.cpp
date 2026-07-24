@@ -561,7 +561,7 @@ namespace sfg
 			world_t&			  world			  = editor_world->get_world();
 			const nlohmann::json  embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
 			world_cooker_t::world_from_json(world, embedded_source);
-			world.load_all_used_resources();
+			// world.load_all_used_resources();
 			editor_world->install_camera(editor_world_camera_type_e::fly);
 			editor_world->deserialize_camera(embedded_source.value<nlohmann::json>("editor_camera", nlohmann::json::object()));
 		}

@@ -76,6 +76,7 @@ namespace sfg
 	public:
 		static ui::widget_id_t				add_edit_blocker(ui::ui_context& ui, ui::widget_id_t parent);
 		static ui::widget_id_t				add_spacer(ui::ui_context& ui, ui::widget_id_t parent, const vec2f_t& size);
+		static ui::widget_id_t				make_section_label(ui::ui_context& ui, ui::widget_id_t parent, const char* text);
 		static editor_property_row_t		make_property_row(ui::ui_context& ui, ui::widget_id_t parent, f32 indentation = 0.0f);
 		static editor_property_row_t		make_property_row_with_label(ui::ui_context& ui, ui::widget_id_t parent, const char* label, bool sub_item = false, bool remove_button = false, f32 indentation = 0.0f);
 		static editor_vector_property_row_t make_vector_property_row_with_label(ui::ui_context& ui, ui::widget_id_t parent, const char* label, u32 item_count = 0, bool unfolded = false, bool sub_item = false, f32 indentation = 0.0f);

@@ -56,7 +56,6 @@ namespace sfg
 			.fields =
 				{
 					{.name = "name", .display_name = "Name", .offset = offsetof(animation_graph_param_def_t, name), .size = sizeof(string_t), .type = reflected_value_type_e::string},
-					{.name = "id", .display_name = "ID", .offset = offsetof(animation_graph_param_def_t, id), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
 					{.name = "type", .display_name = "Type", .sub_type_id = type_id_t<animation_param_type_e>::value, .offset = offsetof(animation_graph_param_def_t, type), .size = sizeof(animation_param_type_e), .type = reflected_value_type_e::u8},
 					{.ui_definition = {.dependency_field = "type"_hs, .dependency_value = 0, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
 					 .name			= "f32_value",
@@ -148,7 +147,7 @@ namespace sfg
 						.size		  = sizeof(animation_graph_asm_state_type_e),
 						.type		  = reflected_value_type_e::u8,
 					},
-					{.name = "blend_parameter_id", .display_name = "Blend Parameter", .offset = offsetof(animation_graph_asm_state_def_t, blend_parameter_id), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+					{.name = "blend_parameter_id", .display_name = "Blend Parameter", .offset = offsetof(animation_graph_asm_state_def_t, blend_parameter_id), .size = sizeof(sid_t), .type = reflected_value_type_e::u64},
 					{.name = "duration", .display_name = "Duration", .offset = offsetof(animation_graph_asm_state_def_t, duration), .size = sizeof(f32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::f32},
 					{.name = "loop", .display_name = "Loop", .offset = offsetof(animation_graph_asm_state_def_t, loop), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
 					{.container_ops = reflection_container_ops_t::vector_ops<animation_graph_clip_def_t>(reflected_value_type_e::object, type_id_t<animation_graph_clip_def_t>::value),
@@ -171,7 +170,7 @@ namespace sfg
 					{.name = "id", .display_name = "ID", .offset = offsetof(animation_graph_asm_transition_def_t, id), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
 					{.name = "from_state_id", .display_name = "From State", .offset = offsetof(animation_graph_asm_transition_def_t, from_state_id), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
 					{.name = "to_state_id", .display_name = "To State", .offset = offsetof(animation_graph_asm_transition_def_t, to_state_id), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
-					{.name = "parameter_id", .display_name = "Parameter", .offset = offsetof(animation_graph_asm_transition_def_t, parameter_id), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+					{.name = "parameter_id", .display_name = "Parameter", .offset = offsetof(animation_graph_asm_transition_def_t, parameter_id), .size = sizeof(sid_t), .type = reflected_value_type_e::u64},
 					{.name		   = "type",
 					 .display_name = "Comparison",
 					 .sub_type_id  = type_id_t<animation_graph_asm_transition_type_e>::value,
@@ -225,7 +224,7 @@ namespace sfg
 			.fields =
 				{
 					{.name = "bone_index", .display_name = "Bone", .offset = offsetof(animation_graph_bone_control_entry_def_t, bone_index), .size = sizeof(u32), .type = reflected_value_type_e::u32},
-					{.name = "parameter_id", .display_name = "Parameter ID", .offset = offsetof(animation_graph_bone_control_entry_def_t, parameter_id), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+					{.name = "parameter_id", .display_name = "Parameter", .offset = offsetof(animation_graph_bone_control_entry_def_t, parameter_id), .size = sizeof(sid_t), .type = reflected_value_type_e::u64},
 				},
 			.type_id   = type_id_t<animation_graph_bone_control_entry_def_t>::value,
 			.size	   = sizeof(animation_graph_bone_control_entry_def_t),

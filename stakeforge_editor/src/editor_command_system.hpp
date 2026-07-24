@@ -65,23 +65,10 @@ namespace sfg
 		shader_edit,
 		texture_sampler_edit,
 		physical_material_edit,
-		animation_graph_add_node,
-		animation_graph_delete_node,
-		animation_graph_duplicate_node,
-		animation_graph_add_asm_state,
-		animation_graph_delete_asm_state,
-		animation_graph_duplicate_asm_state,
-		animation_graph_asm_node_add_transition,
-		animation_graph_asm_node_delete_transition,
 		animation_graph_select_transition,
 		animation_graph_select_node,
 		animation_graph_set_display_mode,
-		animation_graph_make_entry,
-		animation_graph_make_exit,
-		animation_graph_make_start_state,
-		animation_graph_connect_nodes,
 		animation_graph_edit,
-		animation_graph_navigation,
 	};
 
 	enum class editor_command_state_e : u8

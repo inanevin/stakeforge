@@ -101,7 +101,8 @@ namespace sfg
 			quat_t	quat_value;
 			bool	bool_value;
 		};
-		animation_param_type_e type = animation_param_type_e::f32;
+		animation_param_type_e type		 = animation_param_type_e::f32;
+		sid_t				   name_hash = NULL_SID;
 	};
 
 	struct animation_graph_mask_t

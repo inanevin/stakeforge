@@ -33,12 +33,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	struct animation_graph_resource_param_t
-	{
-		animation_graph_param_t value	  = {};
-		sid_t					name_hash = NULL_SID;
-	};
-
 	struct animation_graph_resource_clip_t
 	{
 		resource_handle_t clip			 = NULL_RESOURCE_HANDLE;
@@ -116,7 +110,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('A', 'G', 'R', 'F');
-		static constexpr u32 WIRE_VERSION = 2;
+		static constexpr u32 WIRE_VERSION = 3;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);

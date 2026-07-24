@@ -97,20 +97,22 @@ namespace sfg
 			.node_count		 = graph.node_count,
 		};
 
+		// parameters
 		if (instance.parameter_count != 0)
 		{
 			instance.parameters = _params.allocate_bytes(sizeof(animation_graph_param_t) * instance.parameter_count, alignof(animation_graph_param_t));
 
-			const animation_graph_resource_param_t* source_parameters	   = resource_memory.get<animation_graph_resource_param_t>(graph.parameters);
-			animation_graph_param_t*				destination_parameters = _params.get<animation_graph_param_t>(instance.parameters);
+			const animation_graph_param_t* source_parameters	  = resource_memory.get<animation_graph_param_t>(graph.parameters);
+			animation_graph_param_t*	   destination_parameters = _params.get<animation_graph_param_t>(instance.parameters);
 
 			for (u32 parameter_index = 0; parameter_index < instance.parameter_count; ++parameter_index)
-				destination_parameters[parameter_index] = source_parameters[parameter_index].value;
+				destination_parameters[parameter_index] = source_parameters[parameter_index];
 		}
 
 		if (instance.node_count == 0)
 			return instance;
 
+		// base nodes.
 		instance.nodes = _nodes.allocate_bytes(sizeof(animation_graph_node_t) * instance.node_count, alignof(animation_graph_node_t));
 
 		const animation_graph_resource_node_t* source_nodes		 = resource_memory.get<animation_graph_resource_node_t>(graph.nodes);
@@ -125,6 +127,7 @@ namespace sfg
 			destination_node.type		 = source_node.type;
 			destination_node.pose_handle = animation_graph_util_t::create_pose_from_skeleton(skeleton, resource_memory, _poses, _pose_bones, _aux);
 
+			// asm node
 			if (source_node.type == animation_graph_node_type_e::asm_node)
 			{
 				const animation_graph_resource_asm_t& source_asm	  = source_node.asm_node;
@@ -143,6 +146,7 @@ namespace sfg
 				destination_asm.state_count		 = source_asm.state_count;
 				destination_asm.transition_count = source_asm.transition_count;
 
+				// asm node states
 				if (destination_asm.state_count != 0)
 				{
 					destination_asm.states = _asm_states.allocate_bytes(sizeof(animation_graph_asm_state_t) * destination_asm.state_count, alignof(animation_graph_asm_state_t));
@@ -170,14 +174,11 @@ namespace sfg
 								.size = sizeof(animation_graph_param_t),
 							};
 						}
-						else
-						{
-							SFG_ASSERT(source_state.state_type == animation_graph_asm_state_type_e::no_blend);
-						}
 
 						if (destination_state.clip_count == 0)
 							continue;
 
+						// clips
 						destination_state.clips = _clips.allocate_bytes(sizeof(animation_graph_clip_t) * destination_state.clip_count, alignof(animation_graph_clip_t));
 
 						const animation_graph_resource_clip_t* source_clips		 = resource_memory.get<animation_graph_resource_clip_t>(source_state.clips);
@@ -205,6 +206,7 @@ namespace sfg
 					}
 				}
 
+				// transitions
 				if (destination_asm.transition_count == 0)
 					continue;
 
@@ -248,12 +250,13 @@ namespace sfg
 				continue;
 			}
 
-			if (source_node.type != animation_graph_node_type_e::bone_controller)
+			if (source_node.type == animation_graph_node_type_e::ik)
 			{
 				std::construct_at(&destination_node.node_ik, animation_graph_node_ik_t{});
 				continue;
 			}
 
+			// bone control
 			std::construct_at(&destination_node.node_bone_control, animation_graph_node_bone_control_t{});
 
 			const animation_graph_resource_bone_control_t& source_bone_control		= source_node.bone_control_node;
@@ -415,6 +418,12 @@ namespace sfg
 
 				if (transition.from_state != node._current_state)
 					continue;
+
+				if (!transition.parameter)
+				{
+					SFG_WARN("transition is missing parameter!");
+					continue;
+				}
 
 				const animation_graph_param_t& parameter		= *_params.get<animation_graph_param_t>(transition.parameter);
 				f32							   transition_value = 0.0f;
@@ -665,6 +674,13 @@ namespace sfg
 		case animation_graph_asm_state_type_e::no_blend:
 			break;
 		case animation_graph_asm_state_type_e::blend_1d: {
+
+			if (!state.blend_parameter)
+			{
+				SFG_WARN("state is missing blend parameter!");
+				break;
+			}
+
 			const animation_graph_param_t& parameter = *_params.get<animation_graph_param_t>(state.blend_parameter);
 			if (parameter.type != animation_param_type_e::f32)
 			{

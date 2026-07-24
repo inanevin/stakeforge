@@ -648,7 +648,6 @@ namespace sfg
 			sync_pass_flags();
 		editor_command_material_edit_t::edit({.data = _edit_material_ids.data(), .size = _edit_material_ids.size()}, {.data = _edit_previous_materials.data(), .size = _edit_previous_materials.size()}, {.data = _materials.data(), .size = _materials.size()});
 		clear_material_edit();
-		request_display_refresh();
 	}
 
 	void editor_widget_material_editor_t::clear_material_edit()

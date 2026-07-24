@@ -46,7 +46,6 @@ namespace sfg
 		vec3f_t				   vec3_value = vec3f_t::zero;
 		vec2f_t				   vec2_value = vec2f_t::zero;
 		f32					   f32_value  = 0.0f;
-		u32					   id		  = ANIMATION_GRAPH_DEF_NULL_ID;
 		animation_param_type_e type		  = animation_param_type_e::f32;
 		bool				   bool_value = false;
 	};
@@ -62,22 +61,22 @@ namespace sfg
 	{
 		vector_t<animation_graph_clip_def_t> clips				= {};
 		string_t							 name				= {};
+		sid_t								 blend_parameter_id = NULL_SID;
 		vec2f_t								 editor_position	= vec2f_t::zero;
 		f32									 duration			= 0.0f;
 		u32									 id					= ANIMATION_GRAPH_DEF_NULL_ID;
-		u32									 blend_parameter_id = ANIMATION_GRAPH_DEF_NULL_ID;
 		animation_graph_asm_state_type_e	 state_type			= animation_graph_asm_state_type_e::no_blend;
-		bool								 loop				= false;
+		bool								 loop				= true;
 	};
 
 	struct animation_graph_asm_transition_def_t
 	{
+		sid_t								  parameter_id	= NULL_SID;
 		f32									  compare_value = 0.0f;
 		f32									  duration		= 0.0f;
 		u32									  id			= ANIMATION_GRAPH_DEF_NULL_ID;
 		u32									  from_state_id = ANIMATION_GRAPH_DEF_NULL_ID;
 		u32									  to_state_id	= ANIMATION_GRAPH_DEF_NULL_ID;
-		u32									  parameter_id	= ANIMATION_GRAPH_DEF_NULL_ID;
 		animation_graph_asm_transition_type_e type			= animation_graph_asm_transition_type_e::equals;
 		bool								  is_blended	= true;
 	};
@@ -92,8 +91,8 @@ namespace sfg
 
 	struct animation_graph_bone_control_entry_def_t
 	{
-		u32 bone_index	 = UINT32_MAX;
-		u32 parameter_id = ANIMATION_GRAPH_DEF_NULL_ID;
+		sid_t parameter_id = NULL_SID;
+		u32	  bone_index   = UINT32_MAX;
 	};
 
 	struct animation_graph_node_bone_control_def_t

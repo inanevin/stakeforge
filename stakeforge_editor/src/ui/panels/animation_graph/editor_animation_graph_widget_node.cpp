@@ -97,6 +97,7 @@ namespace sfg
 		body_frame_in.size_value	   = vec2f_t::one;
 		body_frame_in.flow			   = ui::flow_e::column;
 		body_frame_in.child_margins	   = {theme.margin_vertical * 2, 0.0f, theme.margin_vertical * 2, 0.0f};
+		body_frame_in.child_spacing	   = theme.item_spacing;
 
 		_entry_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_entry_label, "animation_graph_node_entry_label");
@@ -188,6 +189,8 @@ namespace sfg
 		_ui->get_tree().in(_exit_label).pos_value.x	  = theme.margin_horizontal * zoom;
 		_ui->get_tree().in(_pin_frame).size_value	  = {_base_pin_size * zoom, _base_pin_size * zoom};
 		_ui->get_tree().in(_body_frame).child_margins = {theme.margin_vertical * 2 * zoom, 0.0f, theme.margin_vertical * 2 * zoom, 0.0f};
+		_ui->get_tree().in(_body_frame).child_spacing = theme.item_spacing * zoom;
+
 		update_title_paint();
 		update_status_paint();
 	}
