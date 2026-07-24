@@ -128,6 +128,8 @@ namespace sfg
 		right_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
 		right_in.size_value		  = {1.0f, 1.0f};
 
+		editor_misc_widgets_t::make_section_label(ui, _right_pane, "Mesh");
+
 		_vertex_count_value = append_property_value_row("Vertices");
 		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 		_index_count_value = append_property_value_row("Indices");

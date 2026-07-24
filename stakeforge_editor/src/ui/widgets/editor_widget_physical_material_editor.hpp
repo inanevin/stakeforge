@@ -59,20 +59,19 @@ namespace sfg
 		}
 
 	private:
-		void			refresh_display();
-		void			clear_display();
-		void			append_property_row(ui::widget_id_t row);
-		ui::widget_id_t make_section_label(const char* text);
-		bool			can_mutate_ui_topology() const;
-		void			begin_physical_material_edit();
-		void			submit_physical_material_edit();
-		void			clear_physical_material_edit();
-		void			request_physical_materials_refresh(span_t<const sid_t> physical_materials);
-		void			request_display_refresh();
-		void			flush_pending_ui_mutations();
-		void			on_physical_material_edit_begin();
-		void			on_physical_material_edited();
-		void			on_physical_material_edit_submitted();
+		void refresh_display();
+		void clear_display();
+		void append_property_row(ui::widget_id_t row);
+		bool can_mutate_ui_topology() const;
+		void begin_physical_material_edit();
+		void submit_physical_material_edit();
+		void clear_physical_material_edit();
+		void request_physical_materials_refresh(span_t<const sid_t> physical_materials);
+		void request_display_refresh();
+		void flush_pending_ui_mutations();
+		void on_physical_material_edit_begin();
+		void on_physical_material_edited();
+		void on_physical_material_edit_submitted();
 
 		static void on_physical_material_edit_begin(void* user_data);
 		static void on_physical_material_edited(void* user_data);

@@ -30,7 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "commands/editor_commands_texture_sampler.hpp"
-#include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
@@ -121,7 +120,7 @@ namespace sfg
 		if (_samplers.empty())
 			return;
 
-		_labels.push_back(make_section_label("Texture Sampler"));
+		_labels.push_back(editor_misc_widgets_t::make_section_label(*_ui, _root, "Texture Sampler"));
 
 		editor_widget_callbacks_t callbacks = {};
 		callbacks.edit_begin				= on_sampler_edit_begin;
@@ -169,44 +168,6 @@ namespace sfg
 	{
 		_rows.push_back(row);
 		_dividers.push_back(editor_dividers_t::add_divider_hor(*_ui, _root, editor_theme_t::get().divider_thickness * 2.0f, editor_theme_t::get().color_frame, editor_theme_t::get().color_frame, ui::vg_gradient_e::none));
-	}
-
-	ui::widget_id_t editor_widget_texture_sampler_editor_t::make_section_label(const char* text)
-	{
-		const editor_theme_t& theme = editor_theme_t::get();
-
-		const ui::widget_id_t label = _ui->allocate_widget();
-		_ui->set_widget_debug_name(label, "texture_sampler_editor_section_label");
-		_ui->get_tree().attach(_root, label);
-
-		ui::layout_in_t& label_in = _ui->get_tree().in(label);
-		label_in.flags			  = ui::wf_visible;
-		label_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
-		label_in.size_mode_y	  = ui::axis_mode_e::fixed;
-		label_in.size_value		  = {1.0f, theme.item_area_height};
-		label_in.child_margins	  = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
-		label_in.flow			  = ui::flow_e::row;
-
-		ui::widget_id_t text_widget = _ui->allocate_widget();
-		_ui->set_widget_debug_name(text_widget, "texture_sampler_editor_section_text");
-		_ui->get_tree().attach(label, text_widget);
-
-		ui::layout_in_t& text_in = _ui->get_tree().in(text_widget);
-		text_in.flags			 = ui::wf_visible;
-		text_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
-		text_in.pos_value.y		 = 0.5f;
-		text_in.anchor_y		 = ui::anchor_e::center;
-		text_in.size_mode_x		 = ui::axis_mode_e::fill;
-		text_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		text_in.size_value		 = {1.0f, theme.text_default_px_size};
-
-		_ui->set_widget_text(text_widget, text);
-		_ui->get_paint().set_text(text_widget,
-								  _ui->widget_text(text_widget),
-								  _ui->widget_text_len(text_widget),
-								  {.font = theme.font_title_bold, .color = theme.color_accent1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-
-		return label;
 	}
 
 	bool editor_widget_texture_sampler_editor_t::can_mutate_ui_topology() const

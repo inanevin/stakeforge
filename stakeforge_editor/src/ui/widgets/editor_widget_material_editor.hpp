@@ -67,32 +67,31 @@ namespace sfg
 		}
 
 	private:
-		void			refresh_display();
-		void			refresh_display_common();
-		void			refresh_display_data();
-		void			clear_display();
-		void			fit_control(ui::widget_id_t widget);
-		void			append_property_row(ui::widget_id_t row);
-		ui::widget_id_t make_section_label(const char* text);
-		bool			can_mutate_ui_topology() const;
-		bool			load_shared_shader_definition();
-		void			normalize_materials_to_shader_definition();
-		void			sync_pass_flags();
-		void			begin_material_edit();
-		void			submit_material_edit();
-		void			clear_material_edit();
-		void			begin_shader_edit();
-		void			submit_shader_edit();
-		void			clear_shader_edit();
-		void			request_materials_refresh(span_t<const sid_t> materials);
-		void			request_display_refresh();
-		void			flush_pending_ui_mutations();
-		void			on_material_edit_begin();
-		void			on_material_edited();
-		void			on_material_edit_submitted();
-		void			on_shader_edit_begin();
-		void			on_shader_edited();
-		void			on_shader_edit_submitted();
+		void refresh_display();
+		void refresh_display_common();
+		void refresh_display_data();
+		void clear_display();
+		void fit_control(ui::widget_id_t widget);
+		void append_property_row(ui::widget_id_t row);
+		bool can_mutate_ui_topology() const;
+		bool load_shared_shader_definition();
+		void normalize_materials_to_shader_definition();
+		void sync_pass_flags();
+		void begin_material_edit();
+		void submit_material_edit();
+		void clear_material_edit();
+		void begin_shader_edit();
+		void submit_shader_edit();
+		void clear_shader_edit();
+		void request_materials_refresh(span_t<const sid_t> materials);
+		void request_display_refresh();
+		void flush_pending_ui_mutations();
+		void on_material_edit_begin();
+		void on_material_edited();
+		void on_material_edit_submitted();
+		void on_shader_edit_begin();
+		void on_shader_edited();
+		void on_shader_edit_submitted();
 
 		static void on_material_edit_begin(void* user_data);
 		static void on_material_edited(void* user_data);
