@@ -121,7 +121,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 MAX_CONTROLLERS = 16;
-		static constexpr u32 MAX_ITEMS		 = 65;
+		static constexpr u32 MAX_ITEMS		 = 256;
 
 		editor_popup_controller_t()												   = default;
 		~editor_popup_controller_t()											   = default;
@@ -201,7 +201,7 @@ namespace sfg
 		void  collect_entity_items();
 		void  filter_asset_items();
 		void  destroy_asset_rows();
-		void  begin_asset_scroll_to_selected();
+		void  begin_list_scroll_to_selected();
 		bool  can_mutate_ui_topology() const;
 		bool  defer_request(pending_request_e request);
 		void  flush_pending_request();
@@ -218,7 +218,7 @@ namespace sfg
 		static void on_popup_outside(ui::input_router_t& router, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_input_submitted(void* user_data);
 		static void on_asset_search_changed(void* user_data);
-		static void on_asset_list_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+		static void on_list_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
@@ -233,7 +233,7 @@ namespace sfg
 		ui::widget_id_t				 _asset_label_row			   = NULL_WIDGET;
 		ui::widget_id_t				 _asset_label				   = NULL_WIDGET;
 		ui::widget_id_t				 _asset_search_row			   = NULL_WIDGET;
-		ui::widget_id_t				 _assets_frame				   = NULL_WIDGET;
+		ui::widget_id_t				 _list_frame				   = NULL_WIDGET;
 		editor_popup_desc_t			 _desc						   = {};
 		editor_input_popup_desc_t	 _input_desc				   = {};
 		editor_asset_popup_desc_t	 _asset_desc				   = {};
@@ -246,7 +246,7 @@ namespace sfg
 		editor_custom_popup_desc_t	 _pending_custom_desc		   = {};
 		editor_input_field_t		 _input						   = {};
 		editor_input_field_t		 _asset_search_input		   = {};
-		editor_scrollbar_t			 _asset_scrollbar			   = {};
+		editor_scrollbar_t			 _list_scrollbar			   = {};
 		editor_popup_item_desc_t	 _items[MAX_ITEMS]			   = {};
 		vector_t<asset_popup_item_t> _asset_items				   = {};
 		vector_t<asset_popup_item_t> _asset_filtered_items		   = {};
@@ -256,8 +256,8 @@ namespace sfg
 		editor_popup_item_desc_t	 _pending_items[MAX_ITEMS]	   = {};
 		popup_mode_e				 _mode						   = popup_mode_e::none;
 		pending_request_e			 _pending_request			   = pending_request_e::none;
-		u32							 _asset_scroll_target		   = 0;
-		u8							 _asset_scroll_pending_frames  = 0;
+		u32							 _list_scroll_target		   = 0;
+		u8							 _list_scroll_pending_frames   = 0;
 		bool						 _pending_close_notify_input   = false;
 		bool						 _visible					   = false;
 	};
