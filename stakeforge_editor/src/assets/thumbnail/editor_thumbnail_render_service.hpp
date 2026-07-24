@@ -70,7 +70,6 @@ namespace sfg
 
 		void request_thumbnail(const editor_asset_t& asset);
 		void tick();
-		bool pop_completed(sid_t& out_asset_guid, sid_t& out_thumbnail_guid);
 		bool has_pending_work() const;
 
 	private:
@@ -85,12 +84,6 @@ namespace sfg
 		{
 			thumbnail_request_t request		= {};
 			u32					world_index = 0;
-		};
-
-		struct completed_render_t
-		{
-			sid_t asset_guid	 = NULL_SID;
-			sid_t thumbnail_guid = NULL_SID;
 		};
 
 	private:
@@ -112,7 +105,6 @@ namespace sfg
 		vector_t<editor_thumbnail_world_t> _worlds;
 		vector_t<pending_render_t>		   _pending_renders;
 		vector_t<thumbnail_request_t>	   _requests;
-		vector_t<completed_render_t>	   _completed_renders;
 		vector_t<u32>					   _available_worlds;
 		semaphore_data_t				   _semaphore_frame		  = {};
 		semaphore_data_t				   _semaphore_transfer	  = {};

@@ -31,6 +31,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager_util.hpp"
 #include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
+#include "assets/thumbnail/editor_asset_thumbnail_manager.hpp"
+#include "assets/thumbnail/editor_asset_thumbnailer.hpp"
 #include "editor_app.hpp"
 #include "editor_surface_controller.hpp"
 #include "editor_project.hpp"
@@ -41,6 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/color_utils.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
 #include <utility>
 #include <tracy/Tracy.hpp>
@@ -173,6 +176,7 @@ namespace sfg
 			{
 				_cooked_resource_scan_ticks = 0;
 				scan_cooked_resources();
+				process_changed_cooked_resources();
 			}
 		}
 	}
@@ -199,8 +203,17 @@ namespace sfg
 		for (const auto& asset_pair : _database.get_assets())
 		{
 			const editor_asset_t& asset = asset_pair.second;
-			track_cooked_resource(asset.guid, false);
-			track_cooked_resource(asset.thumbnail_guid, false);
+
+			track_cooked_resource(asset.guid, asset.guid, cooked_resource_kind_e::asset, false);
+			track_cooked_resource(asset.thumbnail_guid, asset.guid, cooked_resource_kind_e::thumbnail, false);
+
+			if (editor_asset_thumbnailer_t::is_renderable_thumbnail(asset.asset_type) && asset.thumbnail_guid != editor_asset_thumbnailer_t::get_builtin_thumbnail_guid(asset.asset_type))
+			{
+				const string_t thumbnail_cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.thumbnail_guid);
+
+				if (!file_system_t::exists(thumbnail_cache_path.c_str()))
+					editor_asset_thumbnail_manager_t::get().request_render(asset.guid);
+			}
 		}
 
 		_is_cooked_resource_tracking_initialized = true;
@@ -251,8 +264,8 @@ namespace sfg
 
 			if (_is_cooked_resource_tracking_initialized)
 			{
-				track_cooked_resource(asset_id, true);
-				track_cooked_resource(thumbnail_id, true);
+				track_cooked_resource(asset_id, asset_id, cooked_resource_kind_e::asset, true);
+				track_cooked_resource(thumbnail_id, asset_id, cooked_resource_kind_e::thumbnail, true);
 			}
 
 			notify_changed();
@@ -314,8 +327,8 @@ namespace sfg
 
 		if (_is_cooked_resource_tracking_initialized)
 		{
-			track_cooked_resource(asset_id, true);
-			track_cooked_resource(thumbnail_id, true);
+			track_cooked_resource(asset_id, asset_id, cooked_resource_kind_e::asset, true);
+			track_cooked_resource(thumbnail_id, asset_id, cooked_resource_kind_e::thumbnail, true);
 		}
 
 		notify_changed();
@@ -476,11 +489,6 @@ namespace sfg
 		return true;
 	}
 
-	void editor_asset_manager_t::clear_changed_cooked_resources()
-	{
-		_changed_cooked_resources.resize(0);
-	}
-
 	void editor_asset_manager_t::flush_asset_save_cook_jobs()
 	{
 		if (_asset_save_cook_worker_count.load(std::memory_order_acquire) == 0)
@@ -508,6 +516,8 @@ namespace sfg
 
 			if (!saved_and_cooked)
 				SFG_ERR("failed to save and cook embedded asset {0}", asset_id);
+			else
+				SFG_TRACE("asyncly saved and cooked asset! {0}", save_cook_state.display_name);
 
 			bool is_completed = false;
 
@@ -543,16 +553,75 @@ namespace sfg
 
 			tracking_state.last_modified = last_modified;
 
-			const auto changed_it = std::find(_changed_cooked_resources.begin(), _changed_cooked_resources.end(), resource_id);
-			if (changed_it == _changed_cooked_resources.end())
-				_changed_cooked_resources.push_back(resource_id);
+			SFG_TRACE("detected cooked resource change! {0}", tracking_state.cache_path);
+			_changed_cooked_resources.push_back(resource_id);
 		}
 	}
 
-	void editor_asset_manager_t::track_cooked_resource(sid_t resource_id, bool report_existing_file)
+	void editor_asset_manager_t::process_changed_cooked_resources()
+	{
+		resource_manager_t& resource_manager	 = resource_manager_t::get();
+		bool				requires_render_stop = false;
+
+		for (const sid_t resource_id : _changed_cooked_resources)
+		{
+			const auto tracking_it = _cooked_resource_tracking_states.find(resource_id);
+			SFG_ASSERT(tracking_it != _cooked_resource_tracking_states.end());
+
+			const cooked_resource_tracking_state_t& tracking_state = tracking_it->second;
+
+			if (tracking_state.kind == cooked_resource_kind_e::thumbnail || resource_manager.find_entry(resource_id) != nullptr)
+			{
+				requires_render_stop = true;
+				break;
+			}
+		}
+
+		if (requires_render_stop)
+			editor_app_t::get().stop_render();
+
+		editor_asset_thumbnail_manager_t& thumbnail_manager = editor_asset_thumbnail_manager_t::get();
+
+		for (const sid_t resource_id : _changed_cooked_resources)
+		{
+			const auto tracking_it = _cooked_resource_tracking_states.find(resource_id);
+			SFG_ASSERT(tracking_it != _cooked_resource_tracking_states.end());
+
+			const cooked_resource_tracking_state_t& tracking_state = tracking_it->second;
+			const editor_asset_t*					asset		   = _database.find_asset(tracking_state.asset_id);
+
+			if (asset == nullptr)
+				continue;
+
+			if (tracking_state.kind == cooked_resource_kind_e::thumbnail)
+				thumbnail_manager.refresh_thumbnail_resource(resource_id);
+			else
+			{
+				if (resource_manager.find_entry(resource_id) != nullptr)
+					resource_manager.reload_resource(resource_id);
+
+				if (editor_asset_thumbnailer_t::is_renderable_thumbnail(asset->asset_type) && asset->thumbnail_guid != editor_asset_thumbnailer_t::get_builtin_thumbnail_guid(asset->asset_type))
+					thumbnail_manager.request_render(asset->guid);
+			}
+		}
+
+		_changed_cooked_resources.resize(0);
+	}
+
+	void editor_asset_manager_t::track_cooked_resource(sid_t resource_id, sid_t asset_id, cooked_resource_kind_e kind, bool report_existing_file)
 	{
 		if (resource_id == NULL_SID)
 			return;
+
+		if (kind == cooked_resource_kind_e::thumbnail)
+		{
+			const editor_asset_t* asset = _database.find_asset(asset_id);
+
+			SFG_ASSERT(asset != nullptr);
+
+			if (resource_id == editor_asset_thumbnailer_t::get_builtin_thumbnail_guid(asset->asset_type))
+				return;
+		}
 
 		auto [it, inserted] = _cooked_resource_tracking_states.try_emplace(resource_id);
 
@@ -561,7 +630,9 @@ namespace sfg
 
 		cooked_resource_tracking_state_t& tracking_state = it->second;
 		tracking_state.cache_path						 = editor_asset_path_t::get_cache_path_for_guid(resource_id);
+		tracking_state.asset_id							 = asset_id;
 		tracking_state.last_modified					 = report_existing_file ? 0 : file_system_t::get_last_modified_ticks(tracking_state.cache_path.c_str());
+		tracking_state.kind								 = kind;
 	}
 
 	const editor_asset_descriptor_t* editor_asset_manager_t::find_asset_descriptor(const string_t& extension) const

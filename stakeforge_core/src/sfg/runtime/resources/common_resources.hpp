@@ -96,7 +96,6 @@ namespace sfg
 
 		load_fn_t		  load		   = nullptr;
 		runtime_load_fn_t runtime_load = nullptr;
-		load_fn_t		  reload	   = nullptr;
 		unload_fn_t		  unload	   = nullptr;
 	};
 

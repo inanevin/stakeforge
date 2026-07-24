@@ -152,7 +152,6 @@ namespace sfg
 		_available_worlds.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_pending_renders.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 		_requests.reserve(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
-		_completed_renders.reserve(32);
 
 		grow_world_pool(EDITOR_THUMBNAIL_WORLD_POOL_INITIAL_SIZE);
 	}
@@ -160,6 +159,7 @@ namespace sfg
 	void editor_thumbnail_render_service_t::uninit()
 	{
 		gfx_backend& backend = gfx_backend::get();
+
 		backend.wait_semaphore(_semaphore_frame.sem, _semaphore_frame.value);
 		backend.wait_semaphore(_semaphore_transfer.sem, _semaphore_transfer.value);
 		backend.wait_semaphore(_semaphore_readback.sem, _semaphore_readback.value);
@@ -205,7 +205,6 @@ namespace sfg
 		_debug_triangle_shader = {};
 		_readback_pixels.resize(0);
 		_requests.resize(0);
-		_completed_renders.resize(0);
 		_world_config	 = {};
 		_global_index	 = NULL_GPU_INDEX;
 		_mapped_global	 = nullptr;
@@ -245,6 +244,7 @@ namespace sfg
 		for (size_t i = 0; i < _pending_renders.size();)
 		{
 			pending_render_t& pending_render = _pending_renders[i];
+
 			if (!editor_thumbnail_render_util_t::is_ready_to_render(_worlds[pending_render.world_index]))
 			{
 				i++;
@@ -257,29 +257,12 @@ namespace sfg
 			resolve_world_to_thumbnail_texture();
 			readback_thumbnail_texture();
 
-			if (save_rendered_thumbnail(pending_render.request))
-			{
-				_completed_renders.push_back({
-					.asset_guid		= pending_render.request.asset_guid,
-					.thumbnail_guid = pending_render.request.thumbnail_guid,
-				});
-			}
+			save_rendered_thumbnail(pending_render.request);
+
 			release_world(pending_render.world_index);
 			_pending_renders[i] = _pending_renders.back();
 			_pending_renders.pop_back();
 		}
-	}
-
-	bool editor_thumbnail_render_service_t::pop_completed(sid_t& out_asset_guid, sid_t& out_thumbnail_guid)
-	{
-		if (_completed_renders.empty())
-			return false;
-
-		const completed_render_t completed = _completed_renders.back();
-		_completed_renders.pop_back();
-		out_asset_guid	   = completed.asset_guid;
-		out_thumbnail_guid = completed.thumbnail_guid;
-		return true;
 	}
 
 	bool editor_thumbnail_render_service_t::has_pending_work() const

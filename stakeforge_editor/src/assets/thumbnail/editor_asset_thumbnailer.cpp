@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
-#include "assets/thumbnail/editor_asset_thumbnail_database.hpp"
 #include "editor_project.hpp"
 
 #include <sfg/data/ostream.hpp>
@@ -201,24 +200,21 @@ namespace sfg
 			return;
 
 		if (is_renderable_thumbnail(asset.asset_type))
-		{
-			editor_asset_thumbnail_database_t::get().request_render(asset.guid);
 			return;
-		}
 
-		vector_t<u8> pixels;
+		vector_t<u8> pixels = {};
+
 		pixels.reserve(256 * 256 * 4);
 
 		bool filled = false;
+
 		if (asset.asset_type == editor_asset_type_e::texture)
 			filled = fill_texture_thumbnail(asset, pixels);
-		if (asset.asset_type == editor_asset_type_e::font)
+		else if (asset.asset_type == editor_asset_type_e::font)
 			filled = fill_font_thumbnail(asset, pixels);
+
 		if (filled)
-		{
-			if (save_thumbnail(asset, {.data = pixels.data(), .size = pixels.size()}, display_name))
-				editor_asset_thumbnail_database_t::get().request_generated(asset.guid);
-		}
+			save_thumbnail(asset, {.data = pixels.data(), .size = pixels.size()}, display_name);
 	}
 
 	bool editor_asset_thumbnailer_t::save_thumbnail(const editor_asset_t& asset, span_t<u8> pixels, const char* display_name)

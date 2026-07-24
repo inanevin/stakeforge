@@ -49,21 +49,6 @@ namespace sfg
 		return true;
 	}
 
-	bool prefab_loader_t::reload(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset)
-	{
-		chunk_handle32_t source = {};
-
-		if (!read_source(entry, ctx, rfs, payload_offset, source))
-			return false;
-
-		chunk_allocator_t&	mem		  = ctx.resource_manager.get_memory();
-		prefab_internals_t* internals = mem.get<prefab_internals_t>(entry.internals);
-		mem.free(internals->source);
-		internals->source = source;
-
-		return true;
-	}
-
 	void prefab_loader_t::unload(resource_entry_t& entry, resource_context_t& ctx)
 	{
 		chunk_allocator_t&	mem		  = ctx.resource_manager.get_memory();
@@ -81,7 +66,6 @@ namespace sfg
 		.wire_magic			 = prefab_loader_t::WIRE_MAGIC,
 		.wire_version		 = prefab_loader_t::WIRE_VERSION,
 		.load				 = prefab_loader_t::load,
-		.reload				 = prefab_loader_t::reload,
 		.unload				 = prefab_loader_t::unload,
 	};
 }

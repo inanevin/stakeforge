@@ -464,7 +464,7 @@ namespace sfg
 		SFG_INFO("resource_pack: recooked {0}", e.source_path.c_str());
 
 		// TODO:
-		// _mgr->reload_resource(e.sid, data, e.type);
+		// _mgr->reload_resource(e.sid);
 	}
 #endif
 

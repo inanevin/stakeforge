@@ -166,6 +166,7 @@ namespace sfg
 		if (!desc->load(loaded_entry, ctx, *_resource_file_system, payload_offset))
 		{
 			SFG_WARN("failed loading resource: {0} {1}", debug_name, hash);
+			unload_dependencies(loaded_entry);
 			free_entry(loaded_entry);
 			_entries.erase(entry_it);
 			return resource_state_e::failed;
@@ -176,6 +177,41 @@ namespace sfg
 		SFG_TRACE("loaded resource: {0}", debug_name);
 
 		return _entries.find(hash)->second.state;
+	}
+
+	resource_state_e resource_manager_t::reload_resource(sid_t hash)
+	{
+		SFG_ASSERT(is_main_thread());
+
+		auto it = _entries.find(hash);
+
+		if (it == _entries.end())
+		{
+			SFG_WARN("can't reload resource as it's not loaded! {0}", hash);
+			return resource_state_e::failed;
+		}
+
+		resource_entry_t&	  entry		= it->second;
+		const u32			  ref_count = entry.ref_count;
+		const resource_type_e type		= entry.type;
+
+		SFG_ASSERT(ref_count != 0);
+
+		unload_dependencies(entry);
+		unload_entry(entry);
+		_entries.erase(it);
+		_generation++;
+
+		const resource_state_e state = load_resource(hash, type);
+
+		if (state == resource_state_e::failed)
+			return state;
+
+		auto reloaded_it = _entries.find(hash);
+		SFG_ASSERT(reloaded_it != _entries.end());
+		reloaded_it->second.ref_count = ref_count;
+
+		return state;
 	}
 
 	resource_state_e resource_manager_t::load_resource_runtime(sid_t hash, resource_type_e type, istream_t& stream)
@@ -237,6 +273,7 @@ namespace sfg
 		SFG_ASSERT(is_main_thread());
 
 		auto it = _entries.find(hash);
+
 		if (it == _entries.end())
 		{
 			SFG_WARN("can't unload resource as it's not loaded! {0}", hash);
@@ -244,6 +281,7 @@ namespace sfg
 		}
 
 		resource_entry_t& entry = it->second;
+
 		if (entry.ref_count == 0)
 			return;
 
@@ -257,15 +295,7 @@ namespace sfg
 		if (entry.ref_count != 0)
 			return;
 
-		if (entry.dependency_count != 0)
-		{
-			resource_dependency_t* deps = _memory.get<resource_dependency_t>(entry.dependencies);
-			for (u32 i = 0; i < entry.dependency_count; i++)
-			{
-				if (deps[i].handle != NULL_SID)
-					unload_resource(deps[i].handle, force);
-			}
-		}
+		unload_dependencies(entry);
 
 		unload_entry(entry);
 		_entries.erase(it);
@@ -275,6 +305,7 @@ namespace sfg
 	const resource_entry_t* resource_manager_t::find_entry(u64 hash) const
 	{
 		auto it = _entries.find(hash);
+
 		if (it == _entries.end())
 			return nullptr;
 
@@ -284,7 +315,22 @@ namespace sfg
 	void resource_manager_t::drain_atlases(u8 frame_slot)
 	{
 		SFG_ASSERT(is_main_thread());
+
 		_glyph_atlas.drain_uploads(frame_slot);
+	}
+
+	void resource_manager_t::unload_dependencies(resource_entry_t& entry)
+	{
+		if (entry.dependency_count == 0)
+			return;
+
+		resource_dependency_t* dependencies = _memory.get<resource_dependency_t>(entry.dependencies);
+
+		for (u32 i = 0; i < entry.dependency_count; i++)
+		{
+			if (dependencies[i].handle != NULL_SID)
+				unload_resource(dependencies[i].handle);
+		}
 	}
 
 	void resource_manager_t::unload_entry(resource_entry_t& entry)

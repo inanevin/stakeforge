@@ -29,23 +29,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/vendor/moodycamel/concurrentqueue.h>
 
 namespace sfg
 {
-	struct editor_asset_t;
-
-	class editor_asset_thumbnail_database_t final
+	class editor_asset_thumbnail_manager_t final
 	{
 	public:
-		editor_asset_thumbnail_database_t()													   = default;
-		~editor_asset_thumbnail_database_t()												   = default;
-		editor_asset_thumbnail_database_t(const editor_asset_thumbnail_database_t&)			   = delete;
-		editor_asset_thumbnail_database_t& operator=(const editor_asset_thumbnail_database_t&) = delete;
+		editor_asset_thumbnail_manager_t()													 = default;
+		~editor_asset_thumbnail_manager_t()													 = default;
+		editor_asset_thumbnail_manager_t(const editor_asset_thumbnail_manager_t&)			 = delete;
+		editor_asset_thumbnail_manager_t& operator=(const editor_asset_thumbnail_manager_t&) = delete;
 
-		static inline editor_asset_thumbnail_database_t& get()
+		static inline editor_asset_thumbnail_manager_t& get()
 		{
-			static editor_asset_thumbnail_database_t s_instance;
+			static editor_asset_thumbnail_manager_t s_instance;
 			return s_instance;
 		}
 
@@ -62,37 +59,14 @@ namespace sfg
 
 		void tick();
 		void load_all_ready();
-		void unload_all_thumbnails();
-		void request_generated(sid_t asset_guid);
+		void refresh_thumbnail_resource(sid_t thumbnail_guid);
 		void request_render(sid_t asset_guid);
 
 	private:
-		enum class request_kind_e : u8
-		{
-			generated,
-			render,
-		};
-
-		struct request_t
-		{
-			sid_t		   asset_guid = NULL_SID;
-			request_kind_e kind		  = request_kind_e::generated;
-		};
-
-		struct pending_t
-		{
-			const editor_asset_t* asset			 = nullptr;
-			sid_t				  thumbnail_guid = NULL_SID;
-			request_kind_e		  kind			 = request_kind_e::generated;
-		};
+		void unload_loaded_thumbnail_resources();
 
 	private:
-		void push_request(request_t request);
-		void load_thumbnail(const editor_asset_t& asset);
-		void track_loaded_thumbnail(sid_t thumbnail_guid);
-
-	private:
-		moodycamel::ConcurrentQueue<request_t> _requests;
-		vector_t<sid_t>						   _loaded_thumbnails;
+		vector_t<sid_t> _render_requests;
+		vector_t<sid_t> _loaded_thumbnail_resources;
 	};
 }

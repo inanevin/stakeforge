@@ -26,7 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 #include "editor_app.hpp"
 #include "assets/editor_asset_manager_util.hpp"
-#include "assets/thumbnail/editor_asset_thumbnail_database.hpp"
+#include "assets/thumbnail/editor_asset_thumbnail_manager.hpp"
 #include "assets/thumbnail/editor_thumbnail_render_service.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
@@ -225,7 +225,6 @@ namespace sfg
 		SFG_ASSERT(surfaces.is_empty());
 
 		editor_asset_manager_util_t::ensure_default_meshes();
-		_asset_manager.initialize_cooked_resource_tracking();
 
 		const surface_handle_t payload_surface = surfaces.create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
 		if (payload_surface.is_null())
@@ -236,15 +235,15 @@ namespace sfg
 
 		_command_system.init();
 		_world_controller.init();
-		editor_asset_thumbnail_database_t::get().init();
-		editor_asset_thumbnail_database_t::get().unload_all_thumbnails();
+		editor_asset_thumbnail_manager_t::get().init();
 		editor_thumbnail_render_service_t::get().init();
-		editor_asset_thumbnail_database_t::get().load_all_ready();
+		_asset_manager.initialize_cooked_resource_tracking();
+		editor_asset_thumbnail_manager_t::get().load_all_ready();
 
 		const auto cleanup = [this]() {
 			editor_surface_controller_t::get().destroy_all_surfaces();
 			editor_thumbnail_render_service_t::get().uninit();
-			editor_asset_thumbnail_database_t::get().uninit();
+			editor_asset_thumbnail_manager_t::get().uninit();
 			_world_controller.uninit();
 			_command_system.uninit();
 		};
@@ -318,7 +317,7 @@ namespace sfg
 	{
 		_asset_manager.flush_asset_save_cook_jobs();
 		editor_thumbnail_render_service_t::get().uninit();
-		editor_asset_thumbnail_database_t::get().uninit();
+		editor_asset_thumbnail_manager_t::get().uninit();
 		_world_controller.uninit();
 		_command_system.uninit();
 	}
@@ -429,7 +428,7 @@ namespace sfg
 				_asset_manager.tick();
 
 				if (!_asset_manager.is_import_in_progress())
-					editor_asset_thumbnail_database_t::get().tick();
+					editor_asset_thumbnail_manager_t::get().tick();
 			}
 
 			if (_mode == editor_app_mode_e::normal)

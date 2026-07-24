@@ -83,7 +83,6 @@ namespace sfg
 		void					   move_node(editor_asset_node_handle_t node, editor_asset_node_handle_t new_parent, const char* new_path);
 		void					   notify_changed();
 		bool					   save_and_cook_embedded_asset_async(sid_t asset_id, const nlohmann::json& embedded_source);
-		void					   clear_changed_cooked_resources();
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -141,11 +140,6 @@ namespace sfg
 			return _import_in_progress;
 		}
 
-		inline span_t<const sid_t> get_changed_cooked_resources() const
-		{
-			return {.data = _changed_cooked_resources.data(), .size = _changed_cooked_resources.size()};
-		}
-
 	private:
 		struct asset_save_cook_state_t
 		{
@@ -155,10 +149,18 @@ namespace sfg
 			u64			   revision		= 0;
 		};
 
+		enum class cooked_resource_kind_e : u8
+		{
+			asset,
+			thumbnail,
+		};
+
 		struct cooked_resource_tracking_state_t
 		{
-			string_t cache_path	   = {};
-			u64		 last_modified = 0;
+			string_t			   cache_path	 = {};
+			sid_t				   asset_id		 = NULL_SID;
+			u64					   last_modified = 0;
+			cooked_resource_kind_e kind			 = cooked_resource_kind_e::asset;
 		};
 
 		friend class editor_asset_manager_util_t;
@@ -166,7 +168,8 @@ namespace sfg
 		static void				   on_import_progress(void* user_data, f32 progress, const char* text, bool is_completed, span_t<const string_t> imported_asset_paths);
 		void					   save_and_cook_asset_worker(sid_t asset_id);
 		void					   scan_cooked_resources();
-		void					   track_cooked_resource(sid_t resource_id, bool report_existing_file);
+		void					   process_changed_cooked_resources();
+		void					   track_cooked_resource(sid_t resource_id, sid_t asset_id, cooked_resource_kind_e kind, bool report_existing_file);
 		editor_asset_node_handle_t find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const;
 		editor_asset_node_handle_t get_or_create_child_folder(editor_asset_node_handle_t parent, const string_t& name);
 
