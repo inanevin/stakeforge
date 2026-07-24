@@ -40,17 +40,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	bool animation_graph_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
+	bool animation_graph_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset)
 	{
 		ostream_t file_stream = {};
 
-		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		if (!rfs.read_resource(entry.hash, payload_offset, 0, file_stream))
 		{
 			SFG_ERR("failed to read animation graph resource: {0}", entry.hash);
 			return false;
 		}
 
 		istream_t stream = {};
+
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 
 		animation_graph_def_t def = {};

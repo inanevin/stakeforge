@@ -172,32 +172,39 @@ namespace sfg
 			return true;
 		}
 
-		texture_stream_result_t load_texture_stream_result(sid_t hash, u64 source_ticks, resource_file_system_t& rfs)
+		texture_stream_result_t load_texture_stream_result(sid_t hash, u64 source_ticks, resource_file_system_t& rfs, size_t resource_payload_offset)
 		{
 			texture_stream_result_t result = {};
 			result.hash					   = hash;
 			result.source_ticks			   = source_ticks;
 
-			ostream_t file_stream;
-			if (!rfs.read_resource(hash, sizeof(resource_header_t), 0, file_stream))
+			ostream_t file_stream = {};
+
+			if (!rfs.read_resource(hash, resource_payload_offset, 0, file_stream))
 			{
 				SFG_ERR("failed to read texture resource: {0}", hash);
 				return result;
 			}
 
-			istream_t stream;
+			istream_t stream = {};
+
 			stream.open(file_stream.get_raw(), file_stream.get_size());
 			stream >> result.header;
+
 			SFG_ASSERT(result.header.mip_count <= texture_loader_t::MAX_MIPS);
 
 			if (result.header.payload_type == texture_payload_type_e::uncompressed)
 			{
 				u32 blob_size = 0;
+
 				stream >> blob_size;
-				istream_t compressed;
+				istream_t compressed = {};
+
 				compressed.open(stream.get_data_current(), blob_size);
 				istream_t payload = compressor_t::decompress(compressed);
+
 				stream.skip_by(blob_size);
+
 				if (payload.empty())
 				{
 					SFG_ERR("failed to decompress texture payload: {0}", hash);
@@ -224,14 +231,17 @@ namespace sfg
 						.bpp		 = buf.bpp,
 					};
 				}
+
 				result.header.bpp = 4;
 				result.success	  = true;
+
 				return result;
 			}
 
 			if (result.header.payload_type == texture_payload_type_e::png)
 			{
 				const size_t payload_offset = stream.tellg();
+
 				for (u8 i = 0; i < result.header.mip_count; ++i)
 				{
 					const texture_mip_header_t& mip = result.header.mips[i];
@@ -254,6 +264,7 @@ namespace sfg
 					buf.row_pitch		  = static_cast<u32>(mip.size.x) * 4;
 					buf.data_size		  = buf.row_pitch * static_cast<u32>(mip.size.y);
 					buf.pixels			  = static_cast<u8*>(SFG_MALLOC(buf.data_size));
+
 					if (buf.pixels == nullptr)
 					{
 						SFG_ERR("failed to allocate PNG texture mip pixels: {0}", hash);
@@ -261,6 +272,7 @@ namespace sfg
 						release_stream_result(result);
 						return result;
 					}
+
 					SFG_MEMCPY(buf.pixels, decoded, buf.data_size);
 					stbi_image_free(decoded);
 					result.header.mips[i] = {
@@ -271,8 +283,10 @@ namespace sfg
 						.bpp		 = buf.bpp,
 					};
 				}
+
 				result.header.bpp = 4;
 				result.success	  = true;
+
 				return result;
 			}
 
@@ -293,12 +307,15 @@ namespace sfg
 			if (ktx_result != KTX_SUCCESS)
 			{
 				SFG_ERR("failed to transcode KTX2 texture: {0}", ktxErrorString(ktx_result));
+
 				if (ktx_texture != nullptr)
 					ktxTexture2_Destroy(ktx_texture);
+
 				return result;
 			}
 
 			result.header.texture_format = get_format_from_ktx(ktx_texture->vkFormat);
+
 			if (result.header.texture_format == format_e::undefined)
 			{
 				SFG_ERR("unsupported KTX2 transcode format");
@@ -307,12 +324,14 @@ namespace sfg
 			}
 
 			result.header.mip_count = static_cast<u8>(ktx_texture->numLevels);
+
 			if (result.header.mip_count > texture_loader_t::MAX_MIPS)
 			{
 				SFG_ERR("texture has too many KTX2 mip levels");
 				ktxTexture2_Destroy(ktx_texture);
 				return result;
 			}
+
 			result.header.size = vec2u16_t(static_cast<u16>(ktx_texture->baseWidth), static_cast<u16>(ktx_texture->baseHeight));
 			result.header.bpp  = format_is_block_compressed(result.header.texture_format) ? 16 : format_get_bpp(result.header.texture_format);
 
@@ -320,6 +339,7 @@ namespace sfg
 			{
 				ktx_size_t offset = 0;
 				ktx_result		  = ktxTexture_GetImageOffset(ktxTexture(ktx_texture), i, 0, 0, &offset);
+
 				if (ktx_result != KTX_SUCCESS)
 				{
 					SFG_ERR("failed to get KTX2 texture image offset: {0}", ktxErrorString(ktx_result));
@@ -329,6 +349,7 @@ namespace sfg
 				}
 
 				const ktx_size_t image_size = ktxTexture_GetImageSize(ktxTexture(ktx_texture), i);
+
 				if (image_size > UINT32_MAX)
 				{
 					SFG_ERR("texture KTX2 image is too large");
@@ -343,6 +364,7 @@ namespace sfg
 				buf.size			  = vec2u16_t(get_mip_size(ktx_texture->baseWidth, i), get_mip_size(ktx_texture->baseHeight, i));
 				buf.bpp				  = result.header.bpp;
 				buf.pixels			  = static_cast<u8*>(SFG_MALLOC(buf.data_size));
+
 				if (buf.pixels == nullptr)
 				{
 					SFG_ERR("failed to allocate KTX2 texture mip pixels: {0}", hash);
@@ -350,6 +372,7 @@ namespace sfg
 					ktxTexture2_Destroy(ktx_texture);
 					return result;
 				}
+
 				SFG_MEMCPY(buf.pixels, ktxTexture_GetData(ktxTexture(ktx_texture)) + offset, buf.data_size);
 				result.header.mips[i] = {
 					.byte_offset = static_cast<u32>(offset),
@@ -362,23 +385,26 @@ namespace sfg
 
 			ktxTexture2_Destroy(ktx_texture);
 			result.success = true;
+
 			return result;
 		}
 	}
 
-	void texture_streamer_t::enqueue(resource_entry_t& entry, resource_file_system_t& rfs)
+	void texture_streamer_t::enqueue(resource_entry_t& entry, resource_file_system_t& rfs, size_t payload_offset)
 	{
 		SFG_ASSERT(job_system_t::get().is_initialized());
+
 		const sid_t				hash		 = entry.hash;
 		const u64				source_ticks = entry.source_ticks;
 		resource_file_system_t* rfs_ptr		 = &rfs;
 		texture_streamer_t*		streamer	 = this;
-		job_system_t::get().silent_async([hash, source_ticks, rfs_ptr, streamer]() mutable { streamer->_results.enqueue(load_result(hash, source_ticks, *rfs_ptr)); });
+
+		job_system_t::get().silent_async([hash, source_ticks, rfs_ptr, streamer, payload_offset]() mutable { streamer->_results.enqueue(load_result(hash, source_ticks, *rfs_ptr, payload_offset)); });
 	}
 
-	texture_stream_result_t texture_streamer_t::load_result(sid_t hash, u64 source_ticks, resource_file_system_t& rfs)
+	texture_stream_result_t texture_streamer_t::load_result(sid_t hash, u64 source_ticks, resource_file_system_t& rfs, size_t payload_offset)
 	{
-		return load_texture_stream_result(hash, source_ticks, rfs);
+		return load_texture_stream_result(hash, source_ticks, rfs, payload_offset);
 	}
 
 	void texture_streamer_t::release_result(texture_stream_result_t& result)

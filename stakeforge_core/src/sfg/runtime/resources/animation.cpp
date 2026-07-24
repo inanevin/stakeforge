@@ -13,18 +13,21 @@
 
 namespace sfg
 {
-	bool animation_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
+	bool animation_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset)
 	{
-		ostream_t file_stream;
-		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		ostream_t file_stream = {};
+
+		if (!rfs.read_resource(entry.hash, payload_offset, 0, file_stream))
 		{
 			SFG_ERR("failed to read animation resource: {0}", entry.hash);
 			return false;
 		}
 
-		istream_t stream;
+		istream_t stream = {};
+
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 		istream_t payload = compressor_t::decompress(stream);
+
 		if (payload.empty())
 		{
 			SFG_ERR("failed to decompress animation payload: {0}", entry.hash);
@@ -32,6 +35,7 @@ namespace sfg
 		}
 
 		animation_runtime_t* runtime = ctx.resource_manager.get_memory().get<animation_runtime_t>(entry.runtime);
+
 		std::construct_at(runtime);
 
 		if (!reflection_registry_t::get().type_from_stream(type_id_t<animation_def_t>::value, &runtime->def, nullptr, payload))
@@ -43,6 +47,7 @@ namespace sfg
 
 		runtime->duration = runtime->def.duration;
 		ctx.resource_manager.get_animation_storage().add_animation(entry.hash, runtime->def);
+
 		return true;
 	}
 

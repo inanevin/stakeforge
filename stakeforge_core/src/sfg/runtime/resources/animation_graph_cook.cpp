@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
@@ -52,13 +53,14 @@ namespace sfg
 			.source_tick = hashing_t::hash_u64(def_stream.get_raw(), def_stream.get_size()),
 		};
 
+		vector_t<resource_dependency_t> dependencies = {};
+
 		if (def.target_skeleton != NULL_RESOURCE_HANDLE)
 		{
-			out_header.dependencies[out_header.dependency_count] = {
+			dependencies.push_back({
 				.handle = def.target_skeleton,
 				.type	= resource_type_e::skeleton,
-			};
-			++out_header.dependency_count;
+			});
 		}
 
 		for (const animation_graph_node_def_t& node : def.nodes)
@@ -82,34 +84,23 @@ namespace sfg
 					if (clip.clip == NULL_RESOURCE_HANDLE)
 						continue;
 
-					bool dependency_exists = false;
+					const auto dependency_it = std::find_if(dependencies.begin(), dependencies.end(), [&](const resource_dependency_t& dependency) { return dependency.handle == clip.clip && dependency.type == resource_type_e::animation; });
 
-					for (u32 dependency_index = 0; dependency_index < out_header.dependency_count; ++dependency_index)
-					{
-						const resource_dependency_t& dependency = out_header.dependencies[dependency_index];
-						dependency_exists						= dependency.handle == clip.clip && dependency.type == resource_type_e::animation;
-
-						if (dependency_exists)
-							break;
-					}
-
-					if (dependency_exists)
+					if (dependency_it != dependencies.end())
 						continue;
 
-					if (out_header.dependency_count == MAX_DEPENDENCIES)
-					{
-						SFG_ERR("animation graph has more than {0} resource dependencies", MAX_DEPENDENCIES);
-						return false;
-					}
-
-					out_header.dependencies[out_header.dependency_count] = {
+					dependencies.push_back({
 						.handle = clip.clip,
 						.type	= resource_type_e::animation,
-					};
-					++out_header.dependency_count;
+					});
 				}
 			}
 		}
+
+		out_header.dependency_count = static_cast<u32>(dependencies.size());
+
+		for (const resource_dependency_t& dependency : dependencies)
+			stream << dependency;
 
 		stream.write_raw(def_stream.get_raw(), def_stream.get_size());
 

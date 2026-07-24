@@ -189,16 +189,18 @@ namespace sfg
 
 	}
 
-	bool texture_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
+	bool texture_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset)
 	{
-		ostream_t header_stream;
-		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), TEXTURE_HEADER_WIRE_SIZE, header_stream))
+		ostream_t header_stream = {};
+
+		if (!rfs.read_resource(entry.hash, payload_offset, TEXTURE_HEADER_WIRE_SIZE, header_stream))
 		{
 			SFG_ERR("failed to read texture header: {0}", entry.hash);
 			return false;
 		}
 
-		istream_t stream;
+		istream_t stream = {};
+
 		stream.open(header_stream.get_raw(), header_stream.get_size());
 
 		chunk_allocator_t&	 mem	   = ctx.resource_manager.get_memory();
@@ -208,11 +210,12 @@ namespace sfg
 		*internals					   = {};
 
 		stream >> runtime->header;
+
 		SFG_ASSERT(runtime->header.mip_count <= MAX_MIPS);
 
 		if (runtime->header.use_streaming == 0)
 		{
-			texture_stream_result_t result = texture_streamer_t::load_result(entry.hash, entry.source_ticks, rfs);
+			texture_stream_result_t result = texture_streamer_t::load_result(entry.hash, entry.source_ticks, rfs, payload_offset);
 			if (!result.success)
 			{
 				texture_streamer_t::release_result(result);
@@ -227,8 +230,10 @@ namespace sfg
 
 			runtime->header	   = result.header;
 			runtime->residency = texture_residency_e::resident;
+
 			for (u8 i = 0; i < result.header.mip_count; ++i)
 				result.mips[i].pixels = nullptr;
+
 			return true;
 		}
 
@@ -236,7 +241,8 @@ namespace sfg
 			return false;
 
 		runtime->residency = texture_residency_e::streaming;
-		ctx.resource_manager.get_texture_streamer().enqueue(entry, rfs);
+		ctx.resource_manager.get_texture_streamer().enqueue(entry, rfs, payload_offset);
+
 		return true;
 	}
 

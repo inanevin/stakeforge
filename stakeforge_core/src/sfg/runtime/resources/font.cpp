@@ -15,18 +15,21 @@
 
 namespace sfg
 {
-	bool font_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
+	bool font_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset)
 	{
-		ostream_t file_stream;
-		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		ostream_t file_stream = {};
+
+		if (!rfs.read_resource(entry.hash, payload_offset, 0, file_stream))
 		{
 			SFG_ERR("failed to read font resource: {0}", entry.hash);
 			return false;
 		}
 
-		istream_t stream;
+		istream_t stream = {};
+
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 		istream_t payload = compressor_t::decompress(stream);
+
 		if (payload.empty())
 		{
 			SFG_ERR("failed to decompress font payload: {0}", entry.hash);
@@ -42,11 +45,13 @@ namespace sfg
 
 		font->ttf_chunk = mem.allocate_bytes(font->ttf_size, alignof(u8));
 		u8* ttf_dst		= mem.get<u8>(font->ttf_chunk);
+
 		SFG_MEMCPY(ttf_dst, ttf_src, font->ttf_size);
 		font->ttf_data = ttf_dst;
 
 		FT_Face	   face	   = nullptr;
 		FT_Library library = static_cast<FT_Library>(freetype_runtime_t::get_library());
+
 		if (FT_New_Memory_Face(library, font->ttf_data, static_cast<FT_Long>(font->ttf_size), 0, &face) != 0)
 		{
 			SFG_ERR("failed to create font face: {0}", entry.hash);
@@ -60,6 +65,7 @@ namespace sfg
 		font->ascent  = static_cast<i32>(face->ascender);
 		font->descent = static_cast<i32>(face->descender);
 		font->height  = static_cast<i32>(face->height);
+
 		return true;
 	}
 

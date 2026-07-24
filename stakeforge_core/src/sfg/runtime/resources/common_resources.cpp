@@ -36,8 +36,6 @@ namespace sfg
 		stream << source_tick;
 		stream << file_source_ticks;
 		stream << dependency_count;
-		for (u32 i = 0; i < MAX_DEPENDENCIES; i++)
-			stream << dependencies[i];
 	}
 
 	void resource_header_t::deserialize(istream_t& stream)
@@ -48,8 +46,6 @@ namespace sfg
 		stream >> source_tick;
 		stream >> file_source_ticks;
 		stream >> dependency_count;
-		for (u32 i = 0; i < MAX_DEPENDENCIES; i++)
-			stream >> dependencies[i];
 	}
 
 	void resource_header_t::set_debug_name(const char* name)

@@ -15,7 +15,6 @@ namespace sfg
 	class ostream_t;
 	class resource_file_system_t;
 
-#define MAX_DEPENDENCIES	24
 #define MAX_DEBUG_NAME_SIZE 128
 #define MAX_SKELETON_BONES	192
 
@@ -40,14 +39,13 @@ namespace sfg
 
 	struct resource_header_t
 	{
-		char				  debug_name[MAX_DEBUG_NAME_SIZE] = {};
-		resource_dependency_t dependencies[MAX_DEPENDENCIES];
-		resource_type_e		  type				= resource_type_e::invalid;
-		u32					  magic				= 0;
-		u32					  version			= 0;
-		u32					  dependency_count	= 0;
-		u64					  source_tick		= 0;
-		u64					  file_source_ticks = 0;
+		char			debug_name[MAX_DEBUG_NAME_SIZE] = {};
+		resource_type_e type							= resource_type_e::invalid;
+		u32				magic							= 0;
+		u32				version							= 0;
+		u64				source_tick						= 0;
+		u64				file_source_ticks				= 0;
+		u32				dependency_count				= 0;
 
 		void	  set_debug_name(const char* name);
 		void	  set_debug_name_from_path(const char* full_path);
@@ -84,7 +82,7 @@ namespace sfg
 
 	struct resource_type_desc_t
 	{
-		using load_fn_t			= bool (*)(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
+		using load_fn_t			= bool (*)(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		using runtime_load_fn_t = bool (*)(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
 		using unload_fn_t		= void (*)(resource_entry_t& entry, resource_context_t& ctx);
 

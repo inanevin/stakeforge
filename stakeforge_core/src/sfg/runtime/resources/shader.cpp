@@ -15,18 +15,21 @@
 
 namespace sfg
 {
-	bool shader_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
+	bool shader_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset)
 	{
-		ostream_t file_stream;
-		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		ostream_t file_stream = {};
+
+		if (!rfs.read_resource(entry.hash, payload_offset, 0, file_stream))
 		{
 			SFG_ERR("failed to read shader resource: {0}", entry.hash);
 			return false;
 		}
 
-		istream_t stream;
+		istream_t stream = {};
+
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 		istream_t payload = compressor_t::decompress(stream);
+
 		if (payload.empty())
 		{
 			SFG_ERR("failed to decompress shader payload: {0}", entry.hash);
@@ -45,13 +48,15 @@ namespace sfg
 		for (u8 i = 0; i < runtime->compile_variant_count; i++)
 		{
 			shader_runtime_compile_variant_t& v = runtime->compile_variants[i];
+
 			payload >> v.stage_count;
 
 			for (u8 j = 0; j < v.stage_count; j++)
 			{
-				shader_runtime_stage_entry_t& s = v.stages[j];
+				shader_runtime_stage_entry_t& s	   = v.stages[j];
+				u32							  size = 0;
+
 				payload >> s.stage;
-				u32 size = 0;
 				payload >> size;
 				s.data = {payload.get_data_current(), static_cast<size_t>(size)};
 				payload.skip_by(s.data.size);
@@ -62,10 +67,11 @@ namespace sfg
 
 		for (u8 i = 0; i < runtime->pso_variant_count; i++)
 		{
-			shader_runtime_pso_variant_t& v = runtime->pso_variants[i];
+			shader_runtime_pso_variant_t& v	 = runtime->pso_variants[i];
+			u32							  sz = 0;
+
 			payload >> v.compile_variant_index;
 			payload >> v.variant_flags;
-			u32 sz = 0;
 			payload >> sz;
 
 			v.desc_stream = {payload.get_data_current(), static_cast<size_t>(sz)};
@@ -74,19 +80,22 @@ namespace sfg
 
 		internals->pso_count = runtime->pso_variant_count;
 
-		istream_t desc_stream;
+		istream_t desc_stream = {};
 
 		for (u8 i = 0; i < runtime->pso_variant_count; ++i)
 		{
 			const shader_runtime_pso_variant_t& pv = runtime->pso_variants[i];
-			internals->pso_flags[i]				   = pv.variant_flags;
+
+			internals->pso_flags[i] = pv.variant_flags;
 
 			SFG_ASSERT(pv.compile_variant_index < runtime->compile_variant_count);
+
 			const size_t							idx = static_cast<size_t>(pv.compile_variant_index);
 			const shader_runtime_compile_variant_t& cv	= runtime->compile_variants[idx];
 
 			SFG_ASSERT(cv.stage_count <= SFG_SHADER_MAX_STAGE_PER_VARIANT);
-			inplace_vector_t<shader_blob_t, SFG_SHADER_MAX_STAGE_PER_VARIANT> blobs;
+			inplace_vector_t<shader_blob_t, SFG_SHADER_MAX_STAGE_PER_VARIANT> blobs = {};
+
 			for (u8 j = 0; j < cv.stage_count; ++j)
 			{
 				const shader_runtime_stage_entry_t& s = cv.stages[j];
@@ -97,6 +106,7 @@ namespace sfg
 			}
 
 			shader_desc_t desc = {};
+
 			desc_stream.open(pv.desc_stream.data, pv.desc_stream.size);
 			desc.deserialize(desc_stream);
 			desc.set_name(mem.get_text(entry.debug_name));
@@ -108,6 +118,7 @@ namespace sfg
 		for (u8 i = 0; i < runtime->compile_variant_count; i++)
 		{
 			shader_runtime_compile_variant_t& v = runtime->compile_variants[i];
+
 			for (u8 j = 0; j < v.stage_count; j++)
 				v.stages[j].data = {};
 		}

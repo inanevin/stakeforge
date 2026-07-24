@@ -12,16 +12,18 @@
 
 namespace sfg
 {
-	bool texture_sampler_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
+	bool texture_sampler_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset)
 	{
-		ostream_t file_stream;
-		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		ostream_t file_stream = {};
+
+		if (!rfs.read_resource(entry.hash, payload_offset, 0, file_stream))
 		{
 			SFG_ERR("failed to read texture sampler resource: {0}", entry.hash);
 			return false;
 		}
 
-		istream_t stream;
+		istream_t stream = {};
+
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 
 		chunk_allocator_t&			 mem	   = ctx.resource_manager.get_memory();
@@ -37,8 +39,10 @@ namespace sfg
 		}
 
 		sampler_desc_t desc = runtime->desc;
+
 		desc.set_name(mem.get_text(entry.debug_name));
 		internals->sampler = render_resources_t::get().enqueue_create_sampler(desc);
+
 		return true;
 	}
 

@@ -11,7 +11,8 @@ namespace sfg
 {
 	bool material_cooker::cook_from_def(const material_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
-		ostream_t material_stream;
+		ostream_t material_stream = {};
+
 		material_stream << def;
 
 		out_header = {
@@ -21,18 +22,18 @@ namespace sfg
 			.source_tick = hashing_t::hash_u64(material_stream.get_raw(), material_stream.get_size()),
 		};
 
-		out_header.dependency_count = 0;
-
 		for (const material_texture_value_t& texture : def.textures)
 		{
 			if (texture.texture == NULL_SID)
 				continue;
 
-			out_header.dependencies[out_header.dependency_count] = {
+			const resource_dependency_t dependency = {
 				.handle = texture.texture,
 				.type	= resource_type_e::texture,
 			};
-			out_header.dependency_count++;
+
+			stream << dependency;
+			++out_header.dependency_count;
 		}
 
 		for (const material_sampler_value_t& sampler : def.samplers)
@@ -40,23 +41,28 @@ namespace sfg
 			if (sampler.sampler == NULL_SID)
 				continue;
 
-			out_header.dependencies[out_header.dependency_count] = {
+			const resource_dependency_t dependency = {
 				.handle = sampler.sampler,
 				.type	= resource_type_e::texture_sampler,
 			};
-			out_header.dependency_count++;
+
+			stream << dependency;
+			++out_header.dependency_count;
 		}
 
 		if (def.shader != NULL_SID)
 		{
-			out_header.dependencies[out_header.dependency_count] = {
+			const resource_dependency_t dependency = {
 				.handle = def.shader,
 				.type	= resource_type_e::shader,
 			};
-			out_header.dependency_count++;
+
+			stream << dependency;
+			++out_header.dependency_count;
 		}
 
 		stream.write_raw(material_stream.get_raw(), material_stream.get_size());
+
 		return true;
 	}
 

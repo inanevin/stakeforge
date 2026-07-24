@@ -6,7 +6,7 @@
 
 namespace sfg
 {
-	bool audio_loader_t::load(resource_entry_t&, resource_context_t&, resource_file_system_t&)
+	bool audio_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset)
 	{
 		SFG_ERR("audio loading is not implemented");
 		return false;

@@ -76,16 +76,18 @@ namespace sfg
 		}
 	}
 
-	bool material_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
+	bool material_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset)
 	{
-		ostream_t file_stream;
-		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+		ostream_t file_stream = {};
+
+		if (!rfs.read_resource(entry.hash, payload_offset, 0, file_stream))
 		{
 			SFG_ERR("failed to read material resource: {0}", entry.hash);
 			return false;
 		}
 
-		istream_t stream;
+		istream_t stream = {};
+
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 
 		chunk_allocator_t&	  mem		= ctx.resource_manager.get_memory();
@@ -95,6 +97,7 @@ namespace sfg
 		*internals						= {};
 
 		material_def_t material = {};
+
 		stream >> material;
 
 		if (material.parameters.size() > SFG_MATERIAL_MAX_PARAMS)
@@ -143,6 +146,7 @@ namespace sfg
 			SFG_ASSERT(runtime->parameter_data_size <= SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE);
 			u8	parameter_values[SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE] = {};
 			u32 parameter_offset									   = 0;
+
 			for (u32 i = 0; i < runtime->parameter_count; ++i)
 			{
 				parameter_offset = get_material_parameter_offset(parameter_offset, runtime->parameters[i]);
@@ -155,14 +159,10 @@ namespace sfg
 		}
 
 		for (u32 i = 0; i < runtime->texture_count; ++i)
-		{
 			runtime->texture_guids[i] = material.textures[i].texture;
-		}
 
 		for (u32 i = 0; i < runtime->sampler_count; ++i)
-		{
 			runtime->sampler_guids[i] = material.samplers[i].sampler;
-		}
 
 		return true;
 	}

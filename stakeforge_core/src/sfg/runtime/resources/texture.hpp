@@ -42,9 +42,9 @@ namespace sfg
 	public:
 		static constexpr u8	 MAX_MIPS	  = 16;
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('T', 'E', 'X', 'R');
-		static constexpr u32 WIRE_VERSION = 14;
+		static constexpr u32 WIRE_VERSION = 15;
 
-		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 

@@ -12,16 +12,18 @@
 
 namespace sfg
 {
-	bool skeleton_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs)
+	bool skeleton_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset)
 	{
 		ostream_t file_stream = {};
-		if (!rfs.read_resource(entry.hash, sizeof(resource_header_t), 0, file_stream))
+
+		if (!rfs.read_resource(entry.hash, payload_offset, 0, file_stream))
 		{
 			SFG_ERR("failed to read skeleton resource: {0}", entry.hash);
 			return false;
 		}
 
 		istream_t stream = {};
+
 		stream.open(file_stream.get_raw(), file_stream.get_size());
 
 		chunk_allocator_t&	mem		= ctx.resource_manager.get_memory();
@@ -29,6 +31,7 @@ namespace sfg
 		*runtime					= {};
 
 		skeleton_def_t skeleton = {};
+
 		if (!reflection_registry_t::get().type_from_stream(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, stream))
 		{
 			SFG_ERR("failed to deserialize skeleton definition: {0}", entry.hash);

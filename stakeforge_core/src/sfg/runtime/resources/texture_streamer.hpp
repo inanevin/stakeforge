@@ -53,9 +53,9 @@ namespace sfg
 		texture_streamer_t(const texture_streamer_t&)			 = delete;
 		texture_streamer_t& operator=(const texture_streamer_t&) = delete;
 
-		void						   enqueue(resource_entry_t& entry, resource_file_system_t& rfs);
+		void						   enqueue(resource_entry_t& entry, resource_file_system_t& rfs, size_t payload_offset);
 		void						   flush_completed(resource_manager_t& resource_manager);
-		static texture_stream_result_t load_result(sid_t hash, u64 source_ticks, resource_file_system_t& rfs);
+		static texture_stream_result_t load_result(sid_t hash, u64 source_ticks, resource_file_system_t& rfs, size_t payload_offset);
 		static void					   release_result(texture_stream_result_t& result);
 
 	private:

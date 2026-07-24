@@ -18,7 +18,7 @@ namespace sfg
 	class audio_loader_t
 	{
 	public:
-		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs);
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 

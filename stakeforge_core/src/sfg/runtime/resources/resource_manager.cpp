@@ -79,6 +79,7 @@ namespace sfg
 
 		auto	   it	  = _entries.find(hash);
 		const bool exists = it != _entries.end();
+
 		if (exists)
 		{
 			it->second.ref_count++;
@@ -87,6 +88,7 @@ namespace sfg
 		}
 
 		const resource_type_desc_t* desc = find_resource_type_desc(type);
+
 		if (desc == nullptr)
 		{
 			SFG_WARN("failed loading resource, type description not found! {0}", static_cast<u8>(type));
@@ -99,29 +101,24 @@ namespace sfg
 			return resource_state_e::failed;
 		}
 
-		ostream_t header_stream;
+		ostream_t header_stream = {};
+
 		if (!_resource_file_system->read_resource(hash, 0, sizeof(resource_header_t), header_stream))
 		{
 			SFG_WARN("failed reading resource header: {0}", hash);
 			return resource_state_e::failed;
 		}
 
-		istream_t		  header_data;
-		resource_header_t header = {};
+		istream_t		  header_data = {};
+		resource_header_t header	  = {};
+
 		header_data.open(header_stream.get_raw(), header_stream.get_size());
 		header.deserialize(header_data);
 		SFG_ASSERT(header.type == type);
 
-		const char*		   debug_name = header.debug_name;
+		const char*		   debug_name	  = header.debug_name;
+		const size_t	   payload_offset = sizeof(resource_header_t) + static_cast<size_t>(header.dependency_count) * sizeof(resource_dependency_t);
 		resource_context_t ctx{*this};
-
-		for (u32 i = 0; i < header.dependency_count; i++)
-		{
-			if (load_resource(header.dependencies[i].handle, header.dependencies[i].type) == resource_state_e::failed)
-			{
-				SFG_WARN("failed loading dependency for {0}", header.debug_name);
-			}
-		}
 
 		resource_entry_t entry = {};
 		entry.type			   = type;
@@ -138,16 +135,35 @@ namespace sfg
 			entry.dependencies	   = _memory.allocate<resource_dependency_t>(header.dependency_count);
 			entry.dependency_count = header.dependency_count;
 
+			ostream_t dependency_stream = {};
+
+			if (!_resource_file_system->read_resource(hash, sizeof(resource_header_t), payload_offset - sizeof(resource_header_t), dependency_stream))
+			{
+				SFG_WARN("failed reading resource dependencies for {0}", header.debug_name);
+				free_entry(entry);
+				return resource_state_e::failed;
+			}
+
+			istream_t dependency_data = {};
+
+			dependency_data.open(dependency_stream.get_raw(), dependency_stream.get_size());
 			resource_dependency_t* deps = _memory.get<resource_dependency_t>(entry.dependencies);
+
 			for (u32 i = 0; i < header.dependency_count; i++)
-				deps[i] = header.dependencies[i];
+			{
+				dependency_data >> deps[i];
+
+				if (load_resource(deps[i].handle, deps[i].type) == resource_state_e::failed)
+					SFG_WARN("failed loading dependency for {0}", header.debug_name);
+			}
 		}
 
 		auto [entry_it, inserted] = _entries.emplace(hash, entry);
+
 		SFG_ASSERT(inserted);
 		resource_entry_t& loaded_entry = entry_it->second;
 
-		if (!desc->load(loaded_entry, ctx, *_resource_file_system))
+		if (!desc->load(loaded_entry, ctx, *_resource_file_system, payload_offset))
 		{
 			SFG_WARN("failed loading resource: {0} {1}", debug_name, hash);
 			free_entry(loaded_entry);
@@ -158,6 +174,7 @@ namespace sfg
 		loaded_entry.state = resource_state_e::ready;
 		_generation++;
 		SFG_TRACE("loaded resource: {0}", debug_name);
+
 		return _entries.find(hash)->second.state;
 	}
 
@@ -294,15 +311,23 @@ namespace sfg
 			_memory.free(entry.runtime);
 			entry.runtime = chunk_handle32_t{};
 		}
+
 		if (entry.internals)
 		{
 			_memory.free(entry.internals);
 			entry.internals = chunk_handle32_t{};
 		}
+
 		if (entry.debug_name)
 		{
 			_memory.free(entry.debug_name);
 			entry.debug_name = {};
+		}
+
+		if (entry.dependencies)
+		{
+			_memory.free(entry.dependencies);
+			entry.dependencies = {};
 		}
 	}
 
