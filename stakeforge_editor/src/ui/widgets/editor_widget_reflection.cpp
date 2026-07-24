@@ -46,6 +46,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/color.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec2f.hpp>
+#include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/math/vec4f.hpp>
 #include <sfg/io/assert.hpp>
@@ -75,8 +76,8 @@ namespace sfg
 			case reflected_value_type_e::i64:
 				return true;
 			case reflected_value_type_e::object:
-				return sub_type_id == type_id_t<vec2f_t>::value || sub_type_id == type_id_t<vec3f_t>::value || sub_type_id == type_id_t<vec4f_t>::value || sub_type_id == type_id_t<quat_t>::value || sub_type_id == type_id_t<color_t>::value ||
-					   (sub_type_id != 0 && reflection_registry_t::get().find_type(sub_type_id) != nullptr);
+				return sub_type_id == type_id_t<vec2f_t>::value || sub_type_id == type_id_t<vec2u16_t>::value || sub_type_id == type_id_t<vec3f_t>::value || sub_type_id == type_id_t<vec4f_t>::value || sub_type_id == type_id_t<quat_t>::value ||
+					   sub_type_id == type_id_t<color_t>::value || (sub_type_id != 0 && reflection_registry_t::get().find_type(sub_type_id) != nullptr);
 			default:
 				return false;
 			}
@@ -696,6 +697,33 @@ namespace sfg
 				_rows.push_back(row.row);
 			return true;
 		}
+
+		if (field->sub_type_id == type_id_t<vec2u16_t>::value)
+		{
+			const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
+			install_tooltip(row.label, field->tooltip);
+
+			frame_vector_t<vec2u16_t*> vector_fields;
+			vector_fields.reserve(fields.size);
+
+			for (size_t i = 0; i < fields.size; ++i)
+				vector_fields.push_back(reinterpret_cast<vec2u16_t*>(fields.data[i]));
+
+			editor_vec2u16_field_t* vec = new editor_vec2u16_field_t();
+			vec->init(*_ui, row.right, {.field = {.fields = {.data = vector_fields.data(), .size = vector_fields.size()}}, .callbacks = _field_callbacks});
+			fit_control(vec->get_root());
+
+			if (removable_item)
+				install_sub_item_button(row.right, vec->get_root(), container_data, element_index);
+
+			_vec2u16_fields.push_back(vec);
+
+			if (track_row)
+				_rows.push_back(row.row);
+
+			return true;
+		}
+
 		if (field->sub_type_id == type_id_t<vec3f_t>::value)
 		{
 			const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
@@ -1131,6 +1159,20 @@ namespace sfg
 			}
 			++i;
 		}
+
+		for (size_t i = 0; i < _vec2u16_fields.size();)
+		{
+			if (is_child_widget(_vec2u16_fields[i]->get_root(), parent))
+			{
+				_vec2u16_fields[i]->uninit();
+				delete _vec2u16_fields[i];
+				_vec2u16_fields.erase(_vec2u16_fields.begin() + i);
+				continue;
+			}
+
+			++i;
+		}
+
 		for (size_t i = 0; i < _quat_fields.size();)
 		{
 			if (is_child_widget(_quat_fields[i]->get_root(), parent))
@@ -1417,6 +1459,13 @@ namespace sfg
 			vec->uninit();
 			delete vec;
 		}
+
+		for (editor_vec2u16_field_t* vec : _vec2u16_fields)
+		{
+			vec->uninit();
+			delete vec;
+		}
+
 		for (editor_vec3_field_t* vec : _vec3_fields)
 		{
 			vec->uninit();
@@ -1459,6 +1508,7 @@ namespace sfg
 		_color_fields.resize(0);
 		_quat_fields.resize(0);
 		_vec2_fields.resize(0);
+		_vec2u16_fields.resize(0);
 		_vec3_fields.resize(0);
 		_vec4_fields.resize(0);
 		_fold_labels.resize(0);

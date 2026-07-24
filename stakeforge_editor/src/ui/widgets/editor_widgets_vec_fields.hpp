@@ -32,6 +32,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
+#include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/math/vec4f.hpp>
 
@@ -40,6 +41,11 @@ namespace sfg
 	struct editor_vec2_field_field_t
 	{
 		span_t<vec2f_t*> fields = {};
+	};
+
+	struct editor_vec2u16_field_field_t
+	{
+		span_t<vec2u16_t*> fields = {};
 	};
 
 	struct editor_vec3_field_field_t
@@ -64,6 +70,13 @@ namespace sfg
 		editor_widget_callbacks_t	 callbacks = {};
 		f32							 increment = 0.1f;
 		bool						 integer   = false;
+	};
+
+	struct editor_vec2u16_field_config_t
+	{
+		editor_widget_width_config_t width	   = {};
+		editor_vec2u16_field_field_t field	   = {};
+		editor_widget_callbacks_t	 callbacks = {};
 	};
 
 	struct editor_vec3_field_config_t
@@ -128,6 +141,47 @@ namespace sfg
 		vector_t<vec2f_t*>		   _field_values;
 		vector_t<u8*>			   _fields[2] = {};
 		vec2f_t					   _value	  = {0.0f, 0.0f};
+
+		ui::ui_context* _ui	  = nullptr;
+		ui::widget_id_t _root = NULL_WIDGET;
+	};
+
+	class editor_vec2u16_field_t final
+	{
+	public:
+		editor_vec2u16_field_t()										 = default;
+		~editor_vec2u16_field_t()										 = default;
+		editor_vec2u16_field_t(const editor_vec2u16_field_t&)			 = delete;
+		editor_vec2u16_field_t& operator=(const editor_vec2u16_field_t&) = delete;
+
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_vec2u16_field_config_t& config);
+		void uninit();
+		void set_value(const vec2u16_t& value);
+		void set_mixed(bool mixed);
+		void update_field_data(editor_vec2u16_field_field_t field);
+		void refresh_field_data();
+
+		inline ui::widget_id_t get_root() const
+		{
+			return _root;
+		}
+
+		inline const vec2u16_t& get_value() const
+		{
+			return _value;
+		}
+
+		inline bool is_editing() const
+		{
+			return _inputs[0].is_editing() || _inputs[1].is_editing();
+		}
+
+	private:
+		editor_input_field_t		  _inputs[2] = {};
+		editor_vec2u16_field_config_t _config	 = {};
+		vector_t<vec2u16_t*>		  _field_values;
+		vector_t<u8*>				  _fields[2] = {};
+		vec2u16_t					  _value	 = vec2u16_t::zero;
 
 		ui::ui_context* _ui	  = nullptr;
 		ui::widget_id_t _root = NULL_WIDGET;

@@ -49,6 +49,7 @@ namespace sfg
 	class editor_input_field_t;
 	class editor_quat_field_t;
 	class editor_vec2_field_t;
+	class editor_vec2u16_field_t;
 	class editor_vec3_field_t;
 	class editor_vec4_field_t;
 	class editor_widget_fold_label_t;
@@ -221,6 +222,7 @@ namespace sfg
 		vector_t<editor_color_field_t*>					 _color_fields;
 		vector_t<editor_quat_field_t*>					 _quat_fields;
 		vector_t<editor_vec2_field_t*>					 _vec2_fields;
+		vector_t<editor_vec2u16_field_t*>				 _vec2u16_fields;
 		vector_t<editor_vec3_field_t*>					 _vec3_fields;
 		vector_t<editor_vec4_field_t*>					 _vec4_fields;
 		vector_t<editor_widget_fold_label_t*>			 _fold_labels;
