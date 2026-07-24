@@ -51,6 +51,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 #define EDITOR_ASSET_COLOR(R, G, B)			 color_utils_t::srgb_to_linear(color_t::from255(R, G, B, 255.0f)).to_vector()
+#define EDITOR_ASSET_DELETION_LISTENER_MAX	 64
 #define EDITOR_COOKED_RESOURCE_SCAN_INTERVAL 30
 
 	bool editor_asset_manager_t::init()
@@ -59,6 +60,7 @@ namespace sfg
 
 		s_instance = this;
 
+		_asset_deletion_listeners.init(EDITOR_ASSET_DELETION_LISTENER_MAX);
 		_asset_descriptors.clear();
 		_asset_descriptors.reserve(static_cast<size_t>(editor_asset_type_e::count) - 1);
 
@@ -99,6 +101,7 @@ namespace sfg
 		_import_asset_paths_pending.clear();
 		_import_asset_paths_visible.clear();
 		_asset_descriptors.clear();
+		_asset_deletion_listeners.uninit();
 
 		{
 			LOCK_GUARD(_asset_save_cook_mtx);
@@ -443,6 +446,9 @@ namespace sfg
 		frame_vector_t<deleted_asset_t> deleted_assets = {};
 		deleted_assets.reserve(deleted_asset_count);
 
+		frame_vector_t<sid_t> deleted_asset_guids = {};
+		deleted_asset_guids.reserve(deleted_asset_count);
+
 		frame_hash_map_t<sid_t, bool> deleted_asset_ids = {};
 		deleted_asset_ids.reserve(deleted_asset_count);
 
@@ -463,6 +469,7 @@ namespace sfg
 				.thumbnail_guid = asset->thumbnail_guid,
 				.asset_type		= asset->asset_type,
 			});
+			deleted_asset_guids.push_back(asset->guid);
 			deleted_asset_ids.emplace(asset->guid, true);
 
 			if (asset->source_type == editor_asset_source_type_e::file_blob)
@@ -507,6 +514,9 @@ namespace sfg
 			SFG_ERR("failed to delete {0}", root_path);
 			return false;
 		}
+
+		// let consumers release deleted assets before force-unload
+		notify_asset_deletion({.data = deleted_asset_guids.data(), .size = deleted_asset_guids.size()});
 
 		// cancel thumbnail work and unload live resources
 		editor_asset_thumbnail_manager_t& thumbnail_manager = editor_asset_thumbnail_manager_t::get();
@@ -557,6 +567,36 @@ namespace sfg
 		}
 
 		return true;
+	}
+
+	editor_asset_deletion_listener_handle_t editor_asset_manager_t::add_asset_deletion_listener(editor_asset_deletion_listener_fn fn, void* user_data)
+	{
+		SFG_ASSERT(fn != nullptr);
+
+		const editor_asset_deletion_listener_handle_t handle   = _asset_deletion_listeners.emplace();
+		editor_asset_deletion_listener_t&			  listener = _asset_deletion_listeners.get(handle);
+		listener.fn											   = fn;
+		listener.user_data									   = user_data;
+
+		return handle;
+	}
+
+	void editor_asset_manager_t::remove_asset_deletion_listener(editor_asset_deletion_listener_handle_t handle)
+	{
+		if (_asset_deletion_listeners.is_valid(handle))
+			_asset_deletion_listeners.remove(handle);
+	}
+
+	void editor_asset_manager_t::notify_asset_deletion(span_t<const sid_t> asset_ids)
+	{
+		for (auto it = _asset_deletion_listeners.begin_handle(); it != _asset_deletion_listeners.end_handle(); ++it)
+		{
+			const editor_asset_deletion_listener_handle_t handle   = *it;
+			const editor_asset_deletion_listener_t&		  listener = _asset_deletion_listeners.get(handle);
+
+			if (listener.fn != nullptr)
+				listener.fn(*this, asset_ids, listener.user_data);
+		}
 	}
 
 	void editor_asset_manager_t::update_node_path(editor_asset_node_handle_t node, const char* new_path)

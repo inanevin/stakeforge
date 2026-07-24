@@ -47,6 +47,8 @@ namespace sfg
 	{
 		editor_panel_t::init(ui, parent);
 		_command_listener		 = editor_command_system_t::get().add_listener(on_command_system_event, this);
+		_asset_deletion_listener = editor_asset_manager_t::get().add_asset_deletion_listener(on_asset_deletion, this);
+
 		ui::layout_in_t& root_in = ui.get_tree().in(_root);
 		root_in.flow			 = ui::flow_e::column;
 		root_in.child_spacing	 = 0.0f;
@@ -99,8 +101,13 @@ namespace sfg
 
 		if (!_command_listener.is_null())
 			editor_command_system_t::get().remove_listener(_command_listener);
+
+		if (!_asset_deletion_listener.is_null())
+			editor_asset_manager_t::get().remove_asset_deletion_listener(_asset_deletion_listener);
+
 		if (!_selection_listener.is_null())
 			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
+
 		_texture_viewer.uninit();
 		_physical_material_editor.uninit();
 		_texture_sampler_editor.uninit();
@@ -113,24 +120,35 @@ namespace sfg
 		_material_ids.resize(0);
 		_texture_sampler_ids.resize(0);
 		_physical_material_ids.resize(0);
-		_texture_id				= 0;
-		_command_listener		= {};
-		_selection_listener		= {};
-		_edit_world				= {};
-		_scroll_area			= NULL_WIDGET;
-		_content				= NULL_WIDGET;
-		_pending_scroll_y		= 0.0f;
-		_display				= editor_panel_inspector_display_e::none;
-		_scroll_restore_pending = false;
+		_texture_id				 = 0;
+		_command_listener		 = {};
+		_asset_deletion_listener = {};
+		_selection_listener		 = {};
+		_edit_world				 = {};
+		_scroll_area			 = NULL_WIDGET;
+		_content				 = NULL_WIDGET;
+		_pending_scroll_y		 = 0.0f;
+		_display				 = editor_panel_inspector_display_e::none;
+		_scroll_restore_pending	 = false;
 		editor_panel_t::uninit();
 	}
 
 	void editor_panel_inspector_t::set_display_none()
 	{
 		save_entity_scroll_state();
+
 		_display_entities.resize(0);
+		_material_ids.resize(0);
+		_texture_sampler_ids.resize(0);
+		_physical_material_ids.resize(0);
+		_texture_id = 0;
+
 		_entity_inspector.set_display_entity(span_t<const entity_id_t>{});
+		_material_editor.set_materials({});
+		_texture_sampler_editor.set_texture_samplers({});
+		_physical_material_editor.set_physical_materials({});
 		_texture_viewer.clear_texture();
+
 		_display = editor_panel_inspector_display_e::none;
 		apply_display_visibility();
 		reset_scroll_state();
@@ -526,6 +544,41 @@ namespace sfg
 	void editor_panel_inspector_t::on_entity_selection_changed(editor_world_edit_context_t&, void* user_data)
 	{
 		static_cast<editor_panel_inspector_t*>(user_data)->refresh_from_available_selection(editor_panel_inspector_source_e::entity);
+	}
+
+	void editor_panel_inspector_t::on_asset_deletion(editor_asset_manager_t&, span_t<const sid_t> asset_ids, void* user_data)
+	{
+		editor_panel_inspector_t& panel				 = *static_cast<editor_panel_inspector_t*>(user_data);
+		bool					  asset_is_displayed = false;
+
+		for (size_t i = 0; i < asset_ids.size; ++i)
+		{
+			const sid_t asset_id = asset_ids.data[i];
+
+			switch (panel._display)
+			{
+			case editor_panel_inspector_display_e::material:
+				asset_is_displayed = std::find(panel._material_ids.begin(), panel._material_ids.end(), asset_id) != panel._material_ids.end();
+				break;
+			case editor_panel_inspector_display_e::texture_sampler:
+				asset_is_displayed = std::find(panel._texture_sampler_ids.begin(), panel._texture_sampler_ids.end(), asset_id) != panel._texture_sampler_ids.end();
+				break;
+			case editor_panel_inspector_display_e::physical_material:
+				asset_is_displayed = std::find(panel._physical_material_ids.begin(), panel._physical_material_ids.end(), asset_id) != panel._physical_material_ids.end();
+				break;
+			case editor_panel_inspector_display_e::texture:
+				asset_is_displayed = panel._texture_id == asset_id;
+				break;
+			default:
+				break;
+			}
+
+			if (asset_is_displayed)
+				break;
+		}
+
+		if (asset_is_displayed)
+			panel.set_display_none();
 	}
 
 	void editor_panel_inspector_t::on_scroll_restore_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)

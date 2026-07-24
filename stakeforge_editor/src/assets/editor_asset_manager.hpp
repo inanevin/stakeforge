@@ -36,11 +36,23 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/mutex.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/memory/gen_pool.hpp>
 
 namespace sfg
 {
 	class editor_asset_manager_util_t;
+	class editor_asset_manager_t;
 	struct editor_project_t;
+	struct editor_asset_deletion_listener_tag_t;
+
+	using editor_asset_deletion_listener_handle_t = pool_handle_t<u32, editor_asset_deletion_listener_tag_t>;
+	using editor_asset_deletion_listener_fn		  = void (*)(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data);
+
+	struct editor_asset_deletion_listener_t
+	{
+		editor_asset_deletion_listener_fn fn		= nullptr;
+		void*							  user_data = nullptr;
+	};
 
 	class editor_asset_manager_t final
 	{
@@ -70,19 +82,21 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void					   register_descriptor(const editor_asset_descriptor_t& desc);
-		void					   import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options);
-		editor_asset_node_handle_t add_folder_node(editor_asset_node_handle_t parent, const char* path);
-		editor_asset_node_handle_t add_path_node(editor_asset_node_handle_t parent, const char* path);
-		editor_asset_node_handle_t add_directory_tree(editor_asset_node_handle_t parent, const char* path);
-		bool					   reload_asset_node(editor_asset_node_handle_t node);
-		void					   sync_directory_from_disk(editor_asset_node_handle_t directory_node);
-		void					   sync_imported_asset_paths(editor_asset_node_handle_t directory_node, span_t<const string_t> paths);
-		bool					   delete_node_subtree(editor_asset_node_handle_t node);
-		void					   update_node_path(editor_asset_node_handle_t node, const char* new_path);
-		void					   move_node(editor_asset_node_handle_t node, editor_asset_node_handle_t new_parent, const char* new_path);
-		void					   notify_changed();
-		bool					   save_and_cook_embedded_asset_async(sid_t asset_id, const nlohmann::json& embedded_source);
+		void									register_descriptor(const editor_asset_descriptor_t& desc);
+		void									import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options);
+		editor_asset_node_handle_t				add_folder_node(editor_asset_node_handle_t parent, const char* path);
+		editor_asset_node_handle_t				add_path_node(editor_asset_node_handle_t parent, const char* path);
+		editor_asset_node_handle_t				add_directory_tree(editor_asset_node_handle_t parent, const char* path);
+		bool									reload_asset_node(editor_asset_node_handle_t node);
+		void									sync_directory_from_disk(editor_asset_node_handle_t directory_node);
+		void									sync_imported_asset_paths(editor_asset_node_handle_t directory_node, span_t<const string_t> paths);
+		bool									delete_node_subtree(editor_asset_node_handle_t node);
+		void									update_node_path(editor_asset_node_handle_t node, const char* new_path);
+		void									move_node(editor_asset_node_handle_t node, editor_asset_node_handle_t new_parent, const char* new_path);
+		void									notify_changed();
+		bool									save_and_cook_embedded_asset_async(sid_t asset_id, const nlohmann::json& embedded_source);
+		editor_asset_deletion_listener_handle_t add_asset_deletion_listener(editor_asset_deletion_listener_fn fn, void* user_data);
+		void									remove_asset_deletion_listener(editor_asset_deletion_listener_handle_t handle);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -171,33 +185,35 @@ namespace sfg
 		void					   process_changed_cooked_resources();
 		void					   track_cooked_resource(sid_t resource_id, sid_t asset_id, cooked_resource_kind_e kind, bool report_existing_file);
 		void					   untrack_cooked_resource(sid_t resource_id);
+		void					   notify_asset_deletion(span_t<const sid_t> asset_ids);
 		editor_asset_node_handle_t find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const;
 		editor_asset_node_handle_t get_or_create_child_folder(editor_asset_node_handle_t parent, const string_t& name);
 
 	private:
-		editor_modal_progress_bar_t								   _import_progress_modal = {};
-		editor_asset_database_t									   _database;
-		hash_map_t<editor_asset_type_e, editor_asset_descriptor_t> _asset_descriptors;
-		string_t												   _import_status_pending;
-		string_t												   _import_status_visible;
-		vector_t<string_t>										   _import_asset_paths_pending;
-		vector_t<string_t>										   _import_asset_paths_visible;
-		mutex_t													   _import_status_mtx;
-		hash_map_t<sid_t, asset_save_cook_state_t>				   _asset_save_cook_states;
-		hash_map_t<sid_t, cooked_resource_tracking_state_t>		   _cooked_resource_tracking_states;
-		vector_t<sid_t>											   _changed_cooked_resources;
-		mutex_t													   _asset_save_cook_mtx;
-		u64														   _next_asset_save_cook_revision			= 1;
-		editor_asset_node_handle_t								   _import_target_directory_node			= {};
-		atomic_t<u32>											   _asset_save_cook_worker_count			= 0;
-		f32														   _import_progress_pending					= 0.0f;
-		atomic_t<bool>											   _import_status_dirty						= false;
-		u32														   _generation								= 0;
-		u32														   _last_integrity_generation				= 0;
-		u16														   _cooked_resource_scan_ticks				= 0;
-		bool													   _import_completed_pending				= false;
-		bool													   _import_in_progress						= false;
-		bool													   _is_cooked_resource_tracking_initialized = false;
+		editor_modal_progress_bar_t																_import_progress_modal = {};
+		editor_asset_database_t																	_database;
+		gen_pool_t<editor_asset_deletion_listener_t, u32, editor_asset_deletion_listener_tag_t> _asset_deletion_listeners;
+		hash_map_t<editor_asset_type_e, editor_asset_descriptor_t>								_asset_descriptors;
+		string_t																				_import_status_pending;
+		string_t																				_import_status_visible;
+		vector_t<string_t>																		_import_asset_paths_pending;
+		vector_t<string_t>																		_import_asset_paths_visible;
+		mutex_t																					_import_status_mtx;
+		hash_map_t<sid_t, asset_save_cook_state_t>												_asset_save_cook_states;
+		hash_map_t<sid_t, cooked_resource_tracking_state_t>										_cooked_resource_tracking_states;
+		vector_t<sid_t>																			_changed_cooked_resources;
+		mutex_t																					_asset_save_cook_mtx;
+		u64																						_next_asset_save_cook_revision			 = 1;
+		editor_asset_node_handle_t																_import_target_directory_node			 = {};
+		atomic_t<u32>																			_asset_save_cook_worker_count			 = 0;
+		f32																						_import_progress_pending				 = 0.0f;
+		atomic_t<bool>																			_import_status_dirty					 = false;
+		u32																						_generation								 = 0;
+		u32																						_last_integrity_generation				 = 0;
+		u16																						_cooked_resource_scan_ticks				 = 0;
+		bool																					_import_completed_pending				 = false;
+		bool																					_import_in_progress						 = false;
+		bool																					_is_cooked_resource_tracking_initialized = false;
 
 		static inline editor_asset_manager_t* s_instance = nullptr;
 	};

@@ -47,6 +47,7 @@ namespace sfg
 {
 	class color_t;
 	class mat4x3_t;
+	class world_t;
 	struct aabb_t;
 	struct world_debug_draw_snapshot_t;
 
@@ -116,6 +117,7 @@ namespace sfg
 						  debug_draw_text_alignment_e alignment		= debug_draw_text_alignment_e::center,
 						  const vec2f_t&			  screen_offset = vec2f_t::zero,
 						  resource_handle_t			  font			= NULL_RESOURCE_HANDLE);
+		void debug_draw_missing_resources(const world_t& world);
 		void write_snapshot(world_debug_draw_snapshot_t& snapshot);
 
 		// -----------------------------------------------------------------------------

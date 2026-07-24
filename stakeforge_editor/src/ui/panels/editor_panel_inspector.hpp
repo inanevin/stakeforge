@@ -38,6 +38,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class editor_asset_manager_t;
+	struct editor_asset_deletion_listener_tag_t;
+
 	enum class editor_panel_inspector_display_e : u8
 	{
 		none,
@@ -108,30 +111,32 @@ namespace sfg
 		entity_scroll_state_t* find_entity_scroll_state(entity_id_t entity);
 
 		static void on_entity_selection_changed(editor_world_edit_context_t& context, void* user_data);
+		static void on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data);
 		static void on_scroll_restore_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 
 	private:
-		editor_widget_inspector_t				 _entity_inspector		   = {};
-		editor_widget_material_editor_t			 _material_editor		   = {};
-		editor_widget_texture_sampler_editor_t	 _texture_sampler_editor   = {};
-		editor_widget_physical_material_editor_t _physical_material_editor = {};
-		editor_widget_texture_viewer_t			 _texture_viewer		   = {};
-		editor_scrollbar_t						 _scrollbar				   = {};
-		vector_t<entity_scroll_state_t>			 _entity_scroll_states	   = {};
-		vector_t<entity_id_t>					 _display_entities		   = {};
-		vector_t<sid_t>							 _material_ids			   = {};
-		vector_t<sid_t>							 _texture_sampler_ids	   = {};
-		vector_t<sid_t>							 _physical_material_ids	   = {};
-		sid_t									 _texture_id			   = 0;
-		editor_command_listener_handle_t		 _command_listener		   = {};
-		editor_selection_listener_handle_t		 _selection_listener	   = {};
-		editor_world_handle_t					 _edit_world			   = {};
-		ui::widget_id_t							 _scroll_area			   = NULL_WIDGET;
-		ui::widget_id_t							 _content				   = NULL_WIDGET;
-		f32										 _pending_scroll_y		   = 0.0f;
-		editor_panel_inspector_display_e		 _display				   = editor_panel_inspector_display_e::none;
-		editor_panel_inspector_source_e			 _last_source			   = editor_panel_inspector_source_e::none;
-		bool									 _scroll_restore_pending   = false;
+		editor_widget_inspector_t								 _entity_inspector		   = {};
+		editor_widget_material_editor_t							 _material_editor		   = {};
+		editor_widget_texture_sampler_editor_t					 _texture_sampler_editor   = {};
+		editor_widget_physical_material_editor_t				 _physical_material_editor = {};
+		editor_widget_texture_viewer_t							 _texture_viewer		   = {};
+		editor_scrollbar_t										 _scrollbar				   = {};
+		vector_t<entity_scroll_state_t>							 _entity_scroll_states	   = {};
+		vector_t<entity_id_t>									 _display_entities		   = {};
+		vector_t<sid_t>											 _material_ids			   = {};
+		vector_t<sid_t>											 _texture_sampler_ids	   = {};
+		vector_t<sid_t>											 _physical_material_ids	   = {};
+		sid_t													 _texture_id			   = 0;
+		editor_command_listener_handle_t						 _command_listener		   = {};
+		pool_handle_t<u32, editor_asset_deletion_listener_tag_t> _asset_deletion_listener  = {};
+		editor_selection_listener_handle_t						 _selection_listener	   = {};
+		editor_world_handle_t									 _edit_world			   = {};
+		ui::widget_id_t											 _scroll_area			   = NULL_WIDGET;
+		ui::widget_id_t											 _content				   = NULL_WIDGET;
+		f32														 _pending_scroll_y		   = 0.0f;
+		editor_panel_inspector_display_e						 _display				   = editor_panel_inspector_display_e::none;
+		editor_panel_inspector_source_e							 _last_source			   = editor_panel_inspector_source_e::none;
+		bool													 _scroll_restore_pending   = false;
 	};
 }

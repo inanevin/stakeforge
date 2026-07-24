@@ -377,9 +377,8 @@ namespace sfg
 				asset_manager.delete_node_subtree(node);
 		}
 
-		_selected_asset_node = {};
-		_selected_asset_nodes.resize(0);
-		_asset_selection_anchor = {};
+		clear_asset_grid_selection();
+
 		refresh_folder_rows();
 	}
 

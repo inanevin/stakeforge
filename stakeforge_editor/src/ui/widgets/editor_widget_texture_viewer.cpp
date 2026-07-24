@@ -177,6 +177,12 @@ namespace sfg
 	{
 		if (!can_mutate_ui_topology())
 		{
+			if (_texture_guid != texture_guid)
+			{
+				unload_texture();
+				_texture_guid = texture_guid;
+			}
+
 			request_texture_refresh(texture_guid);
 			return;
 		}
