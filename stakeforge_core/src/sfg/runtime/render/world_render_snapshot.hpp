@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_render_bone.hpp"
 #include "world_render_entity.hpp"
 #include "world_render_light.hpp"
+#include "world_render_reflection_probe.hpp"
 #include "world_render_shadow.hpp"
 #include "world_render_material.hpp"
 #include "world_render_view.hpp"
@@ -110,37 +111,40 @@ namespace sfg
 
 	struct world_render_snapshot_reserve_config_t
 	{
-		size_t entity_count			 = 0;
-		size_t bone_count			 = 0;
-		size_t light_count			 = 0;
-		size_t line_vertex_count	 = 0;
-		size_t line_index_count		 = 0;
-		size_t triangle_vertex_count = 0;
-		size_t triangle_index_count	 = 0;
-		size_t text_vertex_count	 = 0;
-		size_t text_index_count		 = 0;
+		size_t entity_count			  = 0;
+		size_t bone_count			  = 0;
+		size_t light_count			  = 0;
+		size_t reflection_probe_count = 0;
+		size_t line_vertex_count	  = 0;
+		size_t line_index_count		  = 0;
+		size_t triangle_vertex_count  = 0;
+		size_t triangle_index_count	  = 0;
+		size_t text_vertex_count	  = 0;
+		size_t text_index_count		  = 0;
 	};
 
 	struct world_render_snapshot_t
 	{
-		void*							  user_data		= nullptr;
-		engine_shadow_settings_t		  shadows		= {};
-		world_render_view_t				  main_view		= {};
-		world_render_environment_t		  environment	= {};
-		world_render_post_process_t		  post_process	= {};
-		world_debug_draw_snapshot_t		  debug_draw	= {};
-		vector_t<world_render_material_t> materials		= {};
-		vector_t<world_render_entity_t>	  entities		= {};
-		vector_t<world_render_bone_t>	  bones			= {};
-		vector_t<world_render_light_t>	  lights		= {};
-		vector_t<world_draw_t>			  draws			= {};
-		engine_quality_level_e			  quality_level = engine_quality_level_e::high;
+		void*									  user_data			= nullptr;
+		engine_shadow_settings_t				  shadows			= {};
+		world_render_view_t						  main_view			= {};
+		world_render_environment_t				  environment		= {};
+		world_render_post_process_t				  post_process		= {};
+		world_debug_draw_snapshot_t				  debug_draw		= {};
+		vector_t<world_render_material_t>		  materials			= {};
+		vector_t<world_render_entity_t>			  entities			= {};
+		vector_t<world_render_bone_t>			  bones				= {};
+		vector_t<world_render_light_t>			  lights			= {};
+		vector_t<world_render_reflection_probe_t> reflection_probes = {};
+		vector_t<world_draw_t>					  draws				= {};
+		engine_quality_level_e					  quality_level		= engine_quality_level_e::high;
 
 		inline void reserve(const world_render_snapshot_reserve_config_t& config)
 		{
 			entities.reserve(config.entity_count);
 			bones.reserve(config.bone_count);
 			lights.reserve(config.light_count);
+			reflection_probes.reserve(config.reflection_probe_count);
 			debug_draw.line_vertices.reserve(config.line_vertex_count);
 			debug_draw.line_indices.reserve(config.line_index_count);
 			debug_draw.triangle_vertices.reserve(config.triangle_vertex_count);

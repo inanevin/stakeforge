@@ -27,31 +27,42 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "cubemap.hpp"
-#include <sfg/common/type_id.hpp>
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/math/quat.hpp>
+#include <sfg/math/vec3f.hpp>
 
 namespace sfg
 {
-	class ostream_t;
-	struct resource_header_t;
-
-	struct cubemap_cook_config_t
+	enum class world_render_reflection_probe_capture_type_e : u8
 	{
-		f32 resolution = 512.0f;
+		skybox,
+		scene,
 	};
 
-	class cubemap_cooker final
+	enum class world_render_reflection_probe_capture_mode_e : u8
 	{
-	public:
-		static bool cook_from_file(const cubemap_cook_config_t& config, const char* full_path, resource_header_t& out_header, ostream_t& stream);
+		once,
+		realtime,
+		manual,
 	};
 
-	SFG_DEFINE_TYPE_ID(cubemap_cook_config_t);
-
-	struct cubemap_cook_config_reflection_t
+	struct world_render_reflection_probe_t
 	{
-		cubemap_cook_config_reflection_t();
+		quat_t										 prev_rot				= quat_t::identity;
+		quat_t										 rot					= quat_t::identity;
+		vec3f_t										 prev_pos				= vec3f_t::zero;
+		f32											 diffuse_intensity		= 1.0f;
+		vec3f_t										 pos					= vec3f_t::zero;
+		f32											 specular_intensity		= 1.0f;
+		vec3f_t										 prev_scale				= vec3f_t::one;
+		f32											 blend_distance			= 1.0f;
+		vec3f_t										 scale					= vec3f_t::one;
+		f32											 resolution				= 256.0f;
+		vec3f_t										 extents				= {5.0f, 5.0f, 5.0f};
+		u32											 stable_id				= UINT32_MAX;
+		u32											 realtime_tick_interval = 30;
+		world_render_reflection_probe_capture_type_e capture_type			= world_render_reflection_probe_capture_type_e::scene;
+		world_render_reflection_probe_capture_mode_e capture_mode			= world_render_reflection_probe_capture_mode_e::once;
+		u8											 is_global				= 0;
 	};
-
-	inline cubemap_cook_config_reflection_t g_reflect_cubemap_cook_config;
 }

@@ -102,19 +102,20 @@ namespace sfg
 
 	struct world_render_context_config_t
 	{
-		vec2u16_t size				  = vec2u16_t::zero;
-		u32		  entity_max		  = 0;
-		u32		  bone_max			  = 0;
-		u32		  light_max			  = 0;
-		u32		  line_vertex_max	  = 0;
-		u32		  line_index_max	  = 0;
-		u32		  triangle_vertex_max = 0;
-		u32		  triangle_index_max  = 0;
-		u32		  text_vertex_max	  = 0;
-		u32		  text_index_max	  = 0;
-		u16		  shadow_view_max	  = 0;
-		u8		  enable_ssao		  = 1;
-		u8		  enable_bloom		  = 1;
+		vec2u16_t size				   = vec2u16_t::zero;
+		u32		  entity_max		   = 0;
+		u32		  bone_max			   = 0;
+		u32		  light_max			   = 0;
+		u32		  reflection_probe_max = 0;
+		u32		  line_vertex_max	   = 0;
+		u32		  line_index_max	   = 0;
+		u32		  triangle_vertex_max  = 0;
+		u32		  triangle_index_max   = 0;
+		u32		  text_vertex_max	   = 0;
+		u32		  text_index_max	   = 0;
+		u16		  shadow_view_max	   = 0;
+		u8		  enable_ssao		   = 1;
+		u8		  enable_bloom		   = 1;
 	};
 
 	class world_render_context_t final
@@ -322,6 +323,11 @@ namespace sfg
 			return _pfd[frame_index].light_buffer_index;
 		}
 
+		inline gpu_index_t get_reflection_probe_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].reflection_probe_buffer_index;
+		}
+
 		inline gpu_index_t get_gbuffer_albedo_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].gbuffer_albedo_index;
@@ -492,6 +498,11 @@ namespace sfg
 			return _pfd[frame_index].mapped_light_buffer;
 		}
 
+		inline u8* get_mapped_reflection_probe_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_reflection_probe_buffer;
+		}
+
 		inline u8* get_mapped_debug_line_data(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_debug_line_data;
@@ -582,6 +593,11 @@ namespace sfg
 			return _config.light_max;
 		}
 
+		inline u32 get_reflection_probe_max() const
+		{
+			return _config.reflection_probe_max;
+		}
+
 	private:
 		void create_texture(vec2u16_t size);
 		void destroy_texture();
@@ -603,6 +619,7 @@ namespace sfg
 			u8*			 mapped_post_process_render_pass_data						= nullptr;
 			u8*			 mapped_entity_buffer										= nullptr;
 			u8*			 mapped_light_buffer										= nullptr;
+			u8*			 mapped_reflection_probe_buffer								= nullptr;
 			u8*			 mapped_ssao_render_pass_data								= nullptr;
 			u8*			 mapped_bloom_render_pass_data								= nullptr;
 			u8*			 mapped_bone_buffer											= nullptr;
@@ -621,6 +638,7 @@ namespace sfg
 			gfx_handle_t entity_buffer												= {};
 			gfx_handle_t bone_buffer												= {};
 			gfx_handle_t light_buffer												= {};
+			gfx_handle_t reflection_probe_buffer									= {};
 			gfx_handle_t debug_line_data											= {};
 			gfx_handle_t debug_line_vertex_buffer									= {};
 			gfx_handle_t debug_line_index_buffer									= {};
@@ -665,6 +683,7 @@ namespace sfg
 			gpu_index_t	 entity_buffer_index										= NULL_GPU_INDEX;
 			gpu_index_t	 bone_buffer_index											= NULL_GPU_INDEX;
 			gpu_index_t	 light_buffer_index											= NULL_GPU_INDEX;
+			gpu_index_t	 reflection_probe_buffer_index								= NULL_GPU_INDEX;
 			gpu_index_t	 debug_line_data_index										= NULL_GPU_INDEX;
 			gpu_index_t	 debug_text_data_index										= NULL_GPU_INDEX;
 		};

@@ -134,6 +134,7 @@ namespace sfg
 		const ecs_component_table_t& hierarchy_table		= world.get_component_table(type_id_t<component_hierarchy_t>::value);
 		const ecs_component_table_t& camera_table			= world.get_component_table(type_id_t<component_camera_t>::value);
 		const ecs_component_table_t& light_table			= world.get_component_table(type_id_t<component_light_t>::value);
+		const ecs_component_table_t& reflection_probe_table = world.get_component_table(type_id_t<component_reflection_probe_t>::value);
 		const ecs_component_table_t& physical_table			= world.get_component_table(type_id_t<component_physical_t>::value);
 		const ecs_component_table_t& compound_shape_table	= world.get_component_table(type_id_t<component_compound_shape_t>::value);
 		frame_vector_t<entity_id_t>	 compound_parents		= {};
@@ -183,6 +184,16 @@ namespace sfg
 			}
 
 			draw_constraint_gizmos(world, entity, transform, debug_draw);
+
+			const component_reflection_probe_t* reflection_probe = ecs_helpers_t::table_find_as_const<component_reflection_probe_t>(reflection_probe_table, entity);
+
+			if (reflection_probe != nullptr && !reflection_probe->is_global)
+			{
+				const mat4x3_t box_transform = mat4x3_t::transform(transform.abs_pos, transform.abs_rot, vec3f_t::one);
+				const vec3f_t  half_extents	 = vec3f_t::abs(reflection_probe->extents * transform.abs_scale);
+
+				debug_draw.draw_box(box_transform, half_extents, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+			}
 
 			const component_light_t* light = ecs_helpers_t::table_find_as_const<component_light_t>(light_table, entity);
 

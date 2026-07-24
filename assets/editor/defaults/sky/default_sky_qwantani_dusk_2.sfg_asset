@@ -5,7 +5,7 @@
     "sub_type": 0,
     "embedded_source": null,
     "cook_options": {
-        "size": [512, 512]
+        "resolution": 512.0
     },
     "source_relative": "",
     "source_type": "file"

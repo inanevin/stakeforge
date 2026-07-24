@@ -27,31 +27,25 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "cubemap.hpp"
-#include <sfg/common/type_id.hpp>
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/math/vec4f.hpp>
 
 namespace sfg
 {
-	class ostream_t;
-	struct resource_header_t;
-
-	struct cubemap_cook_config_t
+	enum gpu_reflection_probe_flags_e : u32
 	{
-		f32 resolution = 512.0f;
+		gpu_reflection_probe_flag_global = 1 << 0,
 	};
 
-	class cubemap_cooker final
+	struct gpu_reflection_probe_t
 	{
-	public:
-		static bool cook_from_file(const cubemap_cook_config_t& config, const char* full_path, resource_header_t& out_header, ostream_t& stream);
+		vec4f_t position_blend_distance	  = vec4f_t::zero;
+		vec4f_t rotation				  = {0.0f, 0.0f, 0.0f, 1.0f};
+		vec4f_t extents_diffuse_intensity = vec4f_t::zero;
+		f32		specular_intensity		  = 0.0f;
+		u32		flags					  = 0;
+		u32		padding[2]				  = {};
 	};
 
-	SFG_DEFINE_TYPE_ID(cubemap_cook_config_t);
-
-	struct cubemap_cook_config_reflection_t
-	{
-		cubemap_cook_config_reflection_t();
-	};
-
-	inline cubemap_cook_config_reflection_t g_reflect_cubemap_cook_config;
+	static_assert(sizeof(gpu_reflection_probe_t) == 64);
 }

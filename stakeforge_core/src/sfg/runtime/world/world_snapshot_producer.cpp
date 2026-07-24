@@ -166,6 +166,7 @@ namespace sfg
 		snapshot.entities.resize(0);
 		snapshot.bones.resize(0);
 		snapshot.lights.resize(0);
+		snapshot.reflection_probes.resize(0);
 		snapshot.draws.resize(0);
 		snapshot.environment  = {};
 		snapshot.post_process = {};
@@ -178,6 +179,7 @@ namespace sfg
 		const ecs_component_table_t& post_process_table					= world.get_component_table(type_id_t<component_post_process_t>::value);
 		const ecs_component_table_t& environment_table					= world.get_component_table(type_id_t<component_environment_t>::value);
 		const ecs_component_table_t& light_table						= world.get_component_table(type_id_t<component_light_t>::value);
+		const ecs_component_table_t& reflection_probe_table				= world.get_component_table(type_id_t<component_reflection_probe_t>::value);
 		const ecs_component_table_t& disabled_table						= world.get_component_table(type_id_t<component_disabled_t>::value);
 		const ecs_component_table_t& mesh_renderer_table				= world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
 		const ecs_component_table_t& skinned_mesh_renderer_table		= world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
@@ -326,6 +328,41 @@ namespace sfg
 					.flags				  = light.two_sided != 0 ? static_cast<u8>(1) : static_cast<u8>(0),
 					.shadow_cascade_count = light.shadow_cascade_count,
 					.cast_shadows		  = light.cast_shadows,
+				});
+			}
+		}
+
+		// reflection probes.
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				transform_table.ref(),
+				alive_table.ref(),
+				reflection_probe_table.ref(),
+				!disabled_table.ref(),
+			};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				const component_system_transform_t& transform		 = ecs_helpers_t::row_get<component_system_transform_t>(row, 0);
+				const component_reflection_probe_t& reflection_probe = ecs_helpers_t::row_get<component_reflection_probe_t>(row, 2);
+
+				snapshot.reflection_probes.push_back({
+					.prev_rot				= transform.prev_abs_rot,
+					.rot					= transform.abs_rot,
+					.prev_pos				= transform.prev_abs_pos,
+					.diffuse_intensity		= reflection_probe.diffuse_intensity,
+					.pos					= transform.abs_pos,
+					.specular_intensity		= reflection_probe.specular_intensity,
+					.prev_scale				= transform.prev_abs_scale,
+					.blend_distance			= reflection_probe.blend_distance,
+					.scale					= transform.abs_scale,
+					.resolution				= reflection_probe.resolution,
+					.extents				= reflection_probe.extents,
+					.stable_id				= row.id,
+					.realtime_tick_interval = reflection_probe.realtime_tick_interval,
+					.capture_type			= static_cast<world_render_reflection_probe_capture_type_e>(reflection_probe.capture_type),
+					.capture_mode			= static_cast<world_render_reflection_probe_capture_mode_e>(reflection_probe.capture_mode),
+					.is_global				= reflection_probe.is_global ? static_cast<u8>(1) : static_cast<u8>(0),
 				});
 			}
 		}

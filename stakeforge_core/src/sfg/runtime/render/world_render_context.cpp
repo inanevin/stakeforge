@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_gpu_bone.hpp"
 #include "world_gpu_entity.hpp"
 #include "world_gpu_light.hpp"
+#include "world_gpu_reflection_probe.hpp"
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/gfx/util/render_util.hpp>
@@ -131,6 +132,14 @@ namespace sfg
 		light_buffer_desc.structure_count  = light_buffer_count;
 		light_buffer_desc.flags			   = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
 		light_buffer_desc.set_name("world_light_buffer");
+
+		resource_desc_t reflection_probe_buffer_desc  = {};
+		const u32		reflection_probe_buffer_count = config.reflection_probe_max == 0 ? 1 : config.reflection_probe_max;
+		reflection_probe_buffer_desc.size			  = static_cast<u32>(sizeof(gpu_reflection_probe_t) * reflection_probe_buffer_count);
+		reflection_probe_buffer_desc.structure_size	  = static_cast<u32>(sizeof(gpu_reflection_probe_t));
+		reflection_probe_buffer_desc.structure_count  = reflection_probe_buffer_count;
+		reflection_probe_buffer_desc.flags			  = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
+		reflection_probe_buffer_desc.set_name("world_reflection_probe_buffer");
 
 		resource_desc_t debug_line_data_desc = {};
 		debug_line_data_desc.size			 = static_cast<u32>(sizeof(world_debug_line_gpu_data_t));
@@ -249,6 +258,7 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].entity_buffer.is_null());
 			SFG_ASSERT(_pfd[i].bone_buffer.is_null());
 			SFG_ASSERT(_pfd[i].light_buffer.is_null());
+			SFG_ASSERT(_pfd[i].reflection_probe_buffer.is_null());
 
 			_pfd[i].cmd_depth	 = backend.create_command_buffer({
 				.type		= command_type::graphics,
@@ -277,6 +287,7 @@ namespace sfg
 			_pfd[i].entity_buffer				  = backend.create_resource(entity_buffer_desc);
 			_pfd[i].bone_buffer					  = backend.create_resource(bone_buffer_desc);
 			_pfd[i].light_buffer				  = backend.create_resource(light_buffer_desc);
+			_pfd[i].reflection_probe_buffer		  = backend.create_resource(reflection_probe_buffer_desc);
 
 			if (config.enable_ssao != 0)
 			{
@@ -302,6 +313,7 @@ namespace sfg
 			backend.map_resource(_pfd[i].entity_buffer, _pfd[i].mapped_entity_buffer);
 			backend.map_resource(_pfd[i].bone_buffer, _pfd[i].mapped_bone_buffer);
 			backend.map_resource(_pfd[i].light_buffer, _pfd[i].mapped_light_buffer);
+			backend.map_resource(_pfd[i].reflection_probe_buffer, _pfd[i].mapped_reflection_probe_buffer);
 
 			_pfd[i].opaque_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].opaque_render_pass_data);
 			_pfd[i].lighting_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].lighting_render_pass_data);
@@ -309,6 +321,7 @@ namespace sfg
 			_pfd[i].entity_buffer_index					= backend.get_resource_gpu_index(_pfd[i].entity_buffer);
 			_pfd[i].bone_buffer_index					= backend.get_resource_gpu_index(_pfd[i].bone_buffer);
 			_pfd[i].light_buffer_index					= backend.get_resource_gpu_index(_pfd[i].light_buffer);
+			_pfd[i].reflection_probe_buffer_index		= backend.get_resource_gpu_index(_pfd[i].reflection_probe_buffer);
 
 			if (config.line_vertex_max > 0)
 			{
@@ -389,6 +402,7 @@ namespace sfg
 			SFG_ASSERT(!_pfd[i].entity_buffer.is_null());
 			SFG_ASSERT(!_pfd[i].bone_buffer.is_null());
 			SFG_ASSERT(!_pfd[i].light_buffer.is_null());
+			SFG_ASSERT(!_pfd[i].reflection_probe_buffer.is_null());
 
 			backend.destroy_resource(_pfd[i].opaque_render_pass_data);
 			backend.destroy_resource(_pfd[i].lighting_render_pass_data);
@@ -396,6 +410,7 @@ namespace sfg
 			backend.destroy_resource(_pfd[i].entity_buffer);
 			backend.destroy_resource(_pfd[i].bone_buffer);
 			backend.destroy_resource(_pfd[i].light_buffer);
+			backend.destroy_resource(_pfd[i].reflection_probe_buffer);
 
 			if (_config.enable_ssao != 0)
 			{
@@ -443,6 +458,7 @@ namespace sfg
 			_pfd[i].entity_buffer						 = {};
 			_pfd[i].bone_buffer							 = {};
 			_pfd[i].light_buffer						 = {};
+			_pfd[i].reflection_probe_buffer				 = {};
 			_pfd[i].debug_line_data						 = {};
 			_pfd[i].debug_line_vertex_buffer			 = {};
 			_pfd[i].debug_line_index_buffer				 = {};
@@ -455,6 +471,7 @@ namespace sfg
 			_pfd[i].mapped_entity_buffer				 = nullptr;
 			_pfd[i].mapped_bone_buffer					 = nullptr;
 			_pfd[i].mapped_light_buffer					 = nullptr;
+			_pfd[i].mapped_reflection_probe_buffer		 = nullptr;
 			_pfd[i].mapped_debug_line_data				 = nullptr;
 			_pfd[i].mapped_debug_line_vertices			 = nullptr;
 			_pfd[i].mapped_debug_line_indices			 = nullptr;
@@ -467,6 +484,7 @@ namespace sfg
 			_pfd[i].entity_buffer_index					 = NULL_GPU_INDEX;
 			_pfd[i].bone_buffer_index					 = NULL_GPU_INDEX;
 			_pfd[i].light_buffer_index					 = NULL_GPU_INDEX;
+			_pfd[i].reflection_probe_buffer_index		 = NULL_GPU_INDEX;
 			_pfd[i].debug_line_data_index				 = NULL_GPU_INDEX;
 			_pfd[i].debug_text_data_index				 = NULL_GPU_INDEX;
 			_pfd[i]										 = {};

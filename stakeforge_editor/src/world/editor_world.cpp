@@ -68,6 +68,7 @@ namespace sfg
 #define EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX		   16384
 #define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX		   24576
 #define EDITOR_WORLD_LIGHT_MAX					   1024
+#define EDITOR_WORLD_REFLECTION_PROBE_MAX		   256
 
 	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
 	{
@@ -109,17 +110,18 @@ namespace sfg
 
 		_render_resolution = init_config.render_resolution;
 		_render_context.init({
-			.size				 = init_config.render_resolution,
-			.entity_max			 = init_config.render_entity_max,
-			.bone_max			 = init_config.render_bone_max,
-			.light_max			 = EDITOR_WORLD_LIGHT_MAX,
-			.line_vertex_max	 = EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
-			.line_index_max		 = EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
-			.triangle_vertex_max = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_RESERVE,
-			.triangle_index_max	 = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_RESERVE,
-			.text_vertex_max	 = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
-			.text_index_max		 = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
-			.shadow_view_max	 = ENGINE_SHADOW_VIEW_MAX,
+			.size				  = init_config.render_resolution,
+			.entity_max			  = init_config.render_entity_max,
+			.bone_max			  = init_config.render_bone_max,
+			.light_max			  = EDITOR_WORLD_LIGHT_MAX,
+			.reflection_probe_max = EDITOR_WORLD_REFLECTION_PROBE_MAX,
+			.line_vertex_max	  = EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
+			.line_index_max		  = EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
+			.triangle_vertex_max  = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_RESERVE,
+			.triangle_index_max	  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_RESERVE,
+			.text_vertex_max	  = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
+			.text_index_max		  = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
+			.shadow_view_max	  = ENGINE_SHADOW_VIEW_MAX,
 		});
 
 		_render_prep_data.reserve(1000);
@@ -127,15 +129,16 @@ namespace sfg
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
 			_snapshot_slots[i].reserve({
-				.entity_count		   = 8000,
-				.bone_count			   = init_config.render_bone_reserve,
-				.light_count		   = EDITOR_WORLD_LIGHT_MAX,
-				.line_vertex_count	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
-				.line_index_count	   = EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
-				.triangle_vertex_count = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_RESERVE,
-				.triangle_index_count  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_RESERVE,
-				.text_vertex_count	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
-				.text_index_count	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
+				.entity_count			= 8000,
+				.bone_count				= init_config.render_bone_reserve,
+				.light_count			= EDITOR_WORLD_LIGHT_MAX,
+				.reflection_probe_count = EDITOR_WORLD_REFLECTION_PROBE_MAX,
+				.line_vertex_count		= EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
+				.line_index_count		= EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
+				.triangle_vertex_count	= EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_RESERVE,
+				.triangle_index_count	= EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_RESERVE,
+				.text_vertex_count		= EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
+				.text_index_count		= EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
 			});
 
 			editor_world_snapshot_data_t* data = new editor_world_snapshot_data_t();

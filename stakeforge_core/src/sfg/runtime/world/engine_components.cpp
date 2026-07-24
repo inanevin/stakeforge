@@ -539,6 +539,134 @@ namespace sfg
 			});
 		}
 
+		void register_component_reflection_probe_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name		  = "reflection_probe_capture_type_e",
+				.display_name = "Reflection Probe Capture Type",
+				.tooltip	  = "Selects which world content is rendered into the probe.",
+				.fields =
+					{
+						{.name = "skybox", .display_name = "Skybox", .tooltip = "Captures only the active skybox."},
+						{.name = "scene", .display_name = "Scene", .tooltip = "Captures the scene and active skybox."},
+					},
+				.type_id   = type_id_t<reflection_probe_capture_type_e>::value,
+				.size	   = sizeof(reflection_probe_capture_type_e),
+				.alignment = alignof(reflection_probe_capture_type_e),
+				.flags	   = reflected_type_flag_enum,
+			});
+
+			registry.register_type({
+				.name		  = "reflection_probe_capture_mode_e",
+				.display_name = "Reflection Probe Capture Mode",
+				.tooltip	  = "Controls when the probe requests a new capture.",
+				.fields =
+					{
+						{.name = "once", .display_name = "Once", .tooltip = "Captures automatically once, then reuses the generated probe textures."},
+						{.name = "realtime", .display_name = "Realtime", .tooltip = "Recaptures automatically at the configured world-tick interval."},
+						{.name = "manual", .display_name = "Manual", .tooltip = "Captures only when explicitly requested."},
+					},
+				.type_id   = type_id_t<reflection_probe_capture_mode_e>::value,
+				.size	   = sizeof(reflection_probe_capture_mode_e),
+				.alignment = alignof(reflection_probe_capture_mode_e),
+				.flags	   = reflected_type_flag_enum,
+			});
+
+			registry.register_type({
+				.name			 = "component_reflection_probe",
+				.display_name	 = "Reflection Probe",
+				.category		 = "Graphics",
+				.tooltip		 = "Captures local scene lighting for diffuse ambient light and specular reflections.",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_reflection_probe_t*>(ptr), component_reflection_probe_t{}); },
+				.fields =
+					{
+						{.name		   = "is_global",
+						 .display_name = "Global",
+						 .tooltip	   = "Uses this probe as the world fallback outside all bounded reflection probes.",
+						 .offset	   = offsetof(component_reflection_probe_t, is_global),
+						 .size		   = sizeof(bool),
+						 .type		   = reflected_value_type_e::boolean},
+						{.ui_definition = {.dependency_field = "is_global"_hs, .dependency_value = 0, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+						 .name			= "extents",
+						 .display_name	= "Extents",
+						 .tooltip		= "Local-space half-size of the box where this probe influences shaded surfaces.",
+						 .sub_type_id	= type_id_t<vec3f_t>::value,
+						 .offset		= offsetof(component_reflection_probe_t, extents),
+						 .size			= sizeof(vec3f_t),
+						 .type			= reflected_value_type_e::object},
+						{.name				= "resolution",
+						 .display_name		= "Resolution",
+						 .tooltip			= "Requested square width and height of each captured cubemap face.",
+						 .offset			= offsetof(component_reflection_probe_t, resolution),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 16.0f,
+						 .max_clamp			= 2048.0f,
+						 .clamp_granularity = 16.0f,
+						 .type				= reflected_value_type_e::f32},
+						{.name		   = "capture_type",
+						 .display_name = "Capture Type",
+						 .tooltip	   = "Selects whether the probe captures only the skybox or the complete scene.",
+						 .sub_type_id  = type_id_t<reflection_probe_capture_type_e>::value,
+						 .offset	   = offsetof(component_reflection_probe_t, capture_type),
+						 .size		   = sizeof(reflection_probe_capture_type_e),
+						 .type		   = reflected_value_type_e::u8},
+						{.name		   = "capture_mode",
+						 .display_name = "Capture Mode",
+						 .tooltip	   = "Selects automatic one-time, automatic realtime, or externally requested capture.",
+						 .sub_type_id  = type_id_t<reflection_probe_capture_mode_e>::value,
+						 .offset	   = offsetof(component_reflection_probe_t, capture_mode),
+						 .size		   = sizeof(reflection_probe_capture_mode_e),
+						 .type		   = reflected_value_type_e::u8},
+						{.ui_definition		= {.dependency_field = "capture_mode"_hs, .dependency_value = static_cast<u32>(reflection_probe_capture_mode_e::realtime), .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+						 .name				= "realtime_tick_interval",
+						 .display_name		= "Realtime Tick Interval",
+						 .tooltip			= "Number of world ticks between automatic realtime captures.",
+						 .offset			= offsetof(component_reflection_probe_t, realtime_tick_interval),
+						 .size				= sizeof(u32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 1.0f,
+						 .max_clamp			= 1000000.0f,
+						 .clamp_granularity = 1.0f,
+						 .type				= reflected_value_type_e::u32},
+						{.name				= "diffuse_intensity",
+						 .display_name		= "Diffuse Intensity",
+						 .tooltip			= "Multiplier applied to the probe's diffuse irradiance contribution.",
+						 .offset			= offsetof(component_reflection_probe_t, diffuse_intensity),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 64.0f,
+						 .clamp_granularity = 0.01f,
+						 .type				= reflected_value_type_e::f32},
+						{.name				= "specular_intensity",
+						 .display_name		= "Specular Intensity",
+						 .tooltip			= "Multiplier applied to the probe's prefiltered specular reflection contribution.",
+						 .offset			= offsetof(component_reflection_probe_t, specular_intensity),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 64.0f,
+						 .clamp_granularity = 0.01f,
+						 .type				= reflected_value_type_e::f32},
+						{.name				= "blend_distance",
+						 .display_name		= "Blend Distance",
+						 .tooltip			= "Distance inside the probe bounds used to blend smoothly with overlapping or fallback probes.",
+						 .offset			= offsetof(component_reflection_probe_t, blend_distance),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 1000.0f,
+						 .clamp_granularity = 0.01f,
+						 .type				= reflected_value_type_e::f32},
+					},
+				.type_id   = type_id_t<component_reflection_probe_t>::value,
+				.size	   = sizeof(component_reflection_probe_t),
+				.alignment = alignof(component_reflection_probe_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
 		void register_component_post_process_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -2316,6 +2444,7 @@ namespace sfg
 		register_component_light_reflection(registry);
 		register_component_post_process_reflection(registry);
 		register_component_environment_reflection(registry);
+		register_component_reflection_probe_reflection(registry);
 		register_component_prefab_reference_reflection(registry);
 		register_component_entity_tags_reflection(registry);
 		register_physics_component_reflection(registry);

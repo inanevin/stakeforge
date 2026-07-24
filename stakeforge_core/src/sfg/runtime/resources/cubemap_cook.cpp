@@ -42,6 +42,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define CUBEMAP_MIN_RESOLUTION 16.0f
+#define CUBEMAP_MAX_RESOLUTION 8192.0f
+
 	namespace
 	{
 		struct hdr_source_t
@@ -197,11 +200,14 @@ namespace sfg
 
 	bool cubemap_cooker::cook_from_file(const cubemap_cook_config_t& config, const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
-		if (config.size.x == 0 || config.size.y == 0)
+		if (math::is_nan(config.resolution) || config.resolution < CUBEMAP_MIN_RESOLUTION || config.resolution > CUBEMAP_MAX_RESOLUTION)
 		{
 			SFG_ERR("invalid cubemap cook config");
 			return false;
 		}
+
+		const u16		resolution = static_cast<u16>(math::round(config.resolution));
+		const vec2u16_t face_size  = {resolution, resolution};
 
 		int	   width	= 0;
 		int	   height	= 0;
@@ -220,7 +226,7 @@ namespace sfg
 		const hdr_source_t		source = {.data = data, .width = width, .height = height};
 		cubemap_texture_block_t block  = {};
 
-		if (!build_cubemap(source, config.size, block))
+		if (!build_cubemap(source, face_size, block))
 		{
 			stbi_image_free(data);
 			SFG_ERR("failed to allocate cubemap faces for {0}", full_path);
@@ -255,7 +261,16 @@ namespace sfg
 			.display_name = "Cubemap Cook Config",
 			.fields =
 				{
-					{.name = "size", .display_name = "Face Size", .sub_type_id = type_id_t<vec2u16_t>::value, .offset = offsetof(cubemap_cook_config_t, size), .size = sizeof(vec2u16_t), .type = reflected_value_type_e::object},
+					{.name				= "resolution",
+					 .display_name		= "Resolution",
+					 .tooltip			= "Requested square width and height of each generated cubemap face.",
+					 .offset			= offsetof(cubemap_cook_config_t, resolution),
+					 .size				= sizeof(f32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= CUBEMAP_MIN_RESOLUTION,
+					 .max_clamp			= CUBEMAP_MAX_RESOLUTION,
+					 .clamp_granularity = 16.0f,
+					 .type				= reflected_value_type_e::f32},
 				},
 			.type_id   = type_id_t<cubemap_cook_config_t>::value,
 			.size	   = sizeof(cubemap_cook_config_t),

@@ -222,6 +222,40 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_environment_t);
 
+	enum class reflection_probe_capture_type_e : u8
+	{
+		skybox,
+		scene,
+	};
+
+	SFG_DEFINE_TYPE_ID(reflection_probe_capture_type_e);
+
+	enum class reflection_probe_capture_mode_e : u8
+	{
+		once,
+		realtime,
+		manual,
+	};
+
+	SFG_DEFINE_TYPE_ID(reflection_probe_capture_mode_e);
+
+	struct component_reflection_probe_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_reflection_probe";
+
+		vec3f_t							extents				   = {5.0f, 5.0f, 5.0f};
+		f32								resolution			   = 256.0f;
+		f32								diffuse_intensity	   = 1.0f;
+		f32								specular_intensity	   = 1.0f;
+		f32								blend_distance		   = 1.0f;
+		u32								realtime_tick_interval = 30;
+		reflection_probe_capture_type_e capture_type		   = reflection_probe_capture_type_e::scene;
+		reflection_probe_capture_mode_e capture_mode		   = reflection_probe_capture_mode_e::once;
+		bool							is_global			   = false;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_reflection_probe_t);
+
 	struct component_prefab_reference_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_prefab_reference";

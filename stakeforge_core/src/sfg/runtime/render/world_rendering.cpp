@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_gpu_bone.hpp"
 #include "world_gpu_entity.hpp"
 #include "world_gpu_light.hpp"
+#include "world_gpu_reflection_probe.hpp"
 #include "world_render_context.hpp"
 #include "world_render_snapshot.hpp"
 #include <sfg/gfx/backend/backend.hpp>
@@ -334,6 +335,29 @@ namespace sfg
 					.right_param1	  = {right.x, right.y, right.z, param1},
 					.color_intensity  = {light.color.x, light.color.y, light.color.z, light.intensity},
 					.shadow			  = {shadow_offset, shadow_count, 0, 0},
+				};
+			}
+		}
+
+		// reflection probe buffer prep.
+		{
+			SFG_ASSERT(snapshot.reflection_probes.size() <= ctx.get_reflection_probe_max());
+			gpu_reflection_probe_t* reflection_probe_buffer = reinterpret_cast<gpu_reflection_probe_t*>(ctx.get_mapped_reflection_probe_buffer(frame_index));
+
+			for (size_t i = 0; i < snapshot.reflection_probes.size(); ++i)
+			{
+				const world_render_reflection_probe_t& reflection_probe = snapshot.reflection_probes[i];
+				const vec3f_t						   pos				= vec3f_t::lerp(reflection_probe.prev_pos, reflection_probe.pos, interpolation_alpha);
+				const quat_t						   rot				= quat_t::slerp(reflection_probe.prev_rot, reflection_probe.rot, interpolation_alpha);
+				const vec3f_t						   scale			= vec3f_t::lerp(reflection_probe.prev_scale, reflection_probe.scale, interpolation_alpha);
+				const vec3f_t						   extents			= vec3f_t::abs(reflection_probe.extents * scale);
+
+				reflection_probe_buffer[i] = {
+					.position_blend_distance   = {pos.x, pos.y, pos.z, reflection_probe.blend_distance},
+					.rotation				   = {rot.x, rot.y, rot.z, rot.w},
+					.extents_diffuse_intensity = {extents.x, extents.y, extents.z, reflection_probe.diffuse_intensity},
+					.specular_intensity		   = reflection_probe.specular_intensity,
+					.flags					   = reflection_probe.is_global != 0 ? gpu_reflection_probe_flag_global : 0u,
 				};
 			}
 		}
@@ -1178,40 +1202,43 @@ namespace sfg
 		gfx_backend&	   backend		= gfx_backend::get();
 		const gfx_handle_t cmd			= ctx.get_command_buffer_forward(frame_index);
 		const bool		   bloom_active = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
+
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
 		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
+		const render_pass_color_attachment_t color_attachment = {
+			.texture	= ctx.get_lighting_texture(frame_index),
+			.load_op	= load_op::load,
+			.store_op	= store_op::store,
+			.view_index = 1,
+		};
+
+		BEGIN_DEBUG_EVENT((&backend), cmd, "world_forward");
+		backend.cmd_begin_render_pass_depth_read_only(cmd,
+													  {
+														  .color_attachments = &color_attachment,
+														  .depth_stencil_attachment =
+															  {
+																  .texture			= ctx.get_depth_texture(frame_index),
+																  .clear_stencil	= 0,
+																  .clear_depth		= 0.0f,
+																  .depth_load_op	= load_op::load,
+																  .stencil_load_op	= load_op::none,
+																  .depth_store_op	= store_op::store,
+																  .stencil_store_op = store_op::none,
+																  .view_index		= 1,
+															  },
+														  .color_attachment_count = 1,
+													  });
+
+		const vec2u16_t size = ctx.get_size();
+		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
+		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
+
 		if (snapshot.environment.material_index != UINT32_MAX)
 		{
-			const render_pass_color_attachment_t color_attachment = {
-				.texture	= ctx.get_lighting_texture(frame_index),
-				.load_op	= load_op::load,
-				.store_op	= store_op::store,
-				.view_index = 1,
-			};
-
 			BEGIN_DEBUG_EVENT((&backend), cmd, "world_skybox");
-			backend.cmd_begin_render_pass_depth_read_only(cmd,
-														  {
-															  .color_attachments = &color_attachment,
-															  .depth_stencil_attachment =
-																  {
-																	  .texture			= ctx.get_depth_texture(frame_index),
-																	  .clear_stencil	= 0,
-																	  .clear_depth		= 0.0f,
-																	  .depth_load_op	= load_op::load,
-																	  .stencil_load_op	= load_op::none,
-																	  .depth_store_op	= store_op::store,
-																	  .stencil_store_op = store_op::none,
-																	  .view_index		= 1,
-																  },
-															  .color_attachment_count = 1,
-														  });
-
-			const vec2u16_t size = ctx.get_size();
-			backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
-			backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
 			const world_render_material_t& material		 = snapshot.materials[snapshot.environment.material_index];
 			const render_resource_handle_t shader_handle = material.find_pso(0);
@@ -1224,10 +1251,11 @@ namespace sfg
 			u32 bound_material = UINT32_MAX;
 			bind_material(backend, cmd, bound_material, snapshot.environment.material_index, material);
 			backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 36, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
-
-			backend.cmd_end_render_pass(cmd, {});
 			END_DEBUG_EVENT((&backend), cmd);
 		}
+
+		backend.cmd_end_render_pass(cmd, {});
+		END_DEBUG_EVENT((&backend), cmd);
 
 		const barrier_t end_barrier = {
 			.from_states = resource_state_render_target,
