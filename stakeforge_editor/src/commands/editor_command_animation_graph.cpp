@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "commands/editor_command_animation_graph.hpp"
+#include "assets/editor_asset_manager.hpp"
 #include "editor_command_system.hpp"
 #include "ui/panels/animation_graph/editor_animation_graph_context.hpp"
 
@@ -35,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -66,6 +68,21 @@ namespace sfg
 		bool is_same_navigation(const editor_animation_graph_navigation_state_t& a, const editor_animation_graph_navigation_state_t& b)
 		{
 			return a.display_node_id == b.display_node_id && a.selected_node_id == b.selected_node_id && a.selected_sub_node_id == b.selected_sub_node_id && a.selected_transition_id == b.selected_transition_id && a.mode == b.mode;
+		}
+
+		void save_and_cook_animation_graph_async(editor_animation_graph_context_t& context)
+		{
+			nlohmann::json		   embedded_source = nlohmann::json::object();
+			animation_graph_def_t& graph		   = context.get_graph();
+
+			if (!reflection_registry_t::get().type_to_json(type_id_t<animation_graph_def_t>::value, &graph, nullptr, embedded_source))
+			{
+				SFG_ERR("failed to serialize animation graph definition for asset {0}", context.get_asset_id());
+				return;
+			}
+
+			embedded_source["schema"] = "sfg.schema.animation_graph";
+			editor_asset_manager_t::get().save_and_cook_embedded_asset_async(context.get_asset_id(), embedded_source);
 		}
 
 		chunk_handle32_t animation_graph_to_aux(editor_command_system_t& system, const animation_graph_def_t& graph)
@@ -108,6 +125,10 @@ namespace sfg
 				return false;
 
 			apply_navigation(context, payload.previous_navigation);
+
+			if (payload.graph_changed)
+				save_and_cook_animation_graph_async(context);
+
 			return true;
 		}
 
@@ -120,6 +141,10 @@ namespace sfg
 				return false;
 
 			apply_navigation(context, payload.post_navigation);
+
+			if (payload.graph_changed)
+				save_and_cook_animation_graph_async(context);
+
 			return true;
 		}
 
@@ -262,6 +287,7 @@ namespace sfg
 			.post_navigation	 = post_navigation,
 			.previous_stream	 = context._edit_previous_stream,
 			.post_stream		 = post_stream,
+			.graph_changed		 = !is_same_graph,
 		};
 		const editor_command_issue_desc_t desc{
 			.undo		= animation_graph_edit_undo,
@@ -287,6 +313,9 @@ namespace sfg
 		}
 
 		context._edit_previous_stream = {};
+
+		if (payload.graph_changed)
+			save_and_cook_animation_graph_async(context);
 
 		return true;
 	}

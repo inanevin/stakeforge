@@ -27,9 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/panels/animation_graph/editor_animation_graph_widget_inspector.hpp"
 #include "ui/panels/animation_graph/editor_animation_graph_context.hpp"
-#include "assets/editor_asset.hpp"
-#include "assets/editor_asset_cooker.hpp"
-#include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "commands/editor_command_animation_graph.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -39,10 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/io/log.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -187,18 +181,6 @@ namespace sfg
 		ui.get_tree().set_visible(_asm_transition_reflection.get_root(), false, false);
 		ui.get_tree().set_visible(_bone_control_reflection.get_root(), false, false);
 		ui.get_tree().set_visible(_ik_reflection.get_root(), false, false);
-
-		_save_button.init(ui,
-						  _root,
-						  {
-							  .text				  = "Save",
-							  .elevate_draw_order = true,
-						  });
-
-		ui::listener_bundle_t save_listener = {};
-		save_listener.on_click				= on_save;
-		save_listener.user_data				= this;
-		ui.get_input().set_listener(_save_button.get_root(), save_listener);
 	}
 
 	void editor_animation_graph_widget_inspector_t::uninit()
@@ -208,7 +190,6 @@ namespace sfg
 		if (_edit_active)
 			editor_command_animation_graph_edit_t::cancel(*_config.context);
 
-		_save_button.uninit();
 		_ik_reflection.uninit();
 		_bone_control_reflection.uninit();
 		_asm_transition_reflection.uninit();
@@ -457,46 +438,6 @@ namespace sfg
 		}
 	}
 
-	void editor_animation_graph_widget_inspector_t::save()
-	{
-		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
-		const sid_t						 asset_id	   = _config.context->get_asset_id();
-		const editor_asset_node_handle_t asset_node_id = asset_manager.find_asset_node_handle(asset_id);
-
-		if (asset_node_id.is_null())
-		{
-			SFG_ERR("failed to find animation graph asset node {0}", asset_id);
-			return;
-		}
-
-		const editor_asset_node_t& asset_node = asset_manager.get_asset_tree().value(asset_node_id);
-		editor_asset_t			   asset	  = {};
-
-		if (!editor_asset_io_t::read_asset(asset_node.full_path.c_str(), asset))
-			return;
-
-		nlohmann::json		   embedded_source = nlohmann::json::object();
-		animation_graph_def_t& graph		   = _config.context->get_graph();
-
-		if (!reflection_registry_t::get().type_to_json(type_id_t<animation_graph_def_t>::value, &graph, nullptr, embedded_source))
-		{
-			SFG_ERR("failed to serialize animation graph definition for asset {0}", asset_id);
-			return;
-		}
-
-		embedded_source["schema"] = "sfg.schema.animation_graph";
-		editor_asset_io_t::set_embedded_source_json(asset, embedded_source);
-
-		if (!editor_asset_io_t::write_asset(asset_node.full_path.c_str(), asset))
-			return;
-
-		if (!editor_asset_cooker_t::cook_animation_graph(asset))
-			return;
-
-		if (!asset_manager.reload_asset_node(asset_node_id))
-			SFG_ERR("failed to reload animation graph asset node {0}", asset_id);
-	}
-
 	void editor_animation_graph_widget_inspector_t::on_edit_begin()
 	{
 		if (_edit_active)
@@ -545,8 +486,4 @@ namespace sfg
 		static_cast<editor_animation_graph_widget_inspector_t*>(user_data)->on_edit_submitted();
 	}
 
-	void editor_animation_graph_widget_inspector_t::on_save(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
-	{
-		static_cast<editor_animation_graph_widget_inspector_t*>(user_data)->save();
-	}
 }

@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "ui/widgets/editor_widget_button.hpp"
 #include "ui/widgets/editor_widget_reflection.hpp"
 
 #include <sfg/runtime/resources/skeleton_def.hpp>
@@ -35,9 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg::ui
 {
-	class input_router_t;
 	class ui_context;
-	enum class mouse_button_e : u8;
 }
 
 namespace sfg
@@ -83,7 +80,6 @@ namespace sfg
 	private:
 		void refresh_dropdown_items();
 		void refresh_inspector_immediate();
-		void save();
 		void on_edit_begin();
 		void on_edit_submitted();
 
@@ -91,11 +87,9 @@ namespace sfg
 		static void													  on_refresh_mutation(ui::ui_context& ui, void* user_data);
 		static void													  on_edit_begin(void* user_data);
 		static void													  on_edit_submitted(void* user_data);
-		static void													  on_save(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
 		skeleton_def_t									   _skeleton				   = {};
-		editor_widget_button_t							   _save_button				   = {};
 		editor_widget_reflection_t						   _graph_reflection		   = {};
 		editor_widget_reflection_t						   _asm_node_reflection		   = {};
 		editor_widget_reflection_t						   _asm_state_reflection	   = {};

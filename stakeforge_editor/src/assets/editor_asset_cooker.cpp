@@ -89,11 +89,11 @@ namespace sfg
 				return false;
 			}
 
-			string_t resolved_asset_name;
-			if (const char* display_name = editor_asset_util_t::find_asset_display_name(asset.guid); display_name != nullptr && display_name[0] != '\0')
-				resolved_asset_name = display_name;
-			else if (asset_name != nullptr && asset_name[0] != '\0')
+			string_t resolved_asset_name = {};
+			if (asset_name != nullptr && asset_name[0] != '\0')
 				resolved_asset_name = resolve_asset_name(asset_name);
+			else if (const char* display_name = editor_asset_util_t::find_asset_display_name(asset.guid); display_name != nullptr && display_name[0] != '\0')
+				resolved_asset_name = display_name;
 
 			header.set_debug_name(resolved_asset_name.c_str());
 			if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)

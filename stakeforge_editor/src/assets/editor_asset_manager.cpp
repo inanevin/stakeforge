@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager_util.hpp"
 #include "assets/editor_asset_path.hpp"
@@ -81,20 +82,35 @@ namespace sfg
 	void editor_asset_manager_t::uninit()
 	{
 		SFG_ASSERT(s_instance == this);
+
+		flush_asset_save_cook_jobs();
+
 		if (_import_in_progress)
 			editor_app_t::get().get_editor_work_executor().wait_for_all();
+
 		clear();
+
 		_import_status_pending.clear();
 		_import_status_visible.clear();
 		_import_asset_paths_pending.clear();
 		_import_asset_paths_visible.clear();
 		_asset_descriptors.clear();
+
+		{
+			LOCK_GUARD(_asset_save_cook_mtx);
+			_asset_save_cook_states.clear();
+		}
+
 		_import_status_dirty.store(false, std::memory_order_relaxed);
+		_asset_save_cook_worker_count.store(0, std::memory_order_relaxed);
+		_next_asset_save_cook_revision = 1;
+
 		_import_progress_pending	  = 0.0f;
 		_import_completed_pending	  = false;
 		_import_in_progress			  = false;
 		_import_target_directory_node = {};
-		s_instance					  = nullptr;
+
+		s_instance = nullptr;
 	}
 
 	void editor_asset_manager_t::tick()
@@ -146,6 +162,8 @@ namespace sfg
 
 	void editor_asset_manager_t::clear()
 	{
+		SFG_ASSERT(_asset_save_cook_worker_count.load(std::memory_order_acquire) == 0);
+
 		_database.clear();
 		_generation++;
 	}
@@ -346,6 +364,108 @@ namespace sfg
 	void editor_asset_manager_t::notify_changed()
 	{
 		_generation++;
+	}
+
+	bool editor_asset_manager_t::save_and_cook_embedded_asset_async(sid_t asset_id, const nlohmann::json& embedded_source)
+	{
+		editor_asset_t* asset = _database.find_asset(asset_id);
+		if (asset == nullptr)
+		{
+			SFG_ERR("failed to find embedded asset {0}", asset_id);
+			return false;
+		}
+
+		if (asset->source_type != editor_asset_source_type_e::embedded)
+		{
+			SFG_ERR("asset {0} does not have an embedded source", asset_id);
+			return false;
+		}
+
+		const editor_asset_node_handle_t node = _database.find_asset_node(asset_id);
+
+		if (node.is_null())
+		{
+			SFG_ERR("failed to find embedded asset node {0}", asset_id);
+			return false;
+		}
+
+		const editor_asset_node_t& asset_node = _database.get_asset_tree().value(node);
+		editor_asset_t			   updated	  = *asset;
+
+		editor_asset_io_t::set_embedded_source_json(updated, embedded_source);
+		*asset = updated;
+		notify_changed();
+
+		bool schedule_worker = false;
+
+		{
+			LOCK_GUARD(_asset_save_cook_mtx);
+
+			auto [it, inserted]						 = _asset_save_cook_states.try_emplace(asset_id);
+			asset_save_cook_state_t& save_cook_state = it->second;
+			save_cook_state.asset					 = std::move(updated);
+			save_cook_state.asset_path				 = asset_node.full_path;
+			save_cook_state.display_name			 = asset_node.name;
+			save_cook_state.revision				 = _next_asset_save_cook_revision++;
+			schedule_worker							 = inserted;
+
+			if (schedule_worker)
+				_asset_save_cook_worker_count.fetch_add(1, std::memory_order_release);
+		}
+
+		if (schedule_worker)
+			editor_app_t::get().get_editor_work_executor().silent_async([this, asset_id]() { save_and_cook_asset_worker(asset_id); });
+
+		return true;
+	}
+
+	void editor_asset_manager_t::flush_asset_save_cook_jobs()
+	{
+		if (_asset_save_cook_worker_count.load(std::memory_order_acquire) == 0)
+			return;
+
+		editor_app_t::get().get_editor_work_executor().wait_for_all();
+		SFG_ASSERT(_asset_save_cook_worker_count.load(std::memory_order_acquire) == 0);
+	}
+
+	void editor_asset_manager_t::save_and_cook_asset_worker(sid_t asset_id)
+	{
+		while (true)
+		{
+			asset_save_cook_state_t save_cook_state = {};
+
+			{
+				LOCK_GUARD(_asset_save_cook_mtx);
+
+				const auto it = _asset_save_cook_states.find(asset_id);
+				SFG_ASSERT(it != _asset_save_cook_states.end());
+				save_cook_state = it->second;
+			}
+
+			const bool saved_and_cooked = editor_asset_io_t::write_asset(save_cook_state.asset_path.c_str(), save_cook_state.asset) && editor_asset_cooker_t::cook_asset(save_cook_state.asset, save_cook_state.display_name.c_str());
+
+			if (!saved_and_cooked)
+				SFG_ERR("failed to save and cook embedded asset {0}", asset_id);
+
+			bool is_completed = false;
+
+			{
+				LOCK_GUARD(_asset_save_cook_mtx);
+
+				const auto it = _asset_save_cook_states.find(asset_id);
+				SFG_ASSERT(it != _asset_save_cook_states.end());
+
+				if (it->second.revision == save_cook_state.revision)
+				{
+					_asset_save_cook_states.erase(it);
+					_asset_save_cook_worker_count.fetch_sub(1, std::memory_order_release);
+					is_completed = true;
+				}
+			}
+
+			if (is_completed)
+				return;
+		}
 	}
 
 	const editor_asset_descriptor_t* editor_asset_manager_t::find_asset_descriptor(const string_t& extension) const

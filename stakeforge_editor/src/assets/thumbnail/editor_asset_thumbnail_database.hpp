@@ -29,7 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/vendor/moodycamel/readerwriterqueue.h>
+#include <sfg/vendor/moodycamel/concurrentqueue.h>
 
 namespace sfg
 {
@@ -92,7 +92,7 @@ namespace sfg
 		void track_loaded_thumbnail(sid_t thumbnail_guid);
 
 	private:
-		moodycamel::ReaderWriterQueue<request_t> _requests;
-		vector_t<sid_t>							 _loaded_thumbnails;
+		moodycamel::ConcurrentQueue<request_t> _requests;
+		vector_t<sid_t>						   _loaded_thumbnails;
 	};
 }

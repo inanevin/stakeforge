@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "commands/editor_commands_material.hpp"
 #include "assets/editor_asset.hpp"
-#include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "editor_command_system.hpp"
@@ -213,27 +212,10 @@ namespace sfg
 					return false;
 				}
 
-				const editor_asset_node_handle_t node = asset_manager.find_asset_node_handle(material_ids[i]);
-				if (node.is_null())
-				{
-					SFG_ERR("failed to find material asset node {0}", material_ids[i]);
-					return false;
-				}
-
-				const editor_asset_tree_t& tree		  = asset_manager.get_asset_tree();
-				const editor_asset_node_t& asset_node = tree.value(node);
-				editor_asset_t			   asset	  = {};
-				if (!editor_asset_io_t::read_asset(asset_node.full_path.c_str(), asset))
-					return false;
-
-				editor_asset_io_t::set_embedded_source_json(asset, embedded);
-				if (!editor_asset_io_t::write_asset(asset_node.full_path.c_str(), asset))
-					return false;
-				if (!editor_asset_cooker_t::cook_material(asset))
-					return false;
-				if (!asset_manager.reload_asset_node(node))
+				if (!asset_manager.save_and_cook_embedded_asset_async(material_ids[i], embedded))
 					return false;
 			}
+
 			return true;
 		}
 

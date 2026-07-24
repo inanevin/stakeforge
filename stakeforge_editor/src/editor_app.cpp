@@ -315,6 +315,7 @@ namespace sfg
 
 	void editor_app_t::uninit_normal_mode()
 	{
+		_asset_manager.flush_asset_save_cook_jobs();
 		editor_thumbnail_render_service_t::get().uninit();
 		editor_asset_thumbnail_database_t::get().uninit();
 		_world_controller.uninit();

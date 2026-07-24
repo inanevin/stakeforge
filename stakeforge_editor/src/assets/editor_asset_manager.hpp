@@ -63,6 +63,7 @@ namespace sfg
 		void uninit();
 		void tick();
 		void clear();
+		void flush_asset_save_cook_jobs();
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -80,6 +81,7 @@ namespace sfg
 		void					   update_node_path(editor_asset_node_handle_t node, const char* new_path);
 		void					   move_node(editor_asset_node_handle_t node, editor_asset_node_handle_t new_parent, const char* new_path);
 		void					   notify_changed();
+		bool					   save_and_cook_embedded_asset_async(sid_t asset_id, const nlohmann::json& embedded_source);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -138,9 +140,18 @@ namespace sfg
 		}
 
 	private:
+		struct asset_save_cook_state_t
+		{
+			editor_asset_t asset		= {};
+			string_t	   asset_path	= {};
+			string_t	   display_name = {};
+			u64			   revision		= 0;
+		};
+
 		friend class editor_asset_manager_util_t;
 
 		static void				   on_import_progress(void* user_data, f32 progress, const char* text, bool is_completed, span_t<const string_t> imported_asset_paths);
+		void					   save_and_cook_asset_worker(sid_t asset_id);
 		editor_asset_node_handle_t find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const;
 		editor_asset_node_handle_t get_or_create_child_folder(editor_asset_node_handle_t parent, const string_t& name);
 
@@ -153,13 +164,17 @@ namespace sfg
 		vector_t<string_t>										   _import_asset_paths_pending;
 		vector_t<string_t>										   _import_asset_paths_visible;
 		mutex_t													   _import_status_mtx;
-		editor_asset_node_handle_t								   _import_target_directory_node = {};
-		f32														   _import_progress_pending		 = 0.0f;
-		atomic_t<bool>											   _import_status_dirty			 = false;
-		u32														   _generation					 = 0;
-		u32														   _last_integrity_generation	 = 0;
-		bool													   _import_completed_pending	 = false;
-		bool													   _import_in_progress			 = false;
+		hash_map_t<sid_t, asset_save_cook_state_t>				   _asset_save_cook_states;
+		mutex_t													   _asset_save_cook_mtx;
+		u64														   _next_asset_save_cook_revision = 1;
+		editor_asset_node_handle_t								   _import_target_directory_node  = {};
+		atomic_t<u32>											   _asset_save_cook_worker_count  = 0;
+		f32														   _import_progress_pending		  = 0.0f;
+		atomic_t<bool>											   _import_status_dirty			  = false;
+		u32														   _generation					  = 0;
+		u32														   _last_integrity_generation	  = 0;
+		bool													   _import_completed_pending	  = false;
+		bool													   _import_in_progress			  = false;
 
 		static inline editor_asset_manager_t* s_instance = nullptr;
 	};

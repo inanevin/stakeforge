@@ -78,6 +78,7 @@ namespace sfg
 		editor_animation_graph_navigation_state_t post_navigation	  = {};
 		chunk_handle32_t						  previous_stream	  = {};
 		chunk_handle32_t						  post_stream		  = {};
+		bool									  graph_changed		  = false;
 	};
 
 	class editor_command_animation_graph_edit_t final
