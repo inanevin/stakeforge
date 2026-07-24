@@ -35,7 +35,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/animation.hpp>
+#include <sfg/runtime/resources/animation_graph.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/skeleton.hpp>
 
 namespace sfg
 {
@@ -87,6 +89,268 @@ namespace sfg
 		_nodes.uninit();
 	}
 
+	animation_graph_storage_instance_t animation_graph_storage_t::create_graph(const animation_graph_runtime_t& graph, const chunk_allocator_t& resource_memory, const skeleton_runtime_t& skeleton)
+	{
+		animation_graph_storage_instance_t instance{
+			.initial_pose	 = animation_graph_util_t::create_pose_from_skeleton(skeleton, resource_memory, _poses, _pose_bones, _aux),
+			.parameter_count = graph.parameter_count,
+			.node_count		 = graph.node_count,
+		};
+
+		if (instance.parameter_count != 0)
+		{
+			instance.parameters = _params.allocate_bytes(sizeof(animation_graph_param_t) * instance.parameter_count, alignof(animation_graph_param_t));
+
+			const animation_graph_resource_param_t* source_parameters	   = resource_memory.get<animation_graph_resource_param_t>(graph.parameters);
+			animation_graph_param_t*				destination_parameters = _params.get<animation_graph_param_t>(instance.parameters);
+
+			for (u32 parameter_index = 0; parameter_index < instance.parameter_count; ++parameter_index)
+				destination_parameters[parameter_index] = source_parameters[parameter_index].value;
+		}
+
+		if (instance.node_count == 0)
+			return instance;
+
+		instance.nodes = _nodes.allocate_bytes(sizeof(animation_graph_node_t) * instance.node_count, alignof(animation_graph_node_t));
+
+		const animation_graph_resource_node_t* source_nodes		 = resource_memory.get<animation_graph_resource_node_t>(graph.nodes);
+		animation_graph_node_t*				   destination_nodes = _nodes.get<animation_graph_node_t>(instance.nodes);
+
+		for (u32 node_index = 0; node_index < instance.node_count; ++node_index)
+		{
+			const animation_graph_resource_node_t& source_node		= source_nodes[node_index];
+			animation_graph_node_t&				   destination_node = destination_nodes[node_index];
+
+			destination_node			 = {};
+			destination_node.type		 = source_node.type;
+			destination_node.pose_handle = animation_graph_util_t::create_pose_from_skeleton(skeleton, resource_memory, _poses, _pose_bones, _aux);
+
+			if (source_node.type == animation_graph_node_type_e::asm_node)
+			{
+				const animation_graph_resource_asm_t& source_asm	  = source_node.asm_node;
+				animation_graph_node_asm_t&			  destination_asm = destination_node.node_asm;
+				bool								  has_mask		  = false;
+
+				for (const u64 bitmask : source_asm.mask.bitmasks)
+					has_mask |= bitmask != 0;
+
+				if (has_mask)
+				{
+					destination_node.mask_handle									  = _masks.allocate_bytes(sizeof(animation_graph_mask_t), alignof(animation_graph_mask_t));
+					*_masks.get<animation_graph_mask_t>(destination_node.mask_handle) = source_asm.mask;
+				}
+
+				destination_asm.state_count		 = source_asm.state_count;
+				destination_asm.transition_count = source_asm.transition_count;
+
+				if (destination_asm.state_count != 0)
+				{
+					destination_asm.states = _asm_states.allocate_bytes(sizeof(animation_graph_asm_state_t) * destination_asm.state_count, alignof(animation_graph_asm_state_t));
+
+					const animation_graph_resource_state_t* source_states	   = resource_memory.get<animation_graph_resource_state_t>(source_asm.states);
+					animation_graph_asm_state_t*			destination_states = _asm_states.get<animation_graph_asm_state_t>(destination_asm.states);
+
+					for (u32 state_index = 0; state_index < destination_asm.state_count; ++state_index)
+					{
+						const animation_graph_resource_state_t& source_state	  = source_states[state_index];
+						animation_graph_asm_state_t&			destination_state = destination_states[state_index];
+
+						destination_state			 = {};
+						destination_state.clip_count = source_state.clip_count;
+						destination_state._duration	 = source_state.duration;
+						destination_state.state_type = source_state.state_type;
+						destination_state.loop		 = source_state.loop;
+
+						if (source_state.blend_parameter_index != UINT32_MAX)
+						{
+							SFG_ASSERT(source_state.blend_parameter_index < instance.parameter_count);
+
+							destination_state.blend_parameter = {
+								.head = instance.parameters.head + static_cast<u32>(sizeof(animation_graph_param_t)) * source_state.blend_parameter_index,
+								.size = sizeof(animation_graph_param_t),
+							};
+						}
+						else
+						{
+							SFG_ASSERT(source_state.state_type == animation_graph_asm_state_type_e::no_blend);
+						}
+
+						if (destination_state.clip_count == 0)
+							continue;
+
+						destination_state.clips = _clips.allocate_bytes(sizeof(animation_graph_clip_t) * destination_state.clip_count, alignof(animation_graph_clip_t));
+
+						const animation_graph_resource_clip_t* source_clips		 = resource_memory.get<animation_graph_resource_clip_t>(source_state.clips);
+						animation_graph_clip_t*				   destination_clips = _clips.get<animation_graph_clip_t>(destination_state.clips);
+
+						for (u32 clip_index = 0; clip_index < destination_state.clip_count; ++clip_index)
+						{
+							destination_clips[clip_index] = {.clip = source_clips[clip_index].clip};
+
+							if (source_state.state_type == animation_graph_asm_state_type_e::blend_2d)
+								destination_clips[clip_index].blend_value_2d = source_clips[clip_index].blend_value_2d;
+							else
+								destination_clips[clip_index].blend_value = source_clips[clip_index].blend_value;
+						}
+					}
+
+					if (source_asm.first_state_index != UINT32_MAX)
+					{
+						SFG_ASSERT(source_asm.first_state_index < destination_asm.state_count);
+
+						destination_asm.first_state = {
+							.head = destination_asm.states.head + static_cast<u32>(sizeof(animation_graph_asm_state_t)) * source_asm.first_state_index,
+							.size = sizeof(animation_graph_asm_state_t),
+						};
+					}
+				}
+
+				if (destination_asm.transition_count == 0)
+					continue;
+
+				destination_asm.transitions = _asm_transitions.allocate_bytes(sizeof(animation_graph_asm_transition_t) * destination_asm.transition_count, alignof(animation_graph_asm_transition_t));
+
+				const animation_graph_resource_transition_t* source_transitions		 = resource_memory.get<animation_graph_resource_transition_t>(source_asm.transitions);
+				animation_graph_asm_transition_t*			 destination_transitions = _asm_transitions.get<animation_graph_asm_transition_t>(destination_asm.transitions);
+
+				for (u32 transition_index = 0; transition_index < destination_asm.transition_count; ++transition_index)
+				{
+					const animation_graph_resource_transition_t& source_transition		= source_transitions[transition_index];
+					animation_graph_asm_transition_t&			 destination_transition = destination_transitions[transition_index];
+
+					SFG_ASSERT(source_transition.from_state_index < destination_asm.state_count);
+					SFG_ASSERT(source_transition.to_state_index < destination_asm.state_count);
+					SFG_ASSERT(source_transition.parameter_index < instance.parameter_count);
+
+					destination_transition = {
+						.from_state =
+							{
+								.head = destination_asm.states.head + static_cast<u32>(sizeof(animation_graph_asm_state_t)) * source_transition.from_state_index,
+								.size = sizeof(animation_graph_asm_state_t),
+							},
+						.to_state =
+							{
+								.head = destination_asm.states.head + static_cast<u32>(sizeof(animation_graph_asm_state_t)) * source_transition.to_state_index,
+								.size = sizeof(animation_graph_asm_state_t),
+							},
+						.parameter =
+							{
+								.head = instance.parameters.head + static_cast<u32>(sizeof(animation_graph_param_t)) * source_transition.parameter_index,
+								.size = sizeof(animation_graph_param_t),
+							},
+						.compare_value = source_transition.compare_value,
+						.duration	   = source_transition.duration,
+						.type		   = source_transition.type,
+						.is_blended	   = source_transition.is_blended,
+					};
+				}
+
+				continue;
+			}
+
+			if (source_node.type != animation_graph_node_type_e::bone_controller)
+			{
+				std::construct_at(&destination_node.node_ik, animation_graph_node_ik_t{});
+				continue;
+			}
+
+			std::construct_at(&destination_node.node_bone_control, animation_graph_node_bone_control_t{});
+
+			const animation_graph_resource_bone_control_t& source_bone_control		= source_node.bone_control_node;
+			animation_graph_node_bone_control_t&		   destination_bone_control = destination_node.node_bone_control;
+
+			destination_bone_control.bone_count	   = source_bone_control.bone_count;
+			destination_bone_control.control_type  = source_bone_control.control_type;
+			destination_bone_control.control_space = source_bone_control.control_space;
+
+			if (destination_bone_control.bone_count == 0)
+				continue;
+
+			destination_bone_control.bone_indices = _aux.allocate_bytes(sizeof(u32) * destination_bone_control.bone_count, alignof(u32));
+			destination_bone_control.parameters	  = _aux.allocate_bytes(sizeof(chunk_handle32_t) * destination_bone_control.bone_count, alignof(chunk_handle32_t));
+
+			const animation_graph_resource_bone_control_entry_t* source_bones	   = resource_memory.get<animation_graph_resource_bone_control_entry_t>(source_bone_control.bones);
+			u32*												 bone_indices	   = _aux.get<u32>(destination_bone_control.bone_indices);
+			chunk_handle32_t*									 parameter_handles = _aux.get<chunk_handle32_t>(destination_bone_control.parameters);
+
+			for (u32 bone_index = 0; bone_index < destination_bone_control.bone_count; ++bone_index)
+			{
+				const animation_graph_resource_bone_control_entry_t& source_bone = source_bones[bone_index];
+
+				SFG_ASSERT(source_bone.bone_index < skeleton.joint_count);
+				SFG_ASSERT(source_bone.parameter_index < instance.parameter_count);
+
+				bone_indices[bone_index]	  = source_bone.bone_index;
+				parameter_handles[bone_index] = {
+					.head = instance.parameters.head + static_cast<u32>(sizeof(animation_graph_param_t)) * source_bone.parameter_index,
+					.size = sizeof(animation_graph_param_t),
+				};
+			}
+		}
+
+		return instance;
+	}
+
+	void animation_graph_storage_t::destroy_graph(const animation_graph_storage_instance_t& instance)
+	{
+		if (instance.node_count != 0)
+		{
+			animation_graph_node_t* nodes = _nodes.get<animation_graph_node_t>(instance.nodes);
+
+			for (u32 node_index = 0; node_index < instance.node_count; ++node_index)
+			{
+				animation_graph_node_t& node = nodes[node_index];
+
+				animation_graph_util_t::destroy_pose(node.pose_handle, _poses, _pose_bones, _aux);
+
+				if (node.type == animation_graph_node_type_e::asm_node)
+				{
+					if (node.node_asm.state_count != 0)
+					{
+						animation_graph_asm_state_t* states = _asm_states.get<animation_graph_asm_state_t>(node.node_asm.states);
+
+						for (u32 state_index = 0; state_index < node.node_asm.state_count; ++state_index)
+						{
+							if (states[state_index].clip_count != 0)
+								_clips.free(states[state_index].clips);
+						}
+
+						_asm_states.free(node.node_asm.states);
+					}
+
+					if (node.node_asm.transition_count != 0)
+						_asm_transitions.free(node.node_asm.transitions);
+
+					if (node.mask_handle)
+						_masks.free(node.mask_handle);
+				}
+				else if (node.type == animation_graph_node_type_e::bone_controller && node.node_bone_control.bone_count != 0)
+				{
+					_aux.free(node.node_bone_control.bone_indices);
+					_aux.free(node.node_bone_control.parameters);
+				}
+			}
+
+			_nodes.free(instance.nodes);
+		}
+
+		if (instance.parameter_count != 0)
+			_params.free(instance.parameters);
+
+		animation_graph_util_t::destroy_pose(instance.initial_pose, _poses, _pose_bones, _aux);
+	}
+
+	void animation_graph_storage_t::copy_pose_to_bones(chunk_handle32_t pose_handle, span_t<animation_bone_t> bones) const
+	{
+		const animation_graph_pose_t& pose		 = *_poses.get<animation_graph_pose_t>(pose_handle);
+		const animation_graph_bone_t* pose_bones = _pose_bones.get<animation_graph_bone_t>(pose.bones);
+
+		SFG_ASSERT(bones.size == pose.bone_count);
+
+		for (size_t bone_index = 0; bone_index < bones.size; ++bone_index)
+			bones.data[bone_index].bone_transform = pose_bones[bone_index].local_matrix;
+	}
+
 	void animation_graph_storage_t::process_graph(chunk_handle32_t nodes, u32 node_count, chunk_handle32_t initial_pose, const mat4x3_t& entity_transform, span_t<animation_bone_t> bones, f32 delta_time)
 	{
 		chunk_handle32_t previous_pose_handle = initial_pose;
@@ -125,14 +389,7 @@ namespace sfg
 			}
 		}
 
-		// copy latest pose as the final bone buffer.
-		const animation_graph_pose_t& latest_pose		= *_poses.get<animation_graph_pose_t>(previous_pose_handle);
-		const animation_graph_bone_t* latest_pose_bones = _pose_bones.get<animation_graph_bone_t>(latest_pose.bones);
-
-		SFG_ASSERT(bones.size == latest_pose.bone_count);
-
-		for (size_t bone_index = 0; bone_index < bones.size; ++bone_index)
-			bones.data[bone_index].bone_transform = latest_pose_bones[bone_index].local_matrix;
+		copy_pose_to_bones(previous_pose_handle, bones);
 	}
 
 	void animation_graph_storage_t::process_node_asm(animation_graph_node_asm_t& node, chunk_handle32_t mask_handle, span_t<animation_graph_bone_t> pose_bones, f32 delta_time)
@@ -308,13 +565,13 @@ namespace sfg
 			break;
 		}
 
-		const u32*					   bone_indices = _aux.get<u32>(node.bone_indices);
-		const animation_graph_param_t* parameters	= _params.get<animation_graph_param_t>(node.parameters);
+		const u32*				bone_indices	  = _aux.get<u32>(node.bone_indices);
+		const chunk_handle32_t* parameter_handles = _aux.get<chunk_handle32_t>(node.parameters);
 
 		for (u32 i = 0; i < node.bone_count; ++i)
 		{
 			const u32					   bone_index = bone_indices[i];
-			const animation_graph_param_t& parameter  = parameters[i];
+			const animation_graph_param_t& parameter  = *_params.get<animation_graph_param_t>(parameter_handles[i]);
 
 			SFG_ASSERT(bone_index < pose_bones.size);
 

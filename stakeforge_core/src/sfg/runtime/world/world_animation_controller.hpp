@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct animation_graph_runtime_t;
 	struct skeleton_runtime_t;
 	class world_t;
 
@@ -80,7 +81,7 @@ namespace sfg
 		void destroy_skinned_renderer(entity_id_t id);
 
 		void sync_create_destroy_animation_graph();
-		void create_animation_graph(entity_id_t id, const skeleton_runtime_t& skeleton);
+		void create_animation_graph(entity_id_t id, resource_handle_t animation_graph_handle, const animation_graph_runtime_t& animation_graph, resource_handle_t skeleton_handle, const skeleton_runtime_t& skeleton);
 		void destroy_animation_graph(entity_id_t id);
 
 		chunk_handle32_t allocate_bones(u32 bone_count);

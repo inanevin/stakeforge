@@ -35,6 +35,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct animation_graph_runtime_t;
+	struct skeleton_runtime_t;
+
+	struct animation_graph_storage_instance_t
+	{
+		chunk_handle32_t initial_pose	 = {};
+		chunk_handle32_t parameters		 = {};
+		chunk_handle32_t nodes			 = {};
+		u32				 parameter_count = 0;
+		u32				 node_count		 = 0;
+	};
+
 	class animation_graph_storage_t final
 	{
 	public:
@@ -54,26 +66,10 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void process_graph(chunk_handle32_t nodes, u32 node_count, chunk_handle32_t initial_pose, const mat4x3_t& entity_transform, span_t<animation_bone_t> bones, f32 delta_time);
-
-		// -----------------------------------------------------------------------------
-		// accessors
-		// -----------------------------------------------------------------------------
-
-		inline chunk_allocator32_t& get_pose_memory()
-		{
-			return _poses;
-		}
-
-		inline chunk_allocator32_t& get_pose_bone_memory()
-		{
-			return _pose_bones;
-		}
-
-		inline chunk_allocator32_t& get_aux_memory()
-		{
-			return _aux;
-		}
+		animation_graph_storage_instance_t create_graph(const animation_graph_runtime_t& graph, const chunk_allocator_t& resource_memory, const skeleton_runtime_t& skeleton);
+		void							   destroy_graph(const animation_graph_storage_instance_t& instance);
+		void							   copy_pose_to_bones(chunk_handle32_t pose, span_t<animation_bone_t> bones) const;
+		void							   process_graph(chunk_handle32_t nodes, u32 node_count, chunk_handle32_t initial_pose, const mat4x3_t& entity_transform, span_t<animation_bone_t> bones, f32 delta_time);
 
 	private:
 		void process_node_asm(animation_graph_node_asm_t& node, chunk_handle32_t mask_handle, span_t<animation_graph_bone_t> pose_bones, f32 delta_time);

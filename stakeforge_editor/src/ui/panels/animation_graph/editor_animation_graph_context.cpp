@@ -103,6 +103,46 @@ namespace sfg
 		return _id_counter - 1;
 	}
 
+	void editor_animation_graph_context_t::ensure_graph_node_designations()
+	{
+		if (_graph.nodes.empty())
+		{
+			_graph.entry_node_id  = ANIMATION_GRAPH_DEF_NULL_ID;
+			_graph.output_node_id = ANIMATION_GRAPH_DEF_NULL_ID;
+			return;
+		}
+
+		const auto entry_it = std::find_if(_graph.nodes.begin(), _graph.nodes.end(), [this](const animation_graph_node_def_t& node) { return node.id == _graph.entry_node_id; });
+
+		if (entry_it == _graph.nodes.end())
+			_graph.entry_node_id = _graph.nodes.front().id;
+
+		const auto output_it = std::find_if(_graph.nodes.begin(), _graph.nodes.end(), [this](const animation_graph_node_def_t& node) { return node.id == _graph.output_node_id; });
+
+		if (output_it == _graph.nodes.end())
+			_graph.output_node_id = _graph.nodes.back().id;
+	}
+
+	void editor_animation_graph_context_t::ensure_asm_state_designations()
+	{
+		for (animation_graph_node_def_t& node : _graph.nodes)
+		{
+			if (node.type != animation_graph_node_type_e::asm_node)
+				continue;
+
+			if (node.asm_node.states.empty())
+			{
+				node.asm_node.first_state_id = ANIMATION_GRAPH_DEF_NULL_ID;
+				continue;
+			}
+
+			const auto first_state_it = std::find_if(node.asm_node.states.begin(), node.asm_node.states.end(), [&node](const animation_graph_asm_state_def_t& state) { return state.id == node.asm_node.first_state_id; });
+
+			if (first_state_it == node.asm_node.states.end())
+				node.asm_node.first_state_id = node.asm_node.states.front().id;
+		}
+	}
+
 	void editor_animation_graph_context_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
 	{
 		editor_animation_graph_context_t& context = *static_cast<editor_animation_graph_context_t*>(user_data);
@@ -115,9 +155,17 @@ namespace sfg
 		case editor_command_type_e::animation_graph_add_node:
 		case editor_command_type_e::animation_graph_delete_node:
 		case editor_command_type_e::animation_graph_duplicate_node:
+			context.ensure_graph_node_designations();
+			context._grid->refresh_nodes();
+			context._inspector->refresh_inspector();
+			break;
 		case editor_command_type_e::animation_graph_add_asm_state:
 		case editor_command_type_e::animation_graph_delete_asm_state:
 		case editor_command_type_e::animation_graph_duplicate_asm_state:
+			context.ensure_asm_state_designations();
+			context._grid->refresh_nodes();
+			context._inspector->refresh_inspector();
+			break;
 		case editor_command_type_e::animation_graph_asm_node_add_transition:
 		case editor_command_type_e::animation_graph_asm_node_delete_transition:
 			context._grid->refresh_nodes();

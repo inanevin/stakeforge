@@ -149,6 +149,10 @@ namespace sfg
 			if (!add_animation_graph_node_from_aux(system, context, payload))
 				return false;
 
+			animation_graph_def_t& graph = context.get_graph();
+
+			graph.entry_node_id	 = payload.previous_entry_id;
+			graph.output_node_id = payload.previous_output_id;
 			context.set_selected_node_id(payload.previous_selection);
 			return true;
 		}
@@ -574,6 +578,8 @@ namespace sfg
 			.node_id			= node_id,
 			.node_index			= static_cast<u32>(node_it - graph.nodes.begin()),
 			.previous_selection = context.get_selected_node_id(),
+			.previous_entry_id	= graph.entry_node_id,
+			.previous_output_id = graph.output_node_id,
 		};
 		const editor_command_issue_desc_t desc{
 			.undo		= animation_graph_delete_node_undo,

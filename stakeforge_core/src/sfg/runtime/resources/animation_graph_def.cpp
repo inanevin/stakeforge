@@ -149,7 +149,7 @@ namespace sfg
 						.type		  = reflected_value_type_e::u8,
 					},
 					{.name = "blend_parameter_id", .display_name = "Blend Parameter", .offset = offsetof(animation_graph_asm_state_def_t, blend_parameter_id), .size = sizeof(u32), .type = reflected_value_type_e::u32},
-					{.name = "duration", .display_name = "Duration", .offset = offsetof(animation_graph_asm_state_def_t, duration), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name = "duration", .display_name = "Duration", .offset = offsetof(animation_graph_asm_state_def_t, duration), .size = sizeof(f32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::f32},
 					{.name = "loop", .display_name = "Loop", .offset = offsetof(animation_graph_asm_state_def_t, loop), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
 					{.container_ops = reflection_container_ops_t::vector_ops<animation_graph_clip_def_t>(reflected_value_type_e::object, type_id_t<animation_graph_clip_def_t>::value),
 					 .name			= "clips",

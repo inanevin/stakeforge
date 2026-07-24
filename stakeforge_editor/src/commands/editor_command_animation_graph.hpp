@@ -41,6 +41,8 @@ namespace sfg
 		u32				 node_id			= ANIMATION_GRAPH_DEF_NULL_ID;
 		u32				 node_index			= 0;
 		u32				 previous_selection = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32				 previous_entry_id	= ANIMATION_GRAPH_DEF_NULL_ID;
+		u32				 previous_output_id = ANIMATION_GRAPH_DEF_NULL_ID;
 	};
 
 	struct editor_command_animation_graph_asm_state_payload_t

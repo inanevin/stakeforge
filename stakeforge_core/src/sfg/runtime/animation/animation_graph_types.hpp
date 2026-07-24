@@ -92,7 +92,7 @@ namespace sfg
 	SFG_DEFINE_TYPE_ID(animation_graph_bone_control_type_e);
 	SFG_DEFINE_TYPE_ID(animation_graph_bone_control_space_e);
 
-	struct alignas(32) animation_graph_param_t
+	struct animation_graph_param_t
 	{
 		union {
 			f32		f32_value = 0.0f;
@@ -155,10 +155,12 @@ namespace sfg
 
 	struct animation_graph_node_asm_t
 	{
+		chunk_handle32_t states					  = {};
 		chunk_handle32_t transitions			  = {};
 		chunk_handle32_t first_state			  = {};
 		chunk_handle32_t _current_state			  = {};
 		chunk_handle32_t _current_transition	  = {};
+		u32				 state_count			  = 0;
 		u32				 transition_count		  = 0;
 		f32				 _current_transition_time = 0.0f;
 	};
@@ -176,7 +178,7 @@ namespace sfg
 	{
 	};
 
-	struct alignas(64) animation_graph_node_t
+	struct animation_graph_node_t
 	{
 		union {
 			animation_graph_node_asm_t			node_asm = {};

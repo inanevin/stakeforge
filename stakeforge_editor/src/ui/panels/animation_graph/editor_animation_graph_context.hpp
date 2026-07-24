@@ -113,6 +113,8 @@ namespace sfg
 
 	private:
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
+		void		ensure_graph_node_designations();
+		void		ensure_asm_state_designations();
 
 	private:
 		animation_graph_def_t							  _graph				  = {};

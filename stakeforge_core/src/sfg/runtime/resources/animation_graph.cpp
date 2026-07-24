@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "animation_graph.hpp"
 #include "animation_graph_def.hpp"
+#include "animation.hpp"
 #include "resource_file_system.hpp"
 #include "resource_manager.hpp"
 
@@ -165,7 +166,6 @@ namespace sfg
 
 						destination_state			 = {};
 						destination_state.clip_count = static_cast<u32>(source_state.clips.size());
-						destination_state.duration	 = source_state.duration;
 						destination_state.state_type = source_state.state_type;
 						destination_state.loop		 = source_state.loop;
 
@@ -189,11 +189,17 @@ namespace sfg
 
 							for (u32 clip_index = 0; clip_index < destination_state.clip_count; ++clip_index)
 							{
+								const animation_graph_clip_def_t& source_clip = source_state.clips[clip_index];
+								const animation_runtime_t*		  animation	  = ctx.resource_manager.find_runtime<animation_runtime_t>(source_clip.clip);
+
 								clips[clip_index] = {
-									.clip			= source_state.clips[clip_index].clip,
-									.blend_value_2d = source_state.clips[clip_index].blend_value_2d,
-									.blend_value	= source_state.clips[clip_index].blend_value,
+									.clip			= source_clip.clip,
+									.blend_value_2d = source_clip.blend_value_2d,
+									.blend_value	= source_clip.blend_value,
 								};
+
+								if (animation != nullptr && animation->duration > destination_state.duration)
+									destination_state.duration = animation->duration;
 							}
 						}
 					}
