@@ -113,9 +113,7 @@ namespace sfg
 				bones[joint_index].bone_transform = bones[parent_index].bone_transform * bones[joint_index].bone_transform;
 		}
 
-		const mat4x3_t root_inverse = skeleton.root_joint_index == SKELETON_JOINT_NO_PARENT ? mat4x3_t::identity : bones[skeleton.root_joint_index].bone_transform.inverse();
-
 		for (u32 joint_index = 0; joint_index < skeleton.joint_count; ++joint_index)
-			bones[joint_index].bone_transform = root_inverse * bones[joint_index].bone_transform * inverse_binds[joint_index].bone_transform;
+			bones[joint_index].bone_transform = bones[joint_index].bone_transform * inverse_binds[joint_index].bone_transform;
 	}
 }
