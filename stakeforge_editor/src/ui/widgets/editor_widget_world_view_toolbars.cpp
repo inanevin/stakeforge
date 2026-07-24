@@ -26,15 +26,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "ui/widgets/editor_widget_world_view_toolbars.hpp"
+#include "editor_project.hpp"
+#include "editor_world_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
-#include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
 #include "world/editor_world_edit_context.hpp"
 
+#include <sfg/io/log.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
@@ -50,9 +52,10 @@ namespace sfg
 	{
 		_ui = &ui;
 
-		ui::layout_tree_t&	  tree	= ui.get_tree();
-		ui::paint_layer_t&	  paint = ui.get_paint();
-		const editor_theme_t& theme = editor_theme_t::get();
+		ui::layout_tree_t&					  tree			   = ui.get_tree();
+		ui::paint_layer_t&					  paint			   = ui.get_paint();
+		const editor_theme_t&				  theme			   = editor_theme_t::get();
+		const editor_project_settings_data_t& project_settings = editor_project_t::get().settings;
 
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "world_view_toolbars");
@@ -216,7 +219,7 @@ namespace sfg
 		button_config.icon		   = ICON_MAGNET_OFF;
 		button_config.toggled_icon = ICON_MAGNET;
 		button_config.tooltip	   = "Snapping";
-		button_config.toggled	   = false;
+		button_config.toggled	   = project_settings.world_view_snapping_enabled;
 		button_config.on_clicked   = on_snapping_toggled;
 		_snapping_button.init(ui, _controls_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _snapping_button);
@@ -242,7 +245,7 @@ namespace sfg
 		button_config.icon		   = ICON_FRAME;
 		button_config.toggled_icon = ICON_FRAME;
 		button_config.tooltip	   = "Grid";
-		button_config.toggled	   = false;
+		button_config.toggled	   = project_settings.world_view_grid_enabled;
 		button_config.on_clicked   = on_grid_toggled;
 		_grid_button.init(ui, _view_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _grid_button);
@@ -251,6 +254,7 @@ namespace sfg
 		button_config.icon		   = ICON_FRAME_DOTTED;
 		button_config.toggled_icon = ICON_FRAME_DOTTED;
 		button_config.tooltip	   = "Bounding Boxes";
+		button_config.toggled	   = project_settings.world_view_aabb_enabled;
 		button_config.on_clicked   = on_bounding_boxes_toggled;
 		_bounding_boxes_button.init(ui, _view_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _bounding_boxes_button);
@@ -276,6 +280,7 @@ namespace sfg
 		button_config.icon		   = ICON_CUBES;
 		button_config.toggled_icon = ICON_CUBES;
 		button_config.tooltip	   = "Physics Debug";
+		button_config.toggled	   = project_settings.world_view_physics_debug_enabled;
 		button_config.on_clicked   = on_physics_debug_toggled;
 		_physics_debug_button.init(ui, _physics_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _physics_debug_button);
@@ -284,6 +289,7 @@ namespace sfg
 		button_config.icon		   = ICON_EXPLOSION;
 		button_config.toggled_icon = ICON_EXPLOSION;
 		button_config.tooltip	   = "Physics Shoot Rays";
+		button_config.toggled	   = false;
 		button_config.on_clicked   = on_shoot_rays_toggled;
 		_shoot_rays_button.init(ui, _physics_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _shoot_rays_button);
@@ -342,7 +348,17 @@ namespace sfg
 		tree.set_visible(_view_spacer, full_control);
 
 		if (!_edit_world.is_null() && _edit_type != editor_world_edit_type_e::view_only)
+		{
+			editor_world_edit_context_t&		  context		   = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
+			const editor_project_settings_data_t& project_settings = editor_project_t::get().settings;
+
+			context.set_transform_snapping(project_settings.world_view_snapping_enabled ? editor_transform_snapping_e::default_ : editor_transform_snapping_e::none);
+			context.set_grid_enabled(project_settings.world_view_grid_enabled);
+			context.set_bounding_boxes_enabled(project_settings.world_view_aabb_enabled);
+			context.set_physics_debug_enabled(project_settings.world_view_physics_debug_enabled);
+
 			refresh();
+		}
 	}
 
 	void editor_widget_world_view_toolbars_t::set_transform_control_type(editor_transform_control_type_e type)
@@ -362,6 +378,7 @@ namespace sfg
 	{
 		editor_world_edit_context_t& context = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
 		context.set_transform_snapping(context.get_transform_snapping() == editor_transform_snapping_e::default_ ? editor_transform_snapping_e::none : editor_transform_snapping_e::default_);
+		save_project_settings();
 		refresh();
 	}
 
@@ -382,6 +399,20 @@ namespace sfg
 		_snapping_button.set_toggled(context.get_transform_snapping() == editor_transform_snapping_e::default_);
 		_physics_debug_button.set_toggled(context.is_physics_debug_enabled());
 		_shoot_rays_button.set_toggled(context.is_shoot_rays_enabled());
+	}
+
+	void editor_widget_world_view_toolbars_t::save_project_settings()
+	{
+		const editor_world_edit_context_t& context = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
+		editor_project_t&				   project = editor_project_t::get();
+
+		project.settings.world_view_snapping_enabled	  = context.get_transform_snapping() == editor_transform_snapping_e::default_;
+		project.settings.world_view_grid_enabled		  = context.is_grid_enabled();
+		project.settings.world_view_aabb_enabled		  = context.is_bounding_boxes_enabled();
+		project.settings.world_view_physics_debug_enabled = context.is_physics_debug_enabled();
+
+		if (!project.save(project._runtime.path.c_str()))
+			SFG_ERR("failed to save world view settings");
 	}
 
 	void editor_widget_world_view_toolbars_t::on_transform_control_toggled(bool toggled, void* user_data)
@@ -427,24 +458,28 @@ namespace sfg
 	{
 		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
 		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().set_transform_snapping(toggled ? editor_transform_snapping_e::default_ : editor_transform_snapping_e::none);
+		toolbar.save_project_settings();
 	}
 
 	void editor_widget_world_view_toolbars_t::on_grid_toggled(bool toggled, void* user_data)
 	{
 		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
 		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().set_grid_enabled(toggled);
+		toolbar.save_project_settings();
 	}
 
 	void editor_widget_world_view_toolbars_t::on_bounding_boxes_toggled(bool toggled, void* user_data)
 	{
 		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
 		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().set_bounding_boxes_enabled(toggled);
+		toolbar.save_project_settings();
 	}
 
 	void editor_widget_world_view_toolbars_t::on_physics_debug_toggled(bool toggled, void* user_data)
 	{
 		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
 		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().set_physics_debug_enabled(toggled);
+		toolbar.save_project_settings();
 	}
 
 	void editor_widget_world_view_toolbars_t::on_shoot_rays_toggled(bool toggled, void* user_data)

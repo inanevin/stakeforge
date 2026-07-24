@@ -76,6 +76,7 @@ namespace sfg
 		};
 
 		void refresh();
+		void save_project_settings();
 
 		static void on_transform_control_toggled(bool toggled, void* user_data);
 		static void on_settings_pressed(bool toggled, void* user_data);

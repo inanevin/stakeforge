@@ -44,8 +44,12 @@ namespace sfg
 
 	struct editor_project_settings_data_t
 	{
-		project_settings_t project_settings = {};
-		sid_t			   last_world_guid	= NULL_SID;
+		project_settings_t project_settings					= {};
+		sid_t			   last_world_guid					= NULL_SID;
+		bool			   world_view_snapping_enabled		= false;
+		bool			   world_view_grid_enabled			= false;
+		bool			   world_view_aabb_enabled			= false;
+		bool			   world_view_physics_debug_enabled = false;
 
 		bool operator==(const editor_project_settings_data_t&) const = default;
 	};

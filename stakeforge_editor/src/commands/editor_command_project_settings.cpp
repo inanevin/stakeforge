@@ -66,23 +66,25 @@ namespace sfg
 
 		bool project_settings_undo(editor_command_system_t& system, editor_command_t& command)
 		{
-			const editor_command_edit_project_settings_payload_t& payload = system.get_payload_as<editor_command_edit_project_settings_payload_t>(command);
-			editor_project_settings_data_t						  settings{
-				.last_world_guid = payload.previous_last_world_guid,
-			};
+			const editor_command_edit_project_settings_payload_t& payload  = system.get_payload_as<editor_command_edit_project_settings_payload_t>(command);
+			editor_project_settings_data_t						  settings = editor_project_t::get().settings;
+			settings.last_world_guid									   = payload.previous_last_world_guid;
+
 			if (!read_project_settings_from_aux(system, payload.previous_project_settings, settings.project_settings))
 				return false;
+
 			return apply_and_save_project_settings(settings);
 		}
 
 		bool project_settings_redo(editor_command_system_t& system, editor_command_t& command)
 		{
-			const editor_command_edit_project_settings_payload_t& payload = system.get_payload_as<editor_command_edit_project_settings_payload_t>(command);
-			editor_project_settings_data_t						  settings{
-				.last_world_guid = payload.post_last_world_guid,
-			};
+			const editor_command_edit_project_settings_payload_t& payload  = system.get_payload_as<editor_command_edit_project_settings_payload_t>(command);
+			editor_project_settings_data_t						  settings = editor_project_t::get().settings;
+			settings.last_world_guid									   = payload.post_last_world_guid;
+
 			if (!read_project_settings_from_aux(system, payload.post_project_settings, settings.project_settings))
 				return false;
+
 			return apply_and_save_project_settings(settings);
 		}
 
