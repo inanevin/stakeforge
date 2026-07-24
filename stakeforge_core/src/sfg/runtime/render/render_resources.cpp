@@ -437,35 +437,23 @@ namespace sfg
 			switch (req.kind)
 			{
 			case request_kind_e::destroy_resource: {
-				const gfx_handle_t handle = remove_render_thread_resource(_rt_resources, req.render_handle);
-				_resources.remove(req.render_handle);
-
-				if (!handle.is_null())
-					_retired_resources.push_back({.resource = handle, .frames = BACK_BUFFER_COUNT});
+				const gfx_handle_t handle = get_render_thread_resource_entry(_rt_resources, req.render_handle).hw_handle;
+				_retired_resources.push_back({.render_handle = req.render_handle, .resource = handle, .frames = BACK_BUFFER_COUNT});
 				break;
 			}
 			case request_kind_e::destroy_texture: {
-				const gfx_handle_t handle = remove_render_thread_resource(_rt_textures, req.render_handle);
-				_textures.remove(req.render_handle);
-
-				if (!handle.is_null())
-					_retired_textures.push_back({.texture = handle, .frames = BACK_BUFFER_COUNT});
+				const gfx_handle_t handle = get_render_thread_resource_entry(_rt_textures, req.render_handle).hw_handle;
+				_retired_textures.push_back({.render_handle = req.render_handle, .texture = handle, .frames = BACK_BUFFER_COUNT});
 				break;
 			}
 			case request_kind_e::destroy_sampler: {
-				const gfx_handle_t handle = remove_render_thread_resource(_rt_samplers, req.render_handle);
-				_samplers.remove(req.render_handle);
-
-				if (!handle.is_null())
-					_retired_samplers.push_back({.sampler = handle, .frames = BACK_BUFFER_COUNT});
+				const gfx_handle_t handle = get_render_thread_resource_entry(_rt_samplers, req.render_handle).hw_handle;
+				_retired_samplers.push_back({.render_handle = req.render_handle, .sampler = handle, .frames = BACK_BUFFER_COUNT});
 				break;
 			}
 			case request_kind_e::destroy_shader: {
-				const gfx_handle_t handle = remove_render_thread_resource(_rt_shaders, req.render_handle);
-				_shaders.remove(req.render_handle);
-
-				if (!handle.is_null())
-					_retired_shaders.push_back({.shader = handle, .frames = BACK_BUFFER_COUNT});
+				const gfx_handle_t handle = get_render_thread_resource_entry(_rt_shaders, req.render_handle).hw_handle;
+				_retired_shaders.push_back({.render_handle = req.render_handle, .shader = handle, .frames = BACK_BUFFER_COUNT});
 				break;
 			}
 			default:
@@ -479,11 +467,20 @@ namespace sfg
 	void render_resources_t::release_retired_resources(bool force)
 	{
 		gfx_backend& backend = gfx_backend::get();
+
 		for (size_t i = 0; i < _retired_resources.size();)
 		{
 			retired_resource_t& retired = _retired_resources[i];
+
 			if (force || retired.frames == 0)
 			{
+				if (!retired.render_handle.is_null())
+				{
+					const gfx_handle_t resource = remove_render_thread_resource(_rt_resources, retired.render_handle);
+					SFG_ASSERT(resource == retired.resource);
+					_resources.remove(retired.render_handle);
+				}
+
 				backend.destroy_resource(retired.resource);
 				_retired_resources.erase(_retired_resources.begin() + static_cast<ptrdiff_t>(i));
 				continue;
@@ -497,11 +494,20 @@ namespace sfg
 	void render_resources_t::release_retired_textures(bool force)
 	{
 		gfx_backend& backend = gfx_backend::get();
+
 		for (size_t i = 0; i < _retired_textures.size();)
 		{
 			retired_texture_t& retired = _retired_textures[i];
+
 			if (force || retired.frames == 0)
 			{
+				if (!retired.render_handle.is_null())
+				{
+					const gfx_handle_t texture = remove_render_thread_resource(_rt_textures, retired.render_handle);
+					SFG_ASSERT(texture == retired.texture);
+					_textures.remove(retired.render_handle);
+				}
+
 				backend.destroy_texture(retired.texture);
 				_retired_textures.erase(_retired_textures.begin() + static_cast<ptrdiff_t>(i));
 				continue;
@@ -515,11 +521,20 @@ namespace sfg
 	void render_resources_t::release_retired_samplers(bool force)
 	{
 		gfx_backend& backend = gfx_backend::get();
+
 		for (size_t i = 0; i < _retired_samplers.size();)
 		{
 			retired_sampler_t& retired = _retired_samplers[i];
+
 			if (force || retired.frames == 0)
 			{
+				if (!retired.render_handle.is_null())
+				{
+					const gfx_handle_t sampler = remove_render_thread_resource(_rt_samplers, retired.render_handle);
+					SFG_ASSERT(sampler == retired.sampler);
+					_samplers.remove(retired.render_handle);
+				}
+
 				backend.destroy_sampler(retired.sampler);
 				_retired_samplers.erase(_retired_samplers.begin() + static_cast<ptrdiff_t>(i));
 				continue;
@@ -533,11 +548,20 @@ namespace sfg
 	void render_resources_t::release_retired_shaders(bool force)
 	{
 		gfx_backend& backend = gfx_backend::get();
+
 		for (size_t i = 0; i < _retired_shaders.size();)
 		{
 			retired_shader_t& retired = _retired_shaders[i];
+
 			if (force || retired.frames == 0)
 			{
+				if (!retired.render_handle.is_null())
+				{
+					const gfx_handle_t shader = remove_render_thread_resource(_rt_shaders, retired.render_handle);
+					SFG_ASSERT(shader == retired.shader);
+					_shaders.remove(retired.render_handle);
+				}
+
 				backend.destroy_shader(retired.shader);
 				_retired_shaders.erase(_retired_shaders.begin() + static_cast<ptrdiff_t>(i));
 				continue;

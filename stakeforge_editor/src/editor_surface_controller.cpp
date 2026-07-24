@@ -477,8 +477,8 @@ namespace sfg
 		surface.ui->init({
 			.canvas =
 				{
-					.vertex_buffer_bytes = 1 << 24,
-					.index_buffer_bytes	 = 1 << 24,
+					.vertex_buffer_bytes = 1 << 25,
+					.index_buffer_bytes	 = 1 << 25,
 					.buffer_count		 = 64,
 				},
 			.user_ui_scale		= 1.0f,

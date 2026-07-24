@@ -210,26 +210,30 @@ namespace sfg
 
 		struct retired_texture_t
 		{
-			gfx_handle_t texture = {};
-			u8			 frames	 = 0;
+			render_resource_handle_t render_handle = {};
+			gfx_handle_t			 texture	   = {};
+			u8						 frames		   = 0;
 		};
 
 		struct retired_resource_t
 		{
-			gfx_handle_t resource = {};
-			u8			 frames	  = 0;
+			render_resource_handle_t render_handle = {};
+			gfx_handle_t			 resource	   = {};
+			u8						 frames		   = 0;
 		};
 
 		struct retired_sampler_t
 		{
-			gfx_handle_t sampler = {};
-			u8			 frames	 = 0;
+			render_resource_handle_t render_handle = {};
+			gfx_handle_t			 sampler	   = {};
+			u8						 frames		   = 0;
 		};
 
 		struct retired_shader_t
 		{
-			gfx_handle_t shader = {};
-			u8			 frames = 0;
+			render_resource_handle_t render_handle = {};
+			gfx_handle_t			 shader		   = {};
+			u8						 frames		   = 0;
 		};
 
 		static void							   set_render_thread_resource(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle, gfx_handle_t hw_handle, gpu_index_t gpu_index = NULL_GPU_INDEX);
