@@ -41,6 +41,7 @@ namespace sfg::ui
 
 namespace sfg
 {
+	class editor_panel_t;
 	enum class editor_panel_type_e : u8;
 	struct editor_payload_t;
 	struct window_runtime_t;
@@ -84,6 +85,7 @@ namespace sfg
 		void			   dock_node_add_panel(dock_node_handle_t handle, editor_panel_t* panel);
 		bool			   dock_node_add_panel_to_existing_type_leaf(editor_panel_t* panel);
 		bool			   refresh_panel_title(editor_panel_t* panel);
+		bool			   request_close_panel(editor_panel_t* panel);
 		nlohmann::json	   to_json() const;
 		bool			   from_json(const nlohmann::json& j);
 

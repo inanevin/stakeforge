@@ -959,6 +959,20 @@ namespace sfg
 		SFG_ASSERT(false);
 	}
 
+	void editor_surface_controller_t::request_close_panel(editor_panel_t* panel)
+	{
+		for (editor_surface_t& surface : _surfaces)
+		{
+			if (surface.type == editor_surface_type_e::primary && surface.primary->get_dock_widget().request_close_panel(panel))
+				return;
+
+			if (surface.type == editor_surface_type_e::secondary && surface.secondary->get_dock_widget().request_close_panel(panel))
+				return;
+		}
+
+		SFG_ASSERT(false);
+	}
+
 	editor_surface_t& editor_surface_controller_t::get_main_surface()
 	{
 		SFG_ASSERT(!_surfaces.empty());

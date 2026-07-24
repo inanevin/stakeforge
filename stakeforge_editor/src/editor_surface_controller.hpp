@@ -87,6 +87,7 @@ namespace sfg
 		editor_panel_t*	 create_panel_instance(editor_panel_type_e type, surface_handle_t surface_handle = {}, bool prefer_existing_type_dock = true, sid_t sub_item_id = 0);
 		editor_panel_t*	 show_panel(editor_panel_type_e type, surface_handle_t surface_handle = {}, sid_t sub_item_id = 0);
 		void			 refresh_panel_title(editor_panel_t* panel);
+		void			 request_close_panel(editor_panel_t* panel);
 		static void		 on_payload_unhandled(const editor_payload_t& payload, void* user_data);
 
 		// -----------------------------------------------------------------------------

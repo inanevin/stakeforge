@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/panels/editor_panel_mesh_viewer.hpp"
 #include "assets/editor_asset.hpp"
+#include "assets/editor_asset_manager.hpp"
 #include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -78,6 +79,7 @@ namespace sfg
 	void editor_panel_mesh_viewer_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
 		editor_panel_t::init(ui, parent);
+		_asset_deletion_listener = editor_asset_manager_t::get().add_asset_deletion_listener(on_asset_deletion, this);
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
@@ -150,6 +152,9 @@ namespace sfg
 
 	void editor_panel_mesh_viewer_t::uninit()
 	{
+		editor_asset_manager_t::get().remove_asset_deletion_listener(_asset_deletion_listener);
+		_asset_deletion_listener = {};
+
 		_world_view.uninit();
 		_split_border.uninit();
 		_ui->deallocate_widget(_left_pane);
@@ -321,6 +326,32 @@ namespace sfg
 		_ui->get_paint().set_text(
 			label, _ui->widget_text(label), _ui->widget_text_len(label), {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		return label;
+	}
+
+	void editor_panel_mesh_viewer_t::on_asset_deletion(editor_asset_manager_t&, span_t<const sid_t> asset_ids, void* user_data)
+	{
+		editor_panel_mesh_viewer_t& panel		 = *static_cast<editor_panel_mesh_viewer_t*>(user_data);
+		bool						mesh_deleted = false;
+
+		for (size_t i = 0; i < asset_ids.size; ++i)
+		{
+			if (asset_ids.data[i] == panel._mesh_guid)
+			{
+				mesh_deleted = true;
+				break;
+			}
+		}
+
+		if (!mesh_deleted)
+			return;
+
+		editor_world_controller_t::get().get_editor_world(panel._world)->get_world().unload_all_used_resources();
+
+		panel._mesh_guid = NULL_SID;
+		panel._asset_name.resize(0);
+		panel.set_sub_item_id(NULL_SID);
+
+		editor_surface_controller_t::get().request_close_panel(&panel);
 	}
 
 	void editor_panel_mesh_viewer_t::on_split_border_drag(editor_split_border_t&, const vec2f_t& pos, const vec2f_t&, void* user_data)

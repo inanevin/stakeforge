@@ -516,7 +516,8 @@ namespace sfg
 		}
 
 		// let consumers release deleted assets before force-unload
-		notify_asset_deletion({.data = deleted_asset_guids.data(), .size = deleted_asset_guids.size()});
+		if (!deleted_asset_guids.empty())
+			notify_asset_deletion({.data = deleted_asset_guids.data(), .size = deleted_asset_guids.size()});
 
 		// cancel thumbnail work and unload live resources
 		editor_asset_thumbnail_manager_t& thumbnail_manager = editor_asset_thumbnail_manager_t::get();

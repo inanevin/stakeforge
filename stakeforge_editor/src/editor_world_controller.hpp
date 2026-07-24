@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_handle.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/atomic.hpp>
+#include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
@@ -41,12 +42,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class editor_asset_manager_t;
 	class editor_command_system_t;
 	class editor_world_t;
 	class world_t;
 	enum class editor_play_mode_e : u8;
 	struct world_init_config_t;
 	struct world_render_snapshot_t;
+	struct editor_asset_deletion_listener_tag_t;
 	struct editor_command_listener_tag_t;
 	struct editor_command_t;
 
@@ -149,6 +152,7 @@ namespace sfg
 		static void on_save_dirty_world_modal(void* user_data);
 		static void on_dont_save_dirty_world_modal(void* user_data);
 		static void on_cancel_dirty_world_modal(void* user_data);
+		static void on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data);
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 
 	private:
@@ -160,6 +164,7 @@ namespace sfg
 		i64																	_previous_time_us			   = 0;
 		i64																	_accumulator_us				   = 0;
 		editor_world_handle_t												_main_world					   = {};
+		pool_handle_t<u32, editor_asset_deletion_listener_tag_t>			_asset_deletion_listener	   = {};
 		pool_handle_t<u32, editor_command_listener_tag_t>					_command_listener			   = {};
 		atomic_t<i64>														_last_fixed_step_us			   = 0;
 		atomic_t<i64>														_fixed_step_us				   = 0;

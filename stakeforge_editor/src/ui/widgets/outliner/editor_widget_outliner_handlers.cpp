@@ -171,6 +171,9 @@ namespace sfg
 			return;
 
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
+		if (btn == ui::mouse_button_e::right && panel._edit_world.is_null())
+			return;
+
 		if (btn == ui::mouse_button_e::right && id == panel._entity_list_area)
 			panel.open_empty_action_menu(pos);
 	}

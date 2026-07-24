@@ -101,6 +101,7 @@ namespace sfg
 		void remove_tab(sid_t identifier);
 		void rename_tab(sid_t identifier, const char* title);
 		void select_tab(sid_t identifier);
+		void request_close(sid_t identifier);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -126,7 +127,6 @@ namespace sfg
 		bool		  is_drag_out_allowed(sid_t identifier);
 		bool		  is_drag_out_position(const vec2f_t& pos);
 		void		  request_drag_out(sid_t identifier);
-		void		  request_close(sid_t identifier);
 		void		  remove_tab(sid_t identifier, bool notify_removed);
 		bool		  consume_pending_removals();
 		size_t		  find_tab_index(sid_t identifier) const;

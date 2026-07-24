@@ -46,6 +46,9 @@ namespace sfg
 
 	bool editor_widget_outliner_t::is_entity_selected(entity_id_t entity) const
 	{
+		if (_edit_world.is_null())
+			return false;
+
 		const span_t<const entity_id_t> selected = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_selected_entities();
 		if (entity == NULL_ENTITY_ID || selected.size == 0)
 			return false;
@@ -54,6 +57,9 @@ namespace sfg
 
 	bool editor_widget_outliner_t::is_create_enabled() const
 	{
+		if (_edit_world.is_null())
+			return false;
+
 		const editor_world_t* editor_world = editor_world_controller_t::get().get_editor_world(_edit_world);
 		return editor_world->get_edit_context().get_selected_entities().size <= 1 && (_action_menu_entity == NULL_ENTITY_ID || editor_world->get_edit_context().is_entity_child_insertion_allowed(editor_world->get_world(), _action_menu_entity));
 	}

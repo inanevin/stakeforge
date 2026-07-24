@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/panels/editor_panel_skeleton_viewer.hpp"
 #include "assets/editor_asset.hpp"
+#include "assets/editor_asset_manager.hpp"
 #include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -83,6 +84,7 @@ namespace sfg
 	void editor_panel_skeleton_viewer_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
 		editor_panel_t::init(ui, parent);
+		_asset_deletion_listener = editor_asset_manager_t::get().add_asset_deletion_listener(on_asset_deletion, this);
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
@@ -151,6 +153,9 @@ namespace sfg
 
 	void editor_panel_skeleton_viewer_t::uninit()
 	{
+		editor_asset_manager_t::get().remove_asset_deletion_listener(_asset_deletion_listener);
+		_asset_deletion_listener = {};
+
 		_world_view.uninit();
 		_split_border.uninit();
 		_ui->deallocate_widget(_left_pane);
@@ -340,6 +345,34 @@ namespace sfg
 	{
 		if (_ui != nullptr)
 			_ui->get_tree().in(_left_pane).size_value.x = _pane_split;
+	}
+
+	void editor_panel_skeleton_viewer_t::on_asset_deletion(editor_asset_manager_t&, span_t<const sid_t> asset_ids, void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& panel			 = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+		bool							skeleton_deleted = false;
+
+		for (size_t i = 0; i < asset_ids.size; ++i)
+		{
+			if (asset_ids.data[i] == panel._skeleton_guid)
+			{
+				skeleton_deleted = true;
+				break;
+			}
+		}
+
+		if (!skeleton_deleted)
+			return;
+
+		editor_world_controller_t::get().get_editor_world(panel._world)->get_world().unload_all_used_resources();
+
+		panel._skeleton_guid = NULL_SID;
+		panel._joint_draw_data.resize(0);
+		panel._root_joint_index = UINT32_MAX;
+		panel._asset_name.resize(0);
+		panel.set_sub_item_id(NULL_SID);
+
+		editor_surface_controller_t::get().request_close_panel(&panel);
 	}
 
 	ui::widget_id_t editor_panel_skeleton_viewer_t::append_property_value_row(const char* label)

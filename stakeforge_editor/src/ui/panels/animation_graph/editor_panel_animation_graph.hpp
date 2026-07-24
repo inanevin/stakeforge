@@ -33,10 +33,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_split_border.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 
+#include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
+#include <sfg/memory/pool_handle.hpp>
 
 namespace sfg
 {
+	class editor_asset_manager_t;
+	struct editor_asset_deletion_listener_tag_t;
+
 	class editor_panel_animation_graph_t final : public editor_panel_t
 	{
 	public:
@@ -64,18 +69,20 @@ namespace sfg
 		void apply_pane_split();
 		void load_graph();
 
+		static void on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data);
 		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 
 	private:
-		editor_animation_graph_context_t		  _context		   = {};
-		editor_animation_graph_grid_t			  _grid			   = {};
-		editor_animation_graph_widget_inspector_t _inspector	   = {};
-		editor_scrollbar_t						  _right_scrollbar = {};
-		editor_split_border_t					  _split_border	   = {};
-		string_t								  _asset_name	   = {};
-		sid_t									  _graph_id		   = NULL_SID;
-		ui::widget_id_t							  _left_pane	   = NULL_WIDGET;
-		ui::widget_id_t							  _right_pane	   = NULL_WIDGET;
-		f32										  _pane_split	   = 0.72f;
+		editor_animation_graph_context_t						 _context				  = {};
+		editor_animation_graph_grid_t							 _grid					  = {};
+		editor_animation_graph_widget_inspector_t				 _inspector				  = {};
+		editor_scrollbar_t										 _right_scrollbar		  = {};
+		editor_split_border_t									 _split_border			  = {};
+		string_t												 _asset_name			  = {};
+		pool_handle_t<u32, editor_asset_deletion_listener_tag_t> _asset_deletion_listener = {};
+		sid_t													 _graph_id				  = NULL_SID;
+		ui::widget_id_t											 _left_pane				  = NULL_WIDGET;
+		ui::widget_id_t											 _right_pane			  = NULL_WIDGET;
+		f32														 _pane_split			  = 0.72f;
 	};
 }

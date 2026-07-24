@@ -300,6 +300,23 @@ namespace sfg
 		return false;
 	}
 
+	bool dock_widget_t::request_close_panel(editor_panel_t* panel)
+	{
+		for (dock_node_t& node : _dock_nodes)
+		{
+			if (node.node_type != dock_node_type_e::leaf)
+				continue;
+
+			if (std::find(node.panels.begin(), node.panels.end(), panel) == node.panels.end())
+				continue;
+
+			node.tab_area.request_close(panel->get_instance_id());
+			return true;
+		}
+
+		return false;
+	}
+
 	void dock_widget_t::dock_node_remove_panel(dock_node_t& node, sid_t identifier)
 	{
 		SFG_ASSERT(node.node_type == dock_node_type_e::leaf);

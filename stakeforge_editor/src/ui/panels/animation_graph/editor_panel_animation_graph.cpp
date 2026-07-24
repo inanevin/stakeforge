@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "editor_surface_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 
@@ -71,6 +72,7 @@ namespace sfg
 	void editor_panel_animation_graph_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
 		editor_panel_t::init(ui, parent);
+		_asset_deletion_listener = editor_asset_manager_t::get().add_asset_deletion_listener(on_asset_deletion, this);
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -142,6 +144,9 @@ namespace sfg
 
 	void editor_panel_animation_graph_t::uninit()
 	{
+		editor_asset_manager_t::get().remove_asset_deletion_listener(_asset_deletion_listener);
+		_asset_deletion_listener = {};
+
 		_inspector.uninit();
 		_right_scrollbar.uninit();
 		_split_border.uninit();
@@ -202,6 +207,32 @@ namespace sfg
 		}
 
 		_grid.refresh_nodes();
+	}
+
+	void editor_panel_animation_graph_t::on_asset_deletion(editor_asset_manager_t&, span_t<const sid_t> asset_ids, void* user_data)
+	{
+		editor_panel_animation_graph_t& panel		  = *static_cast<editor_panel_animation_graph_t*>(user_data);
+		bool							graph_deleted = false;
+
+		for (size_t i = 0; i < asset_ids.size; ++i)
+		{
+			if (asset_ids.data[i] == panel._graph_id)
+			{
+				graph_deleted = true;
+				break;
+			}
+		}
+
+		if (!graph_deleted)
+			return;
+
+		panel._graph_id = NULL_SID;
+		panel._asset_name.resize(0);
+		panel._context.set_asset_id(NULL_SID);
+		panel._context.get_graph() = {};
+		panel.set_sub_item_id(NULL_SID);
+
+		editor_surface_controller_t::get().request_close_panel(&panel);
 	}
 
 	void editor_panel_animation_graph_t::on_split_border_drag(editor_split_border_t&, const vec2f_t& pos, const vec2f_t&, void* user_data)

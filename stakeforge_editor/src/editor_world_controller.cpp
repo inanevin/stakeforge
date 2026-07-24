@@ -73,7 +73,8 @@ namespace sfg
 		_worlds.reserve(8);
 		_render_worlds.reserve(8);
 
-		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
+		_asset_deletion_listener = editor_asset_manager_t::get().add_asset_deletion_listener(on_asset_deletion, this);
+		_command_listener		 = editor_command_system_t::get().add_listener(on_command_system_event, this);
 
 		_previous_time_us = time_t::get_cpu_microseconds();
 		_accumulator_us	  = 0;
@@ -84,6 +85,12 @@ namespace sfg
 
 	void editor_world_controller_t::uninit()
 	{
+		if (!_asset_deletion_listener.is_null())
+		{
+			editor_asset_manager_t::get().remove_asset_deletion_listener(_asset_deletion_listener);
+			_asset_deletion_listener = {};
+		}
+
 		if (!_command_listener.is_null())
 		{
 			editor_command_system_t::get().remove_listener(_command_listener);
@@ -738,6 +745,30 @@ namespace sfg
 	void editor_world_controller_t::on_cancel_dirty_world_modal(void* user_data)
 	{
 		static_cast<editor_world_controller_t*>(user_data)->_pending_main_world_asset_guid = NULL_SID;
+	}
+
+	void editor_world_controller_t::on_asset_deletion(editor_asset_manager_t&, span_t<const sid_t> asset_ids, void* user_data)
+	{
+		editor_world_controller_t& controller		  = *static_cast<editor_world_controller_t*>(user_data);
+		bool					   main_world_deleted = false;
+
+		for (size_t i = 0; i < asset_ids.size; ++i)
+		{
+			if (asset_ids.data[i] == controller._main_world_asset_guid)
+			{
+				main_world_deleted = true;
+				break;
+			}
+		}
+
+		if (!main_world_deleted)
+			return;
+
+		controller.destroy_world(controller._main_world);
+
+		editor_project_t& project		 = editor_project_t::get();
+		project.settings.last_world_guid = NULL_SID;
+		project.save(project._runtime.path.c_str());
 	}
 
 	void editor_world_controller_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)

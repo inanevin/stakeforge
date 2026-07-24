@@ -30,11 +30,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_split_border.hpp"
 #include "ui/widgets/editor_widget_world_view.hpp"
 #include "world/editor_world_handle.hpp"
+#include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
+#include <sfg/memory/pool_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
+	class editor_asset_manager_t;
+	struct editor_asset_deletion_listener_tag_t;
+
 	class editor_panel_mesh_viewer_t final : public editor_panel_t
 	{
 	public:
@@ -69,28 +74,30 @@ namespace sfg
 		ui::widget_id_t append_property_value_row(const char* label);
 		ui::widget_id_t append_value_label(ui::widget_id_t parent);
 
+		static void on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data);
 		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 
 	private:
-		editor_widget_world_view_t _world_view			  = {};
-		editor_split_border_t	   _split_border		  = {};
-		string_t				   _asset_name			  = {};
-		string_t				   _vertex_count_text	  = {};
-		string_t				   _index_count_text	  = {};
-		string_t				   _primitive_count_text  = {};
-		string_t				   _vertex_stride_text	  = {};
-		string_t				   _is_skinned_text		  = {};
-		editor_world_handle_t	   _world				  = {};
-		sid_t					   _mesh_guid			  = 0;
-		entity_id_t				   _display_entity		  = NULL_ENTITY_ID;
-		entity_id_t				   _environment_entity	  = NULL_ENTITY_ID;
-		ui::widget_id_t			   _left_pane			  = NULL_WIDGET;
-		ui::widget_id_t			   _right_pane			  = NULL_WIDGET;
-		ui::widget_id_t			   _vertex_count_value	  = NULL_WIDGET;
-		ui::widget_id_t			   _index_count_value	  = NULL_WIDGET;
-		ui::widget_id_t			   _primitive_count_value = NULL_WIDGET;
-		ui::widget_id_t			   _vertex_stride_value	  = NULL_WIDGET;
-		ui::widget_id_t			   _is_skinned_value	  = NULL_WIDGET;
-		f32						   _pane_split			  = 0.72f;
+		editor_widget_world_view_t								 _world_view			  = {};
+		editor_split_border_t									 _split_border			  = {};
+		string_t												 _asset_name			  = {};
+		string_t												 _vertex_count_text		  = {};
+		string_t												 _index_count_text		  = {};
+		string_t												 _primitive_count_text	  = {};
+		string_t												 _vertex_stride_text	  = {};
+		string_t												 _is_skinned_text		  = {};
+		editor_world_handle_t									 _world					  = {};
+		pool_handle_t<u32, editor_asset_deletion_listener_tag_t> _asset_deletion_listener = {};
+		sid_t													 _mesh_guid				  = 0;
+		entity_id_t												 _display_entity		  = NULL_ENTITY_ID;
+		entity_id_t												 _environment_entity	  = NULL_ENTITY_ID;
+		ui::widget_id_t											 _left_pane				  = NULL_WIDGET;
+		ui::widget_id_t											 _right_pane			  = NULL_WIDGET;
+		ui::widget_id_t											 _vertex_count_value	  = NULL_WIDGET;
+		ui::widget_id_t											 _index_count_value		  = NULL_WIDGET;
+		ui::widget_id_t											 _primitive_count_value	  = NULL_WIDGET;
+		ui::widget_id_t											 _vertex_stride_value	  = NULL_WIDGET;
+		ui::widget_id_t											 _is_skinned_value		  = NULL_WIDGET;
+		f32														 _pane_split			  = 0.72f;
 	};
 }

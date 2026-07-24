@@ -44,19 +44,26 @@ namespace sfg
 {
 	void editor_widget_outliner_t::refresh_entities()
 	{
-		if (_edit_world.is_null())
-			return;
-
 		if (!can_mutate_ui_topology())
 		{
 			request_refresh_entities();
 			return;
 		}
 
+		vector_t<editor_outliner_row_t>& rows = _outliner_rows;
+		_visible_entity_count				  = 0;
+
+		if (_edit_world.is_null())
+		{
+			for (editor_outliner_row_t& row : rows)
+				set_outliner_row_visible(row, false);
+
+			return;
+		}
+
 		_entity_generation = editor_command_system_t::get().get_entity_generation();
 		collect_entities();
 		prune_entity_selection();
-		_visible_entity_count = 0;
 
 		const bool search_active = !_search_str_lower.empty();
 		u16		   hidden_depth	 = UINT16_MAX;
@@ -113,7 +120,6 @@ namespace sfg
 				hidden_depth = item.depth;
 		}
 
-		vector_t<editor_outliner_row_t>& rows = _outliner_rows;
 		for (size_t i = _visible_entity_count; i < rows.size(); ++i)
 			set_outliner_row_visible(rows[i], false);
 	}

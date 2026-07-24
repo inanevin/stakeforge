@@ -200,11 +200,11 @@ namespace sfg
 		_renderer.uninit();
 		_editor_resource_pack.uninit();
 		_engine_resource_pack.uninit();
-		_asset_manager.uninit();
 
 		if (_mode == editor_app_mode_e::normal)
 			uninit_normal_mode();
 
+		_asset_manager.uninit();
 		_editor_work_executor.reset();
 		surfaces.uninit();
 		runtime.uninit();
