@@ -272,6 +272,7 @@ namespace sfg
 		per_frame_data_t& pfd = _pfd[_frame_index];
 
 		backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
+		render_resources_t::get().flush_material_parameter_updates(_frame_index);
 
 		const global_buffer_data_t global_data = {.delta_time = delta_time, .elapsed_time = elapsed_time};
 		SFG_MEMCPY(pfd.mapped_global, &global_data, sizeof(global_buffer_data_t));
