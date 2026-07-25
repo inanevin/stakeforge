@@ -90,9 +90,10 @@ namespace sfg
 
 	struct world_render_prep_data_t
 	{
-		vector_t<world_render_prep_draw_cull_t> draw_culls			= {};
-		vector_t<world_render_shadow_view_t>	shadow_views		= {};
-		vector_t<u32>							shadow_draw_indices = {};
+		vector_t<world_render_prep_draw_cull_t> draw_culls			   = {};
+		vector_t<world_render_shadow_view_t>	shadow_views		   = {};
+		vector_t<u32>							shadow_draw_indices	   = {};
+		u32										reflection_probe_count = 0;
 
 		inline void reserve(size_t culls)
 		{
@@ -106,6 +107,7 @@ namespace sfg
 			draw_culls.resize(0);
 			shadow_views.resize(0);
 			shadow_draw_indices.resize(0);
+			reflection_probe_count = 0;
 		}
 	};
 

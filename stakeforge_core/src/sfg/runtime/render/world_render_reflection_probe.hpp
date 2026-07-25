@@ -59,6 +59,7 @@ namespace sfg
 		vec3f_t										 scale					= vec3f_t::one;
 		f32											 resolution				= 256.0f;
 		vec3f_t										 extents				= {5.0f, 5.0f, 5.0f};
+		f32											 max_distance			= 0.0f;
 		u32											 stable_id				= UINT32_MAX;
 		u32											 realtime_tick_interval = 30;
 		world_render_reflection_probe_capture_type_e capture_type			= world_render_reflection_probe_capture_type_e::scene;

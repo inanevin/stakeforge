@@ -341,8 +341,8 @@ namespace sfg
 
 		// reflection probe buffer prep.
 		{
-			SFG_ASSERT(snapshot.reflection_probes.size() <= ctx.get_reflection_probe_max());
 			gpu_reflection_probe_t* reflection_probe_buffer = reinterpret_cast<gpu_reflection_probe_t*>(ctx.get_mapped_reflection_probe_buffer(frame_index));
+			prep_data.reflection_probe_count				= 0;
 
 			for (size_t i = 0; i < snapshot.reflection_probes.size(); ++i)
 			{
@@ -352,13 +352,36 @@ namespace sfg
 				const vec3f_t						   scale			= vec3f_t::lerp(reflection_probe.prev_scale, reflection_probe.scale, interpolation_alpha);
 				const vec3f_t						   extents			= vec3f_t::abs(reflection_probe.extents * scale);
 
-				reflection_probe_buffer[i] = {
+				if (reflection_probe.is_global == 0)
+				{
+					const vec3f_t influence_extents = extents + vec3f_t::one * reflection_probe.blend_distance;
+
+					if (reflection_probe.max_distance > 0.0f)
+					{
+						const vec3f_t local_camera_offset = rot.conjugate() * (main_camera_view_t.pos - pos);
+						const vec3f_t bounds_distance	  = vec3f_t::max(vec3f_t::abs(local_camera_offset) - influence_extents, vec3f_t::zero);
+
+						if (bounds_distance.magnitude_sqr() > reflection_probe.max_distance * reflection_probe.max_distance)
+							continue;
+					}
+
+					const aabb_t   influence_bounds(-influence_extents, influence_extents);
+					const mat3x3_t rotation_matrix = mat3x3_t::rotation(rot);
+
+					if (frustum_t::test(main_camera_view_t.frustum, influence_bounds, rotation_matrix, pos) == frustum_result::outside)
+						continue;
+				}
+
+				SFG_ASSERT(prep_data.reflection_probe_count < ctx.get_reflection_probe_max());
+
+				reflection_probe_buffer[prep_data.reflection_probe_count] = {
 					.position_blend_distance   = {pos.x, pos.y, pos.z, reflection_probe.blend_distance},
 					.rotation				   = {rot.x, rot.y, rot.z, rot.w},
 					.extents_diffuse_intensity = {extents.x, extents.y, extents.z, reflection_probe.diffuse_intensity},
 					.specular_intensity		   = reflection_probe.specular_intensity,
 					.flags					   = reflection_probe.is_global != 0 ? gpu_reflection_probe_flag_global : 0u,
 				};
+				++prep_data.reflection_probe_count;
 			}
 		}
 

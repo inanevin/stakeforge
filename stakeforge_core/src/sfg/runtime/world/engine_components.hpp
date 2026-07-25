@@ -248,6 +248,7 @@ namespace sfg
 		f32								diffuse_intensity	   = 1.0f;
 		f32								specular_intensity	   = 1.0f;
 		f32								blend_distance		   = 1.0f;
+		f32								max_distance		   = 0.0f;
 		u32								realtime_tick_interval = 30;
 		reflection_probe_capture_type_e capture_type		   = reflection_probe_capture_type_e::scene;
 		reflection_probe_capture_mode_e capture_mode		   = reflection_probe_capture_mode_e::once;
