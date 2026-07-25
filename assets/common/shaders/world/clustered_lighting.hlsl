@@ -29,31 +29,40 @@
 //  OF THE POSSIBILITY OF SUCH DAMAGE.
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-struct render_pass_data_opaque
+struct gpu_light_cluster
 {
-    float4x4 view_proj;
+	uint light_offset;
+	uint light_count;
+	uint overflow;
+	uint pad;
 };
 
-struct render_pass_data_forward
+uint get_light_cluster_depth_slice(float view_depth, float4 cluster_depth, uint depth_slice_count)
 {
-    float4x4 view_proj;
-    float4  ambient;
-    float4 camera_pos;
-    float2  resolution;         
-    float2  proj_params;       // (tanHalfFovY, orthoHalfHeight)
-};
+	const float slice = log2(max(view_depth, cluster_depth.x)) * cluster_depth.z + cluster_depth.w;
 
-struct render_pass_data_lighting
+	return min((uint)max(slice, 0.0), depth_slice_count - 1);
+}
+
+uint get_light_cluster_index(uint2 pixel, float view_depth, uint4 cluster_dims, float4 cluster_depth)
 {
-    float4x4 skybox_view_proj;
-    float4x4 inv_view_proj;
-    float4x4 inv_view;
-    float4x4 view;
-    float4 camera_pos;
-    float4 skybox_params;
-    float4 ambient_color;
-    uint4 light_counts;
-    float4 cluster_depth;
-    uint4 cluster_dims;
-    uint4 cluster_screen;
-};
+	const uint tile_x = min(pixel.x / cluster_dims.w, cluster_dims.x - 1);
+	const uint tile_y = min(pixel.y / cluster_dims.w, cluster_dims.y - 1);
+	const uint tile_z = get_light_cluster_depth_slice(view_depth, cluster_depth, cluster_dims.z);
+
+	return tile_x + cluster_dims.x * (tile_y + cluster_dims.y * tile_z);
+}
+
+float3 get_light_cluster_heatmap(uint light_count, uint overflow)
+{
+	if (overflow != 0)
+		return float3(1.0, 0.0, 1.0);
+
+	const float count = (float)light_count;
+	float3 color = lerp(float3(0.02, 0.03, 0.12), float3(0.0, 0.5, 1.0), saturate(count / 4.0));
+	color = lerp(color, float3(0.0, 1.0, 0.2), saturate((count - 4.0) / 4.0));
+	color = lerp(color, float3(1.0, 0.9, 0.0), saturate((count - 8.0) / 8.0));
+	color = lerp(color, float3(1.0, 0.05, 0.0), saturate((count - 16.0) / 16.0));
+
+	return color;
+}

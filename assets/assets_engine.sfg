@@ -71,6 +71,15 @@
                 "schema": "sfg.schema.shader",
                 "type": 19
             }
+        },
+        {
+            "name": "clustered_light_culling",
+            "path": "common/shaders/world/clustered_light_culling.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 23
+            }
         }
     ]
 }

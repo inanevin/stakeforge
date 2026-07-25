@@ -30,26 +30,16 @@
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 #include "layout_defines.hlsl"
+#include "render_pass_defines.hlsl"
 #include "depth.hlsl"
 #include "light.hlsl"
+#include "clustered_lighting.hlsl"
 #include "normal.hlsl"
 
 struct vs_output
 {
 	float4 pos : SV_POSITION;
 	float2 uv : TEXCOORD0;
-};
-
-struct render_pass_data
-{
-	float4x4 skybox_view_proj;
-	float4x4 inv_view_proj;
-	float4x4 inv_view;
-	float4x4 view;
-	float4 camera_pos;
-	float4 skybox_params;
-	float4 ambient_color;
-	uint4 light_counts;
 };
 
 SamplerState smp_nearest : static_sampler_nearest;
@@ -60,7 +50,7 @@ SamplerComparisonState smp_shadow_cube : static_sampler_shadow_cube;
 /*
 static const float SFG_SKYBOX_PREFILTER_MAX_LOD = 7.0;
 
-float3 get_sky_color(uint skybox_radiance, float2 uv, render_pass_data rp_data)
+float3 get_sky_color(uint skybox_radiance, float2 uv, render_pass_data_lighting rp_data)
 {
 	if (skybox_radiance == SFG_INVALID_GPU_INDEX)
 		return float3(0.0, 0.0, 0.0);
@@ -77,7 +67,7 @@ float3 fresnel_schlick_roughness(float cos_theta, float3 f0, float roughness)
 	return f0 + (f90 - f0) * pow(1.0 - saturate(cos_theta), 5.0);
 }
 
-float3 get_sky_lighting(uint skybox_irradiance, uint skybox_prefilter, uint skybox_brdf_lut, float3 N, float3 V, float3 albedo, float ao, float roughness, float metallic, render_pass_data rp_data)
+float3 get_sky_lighting(uint skybox_irradiance, uint skybox_prefilter, uint skybox_brdf_lut, float3 N, float3 V, float3 albedo, float ao, float roughness, float metallic, render_pass_data_lighting rp_data)
 {
 	if (skybox_irradiance == SFG_INVALID_GPU_INDEX || skybox_prefilter == SFG_INVALID_GPU_INDEX || skybox_brdf_lut == SFG_INVALID_GPU_INDEX)
 		return albedo * ao;
@@ -120,7 +110,7 @@ vs_output VSMain(uint vertex_id : SV_VertexID)
 
 float4 PSMain(vs_output input) : SV_TARGET
 {
-	render_pass_data rp_data = sfg_get_cbv<render_pass_data>(sfg_constant_rp0);
+	render_pass_data_lighting rp_data = sfg_get_cbv<render_pass_data_lighting>(sfg_constant_rp0);
 
 	Texture2D tex_gbuffer_color	 = sfg_get_texture<Texture2D>(sfg_constant_rp1);
 	Texture2D tex_gbuffer_normal	 = sfg_get_texture<Texture2D>(sfg_constant_rp2);
@@ -136,18 +126,27 @@ float4 PSMain(vs_output input) : SV_TARGET
 	*/
 	StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(sfg_constant_rp7);
 	StructuredBuffer<gpu_shadow_view> shadow_buffer = sfg_get_ssbo<gpu_shadow_view>(sfg_constant_rp8);
+	StructuredBuffer<gpu_light_cluster> cluster_buffer = sfg_get_ssbo<gpu_light_cluster>(sfg_constant_rp9);
+	StructuredBuffer<uint> cluster_light_indices = sfg_get_ssbo<uint>(sfg_constant_rp10);
 
 	const int2	 pixel		  = int2(input.pos.xy);
 	const float	 device_depth = tex_gbuffer_depth.Load(int3(pixel, 0)).r;
 	if (is_background(device_depth))
 		return float4(0.0, 0.0, 0.0, 1.0);
 
+	const float3 world_pos = reconstruct_world_position(input.uv, device_depth, rp_data.inv_view_proj);
+	const float view_depth = abs(mul(rp_data.view, float4(world_pos, 1.0)).z);
+	const uint cluster_index = get_light_cluster_index((uint2)pixel, view_depth, rp_data.cluster_dims, rp_data.cluster_depth);
+	const gpu_light_cluster cluster = cluster_buffer[cluster_index];
+
+	if (rp_data.cluster_screen.z != 0)
+		return float4(get_light_cluster_heatmap(cluster.light_count, cluster.overflow), 1.0);
+
 	const float4 orm	   = tex_gbuffer_orm.Load(int3(pixel, 0));
 	const float3 emissive = tex_gbuffer_emissive.Load(int3(pixel, 0)).xyz;
 	if (orm.a >= 0.5)
 		return float4(emissive, 1.0);
 
-	const float3 world_pos = reconstruct_world_position(input.uv, device_depth, rp_data.inv_view_proj);
 	const float3 V		   = normalize(rp_data.camera_pos.xyz - world_pos);
 	const float3 albedo   = tex_gbuffer_color.Load(int3(pixel, 0)).xyz;
 	const float4 normal   = tex_gbuffer_normal.Load(int3(pixel, 0));
@@ -176,7 +175,16 @@ float4 PSMain(vs_output input) : SV_TARGET
 
 	// let the world lights do their thing
 	float3 lighting = rp_data.ambient_color.rgb * albedo * ao;
-	lighting += evaluate_scene_lighting(surface, scene, light_buffer, shadow_buffer, smp_shadow, smp_shadow_cube);
+	lighting += evaluate_clustered_scene_lighting(
+		surface,
+		scene,
+		light_buffer,
+		shadow_buffer,
+		cluster_light_indices,
+		cluster.light_offset,
+		cluster.light_count,
+		smp_shadow,
+		smp_shadow_cube);
 
 	return float4(lighting + emissive, 1.0);
 }

@@ -564,6 +564,7 @@ namespace sfg
 		case shader_type_e::ssao_upsample:
 		case shader_type_e::bloom_downsample:
 		case shader_type_e::bloom_upsample:
+		case shader_type_e::clustered_light_culling:
 			if (!shader_cook_variants_t::cook_compute_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook compute shader variant: {0}", full_path);

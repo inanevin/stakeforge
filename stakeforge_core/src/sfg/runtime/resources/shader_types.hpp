@@ -32,6 +32,7 @@ namespace sfg
 		unlit_shader,
 		debug_triangle,
 		skybox_shader,
+		clustered_light_culling,
 		count,
 	};
 
