@@ -33,7 +33,6 @@
 #include "depth.hlsl"
 #include "light.hlsl"
 #include "normal.hlsl"
-#include "pbr.hlsl"
 
 struct vs_output
 {
@@ -58,7 +57,6 @@ SamplerState smp_linear : static_sampler_linear;
 SamplerComparisonState smp_shadow : static_sampler_shadow_2d;
 SamplerComparisonState smp_shadow_cube : static_sampler_shadow_cube;
 
-static const uint SFG_INVALID_GPU_INDEX = 0xffffffffu;
 /*
 static const float SFG_SKYBOX_PREFILTER_MAX_LOD = 7.0;
 
@@ -157,101 +155,28 @@ float4 PSMain(vs_output input) : SV_TARGET
 	const float	 roughness = saturate(orm.g);
 	const float	 metallic  = saturate(orm.b);
 	const float3 N		   = oct_decode(normal.xy);
-	float3 lighting = rp_data.ambient_color.rgb * albedo * ao;
+
 	/*
 	lighting += get_sky_lighting(skybox_irradiance, skybox_prefilter, skybox_brdf_lut, N, V, albedo, ao, roughness, metallic, rp_data);
 	*/
-	uint light_offset = 0;
 
-	[loop]
-	for (uint i = 0; i < rp_data.light_counts.x; ++i)
-	{
-		const gpu_light light = light_buffer[light_offset + i];
-		const float3 L = normalize(-light.direction_param0.xyz);
-		const float3 radiance = light.color_intensity.xyz * light.color_intensity.w;
-		float shadow = 1.0;
-		if (light.shadow.x != SFG_INVALID_GPU_INDEX)
-		{
-			const float depth_linear = abs(mul(rp_data.view, float4(world_pos, 1.0)).z);
-			uint cascade = 0;
-			[loop] for (uint c = 0; c + 1 < light.shadow.y && depth_linear > shadow_buffer[light.shadow.x + c].params0.y; ++c) cascade = c + 1;
-			const gpu_shadow_view sv = shadow_buffer[light.shadow.x + cascade];
-			const gpu_shadow_view last_sv = shadow_buffer[light.shadow.x + light.shadow.y - 1];
-			Texture2DArray shadow_map = sfg_get_texture<Texture2DArray>(sv.texture_index);
-			shadow = sample_cascade_shadow(shadow_map, smp_shadow, sv.view_proj, world_pos, N, L, sv.slice, 1.0 / sv.params1.xy, 0.0, sv.params2.x, sv.params2.y);
-			if (cascade + 1 < light.shadow.y)
-			{
-				const float blend_width = max((sv.params0.y - sv.params0.x) * 0.1, 0.001);
-				const float blend = saturate((depth_linear - (sv.params0.y - blend_width)) / blend_width);
-				if (blend > 0.0)
-				{
-					const gpu_shadow_view next_sv = shadow_buffer[light.shadow.x + cascade + 1];
-					const float next_shadow = sample_cascade_shadow(shadow_map, smp_shadow, next_sv.view_proj, world_pos, N, L, next_sv.slice, 1.0 / next_sv.params1.xy, 0.0, next_sv.params2.x, next_sv.params2.y);
-					shadow = lerp(shadow, next_shadow, blend);
-				}
-			}
-			const float distance_fade = saturate((last_sv.params0.y - depth_linear) / max(last_sv.params2.w, 0.001));
-			shadow = lerp(1.0, shadow, sv.params2.z * distance_fade);
-		}
-		lighting += calculate_pbr(V, N, L, albedo, ao, roughness, metallic, radiance * shadow);
-	}
-	light_offset += rp_data.light_counts.x;
+	// pack the surface once for the shared light path
+	surface_lighting_data surface;
+	surface.world_pos = world_pos;
+	surface.view_direction = V;
+	surface.normal = N;
+	surface.albedo = albedo;
+	surface.ambient_occlusion = ao;
+	surface.roughness = roughness;
+	surface.metallic = metallic;
 
-	[loop]
-	for (uint i = 0; i < rp_data.light_counts.y; ++i)
-	{
-		const gpu_light light = light_buffer[light_offset + i];
-		const float3 light_vector = light.position_range.xyz - world_pos;
-		const float distance_to_light = max(length(light_vector), 1e-4);
-		const float3 L = light_vector / distance_to_light;
-		const float light_attenuation = attenuation(light.position_range.w, distance_to_light);
-		const float3 radiance = light.color_intensity.xyz * (light.color_intensity.w * light_attenuation);
-		float shadow = 1.0;
-		if (light.shadow.x != SFG_INVALID_GPU_INDEX)
-		{
-			const gpu_shadow_view sv = shadow_buffer[light.shadow.x];
-			TextureCube shadow_map = sfg_get_texture<TextureCube>(sv.texture_index);
-			shadow = sample_shadow_cube(shadow_map, smp_shadow_cube, sv.view_proj, light.position_range.xyz, world_pos, N, L, 1.0 / sv.params1.xy, sv.params0.z, sv.params0.w, sv.params2.x, sv.params2.y);
-			shadow = lerp(1.0, shadow, sv.params2.z);
-		}
-		lighting += calculate_pbr(V, N, L, albedo, ao, roughness, metallic, radiance * shadow);
-	}
-	light_offset += rp_data.light_counts.y;
+	scene_lighting_data scene;
+	scene.view = rp_data.view;
+	scene.light_counts = rp_data.light_counts;
 
-	[loop]
-	for (uint i = 0; i < rp_data.light_counts.z; ++i)
-	{
-		const gpu_light light = light_buffer[light_offset + i];
-		const float3 light_vector = light.position_range.xyz - world_pos;
-		const float distance_to_light = max(length(light_vector), 1e-4);
-		const float3 L = light_vector / distance_to_light;
-		const float3 direction = normalize(light.direction_param0.xyz);
-		const float cos_inner = max(light.direction_param0.w, light.right_param1.w);
-		const float cos_outer = min(light.direction_param0.w, light.right_param1.w);
-		const float cone = smoothstep(cos_outer, cos_inner, dot(-L, direction));
-		const float light_attenuation = attenuation(light.position_range.w, distance_to_light) * cone;
-		const float3 radiance = light.color_intensity.xyz * (light.color_intensity.w * light_attenuation);
-		float shadow = 1.0;
-		if (light.shadow.x != SFG_INVALID_GPU_INDEX)
-		{
-			const gpu_shadow_view sv = shadow_buffer[light.shadow.x];
-			Texture2D shadow_map = sfg_get_texture<Texture2D>(sv.texture_index);
-			shadow = sample_shadow_cone(shadow_map, smp_shadow, sv.view_proj, world_pos, N, L, direction, 1.0 / sv.params1.xy, cos_outer, sv.params2.x, sv.params2.y);
-			shadow = lerp(1.0, shadow, sv.params2.z);
-		}
-		lighting += calculate_pbr(V, N, L, albedo, ao, roughness, metallic, radiance * shadow);
-	}
-	light_offset += rp_data.light_counts.z;
-
-	[loop]
-	for (uint i = 0; i < rp_data.light_counts.w; ++i)
-	{
-		const gpu_light light = light_buffer[light_offset + i];
-		float3 L;
-		const float light_attenuation = get_area_light_attenuation(light, world_pos, L);
-		const float3 radiance = light.color_intensity.xyz * (light.color_intensity.w * light_attenuation);
-		lighting += calculate_pbr(V, N, L, albedo, ao, roughness, metallic, radiance);
-	}
+	// let the world lights do their thing
+	float3 lighting = rp_data.ambient_color.rgb * albedo * ao;
+	lighting += evaluate_scene_lighting(surface, scene, light_buffer, shadow_buffer, smp_shadow, smp_shadow_cube);
 
 	return float4(lighting + emissive, 1.0);
 }
