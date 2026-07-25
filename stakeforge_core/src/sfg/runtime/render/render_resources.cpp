@@ -65,18 +65,23 @@ namespace sfg
 	void render_resources_t::init()
 	{
 		get_texture_upload_queue().init();
-		_default_linear_sampler	  = enqueue_create_sampler(gfx_util_t::get_sampler_desc_linear());
+		_pending_material_parameter_updates.reserve(64);
+
+		_default_linear_sampler = enqueue_create_sampler(gfx_util_t::get_sampler_desc_linear());
+
 		const u8 invalid_pixels[] = {0, 0, 0, 255, 255, 0, 255, 255, 255, 0, 255, 255, 0, 0, 0, 255};
 		_invalid_texture		  = create_default_texture(*this, format_e::r8g8b8a8_srgb, {2, 2}, invalid_pixels, "invalid_texture", _invalid_texture_staging);
-		const u8 white_pixel[]	  = {255, 255, 255, 255};
-		const u8 black_pixel[]	  = {0, 0, 0, 255};
-		_white_texture			  = create_default_texture(*this, format_e::r8g8b8a8_unorm, {1, 1}, white_pixel, "white_texture", _white_texture_staging);
-		_black_texture			  = create_default_texture(*this, format_e::r8g8b8a8_unorm, {1, 1}, black_pixel, "black_texture", _black_texture_staging);
+
+		const u8 white_pixel[] = {255, 255, 255, 255};
+		const u8 black_pixel[] = {0, 0, 0, 255};
+		_white_texture		   = create_default_texture(*this, format_e::r8g8b8a8_unorm, {1, 1}, white_pixel, "white_texture", _white_texture_staging);
+		_black_texture		   = create_default_texture(*this, format_e::r8g8b8a8_unorm, {1, 1}, black_pixel, "black_texture", _black_texture_staging);
 	}
 
 	void render_resources_t::uninit()
 	{
 		drain_requests();
+
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_sampler, .render_handle = _default_linear_sampler});
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_texture, .render_handle = _invalid_texture});
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_resource, .render_handle = _invalid_texture_staging});
@@ -84,7 +89,9 @@ namespace sfg
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_resource, .render_handle = _white_texture_staging});
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_texture, .render_handle = _black_texture});
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_resource, .render_handle = _black_texture_staging});
+
 		drain_destroy_requests();
+
 		_default_linear_sampler	 = {};
 		_invalid_texture		 = {};
 		_invalid_texture_staging = {};
@@ -92,11 +99,15 @@ namespace sfg
 		_white_texture_staging	 = {};
 		_black_texture			 = {};
 		_black_texture_staging	 = {};
+
 		get_texture_upload_queue().uninit();
+
 		release_retired_resources(true);
 		release_retired_textures(true);
 		release_retired_samplers(true);
 		release_retired_shaders(true);
+
+		_pending_material_parameter_updates.resize(0);
 	}
 
 	render_resource_handle_t render_resources_t::enqueue_create_resource(const resource_desc_t& desc)
@@ -259,6 +270,28 @@ namespace sfg
 		_request_q.enqueue({.kind = request_kind_e::data_upload, .resource = desc.resource, .data = copy, .dst_offset = desc.dst_offset, .data_size = desc.data_size});
 	}
 
+	void render_resources_t::enqueue_material_parameter_update(const render_material_parameter_update_desc_t& desc)
+	{
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(desc.material != NULL_SID);
+		SFG_ASSERT(desc.data != nullptr);
+		SFG_ASSERT(desc.data_size != 0);
+		SFG_ASSERT(desc.data_size <= SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE);
+
+		material_parameter_update_t update = {};
+		update.material					   = desc.material;
+		update.data_size				   = desc.data_size;
+
+		for (u8 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
+		{
+			SFG_ASSERT(!desc.parameter_buffers[frame_index].is_null());
+			update.parameter_buffers[frame_index] = desc.parameter_buffers[frame_index];
+		}
+
+		SFG_MEMCPY(update.data, desc.data, desc.data_size);
+		_material_parameter_update_q.enqueue(std::move(update));
+	}
+
 	gfx_handle_t render_resources_t::get_resource(render_resource_handle_t handle) const
 	{
 		SFG_ASSERT(is_render_access_thread());
@@ -310,6 +343,8 @@ namespace sfg
 		ZoneScoped;
 
 		SFG_ASSERT(is_render_access_thread());
+
+		drain_material_parameter_update_requests();
 
 		gfx_backend& backend = gfx_backend::get();
 		release_retired_resources(false);
@@ -426,6 +461,43 @@ namespace sfg
 		}
 	}
 
+	void render_resources_t::flush_material_parameter_updates(u8 frame_index)
+	{
+		ZoneScoped;
+
+		SFG_ASSERT(is_render_access_thread());
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+
+		gfx_backend& backend   = gfx_backend::get();
+		const u8	 frame_bit = static_cast<u8>(1u << frame_index);
+
+		for (size_t i = 0; i < _pending_material_parameter_updates.size();)
+		{
+			material_parameter_update_t& update = _pending_material_parameter_updates[i];
+
+			if ((update.dirty_slots & frame_bit) != 0)
+			{
+				const gfx_handle_t resource = get_render_thread_resource_entry(_rt_resources, update.parameter_buffers[frame_index]).hw_handle;
+				u8*				   mapped	= nullptr;
+
+				backend.map_resource(resource, mapped);
+				SFG_MEMCPY(mapped, update.data, update.data_size);
+				backend.unmap_resource(resource);
+
+				update.dirty_slots &= static_cast<u8>(~frame_bit);
+			}
+
+			if (update.dirty_slots == 0)
+			{
+				update = _pending_material_parameter_updates.back();
+				_pending_material_parameter_updates.pop_back();
+				continue;
+			}
+
+			++i;
+		}
+	}
+
 	void render_resources_t::drain_destroy_requests()
 	{
 		ZoneScoped;
@@ -476,6 +548,11 @@ namespace sfg
 			{
 				if (!retired.render_handle.is_null())
 				{
+					const auto pending_end = std::remove_if(_pending_material_parameter_updates.begin(), _pending_material_parameter_updates.end(), [&](const material_parameter_update_t& update) {
+						return std::find(std::begin(update.parameter_buffers), std::end(update.parameter_buffers), retired.render_handle) != std::end(update.parameter_buffers);
+					});
+					_pending_material_parameter_updates.erase(pending_end, _pending_material_parameter_updates.end());
+
 					const gfx_handle_t resource = remove_render_thread_resource(_rt_resources, retired.render_handle);
 					SFG_ASSERT(resource == retired.resource);
 					_resources.remove(retired.render_handle);
@@ -488,6 +565,34 @@ namespace sfg
 
 			retired.frames--;
 			++i;
+		}
+	}
+
+	void render_resources_t::drain_material_parameter_update_requests()
+	{
+		material_parameter_update_t update = {};
+
+		while (_material_parameter_update_q.try_dequeue(update))
+		{
+			auto it = std::find_if(_pending_material_parameter_updates.begin(), _pending_material_parameter_updates.end(), [&](const material_parameter_update_t& pending) { return pending.material == update.material; });
+
+			if (it == _pending_material_parameter_updates.end())
+			{
+				_pending_material_parameter_updates.push_back(std::move(update));
+				it = _pending_material_parameter_updates.end() - 1;
+			}
+			else
+			{
+				it->data_size = update.data_size;
+
+				for (u8 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
+					it->parameter_buffers[frame_index] = update.parameter_buffers[frame_index];
+
+				SFG_MEMCPY(it->data, update.data, update.data_size);
+			}
+
+			it->dirty_slots = static_cast<u8>((1u << BACK_BUFFER_COUNT) - 1u);
+			update			= {};
 		}
 	}
 

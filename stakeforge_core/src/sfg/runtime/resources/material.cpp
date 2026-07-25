@@ -76,6 +76,15 @@ namespace sfg
 		}
 	}
 
+	void pack_material_parameters(const material_runtime_t& material, u8* data)
+	{
+		for (u32 i = 0; i < material.parameter_count; ++i)
+		{
+			u8* dst = data + material.parameters[i].data_offset;
+			write_material_parameter(dst, material.parameters[i]);
+		}
+	}
+
 	bool material_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset)
 	{
 		ostream_t file_stream = {};
@@ -130,42 +139,48 @@ namespace sfg
 		{
 			for (u32 i = 0; i < runtime->parameter_count; ++i)
 			{
-				runtime->parameters[i].type = material.parameters[i].type;
-				runtime->parameters[i].hint = material.parameters[i].hint;
+				runtime->parameter_name_hashes[i] = material.parameters[i].name_hash;
+				runtime->parameters[i].type		  = material.parameters[i].type;
+				runtime->parameters[i].hint		  = material.parameters[i].hint;
 				SFG_MEMCPY(runtime->parameters[i].values, material.parameters[i].value, sizeof(runtime->parameters[i].values));
-				runtime->parameter_data_size = get_material_parameter_offset(runtime->parameter_data_size, runtime->parameters[i]);
+				runtime->parameter_data_size	   = get_material_parameter_offset(runtime->parameter_data_size, runtime->parameters[i]);
+				runtime->parameters[i].data_offset = static_cast<u16>(runtime->parameter_data_size);
 				runtime->parameter_data_size += get_material_parameter_size(runtime->parameters[i]);
 			}
+
+			SFG_ASSERT(runtime->parameter_data_size <= SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE);
+			u8 parameter_values[SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE] = {};
+			pack_material_parameters(*runtime, parameter_values);
 
 			resource_desc_t desc = {};
 			desc.size			 = runtime->parameter_data_size;
 			desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 			desc.set_name(mem.get_text(entry.debug_name));
-			internals->parameter_buffer = render_resources_t::get().enqueue_create_resource(desc);
 
-			SFG_ASSERT(runtime->parameter_data_size <= SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE);
-			u8	parameter_values[SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE] = {};
-			u32 parameter_offset									   = 0;
-
-			for (u32 i = 0; i < runtime->parameter_count; ++i)
+			for (u8 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
 			{
-				parameter_offset = get_material_parameter_offset(parameter_offset, runtime->parameters[i]);
-				u8* dst			 = parameter_values + parameter_offset;
-				write_material_parameter(dst, runtime->parameters[i]);
-				parameter_offset += get_material_parameter_size(runtime->parameters[i]);
-			}
+				internals->parameter_buffers[frame_index] = render_resources_t::get().enqueue_create_resource(desc);
 
-			render_resources_t::get().enqueue_data_upload({.data = parameter_values, .resource = internals->parameter_buffer, .data_size = runtime->parameter_data_size});
+				render_resources_t::get().enqueue_data_upload({
+					.data	   = parameter_values,
+					.resource  = internals->parameter_buffers[frame_index],
+					.data_size = runtime->parameter_data_size,
+				});
+			}
 		}
 
 		for (u32 i = 0; i < runtime->texture_count; ++i)
 		{
-			runtime->texture_guids[i] = material.textures[i].texture;
-			runtime->texture_types[i] = material.textures[i].type;
+			runtime->texture_name_hashes[i] = material.textures[i].name_hash;
+			runtime->texture_guids[i]		= material.textures[i].texture;
+			runtime->texture_types[i]		= material.textures[i].type;
 		}
 
 		for (u32 i = 0; i < runtime->sampler_count; ++i)
-			runtime->sampler_guids[i] = material.samplers[i].sampler;
+		{
+			runtime->sampler_name_hashes[i] = material.samplers[i].name_hash;
+			runtime->sampler_guids[i]		= material.samplers[i].sampler;
+		}
 
 		return true;
 	}
@@ -174,7 +189,10 @@ namespace sfg
 	{
 		chunk_allocator_t&	  mem		= ctx.resource_manager.get_memory();
 		material_internals_t* internals = mem.get<material_internals_t>(entry.internals);
-		render_resources_t::get().enqueue_destroy_resource(internals->parameter_buffer);
+
+		for (u8 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
+			render_resources_t::get().enqueue_destroy_resource(internals->parameter_buffers[frame_index]);
+
 		*internals = {};
 	}
 

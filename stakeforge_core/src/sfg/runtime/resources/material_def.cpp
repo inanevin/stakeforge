@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "material_def.hpp"
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -51,6 +52,8 @@ namespace sfg
 		stream << texture_count;
 		for (const material_texture_value_t& texture : textures)
 		{
+			const sid_t name_hash = texture.name.empty() ? texture.name_hash : hashing_t::to_sid(texture.name);
+			stream << name_hash;
 			stream << texture.texture;
 			stream << texture.type;
 		}
@@ -58,14 +61,21 @@ namespace sfg
 		const u8 sampler_count = static_cast<u8>(samplers.size());
 		stream << sampler_count;
 		for (const material_sampler_value_t& sampler : samplers)
+		{
+			const sid_t name_hash = sampler.name.empty() ? sampler.name_hash : hashing_t::to_sid(sampler.name);
+			stream << name_hash;
 			stream << sampler.sampler;
+		}
 
 		const u8 parameter_count = static_cast<u8>(parameters.size());
 		stream << parameter_count;
 		for (const material_param_value_t& parameter : parameters)
 		{
+			const sid_t name_hash = parameter.name.empty() ? parameter.name_hash : hashing_t::to_sid(parameter.name);
+			stream << name_hash;
 			stream << parameter.type;
 			stream << parameter.hint;
+
 			for (u8 i = 0; i < 4; ++i)
 			{
 				if (parameter.type == shader_param_type_e::u32)
@@ -92,6 +102,7 @@ namespace sfg
 		textures.resize(texture_count);
 		for (material_texture_value_t& texture : textures)
 		{
+			stream >> texture.name_hash;
 			stream >> texture.texture;
 			stream >> texture.type;
 		}
@@ -100,15 +111,20 @@ namespace sfg
 		stream >> sampler_count;
 		samplers.resize(sampler_count);
 		for (material_sampler_value_t& sampler : samplers)
+		{
+			stream >> sampler.name_hash;
 			stream >> sampler.sampler;
+		}
 
 		u8 parameter_count = 0;
 		stream >> parameter_count;
 		parameters.resize(parameter_count);
 		for (material_param_value_t& parameter : parameters)
 		{
+			stream >> parameter.name_hash;
 			stream >> parameter.type;
 			stream >> parameter.hint;
+
 			for (u8 i = 0; i < 4; ++i)
 			{
 				if (parameter.type == shader_param_type_e::u32)
@@ -128,6 +144,7 @@ namespace sfg
 		{
 			material_texture_value_t& value = out.textures.emplace_back();
 			value.name						= texture.texture_name != nullptr ? texture.texture_name : "";
+			value.name_hash					= hashing_t::to_sid(value.name);
 			value.type						= texture.type;
 		}
 
@@ -135,14 +152,17 @@ namespace sfg
 		{
 			material_sampler_value_t& value = out.samplers.emplace_back();
 			value.name						= sampler.sampler_name != nullptr ? sampler.sampler_name : "";
+			value.name_hash					= hashing_t::to_sid(value.name);
 		}
 
 		for (const shader_param_definition_t& parameter : shader_def.parameters)
 		{
 			material_param_value_t& value = out.parameters.emplace_back();
 			value.name					  = parameter.param_name != nullptr ? parameter.param_name : "";
+			value.name_hash				  = hashing_t::to_sid(value.name);
 			value.type					  = parameter.type;
 			value.hint					  = parameter.hint;
+
 			for (u8 i = 0; i < 4; ++i)
 			{
 				if (parameter.type == shader_param_type_e::u32)
@@ -171,9 +191,10 @@ namespace sfg
 			return;
 		}
 
-		value.name	  = j.value<string_t>("name", {});
-		value.texture = j.value<resource_handle_t>("texture", NULL_RESOURCE_HANDLE);
-		value.type	  = shader_texture_type_from_string(j.value<string_t>("type", "texture2d"));
+		value.name		= j.value<string_t>("name", {});
+		value.name_hash = hashing_t::to_sid(value.name);
+		value.texture	= j.value<resource_handle_t>("texture", NULL_RESOURCE_HANDLE);
+		value.type		= shader_texture_type_from_string(j.value<string_t>("type", "texture2d"));
 	}
 
 	void to_json(nlohmann::json& j, const material_sampler_value_t& value)
@@ -191,8 +212,9 @@ namespace sfg
 			return;
 		}
 
-		value.name	  = j.value<string_t>("name", {});
-		value.sampler = j.value<resource_handle_t>("sampler", NULL_RESOURCE_HANDLE);
+		value.name		= j.value<string_t>("name", {});
+		value.name_hash = hashing_t::to_sid(value.name);
+		value.sampler	= j.value<resource_handle_t>("sampler", NULL_RESOURCE_HANDLE);
 	}
 
 	void to_json(nlohmann::json& j, const material_param_value_t& value)
@@ -208,10 +230,11 @@ namespace sfg
 
 	void from_json(const nlohmann::json& j, material_param_value_t& value)
 	{
-		value	   = {};
-		value.name = j.value<string_t>("name", {});
-		value.type = shader_param_type_from_string(j.value<string_t>("type", "invalid"));
-		value.hint = shader_param_hint_from_string(j.value<string_t>("hint", "none"));
+		value			= {};
+		value.name		= j.value<string_t>("name", {});
+		value.name_hash = hashing_t::to_sid(value.name);
+		value.type		= shader_param_type_from_string(j.value<string_t>("type", "invalid"));
+		value.hint		= shader_param_hint_from_string(j.value<string_t>("hint", "none"));
 
 		const nlohmann::json values = j.value("value", nlohmann::json::array());
 		if (values.is_array())

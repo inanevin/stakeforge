@@ -8,6 +8,7 @@
 #include <sfg/gfx/common/texture_queue.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
+#include <sfg/runtime/resources/material_limits.hpp>
 #include <sfg/vendor/moodycamel/readerwriterqueue.h>
 
 namespace sfg
@@ -60,6 +61,14 @@ namespace sfg
 		u32						 data_size	= 0;
 	};
 
+	struct render_material_parameter_update_desc_t
+	{
+		sid_t					 material							  = NULL_SID;
+		const void*				 data								  = nullptr;
+		render_resource_handle_t parameter_buffers[BACK_BUFFER_COUNT] = {};
+		u16						 data_size							  = 0;
+	};
+
 	class render_resources_t
 	{
 	public:
@@ -99,12 +108,14 @@ namespace sfg
 		void enqueue_texture_region_upload(const render_texture_region_upload_desc_t& desc);
 		void enqueue_replace_texture(const render_texture_replace_desc_t& desc);
 		void enqueue_data_upload(const render_data_upload_desc_t& desc);
+		void enqueue_material_parameter_update(const render_material_parameter_update_desc_t& desc);
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
 		void drain_requests();
+		void flush_material_parameter_updates(u8 frame_index);
 		void drain_destroy_requests();
 		void release_retired_resources(bool force = false);
 		void release_retired_textures(bool force = false);
@@ -236,21 +247,33 @@ namespace sfg
 			u8						 frames		   = 0;
 		};
 
+		struct material_parameter_update_t
+		{
+			sid_t					 material									= NULL_SID;
+			render_resource_handle_t parameter_buffers[BACK_BUFFER_COUNT]		= {};
+			u8						 data[SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE] = {};
+			u16						 data_size									= 0;
+			u8						 dirty_slots								= 0;
+		};
+
 		static void							   set_render_thread_resource(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle, gfx_handle_t hw_handle, gpu_index_t gpu_index = NULL_GPU_INDEX);
 		static void							   set_render_thread_texture(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle, gfx_handle_t hw_handle, const texture_desc_t& desc);
 		static const render_thread_resource_t& get_render_thread_resource_entry(const vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle);
 		static gfx_handle_t					   remove_render_thread_resource(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle);
+		void								   drain_material_parameter_update_requests();
 
-		moodycamel::ReaderWriterQueue<request_t> _request_q;
-		texture_queue_t							 _texture_upload_queue = {};
-		vector_t<request_t>						 _deferred_destroys;
-		render_resource_handle_t				 _default_linear_sampler  = {};
-		render_resource_handle_t				 _invalid_texture		  = {};
-		render_resource_handle_t				 _invalid_texture_staging = {};
-		render_resource_handle_t				 _white_texture			  = {};
-		render_resource_handle_t				 _white_texture_staging	  = {};
-		render_resource_handle_t				 _black_texture			  = {};
-		render_resource_handle_t				 _black_texture_staging	  = {};
+		moodycamel::ReaderWriterQueue<request_t>				   _request_q;
+		moodycamel::ReaderWriterQueue<material_parameter_update_t> _material_parameter_update_q;
+		texture_queue_t											   _texture_upload_queue = {};
+		vector_t<request_t>										   _deferred_destroys;
+		vector_t<material_parameter_update_t>					   _pending_material_parameter_updates;
+		render_resource_handle_t								   _default_linear_sampler	= {};
+		render_resource_handle_t								   _invalid_texture			= {};
+		render_resource_handle_t								   _invalid_texture_staging = {};
+		render_resource_handle_t								   _white_texture			= {};
+		render_resource_handle_t								   _white_texture_staging	= {};
+		render_resource_handle_t								   _black_texture			= {};
+		render_resource_handle_t								   _black_texture_staging	= {};
 
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _resources;
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _textures;

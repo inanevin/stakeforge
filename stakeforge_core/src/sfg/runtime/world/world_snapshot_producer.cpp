@@ -92,8 +92,10 @@ namespace sfg
 				render_mat.double_sided				= mat_runtime->double_sided;
 				render_mat.use_alpha_cutoff			= mat_runtime->use_alpha_cutoff;
 				render_mat.texture_count			= mat_runtime->texture_count;
-				render_mat.material_buffer			= mat_internals->parameter_buffer;
 				render_mat.pso_count				= shader->pso_count;
+
+				for (u8 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
+					render_mat.material_buffers[frame_index] = mat_internals->parameter_buffers[frame_index];
 
 				for (u32 i = 0; i < shader->pso_count; i++)
 				{
@@ -159,6 +161,8 @@ namespace sfg
 
 	void world_snapshot_producer_t::produce(world_t& world, world_render_snapshot_t& snapshot, const project_settings_t& project_settings)
 	{
+		resource_manager_t::get().flush_material_updates();
+
 		snapshot.shadows	   = project_settings.shadows;
 		snapshot.quality_level = project_settings.quality_level;
 
@@ -266,6 +270,7 @@ namespace sfg
 				const component_environment_t& environment = ecs_helpers_t::row_get<component_environment_t>(row, 1);
 				snapshot.environment.intensity			   = environment.intensity;
 				snapshot.environment.ambient_color		   = environment.ambient_color.to_vector();
+				snapshot.environment.debug_cluster_heatmap = environment.debug_cluster_heatmap;
 
 				const resource_entry_t* material_entry = rm.find_entry(environment.skybox_material);
 

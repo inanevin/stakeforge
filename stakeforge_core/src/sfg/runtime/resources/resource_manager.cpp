@@ -1,11 +1,16 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "resource_manager.hpp"
+#include "material.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/math/vec2f.hpp>
+#include <sfg/math/vec4f.hpp>
+#include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/resources/resource_file_system.hpp>
 
 #include <sfg/platform/time.hpp>
@@ -24,11 +29,15 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(resource_memory_size != 0);
 		SFG_ASSERT(_reload_listeners.empty());
+
 		_resource_file_system = &resource_file_system;
 		_generation			  = 0;
+
 		_memory.init(resource_memory_size);
 		_animation_storage.init();
+
 		_entries.reserve(256);
+		_dirty_materials.reserve(64);
 	}
 
 	void resource_manager_t::init_atlases(const ui::glyph_atlas_config_t& glyph_atlas_config)
@@ -59,7 +68,9 @@ namespace sfg
 			unload_entry(pair.second);
 			_generation++;
 		}
+
 		_entries.clear();
+		_dirty_materials.resize(0);
 
 		uninit_atlases();
 		_animation_storage.uninit();
@@ -249,6 +260,173 @@ namespace sfg
 
 			listener.fn(*this, resource_id, resource_type, listener.user_data);
 		}
+	}
+
+	void resource_manager_t::update_material_parameter(resource_handle_t material, sid_t parameter_name, f32 value)
+	{
+		update_material_parameter_data(material, parameter_name, shader_param_type_e::f32, &value, sizeof(value));
+	}
+
+	void resource_manager_t::update_material_parameter(resource_handle_t material, sid_t parameter_name, const vec2f_t& value)
+	{
+		update_material_parameter_data(material, parameter_name, shader_param_type_e::vec2, &value, sizeof(value));
+	}
+
+	void resource_manager_t::update_material_parameter(resource_handle_t material, sid_t parameter_name, const vec4f_t& value)
+	{
+		update_material_parameter_data(material, parameter_name, shader_param_type_e::vec4, &value, sizeof(value));
+	}
+
+	void resource_manager_t::update_material_parameter(resource_handle_t material, sid_t parameter_name, u32 value)
+	{
+		update_material_parameter_data(material, parameter_name, shader_param_type_e::u32, &value, sizeof(value));
+	}
+
+	void resource_manager_t::update_material_parameter_data(resource_handle_t material, sid_t parameter_name, shader_param_type_e type, const void* data, size_t data_size)
+	{
+		SFG_ASSERT(is_main_thread());
+		SFG_ASSERT(material != NULL_RESOURCE_HANDLE);
+		SFG_ASSERT(parameter_name != NULL_SID);
+		SFG_ASSERT(data != nullptr);
+
+		auto entry_it = _entries.find(material);
+		SFG_ASSERT(entry_it != _entries.end());
+		SFG_ASSERT(entry_it->second.type == resource_type_e::material);
+		SFG_ASSERT(entry_it->second.state == resource_state_e::ready);
+
+		material_runtime_t* runtime			= _memory.get<material_runtime_t>(entry_it->second.runtime);
+		u32					parameter_index = UINT32_MAX;
+
+		for (u32 i = 0; i < runtime->parameter_count; ++i)
+		{
+			if (runtime->parameter_name_hashes[i] == parameter_name)
+			{
+				parameter_index = i;
+				break;
+			}
+		}
+
+		SFG_ASSERT(parameter_index != UINT32_MAX);
+
+		material_runtime_parameter_t& parameter = runtime->parameters[parameter_index];
+		SFG_ASSERT(parameter.type == type);
+
+		if (SFG_MEMCMP(parameter.values, data, data_size) == 0)
+			return;
+
+		SFG_MEMCPY(parameter.values, data, data_size);
+
+		if (runtime->parameters_dirty == 0)
+		{
+			runtime->parameters_dirty = 1;
+			_dirty_materials.push_back(material);
+		}
+	}
+
+	void resource_manager_t::update_material_texture(resource_handle_t material, sid_t texture_name, resource_handle_t texture)
+	{
+		SFG_ASSERT(is_main_thread());
+		SFG_ASSERT(material != NULL_RESOURCE_HANDLE);
+		SFG_ASSERT(texture_name != NULL_SID);
+		SFG_ASSERT(texture != NULL_RESOURCE_HANDLE);
+
+		auto material_it = _entries.find(material);
+		SFG_ASSERT(material_it != _entries.end());
+		SFG_ASSERT(material_it->second.type == resource_type_e::material);
+		SFG_ASSERT(material_it->second.state == resource_state_e::ready);
+
+		material_runtime_t* runtime		  = _memory.get<material_runtime_t>(material_it->second.runtime);
+		u32					texture_index = UINT32_MAX;
+
+		for (u32 i = 0; i < runtime->texture_count; ++i)
+		{
+			if (runtime->texture_name_hashes[i] == texture_name)
+			{
+				texture_index = i;
+				break;
+			}
+		}
+
+		SFG_ASSERT(texture_index != UINT32_MAX);
+
+		const auto texture_it = _entries.find(texture);
+		SFG_ASSERT(texture_it != _entries.end());
+		SFG_ASSERT(texture_it->second.state == resource_state_e::ready);
+
+		const resource_type_e expected_type = runtime->texture_types[texture_index] == shader_texture_type_e::texture_cube ? resource_type_e::cubemap : resource_type_e::texture;
+		SFG_ASSERT(texture_it->second.type == expected_type);
+
+		runtime->texture_guids[texture_index] = texture;
+	}
+
+	void resource_manager_t::update_material_sampler(resource_handle_t material, sid_t sampler_name, resource_handle_t sampler)
+	{
+		SFG_ASSERT(is_main_thread());
+		SFG_ASSERT(material != NULL_RESOURCE_HANDLE);
+		SFG_ASSERT(sampler_name != NULL_SID);
+		SFG_ASSERT(sampler != NULL_RESOURCE_HANDLE);
+
+		auto material_it = _entries.find(material);
+		SFG_ASSERT(material_it != _entries.end());
+		SFG_ASSERT(material_it->second.type == resource_type_e::material);
+		SFG_ASSERT(material_it->second.state == resource_state_e::ready);
+
+		material_runtime_t* runtime		  = _memory.get<material_runtime_t>(material_it->second.runtime);
+		u32					sampler_index = UINT32_MAX;
+
+		for (u32 i = 0; i < runtime->sampler_count; ++i)
+		{
+			if (runtime->sampler_name_hashes[i] == sampler_name)
+			{
+				sampler_index = i;
+				break;
+			}
+		}
+
+		SFG_ASSERT(sampler_index != UINT32_MAX);
+
+		const auto sampler_it = _entries.find(sampler);
+		SFG_ASSERT(sampler_it != _entries.end());
+		SFG_ASSERT(sampler_it->second.state == resource_state_e::ready);
+		SFG_ASSERT(sampler_it->second.type == resource_type_e::texture_sampler);
+
+		runtime->sampler_guids[sampler_index] = sampler;
+	}
+
+	void resource_manager_t::flush_material_updates()
+	{
+		SFG_ASSERT(is_main_thread());
+
+		for (resource_handle_t material : _dirty_materials)
+		{
+			auto entry_it = _entries.find(material);
+
+			if (entry_it == _entries.end() || entry_it->second.type != resource_type_e::material)
+				continue;
+
+			material_runtime_t* runtime = _memory.get<material_runtime_t>(entry_it->second.runtime);
+
+			if (runtime->parameters_dirty == 0)
+				continue;
+
+			const material_internals_t* internals											 = _memory.get<material_internals_t>(entry_it->second.internals);
+			u8							parameter_data[SFG_MATERIAL_MAX_PARAMETER_DATA_SIZE] = {};
+			pack_material_parameters(*runtime, parameter_data);
+
+			render_material_parameter_update_desc_t desc = {
+				.material  = material,
+				.data	   = parameter_data,
+				.data_size = static_cast<u16>(runtime->parameter_data_size),
+			};
+
+			for (u8 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
+				desc.parameter_buffers[frame_index] = internals->parameter_buffers[frame_index];
+
+			render_resources_t::get().enqueue_material_parameter_update(desc);
+			runtime->parameters_dirty = 0;
+		}
+
+		_dirty_materials.resize(0);
 	}
 
 	resource_state_e resource_manager_t::load_resource_runtime(sid_t hash, resource_type_e type, istream_t& stream)
