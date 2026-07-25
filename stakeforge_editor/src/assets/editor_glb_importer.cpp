@@ -684,7 +684,8 @@ namespace sfg
 
 			const bool is_transparent = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "BLEND";
 			const bool is_cutoff	  = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "MASK";
-			const u32  pass_flags	  = is_transparent ? (world_pass_flags_forward | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id) : (world_pass_flags_gbuffer | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id);
+			const u32  pass_flags	  = is_transparent ? (world_pass_flags_forward | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id | world_pass_flags_reflections)
+													   : (world_pass_flags_gbuffer | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id | world_pass_flags_reflections);
 
 			resource_handle_t orm_guid = DEFAULT_ORM_TEXTURE_ASSET_GUID;
 			if (import_textures && orm_index >= 0 && orm_index == occlusion_index)

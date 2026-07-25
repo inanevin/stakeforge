@@ -35,11 +35,12 @@ namespace sfg
 {
 	enum world_pass_flags_e
 	{
-		world_pass_flags_gbuffer = 1 << 0,
-		world_pass_flags_forward = 1 << 1,
-		world_pass_flags_depth	 = 1 << 2,
-		world_pass_flags_shadow	 = 1 << 3,
-		world_pass_flags_id		 = 1 << 4,
+		world_pass_flags_gbuffer	 = 1 << 0,
+		world_pass_flags_forward	 = 1 << 1,
+		world_pass_flags_depth		 = 1 << 2,
+		world_pass_flags_shadow		 = 1 << 3,
+		world_pass_flags_id			 = 1 << 4,
+		world_pass_flags_reflections = 1 << 5,
 	};
 
 	enum world_draw_flags

@@ -5,7 +5,7 @@
     "sub_type": 0,
     "embedded_source": {
         "schema": "sfg.schema.material",
-        "pass_flags": 2,
+        "pass_flags": 42,
         "shader": 1001,
         "textures": [
             {"name": "albedo", "texture": 1002}

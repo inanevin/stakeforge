@@ -48,6 +48,7 @@ namespace sfg
 					{.name = "depth", .display_name = "Depth"},
 					{.name = "shadow", .display_name = "Shadow"},
 					{.name = "id", .display_name = "Id"},
+					{.name = "reflections", .display_name = "Reflections"},
 				},
 			.type_id   = type_id_t<world_pass_flags_e>::value,
 			.size	   = sizeof(world_pass_flags_e),
