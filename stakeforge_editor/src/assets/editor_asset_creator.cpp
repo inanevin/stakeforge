@@ -43,6 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 #define COMMON_SHADERS			  "common/shaders/"
+#define EDITOR_SHADERS			  "editor/resource_pack/shaders/"
 #define EDITOR_TEMPLATE_MATERIALS "editor_templates/materials/"
 #define EDITOR_TEMPLATE_SAMPLERS  "editor_templates/samplers/"
 
@@ -59,37 +60,35 @@ namespace sfg
 		{
 			switch (material_type)
 			{
-			case editor_material_type_e::forward:
-				return EDITOR_TEMPLATE_MATERIALS "material_forward.sfg_asset";
-			case editor_material_type_e::unlit:
-				return EDITOR_TEMPLATE_MATERIALS "material_unlit.sfg_asset";
+			case editor_material_type_e::transparent:
+				return EDITOR_TEMPLATE_MATERIALS "material_transparent.sfg_asset";
+			case editor_material_type_e::opaque_unlit:
+				return EDITOR_TEMPLATE_MATERIALS "material_opaque_unlit.sfg_asset";
+			case editor_material_type_e::transparent_unlit:
+				return EDITOR_TEMPLATE_MATERIALS "material_transparent_unlit.sfg_asset";
 			case editor_material_type_e::skybox:
 				return EDITOR_TEMPLATE_MATERIALS "material_skybox.sfg_asset";
 			default:
-				return EDITOR_TEMPLATE_MATERIALS "material_gbuffer.sfg_asset";
+				return EDITOR_TEMPLATE_MATERIALS "material_opaque.sfg_asset";
 			}
 		}
 
-		const char* get_shader_template_relative(shader_type_e shader_type)
+		const char* get_shader_template_relative(shader_type_e shader_type, editor_object_shader_template_e object_shader_template)
 		{
 			switch (shader_type)
 			{
-			case shader_type_e::opaque_shader:
-				return COMMON_SHADERS "world/gbuffer_lit.hlsl";
-			case shader_type_e::unlit_shader:
-				return COMMON_SHADERS "world/gbuffer_unlit.hlsl";
-			case shader_type_e::transparent_shader:
-				return COMMON_SHADERS "world/forward.hlsl";
+			case shader_type_e::object_shader:
+				return object_shader_template == editor_object_shader_template_e::unlit ? COMMON_SHADERS "world/object_unlit.hlsl" : COMMON_SHADERS "world/object_lit.hlsl";
 			case shader_type_e::post_process_shader:
-				return COMMON_SHADERS "world/forward.hlsl";
+				return COMMON_SHADERS "world/post_combiner.hlsl";
 			case shader_type_e::ui_shader:
-				return COMMON_SHADERS "world/forward.hlsl";
+				return EDITOR_SHADERS "editor_ui_default.hlsl";
 			case shader_type_e::ui_text_shader:
-				return COMMON_SHADERS "world/forward.hlsl";
+				return EDITOR_SHADERS "editor_ui_text_grayscale.hlsl";
 			case shader_type_e::skybox_shader:
 				return COMMON_SHADERS "world/skybox_cube.hlsl";
 			default:
-				return COMMON_SHADERS "world/gbuffer_lit.hlsl";
+				return COMMON_SHADERS "world/object_lit.hlsl";
 			}
 		}
 
@@ -104,7 +103,7 @@ namespace sfg
 				.name					  = desc.name,
 				.source_name			  = desc.source_name,
 				.source_extension		  = "hlsl",
-				.source_template_relative = get_shader_template_relative(shader_type),
+				.source_template_relative = get_shader_template_relative(shader_type, desc.object_shader_template),
 				.guid					  = desc.guid,
 				.asset_type				  = editor_asset_type_e::shader,
 				.sub_type				  = desc.sub_type,

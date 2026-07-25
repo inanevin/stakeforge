@@ -218,7 +218,7 @@ namespace sfg
 		mesh_renderer.mesh						 = asset_guid;
 
 		for (size_t i = 0; i < decltype(mesh_renderer.materials)::capacity; ++i)
-			mesh_renderer.materials.push_back(DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
+			mesh_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
 
 		world.scan_for_resources(thumbnail_world.display_entity, true);
 

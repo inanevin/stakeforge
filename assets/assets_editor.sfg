@@ -87,7 +87,7 @@
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 12
+                "type": 11
             }
         },
         {
@@ -96,7 +96,7 @@
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 12
+                "type": 11
             }
         },
 		{
@@ -105,7 +105,7 @@
 			"type": 7,
 			"config": {
 				"schema": "sfg.schema.shader",
-				"type": 13
+				"type": 12
 			}
 		},
 		{
@@ -114,7 +114,7 @@
 			"type": 7,
 			"config": {
 				"schema": "sfg.schema.shader",
-				"type": 21
+				"type": 19
 			}
 		},
         {

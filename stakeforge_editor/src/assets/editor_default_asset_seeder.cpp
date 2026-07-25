@@ -55,6 +55,7 @@ namespace sfg
 		{
 			const char*	  asset_name;
 			const char*	  source_base_name;
+			const char*	  source_template_relative;
 			sid_t		  guid;
 			shader_type_e shader_type;
 		};
@@ -121,29 +122,6 @@ namespace sfg
 			out["type"]			= static_cast<u8>(shader_type);
 		}
 
-		string_t get_shader_default_source_relative(shader_type_e shader_type, const char* source_base_name)
-		{
-			string_t result = COMMON_SHADERS;
-
-			switch (shader_type)
-			{
-			case shader_type_e::transparent_shader:
-				result += "world/forward.hlsl";
-				break;
-			case shader_type_e::unlit_shader:
-				result += "world/gbuffer_unlit.hlsl";
-				break;
-			case shader_type_e::skybox_shader:
-				result += string_t(source_base_name) == "default_shader_skybox_gradient" ? "world/skybox_gradient.hlsl" : "world/skybox_cube.hlsl";
-				break;
-			default:
-				result += "world/gbuffer_lit.hlsl";
-				break;
-			}
-
-			return result;
-		}
-
 		string_t get_texture_default_asset_relative(const char* texture_name)
 		{
 			string_t result = EDITOR_DEFAULT_TEXTURES;
@@ -179,11 +157,22 @@ namespace sfg
 		void ensure_shader_assets(const char* default_assets_dir)
 		{
 			const default_shader_asset_desc_t default_shader_assets[] = {
-				{.asset_name = "default_shader_gbuffer", .source_base_name = "default_shader_gbuffer", .guid = DEFAULT_GBUFFER_SHADER_ASSET_GUID, .shader_type = shader_type_e::opaque_shader},
-				{.asset_name = "default_shader_forward", .source_base_name = "default_shader_forward", .guid = DEFAULT_FORWARD_SHADER_ASSET_GUID, .shader_type = shader_type_e::transparent_shader},
-				{.asset_name = "default_shader_unlit", .source_base_name = "default_shader_unlit", .guid = DEFAULT_UNLIT_SHADER_ASSET_GUID, .shader_type = shader_type_e::unlit_shader},
-				{.asset_name = "default_shader_skybox_cube", .source_base_name = "default_shader_skybox_cube", .guid = DEFAULT_CUBE_SKYBOX_SHADER_ASSET_GUID, .shader_type = shader_type_e::skybox_shader},
-				{.asset_name = "default_shader_skybox_gradient", .source_base_name = "default_shader_skybox_gradient", .guid = DEFAULT_GRADIENT_SKYBOX_SHADER_ASSET_GUID, .shader_type = shader_type_e::skybox_shader},
+				{.asset_name = "default_shader_lit", .source_base_name = "default_shader_lit", .source_template_relative = COMMON_SHADERS "world/object_lit.hlsl", .guid = DEFAULT_LIT_SHADER_ASSET_GUID, .shader_type = shader_type_e::object_shader},
+				{.asset_name			   = "default_shader_unlit",
+				 .source_base_name		   = "default_shader_unlit",
+				 .source_template_relative = COMMON_SHADERS "world/object_unlit.hlsl",
+				 .guid					   = DEFAULT_OBJECT_UNLIT_SHADER_ASSET_GUID,
+				 .shader_type			   = shader_type_e::object_shader},
+				{.asset_name			   = "default_shader_skybox_cube",
+				 .source_base_name		   = "default_shader_skybox_cube",
+				 .source_template_relative = COMMON_SHADERS "world/skybox_cube.hlsl",
+				 .guid					   = DEFAULT_CUBE_SKYBOX_SHADER_ASSET_GUID,
+				 .shader_type			   = shader_type_e::skybox_shader},
+				{.asset_name			   = "default_shader_skybox_gradient",
+				 .source_base_name		   = "default_shader_skybox_gradient",
+				 .source_template_relative = COMMON_SHADERS "world/skybox_gradient.hlsl",
+				 .guid					   = DEFAULT_GRADIENT_SKYBOX_SHADER_ASSET_GUID,
+				 .shader_type			   = shader_type_e::skybox_shader},
 			};
 
 			for (const default_shader_asset_desc_t& desc : default_shader_assets)
@@ -194,7 +183,6 @@ namespace sfg
 
 				nlohmann::json cook_options = {};
 				build_shader_default_cook_options(desc.shader_type, cook_options);
-				const string_t source_relative = get_shader_default_source_relative(desc.shader_type, desc.source_base_name);
 
 				const editor_asset_write_file_desc_t write_desc{
 					.cook_options			  = &cook_options,
@@ -202,7 +190,7 @@ namespace sfg
 					.name					  = desc.asset_name,
 					.source_name			  = desc.source_base_name,
 					.source_extension		  = "hlsl",
-					.source_template_relative = source_relative.c_str(),
+					.source_template_relative = desc.source_template_relative,
 					.guid					  = desc.guid,
 					.asset_type				  = editor_asset_type_e::shader,
 					.sub_type				  = sub_type,
@@ -312,21 +300,26 @@ namespace sfg
 		void ensure_embedded_assets(const char* default_assets_dir)
 		{
 			const default_embedded_asset_desc_t default_embedded_assets[] = {
-				{.asset_name		  = "default_material_gbuffer",
-				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_material_gbuffer.sfg_asset",
-				 .guid				  = DEFAULT_GBUFFER_MATERIAL_ASSET_GUID,
+				{.asset_name		  = "default_opaque_material",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_opaque_material.sfg_asset",
+				 .guid				  = DEFAULT_OPAQUE_MATERIAL_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::material,
-				 .sub_type			  = static_cast<u8>(editor_material_type_e::gbuffer)},
-				{.asset_name		  = "default_material_forward",
-				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_material_forward.sfg_asset",
-				 .guid				  = DEFAULT_FORWARD_MATERIAL_ASSET_GUID,
+				 .sub_type			  = static_cast<u8>(editor_material_type_e::opaque)},
+				{.asset_name		  = "default_opaque_unlit_material",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_opaque_unlit_material.sfg_asset",
+				 .guid				  = DEFAULT_OPAQUE_UNLIT_MATERIAL_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::material,
-				 .sub_type			  = static_cast<u8>(editor_material_type_e::forward)},
-				{.asset_name		  = "default_material_unlit",
-				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_material_unlit.sfg_asset",
-				 .guid				  = DEFAULT_UNLIT_MATERIAL_ASSET_GUID,
+				 .sub_type			  = static_cast<u8>(editor_material_type_e::opaque_unlit)},
+				{.asset_name		  = "default_transparent_material",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_transparent_material.sfg_asset",
+				 .guid				  = DEFAULT_TRANSPARENT_MATERIAL_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::material,
-				 .sub_type			  = static_cast<u8>(editor_material_type_e::unlit)},
+				 .sub_type			  = static_cast<u8>(editor_material_type_e::transparent)},
+				{.asset_name		  = "default_transparent_unlit_material",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_transparent_unlit_material.sfg_asset",
+				 .guid				  = DEFAULT_TRANSPARENT_UNLIT_MATERIAL_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::material,
+				 .sub_type			  = static_cast<u8>(editor_material_type_e::transparent_unlit)},
 				{.asset_name		  = "default_material_skybox_cube",
 				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_material_skybox_cube.sfg_asset",
 				 .guid				  = DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID,

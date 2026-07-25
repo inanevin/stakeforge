@@ -93,6 +93,11 @@ namespace sfg
 		opaque_render_pass_data_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 		opaque_render_pass_data_desc.set_name("world_opaque_render_pass_data");
 
+		resource_desc_t forward_render_pass_data_desc = {};
+		forward_render_pass_data_desc.size			  = static_cast<u32>(sizeof(render_pass_data_forward_gpu_t));
+		forward_render_pass_data_desc.flags			  = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		forward_render_pass_data_desc.set_name("world_forward_render_pass_data");
+
 		resource_desc_t lighting_render_pass_data_desc = {};
 		lighting_render_pass_data_desc.size			   = static_cast<u32>(sizeof(render_pass_data_lighting_gpu_t));
 		lighting_render_pass_data_desc.flags		   = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
@@ -257,6 +262,7 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].bloom_semaphore.is_null());
 			SFG_ASSERT(_pfd[i].clustered_lighting_semaphore.is_null());
 			SFG_ASSERT(_pfd[i].opaque_render_pass_data.is_null());
+			SFG_ASSERT(_pfd[i].forward_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].lighting_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].post_process_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].entity_buffer.is_null());
@@ -291,6 +297,7 @@ namespace sfg
 			_pfd[i].clustered_lighting_semaphore = backend.create_semaphore();
 
 			_pfd[i].opaque_render_pass_data		  = backend.create_resource(opaque_render_pass_data_desc);
+			_pfd[i].forward_render_pass_data	  = backend.create_resource(forward_render_pass_data_desc);
 			_pfd[i].lighting_render_pass_data	  = backend.create_resource(lighting_render_pass_data_desc);
 			_pfd[i].post_process_render_pass_data = backend.create_resource(post_process_render_pass_data_desc);
 			_pfd[i].entity_buffer				  = backend.create_resource(entity_buffer_desc);
@@ -317,6 +324,7 @@ namespace sfg
 			}
 
 			backend.map_resource(_pfd[i].opaque_render_pass_data, _pfd[i].mapped_opaque_render_pass_data);
+			backend.map_resource(_pfd[i].forward_render_pass_data, _pfd[i].mapped_forward_render_pass_data);
 			backend.map_resource(_pfd[i].lighting_render_pass_data, _pfd[i].mapped_lighting_render_pass_data);
 			backend.map_resource(_pfd[i].post_process_render_pass_data, _pfd[i].mapped_post_process_render_pass_data);
 			backend.map_resource(_pfd[i].entity_buffer, _pfd[i].mapped_entity_buffer);
@@ -325,6 +333,7 @@ namespace sfg
 			backend.map_resource(_pfd[i].reflection_probe_buffer, _pfd[i].mapped_reflection_probe_buffer);
 
 			_pfd[i].opaque_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].opaque_render_pass_data);
+			_pfd[i].forward_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].forward_render_pass_data);
 			_pfd[i].lighting_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].lighting_render_pass_data);
 			_pfd[i].post_process_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].post_process_render_pass_data);
 			_pfd[i].entity_buffer_index					= backend.get_resource_gpu_index(_pfd[i].entity_buffer);
@@ -410,6 +419,7 @@ namespace sfg
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			SFG_ASSERT(!_pfd[i].opaque_render_pass_data.is_null());
+			SFG_ASSERT(!_pfd[i].forward_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].lighting_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].post_process_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].entity_buffer.is_null());
@@ -420,6 +430,7 @@ namespace sfg
 			SFG_ASSERT(!_pfd[i].clustered_lighting_semaphore.is_null());
 
 			backend.destroy_resource(_pfd[i].opaque_render_pass_data);
+			backend.destroy_resource(_pfd[i].forward_render_pass_data);
 			backend.destroy_resource(_pfd[i].lighting_render_pass_data);
 			backend.destroy_resource(_pfd[i].post_process_render_pass_data);
 			backend.destroy_resource(_pfd[i].entity_buffer);
@@ -470,6 +481,7 @@ namespace sfg
 			backend.destroy_semaphore(_pfd[i].clustered_lighting_semaphore);
 
 			_pfd[i].opaque_render_pass_data				 = {};
+			_pfd[i].forward_render_pass_data			 = {};
 			_pfd[i].lighting_render_pass_data			 = {};
 			_pfd[i].post_process_render_pass_data		 = {};
 			_pfd[i].entity_buffer						 = {};
@@ -483,6 +495,7 @@ namespace sfg
 			_pfd[i].debug_text_vertex_buffer			 = {};
 			_pfd[i].debug_text_index_buffer				 = {};
 			_pfd[i].mapped_opaque_render_pass_data		 = nullptr;
+			_pfd[i].mapped_forward_render_pass_data		 = nullptr;
 			_pfd[i].mapped_lighting_render_pass_data	 = nullptr;
 			_pfd[i].mapped_post_process_render_pass_data = nullptr;
 			_pfd[i].mapped_entity_buffer				 = nullptr;
@@ -496,6 +509,7 @@ namespace sfg
 			_pfd[i].mapped_debug_text_vertices			 = nullptr;
 			_pfd[i].mapped_debug_text_indices			 = nullptr;
 			_pfd[i].opaque_render_pass_data_index		 = NULL_GPU_INDEX;
+			_pfd[i].forward_render_pass_data_index		 = NULL_GPU_INDEX;
 			_pfd[i].lighting_render_pass_data_index		 = NULL_GPU_INDEX;
 			_pfd[i].post_process_render_pass_data_index	 = NULL_GPU_INDEX;
 			_pfd[i].entity_buffer_index					 = NULL_GPU_INDEX;

@@ -38,14 +38,15 @@ namespace sfg
 
 	struct editor_asset_create_desc_t
 	{
-		editor_asset_node_handle_t parent_node	   = {};
-		const char*				   name			   = nullptr;
-		const char*				   source_name	   = nullptr;
-		const char*				   embedded_data   = nullptr;
-		sid_t					   guid			   = NULL_SID;
-		editor_asset_type_e		   asset_type	   = editor_asset_type_e::invalid;
-		u8						   sub_type		   = 0;
-		bool					   allow_overwrite = false;
+		editor_asset_node_handle_t		parent_node			   = {};
+		const char*						name				   = nullptr;
+		const char*						source_name			   = nullptr;
+		const char*						embedded_data		   = nullptr;
+		sid_t							guid				   = NULL_SID;
+		editor_asset_type_e				asset_type			   = editor_asset_type_e::invalid;
+		editor_object_shader_template_e object_shader_template = editor_object_shader_template_e::lit;
+		u8								sub_type			   = 0;
+		bool							allow_overwrite		   = false;
 	};
 
 	class editor_asset_creator_t final

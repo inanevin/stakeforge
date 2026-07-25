@@ -243,7 +243,7 @@ namespace sfg
 		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), _display_entity);
 		mesh_renderer.mesh						 = _mesh_guid;
 		for (size_t i = 0; i < decltype(mesh_renderer.materials)::capacity; ++i)
-			mesh_renderer.materials.push_back(DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
+			mesh_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
 		world.scan_for_resources(_display_entity, true);
 
 		if (const mesh_internals_t* internals = resource_manager_t::get().find_internals<mesh_internals_t>(_mesh_guid))

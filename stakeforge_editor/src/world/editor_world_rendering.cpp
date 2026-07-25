@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/render/render_view.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/render/world_draw.hpp>
+#include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/runtime/render/world_render_material.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
@@ -262,6 +263,9 @@ namespace sfg
 			const world_draw_t& draw = snapshot.draws[i];
 
 			if ((prep_data.draw_culls[i].cull_mask & (1 << 0llu)) != 0)
+				continue;
+
+			if ((draw.pass_mask & world_pass_flags_id) == 0)
 				continue;
 
 			const world_render_material_t& mat = snapshot.materials[draw.material_index];

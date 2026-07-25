@@ -195,7 +195,6 @@ namespace sfg
 					{.name = "r11g11b10_sfloat", .display_name = "R11G11B10 SFloat"},
 					{.name = "r10g0b10a2_int", .display_name = "R10G0B10A2 Int"},
 					{.name = "r10g0b10a2_unorm", .display_name = "R10G10B10A2 UNorm"},
-					{.name = "r10g10b10a2_unorm", .display_name = "R10G10B10A2 UNorm"},
 					{.name = "bc3_block_srgb", .display_name = "BC3 Block SRGB"},
 					{.name = "bc3_block_unorm", .display_name = "BC3 Block UNorm"},
 					{.name = "bc7_block_srgb", .display_name = "BC7 Block SRGB"},

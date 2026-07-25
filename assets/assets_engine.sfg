@@ -6,7 +6,7 @@
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 10
+                "type": 9
             }
         },
         {
@@ -15,7 +15,7 @@
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 11
+                "type": 10
             }
         },
         {
@@ -24,7 +24,7 @@
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 14
+                "type": 13
             }
         },
         {
@@ -33,7 +33,7 @@
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 15
+                "type": 14
             }
         },
         {
@@ -42,7 +42,7 @@
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 16
+                "type": 15
             }
         },
         {
@@ -51,7 +51,7 @@
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 17
+                "type": 16
             }
         },
         {
@@ -60,7 +60,7 @@
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 18
+                "type": 17
             }
         },
         {
@@ -69,7 +69,7 @@
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 19
+                "type": 18
             }
         },
         {
@@ -78,7 +78,7 @@
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 23
+                "type": 21
             }
         }
     ]

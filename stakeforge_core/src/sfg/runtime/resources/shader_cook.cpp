@@ -468,18 +468,10 @@ namespace sfg
 
 		switch (cfg.type)
 		{
-		case shader_type_e::opaque_shader:
-		case shader_type_e::unlit_shader:
-			if (!shader_cook_variants_t::cook_opaque_shader(compile_source, include_paths, compiles, psos))
+		case shader_type_e::object_shader:
+			if (!shader_cook_variants_t::cook_object_shader(compile_source, include_paths, compiles, psos))
 			{
-				SFG_ERR("failed to cook opaque shader variants: {0}", full_path);
-				return false;
-			}
-			break;
-		case shader_type_e::transparent_shader:
-			if (!shader_cook_variants_t::cook_transparent_shader(compile_source, include_paths, compiles, psos))
-			{
-				SFG_ERR("failed to cook transparent shader variants: {0}", full_path);
+				SFG_ERR("failed to cook object shader variants: {0}", full_path);
 				return false;
 			}
 			break;

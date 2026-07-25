@@ -1,12 +1,12 @@
 {
     "version": 0,
-    "guid": 1024,
+    "guid": 1034,
     "asset_type": "material",
-    "sub_type": 2,
+    "sub_type": 4,
     "embedded_source": {
         "schema": "sfg.schema.material",
-        "pass_flags": 5,
-        "shader": 1023,
+        "pass_flags": 50,
+        "shader": 1030,
         "textures": [
             {"name": "albedo", "texture": 1002},
             {"name": "emissive", "texture": 1005}
@@ -16,9 +16,9 @@
             {"name": "emissive", "sampler": 1009}
         ],
         "parameters": [
-            {"name": "base_color_factor", "type": "vec4", "hint": "color", "value": [1.0, 1.0, 1.0, 1.0]},
+            {"name": "base_color_factor", "type": "vec4", "hint": "color", "value": [1.0, 1.0, 1.0, 0.5]},
             {"name": "emissive_factor", "type": "vec4", "hint": "color", "value": [1.0, 1.0, 1.0, 1.0]},
-            {"name": "emissive_strength", "type": "f32", "hint": "none", "value": [1.0, 0.0, 0.0, 0.0]},
+            {"name": "emissive_multiplier", "type": "f32", "hint": "none", "value": [1.0, 0.0, 0.0, 0.0]},
             {"name": "alpha_cutoff", "type": "f32", "hint": "none", "value": [0.5, 0.0, 0.0, 0.0]},
             {"name": "albedo_tiling_offset", "type": "vec4", "hint": "pack_uint2", "value": [1.0, 1.0, 0.0, 0.0]},
             {"name": "emissive_tiling_offset", "type": "vec4", "hint": "pack_uint2", "value": [1.0, 1.0, 0.0, 0.0]}

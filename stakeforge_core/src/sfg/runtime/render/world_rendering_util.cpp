@@ -458,6 +458,9 @@ namespace sfg
 		const render_pass_data_opaque_gpu_t opaque_render_pass_data = {.view_proj = main_camera_view.view_proj};
 		SFG_MEMCPY(ctx.get_mapped_opaque_render_pass_data(frame_index), &opaque_render_pass_data, sizeof(render_pass_data_opaque_gpu_t));
 
+		const render_pass_data_forward_gpu_t forward_render_pass_data = {.view_proj = main_camera_view.view_proj};
+		SFG_MEMCPY(ctx.get_mapped_forward_render_pass_data(frame_index), &forward_render_pass_data, sizeof(render_pass_data_forward_gpu_t));
+
 		// rp data.
 		const quat_t						  skybox_rotation			= quat_t::slerp(snapshot.main_view.prev_rot, snapshot.main_view.rot, interpolation_alpha);
 		const f32							  cluster_log_scale			= WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT / std::log2(main_camera_view.far_plane / main_camera_view.near_plane);

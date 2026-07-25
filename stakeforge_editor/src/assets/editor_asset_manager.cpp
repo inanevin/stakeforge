@@ -993,8 +993,11 @@ namespace sfg
 	void editor_asset_manager_t::untrack_source_asset(sid_t asset_id)
 	{
 		const auto source_asset_it = _asset_to_source_tracking.find(asset_id);
-		const auto tracking_it	   = _source_file_to_tracking.find(source_asset_it->second);
-		SFG_ASSERT(source_asset_it != _asset_to_source_tracking.end());
+
+		if (source_asset_it == _asset_to_source_tracking.end())
+			return;
+
+		const auto tracking_it = _source_file_to_tracking.find(source_asset_it->second);
 		SFG_ASSERT(tracking_it != _source_file_to_tracking.end());
 
 		vector_t<sid_t>& asset_ids = tracking_it->second.asset_ids;

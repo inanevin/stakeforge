@@ -14,8 +14,7 @@ namespace sfg
 		editor_ui_lcd_text,
 		editor_ui_sdf,
 		editor_ui_text_grayscale,
-		opaque_shader,
-		transparent_shader,
+		object_shader,
 		post_process_shader,
 		ui_shader,
 		ui_text_shader,
@@ -29,7 +28,6 @@ namespace sfg
 		ssao_upsample,
 		bloom_downsample,
 		bloom_upsample,
-		unlit_shader,
 		debug_triangle,
 		skybox_shader,
 		clustered_light_culling,
@@ -45,6 +43,7 @@ namespace sfg
 		shader_variant_flags_shadow_rendering  = 1 << 4,
 		shader_variant_flags_selection_outline = 1 << 5,
 		shader_variant_flags_id_write		   = 1 << 6,
+		shader_variant_flags_gbuffer		   = 1 << 7,
 	};
 
 	SFG_DEFINE_TYPE_ID(shader_type_e);

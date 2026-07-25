@@ -106,7 +106,7 @@ namespace sfg
 			component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), entity);
 			mesh_renderer.mesh						 = get_primitive_mesh(payload.primitive);
 			mesh_renderer.materials.resize(0);
-			mesh_renderer.materials.push_back(DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
+			mesh_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
 			world.scan_for_resources(entity, true);
 
 			payload.guid   = world.get_entity_guid(entity);

@@ -33,10 +33,17 @@ namespace sfg
 {
 	enum class editor_material_type_e : u8
 	{
-		gbuffer,
-		forward,
-		unlit,
+		opaque,
+		transparent,
+		opaque_unlit,
 		skybox,
+		transparent_unlit,
+	};
+
+	enum class editor_object_shader_template_e : u8
+	{
+		lit,
+		unlit,
 	};
 
 	enum class editor_texture_sampler_type_e : u8

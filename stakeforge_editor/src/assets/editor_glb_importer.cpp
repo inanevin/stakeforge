@@ -429,6 +429,15 @@ namespace sfg
 			};
 		}
 
+		material_param_value_t make_f32_parameter(const char* name, f32 value)
+		{
+			return {
+				.name  = name,
+				.value = {value, 0.0f, 0.0f, 0.0f},
+				.type  = shader_param_type_e::f32,
+			};
+		}
+
 		bool import_texture(const char*							 target_directory,
 							const char*							 source_full_path,
 							const tg3_model&					 model,
@@ -684,8 +693,9 @@ namespace sfg
 
 			const bool is_transparent = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "BLEND";
 			const bool is_cutoff	  = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "MASK";
-			const u32  pass_flags	  = is_transparent ? (world_pass_flags_forward | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id | world_pass_flags_reflections)
-													   : (world_pass_flags_gbuffer | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id | world_pass_flags_reflections);
+			const u32  pass_flags =
+				is_transparent ? (world_pass_flags_forward | world_pass_flags_id | world_pass_flags_reflections) : (world_pass_flags_gbuffer | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id | world_pass_flags_reflections);
+			const f32 ao_multiplier = import_textures && orm_index >= 0 && orm_index == occlusion_index ? math::clamp(static_cast<f32>(material.occlusion_texture.strength), 0.0f, 1.0f) : 1.0f;
 
 			resource_handle_t orm_guid = DEFAULT_ORM_TEXTURE_ASSET_GUID;
 			if (import_textures && orm_index >= 0 && orm_index == occlusion_index)
@@ -734,18 +744,19 @@ namespace sfg
 											static_cast<f32>(material.pbr_metallic_roughness.base_color_factor[2]),
 											static_cast<f32>(material.pbr_metallic_roughness.base_color_factor[3]),
 											shader_param_hint_e::color),
-						make_vec4_parameter("emissive_and_metallic_factor",
-											static_cast<f32>(material.emissive_factor[0]),
-											static_cast<f32>(material.emissive_factor[1]),
-											static_cast<f32>(material.emissive_factor[2]),
-											static_cast<f32>(material.pbr_metallic_roughness.metallic_factor)),
-						make_vec4_parameter("roughness_normal_strength_alpha", static_cast<f32>(material.pbr_metallic_roughness.roughness_factor), static_cast<f32>(material.normal_texture.scale), static_cast<f32>(material.alpha_cutoff), 0.0f),
+						make_vec4_parameter("emissive_factor", static_cast<f32>(material.emissive_factor[0]), static_cast<f32>(material.emissive_factor[1]), static_cast<f32>(material.emissive_factor[2]), 1.0f, shader_param_hint_e::color),
+						make_f32_parameter("ao_multiplier", ao_multiplier),
+						make_f32_parameter("roughness_multiplier", static_cast<f32>(material.pbr_metallic_roughness.roughness_factor)),
+						make_f32_parameter("metallic_multiplier", static_cast<f32>(material.pbr_metallic_roughness.metallic_factor)),
+						make_f32_parameter("normal_strength", static_cast<f32>(material.normal_texture.scale)),
+						make_f32_parameter("emissive_multiplier", 1.0f),
+						make_f32_parameter("alpha_cutoff", static_cast<f32>(material.alpha_cutoff)),
 						make_vec4_parameter("albedo_tiling_offset", base_transform.tiling[0], base_transform.tiling[1], base_transform.offset[0], base_transform.offset[1], shader_param_hint_e::pack_uint2),
 						make_vec4_parameter("normal_tiling_offset", normal_transform.tiling[0], normal_transform.tiling[1], normal_transform.offset[0], normal_transform.offset[1], shader_param_hint_e::pack_uint2),
 						make_vec4_parameter("orm_tiling_offset", orm_transform.tiling[0], orm_transform.tiling[1], orm_transform.offset[0], orm_transform.offset[1], shader_param_hint_e::pack_uint2),
 						make_vec4_parameter("emissive_tiling_offset", emissive_transform.tiling[0], emissive_transform.tiling[1], emissive_transform.offset[0], emissive_transform.offset[1], shader_param_hint_e::pack_uint2),
 					},
-				.shader			  = DEFAULT_GBUFFER_SHADER_ASSET_GUID,
+				.shader			  = DEFAULT_LIT_SHADER_ASSET_GUID,
 				.pass_flags		  = pass_flags,
 				.double_sided	  = material.double_sided != 0,
 				.use_alpha_cutoff = is_cutoff,
@@ -759,7 +770,7 @@ namespace sfg
 				.parent_path	 = target_directory,
 				.name			 = asset_name.c_str(),
 				.asset_type		 = editor_asset_type_e::material,
-				.sub_type		 = static_cast<u8>(editor_material_type_e::gbuffer),
+				.sub_type		 = static_cast<u8>(is_transparent ? editor_material_type_e::transparent : editor_material_type_e::opaque),
 				.allow_overwrite = true,
 			};
 			string_t asset_path;
@@ -1075,14 +1086,14 @@ namespace sfg
 				const auto it = material_guid_map.find(i);
 				if (out_local_material_indices != nullptr)
 					(*out_local_material_indices)[i] = static_cast<u32>(out_materials.size());
-				out_materials.push_back(it != material_guid_map.end() ? it->second : DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
+				out_materials.push_back(it != material_guid_map.end() ? it->second : DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
 			}
 
 			if (has_default_material)
 			{
 				if (out_default_material_index != nullptr)
 					*out_default_material_index = static_cast<u32>(out_materials.size());
-				out_materials.push_back(DEFAULT_GBUFFER_MATERIAL_ASSET_GUID);
+				out_materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
 			}
 		}
 

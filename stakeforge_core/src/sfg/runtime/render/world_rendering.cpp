@@ -594,7 +594,7 @@ namespace sfg
 
 				const world_render_material_t& mat = ss.materials[draw.material_index];
 
-				u32 flags = 0;
+				u32 flags = shader_variant_flags_gbuffer;
 
 				if (mat.double_sided)
 					flags |= shader_variant_flags_double_sided;
@@ -880,41 +880,27 @@ namespace sfg
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
 
-		barrier_t end_barriers[3] = {
-			{
-				.from_states = resource_state_ps_resource,
-				.to_states	 = resource_state_common,
-				.resource_t	 = ctx.get_light_cluster_buffer(frame_index),
-				.flags		 = barrier_flags::baf_is_resource,
-			},
-			{
-				.from_states = resource_state_ps_resource,
-				.to_states	 = resource_state_common,
-				.resource_t	 = ctx.get_light_cluster_indices_buffer(frame_index),
-				.flags		 = barrier_flags::baf_is_resource,
-			},
-		};
-		u16 end_count = 2;
-
 		if (ssao_active)
 		{
-			end_barriers[end_count++] = {
+			const barrier_t end_barrier = {
 				.from_states = resource_state_ps_resource,
 				.to_states	 = resource_state_non_ps_resource,
 				.texture_t	 = ctx.get_ao_texture(frame_index),
 				.flags		 = barrier_flags::baf_is_texture,
 			};
+
+			backend.cmd_barrier(cmd, {.barriers = &end_barrier, .barrier_count = 1});
 		}
 
-		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = end_count});
 		backend.close_command_buffer(cmd);
 	}
 
 	void world_rendering_t::render_forward(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
-		gfx_backend&	   backend		= gfx_backend::get();
-		const gfx_handle_t cmd			= ctx.get_command_buffer_forward(frame_index);
-		const bool		   bloom_active = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
+		gfx_backend&		backend			 = gfx_backend::get();
+		render_resources_t& render_resources = render_resources_t::get();
+		const gfx_handle_t	cmd				 = ctx.get_command_buffer_forward(frame_index);
+		const bool			bloom_active	 = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
 
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
@@ -949,6 +935,18 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
+		const gpu_index_t rp_constants[8] = {
+			ctx.get_lighting_render_pass_data_index(frame_index),
+			ctx.get_forward_render_pass_data_index(frame_index),
+			ctx.get_entity_buffer_index(frame_index),
+			ctx.get_bone_buffer_index(frame_index),
+			ctx.get_light_buffer_index(frame_index),
+			ctx.get_shadow_context().get_view_buffer_index(frame_index),
+			ctx.get_light_cluster_buffer_index(frame_index),
+			ctx.get_light_cluster_indices_buffer_index(frame_index),
+		};
+		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 8, .param_index = 0});
+
 		if (snapshot.environment.material_index != UINT32_MAX)
 		{
 			BEGIN_DEBUG_EVENT((&backend), cmd, "world_skybox");
@@ -957,9 +955,7 @@ namespace sfg
 			const render_resource_handle_t shader_handle = material.find_pso(0);
 			SFG_ASSERT(!shader_handle.is_null());
 
-			const gpu_index_t render_pass_data_index = ctx.get_lighting_render_pass_data_index(frame_index);
-			backend.cmd_bind_constants(cmd, {.data = &render_pass_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
-			backend.cmd_bind_pipeline(cmd, {.pipeline = render_resources_t::get().get_shader_hw(shader_handle)});
+			backend.cmd_bind_pipeline(cmd, {.pipeline = render_resources.get_shader_hw(shader_handle)});
 
 			u32 bound_material = UINT32_MAX;
 			bind_material(backend, cmd, bound_material, snapshot.environment.material_index, material, frame_index);
@@ -967,17 +963,94 @@ namespace sfg
 			END_DEBUG_EVENT((&backend), cmd);
 		}
 
+		gfx_handle_t bound_vertex	= {};
+		gfx_handle_t bound_index	= {};
+		gfx_handle_t bound_pipeline = {};
+		u32			 bound_material = UINT32_MAX;
+
+		const u32 draw_count = static_cast<u32>(snapshot.draws.size());
+
+		for (u32 i = 0; i < draw_count; ++i)
+		{
+			const world_draw_t& draw = snapshot.draws[i];
+
+			if ((prep_data.draw_culls[i].cull_mask & (1ull << 0)) != 0)
+				continue;
+
+			if ((draw.pass_mask & world_pass_flags_forward) == 0)
+				continue;
+
+			const gfx_handle_t vertex_buffer = render_resources.get_resource(draw.vertex_buffer);
+			const gfx_handle_t index_buffer	 = render_resources.get_resource(draw.index_buffer);
+
+			SFG_ASSERT(!vertex_buffer.is_null() && !index_buffer.is_null());
+
+			bind_vertex(backend, cmd, bound_vertex, vertex_buffer, draw.vertex_stride);
+			bind_index(backend, cmd, bound_index, index_buffer, draw.index_stride);
+
+			if (!draw.direct_pso.is_null())
+			{
+				bind_pipeline(backend, cmd, bound_pipeline, render_resources.get_shader_hw(draw.direct_pso));
+			}
+			else
+			{
+				SFG_ASSERT(draw.material_index != UINT32_MAX);
+
+				const world_render_material_t& material		 = snapshot.materials[draw.material_index];
+				bitmask_t<u32>				   variant_flags = {};
+				variant_flags.set(shader_variant_flags_alpha_cutoff, material.use_alpha_cutoff != 0);
+				variant_flags.set(shader_variant_flags_double_sided, material.double_sided != 0);
+				variant_flags.set(shader_variant_flags_skinned, draw.skinning_index != UINT32_MAX);
+
+				const render_resource_handle_t shader_handle = material.find_pso(variant_flags);
+
+				if (shader_handle.is_null())
+					continue;
+
+				bind_pipeline(backend, cmd, bound_pipeline, render_resources.get_shader_hw(shader_handle));
+				bind_material(backend, cmd, bound_material, draw.material_index, material, frame_index);
+			}
+
+			const u32 obj_constants[2] = {
+				draw.entity_index,
+				draw.skinning_index == UINT32_MAX ? 0 : draw.skinning_index,
+			};
+			backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
+			backend.cmd_draw_indexed_instanced(cmd,
+											   {
+												   .index_count_per_instance = draw.index_count,
+												   .instance_count			 = 1,
+												   .start_index_location	 = draw.start_index,
+												   .base_vertex_location	 = draw.start_vertex,
+												   .start_instance_location	 = 0,
+											   });
+		}
+
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
 
-		const barrier_t end_barrier = {
-			.from_states = resource_state_render_target,
-			.to_states	 = bloom_active ? resource_state_non_ps_resource : resource_state_ps_resource,
-			.texture_t	 = ctx.get_lighting_texture(frame_index),
-			.flags		 = barrier_flags::baf_is_texture,
+		const barrier_t end_barriers[3] = {
+			{
+				.from_states = resource_state_render_target,
+				.to_states	 = bloom_active ? resource_state_non_ps_resource : resource_state_ps_resource,
+				.texture_t	 = ctx.get_lighting_texture(frame_index),
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+			{
+				.from_states = resource_state_ps_resource,
+				.to_states	 = resource_state_common,
+				.resource_t	 = ctx.get_light_cluster_buffer(frame_index),
+				.flags		 = barrier_flags::baf_is_resource,
+			},
+			{
+				.from_states = resource_state_ps_resource,
+				.to_states	 = resource_state_common,
+				.resource_t	 = ctx.get_light_cluster_indices_buffer(frame_index),
+				.flags		 = barrier_flags::baf_is_resource,
+			},
 		};
 
-		backend.cmd_barrier(cmd, {.barriers = &end_barrier, .barrier_count = 1});
+		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = 3});
 		backend.close_command_buffer(cmd);
 	}
 

@@ -529,14 +529,11 @@ namespace sfg
 		case assets_action_menu_create_animation_graph:
 			text = "animation_graph";
 			break;
-		case assets_action_menu_create_opaque_shader:
-			text = "opaque_shader";
+		case assets_action_menu_create_lit_shader:
+			text = "lit_shader";
 			break;
 		case assets_action_menu_create_unlit_shader:
 			text = "unlit_shader";
-			break;
-		case assets_action_menu_create_transparent_shader:
-			text = "transparent_shader";
 			break;
 		case assets_action_menu_create_post_process_shader:
 			text = "post_process_shader";
@@ -553,14 +550,17 @@ namespace sfg
 		case assets_action_menu_create_texture_sampler:
 			text = "texture_sampler";
 			break;
-		case assets_action_menu_create_gbuffer_material:
-			text = "gbuffer_material";
+		case assets_action_menu_create_opaque_material:
+			text = "opaque_material";
 			break;
-		case assets_action_menu_create_unlit_material:
-			text = "unlit_material";
+		case assets_action_menu_create_opaque_unlit_material:
+			text = "opaque_unlit_material";
 			break;
-		case assets_action_menu_create_forward_material:
-			text = "forward_material";
+		case assets_action_menu_create_transparent_material:
+			text = "transparent_material";
+			break;
+		case assets_action_menu_create_transparent_unlit_material:
+			text = "transparent_unlit_material";
 			break;
 		case assets_action_menu_create_skybox_material:
 			text = "skybox_material";
@@ -646,17 +646,14 @@ namespace sfg
 		case assets_action_menu_create_animation_graph:
 			out_desc.asset_type = editor_asset_type_e::animation_graph;
 			return true;
-		case assets_action_menu_create_opaque_shader:
+		case assets_action_menu_create_lit_shader:
 			out_desc.asset_type = editor_asset_type_e::shader;
-			out_desc.sub_type	= static_cast<u8>(shader_type_e::opaque_shader);
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::object_shader);
 			return true;
 		case assets_action_menu_create_unlit_shader:
-			out_desc.asset_type = editor_asset_type_e::shader;
-			out_desc.sub_type	= static_cast<u8>(shader_type_e::unlit_shader);
-			return true;
-		case assets_action_menu_create_transparent_shader:
-			out_desc.asset_type = editor_asset_type_e::shader;
-			out_desc.sub_type	= static_cast<u8>(shader_type_e::transparent_shader);
+			out_desc.asset_type				= editor_asset_type_e::shader;
+			out_desc.object_shader_template = editor_object_shader_template_e::unlit;
+			out_desc.sub_type				= static_cast<u8>(shader_type_e::object_shader);
 			return true;
 		case assets_action_menu_create_post_process_shader:
 			out_desc.asset_type = editor_asset_type_e::shader;
@@ -677,17 +674,21 @@ namespace sfg
 		case assets_action_menu_create_texture_sampler:
 			out_desc.asset_type = editor_asset_type_e::texture_sampler;
 			return true;
-		case assets_action_menu_create_gbuffer_material:
+		case assets_action_menu_create_opaque_material:
 			out_desc.asset_type = editor_asset_type_e::material;
-			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::gbuffer);
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::opaque);
 			return true;
-		case assets_action_menu_create_unlit_material:
+		case assets_action_menu_create_opaque_unlit_material:
 			out_desc.asset_type = editor_asset_type_e::material;
-			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::unlit);
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::opaque_unlit);
 			return true;
-		case assets_action_menu_create_forward_material:
+		case assets_action_menu_create_transparent_material:
 			out_desc.asset_type = editor_asset_type_e::material;
-			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::forward);
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::transparent);
+			return true;
+		case assets_action_menu_create_transparent_unlit_material:
+			out_desc.asset_type = editor_asset_type_e::material;
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::transparent_unlit);
 			return true;
 		case assets_action_menu_create_skybox_material:
 			out_desc.asset_type = editor_asset_type_e::material;

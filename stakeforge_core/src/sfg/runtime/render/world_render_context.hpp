@@ -45,6 +45,11 @@ namespace sfg
 		mat4x4_t view_proj = mat4x4_t::identity;
 	};
 
+	struct render_pass_data_forward_gpu_t
+	{
+		mat4x4_t view_proj = mat4x4_t::identity;
+	};
+
 	struct render_pass_data_lighting_gpu_t
 	{
 		mat4x4_t skybox_view_proj  = mat4x4_t::identity;
@@ -318,6 +323,11 @@ namespace sfg
 			return _pfd[frame_index].opaque_render_pass_data_index;
 		}
 
+		inline gpu_index_t get_forward_render_pass_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].forward_render_pass_data_index;
+		}
+
 		inline gpu_index_t get_lighting_render_pass_data_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].lighting_render_pass_data_index;
@@ -518,6 +528,11 @@ namespace sfg
 			return _pfd[frame_index].mapped_opaque_render_pass_data;
 		}
 
+		inline u8* get_mapped_forward_render_pass_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_forward_render_pass_data;
+		}
+
 		inline u8* get_mapped_lighting_render_pass_data(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_lighting_render_pass_data;
@@ -695,6 +710,7 @@ namespace sfg
 			u8*			 mapped_debug_text_indices									= nullptr;
 			u8*			 mapped_debug_text_data										= nullptr;
 			u8*			 mapped_opaque_render_pass_data								= nullptr;
+			u8*			 mapped_forward_render_pass_data							= nullptr;
 			u8*			 mapped_lighting_render_pass_data							= nullptr;
 			u8*			 mapped_post_process_render_pass_data						= nullptr;
 			u8*			 mapped_entity_buffer										= nullptr;
@@ -712,6 +728,7 @@ namespace sfg
 			gfx_handle_t cmd_bloom													= {};
 			gfx_handle_t cmd_clustered_lighting										= {};
 			gfx_handle_t opaque_render_pass_data									= {};
+			gfx_handle_t forward_render_pass_data									= {};
 			gfx_handle_t lighting_render_pass_data									= {};
 			gfx_handle_t post_process_render_pass_data								= {};
 			gfx_handle_t ssao_render_pass_data										= {};
@@ -761,6 +778,7 @@ namespace sfg
 			gpu_index_t	 bloom_upsample_index[WORLD_RENDER_BLOOM_LEVEL_COUNT]		= {};
 			gpu_index_t	 bloom_upsample_uav_index[WORLD_RENDER_BLOOM_LEVEL_COUNT]	= {};
 			gpu_index_t	 opaque_render_pass_data_index								= NULL_GPU_INDEX;
+			gpu_index_t	 forward_render_pass_data_index								= NULL_GPU_INDEX;
 			gpu_index_t	 lighting_render_pass_data_index							= NULL_GPU_INDEX;
 			gpu_index_t	 post_process_render_pass_data_index						= NULL_GPU_INDEX;
 			gpu_index_t	 ssao_render_pass_data_index								= NULL_GPU_INDEX;
