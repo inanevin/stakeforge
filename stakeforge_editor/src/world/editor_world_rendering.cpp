@@ -152,10 +152,11 @@ namespace sfg
 
 			if (bound_material != draw.material_index)
 			{
-				bound_material												 = draw.material_index;
-				gpu_index_t mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
-				u8			mat_constant_count								 = 0;
-				mat_constants[mat_constant_count++]							 = render_resources.get_resource_gpu_index(mat.material_buffer);
+				bound_material																	= draw.material_index;
+				gpu_index_t					   mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
+				u8							   mat_constant_count								= 0;
+				const render_resource_handle_t material_buffer									= mat.material_buffers[frame_index];
+				mat_constants[mat_constant_count++]												= material_buffer.is_null() ? NULL_GPU_INDEX : render_resources.get_resource_gpu_index(material_buffer);
 
 				for (u32 i = 0; i < mat.texture_count; ++i)
 					mat_constants[mat_constant_count++] = render_resources.get_texture_gpu_index(mat.material_textures[i], 0);
@@ -301,10 +302,11 @@ namespace sfg
 
 			if (bound_material != draw.material_index)
 			{
-				bound_material												 = draw.material_index;
-				gpu_index_t mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
-				u8			mat_constant_count								 = 0;
-				mat_constants[mat_constant_count++]							 = render_resources.get_resource_gpu_index(mat.material_buffer);
+				bound_material																	= draw.material_index;
+				gpu_index_t					   mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
+				u8							   mat_constant_count								= 0;
+				const render_resource_handle_t material_buffer									= mat.material_buffers[frame_index];
+				mat_constants[mat_constant_count++]												= material_buffer.is_null() ? NULL_GPU_INDEX : render_resources.get_resource_gpu_index(material_buffer);
 
 				for (u32 i = 0; i < mat.texture_count; ++i)
 					mat_constants[mat_constant_count++] = render_resources.get_texture_gpu_index(mat.material_textures[i], 0);
