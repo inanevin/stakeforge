@@ -28,35 +28,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/runtime/resources/material_limits.hpp>
-#include <sfg/runtime/resources/shader_limits.hpp>
-#include <sfg/runtime/render/render_resource_handle.hpp>
 
 namespace sfg
 {
-	struct alignas(64) world_render_material_t
-	{
-		render_resource_handle_t material_textures[SFG_MATERIAL_MAX_TEXTURES];
-		render_resource_handle_t material_samplers[SFG_MATERIAL_MAX_TEXTURES];
-		render_resource_handle_t material_buffers[BACK_BUFFER_COUNT]	= {};
-		render_resource_handle_t psos[SFG_SHADER_MAX_PSO_VARIANTS]		= {};
-		u32						 pso_flags[SFG_SHADER_MAX_PSO_VARIANTS] = {};
-		u32						 pso_count								= 0;
-		u32						 texture_count							= 0;
-		u32						 pass_mask								= 0;
-		u8						 double_sided							= 0;
-		u8						 use_alpha_cutoff						= 0;
+#define WORLD_RENDER_CLUSTER_TILE_SIZE		   32
+#define WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT 16
+#define WORLD_RENDER_CLUSTER_LIGHT_CAPACITY	   32
 
-		inline render_resource_handle_t find_pso(bitmask_t<u32> flags) const
-		{
-			const u32 want = flags.value();
-			for (u8 i = 0; i < pso_count; ++i)
-			{
-				if (pso_flags[i] == want)
-					return psos[i];
-			}
-			return {};
-		}
+	struct gpu_light_cluster_t
+	{
+		u32 light_offset = 0;
+		u32 light_count	 = 0;
+		u32 overflow	 = 0;
+		u32 pad			 = 0;
 	};
+
+	static_assert(sizeof(gpu_light_cluster_t) == 16);
 }

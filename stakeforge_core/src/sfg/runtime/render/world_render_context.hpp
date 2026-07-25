@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/mat4x4.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec4f.hpp>
+#include "world_gpu_cluster.hpp"
 #include "world_render_reflection_context.hpp"
 #include "world_render_shadow_context.hpp"
 
@@ -46,14 +47,17 @@ namespace sfg
 
 	struct render_pass_data_lighting_gpu_t
 	{
-		mat4x4_t skybox_view_proj = mat4x4_t::identity;
-		mat4x4_t inv_view_proj	  = mat4x4_t::identity;
-		mat4x4_t inv_view		  = mat4x4_t::identity;
-		mat4x4_t view			  = mat4x4_t::identity;
-		vec4f_t	 camera_pos		  = vec4f_t::zero;
-		vec4f_t	 skybox_params	  = vec4f_t::zero;
-		vec4f_t	 ambient_color	  = vec4f_t::zero;
-		u32		 light_counts[4]  = {};
+		mat4x4_t skybox_view_proj  = mat4x4_t::identity;
+		mat4x4_t inv_view_proj	   = mat4x4_t::identity;
+		mat4x4_t inv_view		   = mat4x4_t::identity;
+		mat4x4_t view			   = mat4x4_t::identity;
+		vec4f_t	 camera_pos		   = vec4f_t::zero;
+		vec4f_t	 skybox_params	   = vec4f_t::zero;
+		vec4f_t	 ambient_color	   = vec4f_t::zero;
+		u32		 light_counts[4]   = {};
+		vec4f_t	 cluster_depth	   = vec4f_t::zero;
+		u32		 cluster_dims[4]   = {};
+		u32		 cluster_screen[4] = {};
 	};
 
 	struct render_pass_data_post_process_gpu_t
@@ -179,6 +183,11 @@ namespace sfg
 			return _pfd[frame_index].cmd_bloom;
 		}
 
+		inline gfx_handle_t get_command_buffer_clustered_lighting(u8 frame_index) const
+		{
+			return _pfd[frame_index].cmd_clustered_lighting;
+		}
+
 		inline world_render_shadow_context_t& get_shadow_context()
 		{
 			return _shadow_context;
@@ -279,6 +288,16 @@ namespace sfg
 			return ++_pfd[frame_index].bloom_semaphore_value;
 		}
 
+		inline gfx_handle_t get_clustered_lighting_semaphore(u8 frame_index) const
+		{
+			return _pfd[frame_index].clustered_lighting_semaphore;
+		}
+
+		inline u64 next_clustered_lighting_semaphore_value(u8 frame_index) const
+		{
+			return ++_pfd[frame_index].clustered_lighting_semaphore_value;
+		}
+
 		inline gpu_index_t get_world_texture_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].post_process_texture_index;
@@ -337,6 +356,36 @@ namespace sfg
 		inline gpu_index_t get_reflection_probe_buffer_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].reflection_probe_buffer_index;
+		}
+
+		inline gfx_handle_t get_light_cluster_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].light_cluster_buffer;
+		}
+
+		inline gfx_handle_t get_light_cluster_indices_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].light_cluster_indices_buffer;
+		}
+
+		inline gpu_index_t get_light_cluster_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].light_cluster_buffer_index;
+		}
+
+		inline gpu_index_t get_light_cluster_buffer_uav_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].light_cluster_buffer_uav_index;
+		}
+
+		inline gpu_index_t get_light_cluster_indices_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].light_cluster_indices_buffer_index;
+		}
+
+		inline gpu_index_t get_light_cluster_indices_buffer_uav_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].light_cluster_indices_buffer_uav_index;
 		}
 
 		inline gpu_index_t get_gbuffer_albedo_index(u8 frame_index) const
@@ -457,6 +506,11 @@ namespace sfg
 		inline gfx_handle_t get_bloom_upsample_shader() const
 		{
 			return _shaders.bloom_upsample;
+		}
+
+		inline gfx_handle_t get_clustered_light_culling_shader() const
+		{
+			return _shaders.clustered_light_culling;
 		}
 
 		inline u8* get_mapped_opaque_render_pass_data(u8 frame_index) const
@@ -609,6 +663,21 @@ namespace sfg
 			return _config.reflection_probe_max;
 		}
 
+		inline u32 get_light_cluster_count_x() const
+		{
+			return (static_cast<u32>(_config.size.x) + WORLD_RENDER_CLUSTER_TILE_SIZE - 1) / WORLD_RENDER_CLUSTER_TILE_SIZE;
+		}
+
+		inline u32 get_light_cluster_count_y() const
+		{
+			return (static_cast<u32>(_config.size.y) + WORLD_RENDER_CLUSTER_TILE_SIZE - 1) / WORLD_RENDER_CLUSTER_TILE_SIZE;
+		}
+
+		inline u32 get_light_cluster_count() const
+		{
+			return get_light_cluster_count_x() * get_light_cluster_count_y() * WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT;
+		}
+
 	private:
 		void create_texture(vec2u16_t size);
 		void destroy_texture();
@@ -641,6 +710,7 @@ namespace sfg
 			gfx_handle_t cmd_post													= {};
 			gfx_handle_t cmd_ssao													= {};
 			gfx_handle_t cmd_bloom													= {};
+			gfx_handle_t cmd_clustered_lighting										= {};
 			gfx_handle_t opaque_render_pass_data									= {};
 			gfx_handle_t lighting_render_pass_data									= {};
 			gfx_handle_t post_process_render_pass_data								= {};
@@ -650,6 +720,8 @@ namespace sfg
 			gfx_handle_t bone_buffer												= {};
 			gfx_handle_t light_buffer												= {};
 			gfx_handle_t reflection_probe_buffer									= {};
+			gfx_handle_t light_cluster_buffer										= {};
+			gfx_handle_t light_cluster_indices_buffer								= {};
 			gfx_handle_t debug_line_data											= {};
 			gfx_handle_t debug_line_vertex_buffer									= {};
 			gfx_handle_t debug_line_index_buffer									= {};
@@ -669,8 +741,10 @@ namespace sfg
 			gfx_handle_t bloom_upsample												= {};
 			gfx_handle_t ssao_semaphore												= {};
 			gfx_handle_t bloom_semaphore											= {};
+			gfx_handle_t clustered_lighting_semaphore								= {};
 			mutable u64	 ssao_semaphore_value										= 0;
 			mutable u64	 bloom_semaphore_value										= 0;
+			mutable u64	 clustered_lighting_semaphore_value							= 0;
 			gpu_index_t	 lighting_texture_index										= NULL_GPU_INDEX;
 			gpu_index_t	 post_process_texture_index									= NULL_GPU_INDEX;
 			gpu_index_t	 depth_texture_index										= NULL_GPU_INDEX;
@@ -695,20 +769,25 @@ namespace sfg
 			gpu_index_t	 bone_buffer_index											= NULL_GPU_INDEX;
 			gpu_index_t	 light_buffer_index											= NULL_GPU_INDEX;
 			gpu_index_t	 reflection_probe_buffer_index								= NULL_GPU_INDEX;
+			gpu_index_t	 light_cluster_buffer_index									= NULL_GPU_INDEX;
+			gpu_index_t	 light_cluster_buffer_uav_index								= NULL_GPU_INDEX;
+			gpu_index_t	 light_cluster_indices_buffer_index							= NULL_GPU_INDEX;
+			gpu_index_t	 light_cluster_indices_buffer_uav_index						= NULL_GPU_INDEX;
 			gpu_index_t	 debug_line_data_index										= NULL_GPU_INDEX;
 			gpu_index_t	 debug_text_data_index										= NULL_GPU_INDEX;
 		};
 
 		struct shaders_t
 		{
-			gfx_handle_t lighting		  = {};
-			gfx_handle_t post_combiner	  = {};
-			gfx_handle_t debug_line		  = {};
-			gfx_handle_t debug_text		  = {};
-			gfx_handle_t ssao			  = {};
-			gfx_handle_t ssao_upsample	  = {};
-			gfx_handle_t bloom_downsample = {};
-			gfx_handle_t bloom_upsample	  = {};
+			gfx_handle_t lighting				 = {};
+			gfx_handle_t post_combiner			 = {};
+			gfx_handle_t debug_line				 = {};
+			gfx_handle_t debug_text				 = {};
+			gfx_handle_t ssao					 = {};
+			gfx_handle_t ssao_upsample			 = {};
+			gfx_handle_t bloom_downsample		 = {};
+			gfx_handle_t bloom_upsample			 = {};
+			gfx_handle_t clustered_light_culling = {};
 		};
 
 	private:
