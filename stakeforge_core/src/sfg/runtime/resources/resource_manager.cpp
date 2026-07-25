@@ -23,6 +23,7 @@ namespace sfg
 		SFG_ASSERT(is_main_thread());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(resource_memory_size != 0);
+		SFG_ASSERT(_reload_listeners.empty());
 		_resource_file_system = &resource_file_system;
 		_generation			  = 0;
 		_memory.init(resource_memory_size);
@@ -49,6 +50,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_main_thread());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(_reload_listeners.empty());
 
 		_texture_streamer.flush_completed(*this);
 
@@ -62,6 +64,7 @@ namespace sfg
 		uninit_atlases();
 		_animation_storage.uninit();
 		_memory.uninit();
+		_reload_listeners.clear();
 		_resource_file_system = nullptr;
 		_generation			  = 0;
 	}
@@ -211,7 +214,41 @@ namespace sfg
 		SFG_ASSERT(reloaded_it != _entries.end());
 		reloaded_it->second.ref_count = ref_count;
 
+		notify_reload(hash, type);
+
 		return state;
+	}
+
+	resource_reload_listener_handle_t resource_manager_t::add_reload_listener(resource_reload_listener_fn fn, void* user_data)
+	{
+		SFG_ASSERT(is_main_thread());
+		SFG_ASSERT(fn != nullptr);
+
+		const resource_reload_listener_handle_t handle	 = _reload_listeners.emplace();
+		resource_reload_listener_t&				listener = _reload_listeners.get(handle);
+		listener.fn										 = fn;
+		listener.user_data								 = user_data;
+
+		return handle;
+	}
+
+	void resource_manager_t::remove_reload_listener(resource_reload_listener_handle_t handle)
+	{
+		SFG_ASSERT(is_main_thread());
+		SFG_ASSERT(_reload_listeners.is_valid(handle));
+
+		_reload_listeners.remove(handle);
+	}
+
+	void resource_manager_t::notify_reload(sid_t resource_id, resource_type_e resource_type)
+	{
+		for (auto it = _reload_listeners.begin_handle(); it != _reload_listeners.end_handle(); ++it)
+		{
+			const resource_reload_listener_handle_t handle	 = *it;
+			const resource_reload_listener_t&		listener = _reload_listeners.get(handle);
+
+			listener.fn(*this, resource_id, resource_type, listener.user_data);
+		}
 	}
 
 	resource_state_e resource_manager_t::load_resource_runtime(sid_t hash, resource_type_e type, istream_t& stream)

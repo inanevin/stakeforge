@@ -3,11 +3,13 @@
 
 #include "animation_storage.hpp"
 #include "common_resources.hpp"
+#include "resource_reload_listener.hpp"
 #include "texture_streamer.hpp"
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
+#include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
 
 namespace sfg
@@ -39,12 +41,14 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		resource_state_e		load_resource(sid_t hash, resource_type_e type);
-		resource_state_e		load_resource_runtime(sid_t hash, resource_type_e type, istream_t& stream);
-		resource_state_e		reload_resource(sid_t hash);
-		void					unload_resource(sid_t hash, bool force = false);
-		const resource_entry_t* find_entry(u64 hash) const;
-		void					drain_atlases(u8 frame_slot);
+		resource_state_e				  load_resource(sid_t hash, resource_type_e type);
+		resource_state_e				  load_resource_runtime(sid_t hash, resource_type_e type, istream_t& stream);
+		resource_state_e				  reload_resource(sid_t hash);
+		void							  unload_resource(sid_t hash, bool force = false);
+		resource_reload_listener_handle_t add_reload_listener(resource_reload_listener_fn fn, void* user_data);
+		void							  remove_reload_listener(resource_reload_listener_handle_t handle);
+		const resource_entry_t*			  find_entry(u64 hash) const;
+		void							  drain_atlases(u8 frame_slot);
 
 		// -----------------------------------------------------------------------------
 		// queries
@@ -135,17 +139,25 @@ namespace sfg
 		}
 
 	private:
+		struct resource_reload_listener_t
+		{
+			resource_reload_listener_fn fn		  = nullptr;
+			void*						user_data = nullptr;
+		};
+
 		void unload_dependencies(resource_entry_t& entry);
 		void unload_entry(resource_entry_t& entry);
 		void free_entry(resource_entry_t& entry);
+		void notify_reload(sid_t resource_id, resource_type_e resource_type);
 
 	private:
-		animation_storage_t					_animation_storage;
-		chunk_allocator_t					_memory;
-		hash_map_t<sid_t, resource_entry_t> _entries;
-		ui::glyph_atlas_t					_glyph_atlas;
-		texture_streamer_t					_texture_streamer;
-		resource_file_system_t*				_resource_file_system = nullptr;
-		u64									_generation			  = 0;
+		animation_storage_t																	_animation_storage;
+		chunk_allocator_t																	_memory;
+		hash_map_t<sid_t, resource_entry_t>													_entries;
+		dynamic_gen_pool_t<resource_reload_listener_t, u32, resource_reload_listener_tag_t> _reload_listeners;
+		ui::glyph_atlas_t																	_glyph_atlas;
+		texture_streamer_t																	_texture_streamer;
+		resource_file_system_t*																_resource_file_system = nullptr;
+		u64																					_generation			  = 0;
 	};
 }

@@ -46,15 +46,68 @@ namespace sfg
 		_animation_graph_storage.init(animation_graph_memory_reserve);
 		_bone_memory.init(sizeof(animation_bone_t) * bone_reserve * 2);
 
-		_world = &world;
+		_world					  = &world;
+		_resource_reload_listener = resource_manager_t::get().add_reload_listener(on_reload, this);
 	}
 
 	void world_animation_controller_t::uninit()
 	{
+		resource_manager_t::get().remove_reload_listener(_resource_reload_listener);
+		_resource_reload_listener = {};
+
 		_bone_memory.uninit();
 		_animation_graph_storage.uninit();
 
 		_world = nullptr;
+	}
+
+	void world_animation_controller_t::on_reload(resource_manager_t& resource_manager, sid_t resource_id, resource_type_e resource_type, void* user_data)
+	{
+		if (resource_type != resource_type_e::animation_graph)
+			return;
+
+		world_animation_controller_t& controller			= *static_cast<world_animation_controller_t*>(user_data);
+		const resource_entry_t*		  animation_graph_entry = resource_manager.find_entry(resource_id);
+		SFG_ASSERT(animation_graph_entry != nullptr);
+
+		const chunk_allocator_t&		 resource_memory			  = resource_manager.get_memory();
+		const animation_graph_runtime_t* animation_graph			  = resource_memory.get<animation_graph_runtime_t>(animation_graph_entry->runtime);
+		ecs_component_table_t&			 system_animation_graph_table = controller._world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+
+		const ecs_component_table_ref_t table_refs[] = {
+			system_animation_graph_table.ref(),
+		};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+		{
+			component_system_animation_graph_t& system_animation_graph = ecs_helpers_t::row_get_mutable<component_system_animation_graph_t>(row, 0);
+
+			if (system_animation_graph.animation_graph != resource_id)
+				continue;
+
+			const resource_entry_t* skeleton_entry = resource_manager.find_entry(system_animation_graph.skeleton);
+			SFG_ASSERT(skeleton_entry != nullptr);
+
+			const skeleton_runtime_t* skeleton = resource_memory.get<skeleton_runtime_t>(skeleton_entry->runtime);
+
+			controller._animation_graph_storage.destroy_graph({
+				.initial_pose	 = system_animation_graph.initial_pose,
+				.parameters		 = system_animation_graph.parameters,
+				.nodes			 = system_animation_graph.nodes,
+				.parameter_count = system_animation_graph.parameter_count,
+				.node_count		 = system_animation_graph.node_count,
+			});
+
+			const animation_graph_storage_instance_t instance = controller._animation_graph_storage.create_graph(*animation_graph, resource_memory, *skeleton);
+
+			system_animation_graph.initial_pose			  = instance.initial_pose;
+			system_animation_graph.parameters			  = instance.parameters;
+			system_animation_graph.nodes				  = instance.nodes;
+			system_animation_graph.accumulated_delta_time = 0.0f;
+			system_animation_graph.parameter_count		  = instance.parameter_count;
+			system_animation_graph.node_count			  = instance.node_count;
+			system_animation_graph.tick_frame_count		  = 0;
+		}
 	}
 
 	void world_animation_controller_t::tick_prep(f32 delta_time)

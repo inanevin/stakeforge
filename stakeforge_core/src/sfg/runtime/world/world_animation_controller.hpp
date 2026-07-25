@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/animation/animation_bone.hpp>
 #include <sfg/runtime/animation/animation_graph_storage.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
+#include <sfg/runtime/resources/resource_reload_listener.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
@@ -86,10 +87,12 @@ namespace sfg
 
 		chunk_handle32_t allocate_bones(u32 bone_count);
 		void			 deallocate_bones(chunk_handle32_t handle);
+		static void		 on_reload(resource_manager_t& resource_manager, sid_t resource_id, resource_type_e resource_type, void* user_data);
 
 	private:
-		animation_graph_storage_t _animation_graph_storage = {};
-		chunk_allocator32_t		  _bone_memory			   = {};
-		world_t*				  _world				   = nullptr;
+		animation_graph_storage_t		  _animation_graph_storage	= {};
+		chunk_allocator32_t				  _bone_memory				= {};
+		world_t*						  _world					= nullptr;
+		resource_reload_listener_handle_t _resource_reload_listener = {};
 	};
 }

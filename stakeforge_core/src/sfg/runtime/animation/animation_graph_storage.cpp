@@ -222,7 +222,6 @@ namespace sfg
 
 					SFG_ASSERT(source_transition.from_state_index < destination_asm.state_count);
 					SFG_ASSERT(source_transition.to_state_index < destination_asm.state_count);
-					SFG_ASSERT(source_transition.parameter_index < instance.parameter_count);
 
 					destination_transition = {
 						.from_state =
@@ -235,16 +234,22 @@ namespace sfg
 								.head = destination_asm.states.head + static_cast<u32>(sizeof(animation_graph_asm_state_t)) * source_transition.to_state_index,
 								.size = sizeof(animation_graph_asm_state_t),
 							},
-						.parameter =
-							{
-								.head = instance.parameters.head + static_cast<u32>(sizeof(animation_graph_param_t)) * source_transition.parameter_index,
-								.size = sizeof(animation_graph_param_t),
-							},
+
 						.compare_value = source_transition.compare_value,
 						.duration	   = source_transition.duration,
 						.type		   = source_transition.type,
 						.is_blended	   = source_transition.is_blended,
 					};
+
+					if (source_transition.parameter_index == UINT32_MAX)
+						destination_transition.parameter = {};
+					else
+					{
+						destination_transition.parameter = {
+							.head = instance.parameters.head + static_cast<u32>(sizeof(animation_graph_param_t)) * source_transition.parameter_index,
+							.size = sizeof(animation_graph_param_t),
+						};
+					}
 				}
 
 				continue;
@@ -421,7 +426,20 @@ namespace sfg
 
 				if (!transition.parameter)
 				{
-					SFG_WARN("transition is missing parameter!");
+					animation_graph_asm_state_t* state = _asm_states.get<animation_graph_asm_state_t>(node._current_state);
+					if (state)
+					{
+						if (math::almost_equal(state->_current_time, state->_duration))
+						{
+							node._current_transition = {
+								.head = node.transitions.head + static_cast<u32>(sizeof(animation_graph_asm_transition_t)) * i,
+								.size = static_cast<u32>(sizeof(animation_graph_asm_transition_t)),
+							};
+							node._current_transition_time = 0.0f;
+							break;
+						}
+					}
+
 					continue;
 				}
 
