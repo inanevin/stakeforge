@@ -7,6 +7,7 @@
 #include "texture_streamer.hpp"
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/data/vector.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
@@ -16,6 +17,9 @@ namespace sfg
 {
 	class istream_t;
 	class resource_file_system_t;
+	struct vec2f_t;
+	struct vec4f_t;
+	enum class shader_param_type_e : u8;
 
 	class resource_manager_t final
 	{
@@ -47,6 +51,13 @@ namespace sfg
 		void							  unload_resource(sid_t hash, bool force = false);
 		resource_reload_listener_handle_t add_reload_listener(resource_reload_listener_fn fn, void* user_data);
 		void							  remove_reload_listener(resource_reload_listener_handle_t handle);
+		void							  update_material_parameter(resource_handle_t material, sid_t parameter_name, f32 value);
+		void							  update_material_parameter(resource_handle_t material, sid_t parameter_name, const vec2f_t& value);
+		void							  update_material_parameter(resource_handle_t material, sid_t parameter_name, const vec4f_t& value);
+		void							  update_material_parameter(resource_handle_t material, sid_t parameter_name, u32 value);
+		void							  update_material_texture(resource_handle_t material, sid_t texture_name, resource_handle_t texture);
+		void							  update_material_sampler(resource_handle_t material, sid_t sampler_name, resource_handle_t sampler);
+		void							  flush_material_updates();
 		const resource_entry_t*			  find_entry(u64 hash) const;
 		void							  drain_atlases(u8 frame_slot);
 
@@ -149,6 +160,7 @@ namespace sfg
 		void unload_entry(resource_entry_t& entry);
 		void free_entry(resource_entry_t& entry);
 		void notify_reload(sid_t resource_id, resource_type_e resource_type);
+		void update_material_parameter_data(resource_handle_t material, sid_t parameter_name, shader_param_type_e type, const void* data, size_t data_size);
 
 	private:
 		animation_storage_t																	_animation_storage;
@@ -157,6 +169,7 @@ namespace sfg
 		dynamic_gen_pool_t<resource_reload_listener_t, u32, resource_reload_listener_tag_t> _reload_listeners;
 		ui::glyph_atlas_t																	_glyph_atlas;
 		texture_streamer_t																	_texture_streamer;
+		vector_t<resource_handle_t>															_dirty_materials;
 		resource_file_system_t*																_resource_file_system = nullptr;
 		u64																					_generation			  = 0;
 	};
