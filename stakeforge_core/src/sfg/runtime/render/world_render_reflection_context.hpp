@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/math/vec4f.hpp>
 
 namespace sfg
 {
@@ -43,16 +42,16 @@ namespace sfg
 
 	struct world_render_reflection_allocation_t
 	{
-		vec4f_t		 diffuse_sh[WORLD_RENDER_REFLECTION_SH_COEFFICIENT_COUNT] = {};
-		gfx_handle_t radiance_texture										  = {};
-		gfx_handle_t specular_texture										  = {};
-		u64			 last_used_id											  = 0;
-		u64			 retire_id												  = 0;
-		gpu_index_t	 radiance_texture_index									  = NULL_GPU_INDEX;
-		gpu_index_t	 specular_texture_index									  = NULL_GPU_INDEX;
-		u32			 stable_id												  = UINT32_MAX;
-		u16			 resolution												  = 0;
-		u8			 specular_mip_count										  = 0;
+		gfx_handle_t radiance_texture			   = {};
+		gfx_handle_t specular_texture			   = {};
+		u64			 last_used_id				   = 0;
+		u64			 retire_id					   = 0;
+		gpu_index_t	 radiance_texture_index		   = NULL_GPU_INDEX;
+		gpu_index_t	 specular_texture_index		   = NULL_GPU_INDEX;
+		u32			 diffuse_sh_coefficient_offset = UINT32_MAX;
+		u32			 stable_id					   = UINT32_MAX;
+		u16			 resolution					   = 0;
+		u8			 specular_mip_count			   = 0;
 	};
 
 	class world_render_reflection_context_t final
@@ -83,9 +82,30 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		const world_render_reflection_allocation_t* find_allocation(u32 stable_id) const;
 
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+		inline gfx_handle_t get_diffuse_sh_buffer() const
+		{
+			return _diffuse_sh_buffer;
+		}
+
+		inline gpu_index_t get_diffuse_sh_buffer_index() const
+		{
+			return _diffuse_sh_buffer_index;
+		}
+
+		inline gpu_index_t get_diffuse_sh_buffer_uav_index() const
+		{
+			return _diffuse_sh_buffer_uav_index;
+		}
+
 	private:
 		world_render_reflection_allocation_t	 _allocations[WORLD_RENDER_REFLECTION_ALLOCATION_CAPACITY] = {};
 		u64										 _id_counter											   = 0;
+		gfx_handle_t							 _diffuse_sh_buffer										   = {};
+		gpu_index_t								 _diffuse_sh_buffer_index								   = NULL_GPU_INDEX;
+		gpu_index_t								 _diffuse_sh_buffer_uav_index							   = NULL_GPU_INDEX;
 		world_render_reflection_context_config_t _config												   = {};
 	};
 }

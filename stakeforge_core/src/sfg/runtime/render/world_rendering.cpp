@@ -386,11 +386,16 @@ namespace sfg
 				SFG_ASSERT(prep_data.reflection_probe_count < ctx.get_reflection_probe_max());
 
 				reflection_probe_buffer[prep_data.reflection_probe_count] = {
-					.position_blend_distance   = {pos.x, pos.y, pos.z, reflection_probe.blend_distance},
-					.rotation				   = {rot.x, rot.y, rot.z, rot.w},
-					.extents_diffuse_intensity = {extents.x, extents.y, extents.z, reflection_probe.diffuse_intensity},
-					.specular_intensity		   = reflection_probe.specular_intensity,
-					.flags					   = reflection_probe.is_global != 0 ? gpu_reflection_probe_flag_global : 0u,
+					.position_blend_distance	   = {pos.x, pos.y, pos.z, reflection_probe.blend_distance},
+					.rotation					   = {rot.x, rot.y, rot.z, rot.w},
+					.extents_diffuse_intensity	   = {extents.x, extents.y, extents.z, reflection_probe.diffuse_intensity},
+					.specular_intensity			   = reflection_probe.specular_intensity,
+					.flags						   = reflection_probe.is_global != 0 ? gpu_reflection_probe_flag_global : 0u,
+					.radiance_texture_index		   = allocation->radiance_texture_index,
+					.specular_texture_index		   = allocation->specular_texture_index,
+					.diffuse_sh_buffer_index	   = reflection_context.get_diffuse_sh_buffer_index(),
+					.diffuse_sh_coefficient_offset = allocation->diffuse_sh_coefficient_offset,
+					.specular_mip_count			   = allocation->specular_mip_count,
 				};
 				++prep_data.reflection_probe_count;
 			}

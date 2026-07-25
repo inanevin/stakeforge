@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/vec4f.hpp>
 
 namespace sfg
@@ -39,13 +40,18 @@ namespace sfg
 
 	struct gpu_reflection_probe_t
 	{
-		vec4f_t position_blend_distance	  = vec4f_t::zero;
-		vec4f_t rotation				  = {0.0f, 0.0f, 0.0f, 1.0f};
-		vec4f_t extents_diffuse_intensity = vec4f_t::zero;
-		f32		specular_intensity		  = 0.0f;
-		u32		flags					  = 0;
-		u32		padding[2]				  = {};
+		vec4f_t		position_blend_distance		  = vec4f_t::zero;
+		vec4f_t		rotation					  = {0.0f, 0.0f, 0.0f, 1.0f};
+		vec4f_t		extents_diffuse_intensity	  = vec4f_t::zero;
+		f32			specular_intensity			  = 0.0f;
+		u32			flags						  = 0;
+		gpu_index_t radiance_texture_index		  = NULL_GPU_INDEX;
+		gpu_index_t specular_texture_index		  = NULL_GPU_INDEX;
+		gpu_index_t diffuse_sh_buffer_index		  = NULL_GPU_INDEX;
+		u32			diffuse_sh_coefficient_offset = UINT32_MAX;
+		u32			specular_mip_count			  = 0;
+		u32			padding						  = 0;
 	};
 
-	static_assert(sizeof(gpu_reflection_probe_t) == 64);
+	static_assert(sizeof(gpu_reflection_probe_t) == 80);
 }

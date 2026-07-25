@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/util/image_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 
 namespace sfg
@@ -48,10 +49,16 @@ namespace sfg
 			other._allocations[i] = {};
 		}
 
-		_config			  = other._config;
-		other._config	  = {};
-		_id_counter		  = other._id_counter;
-		other._id_counter = 0;
+		_diffuse_sh_buffer				   = other._diffuse_sh_buffer;
+		other._diffuse_sh_buffer		   = {};
+		_id_counter						   = other._id_counter;
+		other._id_counter				   = 0;
+		_diffuse_sh_buffer_index		   = other._diffuse_sh_buffer_index;
+		other._diffuse_sh_buffer_index	   = NULL_GPU_INDEX;
+		_diffuse_sh_buffer_uav_index	   = other._diffuse_sh_buffer_uav_index;
+		other._diffuse_sh_buffer_uav_index = NULL_GPU_INDEX;
+		_config							   = other._config;
+		other._config					   = {};
 
 		return *this;
 	}
@@ -62,6 +69,21 @@ namespace sfg
 		SFG_ASSERT(config.allocation_max <= WORLD_RENDER_REFLECTION_ALLOCATION_CAPACITY);
 
 		_config = config;
+
+		const u32 allocation_count = config.allocation_max == 0 ? 1 : config.allocation_max;
+
+		resource_desc_t diffuse_sh_buffer_desc = {};
+		diffuse_sh_buffer_desc.size			   = static_cast<u32>(sizeof(vec4f_t) * WORLD_RENDER_REFLECTION_SH_COEFFICIENT_COUNT * allocation_count);
+		diffuse_sh_buffer_desc.structure_size  = static_cast<u32>(sizeof(vec4f_t));
+		diffuse_sh_buffer_desc.structure_count = WORLD_RENDER_REFLECTION_SH_COEFFICIENT_COUNT * allocation_count;
+		diffuse_sh_buffer_desc.flags		   = resource_flags::rf_storage_buffer | resource_flags::rf_gpu_only | resource_flags::rf_gpu_write;
+		diffuse_sh_buffer_desc.set_name("world_reflection_probe_diffuse_sh");
+
+		gfx_backend& backend = gfx_backend::get();
+
+		_diffuse_sh_buffer			 = backend.create_resource(diffuse_sh_buffer_desc);
+		_diffuse_sh_buffer_index	 = backend.get_resource_gpu_index(_diffuse_sh_buffer);
+		_diffuse_sh_buffer_uav_index = backend.get_resource_gpu_index(_diffuse_sh_buffer, true);
 	}
 
 	void world_render_reflection_context_t::uninit()
@@ -69,6 +91,8 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
 		gfx_backend& backend = gfx_backend::get();
+
+		backend.destroy_resource(_diffuse_sh_buffer);
 
 		for (world_render_reflection_allocation_t& allocation : _allocations)
 		{
@@ -82,8 +106,11 @@ namespace sfg
 			allocation = {};
 		}
 
-		_config		= {};
-		_id_counter = 0;
+		_diffuse_sh_buffer			 = {};
+		_id_counter					 = 0;
+		_diffuse_sh_buffer_index	 = NULL_GPU_INDEX;
+		_diffuse_sh_buffer_uav_index = NULL_GPU_INDEX;
+		_config						 = {};
 	}
 
 	void world_render_reflection_context_t::begin_allocations()
@@ -130,7 +157,8 @@ namespace sfg
 			}
 		}
 
-		world_render_reflection_allocation_t* allocation = nullptr;
+		world_render_reflection_allocation_t* allocation	   = nullptr;
+		u16									  allocation_index = 0;
 
 		for (u16 i = 0; i < _config.allocation_max; ++i)
 		{
@@ -138,7 +166,8 @@ namespace sfg
 
 			if (candidate.radiance_texture.is_null())
 			{
-				allocation = &candidate;
+				allocation		 = &candidate;
+				allocation_index = i;
 				break;
 			}
 		}
@@ -196,12 +225,13 @@ namespace sfg
 			return nullptr;
 		}
 
-		allocation->radiance_texture_index = backend.get_texture_gpu_index(allocation->radiance_texture, 6);
-		allocation->specular_texture_index = backend.get_texture_gpu_index(allocation->specular_texture, 0);
-		allocation->last_used_id		   = _id_counter;
-		allocation->stable_id			   = stable_id;
-		allocation->resolution			   = resolution;
-		allocation->specular_mip_count	   = specular_mip_count;
+		allocation->radiance_texture_index		  = backend.get_texture_gpu_index(allocation->radiance_texture, 6);
+		allocation->specular_texture_index		  = backend.get_texture_gpu_index(allocation->specular_texture, 0);
+		allocation->diffuse_sh_coefficient_offset = static_cast<u32>(allocation_index) * WORLD_RENDER_REFLECTION_SH_COEFFICIENT_COUNT;
+		allocation->last_used_id				  = _id_counter;
+		allocation->stable_id					  = stable_id;
+		allocation->resolution					  = resolution;
+		allocation->specular_mip_count			  = specular_mip_count;
 
 		return allocation;
 	}
