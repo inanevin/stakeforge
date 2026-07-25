@@ -239,6 +239,16 @@ namespace sfg
 			return _bounding_boxes_enabled;
 		}
 
+		inline void set_skeletons_enabled(bool enabled)
+		{
+			_skeletons_enabled = enabled;
+		}
+
+		inline bool is_skeletons_enabled() const
+		{
+			return _skeletons_enabled;
+		}
+
 		inline void set_physics_debug_enabled(bool enabled)
 		{
 			_physics_debug_enabled = enabled;
@@ -416,6 +426,7 @@ namespace sfg
 		editor_play_mode_e															  _play_mode			  = editor_play_mode_e::none;
 		bool																		  _grid_enabled			  = false;
 		bool																		  _bounding_boxes_enabled = false;
+		bool																		  _skeletons_enabled	  = false;
 		editor_world_view_settings_t												  _world_view_settings	  = {};
 		bool																		  _physics_debug_enabled  = false;
 		bool																		  _shoot_rays_enabled	  = false;

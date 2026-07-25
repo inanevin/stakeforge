@@ -35,11 +35,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/math/aabb.hpp>
 #include <sfg/math/color.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/math/mat4x3.hpp>
+#include <sfg/runtime/animation/animation_bone.hpp>
 #include <sfg/runtime/physics/physics_world.hpp>
 #include <sfg/runtime/render/render_view.hpp>
 #include <sfg/runtime/render/world_render_view.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
@@ -67,6 +71,8 @@ namespace sfg
 #define EDITOR_WORLD_DEBUG_TEXT_BYTE_RESERVE	   32768
 #define EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX		   16384
 #define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX		   24576
+#define EDITOR_WORLD_SKELETON_JOINT_RADIUS_RATIO   0.02f
+#define EDITOR_WORLD_SKELETON_AXIS_LENGTH_RATIO	   0.12f
 #define EDITOR_WORLD_LIGHT_MAX					   1024
 #define EDITOR_WORLD_REFLECTION_PROBE_MAX		   256
 
@@ -543,6 +549,87 @@ namespace sfg
 
 		if (_play_mode == editor_play_mode_e::none && selected.size != 0)
 			editor_world_util_t::draw_selection_gizmos(_world, selected, _render_resolution);
+
+		if (_edit_context.is_skeletons_enabled())
+		{
+			const ecs_component_table_t&	transform_table					   = _world.get_component_table(type_id_t<component_system_transform_t>::value);
+			const ecs_component_table_t&	alive_table						   = _world.get_component_table(type_id_t<component_alive_t>::value);
+			const ecs_component_table_t&	disabled_table					   = _world.get_component_table(type_id_t<component_disabled_t>::value);
+			const ecs_component_table_t&	skinned_mesh_renderer_table		   = _world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
+			const ecs_component_table_t&	system_skinned_mesh_renderer_table = _world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
+			const ecs_component_table_ref_t table_refs[]					   = {
+				transform_table.ref(),
+				alive_table.ref(),
+				skinned_mesh_renderer_table.ref(),
+				system_skinned_mesh_renderer_table.ref(),
+				!disabled_table.ref(),
+			};
+
+			resource_manager_t&		 resource_manager = resource_manager_t::get();
+			chunk_allocator_t&		 resource_memory  = resource_manager.get_memory();
+			world_debug_draw_t&		 debug_draw		  = _world.get_debug_draw();
+			const editor_theme_t&	 theme			  = editor_theme_t::get();
+			frame_vector_t<mat4x3_t> joint_transforms = {};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				const component_system_transform_t&				transform					 = ecs_helpers_t::row_get<component_system_transform_t>(row, 0);
+				const component_skinned_mesh_renderer_t&		skinned_mesh_renderer		 = ecs_helpers_t::row_get<component_skinned_mesh_renderer_t>(row, 2);
+				const component_system_skinned_mesh_renderer_t& system_skinned_mesh_renderer = ecs_helpers_t::row_get<component_system_skinned_mesh_renderer_t>(row, 3);
+				const skeleton_runtime_t*						skeleton					 = resource_manager.find_runtime<skeleton_runtime_t>(skinned_mesh_renderer.skeleton);
+
+				if (skeleton == nullptr)
+					continue;
+
+				const skeleton_joint_runtime_t*		 joints = resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
+				const span_t<const animation_bone_t> bones	= _world.get_animation_controller().get_bones(system_skinned_mesh_renderer.bones_handle);
+
+				joint_transforms.resize(skeleton->joint_count);
+
+				for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
+					joint_transforms[joint_index] = transform.abs_mat * bones.data[joint_index].bone_transform * joints[joint_index].inverse_bind.inverse();
+
+				vec3f_t bounds_min = joint_transforms[0].get_translation();
+				vec3f_t bounds_max = bounds_min;
+
+				for (u32 joint_index = 1; joint_index < skeleton->joint_count; ++joint_index)
+				{
+					const vec3f_t position = joint_transforms[joint_index].get_translation();
+					bounds_min			   = vec3f_t::min(bounds_min, position);
+					bounds_max			   = vec3f_t::max(bounds_max, position);
+				}
+
+				const vec3f_t dimensions   = bounds_max - bounds_min;
+				const f32	  visual_scale = math::max(math::max(dimensions.x, dimensions.y), math::max(dimensions.z, 1.0f));
+				const f32	  joint_radius = visual_scale * EDITOR_WORLD_SKELETON_JOINT_RADIUS_RATIO;
+				const f32	  axis_length  = visual_scale * EDITOR_WORLD_SKELETON_AXIS_LENGTH_RATIO;
+
+				for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
+				{
+					const skeleton_joint_runtime_t& joint			= joints[joint_index];
+					const mat4x3_t&					joint_transform = joint_transforms[joint_index];
+					const vec3f_t					position		= joint_transform.get_translation();
+					const char*						joint_name		= resource_memory.get_text(joint.name);
+
+					if (joint.parent_index != SKELETON_JOINT_NO_PARENT)
+					{
+						const vec3f_t parent_position = joint_transforms[joint.parent_index].get_translation();
+						debug_draw.draw_line(parent_position, position, color_t::white, 2.0f, debug_draw_depth_e::depth_tested);
+					}
+
+					debug_draw.draw_sphere(position, joint_radius, color_t::purple, 1.5f, debug_draw_depth_e::depth_tested, 10);
+
+					const vec3f_t axis_x = joint_transform.get_column(0).normalized();
+					const vec3f_t axis_y = joint_transform.get_column(1).normalized();
+					const vec3f_t axis_z = joint_transform.get_column(2).normalized();
+
+					debug_draw.draw_line(position, position + axis_x * axis_length, color_t::red, 1.5f, debug_draw_depth_e::depth_tested);
+					debug_draw.draw_line(position, position + axis_y * axis_length, color_t::green, 1.5f, debug_draw_depth_e::depth_tested);
+					debug_draw.draw_line(position, position + axis_z * axis_length, color_t::blue, 1.5f, debug_draw_depth_e::depth_tested);
+					debug_draw.draw_text_3d(position, joint_name, color_t::white, theme.text_small_px_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
+				}
+			}
+		}
 
 		if (_edit_context.is_bounding_boxes_enabled() && _latest_snapshot_slot != UINT8_MAX)
 		{
