@@ -460,6 +460,9 @@ namespace sfg
 
 		// rp data.
 		const quat_t						  skybox_rotation			= quat_t::slerp(snapshot.main_view.prev_rot, snapshot.main_view.rot, interpolation_alpha);
+		const f32							  cluster_log_scale			= WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT / std::log2(main_camera_view.far_plane / main_camera_view.near_plane);
+		const f32							  cluster_log_bias			= -std::log2(main_camera_view.near_plane) * cluster_log_scale;
+		const vec2u16_t						  render_size				= ctx.get_size();
 		const render_pass_data_lighting_gpu_t lighting_render_pass_data = {
 			.skybox_view_proj = main_camera_view.proj * mat4x4_t::view(skybox_rotation, vec3f_t::zero),
 			.inv_view_proj	  = main_camera_view.inv_view_proj,
@@ -469,6 +472,9 @@ namespace sfg
 			.skybox_params	  = vec4f_t(snapshot.environment.intensity, 0.0f, 0.0f, 0.0f),
 			.ambient_color	  = snapshot.environment.ambient_color,
 			.light_counts	  = {light_counts[0], light_counts[1], light_counts[2], light_counts[3]},
+			.cluster_depth	  = vec4f_t(main_camera_view.near_plane, main_camera_view.far_plane, cluster_log_scale, cluster_log_bias),
+			.cluster_dims	  = {ctx.get_light_cluster_count_x(), ctx.get_light_cluster_count_y(), WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT, WORLD_RENDER_CLUSTER_TILE_SIZE},
+			.cluster_screen	  = {render_size.x, render_size.y, snapshot.environment.debug_cluster_heatmap, WORLD_RENDER_CLUSTER_LIGHT_CAPACITY},
 		};
 		SFG_MEMCPY(ctx.get_mapped_lighting_render_pass_data(frame_index), &lighting_render_pass_data, sizeof(render_pass_data_lighting_gpu_t));
 

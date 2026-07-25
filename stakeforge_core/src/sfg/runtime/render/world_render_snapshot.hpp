@@ -47,9 +47,10 @@ namespace sfg
 {
 	struct world_render_environment_t
 	{
-		vec4f_t ambient_color  = vec4f_t::zero;
-		u32		material_index = UINT32_MAX;
-		f32		intensity	   = 1.0f;
+		vec4f_t ambient_color		  = vec4f_t::zero;
+		u32		material_index		  = UINT32_MAX;
+		f32		intensity			  = 1.0f;
+		u8		debug_cluster_heatmap = 0;
 	};
 
 	struct world_render_ssao_t

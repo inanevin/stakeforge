@@ -215,9 +215,10 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_environment";
 
-		resource_handle_t skybox_material = NULL_RESOURCE_HANDLE;
-		color_t			  ambient_color	  = color_t::black;
-		f32				  intensity		  = 1.0f;
+		resource_handle_t skybox_material		= NULL_RESOURCE_HANDLE;
+		color_t			  ambient_color			= color_t::black;
+		f32				  intensity				= 1.0f;
+		u8				  debug_cluster_heatmap = 0;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_environment_t);

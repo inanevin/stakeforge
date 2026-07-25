@@ -77,15 +77,16 @@ namespace sfg
 			backend.cmd_bind_pipeline(cmd, {.pipeline = pipeline});
 		}
 
-		void bind_material(gfx_backend& backend, gfx_handle_t cmd, u32& bound_index, u32 index, const world_render_material_t& mat)
+		void bind_material(gfx_backend& backend, gfx_handle_t cmd, u32& bound_index, u32 index, const world_render_material_t& mat, u8 frame_index)
 		{
 			if (bound_index == index)
 				return;
 
 			bound_index = index;
 
-			inplace_vector_t<gpu_index_t, 1 + SFG_MATERIAL_MAX_TEXTURES * 2> constants = {};
-			constants.push_back(mat.material_buffer.is_null() ? NULL_GPU_INDEX : render_resources_t::get().get_resource_gpu_index(mat.material_buffer));
+			inplace_vector_t<gpu_index_t, 1 + SFG_MATERIAL_MAX_TEXTURES * 2> constants		 = {};
+			const render_resource_handle_t									 material_buffer = mat.material_buffers[frame_index];
+			constants.push_back(material_buffer.is_null() ? NULL_GPU_INDEX : render_resources_t::get().get_resource_gpu_index(material_buffer));
 
 			for (u32 i = 0; i < mat.texture_count; i++)
 				constants.push_back(render_resources_t::get().get_texture_gpu_index(mat.material_textures[i], 0));
@@ -121,14 +122,15 @@ namespace sfg
 		world_rendering_util_t::prep_culls(ctx, snapshot, prep_data, main_camera_view_t, frame_index);
 		world_rendering_util_t::prep_render_pass_buffers(ctx, snapshot, main_camera_view_t, light_counts, interpolation_alpha, frame_index);
 
-		const gfx_handle_t cmd_depth	= ctx.get_command_buffer_depth(frame_index);
-		const gfx_handle_t cmd_gbuffer	= ctx.get_command_buffer_gbuffer(frame_index);
-		const gfx_handle_t cmd_lighting = ctx.get_command_buffer_lighting(frame_index);
-		const gfx_handle_t cmd_forward	= ctx.get_command_buffer_forward(frame_index);
-		const gfx_handle_t cmd_post		= ctx.get_command_buffer_post(frame_index);
-		const gfx_handle_t cmd_shadows	= shadow_context.get_command_buffer(frame_index);
-		const bool		   ssao_active	= ctx.is_ssao_enabled() && snapshot.post_process.ssao.enabled != 0;
-		const bool		   bloom_active = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
+		const gfx_handle_t cmd_depth			  = ctx.get_command_buffer_depth(frame_index);
+		const gfx_handle_t cmd_gbuffer			  = ctx.get_command_buffer_gbuffer(frame_index);
+		const gfx_handle_t cmd_lighting			  = ctx.get_command_buffer_lighting(frame_index);
+		const gfx_handle_t cmd_forward			  = ctx.get_command_buffer_forward(frame_index);
+		const gfx_handle_t cmd_post				  = ctx.get_command_buffer_post(frame_index);
+		const gfx_handle_t cmd_shadows			  = shadow_context.get_command_buffer(frame_index);
+		const gfx_handle_t cmd_clustered_lighting = ctx.get_command_buffer_clustered_lighting(frame_index);
+		const bool		   ssao_active			  = ctx.is_ssao_enabled() && snapshot.post_process.ssao.enabled != 0;
+		const bool		   bloom_active			  = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
 
 		const gfx_handle_t queue_gfx	 = backend.get_queue_gfx();
 		const gfx_handle_t queue_compute = backend.get_queue_compute();
@@ -149,6 +151,11 @@ namespace sfg
 
 			render_gbuffer(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 		});
+		render_graph.emplace([&]() {
+			render_access_scope_t render_scope = {};
+
+			render_clustered_lighting(ctx, frame_index, global_cbv_index);
+		});
 
 		if (ssao_active)
 		{
@@ -162,6 +169,11 @@ namespace sfg
 
 		const gfx_handle_t depth_gbuffer_commands[2] = {cmd_depth, cmd_gbuffer};
 		backend.submit_commands(queue_gfx, depth_gbuffer_commands, 2);
+
+		const gfx_handle_t clustered_lighting_semaphore = ctx.get_clustered_lighting_semaphore(frame_index);
+		const u64		   clustered_lighting_ready		= ctx.next_clustered_lighting_semaphore_value(frame_index);
+		backend.submit_commands(queue_compute, &cmd_clustered_lighting, 1);
+		backend.queue_signal(queue_compute, &clustered_lighting_semaphore, &clustered_lighting_ready, 1);
 
 		gfx_handle_t ssao_semaphore = {};
 		u64			 gbuffer_ready	= 0;
@@ -194,6 +206,8 @@ namespace sfg
 
 		if (ssao_active)
 			backend.queue_wait(queue_gfx, &ssao_semaphore, &ssao_ready, 1);
+
+		backend.queue_wait(queue_gfx, &clustered_lighting_semaphore, &clustered_lighting_ready, 1);
 
 		const gfx_handle_t lighting_forward_commands[2] = {cmd_lighting, cmd_forward};
 		backend.submit_commands(queue_gfx, lighting_forward_commands, 2);
@@ -299,7 +313,7 @@ namespace sfg
 				bind_vertex(backend, cmd, bound_vertex, rr.get_resource(draw.vertex_buffer), draw.vertex_stride);
 				bind_index(backend, cmd, bound_index, rr.get_resource(draw.index_buffer), draw.index_stride);
 				bind_pipeline(backend, cmd, bound_pipeline, rr.get_shader_hw(shader));
-				bind_material(backend, cmd, bound_material, draw.material_index, mat);
+				bind_material(backend, cmd, bound_material, draw.material_index, mat, frame_index);
 
 				const u32 obj_constants[2] = {draw.entity_index, draw.skinning_index == UINT32_MAX ? 0 : draw.skinning_index};
 				backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
@@ -416,7 +430,7 @@ namespace sfg
 				const gfx_handle_t pipeline = rr.get_shader_hw(shader_handle);
 				bind_pipeline(backend, cmd, bound_pipeline, pipeline);
 
-				bind_material(backend, cmd, bound_material, draw.material_index, mat);
+				bind_material(backend, cmd, bound_material, draw.material_index, mat, frame_index);
 			}
 
 			const gpu_index_t obj_constants[] = {draw.entity_index, draw.skinning_index};
@@ -599,7 +613,7 @@ namespace sfg
 				const gfx_handle_t pipeline = rr.get_shader_hw(shader_handle);
 				bind_pipeline(backend, cmd, bound_pipeline, pipeline);
 
-				bind_material(backend, cmd, bound_material, draw.material_index, mat);
+				bind_material(backend, cmd, bound_material, draw.material_index, mat, frame_index);
 			}
 
 			const gpu_index_t obj_constants[] = {draw.entity_index, draw.skinning_index};
@@ -645,6 +659,67 @@ namespace sfg
 			},
 		};
 		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = 4});
+		backend.close_command_buffer(cmd);
+	}
+
+	void world_rendering_t::render_clustered_lighting(const world_render_context_t& ctx, u8 frame_index, gpu_index_t global_cbv_index)
+	{
+		gfx_backend&	   backend = gfx_backend::get();
+		const gfx_handle_t cmd	   = ctx.get_command_buffer_clustered_lighting(frame_index);
+
+		backend.reset_command_buffer(cmd);
+		backend.cmd_bind_layout_compute(cmd, {.layout = render_globals_t::get_global_compute_bind_layout()});
+		backend.cmd_bind_constants_compute(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
+
+		const barrier_t begin_barriers[2] = {
+			{
+				.from_states = resource_state_common,
+				.to_states	 = resource_state_uav,
+				.resource_t	 = ctx.get_light_cluster_buffer(frame_index),
+				.flags		 = barrier_flags::baf_is_resource,
+			},
+			{
+				.from_states = resource_state_common,
+				.to_states	 = resource_state_uav,
+				.resource_t	 = ctx.get_light_cluster_indices_buffer(frame_index),
+				.flags		 = barrier_flags::baf_is_resource,
+			},
+		};
+		backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = 2});
+
+		const gpu_index_t constants[4] = {
+			ctx.get_lighting_render_pass_data_index(frame_index),
+			ctx.get_light_buffer_index(frame_index),
+			ctx.get_light_cluster_buffer_uav_index(frame_index),
+			ctx.get_light_cluster_indices_buffer_uav_index(frame_index),
+		};
+		backend.cmd_bind_constants_compute(cmd, {.data = constants, .offset = constant_rp0, .count = 4, .param_index = 0});
+		backend.cmd_bind_pipeline_compute(cmd, {.pipeline = ctx.get_clustered_light_culling_shader()});
+
+		BEGIN_DEBUG_EVENT((&backend), cmd, "world_clustered_light_culling");
+		backend.cmd_dispatch(cmd,
+							 {
+								 .group_size_x = (ctx.get_light_cluster_count_x() + 3) / 4,
+								 .group_size_y = (ctx.get_light_cluster_count_y() + 3) / 4,
+								 .group_size_z = WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT,
+							 });
+		END_DEBUG_EVENT((&backend), cmd);
+
+		const barrier_t end_barriers[2] = {
+			{
+				.from_states = resource_state_uav,
+				.to_states	 = resource_state_common,
+				.resource_t	 = ctx.get_light_cluster_buffer(frame_index),
+				.flags		 = barrier_flags::baf_is_resource,
+			},
+			{
+				.from_states = resource_state_uav,
+				.to_states	 = resource_state_common,
+				.resource_t	 = ctx.get_light_cluster_indices_buffer(frame_index),
+				.flags		 = barrier_flags::baf_is_resource,
+			},
+		};
+		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = 2});
 		backend.close_command_buffer(cmd);
 	}
 
@@ -733,7 +808,7 @@ namespace sfg
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
 		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
-		barrier_t begin_barriers[2] = {
+		barrier_t begin_barriers[4] = {
 			{
 				.from_states = resource_state_ps_resource,
 				.to_states	 = resource_state_render_target,
@@ -742,6 +817,19 @@ namespace sfg
 			},
 		};
 		u16 begin_count = 1;
+
+		begin_barriers[begin_count++] = {
+			.from_states = resource_state_common,
+			.to_states	 = resource_state_ps_resource,
+			.resource_t	 = ctx.get_light_cluster_buffer(frame_index),
+			.flags		 = barrier_flags::baf_is_resource,
+		};
+		begin_barriers[begin_count++] = {
+			.from_states = resource_state_common,
+			.to_states	 = resource_state_ps_resource,
+			.resource_t	 = ctx.get_light_cluster_indices_buffer(frame_index),
+			.flags		 = barrier_flags::baf_is_resource,
+		};
 
 		if (ssao_active)
 		{
@@ -771,7 +859,7 @@ namespace sfg
 
 		const render_resources_t& render_resources = render_resources_t::get();
 		const gpu_index_t		  ao_index		   = ssao_active ? ctx.get_ao_texture_index(frame_index) : render_resources.get_texture_gpu_index(render_resources.get_white_texture(), 0);
-		gpu_index_t				  rp_constants[9]  = {
+		gpu_index_t				  rp_constants[11] = {
 			ctx.get_lighting_render_pass_data_index(frame_index),
 			ctx.get_gbuffer_albedo_index(frame_index),
 			ctx.get_gbuffer_normal_index(frame_index),
@@ -781,26 +869,44 @@ namespace sfg
 			ao_index,
 			ctx.get_light_buffer_index(frame_index),
 			ctx.get_shadow_context().get_view_buffer_index(frame_index),
+			ctx.get_light_cluster_buffer_index(frame_index),
+			ctx.get_light_cluster_indices_buffer_index(frame_index),
 		};
 
-		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 9, .param_index = 0});
+		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 11, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_lighting_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
 
+		barrier_t end_barriers[3] = {
+			{
+				.from_states = resource_state_ps_resource,
+				.to_states	 = resource_state_common,
+				.resource_t	 = ctx.get_light_cluster_buffer(frame_index),
+				.flags		 = barrier_flags::baf_is_resource,
+			},
+			{
+				.from_states = resource_state_ps_resource,
+				.to_states	 = resource_state_common,
+				.resource_t	 = ctx.get_light_cluster_indices_buffer(frame_index),
+				.flags		 = barrier_flags::baf_is_resource,
+			},
+		};
+		u16 end_count = 2;
+
 		if (ssao_active)
 		{
-			const barrier_t end_barrier = {
+			end_barriers[end_count++] = {
 				.from_states = resource_state_ps_resource,
 				.to_states	 = resource_state_non_ps_resource,
 				.texture_t	 = ctx.get_ao_texture(frame_index),
 				.flags		 = barrier_flags::baf_is_texture,
 			};
-			backend.cmd_barrier(cmd, {.barriers = &end_barrier, .barrier_count = 1});
 		}
 
+		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = end_count});
 		backend.close_command_buffer(cmd);
 	}
 
@@ -856,7 +962,7 @@ namespace sfg
 			backend.cmd_bind_pipeline(cmd, {.pipeline = render_resources_t::get().get_shader_hw(shader_handle)});
 
 			u32 bound_material = UINT32_MAX;
-			bind_material(backend, cmd, bound_material, snapshot.environment.material_index, material);
+			bind_material(backend, cmd, bound_material, snapshot.environment.material_index, material, frame_index);
 			backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 36, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 			END_DEBUG_EVENT((&backend), cmd);
 		}
