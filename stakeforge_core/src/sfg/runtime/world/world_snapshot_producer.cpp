@@ -338,7 +338,6 @@ namespace sfg
 				transform_table.ref(),
 				alive_table.ref(),
 				reflection_probe_table.ref(),
-				!disabled_table.ref(),
 			};
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
@@ -364,6 +363,7 @@ namespace sfg
 					.capture_type			= static_cast<world_render_reflection_probe_capture_type_e>(reflection_probe.capture_type),
 					.capture_mode			= static_cast<world_render_reflection_probe_capture_mode_e>(reflection_probe.capture_mode),
 					.is_global				= reflection_probe.is_global ? static_cast<u8>(1) : static_cast<u8>(0),
+					.disabled				= ecs_t::table_has(disabled_table, row.id) ? static_cast<u8>(1) : static_cast<u8>(0),
 				});
 			}
 		}

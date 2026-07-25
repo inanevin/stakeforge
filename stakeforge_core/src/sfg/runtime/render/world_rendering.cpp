@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_gpu_light.hpp"
 #include "world_gpu_reflection_probe.hpp"
 #include "world_render_context.hpp"
+#include "world_render_reflection_context.hpp"
 #include "world_render_snapshot.hpp"
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/barrier_description.hpp>
@@ -341,16 +342,26 @@ namespace sfg
 
 		// reflection probe buffer prep.
 		{
-			gpu_reflection_probe_t* reflection_probe_buffer = reinterpret_cast<gpu_reflection_probe_t*>(ctx.get_mapped_reflection_probe_buffer(frame_index));
-			prep_data.reflection_probe_count				= 0;
+			world_render_reflection_context_t& reflection_context	   = ctx.get_reflection_context();
+			gpu_reflection_probe_t*			   reflection_probe_buffer = reinterpret_cast<gpu_reflection_probe_t*>(ctx.get_mapped_reflection_probe_buffer(frame_index));
+
+			prep_data.reflection_probe_count = 0;
+
+			reflection_context.begin_allocations();
 
 			for (size_t i = 0; i < snapshot.reflection_probes.size(); ++i)
 			{
 				const world_render_reflection_probe_t& reflection_probe = snapshot.reflection_probes[i];
-				const vec3f_t						   pos				= vec3f_t::lerp(reflection_probe.prev_pos, reflection_probe.pos, interpolation_alpha);
-				const quat_t						   rot				= quat_t::slerp(reflection_probe.prev_rot, reflection_probe.rot, interpolation_alpha);
-				const vec3f_t						   scale			= vec3f_t::lerp(reflection_probe.prev_scale, reflection_probe.scale, interpolation_alpha);
-				const vec3f_t						   extents			= vec3f_t::abs(reflection_probe.extents * scale);
+				const u16							   resolution		= static_cast<u16>(math::round(reflection_probe.resolution));
+				world_render_reflection_allocation_t*  allocation		= reflection_context.get_or_create_allocation(reflection_probe.stable_id, resolution);
+
+				if (allocation == nullptr || reflection_probe.disabled != 0)
+					continue;
+
+				const vec3f_t pos	  = vec3f_t::lerp(reflection_probe.prev_pos, reflection_probe.pos, interpolation_alpha);
+				const quat_t  rot	  = quat_t::slerp(reflection_probe.prev_rot, reflection_probe.rot, interpolation_alpha);
+				const vec3f_t scale	  = vec3f_t::lerp(reflection_probe.prev_scale, reflection_probe.scale, interpolation_alpha);
+				const vec3f_t extents = vec3f_t::abs(reflection_probe.extents * scale);
 
 				if (reflection_probe.is_global == 0)
 				{
@@ -383,6 +394,8 @@ namespace sfg
 				};
 				++prep_data.reflection_probe_count;
 			}
+
+			reflection_context.end_allocations();
 		}
 
 		// shadow buffer prep

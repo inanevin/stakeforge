@@ -65,5 +65,6 @@ namespace sfg
 		world_render_reflection_probe_capture_type_e capture_type			= world_render_reflection_probe_capture_type_e::scene;
 		world_render_reflection_probe_capture_mode_e capture_mode			= world_render_reflection_probe_capture_mode_e::once;
 		u8											 is_global				= 0;
+		u8											 disabled				= 0;
 	};
 }

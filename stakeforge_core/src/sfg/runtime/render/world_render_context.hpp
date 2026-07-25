@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/mat4x4.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec4f.hpp>
+#include "world_render_reflection_context.hpp"
 #include "world_render_shadow_context.hpp"
 
 namespace sfg
@@ -186,6 +187,16 @@ namespace sfg
 		inline const world_render_shadow_context_t& get_shadow_context() const
 		{
 			return _shadow_context;
+		}
+
+		inline world_render_reflection_context_t& get_reflection_context()
+		{
+			return _reflection_context;
+		}
+
+		inline const world_render_reflection_context_t& get_reflection_context() const
+		{
+			return _reflection_context;
 		}
 
 		inline u32 get_entity_max() const
@@ -701,12 +712,13 @@ namespace sfg
 		};
 
 	private:
-		per_frame_data_t			  _pfd[BACK_BUFFER_COUNT]	= {};
-		world_render_shadow_context_t _shadow_context			= {};
-		shaders_t					  _shaders					= {};
-		world_render_context_config_t _config					= {};
-		gfx_handle_t				  _ssao_noise_texture		= {};
-		gfx_handle_t				  _ssao_noise_staging		= {};
-		gpu_index_t					  _ssao_noise_texture_index = NULL_GPU_INDEX;
+		per_frame_data_t				  _pfd[BACK_BUFFER_COUNT]	= {};
+		world_render_reflection_context_t _reflection_context		= {};
+		world_render_shadow_context_t	  _shadow_context			= {};
+		shaders_t						  _shaders					= {};
+		world_render_context_config_t	  _config					= {};
+		gfx_handle_t					  _ssao_noise_texture		= {};
+		gfx_handle_t					  _ssao_noise_staging		= {};
+		gpu_index_t						  _ssao_noise_texture_index = NULL_GPU_INDEX;
 	};
 }

@@ -69,7 +69,8 @@ namespace sfg
 		_ssao_noise_texture_index		= other._ssao_noise_texture_index;
 		other._ssao_noise_texture_index = NULL_GPU_INDEX;
 
-		_shadow_context = static_cast<world_render_shadow_context_t&&>(other._shadow_context);
+		_shadow_context		= static_cast<world_render_shadow_context_t&&>(other._shadow_context);
+		_reflection_context = static_cast<world_render_reflection_context_t&&>(other._reflection_context);
 
 		return *this;
 	}
@@ -82,6 +83,7 @@ namespace sfg
 		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_index_max == 0));
 		SFG_ASSERT(config.entity_max > 0);
 		SFG_ASSERT(config.bone_max > 0);
+		SFG_ASSERT(config.reflection_probe_max <= WORLD_RENDER_REFLECTION_ALLOCATION_CAPACITY);
 
 		_config = config;
 		render_util_t::ensure_world_resolution(_config.size);
@@ -355,6 +357,7 @@ namespace sfg
 		}
 
 		_shadow_context.init({.view_max = config.shadow_view_max});
+		_reflection_context.init({.allocation_max = static_cast<u16>(config.reflection_probe_max)});
 
 		const render_resources_t& render_resources = render_resources_t::get();
 		const shader_internals_t* sh			   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/deferred_lighting.hlsl"_hs);
@@ -391,6 +394,7 @@ namespace sfg
 
 		destroy_texture();
 		_shadow_context.uninit();
+		_reflection_context.uninit();
 
 		gfx_backend& backend = gfx_backend::get();
 
