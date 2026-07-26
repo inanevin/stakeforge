@@ -1,0 +1,14 @@
+{
+    "version": 0,
+    "guid": 1035,
+    "asset_type": "texture",
+    "sub_type": 0,
+    "embedded_source": null,
+    "cook_options": {
+        "payload_type": 2,
+        "generate_mipmaps": false,
+        "is_linear": false
+    },
+    "source_relative": "",
+    "source_type": "file"
+}

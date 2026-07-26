@@ -222,6 +222,12 @@ namespace sfg
 				{.asset_name = "default_texture_orm", .source_base_name = "default_texture_orm", .guid = DEFAULT_ORM_TEXTURE_ASSET_GUID},
 				{.asset_name = "default_texture_normal", .source_base_name = "default_texture_normal", .guid = DEFAULT_NORMAL_TEXTURE_ASSET_GUID},
 				{.asset_name = "default_texture_emissive", .source_base_name = "default_texture_emissive", .guid = DEFAULT_EMISSIVE_TEXTURE_ASSET_GUID},
+				{.asset_name = "default_texture_grid_dark", .source_base_name = "default_texture_grid_dark", .guid = DEFAULT_GRID_DARK_TEXTURE_ASSET_GUID},
+				{.asset_name = "default_texture_grid_green", .source_base_name = "default_texture_grid_green", .guid = DEFAULT_GRID_GREEN_TEXTURE_ASSET_GUID},
+				{.asset_name = "default_texture_grid_light", .source_base_name = "default_texture_grid_light", .guid = DEFAULT_GRID_LIGHT_TEXTURE_ASSET_GUID},
+				{.asset_name = "default_texture_grid_orange", .source_base_name = "default_texture_grid_orange", .guid = DEFAULT_GRID_ORANGE_TEXTURE_ASSET_GUID},
+				{.asset_name = "default_texture_grid_purple", .source_base_name = "default_texture_grid_purple", .guid = DEFAULT_GRID_PURPLE_TEXTURE_ASSET_GUID},
+				{.asset_name = "default_texture_grid_red", .source_base_name = "default_texture_grid_red", .guid = DEFAULT_GRID_RED_TEXTURE_ASSET_GUID},
 			};
 
 			for (const default_file_asset_desc_t& desc : default_texture_assets)
@@ -232,9 +238,12 @@ namespace sfg
 				nlohmann::json cook_options			  = {};
 				const string_t texture_asset_relative = get_texture_default_asset_relative(desc.source_base_name);
 				const bool	   read_cook_options	  = editor_asset_writer_t::read_cook_options(texture_asset_relative.c_str(), cook_options);
+
 				SFG_ASSERT(read_cook_options);
+
 				if (!read_cook_options)
 					continue;
+
 				const string_t						 texture_source_relative = get_texture_default_source_relative(desc.source_base_name);
 				const editor_asset_write_file_desc_t write_desc{
 					.cook_options			  = &cook_options,
@@ -247,9 +256,11 @@ namespace sfg
 					.asset_type				  = editor_asset_type_e::texture,
 					.allow_overwrite		  = true,
 				};
+
 				editor_asset_t asset	  = {};
 				string_t	   asset_path = {};
 				bool		   created	  = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
+
 				if (created)
 					created = editor_asset_cooker_t::cook_texture(asset, desc.asset_name);
 
