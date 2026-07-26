@@ -35,7 +35,20 @@ namespace sfg
 	class world_render_context_t;
 	struct world_render_prep_data_t;
 	struct world_render_snapshot_t;
-	struct world_render_prep_data_t;
+
+	struct world_render_clustered_lighting_data_t
+	{
+		gfx_handle_t command_buffer				  = {};
+		gfx_handle_t cluster_buffer				  = {};
+		gfx_handle_t cluster_light_indices_buffer = {};
+		gfx_handle_t shader						  = {};
+		gpu_index_t	 view_data_index			  = NULL_GPU_INDEX;
+		gpu_index_t	 lighting_data_index		  = NULL_GPU_INDEX;
+		gpu_index_t	 global_cbv_index			  = NULL_GPU_INDEX;
+		u32			 cluster_count_x			  = 0;
+		u32			 cluster_count_y			  = 0;
+		u32			 cluster_count_z			  = 0;
+	};
 
 	class world_rendering_t final
 	{
@@ -46,7 +59,7 @@ namespace sfg
 		static void render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		static void render_gbuffer(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		static void render_shadows(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
-		static void render_clustered_lighting(const world_render_context_t& ctx, u8 frame_index, gpu_index_t global_cbv_index);
+		static void render_clustered_lighting(const world_render_clustered_lighting_data_t& data);
 		static void render_ssao(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index);
 		static void render_lighting(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		static void render_forward(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);

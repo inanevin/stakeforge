@@ -80,25 +80,15 @@ struct vs_output
 vs_output VSMain(vs_input IN)
 {
     vs_output OUT;
-
-#if defined(USE_GBUFFER) || defined(USE_ZPREPASS) || defined(USE_SELECTION) || defined(WRITE_ID)
-    render_pass_data_opaque rp_data = sfg_get_cbv<render_pass_data_opaque>(sfg_constant_rp0);
-    StructuredBuffer<gpu_entity> entity_buffer = sfg_get_ssbo<gpu_entity>(sfg_constant_rp1);
-#else
-    render_pass_data_forward rp_data = sfg_get_cbv<render_pass_data_forward>(sfg_constant_rp1);
-    StructuredBuffer<gpu_entity> entity_buffer = sfg_get_ssbo<gpu_entity>(sfg_constant_rp2);
-#endif
+    render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
+    StructuredBuffer<gpu_entity> entity_buffer = sfg_get_ssbo<gpu_entity>(SFG_RENDER_PASS_ENTITIES);
 
     gpu_entity entity = entity_buffer[sfg_constant_obj0];
     float4 obj_pos;
 
 #ifdef USE_SKINNING
 
-#if defined(USE_GBUFFER) || defined(USE_ZPREPASS) || defined(USE_SELECTION) || defined(WRITE_ID)
-    StructuredBuffer<gpu_bone> bone_buffer = sfg_get_ssbo<gpu_bone>(sfg_constant_rp2);
-#else
-    StructuredBuffer<gpu_bone> bone_buffer = sfg_get_ssbo<gpu_bone>(sfg_constant_rp3);
-#endif
+    StructuredBuffer<gpu_bone> bone_buffer = sfg_get_ssbo<gpu_bone>(SFG_RENDER_PASS_BONES);
 
     float4 skinned_pos = float4(0, 0, 0, 0);
 
@@ -117,7 +107,7 @@ vs_output VSMain(vs_input IN)
 #endif
 
     float3 world_pos = mul(entity.model, obj_pos).xyz;
-    OUT.pos = mul(rp_data.view_proj, float4(world_pos, 1.0));
+    OUT.pos = mul(view_data.view_proj, float4(world_pos, 1.0));
     OUT.uv = IN.uv;
 
     return OUT;

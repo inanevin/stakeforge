@@ -88,20 +88,20 @@ namespace sfg
 		_config = config;
 		render_util_t::ensure_world_resolution(_config.size);
 
-		resource_desc_t opaque_render_pass_data_desc = {};
-		opaque_render_pass_data_desc.size			 = static_cast<u32>(sizeof(render_pass_data_opaque_gpu_t));
-		opaque_render_pass_data_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
-		opaque_render_pass_data_desc.set_name("world_opaque_render_pass_data");
-
-		resource_desc_t forward_render_pass_data_desc = {};
-		forward_render_pass_data_desc.size			  = static_cast<u32>(sizeof(render_pass_data_forward_gpu_t));
-		forward_render_pass_data_desc.flags			  = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
-		forward_render_pass_data_desc.set_name("world_forward_render_pass_data");
+		resource_desc_t view_render_pass_data_desc = {};
+		view_render_pass_data_desc.size			   = static_cast<u32>(sizeof(render_pass_data_view_gpu_t));
+		view_render_pass_data_desc.flags		   = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		view_render_pass_data_desc.set_name("world_view_render_pass_data");
 
 		resource_desc_t lighting_render_pass_data_desc = {};
 		lighting_render_pass_data_desc.size			   = static_cast<u32>(sizeof(render_pass_data_lighting_gpu_t));
 		lighting_render_pass_data_desc.flags		   = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 		lighting_render_pass_data_desc.set_name("world_lighting_render_pass_data");
+
+		resource_desc_t deferred_lighting_render_pass_data_desc = {};
+		deferred_lighting_render_pass_data_desc.size			= static_cast<u32>(sizeof(render_pass_data_deferred_lighting_gpu_t));
+		deferred_lighting_render_pass_data_desc.flags			= resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+		deferred_lighting_render_pass_data_desc.set_name("world_deferred_lighting_render_pass_data");
 
 		resource_desc_t post_process_render_pass_data_desc = {};
 		post_process_render_pass_data_desc.size			   = static_cast<u32>(sizeof(render_pass_data_post_process_gpu_t));
@@ -149,7 +149,7 @@ namespace sfg
 		reflection_probe_buffer_desc.set_name("world_reflection_probe_buffer");
 
 		resource_desc_t debug_line_data_desc = {};
-		debug_line_data_desc.size			 = static_cast<u32>(sizeof(world_debug_line_gpu_data_t));
+		debug_line_data_desc.size			 = static_cast<u32>(sizeof(render_pass_data_debug_line_gpu_t));
 		debug_line_data_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 		debug_line_data_desc.set_name("world_debug_line_data");
 
@@ -174,7 +174,7 @@ namespace sfg
 		debug_triangle_index_desc.set_name("world_debug_triangle_indices");
 
 		resource_desc_t debug_text_data_desc = {};
-		debug_text_data_desc.size			 = static_cast<u32>(sizeof(world_debug_text_gpu_data_t));
+		debug_text_data_desc.size			 = static_cast<u32>(sizeof(render_pass_data_debug_text_gpu_t));
 		debug_text_data_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 		debug_text_data_desc.set_name("world_debug_text_data");
 
@@ -261,9 +261,9 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].ssao_semaphore.is_null());
 			SFG_ASSERT(_pfd[i].bloom_semaphore.is_null());
 			SFG_ASSERT(_pfd[i].clustered_lighting_semaphore.is_null());
-			SFG_ASSERT(_pfd[i].opaque_render_pass_data.is_null());
-			SFG_ASSERT(_pfd[i].forward_render_pass_data.is_null());
+			SFG_ASSERT(_pfd[i].view_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].lighting_render_pass_data.is_null());
+			SFG_ASSERT(_pfd[i].deferred_lighting_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].post_process_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].entity_buffer.is_null());
 			SFG_ASSERT(_pfd[i].bone_buffer.is_null());
@@ -296,14 +296,14 @@ namespace sfg
 			});
 			_pfd[i].clustered_lighting_semaphore = backend.create_semaphore();
 
-			_pfd[i].opaque_render_pass_data		  = backend.create_resource(opaque_render_pass_data_desc);
-			_pfd[i].forward_render_pass_data	  = backend.create_resource(forward_render_pass_data_desc);
-			_pfd[i].lighting_render_pass_data	  = backend.create_resource(lighting_render_pass_data_desc);
-			_pfd[i].post_process_render_pass_data = backend.create_resource(post_process_render_pass_data_desc);
-			_pfd[i].entity_buffer				  = backend.create_resource(entity_buffer_desc);
-			_pfd[i].bone_buffer					  = backend.create_resource(bone_buffer_desc);
-			_pfd[i].light_buffer				  = backend.create_resource(light_buffer_desc);
-			_pfd[i].reflection_probe_buffer		  = backend.create_resource(reflection_probe_buffer_desc);
+			_pfd[i].view_render_pass_data			   = backend.create_resource(view_render_pass_data_desc);
+			_pfd[i].lighting_render_pass_data		   = backend.create_resource(lighting_render_pass_data_desc);
+			_pfd[i].deferred_lighting_render_pass_data = backend.create_resource(deferred_lighting_render_pass_data_desc);
+			_pfd[i].post_process_render_pass_data	   = backend.create_resource(post_process_render_pass_data_desc);
+			_pfd[i].entity_buffer					   = backend.create_resource(entity_buffer_desc);
+			_pfd[i].bone_buffer						   = backend.create_resource(bone_buffer_desc);
+			_pfd[i].light_buffer					   = backend.create_resource(light_buffer_desc);
+			_pfd[i].reflection_probe_buffer			   = backend.create_resource(reflection_probe_buffer_desc);
 
 			if (config.enable_ssao != 0)
 			{
@@ -323,23 +323,23 @@ namespace sfg
 				_pfd[i].bloom_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].bloom_render_pass_data);
 			}
 
-			backend.map_resource(_pfd[i].opaque_render_pass_data, _pfd[i].mapped_opaque_render_pass_data);
-			backend.map_resource(_pfd[i].forward_render_pass_data, _pfd[i].mapped_forward_render_pass_data);
+			backend.map_resource(_pfd[i].view_render_pass_data, _pfd[i].mapped_view_render_pass_data);
 			backend.map_resource(_pfd[i].lighting_render_pass_data, _pfd[i].mapped_lighting_render_pass_data);
+			backend.map_resource(_pfd[i].deferred_lighting_render_pass_data, _pfd[i].mapped_deferred_lighting_render_pass_data);
 			backend.map_resource(_pfd[i].post_process_render_pass_data, _pfd[i].mapped_post_process_render_pass_data);
 			backend.map_resource(_pfd[i].entity_buffer, _pfd[i].mapped_entity_buffer);
 			backend.map_resource(_pfd[i].bone_buffer, _pfd[i].mapped_bone_buffer);
 			backend.map_resource(_pfd[i].light_buffer, _pfd[i].mapped_light_buffer);
 			backend.map_resource(_pfd[i].reflection_probe_buffer, _pfd[i].mapped_reflection_probe_buffer);
 
-			_pfd[i].opaque_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].opaque_render_pass_data);
-			_pfd[i].forward_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].forward_render_pass_data);
-			_pfd[i].lighting_render_pass_data_index		= backend.get_resource_gpu_index(_pfd[i].lighting_render_pass_data);
-			_pfd[i].post_process_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].post_process_render_pass_data);
-			_pfd[i].entity_buffer_index					= backend.get_resource_gpu_index(_pfd[i].entity_buffer);
-			_pfd[i].bone_buffer_index					= backend.get_resource_gpu_index(_pfd[i].bone_buffer);
-			_pfd[i].light_buffer_index					= backend.get_resource_gpu_index(_pfd[i].light_buffer);
-			_pfd[i].reflection_probe_buffer_index		= backend.get_resource_gpu_index(_pfd[i].reflection_probe_buffer);
+			_pfd[i].view_render_pass_data_index				 = backend.get_resource_gpu_index(_pfd[i].view_render_pass_data);
+			_pfd[i].lighting_render_pass_data_index			 = backend.get_resource_gpu_index(_pfd[i].lighting_render_pass_data);
+			_pfd[i].deferred_lighting_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].deferred_lighting_render_pass_data);
+			_pfd[i].post_process_render_pass_data_index		 = backend.get_resource_gpu_index(_pfd[i].post_process_render_pass_data);
+			_pfd[i].entity_buffer_index						 = backend.get_resource_gpu_index(_pfd[i].entity_buffer);
+			_pfd[i].bone_buffer_index						 = backend.get_resource_gpu_index(_pfd[i].bone_buffer);
+			_pfd[i].light_buffer_index						 = backend.get_resource_gpu_index(_pfd[i].light_buffer);
+			_pfd[i].reflection_probe_buffer_index			 = backend.get_resource_gpu_index(_pfd[i].reflection_probe_buffer);
 
 			if (config.line_vertex_max > 0)
 			{
@@ -418,9 +418,9 @@ namespace sfg
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
-			SFG_ASSERT(!_pfd[i].opaque_render_pass_data.is_null());
-			SFG_ASSERT(!_pfd[i].forward_render_pass_data.is_null());
+			SFG_ASSERT(!_pfd[i].view_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].lighting_render_pass_data.is_null());
+			SFG_ASSERT(!_pfd[i].deferred_lighting_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].post_process_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].entity_buffer.is_null());
 			SFG_ASSERT(!_pfd[i].bone_buffer.is_null());
@@ -429,9 +429,9 @@ namespace sfg
 			SFG_ASSERT(!_pfd[i].cmd_clustered_lighting.is_null());
 			SFG_ASSERT(!_pfd[i].clustered_lighting_semaphore.is_null());
 
-			backend.destroy_resource(_pfd[i].opaque_render_pass_data);
-			backend.destroy_resource(_pfd[i].forward_render_pass_data);
+			backend.destroy_resource(_pfd[i].view_render_pass_data);
 			backend.destroy_resource(_pfd[i].lighting_render_pass_data);
+			backend.destroy_resource(_pfd[i].deferred_lighting_render_pass_data);
 			backend.destroy_resource(_pfd[i].post_process_render_pass_data);
 			backend.destroy_resource(_pfd[i].entity_buffer);
 			backend.destroy_resource(_pfd[i].bone_buffer);
@@ -480,45 +480,45 @@ namespace sfg
 			backend.destroy_command_buffer(_pfd[i].cmd_clustered_lighting);
 			backend.destroy_semaphore(_pfd[i].clustered_lighting_semaphore);
 
-			_pfd[i].opaque_render_pass_data				 = {};
-			_pfd[i].forward_render_pass_data			 = {};
-			_pfd[i].lighting_render_pass_data			 = {};
-			_pfd[i].post_process_render_pass_data		 = {};
-			_pfd[i].entity_buffer						 = {};
-			_pfd[i].bone_buffer							 = {};
-			_pfd[i].light_buffer						 = {};
-			_pfd[i].reflection_probe_buffer				 = {};
-			_pfd[i].debug_line_data						 = {};
-			_pfd[i].debug_line_vertex_buffer			 = {};
-			_pfd[i].debug_line_index_buffer				 = {};
-			_pfd[i].debug_text_data						 = {};
-			_pfd[i].debug_text_vertex_buffer			 = {};
-			_pfd[i].debug_text_index_buffer				 = {};
-			_pfd[i].mapped_opaque_render_pass_data		 = nullptr;
-			_pfd[i].mapped_forward_render_pass_data		 = nullptr;
-			_pfd[i].mapped_lighting_render_pass_data	 = nullptr;
-			_pfd[i].mapped_post_process_render_pass_data = nullptr;
-			_pfd[i].mapped_entity_buffer				 = nullptr;
-			_pfd[i].mapped_bone_buffer					 = nullptr;
-			_pfd[i].mapped_light_buffer					 = nullptr;
-			_pfd[i].mapped_reflection_probe_buffer		 = nullptr;
-			_pfd[i].mapped_debug_line_data				 = nullptr;
-			_pfd[i].mapped_debug_line_vertices			 = nullptr;
-			_pfd[i].mapped_debug_line_indices			 = nullptr;
-			_pfd[i].mapped_debug_text_data				 = nullptr;
-			_pfd[i].mapped_debug_text_vertices			 = nullptr;
-			_pfd[i].mapped_debug_text_indices			 = nullptr;
-			_pfd[i].opaque_render_pass_data_index		 = NULL_GPU_INDEX;
-			_pfd[i].forward_render_pass_data_index		 = NULL_GPU_INDEX;
-			_pfd[i].lighting_render_pass_data_index		 = NULL_GPU_INDEX;
-			_pfd[i].post_process_render_pass_data_index	 = NULL_GPU_INDEX;
-			_pfd[i].entity_buffer_index					 = NULL_GPU_INDEX;
-			_pfd[i].bone_buffer_index					 = NULL_GPU_INDEX;
-			_pfd[i].light_buffer_index					 = NULL_GPU_INDEX;
-			_pfd[i].reflection_probe_buffer_index		 = NULL_GPU_INDEX;
-			_pfd[i].debug_line_data_index				 = NULL_GPU_INDEX;
-			_pfd[i].debug_text_data_index				 = NULL_GPU_INDEX;
-			_pfd[i]										 = {};
+			_pfd[i].view_render_pass_data					  = {};
+			_pfd[i].lighting_render_pass_data				  = {};
+			_pfd[i].deferred_lighting_render_pass_data		  = {};
+			_pfd[i].post_process_render_pass_data			  = {};
+			_pfd[i].entity_buffer							  = {};
+			_pfd[i].bone_buffer								  = {};
+			_pfd[i].light_buffer							  = {};
+			_pfd[i].reflection_probe_buffer					  = {};
+			_pfd[i].debug_line_data							  = {};
+			_pfd[i].debug_line_vertex_buffer				  = {};
+			_pfd[i].debug_line_index_buffer					  = {};
+			_pfd[i].debug_text_data							  = {};
+			_pfd[i].debug_text_vertex_buffer				  = {};
+			_pfd[i].debug_text_index_buffer					  = {};
+			_pfd[i].mapped_view_render_pass_data			  = nullptr;
+			_pfd[i].mapped_lighting_render_pass_data		  = nullptr;
+			_pfd[i].mapped_deferred_lighting_render_pass_data = nullptr;
+			_pfd[i].mapped_post_process_render_pass_data	  = nullptr;
+			_pfd[i].mapped_entity_buffer					  = nullptr;
+			_pfd[i].mapped_bone_buffer						  = nullptr;
+			_pfd[i].mapped_light_buffer						  = nullptr;
+			_pfd[i].mapped_reflection_probe_buffer			  = nullptr;
+			_pfd[i].mapped_debug_line_data					  = nullptr;
+			_pfd[i].mapped_debug_line_vertices				  = nullptr;
+			_pfd[i].mapped_debug_line_indices				  = nullptr;
+			_pfd[i].mapped_debug_text_data					  = nullptr;
+			_pfd[i].mapped_debug_text_vertices				  = nullptr;
+			_pfd[i].mapped_debug_text_indices				  = nullptr;
+			_pfd[i].view_render_pass_data_index				  = NULL_GPU_INDEX;
+			_pfd[i].lighting_render_pass_data_index			  = NULL_GPU_INDEX;
+			_pfd[i].deferred_lighting_render_pass_data_index  = NULL_GPU_INDEX;
+			_pfd[i].post_process_render_pass_data_index		  = NULL_GPU_INDEX;
+			_pfd[i].entity_buffer_index						  = NULL_GPU_INDEX;
+			_pfd[i].bone_buffer_index						  = NULL_GPU_INDEX;
+			_pfd[i].light_buffer_index						  = NULL_GPU_INDEX;
+			_pfd[i].reflection_probe_buffer_index			  = NULL_GPU_INDEX;
+			_pfd[i].debug_line_data_index					  = NULL_GPU_INDEX;
+			_pfd[i].debug_text_data_index					  = NULL_GPU_INDEX;
+			_pfd[i]											  = {};
 		}
 
 		if (_config.enable_ssao != 0)

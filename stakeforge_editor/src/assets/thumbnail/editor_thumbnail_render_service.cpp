@@ -431,10 +431,9 @@ namespace sfg
 
 		if (!_snapshot.debug_draw.triangle_indices.empty())
 		{
-			const gpu_index_t rp_constant	= _render_context.get_opaque_render_pass_data_index(0);
-			const gpu_index_t depth_texture = _render_context.get_depth_texture_index(0);
+			const gpu_index_t rp_constant = _render_context.get_view_render_pass_data_index(0);
+
 			backend.cmd_bind_constants(cmd, {.data = &rp_constant, .offset = constant_rp0, .count = 1, .param_index = 0});
-			backend.cmd_bind_constants(cmd, {.data = &depth_texture, .offset = constant_obj0, .count = 1, .param_index = 0});
 			backend.cmd_bind_pipeline(cmd, {.pipeline = _debug_triangle_shader});
 			backend.cmd_bind_vertex_buffers(cmd, {.buffer = _render_context.get_debug_triangle_vertex_buffer(0), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_triangle_t)), .offset = 0});
 			backend.cmd_bind_index_buffers(cmd, {.buffer = _render_context.get_debug_triangle_index_buffer(0), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});

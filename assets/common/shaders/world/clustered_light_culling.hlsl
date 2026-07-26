@@ -35,27 +35,27 @@
 #include "light.hlsl"
 #include "clustered_lighting.hlsl"
 
-float3 get_cluster_view_ray(float2 uv, render_pass_data_lighting rp_data)
+float3 get_cluster_view_ray(float2 uv, render_pass_data_view view_data)
 {
-	const float3 world_far = reconstruct_world_position(uv, 0.0, rp_data.inv_view_proj);
-	const float3 view_far = mul(rp_data.view, float4(world_far, 1.0)).xyz;
+	const float3 world_far = reconstruct_world_position(uv, 0.0, view_data.inv_view_proj);
+	const float3 view_far = mul(view_data.view, float4(world_far, 1.0)).xyz;
 
 	return view_far / abs(view_far.z);
 }
 
-void get_cluster_aabb(uint3 cluster_id, render_pass_data_lighting rp_data, out float3 aabb_min, out float3 aabb_max)
+void get_cluster_aabb(uint3 cluster_id, render_pass_data_view view_data, render_pass_data_lighting lighting_data, out float3 aabb_min, out float3 aabb_max)
 {
-	const float2 pixel_min = float2(cluster_id.xy * rp_data.cluster_dims.w);
-	const float2 pixel_max = min(pixel_min + rp_data.cluster_dims.w, rp_data.cluster_screen.xy);
-	const float2 uv_min = pixel_min / rp_data.cluster_screen.xy;
-	const float2 uv_max = pixel_max / rp_data.cluster_screen.xy;
-	const float slice_near = rp_data.cluster_depth.x * pow(rp_data.cluster_depth.y / rp_data.cluster_depth.x, cluster_id.z / (float)rp_data.cluster_dims.z);
-	const float slice_far = rp_data.cluster_depth.x * pow(rp_data.cluster_depth.y / rp_data.cluster_depth.x, (cluster_id.z + 1.0) / rp_data.cluster_dims.z);
+	const float2 pixel_min = float2(cluster_id.xy * lighting_data.cluster_dims.w);
+	const float2 pixel_max = min(pixel_min + lighting_data.cluster_dims.w, view_data.viewport_size.xy);
+	const float2 uv_min = pixel_min / view_data.viewport_size.xy;
+	const float2 uv_max = pixel_max / view_data.viewport_size.xy;
+	const float slice_near = lighting_data.cluster_depth.x * pow(lighting_data.cluster_depth.y / lighting_data.cluster_depth.x, cluster_id.z / (float)lighting_data.cluster_dims.z);
+	const float slice_far = lighting_data.cluster_depth.x * pow(lighting_data.cluster_depth.y / lighting_data.cluster_depth.x, (cluster_id.z + 1.0) / lighting_data.cluster_dims.z);
 	const float3 rays[4] = {
-		get_cluster_view_ray(float2(uv_min.x, uv_min.y), rp_data),
-		get_cluster_view_ray(float2(uv_max.x, uv_min.y), rp_data),
-		get_cluster_view_ray(float2(uv_min.x, uv_max.y), rp_data),
-		get_cluster_view_ray(float2(uv_max.x, uv_max.y), rp_data),
+		get_cluster_view_ray(float2(uv_min.x, uv_min.y), view_data),
+		get_cluster_view_ray(float2(uv_max.x, uv_min.y), view_data),
+		get_cluster_view_ray(float2(uv_min.x, uv_max.y), view_data),
+		get_cluster_view_ray(float2(uv_max.x, uv_max.y), view_data),
 	};
 
 	aabb_min = 3.402823466e+38.xxx;
@@ -83,24 +83,26 @@ bool sphere_intersects_aabb(float3 center, float radius, float3 aabb_min, float3
 [numthreads(4, 4, 1)]
 void CSMain(uint3 dispatch_id : SV_DispatchThreadID)
 {
-	const render_pass_data_lighting rp_data = sfg_get_cbv<render_pass_data_lighting>(sfg_constant_rp0);
+	const render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
+	const render_pass_data_lighting lighting_data = sfg_get_cbv<render_pass_data_lighting>(SFG_RENDER_PASS_LIGHTING);
 
-	if (any(dispatch_id >= rp_data.cluster_dims.xyz))
+	if (any(dispatch_id >= lighting_data.cluster_dims.xyz))
 		return;
 
-	StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(sfg_constant_rp1);
-	RWStructuredBuffer<gpu_light_cluster> cluster_buffer = sfg_get_rws_buffer<gpu_light_cluster>(sfg_constant_rp2);
-	RWStructuredBuffer<uint> cluster_light_indices = sfg_get_rws_buffer<uint>(sfg_constant_rp3);
+	StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(lighting_data.light_buffer_index);
+	RWStructuredBuffer<gpu_light_cluster> cluster_buffer = sfg_get_rws_buffer<gpu_light_cluster>(lighting_data.cluster_buffer_uav_index);
+	RWStructuredBuffer<uint> cluster_light_indices = sfg_get_rws_buffer<uint>(lighting_data.cluster_light_indices_buffer_uav_index);
 
 	float3 cluster_min = 0.0.xxx;
 	float3 cluster_max = 0.0.xxx;
-	get_cluster_aabb(dispatch_id, rp_data, cluster_min, cluster_max);
+	get_cluster_aabb(dispatch_id, view_data, lighting_data, cluster_min, cluster_max);
 
-	const uint cluster_index = dispatch_id.x + rp_data.cluster_dims.x * (dispatch_id.y + rp_data.cluster_dims.y * dispatch_id.z);
-	const uint light_offset = cluster_index * rp_data.cluster_screen.w;
-	const uint local_light_offset = rp_data.light_counts.x;
-	const uint local_light_count = rp_data.light_counts.y + rp_data.light_counts.z + rp_data.light_counts.w;
-	const uint spot_light_end = rp_data.light_counts.x + rp_data.light_counts.y + rp_data.light_counts.z;
+	const uint local_cluster_index = dispatch_id.x + lighting_data.cluster_dims.x * (dispatch_id.y + lighting_data.cluster_dims.y * dispatch_id.z);
+	const uint cluster_index = lighting_data.cluster_buffer_offset + local_cluster_index;
+	const uint light_offset = lighting_data.cluster_light_indices_buffer_offset + local_cluster_index * lighting_data.cluster_light_capacity;
+	const uint local_light_offset = lighting_data.light_counts.x;
+	const uint local_light_count = lighting_data.light_counts.y + lighting_data.light_counts.z + lighting_data.light_counts.w;
+	const uint spot_light_end = lighting_data.light_counts.x + lighting_data.light_counts.y + lighting_data.light_counts.z;
 	uint matching_light_count = 0;
 
 	// pack every local light touching this cluster
@@ -109,7 +111,7 @@ void CSMain(uint3 dispatch_id : SV_DispatchThreadID)
 	{
 		const uint light_index = local_light_offset + i;
 		const gpu_light light = light_buffer[light_index];
-		const float3 center = mul(rp_data.view, float4(light.position_range.xyz, 1.0)).xyz;
+		const float3 center = mul(view_data.view, float4(light.position_range.xyz, 1.0)).xyz;
 		float radius = light.position_range.w;
 
 		if (light_index >= spot_light_end && radius > 0.0)
@@ -118,7 +120,7 @@ void CSMain(uint3 dispatch_id : SV_DispatchThreadID)
 		if (radius > 0.0 && !sphere_intersects_aabb(center, radius, cluster_min, cluster_max))
 			continue;
 
-		if (matching_light_count < rp_data.cluster_screen.w)
+		if (matching_light_count < lighting_data.cluster_light_capacity)
 			cluster_light_indices[light_offset + matching_light_count] = light_index;
 
 		++matching_light_count;
@@ -126,8 +128,8 @@ void CSMain(uint3 dispatch_id : SV_DispatchThreadID)
 
 	gpu_light_cluster cluster;
 	cluster.light_offset = light_offset;
-	cluster.light_count = min(matching_light_count, rp_data.cluster_screen.w);
-	cluster.overflow = matching_light_count > rp_data.cluster_screen.w ? 1 : 0;
+	cluster.light_count = min(matching_light_count, lighting_data.cluster_light_capacity);
+	cluster.overflow = matching_light_count > lighting_data.cluster_light_capacity ? 1 : 0;
 	cluster.pad = 0;
 	cluster_buffer[cluster_index] = cluster;
 }

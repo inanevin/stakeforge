@@ -111,14 +111,8 @@ struct vs_output
 vs_output VSMain(vs_input IN)
 {
     vs_output OUT;
-
-#if defined(USE_GBUFFER) || defined(USE_ZPREPASS) || defined(USE_SELECTION) || defined(WRITE_ID)
-    render_pass_data_opaque rp_data = sfg_get_cbv<render_pass_data_opaque>(sfg_constant_rp0);
-    StructuredBuffer<gpu_entity> entity_buffer = sfg_get_ssbo<gpu_entity>(sfg_constant_rp1);
-#else
-    render_pass_data_forward rp_data = sfg_get_cbv<render_pass_data_forward>(sfg_constant_rp1);
-    StructuredBuffer<gpu_entity> entity_buffer = sfg_get_ssbo<gpu_entity>(sfg_constant_rp2);
-#endif
+    render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
+    StructuredBuffer<gpu_entity> entity_buffer = sfg_get_ssbo<gpu_entity>(SFG_RENDER_PASS_ENTITIES);
 
     gpu_entity entity = entity_buffer[sfg_constant_obj0];
 
@@ -130,11 +124,7 @@ vs_output VSMain(vs_input IN)
 
 #ifdef USE_SKINNING
 
-#if defined(USE_GBUFFER) || defined(USE_ZPREPASS) || defined(USE_SELECTION) || defined(WRITE_ID)
-    StructuredBuffer<gpu_bone> bone_buffer = sfg_get_ssbo<gpu_bone>(sfg_constant_rp2);
-#else
-    StructuredBuffer<gpu_bone> bone_buffer = sfg_get_ssbo<gpu_bone>(sfg_constant_rp3);
-#endif
+    StructuredBuffer<gpu_bone> bone_buffer = sfg_get_ssbo<gpu_bone>(SFG_RENDER_PASS_BONES);
 
     float4 skinned_pos = float4(0, 0, 0, 0);
 #ifndef USE_ZPREPASS
@@ -170,7 +160,7 @@ vs_output VSMain(vs_input IN)
 #endif
 
     float3 world_pos = mul(entity.model, obj_pos).xyz;
-    OUT.pos = mul(rp_data.view_proj, float4(world_pos, 1.0));
+    OUT.pos = mul(view_data.view_proj, float4(world_pos, 1.0));
     OUT.uv = IN.uv;
 
 #ifndef USE_ZPREPASS
@@ -334,11 +324,12 @@ ps_output PSMain(vs_output IN)
 
 float4 PSMain(vs_output IN) : SV_TARGET
 {
-    render_pass_data_lighting lighting_data = sfg_get_cbv<render_pass_data_lighting>(sfg_constant_rp0);
-    StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(sfg_constant_rp4);
-    StructuredBuffer<gpu_shadow_view> shadow_buffer = sfg_get_ssbo<gpu_shadow_view>(sfg_constant_rp5);
-    StructuredBuffer<gpu_light_cluster> cluster_buffer = sfg_get_ssbo<gpu_light_cluster>(sfg_constant_rp6);
-    StructuredBuffer<uint> cluster_light_indices = sfg_get_ssbo<uint>(sfg_constant_rp7);
+    render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
+    render_pass_data_lighting lighting_data = sfg_get_cbv<render_pass_data_lighting>(SFG_RENDER_PASS_LIGHTING);
+    StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(lighting_data.light_buffer_index);
+    StructuredBuffer<gpu_shadow_view> shadow_buffer = sfg_get_ssbo<gpu_shadow_view>(lighting_data.shadow_buffer_index);
+    StructuredBuffer<gpu_light_cluster> cluster_buffer = sfg_get_ssbo<gpu_light_cluster>(lighting_data.cluster_buffer_index);
+    StructuredBuffer<uint> cluster_light_indices = sfg_get_ssbo<uint>(lighting_data.cluster_light_indices_buffer_index);
     material_data mat_data = sfg_get_cbv<material_data>(sfg_constant_mat0);
     material_surface material = sample_material_surface(IN, mat_data);
 
@@ -347,16 +338,16 @@ float4 PSMain(vs_output IN) : SV_TARGET
         discard;
 #endif
 
-    float view_depth = abs(mul(lighting_data.view, float4(IN.world_pos, 1.0)).z);
-    uint cluster_index = get_light_cluster_index((uint2)IN.pos.xy, view_depth, lighting_data.cluster_dims, lighting_data.cluster_depth);
+    float view_depth = abs(mul(view_data.view, float4(IN.world_pos, 1.0)).z);
+    uint cluster_index = lighting_data.cluster_buffer_offset + get_light_cluster_index((uint2)IN.pos.xy, view_depth, lighting_data.cluster_dims, lighting_data.cluster_depth);
     gpu_light_cluster cluster = cluster_buffer[cluster_index];
 
-    if (lighting_data.cluster_screen.z != 0)
+    if (lighting_data.debug_cluster_heatmap != 0)
         return float4(get_light_cluster_heatmap(cluster.light_count, cluster.overflow), material.albedo.a);
 
     surface_lighting_data surface;
     surface.world_pos = IN.world_pos;
-    surface.view_direction = normalize(lighting_data.camera_pos.xyz - IN.world_pos);
+    surface.view_direction = normalize(view_data.camera_pos.xyz - IN.world_pos);
     surface.normal = material.normal;
     surface.albedo = material.albedo.rgb;
     surface.ambient_occlusion = material.ambient_occlusion;
@@ -364,7 +355,7 @@ float4 PSMain(vs_output IN) : SV_TARGET
     surface.metallic = material.metallic;
 
     scene_lighting_data scene;
-    scene.view = lighting_data.view;
+    scene.view = view_data.view;
     scene.light_counts = lighting_data.light_counts;
 
     float3 lighting = lighting_data.ambient_color.rgb * material.albedo.rgb * material.ambient_occlusion;

@@ -181,23 +181,34 @@ namespace sfg
 		world_rendering_util_t::prep_bone_buffer(ctx, snapshot, frame_index);
 
 		// main cam view.
-		render_view_t main_camera_view_t = {};
-		main_camera_view_t.calculate(snapshot.main_view, ctx.get_size(), interpolation_alpha);
+		const vec2u16_t render_size		   = ctx.get_size();
+		render_view_t	main_camera_view_t = {};
+
+		main_camera_view_t.calculate(snapshot.main_view, render_size, interpolation_alpha);
 
 		u32 light_counts[4] = {};
 
 		prep_data.add_view({
-			.view_proj = main_camera_view_t.view_proj,
-			.frustum   = main_camera_view_t.frustum,
+			.view				 = main_camera_view_t.view,
+			.view_proj			 = main_camera_view_t.view_proj,
+			.inv_view			 = main_camera_view_t.inv_view,
+			.inv_view_proj		 = main_camera_view_t.inv_view_proj,
+			.frustum			 = main_camera_view_t.frustum,
+			.camera_pos			 = vec4f_t(main_camera_view_t.pos.x, main_camera_view_t.pos.y, main_camera_view_t.pos.z, 1.0f),
+			.viewport_size		 = vec2f_t(render_size.x, render_size.y),
+			.inv_viewport_size	 = vec2f_t(1.0f / render_size.x, 1.0f / render_size.y),
+			.near_plane			 = main_camera_view_t.near_plane,
+			.far_plane			 = main_camera_view_t.far_plane,
+			.depth_texture_index = ctx.get_depth_texture_index(frame_index),
 		});
 
 		world_rendering_util_t::prep_shadows(ctx, snapshot, prep_data, main_camera_view_t, interpolation_alpha);
 		world_rendering_util_t::prep_light_buffer(ctx, snapshot, prep_data, interpolation_alpha, frame_index, light_counts);
 		world_rendering_util_t::prep_probes(ctx, snapshot, prep_data, main_camera_view_t, interpolation_alpha, frame_index);
 		world_rendering_util_t::prep_shadow_buffer(ctx, snapshot, prep_data, frame_index);
-		world_rendering_util_t::prep_debug_buffer(ctx, snapshot, main_camera_view_t, frame_index);
+		world_rendering_util_t::prep_debug_buffer(ctx, snapshot, frame_index);
 		world_rendering_util_t::prep_culls(ctx, snapshot, prep_data, frame_index);
-		world_rendering_util_t::prep_render_pass_buffers(ctx, snapshot, main_camera_view_t, light_counts, interpolation_alpha, frame_index);
+		world_rendering_util_t::prep_render_pass_buffers(ctx, snapshot, prep_data, main_camera_view_t, light_counts, frame_index);
 
 		const gfx_handle_t cmd_depth			  = ctx.get_command_buffer_depth(frame_index);
 		const gfx_handle_t cmd_gbuffer			  = ctx.get_command_buffer_gbuffer(frame_index);
@@ -231,7 +242,18 @@ namespace sfg
 		render_graph.emplace([&]() {
 			render_access_scope_t render_scope = {};
 
-			render_clustered_lighting(ctx, frame_index, global_cbv_index);
+			render_clustered_lighting({
+				.command_buffer				  = ctx.get_command_buffer_clustered_lighting(frame_index),
+				.cluster_buffer				  = ctx.get_light_cluster_buffer(frame_index),
+				.cluster_light_indices_buffer = ctx.get_light_cluster_indices_buffer(frame_index),
+				.shader						  = ctx.get_clustered_light_culling_shader(),
+				.view_data_index			  = ctx.get_view_render_pass_data_index(frame_index),
+				.lighting_data_index		  = ctx.get_lighting_render_pass_data_index(frame_index),
+				.global_cbv_index			  = global_cbv_index,
+				.cluster_count_x			  = ctx.get_light_cluster_count_x(),
+				.cluster_count_y			  = ctx.get_light_cluster_count_y(),
+				.cluster_count_z			  = WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT,
+			});
 		});
 
 		if (ssao_active)
@@ -360,6 +382,7 @@ namespace sfg
 			backend.cmd_set_scissors(cmd, {.width = view.resolution.x, .height = view.resolution.y});
 
 			const gpu_index_t rp_constants[3] = {shadow_context.get_view_data_index(frame_index, static_cast<u16>(view_index)), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
+
 			backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
 			draw_world_draws(backend, cmd, ss, prep_data, view.cull_view_index, world_pass_flags_shadow, shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering, frame_index);
@@ -417,7 +440,8 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
-		gpu_index_t rp_constants[3] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
+		gpu_index_t rp_constants[3] = {ctx.get_view_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
+
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
 		draw_world_draws(backend, cmd, ss, prep_data, 0, world_pass_flags_depth, shader_variant_flags_z_prepass, frame_index);
@@ -531,7 +555,8 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
-		gpu_index_t rp_constants[3] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
+		gpu_index_t rp_constants[3] = {ctx.get_view_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
+
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
 		draw_world_draws(backend, cmd, ss, prep_data, 0, world_pass_flags_gbuffer, shader_variant_flags_gbuffer, frame_index);
@@ -569,65 +594,59 @@ namespace sfg
 		backend.close_command_buffer(cmd);
 	}
 
-	void world_rendering_t::render_clustered_lighting(const world_render_context_t& ctx, u8 frame_index, gpu_index_t global_cbv_index)
+	void world_rendering_t::render_clustered_lighting(const world_render_clustered_lighting_data_t& data)
 	{
-		gfx_backend&	   backend = gfx_backend::get();
-		const gfx_handle_t cmd	   = ctx.get_command_buffer_clustered_lighting(frame_index);
+		gfx_backend& backend = gfx_backend::get();
 
-		backend.reset_command_buffer(cmd);
-		backend.cmd_bind_layout_compute(cmd, {.layout = render_globals_t::get_global_compute_bind_layout()});
-		backend.cmd_bind_constants_compute(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
+		backend.reset_command_buffer(data.command_buffer);
+		backend.cmd_bind_layout_compute(data.command_buffer, {.layout = render_globals_t::get_global_compute_bind_layout()});
+		backend.cmd_bind_constants_compute(data.command_buffer, {.data = &data.global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
 		const barrier_t begin_barriers[2] = {
 			{
 				.from_states = resource_state_common,
 				.to_states	 = resource_state_uav,
-				.resource_t	 = ctx.get_light_cluster_buffer(frame_index),
+				.resource_t	 = data.cluster_buffer,
 				.flags		 = barrier_flags::baf_is_resource,
 			},
 			{
 				.from_states = resource_state_common,
 				.to_states	 = resource_state_uav,
-				.resource_t	 = ctx.get_light_cluster_indices_buffer(frame_index),
+				.resource_t	 = data.cluster_light_indices_buffer,
 				.flags		 = barrier_flags::baf_is_resource,
 			},
 		};
-		backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = 2});
+		backend.cmd_barrier(data.command_buffer, {.barriers = begin_barriers, .barrier_count = 2});
 
-		const gpu_index_t constants[4] = {
-			ctx.get_lighting_render_pass_data_index(frame_index),
-			ctx.get_light_buffer_index(frame_index),
-			ctx.get_light_cluster_buffer_uav_index(frame_index),
-			ctx.get_light_cluster_indices_buffer_uav_index(frame_index),
-		};
-		backend.cmd_bind_constants_compute(cmd, {.data = constants, .offset = constant_rp0, .count = 4, .param_index = 0});
-		backend.cmd_bind_pipeline_compute(cmd, {.pipeline = ctx.get_clustered_light_culling_shader()});
+		backend.cmd_bind_constants_compute(data.command_buffer, {.data = &data.view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
+		backend.cmd_bind_constants_compute(data.command_buffer, {.data = &data.lighting_data_index, .offset = constant_rp3, .count = 1, .param_index = 0});
+		backend.cmd_bind_pipeline_compute(data.command_buffer, {.pipeline = data.shader});
 
-		BEGIN_DEBUG_EVENT((&backend), cmd, "world_clustered_light_culling");
-		backend.cmd_dispatch(cmd,
+		BEGIN_DEBUG_EVENT((&backend), data.command_buffer, "world_clustered_light_culling");
+		backend.cmd_dispatch(data.command_buffer,
 							 {
-								 .group_size_x = (ctx.get_light_cluster_count_x() + 3) / 4,
-								 .group_size_y = (ctx.get_light_cluster_count_y() + 3) / 4,
-								 .group_size_z = WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT,
+								 .group_size_x = (data.cluster_count_x + 3) / 4,
+								 .group_size_y = (data.cluster_count_y + 3) / 4,
+								 .group_size_z = data.cluster_count_z,
 							 });
-		END_DEBUG_EVENT((&backend), cmd);
+		END_DEBUG_EVENT((&backend), data.command_buffer);
 
 		const barrier_t end_barriers[2] = {
 			{
 				.from_states = resource_state_uav,
 				.to_states	 = resource_state_common,
-				.resource_t	 = ctx.get_light_cluster_buffer(frame_index),
+				.resource_t	 = data.cluster_buffer,
 				.flags		 = barrier_flags::baf_is_resource,
 			},
 			{
 				.from_states = resource_state_uav,
 				.to_states	 = resource_state_common,
-				.resource_t	 = ctx.get_light_cluster_indices_buffer(frame_index),
+				.resource_t	 = data.cluster_light_indices_buffer,
 				.flags		 = barrier_flags::baf_is_resource,
 			},
 		};
-		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = 2});
-		backend.close_command_buffer(cmd);
+		backend.cmd_barrier(data.command_buffer, {.barriers = end_barriers, .barrier_count = 2});
+		backend.close_command_buffer(data.command_buffer);
 	}
 
 	void world_rendering_t::render_ssao(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index)
@@ -764,23 +783,14 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
-		const render_resources_t& render_resources = render_resources_t::get();
-		const gpu_index_t		  ao_index		   = ssao_active ? ctx.get_ao_texture_index(frame_index) : render_resources.get_texture_gpu_index(render_resources.get_white_texture(), 0);
-		gpu_index_t				  rp_constants[11] = {
+		const gpu_index_t view_data_index		= ctx.get_view_render_pass_data_index(frame_index);
+		const gpu_index_t lighting_constants[2] = {
 			ctx.get_lighting_render_pass_data_index(frame_index),
-			ctx.get_gbuffer_albedo_index(frame_index),
-			ctx.get_gbuffer_normal_index(frame_index),
-			ctx.get_gbuffer_orm_index(frame_index),
-			ctx.get_gbuffer_emissive_index(frame_index),
-			ctx.get_depth_texture_index(frame_index),
-			ao_index,
-			ctx.get_light_buffer_index(frame_index),
-			ctx.get_shadow_context().get_view_buffer_index(frame_index),
-			ctx.get_light_cluster_buffer_index(frame_index),
-			ctx.get_light_cluster_indices_buffer_index(frame_index),
+			ctx.get_deferred_lighting_render_pass_data_index(frame_index),
 		};
 
-		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 11, .param_index = 0});
+		backend.cmd_bind_constants(cmd, {.data = &view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
+		backend.cmd_bind_constants(cmd, {.data = lighting_constants, .offset = constant_rp3, .count = 2, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_lighting_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 
@@ -842,17 +852,14 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
-		const gpu_index_t rp_constants[8] = {
-			ctx.get_lighting_render_pass_data_index(frame_index),
-			ctx.get_forward_render_pass_data_index(frame_index),
+		const gpu_index_t rp_constants[4] = {
+			ctx.get_view_render_pass_data_index(frame_index),
 			ctx.get_entity_buffer_index(frame_index),
 			ctx.get_bone_buffer_index(frame_index),
-			ctx.get_light_buffer_index(frame_index),
-			ctx.get_shadow_context().get_view_buffer_index(frame_index),
-			ctx.get_light_cluster_buffer_index(frame_index),
-			ctx.get_light_cluster_indices_buffer_index(frame_index),
+			ctx.get_lighting_render_pass_data_index(frame_index),
 		};
-		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 8, .param_index = 0});
+
+		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 4, .param_index = 0});
 
 		if (snapshot.environment.material_index != UINT32_MAX)
 		{
@@ -1089,11 +1096,11 @@ namespace sfg
 
 		if (!debug_draw.line_indices.empty())
 		{
-			const gpu_index_t line_data_index	  = ctx.get_debug_line_data_index(frame_index);
-			const gpu_index_t depth_texture_index = ctx.get_depth_texture_index(frame_index);
+			const gpu_index_t view_data_index = ctx.get_view_render_pass_data_index(frame_index);
+			const gpu_index_t line_data_index = ctx.get_debug_line_data_index(frame_index);
 
-			backend.cmd_bind_constants(cmd, {.data = &line_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
-			backend.cmd_bind_constants(cmd, {.data = &depth_texture_index, .offset = constant_obj0, .count = 1, .param_index = 0});
+			backend.cmd_bind_constants(cmd, {.data = &view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
+			backend.cmd_bind_constants(cmd, {.data = &line_data_index, .offset = constant_rp4, .count = 1, .param_index = 0});
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_debug_line_shader()});
 			backend.cmd_bind_vertex_buffers(cmd, {.buffer = ctx.get_debug_line_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_line_t)), .offset = 0});
 			backend.cmd_bind_index_buffers(cmd, {.buffer = ctx.get_debug_line_index_buffer(frame_index), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
@@ -1109,12 +1116,12 @@ namespace sfg
 
 		if (!debug_draw.text_indices.empty())
 		{
-			const gpu_index_t text_data_index	  = ctx.get_debug_text_data_index(frame_index);
-			const gpu_index_t depth_texture_index = ctx.get_depth_texture_index(frame_index);
-			const gpu_index_t glyph_atlas_index	  = render_resources_t::get().get_texture_gpu_index(resource_manager_t::get().get_glyph_atlas().get_texture(), 0);
+			const gpu_index_t view_data_index	= ctx.get_view_render_pass_data_index(frame_index);
+			const gpu_index_t text_data_index	= ctx.get_debug_text_data_index(frame_index);
+			const gpu_index_t glyph_atlas_index = render_resources_t::get().get_texture_gpu_index(resource_manager_t::get().get_glyph_atlas().get_texture(), 0);
 
-			backend.cmd_bind_constants(cmd, {.data = &text_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
-			backend.cmd_bind_constants(cmd, {.data = &depth_texture_index, .offset = constant_obj0, .count = 1, .param_index = 0});
+			backend.cmd_bind_constants(cmd, {.data = &view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
+			backend.cmd_bind_constants(cmd, {.data = &text_data_index, .offset = constant_rp4, .count = 1, .param_index = 0});
 			backend.cmd_bind_constants(cmd, {.data = &glyph_atlas_index, .offset = constant_mat0, .count = 1, .param_index = 0});
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_debug_text_shader()});
 			backend.cmd_bind_vertex_buffers(cmd, {.buffer = ctx.get_debug_text_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_text_t)), .offset = 0});

@@ -80,7 +80,7 @@ namespace sfg
 		view_buffer_desc.set_name("world_shadow_views");
 
 		resource_desc_t view_data_desc = {};
-		view_data_desc.size			   = static_cast<u32>(sizeof(render_pass_data_opaque_gpu_t));
+		view_data_desc.size			   = static_cast<u32>(sizeof(render_pass_data_view_gpu_t));
 		view_data_desc.flags		   = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 		view_data_desc.set_name("world_shadow_view_data");
 

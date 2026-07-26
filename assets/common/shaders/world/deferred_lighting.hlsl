@@ -110,36 +110,32 @@ vs_output VSMain(uint vertex_id : SV_VertexID)
 
 float4 PSMain(vs_output input) : SV_TARGET
 {
-	render_pass_data_lighting rp_data = sfg_get_cbv<render_pass_data_lighting>(sfg_constant_rp0);
+	render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
+	render_pass_data_lighting lighting_data = sfg_get_cbv<render_pass_data_lighting>(SFG_RENDER_PASS_LIGHTING);
+	render_pass_data_deferred_lighting deferred_data = sfg_get_cbv<render_pass_data_deferred_lighting>(SFG_RENDER_PASS_SPECIFIC);
 
-	Texture2D tex_gbuffer_color	 = sfg_get_texture<Texture2D>(sfg_constant_rp1);
-	Texture2D tex_gbuffer_normal	 = sfg_get_texture<Texture2D>(sfg_constant_rp2);
-	Texture2D tex_gbuffer_orm	 = sfg_get_texture<Texture2D>(sfg_constant_rp3);
-	Texture2D tex_gbuffer_emissive = sfg_get_texture<Texture2D>(sfg_constant_rp4);
-	Texture2D tex_gbuffer_depth	 = sfg_get_texture<Texture2D>(sfg_constant_rp5);
-	Texture2D tex_ao					 = sfg_get_texture<Texture2D>(sfg_constant_rp6);
-	/*
-	const uint skybox_radiance		 = sfg_constant_rp7;
-	const uint skybox_irradiance	 = sfg_constant_rp8;
-	const uint skybox_prefilter		 = sfg_constant_rp9;
-	const uint skybox_brdf_lut		 = sfg_constant_rp10;
-	*/
-	StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(sfg_constant_rp7);
-	StructuredBuffer<gpu_shadow_view> shadow_buffer = sfg_get_ssbo<gpu_shadow_view>(sfg_constant_rp8);
-	StructuredBuffer<gpu_light_cluster> cluster_buffer = sfg_get_ssbo<gpu_light_cluster>(sfg_constant_rp9);
-	StructuredBuffer<uint> cluster_light_indices = sfg_get_ssbo<uint>(sfg_constant_rp10);
+	Texture2D tex_gbuffer_color	 = sfg_get_texture<Texture2D>(deferred_data.gbuffer_albedo_index);
+	Texture2D tex_gbuffer_normal	 = sfg_get_texture<Texture2D>(deferred_data.gbuffer_normal_index);
+	Texture2D tex_gbuffer_orm	 = sfg_get_texture<Texture2D>(deferred_data.gbuffer_orm_index);
+	Texture2D tex_gbuffer_emissive = sfg_get_texture<Texture2D>(deferred_data.gbuffer_emissive_index);
+	Texture2D tex_gbuffer_depth	 = sfg_get_texture<Texture2D>(view_data.depth_texture_index);
+	Texture2D tex_ao				 = sfg_get_texture<Texture2D>(deferred_data.ambient_occlusion_index);
+	StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(lighting_data.light_buffer_index);
+	StructuredBuffer<gpu_shadow_view> shadow_buffer = sfg_get_ssbo<gpu_shadow_view>(lighting_data.shadow_buffer_index);
+	StructuredBuffer<gpu_light_cluster> cluster_buffer = sfg_get_ssbo<gpu_light_cluster>(lighting_data.cluster_buffer_index);
+	StructuredBuffer<uint> cluster_light_indices = sfg_get_ssbo<uint>(lighting_data.cluster_light_indices_buffer_index);
 
 	const int2	 pixel		  = int2(input.pos.xy);
 	const float	 device_depth = tex_gbuffer_depth.Load(int3(pixel, 0)).r;
 	if (is_background(device_depth))
 		return float4(0.0, 0.0, 0.0, 1.0);
 
-	const float3 world_pos = reconstruct_world_position(input.uv, device_depth, rp_data.inv_view_proj);
-	const float view_depth = abs(mul(rp_data.view, float4(world_pos, 1.0)).z);
-	const uint cluster_index = get_light_cluster_index((uint2)pixel, view_depth, rp_data.cluster_dims, rp_data.cluster_depth);
+	const float3 world_pos = reconstruct_world_position(input.uv, device_depth, view_data.inv_view_proj);
+	const float view_depth = abs(mul(view_data.view, float4(world_pos, 1.0)).z);
+	const uint cluster_index = lighting_data.cluster_buffer_offset + get_light_cluster_index((uint2)pixel, view_depth, lighting_data.cluster_dims, lighting_data.cluster_depth);
 	const gpu_light_cluster cluster = cluster_buffer[cluster_index];
 
-	if (rp_data.cluster_screen.z != 0)
+	if (lighting_data.debug_cluster_heatmap != 0)
 		return float4(get_light_cluster_heatmap(cluster.light_count, cluster.overflow), 1.0);
 
 	const float4 orm	   = tex_gbuffer_orm.Load(int3(pixel, 0));
@@ -147,7 +143,7 @@ float4 PSMain(vs_output input) : SV_TARGET
 	if (orm.a >= 0.5)
 		return float4(emissive, 1.0);
 
-	const float3 V		   = normalize(rp_data.camera_pos.xyz - world_pos);
+	const float3 V		   = normalize(view_data.camera_pos.xyz - world_pos);
 	const float3 albedo   = tex_gbuffer_color.Load(int3(pixel, 0)).xyz;
 	const float4 normal   = tex_gbuffer_normal.Load(int3(pixel, 0));
 	const float	 ao	   = saturate(orm.r) * tex_ao.SampleLevel(smp_nearest, input.uv, 0).r;
@@ -170,11 +166,11 @@ float4 PSMain(vs_output input) : SV_TARGET
 	surface.metallic = metallic;
 
 	scene_lighting_data scene;
-	scene.view = rp_data.view;
-	scene.light_counts = rp_data.light_counts;
+	scene.view = view_data.view;
+	scene.light_counts = lighting_data.light_counts;
 
 	// let the world lights do their thing
-	float3 lighting = rp_data.ambient_color.rgb * albedo * ao;
+	float3 lighting = lighting_data.ambient_color.rgb * albedo * ao;
 	lighting += evaluate_clustered_scene_lighting(
 		surface,
 		scene,

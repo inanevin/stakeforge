@@ -90,10 +90,11 @@ namespace sfg
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
 		gpu_index_t rp_constants[] = {
-			ctx.get_world_render_context().get_opaque_render_pass_data_index(frame_index),
+			ctx.get_world_render_context().get_view_render_pass_data_index(frame_index),
 			ctx.get_world_render_context().get_entity_buffer_index(frame_index),
 			ctx.get_world_render_context().get_bone_buffer_index(frame_index),
 		};
+
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = std::size(rp_constants), .param_index = 0});
 
 		gfx_handle_t bound_vertex	= {};
@@ -245,10 +246,11 @@ namespace sfg
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
 		gpu_index_t rp_constants[] = {
-			world_ctx.get_opaque_render_pass_data_index(frame_index),
+			world_ctx.get_view_render_pass_data_index(frame_index),
 			world_ctx.get_entity_buffer_index(frame_index),
 			world_ctx.get_bone_buffer_index(frame_index),
 		};
+
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = std::size(rp_constants), .param_index = 0});
 
 		gfx_handle_t bound_vertex	= {};
@@ -502,10 +504,9 @@ namespace sfg
 
 		if (!snapshot.debug_draw.triangle_indices.empty())
 		{
-			const gpu_index_t physics_rp_constant  = world_ctx.get_opaque_render_pass_data_index(frame_index);
-			const gpu_index_t physics_obj_constant = world_ctx.get_depth_texture_index(frame_index);
+			const gpu_index_t physics_rp_constant = world_ctx.get_view_render_pass_data_index(frame_index);
+
 			backend.cmd_bind_constants(cmd, {.data = &physics_rp_constant, .offset = constant_rp0, .count = 1, .param_index = 0});
-			backend.cmd_bind_constants(cmd, {.data = &physics_obj_constant, .offset = constant_obj0, .count = 1, .param_index = 0});
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_physics_debug_shader()});
 			backend.cmd_bind_vertex_buffers(cmd, {.buffer = world_ctx.get_debug_triangle_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_triangle_t)), .offset = 0});
 			backend.cmd_bind_index_buffers(cmd, {.buffer = world_ctx.get_debug_triangle_index_buffer(frame_index), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
@@ -545,11 +546,11 @@ namespace sfg
 			const gfx_handle_t				 index_buffer	  = render_resources.get_resource(mesh.index_buffer);
 			SFG_ASSERT(!vertex_buffer.is_null() && !index_buffer.is_null());
 
-			const gpu_index_t rp_constants[2] = {
-				ctx.get_world_render_context().get_opaque_render_pass_data_index(frame_index),
-				ctx.get_gizmo_data_index(frame_index),
-			};
-			backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+			const gpu_index_t view_data_index  = ctx.get_world_render_context().get_view_render_pass_data_index(frame_index);
+			const gpu_index_t gizmo_data_index = ctx.get_gizmo_data_index(frame_index);
+
+			backend.cmd_bind_constants(cmd, {.data = &view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
+			backend.cmd_bind_constants(cmd, {.data = &gizmo_data_index, .offset = constant_rp4, .count = 1, .param_index = 0});
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_gizmo_shader()});
 
 			if (snapshot_data.gizmo.control_type == editor_transform_control_type_e::rotate)

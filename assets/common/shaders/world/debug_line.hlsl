@@ -1,4 +1,5 @@
 #include "layout_defines.hlsl"
+#include "render_pass_defines.hlsl"
 
 struct vs_input
 {
@@ -19,23 +20,21 @@ struct vs_output
 	float clip_distance : SV_ClipDistance0;
 };
 
-struct debug_line_data
+struct render_pass_data_debug_line
 {
-	float4x4 view;
-	float4x4 proj;
 	float4 params;
 };
 
 vs_output VSMain(vs_input input)
 {
 	vs_output output = (vs_output)0;
-	debug_line_data data = sfg_get_cbv<debug_line_data>(sfg_constant_rp0);
+	render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
 	
-	float4 current_view = mul(data.view, float4(input.position, 1.0));
-	float4 other_view = mul(data.view, float4(input.other_position, 1.0));
+	float4 current_view = mul(view_data.view, float4(input.position, 1.0));
+	float4 other_view = mul(view_data.view, float4(input.other_position, 1.0));
 	float endpoint = input.corner >= 2.0 ? 1.0 : -1.0;
 	float side = fmod(input.corner, 2.0) < 0.5 ? -1.0 : 1.0;
-	float near_z = -data.params.z;
+	float near_z = -view_data.near_plane;
 	bool current_clipped = current_view.z > near_z;
 	bool other_clipped = other_view.z > near_z;
 	
@@ -56,9 +55,9 @@ vs_output VSMain(vs_input input)
 		other_view = lerp(other_view, current_view, amount);
 	}
 
-	float4 current_clip = mul(data.proj, current_view);
-	float4 other_clip = mul(data.proj, other_view);
-	float2 viewport = data.params.xy;
+	float4 current_clip = mul(view_data.view_proj, mul(view_data.inv_view, current_view));
+	float4 other_clip = mul(view_data.view_proj, mul(view_data.inv_view, other_view));
+	float2 viewport = view_data.viewport_size.xy;
 	float2 current_ndc = current_clip.xy / current_clip.w;
 	float2 other_ndc = other_clip.xy / other_clip.w;
 	float2 current_screen = current_ndc * float2(viewport.x, -viewport.y) * 0.5;
@@ -93,11 +92,12 @@ float4 PSMain(vs_output input) : SV_TARGET
 	
 	if (input.depth_mode < 0.5)
 	{
-		debug_line_data data = sfg_get_cbv<debug_line_data>(sfg_constant_rp0);
-		Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(sfg_constant_obj0);
+		render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
+		render_pass_data_debug_line data = sfg_get_cbv<render_pass_data_debug_line>(SFG_RENDER_PASS_SPECIFIC);
+		Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(view_data.depth_texture_index);
 		float scene_depth = depth_texture.Load(int3(uint2(input.pos.xy), 0));
 		
-		if (scene_depth > 0.000001 && input.pos.z + data.params.w < scene_depth)
+		if (scene_depth > 0.000001 && input.pos.z + data.params.x < scene_depth)
 			discard;
 	}
 	return float4(input.color.rgb, input.color.a * coverage);

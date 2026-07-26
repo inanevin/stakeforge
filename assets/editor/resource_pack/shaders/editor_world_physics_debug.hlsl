@@ -1,4 +1,5 @@
 #include "layout_defines.hlsl"
+#include "render_pass_defines.hlsl"
 
 struct vs_input
 {
@@ -12,23 +13,19 @@ struct vs_output
 	float4 color : COLOR0;
 };
 
-struct world_render_data
-{
-	float4x4 view_proj;
-};
-
 vs_output VSMain(vs_input input)
 {
 	vs_output output;
-	world_render_data world_data = sfg_get_cbv<world_render_data>(sfg_constant_rp0);
-	output.pos = mul(world_data.view_proj, float4(input.position, 1.0));
+	render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
+	output.pos = mul(view_data.view_proj, float4(input.position, 1.0));
 	output.color = input.color;
 	return output;
 }
 
 float4 PSMain(vs_output input) : SV_TARGET
 {
-	Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(sfg_constant_obj0);
+	render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
+	Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(view_data.depth_texture_index);
 	float scene_depth = depth_texture.Load(int3(uint2(input.pos.xy), 0));
 
 	if (scene_depth > 0.000001 && input.pos.z + 0.00005 < scene_depth)

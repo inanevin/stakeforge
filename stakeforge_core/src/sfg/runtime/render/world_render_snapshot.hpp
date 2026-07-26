@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/vector.hpp>
 #include <sfg/math/frustum.hpp>
 #include <sfg/math/mat4x4.hpp>
+#include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
@@ -90,8 +91,17 @@ namespace sfg
 
 	struct world_render_prep_view_t
 	{
-		mat4x4_t  view_proj = mat4x4_t::identity;
-		frustum_t frustum	= {};
+		mat4x4_t	view				= mat4x4_t::identity;
+		mat4x4_t	view_proj			= mat4x4_t::identity;
+		mat4x4_t	inv_view			= mat4x4_t::identity;
+		mat4x4_t	inv_view_proj		= mat4x4_t::identity;
+		frustum_t	frustum				= {};
+		vec4f_t		camera_pos			= vec4f_t::zero;
+		vec2f_t		viewport_size		= vec2f_t::zero;
+		vec2f_t		inv_viewport_size	= vec2f_t::zero;
+		f32			near_plane			= 0.0f;
+		f32			far_plane			= 0.0f;
+		gpu_index_t depth_texture_index = NULL_GPU_INDEX;
 	};
 
 	struct world_render_prep_data_t

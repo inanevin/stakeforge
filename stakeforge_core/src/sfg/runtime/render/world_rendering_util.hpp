@@ -48,8 +48,8 @@ namespace sfg
 		static void prep_light_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, u32 (&light_counts)[4]);
 		static void prep_probes(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, f32 interpolation_alpha, u8 frame_index);
 		static void prep_shadow_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index);
-		static void prep_debug_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const render_view_t& main_camera_view, u8 frame_index);
+		static void prep_debug_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index);
 		static void prep_culls(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index);
-		static void prep_render_pass_buffers(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const render_view_t& main_camera_view, const u32 (&light_counts)[4], f32 interpolation_alpha, u8 frame_index);
+		static void prep_render_pass_buffers(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, const u32 (&light_counts)[4], u8 frame_index);
 	};
 }

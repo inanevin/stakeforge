@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/mat4x4.hpp>
+#include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec4f.hpp>
 #include "world_gpu_cluster.hpp"
@@ -40,30 +41,56 @@ namespace sfg
 {
 #define WORLD_RENDER_BLOOM_LEVEL_COUNT 5
 
-	struct render_pass_data_opaque_gpu_t
+	struct render_pass_data_view_gpu_t
 	{
-		mat4x4_t view_proj = mat4x4_t::identity;
-	};
-
-	struct render_pass_data_forward_gpu_t
-	{
-		mat4x4_t view_proj = mat4x4_t::identity;
+		mat4x4_t	view				= mat4x4_t::identity;
+		mat4x4_t	view_proj			= mat4x4_t::identity;
+		mat4x4_t	inv_view			= mat4x4_t::identity;
+		mat4x4_t	inv_view_proj		= mat4x4_t::identity;
+		vec4f_t		camera_pos			= vec4f_t::zero;
+		vec2f_t		viewport_size		= vec2f_t::zero;
+		vec2f_t		inv_viewport_size	= vec2f_t::zero;
+		f32			near_plane			= 0.0f;
+		f32			far_plane			= 0.0f;
+		gpu_index_t depth_texture_index = NULL_GPU_INDEX;
+		u32			pad					= 0;
 	};
 
 	struct render_pass_data_lighting_gpu_t
 	{
-		mat4x4_t skybox_view_proj  = mat4x4_t::identity;
-		mat4x4_t inv_view_proj	   = mat4x4_t::identity;
-		mat4x4_t inv_view		   = mat4x4_t::identity;
-		mat4x4_t view			   = mat4x4_t::identity;
-		vec4f_t	 camera_pos		   = vec4f_t::zero;
-		vec4f_t	 skybox_params	   = vec4f_t::zero;
-		vec4f_t	 ambient_color	   = vec4f_t::zero;
-		u32		 light_counts[4]   = {};
-		vec4f_t	 cluster_depth	   = vec4f_t::zero;
-		u32		 cluster_dims[4]   = {};
-		u32		 cluster_screen[4] = {};
+		vec4f_t		ambient_color						   = vec4f_t::zero;
+		vec4f_t		cluster_depth						   = vec4f_t::zero;
+		u32			light_counts[4]						   = {};
+		u32			cluster_dims[4]						   = {};
+		gpu_index_t light_buffer_index					   = NULL_GPU_INDEX;
+		gpu_index_t shadow_buffer_index					   = NULL_GPU_INDEX;
+		gpu_index_t reflection_probe_buffer_index		   = NULL_GPU_INDEX;
+		gpu_index_t cluster_buffer_index				   = NULL_GPU_INDEX;
+		gpu_index_t cluster_buffer_uav_index			   = NULL_GPU_INDEX;
+		gpu_index_t cluster_light_indices_buffer_index	   = NULL_GPU_INDEX;
+		gpu_index_t cluster_light_indices_buffer_uav_index = NULL_GPU_INDEX;
+		u32			reflection_probe_count				   = 0;
+		f32			environment_intensity				   = 1.0f;
+		u32			cluster_buffer_offset				   = 0;
+		u32			cluster_light_indices_buffer_offset	   = 0;
+		u32			cluster_light_capacity				   = 0;
+		u32			debug_cluster_heatmap				   = 0;
+		u32			pad[3]								   = {};
 	};
+
+	struct render_pass_data_deferred_lighting_gpu_t
+	{
+		gpu_index_t gbuffer_albedo_index	= NULL_GPU_INDEX;
+		gpu_index_t gbuffer_normal_index	= NULL_GPU_INDEX;
+		gpu_index_t gbuffer_orm_index		= NULL_GPU_INDEX;
+		gpu_index_t gbuffer_emissive_index	= NULL_GPU_INDEX;
+		gpu_index_t ambient_occlusion_index = NULL_GPU_INDEX;
+		u32			pad[3]					= {};
+	};
+
+	static_assert(sizeof(render_pass_data_view_gpu_t) == 304);
+	static_assert(sizeof(render_pass_data_lighting_gpu_t) == 128);
+	static_assert(sizeof(render_pass_data_deferred_lighting_gpu_t) == 32);
 
 	struct render_pass_data_post_process_gpu_t
 	{
@@ -97,17 +124,14 @@ namespace sfg
 		f32 pad[3]		  = {};
 	};
 
-	struct world_debug_line_gpu_data_t
+	struct render_pass_data_debug_line_gpu_t
 	{
-		mat4x4_t view	= mat4x4_t::identity;
-		mat4x4_t proj	= mat4x4_t::identity;
-		vec4f_t	 params = vec4f_t::zero;
+		vec4f_t params = vec4f_t::zero;
 	};
 
-	struct world_debug_text_gpu_data_t
+	struct render_pass_data_debug_text_gpu_t
 	{
-		mat4x4_t view_proj = mat4x4_t::identity;
-		vec4f_t	 params	   = vec4f_t::zero;
+		vec4f_t params = vec4f_t::zero;
 	};
 
 	struct world_render_context_config_t
@@ -318,19 +342,19 @@ namespace sfg
 			return _pfd[frame_index].post_process_texture_index;
 		}
 
-		inline gpu_index_t get_opaque_render_pass_data_index(u8 frame_index) const
+		inline gpu_index_t get_view_render_pass_data_index(u8 frame_index) const
 		{
-			return _pfd[frame_index].opaque_render_pass_data_index;
-		}
-
-		inline gpu_index_t get_forward_render_pass_data_index(u8 frame_index) const
-		{
-			return _pfd[frame_index].forward_render_pass_data_index;
+			return _pfd[frame_index].view_render_pass_data_index;
 		}
 
 		inline gpu_index_t get_lighting_render_pass_data_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].lighting_render_pass_data_index;
+		}
+
+		inline gpu_index_t get_deferred_lighting_render_pass_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].deferred_lighting_render_pass_data_index;
 		}
 
 		inline gpu_index_t get_post_process_render_pass_data_index(u8 frame_index) const
@@ -523,19 +547,19 @@ namespace sfg
 			return _shaders.clustered_light_culling;
 		}
 
-		inline u8* get_mapped_opaque_render_pass_data(u8 frame_index) const
+		inline u8* get_mapped_view_render_pass_data(u8 frame_index) const
 		{
-			return _pfd[frame_index].mapped_opaque_render_pass_data;
-		}
-
-		inline u8* get_mapped_forward_render_pass_data(u8 frame_index) const
-		{
-			return _pfd[frame_index].mapped_forward_render_pass_data;
+			return _pfd[frame_index].mapped_view_render_pass_data;
 		}
 
 		inline u8* get_mapped_lighting_render_pass_data(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_lighting_render_pass_data;
+		}
+
+		inline u8* get_mapped_deferred_lighting_render_pass_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_deferred_lighting_render_pass_data;
 		}
 
 		inline u8* get_mapped_post_process_render_pass_data(u8 frame_index) const
@@ -709,9 +733,9 @@ namespace sfg
 			u8*			 mapped_debug_text_vertices									= nullptr;
 			u8*			 mapped_debug_text_indices									= nullptr;
 			u8*			 mapped_debug_text_data										= nullptr;
-			u8*			 mapped_opaque_render_pass_data								= nullptr;
-			u8*			 mapped_forward_render_pass_data							= nullptr;
+			u8*			 mapped_view_render_pass_data								= nullptr;
 			u8*			 mapped_lighting_render_pass_data							= nullptr;
+			u8*			 mapped_deferred_lighting_render_pass_data					= nullptr;
 			u8*			 mapped_post_process_render_pass_data						= nullptr;
 			u8*			 mapped_entity_buffer										= nullptr;
 			u8*			 mapped_light_buffer										= nullptr;
@@ -727,9 +751,9 @@ namespace sfg
 			gfx_handle_t cmd_ssao													= {};
 			gfx_handle_t cmd_bloom													= {};
 			gfx_handle_t cmd_clustered_lighting										= {};
-			gfx_handle_t opaque_render_pass_data									= {};
-			gfx_handle_t forward_render_pass_data									= {};
+			gfx_handle_t view_render_pass_data										= {};
 			gfx_handle_t lighting_render_pass_data									= {};
+			gfx_handle_t deferred_lighting_render_pass_data							= {};
 			gfx_handle_t post_process_render_pass_data								= {};
 			gfx_handle_t ssao_render_pass_data										= {};
 			gfx_handle_t bloom_render_pass_data										= {};
@@ -777,9 +801,9 @@ namespace sfg
 			gpu_index_t	 bloom_downsample_uav_index[WORLD_RENDER_BLOOM_LEVEL_COUNT] = {};
 			gpu_index_t	 bloom_upsample_index[WORLD_RENDER_BLOOM_LEVEL_COUNT]		= {};
 			gpu_index_t	 bloom_upsample_uav_index[WORLD_RENDER_BLOOM_LEVEL_COUNT]	= {};
-			gpu_index_t	 opaque_render_pass_data_index								= NULL_GPU_INDEX;
-			gpu_index_t	 forward_render_pass_data_index								= NULL_GPU_INDEX;
+			gpu_index_t	 view_render_pass_data_index								= NULL_GPU_INDEX;
 			gpu_index_t	 lighting_render_pass_data_index							= NULL_GPU_INDEX;
+			gpu_index_t	 deferred_lighting_render_pass_data_index					= NULL_GPU_INDEX;
 			gpu_index_t	 post_process_render_pass_data_index						= NULL_GPU_INDEX;
 			gpu_index_t	 ssao_render_pass_data_index								= NULL_GPU_INDEX;
 			gpu_index_t	 bloom_render_pass_data_index								= NULL_GPU_INDEX;

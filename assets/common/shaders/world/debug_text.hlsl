@@ -1,4 +1,5 @@
 #include "layout_defines.hlsl"
+#include "render_pass_defines.hlsl"
 
 SamplerState smp : static_sampler_nearest;
 
@@ -20,27 +21,26 @@ struct vs_output
 	float clip_distance : SV_ClipDistance0;
 };
 
-struct debug_text_data
+struct render_pass_data_debug_text
 {
-	float4x4 view_proj;
 	float4 params;
 };
 
 vs_output VSMain(vs_input input)
 {
 	vs_output output = (vs_output)0;
-	debug_text_data data = sfg_get_cbv<debug_text_data>(sfg_constant_rp0);
+	render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
 	
 	if (input.mode < 0.5)
 	{
 		float2 pixel_position = input.anchor.xy + input.offset;
-		output.pos = float4(pixel_position.x * 2.0 / data.params.x - 1.0, 1.0 - pixel_position.y * 2.0 / data.params.y, 0.0, 1.0);
+		output.pos = float4(pixel_position.x * 2.0 / view_data.viewport_size.x - 1.0, 1.0 - pixel_position.y * 2.0 / view_data.viewport_size.y, 0.0, 1.0);
 		output.clip_distance = 1.0;
 	}
 	else
 	{
-		float4 clip_position = mul(data.view_proj, float4(input.anchor, 1.0));
-		clip_position.xy += input.offset * float2(2.0 / data.params.x, -2.0 / data.params.y) * clip_position.w;
+		float4 clip_position = mul(view_data.view_proj, float4(input.anchor, 1.0));
+		clip_position.xy += input.offset * float2(2.0 / view_data.viewport_size.x, -2.0 / view_data.viewport_size.y) * clip_position.w;
 		output.pos = clip_position;
 		output.clip_distance = clip_position.w > 0.0 ? 1.0 : -1.0;
 	}
@@ -60,12 +60,13 @@ float4 PSMain(vs_output input) : SV_TARGET
 	
 	if (input.mode > 0.5 && input.mode < 1.5)
 	{
-		debug_text_data data = sfg_get_cbv<debug_text_data>(sfg_constant_rp0);
-		Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(sfg_constant_obj0);
+		render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
+		render_pass_data_debug_text data = sfg_get_cbv<render_pass_data_debug_text>(SFG_RENDER_PASS_SPECIFIC);
+		Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(view_data.depth_texture_index);
 		
 		float scene_depth = depth_texture.Load(int3(uint2(input.pos.xy), 0));
 		
-		if (scene_depth > 0.000001 && input.pos.z + data.params.z < scene_depth)
+		if (scene_depth > 0.000001 && input.pos.z + data.params.x < scene_depth)
 			discard;
 	}
 	

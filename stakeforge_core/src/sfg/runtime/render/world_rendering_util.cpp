@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_gpu_entity.hpp"
 #include "world_gpu_light.hpp"
 #include "world_gpu_reflection_probe.hpp"
+#include "render_resources.hpp"
 #include "world_render_context.hpp"
 #include "world_render_reflection_context.hpp"
 #include "world_render_snapshot.hpp"
@@ -165,17 +166,23 @@ namespace sfg
 
 			for (u8 layer = 0; layer < layer_count; ++layer)
 			{
-				mat4x4_t view_proj	= mat4x4_t::identity;
-				f32		 split_near = light.shadow_near_plane;
-				f32		 split_far	= light.range;
+				mat4x4_t light_view		= mat4x4_t::identity;
+				mat4x4_t light_proj		= mat4x4_t::identity;
+				vec3f_t	 light_view_pos = pos;
+				f32		 split_near		= light.shadow_near_plane;
+				f32		 split_far		= light.range;
 
 				if (light.type == static_cast<u8>(world_render_light_type_e::spot))
-					view_proj = mat4x4_t::perspective(light.outer_cone_degrees * 2.0f, 1.0f, light.shadow_near_plane, light.range) * mat4x4_t::view(rot, pos);
+				{
+					light_view = mat4x4_t::view(rot, pos);
+					light_proj = mat4x4_t::perspective(light.outer_cone_degrees * 2.0f, 1.0f, light.shadow_near_plane, light.range);
+				}
 				else if (light.type == static_cast<u8>(world_render_light_type_e::point))
 				{
 					static const vec3f_t directions[6] = {vec3f_t::right, -vec3f_t::right, vec3f_t::up, -vec3f_t::up, vec3f_t::forward, -vec3f_t::forward};
 					static const vec3f_t ups[6]		   = {vec3f_t::up, vec3f_t::up, -vec3f_t::forward, vec3f_t::forward, vec3f_t::up, vec3f_t::up};
-					view_proj						   = mat4x4_t::perspective(90.0f, 1.0f, light.shadow_near_plane, light.range) * mat4x4_t::look_at(pos, pos + directions[layer], ups[layer]);
+					light_view						   = mat4x4_t::look_at(pos, pos + directions[layer], ups[layer]);
+					light_proj						   = mat4x4_t::perspective(90.0f, 1.0f, light.shadow_near_plane, light.range);
 				}
 				else
 				{
@@ -191,18 +198,26 @@ namespace sfg
 					vec3f_t						 center		  = vec3f_t::zero;
 					shadow_util_t::get_world_space_ndc((cascade_proj * main_camera_view.view).inverse(), corners, center);
 
-					const vec3f_t  forward	  = rot.get_forward();
-					const vec3f_t  up		  = math::abs(vec3f_t::dot(forward, vec3f_t::up)) > 0.95f ? vec3f_t::right : vec3f_t::up;
-					const mat4x4_t light_view = mat4x4_t::look_at(center - forward * shadow_distance, center, up);
-					mat4x4_t	   light_proj = mat4x4_t::identity;
-					vec2f_t		   texel	  = vec2f_t::zero;
+					const vec3f_t forward = rot.get_forward();
+					const vec3f_t up	  = math::abs(vec3f_t::dot(forward, vec3f_t::up)) > 0.95f ? vec3f_t::right : vec3f_t::up;
+					light_view_pos		  = center - forward * shadow_distance;
+					light_view			  = mat4x4_t::look_at(light_view_pos, center, up);
+					vec2f_t texel		  = vec2f_t::zero;
 					shadow_util_t::get_lightspace_projection(light_proj, light_view, corners, {resolution, resolution}, texel);
-					view_proj = light_proj * light_view;
 				}
 
+				const mat4x4_t				   view_proj = light_proj * light_view;
 				const world_render_prep_view_t prep_view = {
-					.view_proj = view_proj,
-					.frustum   = frustum_t::extract(view_proj),
+					.view			   = light_view,
+					.view_proj		   = view_proj,
+					.inv_view		   = light_view.inverse(),
+					.inv_view_proj	   = view_proj.inverse(),
+					.frustum		   = frustum_t::extract(view_proj),
+					.camera_pos		   = vec4f_t(light_view_pos.x, light_view_pos.y, light_view_pos.z, 1.0f),
+					.viewport_size	   = vec2f_t(resolution, resolution),
+					.inv_viewport_size = vec2f_t(1.0f / resolution, 1.0f / resolution),
+					.near_plane		   = light.shadow_near_plane,
+					.far_plane		   = light.range,
 				};
 				const u16 cull_view_index = prep_data.add_view(prep_view);
 
@@ -365,12 +380,24 @@ namespace sfg
 			};
 			SFG_MEMCPY(shadow_context.get_mapped_views(frame_index) + view_index * sizeof(gpu_shadow_view_t), &gpu_view, sizeof(gpu_shadow_view_t));
 
-			const render_pass_data_opaque_gpu_t shadow_pass_data = {.view_proj = prep_view.view_proj};
-			SFG_MEMCPY(shadow_context.get_mapped_view_data(frame_index, static_cast<u16>(view_index)), &shadow_pass_data, sizeof(render_pass_data_opaque_gpu_t));
+			const render_pass_data_view_gpu_t shadow_pass_data = {
+				.view				 = prep_view.view,
+				.view_proj			 = prep_view.view_proj,
+				.inv_view			 = prep_view.inv_view,
+				.inv_view_proj		 = prep_view.inv_view_proj,
+				.camera_pos			 = prep_view.camera_pos,
+				.viewport_size		 = prep_view.viewport_size,
+				.inv_viewport_size	 = prep_view.inv_viewport_size,
+				.near_plane			 = prep_view.near_plane,
+				.far_plane			 = prep_view.far_plane,
+				.depth_texture_index = prep_view.depth_texture_index,
+			};
+
+			SFG_MEMCPY(shadow_context.get_mapped_view_data(frame_index, static_cast<u16>(view_index)), &shadow_pass_data, sizeof(render_pass_data_view_gpu_t));
 		}
 	}
 
-	void world_rendering_util_t::prep_debug_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const render_view_t& main_camera_view, u8 frame_index)
+	void world_rendering_util_t::prep_debug_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index)
 	{
 		// debug copy
 		const world_debug_draw_snapshot_t& debug_draw = snapshot.debug_draw;
@@ -382,13 +409,11 @@ namespace sfg
 			SFG_MEMCPY(ctx.get_mapped_debug_line_vertices(frame_index), debug_draw.line_vertices.data(), debug_draw.line_vertices.size() * sizeof(vertex_debug_line_t));
 			SFG_MEMCPY(ctx.get_mapped_debug_line_indices(frame_index), debug_draw.line_indices.data(), debug_draw.line_indices.size() * sizeof(primitive_index));
 
-			const world_debug_line_gpu_data_t line_data = {
-				.view	= main_camera_view.view,
-				.proj	= main_camera_view.proj,
-				.params = vec4f_t(static_cast<f32>(ctx.get_size().x), static_cast<f32>(ctx.get_size().y), main_camera_view.near_plane, 0.00005f),
+			const render_pass_data_debug_line_gpu_t line_data = {
+				.params = vec4f_t(0.00005f, 0.0f, 0.0f, 0.0f),
 			};
 
-			SFG_MEMCPY(ctx.get_mapped_debug_line_data(frame_index), &line_data, sizeof(world_debug_line_gpu_data_t));
+			SFG_MEMCPY(ctx.get_mapped_debug_line_data(frame_index), &line_data, sizeof(render_pass_data_debug_line_gpu_t));
 		}
 
 		if (!debug_draw.triangle_indices.empty())
@@ -406,12 +431,11 @@ namespace sfg
 			SFG_MEMCPY(ctx.get_mapped_debug_text_vertices(frame_index), debug_draw.text_vertices.data(), debug_draw.text_vertices.size() * sizeof(vertex_debug_text_t));
 			SFG_MEMCPY(ctx.get_mapped_debug_text_indices(frame_index), debug_draw.text_indices.data(), debug_draw.text_indices.size() * sizeof(primitive_index));
 
-			const world_debug_text_gpu_data_t text_data = {
-				.view_proj = main_camera_view.view_proj,
-				.params	   = vec4f_t(static_cast<f32>(ctx.get_size().x), static_cast<f32>(ctx.get_size().y), 0.00005f, 0.0f),
+			const render_pass_data_debug_text_gpu_t text_data = {
+				.params = vec4f_t(0.00005f, 0.0f, 0.0f, 0.0f),
 			};
 
-			SFG_MEMCPY(ctx.get_mapped_debug_text_data(frame_index), &text_data, sizeof(world_debug_text_gpu_data_t));
+			SFG_MEMCPY(ctx.get_mapped_debug_text_data(frame_index), &text_data, sizeof(render_pass_data_debug_text_gpu_t));
 		}
 	}
 
@@ -453,34 +477,61 @@ namespace sfg
 		}
 	}
 
-	void world_rendering_util_t::prep_render_pass_buffers(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const render_view_t& main_camera_view, const u32 (&light_counts)[4], f32 interpolation_alpha, u8 frame_index)
+	void world_rendering_util_t::prep_render_pass_buffers(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, const u32 (&light_counts)[4], u8 frame_index)
 	{
 		// rp data
-		const render_pass_data_opaque_gpu_t opaque_render_pass_data = {.view_proj = main_camera_view.view_proj};
-		SFG_MEMCPY(ctx.get_mapped_opaque_render_pass_data(frame_index), &opaque_render_pass_data, sizeof(render_pass_data_opaque_gpu_t));
+		const vec2u16_t					  render_size			= ctx.get_size();
+		const render_pass_data_view_gpu_t view_render_pass_data = {
+			.view				 = main_camera_view.view,
+			.view_proj			 = main_camera_view.view_proj,
+			.inv_view			 = main_camera_view.inv_view,
+			.inv_view_proj		 = main_camera_view.inv_view_proj,
+			.camera_pos			 = vec4f_t(main_camera_view.pos.x, main_camera_view.pos.y, main_camera_view.pos.z, 1.0f),
+			.viewport_size		 = vec2f_t(render_size.x, render_size.y),
+			.inv_viewport_size	 = vec2f_t(1.0f / render_size.x, 1.0f / render_size.y),
+			.near_plane			 = main_camera_view.near_plane,
+			.far_plane			 = main_camera_view.far_plane,
+			.depth_texture_index = ctx.get_depth_texture_index(frame_index),
+		};
 
-		const render_pass_data_forward_gpu_t forward_render_pass_data = {.view_proj = main_camera_view.view_proj};
-		SFG_MEMCPY(ctx.get_mapped_forward_render_pass_data(frame_index), &forward_render_pass_data, sizeof(render_pass_data_forward_gpu_t));
+		SFG_MEMCPY(ctx.get_mapped_view_render_pass_data(frame_index), &view_render_pass_data, sizeof(render_pass_data_view_gpu_t));
 
-		// rp data.
-		const quat_t						  skybox_rotation			= quat_t::slerp(snapshot.main_view.prev_rot, snapshot.main_view.rot, interpolation_alpha);
 		const f32							  cluster_log_scale			= WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT / std::log2(main_camera_view.far_plane / main_camera_view.near_plane);
 		const f32							  cluster_log_bias			= -std::log2(main_camera_view.near_plane) * cluster_log_scale;
-		const vec2u16_t						  render_size				= ctx.get_size();
 		const render_pass_data_lighting_gpu_t lighting_render_pass_data = {
-			.skybox_view_proj = main_camera_view.proj * mat4x4_t::view(skybox_rotation, vec3f_t::zero),
-			.inv_view_proj	  = main_camera_view.inv_view_proj,
-			.inv_view		  = main_camera_view.inv_view,
-			.view			  = main_camera_view.view,
-			.camera_pos		  = vec4f_t(main_camera_view.pos.x, main_camera_view.pos.y, main_camera_view.pos.z, 1.0f),
-			.skybox_params	  = vec4f_t(snapshot.environment.intensity, 0.0f, 0.0f, 0.0f),
-			.ambient_color	  = snapshot.environment.ambient_color,
-			.light_counts	  = {light_counts[0], light_counts[1], light_counts[2], light_counts[3]},
-			.cluster_depth	  = vec4f_t(main_camera_view.near_plane, main_camera_view.far_plane, cluster_log_scale, cluster_log_bias),
-			.cluster_dims	  = {ctx.get_light_cluster_count_x(), ctx.get_light_cluster_count_y(), WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT, WORLD_RENDER_CLUSTER_TILE_SIZE},
-			.cluster_screen	  = {render_size.x, render_size.y, snapshot.environment.debug_cluster_heatmap, WORLD_RENDER_CLUSTER_LIGHT_CAPACITY},
+			.ambient_color							= snapshot.environment.ambient_color,
+			.cluster_depth							= vec4f_t(main_camera_view.near_plane, main_camera_view.far_plane, cluster_log_scale, cluster_log_bias),
+			.light_counts							= {light_counts[0], light_counts[1], light_counts[2], light_counts[3]},
+			.cluster_dims							= {ctx.get_light_cluster_count_x(), ctx.get_light_cluster_count_y(), WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT, WORLD_RENDER_CLUSTER_TILE_SIZE},
+			.light_buffer_index						= ctx.get_light_buffer_index(frame_index),
+			.shadow_buffer_index					= ctx.get_shadow_context().get_view_buffer_index(frame_index),
+			.reflection_probe_buffer_index			= ctx.get_reflection_probe_buffer_index(frame_index),
+			.cluster_buffer_index					= ctx.get_light_cluster_buffer_index(frame_index),
+			.cluster_buffer_uav_index				= ctx.get_light_cluster_buffer_uav_index(frame_index),
+			.cluster_light_indices_buffer_index		= ctx.get_light_cluster_indices_buffer_index(frame_index),
+			.cluster_light_indices_buffer_uav_index = ctx.get_light_cluster_indices_buffer_uav_index(frame_index),
+			.reflection_probe_count					= prep_data.reflection_probe_count,
+			.environment_intensity					= snapshot.environment.intensity,
+			.cluster_buffer_offset					= 0,
+			.cluster_light_indices_buffer_offset	= 0,
+			.cluster_light_capacity					= WORLD_RENDER_CLUSTER_LIGHT_CAPACITY,
+			.debug_cluster_heatmap					= snapshot.environment.debug_cluster_heatmap,
 		};
+
 		SFG_MEMCPY(ctx.get_mapped_lighting_render_pass_data(frame_index), &lighting_render_pass_data, sizeof(render_pass_data_lighting_gpu_t));
+
+		const bool									   ssao_active						  = ctx.is_ssao_enabled() && snapshot.post_process.ssao.enabled != 0;
+		const render_resources_t&					   render_resources					  = render_resources_t::get();
+		const gpu_index_t							   ambient_occlusion_index			  = ssao_active ? ctx.get_ao_texture_index(frame_index) : render_resources.get_texture_gpu_index(render_resources.get_white_texture(), 0);
+		const render_pass_data_deferred_lighting_gpu_t deferred_lighting_render_pass_data = {
+			.gbuffer_albedo_index	 = ctx.get_gbuffer_albedo_index(frame_index),
+			.gbuffer_normal_index	 = ctx.get_gbuffer_normal_index(frame_index),
+			.gbuffer_orm_index		 = ctx.get_gbuffer_orm_index(frame_index),
+			.gbuffer_emissive_index	 = ctx.get_gbuffer_emissive_index(frame_index),
+			.ambient_occlusion_index = ambient_occlusion_index,
+		};
+
+		SFG_MEMCPY(ctx.get_mapped_deferred_lighting_render_pass_data(frame_index), &deferred_lighting_render_pass_data, sizeof(render_pass_data_deferred_lighting_gpu_t));
 
 		if (ctx.is_ssao_enabled())
 		{
