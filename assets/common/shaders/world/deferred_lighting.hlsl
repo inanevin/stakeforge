@@ -132,7 +132,7 @@ float4 PSMain(vs_output input) : SV_TARGET
 
 	const float3 world_pos = reconstruct_world_position(input.uv, device_depth, view_data.inv_view_proj);
 	const float view_depth = abs(mul(view_data.view, float4(world_pos, 1.0)).z);
-	const uint cluster_index = lighting_data.cluster_buffer_offset + get_light_cluster_index((uint2)pixel, view_depth, lighting_data.cluster_dims, lighting_data.cluster_depth);
+	const uint cluster_index = view_data.cluster_buffer_offset + get_light_cluster_index((uint2)pixel, view_depth, view_data.cluster_dims, view_data.cluster_depth);
 	const gpu_light_cluster cluster = cluster_buffer[cluster_index];
 
 	if (lighting_data.debug_cluster_heatmap != 0)

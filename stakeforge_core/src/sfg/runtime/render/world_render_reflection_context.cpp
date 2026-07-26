@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "world_render_reflection_context.hpp"
+#include "world_gpu_reflection_probe.hpp"
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/gfx/util/image_util.hpp>
@@ -43,6 +44,12 @@ namespace sfg
 
 	world_render_reflection_context_t& world_render_reflection_context_t::operator=(world_render_reflection_context_t&& other) noexcept
 	{
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
+		{
+			_pfd[i]		  = other._pfd[i];
+			other._pfd[i] = {};
+		}
+
 		for (u32 i = 0; i < WORLD_RENDER_REFLECTION_ALLOCATION_CAPACITY; ++i)
 		{
 			_allocations[i]		  = other._allocations[i];
@@ -72,6 +79,13 @@ namespace sfg
 
 		const u32 allocation_count = config.allocation_max == 0 ? 1 : config.allocation_max;
 
+		resource_desc_t probe_buffer_desc = {};
+		probe_buffer_desc.size			  = static_cast<u32>(sizeof(gpu_reflection_probe_t) * allocation_count);
+		probe_buffer_desc.structure_size  = static_cast<u32>(sizeof(gpu_reflection_probe_t));
+		probe_buffer_desc.structure_count = allocation_count;
+		probe_buffer_desc.flags			  = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
+		probe_buffer_desc.set_name("world_reflection_probe_buffer");
+
 		resource_desc_t diffuse_sh_buffer_desc = {};
 		diffuse_sh_buffer_desc.size			   = static_cast<u32>(sizeof(vec4f_t) * WORLD_RENDER_REFLECTION_SH_COEFFICIENT_COUNT * allocation_count);
 		diffuse_sh_buffer_desc.structure_size  = static_cast<u32>(sizeof(vec4f_t));
@@ -84,6 +98,15 @@ namespace sfg
 		_diffuse_sh_buffer			 = backend.create_resource(diffuse_sh_buffer_desc);
 		_diffuse_sh_buffer_index	 = backend.get_resource_gpu_index(_diffuse_sh_buffer);
 		_diffuse_sh_buffer_uav_index = backend.get_resource_gpu_index(_diffuse_sh_buffer, true);
+
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
+		{
+			SFG_ASSERT(_pfd[i].probe_buffer.is_null());
+
+			_pfd[i].probe_buffer = backend.create_resource(probe_buffer_desc);
+			backend.map_resource(_pfd[i].probe_buffer, _pfd[i].mapped_probe_buffer);
+			_pfd[i].probe_buffer_index = backend.get_resource_gpu_index(_pfd[i].probe_buffer);
+		}
 	}
 
 	void world_render_reflection_context_t::uninit()
@@ -93,6 +116,14 @@ namespace sfg
 		gfx_backend& backend = gfx_backend::get();
 
 		backend.destroy_resource(_diffuse_sh_buffer);
+
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
+		{
+			SFG_ASSERT(!_pfd[i].probe_buffer.is_null());
+
+			backend.destroy_resource(_pfd[i].probe_buffer);
+			_pfd[i] = {};
+		}
 
 		for (world_render_reflection_allocation_t& allocation : _allocations)
 		{

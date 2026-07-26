@@ -339,7 +339,7 @@ float4 PSMain(vs_output IN) : SV_TARGET
 #endif
 
     float view_depth = abs(mul(view_data.view, float4(IN.world_pos, 1.0)).z);
-    uint cluster_index = lighting_data.cluster_buffer_offset + get_light_cluster_index((uint2)IN.pos.xy, view_depth, lighting_data.cluster_dims, lighting_data.cluster_depth);
+    uint cluster_index = view_data.cluster_buffer_offset + get_light_cluster_index((uint2)IN.pos.xy, view_depth, view_data.cluster_dims, view_data.cluster_depth);
     gpu_light_cluster cluster = cluster_buffer[cluster_index];
 
     if (lighting_data.debug_cluster_heatmap != 0)

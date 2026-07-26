@@ -43,25 +43,28 @@ namespace sfg
 
 	struct render_pass_data_view_gpu_t
 	{
-		mat4x4_t	view				= mat4x4_t::identity;
-		mat4x4_t	view_proj			= mat4x4_t::identity;
-		mat4x4_t	inv_view			= mat4x4_t::identity;
-		mat4x4_t	inv_view_proj		= mat4x4_t::identity;
-		vec4f_t		camera_pos			= vec4f_t::zero;
-		vec2f_t		viewport_size		= vec2f_t::zero;
-		vec2f_t		inv_viewport_size	= vec2f_t::zero;
-		f32			near_plane			= 0.0f;
-		f32			far_plane			= 0.0f;
-		gpu_index_t depth_texture_index = NULL_GPU_INDEX;
-		u32			pad					= 0;
+		mat4x4_t	view								= mat4x4_t::identity;
+		mat4x4_t	view_proj							= mat4x4_t::identity;
+		mat4x4_t	inv_view							= mat4x4_t::identity;
+		mat4x4_t	inv_view_proj						= mat4x4_t::identity;
+		vec4f_t		camera_pos							= vec4f_t::zero;
+		vec4f_t		cluster_depth						= vec4f_t::zero;
+		u32			cluster_dims[4]						= {};
+		vec2f_t		viewport_size						= vec2f_t::zero;
+		vec2f_t		inv_viewport_size					= vec2f_t::zero;
+		f32			near_plane							= 0.0f;
+		f32			far_plane							= 0.0f;
+		gpu_index_t depth_texture_index					= NULL_GPU_INDEX;
+		u32			cluster_buffer_offset				= 0;
+		u32			cluster_light_indices_buffer_offset = 0;
+		u32			cluster_light_capacity				= 0;
+		u32			pad[2]								= {};
 	};
 
 	struct render_pass_data_lighting_gpu_t
 	{
 		vec4f_t		ambient_color						   = vec4f_t::zero;
-		vec4f_t		cluster_depth						   = vec4f_t::zero;
 		u32			light_counts[4]						   = {};
-		u32			cluster_dims[4]						   = {};
 		gpu_index_t light_buffer_index					   = NULL_GPU_INDEX;
 		gpu_index_t shadow_buffer_index					   = NULL_GPU_INDEX;
 		gpu_index_t reflection_probe_buffer_index		   = NULL_GPU_INDEX;
@@ -71,11 +74,8 @@ namespace sfg
 		gpu_index_t cluster_light_indices_buffer_uav_index = NULL_GPU_INDEX;
 		u32			reflection_probe_count				   = 0;
 		f32			environment_intensity				   = 1.0f;
-		u32			cluster_buffer_offset				   = 0;
-		u32			cluster_light_indices_buffer_offset	   = 0;
-		u32			cluster_light_capacity				   = 0;
 		u32			debug_cluster_heatmap				   = 0;
-		u32			pad[3]								   = {};
+		u32			pad[2]								   = {};
 	};
 
 	struct render_pass_data_deferred_lighting_gpu_t
@@ -88,8 +88,8 @@ namespace sfg
 		u32			pad[3]					= {};
 	};
 
-	static_assert(sizeof(render_pass_data_view_gpu_t) == 304);
-	static_assert(sizeof(render_pass_data_lighting_gpu_t) == 128);
+	static_assert(sizeof(render_pass_data_view_gpu_t) == 352);
+	static_assert(sizeof(render_pass_data_lighting_gpu_t) == 80);
 	static_assert(sizeof(render_pass_data_deferred_lighting_gpu_t) == 32);
 
 	struct render_pass_data_post_process_gpu_t
@@ -387,11 +387,6 @@ namespace sfg
 			return _pfd[frame_index].light_buffer_index;
 		}
 
-		inline gpu_index_t get_reflection_probe_buffer_index(u8 frame_index) const
-		{
-			return _pfd[frame_index].reflection_probe_buffer_index;
-		}
-
 		inline gfx_handle_t get_light_cluster_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].light_cluster_buffer;
@@ -602,11 +597,6 @@ namespace sfg
 			return _pfd[frame_index].mapped_light_buffer;
 		}
 
-		inline u8* get_mapped_reflection_probe_buffer(u8 frame_index) const
-		{
-			return _pfd[frame_index].mapped_reflection_probe_buffer;
-		}
-
 		inline u8* get_mapped_debug_line_data(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_debug_line_data;
@@ -697,11 +687,6 @@ namespace sfg
 			return _config.light_max;
 		}
 
-		inline u32 get_reflection_probe_max() const
-		{
-			return _config.reflection_probe_max;
-		}
-
 		inline u32 get_light_cluster_count_x() const
 		{
 			return (static_cast<u32>(_config.size.x) + WORLD_RENDER_CLUSTER_TILE_SIZE - 1) / WORLD_RENDER_CLUSTER_TILE_SIZE;
@@ -739,7 +724,6 @@ namespace sfg
 			u8*			 mapped_post_process_render_pass_data						= nullptr;
 			u8*			 mapped_entity_buffer										= nullptr;
 			u8*			 mapped_light_buffer										= nullptr;
-			u8*			 mapped_reflection_probe_buffer								= nullptr;
 			u8*			 mapped_ssao_render_pass_data								= nullptr;
 			u8*			 mapped_bloom_render_pass_data								= nullptr;
 			u8*			 mapped_bone_buffer											= nullptr;
@@ -760,7 +744,6 @@ namespace sfg
 			gfx_handle_t entity_buffer												= {};
 			gfx_handle_t bone_buffer												= {};
 			gfx_handle_t light_buffer												= {};
-			gfx_handle_t reflection_probe_buffer									= {};
 			gfx_handle_t light_cluster_buffer										= {};
 			gfx_handle_t light_cluster_indices_buffer								= {};
 			gfx_handle_t debug_line_data											= {};
@@ -810,7 +793,6 @@ namespace sfg
 			gpu_index_t	 entity_buffer_index										= NULL_GPU_INDEX;
 			gpu_index_t	 bone_buffer_index											= NULL_GPU_INDEX;
 			gpu_index_t	 light_buffer_index											= NULL_GPU_INDEX;
-			gpu_index_t	 reflection_probe_buffer_index								= NULL_GPU_INDEX;
 			gpu_index_t	 light_cluster_buffer_index									= NULL_GPU_INDEX;
 			gpu_index_t	 light_cluster_buffer_uav_index								= NULL_GPU_INDEX;
 			gpu_index_t	 light_cluster_indices_buffer_index							= NULL_GPU_INDEX;

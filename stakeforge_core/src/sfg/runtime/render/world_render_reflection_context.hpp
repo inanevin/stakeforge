@@ -90,6 +90,21 @@ namespace sfg
 			return _diffuse_sh_buffer;
 		}
 
+		inline gfx_handle_t get_probe_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].probe_buffer;
+		}
+
+		inline u8* get_mapped_probe_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_probe_buffer;
+		}
+
+		inline gpu_index_t get_probe_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].probe_buffer_index;
+		}
+
 		inline gpu_index_t get_diffuse_sh_buffer_index() const
 		{
 			return _diffuse_sh_buffer_index;
@@ -100,7 +115,21 @@ namespace sfg
 			return _diffuse_sh_buffer_uav_index;
 		}
 
+		inline u16 get_probe_max() const
+		{
+			return _config.allocation_max;
+		}
+
 	private:
+		struct per_frame_data_t
+		{
+			u8*			 mapped_probe_buffer = nullptr;
+			gfx_handle_t probe_buffer		 = {};
+			gpu_index_t	 probe_buffer_index	 = NULL_GPU_INDEX;
+		};
+
+	private:
+		per_frame_data_t						 _pfd[BACK_BUFFER_COUNT]								   = {};
 		world_render_reflection_allocation_t	 _allocations[WORLD_RENDER_REFLECTION_ALLOCATION_CAPACITY] = {};
 		u64										 _id_counter											   = 0;
 		gfx_handle_t							 _diffuse_sh_buffer										   = {};

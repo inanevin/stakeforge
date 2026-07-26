@@ -186,20 +186,27 @@ namespace sfg
 
 		main_camera_view_t.calculate(snapshot.main_view, render_size, interpolation_alpha);
 
-		u32 light_counts[4] = {};
+		const f32 cluster_log_scale = WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT / std::log2(main_camera_view_t.far_plane / main_camera_view_t.near_plane);
+		const f32 cluster_log_bias	= -std::log2(main_camera_view_t.near_plane) * cluster_log_scale;
+		u32		  light_counts[4]	= {};
 
 		prep_data.add_view({
-			.view				 = main_camera_view_t.view,
-			.view_proj			 = main_camera_view_t.view_proj,
-			.inv_view			 = main_camera_view_t.inv_view,
-			.inv_view_proj		 = main_camera_view_t.inv_view_proj,
-			.frustum			 = main_camera_view_t.frustum,
-			.camera_pos			 = vec4f_t(main_camera_view_t.pos.x, main_camera_view_t.pos.y, main_camera_view_t.pos.z, 1.0f),
-			.viewport_size		 = vec2f_t(render_size.x, render_size.y),
-			.inv_viewport_size	 = vec2f_t(1.0f / render_size.x, 1.0f / render_size.y),
-			.near_plane			 = main_camera_view_t.near_plane,
-			.far_plane			 = main_camera_view_t.far_plane,
-			.depth_texture_index = ctx.get_depth_texture_index(frame_index),
+			.view								 = main_camera_view_t.view,
+			.view_proj							 = main_camera_view_t.view_proj,
+			.inv_view							 = main_camera_view_t.inv_view,
+			.inv_view_proj						 = main_camera_view_t.inv_view_proj,
+			.frustum							 = main_camera_view_t.frustum,
+			.camera_pos							 = vec4f_t(main_camera_view_t.pos.x, main_camera_view_t.pos.y, main_camera_view_t.pos.z, 1.0f),
+			.cluster_depth						 = vec4f_t(main_camera_view_t.near_plane, main_camera_view_t.far_plane, cluster_log_scale, cluster_log_bias),
+			.cluster_dims						 = {ctx.get_light_cluster_count_x(), ctx.get_light_cluster_count_y(), WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT, WORLD_RENDER_CLUSTER_TILE_SIZE},
+			.viewport_size						 = vec2f_t(render_size.x, render_size.y),
+			.inv_viewport_size					 = vec2f_t(1.0f / render_size.x, 1.0f / render_size.y),
+			.near_plane							 = main_camera_view_t.near_plane,
+			.far_plane							 = main_camera_view_t.far_plane,
+			.depth_texture_index				 = ctx.get_depth_texture_index(frame_index),
+			.cluster_buffer_offset				 = 0,
+			.cluster_light_indices_buffer_offset = 0,
+			.cluster_light_capacity				 = WORLD_RENDER_CLUSTER_LIGHT_CAPACITY,
 		});
 
 		world_rendering_util_t::prep_shadows(ctx, snapshot, prep_data, main_camera_view_t, interpolation_alpha);

@@ -298,7 +298,7 @@ namespace sfg
 	{
 		// reflection probe buffer prep.
 		world_render_reflection_context_t& reflection_context	   = ctx.get_reflection_context();
-		gpu_reflection_probe_t*			   reflection_probe_buffer = reinterpret_cast<gpu_reflection_probe_t*>(ctx.get_mapped_reflection_probe_buffer(frame_index));
+		gpu_reflection_probe_t*			   reflection_probe_buffer = reinterpret_cast<gpu_reflection_probe_t*>(reflection_context.get_mapped_probe_buffer(frame_index));
 
 		prep_data.reflection_probe_count = 0;
 
@@ -338,7 +338,7 @@ namespace sfg
 					continue;
 			}
 
-			SFG_ASSERT(prep_data.reflection_probe_count < ctx.get_reflection_probe_max());
+			SFG_ASSERT(prep_data.reflection_probe_count < reflection_context.get_probe_max());
 
 			reflection_probe_buffer[prep_data.reflection_probe_count] = {
 				.position_blend_distance	   = {pos.x, pos.y, pos.z, reflection_probe.blend_distance},
@@ -381,16 +381,21 @@ namespace sfg
 			SFG_MEMCPY(shadow_context.get_mapped_views(frame_index) + view_index * sizeof(gpu_shadow_view_t), &gpu_view, sizeof(gpu_shadow_view_t));
 
 			const render_pass_data_view_gpu_t shadow_pass_data = {
-				.view				 = prep_view.view,
-				.view_proj			 = prep_view.view_proj,
-				.inv_view			 = prep_view.inv_view,
-				.inv_view_proj		 = prep_view.inv_view_proj,
-				.camera_pos			 = prep_view.camera_pos,
-				.viewport_size		 = prep_view.viewport_size,
-				.inv_viewport_size	 = prep_view.inv_viewport_size,
-				.near_plane			 = prep_view.near_plane,
-				.far_plane			 = prep_view.far_plane,
-				.depth_texture_index = prep_view.depth_texture_index,
+				.view								 = prep_view.view,
+				.view_proj							 = prep_view.view_proj,
+				.inv_view							 = prep_view.inv_view,
+				.inv_view_proj						 = prep_view.inv_view_proj,
+				.camera_pos							 = prep_view.camera_pos,
+				.cluster_depth						 = prep_view.cluster_depth,
+				.cluster_dims						 = {prep_view.cluster_dims[0], prep_view.cluster_dims[1], prep_view.cluster_dims[2], prep_view.cluster_dims[3]},
+				.viewport_size						 = prep_view.viewport_size,
+				.inv_viewport_size					 = prep_view.inv_viewport_size,
+				.near_plane							 = prep_view.near_plane,
+				.far_plane							 = prep_view.far_plane,
+				.depth_texture_index				 = prep_view.depth_texture_index,
+				.cluster_buffer_offset				 = prep_view.cluster_buffer_offset,
+				.cluster_light_indices_buffer_offset = prep_view.cluster_light_indices_buffer_offset,
+				.cluster_light_capacity				 = prep_view.cluster_light_capacity,
 			};
 
 			SFG_MEMCPY(shadow_context.get_mapped_view_data(frame_index, static_cast<u16>(view_index)), &shadow_pass_data, sizeof(render_pass_data_view_gpu_t));
@@ -480,41 +485,39 @@ namespace sfg
 	void world_rendering_util_t::prep_render_pass_buffers(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, const u32 (&light_counts)[4], u8 frame_index)
 	{
 		// rp data
-		const vec2u16_t					  render_size			= ctx.get_size();
+		const world_render_prep_view_t&	  main_prep_view		= prep_data.views[0];
 		const render_pass_data_view_gpu_t view_render_pass_data = {
-			.view				 = main_camera_view.view,
-			.view_proj			 = main_camera_view.view_proj,
-			.inv_view			 = main_camera_view.inv_view,
-			.inv_view_proj		 = main_camera_view.inv_view_proj,
-			.camera_pos			 = vec4f_t(main_camera_view.pos.x, main_camera_view.pos.y, main_camera_view.pos.z, 1.0f),
-			.viewport_size		 = vec2f_t(render_size.x, render_size.y),
-			.inv_viewport_size	 = vec2f_t(1.0f / render_size.x, 1.0f / render_size.y),
-			.near_plane			 = main_camera_view.near_plane,
-			.far_plane			 = main_camera_view.far_plane,
-			.depth_texture_index = ctx.get_depth_texture_index(frame_index),
+			.view								 = main_prep_view.view,
+			.view_proj							 = main_prep_view.view_proj,
+			.inv_view							 = main_prep_view.inv_view,
+			.inv_view_proj						 = main_prep_view.inv_view_proj,
+			.camera_pos							 = main_prep_view.camera_pos,
+			.cluster_depth						 = main_prep_view.cluster_depth,
+			.cluster_dims						 = {main_prep_view.cluster_dims[0], main_prep_view.cluster_dims[1], main_prep_view.cluster_dims[2], main_prep_view.cluster_dims[3]},
+			.viewport_size						 = main_prep_view.viewport_size,
+			.inv_viewport_size					 = main_prep_view.inv_viewport_size,
+			.near_plane							 = main_prep_view.near_plane,
+			.far_plane							 = main_prep_view.far_plane,
+			.depth_texture_index				 = main_prep_view.depth_texture_index,
+			.cluster_buffer_offset				 = main_prep_view.cluster_buffer_offset,
+			.cluster_light_indices_buffer_offset = main_prep_view.cluster_light_indices_buffer_offset,
+			.cluster_light_capacity				 = main_prep_view.cluster_light_capacity,
 		};
 
 		SFG_MEMCPY(ctx.get_mapped_view_render_pass_data(frame_index), &view_render_pass_data, sizeof(render_pass_data_view_gpu_t));
 
-		const f32							  cluster_log_scale			= WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT / std::log2(main_camera_view.far_plane / main_camera_view.near_plane);
-		const f32							  cluster_log_bias			= -std::log2(main_camera_view.near_plane) * cluster_log_scale;
 		const render_pass_data_lighting_gpu_t lighting_render_pass_data = {
 			.ambient_color							= snapshot.environment.ambient_color,
-			.cluster_depth							= vec4f_t(main_camera_view.near_plane, main_camera_view.far_plane, cluster_log_scale, cluster_log_bias),
 			.light_counts							= {light_counts[0], light_counts[1], light_counts[2], light_counts[3]},
-			.cluster_dims							= {ctx.get_light_cluster_count_x(), ctx.get_light_cluster_count_y(), WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT, WORLD_RENDER_CLUSTER_TILE_SIZE},
 			.light_buffer_index						= ctx.get_light_buffer_index(frame_index),
 			.shadow_buffer_index					= ctx.get_shadow_context().get_view_buffer_index(frame_index),
-			.reflection_probe_buffer_index			= ctx.get_reflection_probe_buffer_index(frame_index),
+			.reflection_probe_buffer_index			= ctx.get_reflection_context().get_probe_buffer_index(frame_index),
 			.cluster_buffer_index					= ctx.get_light_cluster_buffer_index(frame_index),
 			.cluster_buffer_uav_index				= ctx.get_light_cluster_buffer_uav_index(frame_index),
 			.cluster_light_indices_buffer_index		= ctx.get_light_cluster_indices_buffer_index(frame_index),
 			.cluster_light_indices_buffer_uav_index = ctx.get_light_cluster_indices_buffer_uav_index(frame_index),
 			.reflection_probe_count					= prep_data.reflection_probe_count,
 			.environment_intensity					= snapshot.environment.intensity,
-			.cluster_buffer_offset					= 0,
-			.cluster_light_indices_buffer_offset	= 0,
-			.cluster_light_capacity					= WORLD_RENDER_CLUSTER_LIGHT_CAPACITY,
 			.debug_cluster_heatmap					= snapshot.environment.debug_cluster_heatmap,
 		};
 

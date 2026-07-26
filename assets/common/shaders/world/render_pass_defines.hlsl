@@ -42,20 +42,23 @@ struct render_pass_data_view
     float4x4 inv_view;
     float4x4 inv_view_proj;
     float4 camera_pos;
+    float4 cluster_depth;
+    uint4 cluster_dims;
     float2 viewport_size;
     float2 inv_viewport_size;
     float near_plane;
     float far_plane;
     uint depth_texture_index;
-    uint pad;
+    uint cluster_buffer_offset;
+    uint cluster_light_indices_buffer_offset;
+    uint cluster_light_capacity;
+    uint2 pad;
 };
 
 struct render_pass_data_lighting
 {
     float4 ambient_color;
-    float4 cluster_depth;
     uint4 light_counts;
-    uint4 cluster_dims;
     uint light_buffer_index;
     uint shadow_buffer_index;
     uint reflection_probe_buffer_index;
@@ -65,11 +68,8 @@ struct render_pass_data_lighting
     uint cluster_light_indices_buffer_uav_index;
     uint reflection_probe_count;
     float environment_intensity;
-    uint cluster_buffer_offset;
-    uint cluster_light_indices_buffer_offset;
-    uint cluster_light_capacity;
     uint debug_cluster_heatmap;
-    uint3 pad;
+    uint2 pad;
 };
 
 struct render_pass_data_deferred_lighting

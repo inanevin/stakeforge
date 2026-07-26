@@ -91,17 +91,22 @@ namespace sfg
 
 	struct world_render_prep_view_t
 	{
-		mat4x4_t	view				= mat4x4_t::identity;
-		mat4x4_t	view_proj			= mat4x4_t::identity;
-		mat4x4_t	inv_view			= mat4x4_t::identity;
-		mat4x4_t	inv_view_proj		= mat4x4_t::identity;
-		frustum_t	frustum				= {};
-		vec4f_t		camera_pos			= vec4f_t::zero;
-		vec2f_t		viewport_size		= vec2f_t::zero;
-		vec2f_t		inv_viewport_size	= vec2f_t::zero;
-		f32			near_plane			= 0.0f;
-		f32			far_plane			= 0.0f;
-		gpu_index_t depth_texture_index = NULL_GPU_INDEX;
+		mat4x4_t	view								= mat4x4_t::identity;
+		mat4x4_t	view_proj							= mat4x4_t::identity;
+		mat4x4_t	inv_view							= mat4x4_t::identity;
+		mat4x4_t	inv_view_proj						= mat4x4_t::identity;
+		frustum_t	frustum								= {};
+		vec4f_t		camera_pos							= vec4f_t::zero;
+		vec4f_t		cluster_depth						= vec4f_t::zero;
+		u32			cluster_dims[4]						= {};
+		vec2f_t		viewport_size						= vec2f_t::zero;
+		vec2f_t		inv_viewport_size					= vec2f_t::zero;
+		f32			near_plane							= 0.0f;
+		f32			far_plane							= 0.0f;
+		gpu_index_t depth_texture_index					= NULL_GPU_INDEX;
+		u32			cluster_buffer_offset				= 0;
+		u32			cluster_light_indices_buffer_offset = 0;
+		u32			cluster_light_capacity				= 0;
 	};
 
 	struct world_render_prep_data_t
