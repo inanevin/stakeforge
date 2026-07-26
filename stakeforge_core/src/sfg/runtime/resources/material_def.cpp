@@ -44,7 +44,10 @@ namespace sfg
 	void material_def_t::serialize(ostream_t& stream) const
 	{
 		stream << shader;
-		stream << pass_flags.value();
+		stream << write_depth;
+		stream << write_shadows;
+		stream << write_reflections;
+		stream << is_transparent;
 		stream << double_sided;
 		stream << use_alpha_cutoff;
 
@@ -90,12 +93,13 @@ namespace sfg
 	{
 		*this = {};
 
-		u32 pass_flags_value = 0;
 		stream >> shader;
-		stream >> pass_flags_value;
+		stream >> write_depth;
+		stream >> write_shadows;
+		stream >> write_reflections;
+		stream >> is_transparent;
 		stream >> double_sided;
 		stream >> use_alpha_cutoff;
-		pass_flags = pass_flags_value;
 
 		u8 texture_count = 0;
 		stream >> texture_count;
@@ -252,30 +256,40 @@ namespace sfg
 
 	void to_json(nlohmann::json& j, const material_def_t& value)
 	{
-		j["shader"]			  = value.shader;
-		j["pass_flags"]		  = value.pass_flags.value();
-		j["double_sided"]	  = value.double_sided;
-		j["use_alpha_cutoff"] = value.use_alpha_cutoff;
-		j["textures"]		  = nlohmann::json::array();
-		j["samplers"]		  = nlohmann::json::array();
-		j["parameters"]		  = nlohmann::json::array();
+		j["shader"]			   = value.shader;
+		j["write_depth"]	   = value.write_depth;
+		j["write_shadows"]	   = value.write_shadows;
+		j["write_reflections"] = value.write_reflections;
+		j["is_transparent"]	   = value.is_transparent;
+		j["double_sided"]	   = value.double_sided;
+		j["use_alpha_cutoff"]  = value.use_alpha_cutoff;
+		j["textures"]		   = nlohmann::json::array();
+		j["samplers"]		   = nlohmann::json::array();
+		j["parameters"]		   = nlohmann::json::array();
+
 		for (const material_texture_value_t& texture : value.textures)
 			j["textures"].push_back(texture);
+
 		for (const material_sampler_value_t& sampler : value.samplers)
 			j["samplers"].push_back(sampler);
+
 		for (const material_param_value_t& parameter : value.parameters)
 			j["parameters"].push_back(parameter);
 	}
 
 	void from_json(const nlohmann::json& j, material_def_t& value)
 	{
-		value				   = {};
-		value.shader		   = j.value<resource_handle_t>("shader", NULL_RESOURCE_HANDLE);
-		value.pass_flags	   = j.value<u32>("pass_flags", 0);
-		value.double_sided	   = j.value<bool>("double_sided", false);
-		value.use_alpha_cutoff = j.value<bool>("use_alpha_cutoff", false);
+		value					= {};
+		value.shader			= j.value<resource_handle_t>("shader", NULL_RESOURCE_HANDLE);
+		value.write_depth		= j.value<bool>("write_depth", false);
+		value.write_shadows		= j.value<bool>("write_shadows", false);
+		value.write_reflections = j.value<bool>("write_reflections", false);
+		value.is_transparent	= j.value<bool>("is_transparent", false);
+		value.double_sided		= j.value<bool>("double_sided", false);
+		value.use_alpha_cutoff	= j.value<bool>("use_alpha_cutoff", false);
 
 		const nlohmann::json textures = j.value("textures", nlohmann::json::array());
+
 		for (const nlohmann::json& item : textures)
 		{
 			if (value.textures.full())
@@ -284,6 +298,7 @@ namespace sfg
 		}
 
 		const nlohmann::json samplers = j.value("samplers", nlohmann::json::array());
+
 		for (const nlohmann::json& item : samplers)
 		{
 			if (value.samplers.full())
@@ -292,6 +307,7 @@ namespace sfg
 		}
 
 		const nlohmann::json parameters = j.value("parameters", nlohmann::json::array());
+
 		for (const nlohmann::json& item : parameters)
 		{
 			if (value.parameters.full())

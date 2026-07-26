@@ -5,7 +5,10 @@
     "sub_type": 3,
     "embedded_source": {
         "schema": "sfg.schema.material",
-        "pass_flags": 0,
+        "write_depth": false,
+        "write_shadows": false,
+        "write_reflections": false,
+        "is_transparent": false,
         "shader": 1026,
         "textures": [],
         "samplers": [],

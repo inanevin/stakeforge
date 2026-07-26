@@ -35,39 +35,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widget_reference.hpp"
 #include "ui/widgets/editor_widgets_color_field.hpp"
-#include "ui/widgets/editor_widgets_dropdown.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
-#include <sfg/data/frame_vector.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
-#include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-	namespace
-	{
-		void build_world_pass_items(frame_vector_t<editor_dropdown_item_t>& items)
-		{
-			const reflected_type_t* enum_type		= reflection_registry_t::get().find_type(type_id_t<world_pass_flags_e>::value);
-			const u32				enum_item_count = enum_type->fields.end - enum_type->fields.start;
-			items.reserve(enum_item_count);
-
-			for (u32 i = 0; i < enum_item_count; ++i)
-			{
-				const reflected_field_t* enum_field = reflection_registry_t::get().get_field(enum_type->fields.start + i);
-				const u32				 value		= i == 0 ? 0 : 1u << (i - 1);
-				items.push_back({
-					.text  = enum_field->display_name != nullptr ? enum_field->display_name : enum_field->name,
-					.value = static_cast<u16>(value),
-				});
-			}
-		}
-	}
-
 	void editor_widget_material_editor_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
 		_ui = &ui;
@@ -102,7 +78,6 @@ namespace sfg
 		_edit_material_ids.resize(0);
 		_shader_edit_previous_materials.resize(0);
 		_shader_edit_material_ids.resize(0);
-		_pass_flags.resize(0);
 		_shader_definition		   = {};
 		_ui						   = nullptr;
 		_root					   = NULL_WIDGET;
@@ -125,7 +100,6 @@ namespace sfg
 		clear_display();
 		_materials.resize(0);
 		_material_ids.resize(0);
-		_pass_flags.resize(0);
 		_shader_definition = {};
 		_has_shared_shader = false;
 		_materials.reserve(materials.size);
@@ -199,62 +173,29 @@ namespace sfg
 		_references.push_back(shader_ref);
 		append_property_row(shader_row.row);
 
-		_pass_flags.reserve(_materials.size());
-		for (const material_def_t& material : _materials)
-			_pass_flags.push_back(material.pass_flags.value());
+		const auto append_bool_property = [&](const char* label, bool material_def_t::* member) {
+			vector_t<u8*> fields = {};
+			fields.reserve(_materials.size());
 
-		vector_t<u8*> pass_fields = {};
-		pass_fields.reserve(_pass_flags.size());
-		for (u32& pass_flags : _pass_flags)
-			pass_fields.push_back(reinterpret_cast<u8*>(&pass_flags));
+			for (material_def_t& material : _materials)
+				fields.push_back(reinterpret_cast<u8*>(&(material.*member)));
 
-		frame_vector_t<editor_dropdown_item_t> pass_items = {};
-		build_world_pass_items(pass_items);
+			const editor_property_row_t row		= editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, label);
+			editor_checkbox_t*			control = new editor_checkbox_t();
+			control->init(*_ui, row.right, {.field = {.fields = {.data = fields.data(), .size = fields.size()}}, .callbacks = callbacks});
+			_ui->get_tree().in(control->get_root()).pos_mode_y	= ui::pos_mode_e::relative_in_parent;
+			_ui->get_tree().in(control->get_root()).anchor_y	= ui::anchor_e::center;
+			_ui->get_tree().in(control->get_root()).pos_value.y = 0.5f;
+			_checkboxes.push_back(control);
+			append_property_row(row.row);
+		};
 
-		const editor_property_row_t pass_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, "Pass Mask");
-		editor_dropdown_t*			pass	 = new editor_dropdown_t();
-		pass->init(*_ui,
-				   pass_row.right,
-				   {
-					   .items	   = pass_items.data(),
-					   .field	   = {.fields = {.data = pass_fields.data(), .size = pass_fields.size()}, .field_size = sizeof(u32)},
-					   .callbacks  = callbacks,
-					   .item_count = static_cast<u16>(pass_items.size()),
-					   .width	   = editor_dropdown_width_e::parent_relative,
-					   .pos_y	   = editor_dropdown_pos_y_e::center,
-					   .is_bitmask = true,
-				   });
-		fit_control(pass->get_root());
-		_dropdowns.push_back(pass);
-		append_property_row(pass_row.row);
-
-		vector_t<u8*> double_sided_fields = {};
-		double_sided_fields.reserve(_materials.size());
-		for (material_def_t& material : _materials)
-			double_sided_fields.push_back(reinterpret_cast<u8*>(&material.double_sided));
-
-		const editor_property_row_t double_sided_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, "Double Sided");
-		editor_checkbox_t*			double_sided	 = new editor_checkbox_t();
-		double_sided->init(*_ui, double_sided_row.right, {.field = {.fields = {.data = double_sided_fields.data(), .size = double_sided_fields.size()}}, .callbacks = callbacks});
-		_ui->get_tree().in(double_sided->get_root()).pos_mode_y	 = ui::pos_mode_e::relative_in_parent;
-		_ui->get_tree().in(double_sided->get_root()).anchor_y	 = ui::anchor_e::center;
-		_ui->get_tree().in(double_sided->get_root()).pos_value.y = 0.5f;
-		_checkboxes.push_back(double_sided);
-		append_property_row(double_sided_row.row);
-
-		vector_t<u8*> alpha_cutoff_fields = {};
-		alpha_cutoff_fields.reserve(_materials.size());
-		for (material_def_t& material : _materials)
-			alpha_cutoff_fields.push_back(reinterpret_cast<u8*>(&material.use_alpha_cutoff));
-
-		const editor_property_row_t alpha_cutoff_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, "Alpha Cutoff");
-		editor_checkbox_t*			alpha_cutoff	 = new editor_checkbox_t();
-		alpha_cutoff->init(*_ui, alpha_cutoff_row.right, {.field = {.fields = {.data = alpha_cutoff_fields.data(), .size = alpha_cutoff_fields.size()}}, .callbacks = callbacks});
-		_ui->get_tree().in(alpha_cutoff->get_root()).pos_mode_y	 = ui::pos_mode_e::relative_in_parent;
-		_ui->get_tree().in(alpha_cutoff->get_root()).anchor_y	 = ui::anchor_e::center;
-		_ui->get_tree().in(alpha_cutoff->get_root()).pos_value.y = 0.5f;
-		_checkboxes.push_back(alpha_cutoff);
-		append_property_row(alpha_cutoff_row.row);
+		append_bool_property("Write Depth", &material_def_t::write_depth);
+		append_bool_property("Write Shadows", &material_def_t::write_shadows);
+		append_bool_property("Write Reflections", &material_def_t::write_reflections);
+		append_bool_property("Transparent", &material_def_t::is_transparent);
+		append_bool_property("Double Sided", &material_def_t::double_sided);
+		append_bool_property("Alpha Cutoff", &material_def_t::use_alpha_cutoff);
 	}
 
 	void editor_widget_material_editor_t::refresh_display_data()
@@ -454,11 +395,6 @@ namespace sfg
 			reference->uninit();
 			delete reference;
 		}
-		for (editor_dropdown_t* dropdown : _dropdowns)
-		{
-			dropdown->uninit();
-			delete dropdown;
-		}
 		for (editor_checkbox_t* checkbox : _checkboxes)
 		{
 			checkbox->uninit();
@@ -492,7 +428,6 @@ namespace sfg
 			_ui->deallocate_widget(divider);
 
 		_references.resize(0);
-		_dropdowns.resize(0);
 		_checkboxes.resize(0);
 		_color_fields.resize(0);
 		_inputs.resize(0);
@@ -548,10 +483,13 @@ namespace sfg
 	{
 		for (material_def_t& material : _materials)
 		{
-			material_def_t normalized	= material_def_from_shader_def(_shader_definition, material.shader);
-			normalized.pass_flags		= material.pass_flags;
-			normalized.double_sided		= material.double_sided;
-			normalized.use_alpha_cutoff = material.use_alpha_cutoff;
+			material_def_t normalized	 = material_def_from_shader_def(_shader_definition, material.shader);
+			normalized.write_depth		 = material.write_depth;
+			normalized.write_shadows	 = material.write_shadows;
+			normalized.write_reflections = material.write_reflections;
+			normalized.is_transparent	 = material.is_transparent;
+			normalized.double_sided		 = material.double_sided;
+			normalized.use_alpha_cutoff	 = material.use_alpha_cutoff;
 
 			for (material_texture_value_t& texture : normalized.textures)
 			{
@@ -587,12 +525,6 @@ namespace sfg
 		}
 	}
 
-	void editor_widget_material_editor_t::sync_pass_flags()
-	{
-		for (size_t i = 0; i < _materials.size(); ++i)
-			_materials[i].pass_flags = _pass_flags[i];
-	}
-
 	void editor_widget_material_editor_t::begin_material_edit()
 	{
 		clear_material_edit();
@@ -606,8 +538,6 @@ namespace sfg
 		if (!_edit_active)
 			return;
 
-		if (!_pass_flags.empty())
-			sync_pass_flags();
 		editor_command_material_edit_t::edit({.data = _edit_material_ids.data(), .size = _edit_material_ids.size()}, {.data = _edit_previous_materials.data(), .size = _edit_previous_materials.size()}, {.data = _materials.data(), .size = _materials.size()});
 		clear_material_edit();
 	}
@@ -686,8 +616,6 @@ namespace sfg
 
 	void editor_widget_material_editor_t::on_material_edited()
 	{
-		if (!_pass_flags.empty())
-			sync_pass_flags();
 	}
 
 	void editor_widget_material_editor_t::on_material_edit_submitted()

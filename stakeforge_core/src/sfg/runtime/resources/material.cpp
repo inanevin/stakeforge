@@ -127,13 +127,16 @@ namespace sfg
 			return false;
 		}
 
-		runtime->pass_flags		  = material.pass_flags;
-		runtime->shader_guid	  = material.shader;
-		runtime->double_sided	  = material.double_sided ? 1 : 0;
-		runtime->use_alpha_cutoff = material.use_alpha_cutoff ? 1 : 0;
-		runtime->parameter_count  = static_cast<u32>(material.parameters.size());
-		runtime->texture_count	  = static_cast<u32>(material.textures.size());
-		runtime->sampler_count	  = static_cast<u32>(material.samplers.size());
+		runtime->shader_guid	   = material.shader;
+		runtime->write_depth	   = material.write_depth ? 1 : 0;
+		runtime->write_shadows	   = material.write_shadows ? 1 : 0;
+		runtime->write_reflections = material.write_reflections ? 1 : 0;
+		runtime->is_transparent	   = material.is_transparent ? 1 : 0;
+		runtime->double_sided	   = material.double_sided ? 1 : 0;
+		runtime->use_alpha_cutoff  = material.use_alpha_cutoff ? 1 : 0;
+		runtime->parameter_count   = static_cast<u32>(material.parameters.size());
+		runtime->texture_count	   = static_cast<u32>(material.textures.size());
+		runtime->sampler_count	   = static_cast<u32>(material.samplers.size());
 
 		if (runtime->parameter_count != 0)
 		{

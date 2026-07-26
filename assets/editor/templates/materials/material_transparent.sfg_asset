@@ -5,7 +5,10 @@
     "sub_type": 1,
     "embedded_source": {
         "schema": "sfg.schema.material",
-        "pass_flags": 50,
+        "write_depth": false,
+        "write_shadows": false,
+        "write_reflections": true,
+        "is_transparent": true,
         "shader": 1029,
         "textures": [
             {"name": "albedo", "texture": 1002},

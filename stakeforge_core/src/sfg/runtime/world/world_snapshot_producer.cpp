@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/frame_hash_map.hpp>
 #include <sfg/runtime/animation/animation_bone.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/resources/cubemap.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
@@ -88,11 +89,22 @@ namespace sfg
 
 				snapshot.materials.push_back({});
 				world_render_material_t& render_mat = snapshot.materials.back();
-				render_mat.pass_mask				= mat_runtime->pass_flags.value();
+				render_mat.pass_mask				= world_pass_flags_id;
 				render_mat.double_sided				= mat_runtime->double_sided;
 				render_mat.use_alpha_cutoff			= mat_runtime->use_alpha_cutoff;
 				render_mat.texture_count			= mat_runtime->texture_count;
 				render_mat.pso_count				= shader->pso_count;
+
+				render_mat.pass_mask |= mat_runtime->is_transparent != 0 ? world_pass_flags_forward : world_pass_flags_gbuffer;
+
+				if (mat_runtime->is_transparent == 0 && mat_runtime->write_depth != 0)
+					render_mat.pass_mask |= world_pass_flags_depth;
+
+				if (mat_runtime->write_shadows != 0)
+					render_mat.pass_mask |= world_pass_flags_shadow;
+
+				if (mat_runtime->write_reflections != 0)
+					render_mat.pass_mask |= world_pass_flags_reflections;
 
 				for (u8 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
 					render_mat.material_buffers[frame_index] = mat_internals->parameter_buffers[frame_index];

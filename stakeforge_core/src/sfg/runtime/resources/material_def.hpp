@@ -33,9 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/inplace_vector.hpp>
-#include <sfg/data/bitmask.hpp>
 #include <sfg/data/string.hpp>
-#include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
@@ -73,13 +71,16 @@ namespace sfg
 
 	struct material_def_t
 	{
-		inplace_vector_t<material_texture_value_t, SFG_MATERIAL_MAX_TEXTURES> textures		   = {};
-		inplace_vector_t<material_sampler_value_t, SFG_MATERIAL_MAX_TEXTURES> samplers		   = {};
-		inplace_vector_t<material_param_value_t, SFG_MATERIAL_MAX_PARAMS>	  parameters	   = {};
-		resource_handle_t													  shader		   = NULL_RESOURCE_HANDLE;
-		bitmask_t<u32>														  pass_flags	   = 0;
-		bool																  double_sided	   = false;
-		bool																  use_alpha_cutoff = false;
+		inplace_vector_t<material_texture_value_t, SFG_MATERIAL_MAX_TEXTURES> textures			= {};
+		inplace_vector_t<material_sampler_value_t, SFG_MATERIAL_MAX_TEXTURES> samplers			= {};
+		inplace_vector_t<material_param_value_t, SFG_MATERIAL_MAX_PARAMS>	  parameters		= {};
+		resource_handle_t													  shader			= NULL_RESOURCE_HANDLE;
+		bool																  write_depth		= false;
+		bool																  write_shadows		= false;
+		bool																  write_reflections = false;
+		bool																  is_transparent	= false;
+		bool																  double_sided		= false;
+		bool																  use_alpha_cutoff	= false;
 
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);

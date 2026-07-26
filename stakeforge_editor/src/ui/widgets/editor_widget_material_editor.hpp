@@ -43,7 +43,6 @@ namespace sfg
 
 	class editor_checkbox_t;
 	class editor_color_field_t;
-	class editor_dropdown_t;
 	class editor_input_field_t;
 	class editor_vec2_field_t;
 	class editor_vec4_field_t;
@@ -76,7 +75,6 @@ namespace sfg
 		bool can_mutate_ui_topology() const;
 		bool load_shared_shader_definition();
 		void normalize_materials_to_shader_definition();
-		void sync_pass_flags();
 		void begin_material_edit();
 		void submit_material_edit();
 		void clear_material_edit();
@@ -107,7 +105,6 @@ namespace sfg
 
 		shader_data_definition_t			 _shader_definition				 = {};
 		vector_t<editor_widget_reference_t*> _references					 = {};
-		vector_t<editor_dropdown_t*>		 _dropdowns						 = {};
 		vector_t<editor_checkbox_t*>		 _checkboxes					 = {};
 		vector_t<editor_color_field_t*>		 _color_fields					 = {};
 		vector_t<editor_input_field_t*>		 _inputs						 = {};
@@ -123,7 +120,6 @@ namespace sfg
 		vector_t<sid_t>						 _edit_material_ids				 = {};
 		vector_t<material_def_t>			 _shader_edit_previous_materials = {};
 		vector_t<sid_t>						 _shader_edit_material_ids		 = {};
-		vector_t<u32>						 _pass_flags					 = {};
 		bool								 _has_shared_shader				 = false;
 		bool								 _edit_active					 = false;
 		bool								 _shader_edit_active			 = false;
