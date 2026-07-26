@@ -96,6 +96,79 @@ namespace sfg
 
 			backend.cmd_bind_constants(cmd, {.data = constants.data(), .offset = constant_mat0, .count = static_cast<u8>(constants.size()), .param_index = 0});
 		}
+
+		void draw_world_draws(
+			gfx_backend& backend, gfx_handle_t cmd, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, const u32* draw_indices, u32 draw_count, u8 cull_view_index, u32 pass_mask, u32 initial_variant_flags, u8 frame_index)
+		{
+			render_resources_t& render_resources = render_resources_t::get();
+			gfx_handle_t		bound_vertex	 = {};
+			gfx_handle_t		bound_index		 = {};
+			gfx_handle_t		bound_pipeline	 = {};
+			u32					bound_material	 = UINT32_MAX;
+
+			for (u32 i = 0; i < draw_count; ++i)
+			{
+				const u32			draw_index = draw_indices == nullptr ? i : draw_indices[i];
+				const world_draw_t& draw	   = snapshot.draws[draw_index];
+
+				if (cull_view_index != UINT8_MAX && (prep_data.draw_culls[draw_index].cull_mask & (1ull << cull_view_index)) != 0)
+					continue;
+
+				if (pass_mask != 0 && (draw.pass_mask & pass_mask) == 0)
+					continue;
+
+				const gfx_handle_t vertex_buffer = render_resources.get_resource(draw.vertex_buffer);
+				const gfx_handle_t index_buffer	 = render_resources.get_resource(draw.index_buffer);
+
+				SFG_ASSERT(!vertex_buffer.is_null() && !index_buffer.is_null());
+
+				bind_vertex(backend, cmd, bound_vertex, vertex_buffer, draw.vertex_stride);
+				bind_index(backend, cmd, bound_index, index_buffer, draw.index_stride);
+
+				if (!draw.direct_pso.is_null())
+				{
+					bind_pipeline(backend, cmd, bound_pipeline, render_resources.get_shader_hw(draw.direct_pso));
+				}
+				else
+				{
+					SFG_ASSERT(draw.material_index != UINT32_MAX);
+
+					const world_render_material_t& material		 = snapshot.materials[draw.material_index];
+					bitmask_t<u32>				   variant_flags = initial_variant_flags;
+
+					if (material.use_alpha_cutoff != 0)
+						variant_flags.set(shader_variant_flags_alpha_cutoff);
+
+					if (material.double_sided != 0)
+						variant_flags.set(shader_variant_flags_double_sided);
+
+					if (draw.skinning_index != UINT32_MAX)
+						variant_flags.set(shader_variant_flags_skinned);
+
+					const render_resource_handle_t shader_handle = material.find_pso(variant_flags);
+
+					if (shader_handle.is_null())
+						continue;
+
+					bind_pipeline(backend, cmd, bound_pipeline, render_resources.get_shader_hw(shader_handle));
+					bind_material(backend, cmd, bound_material, draw.material_index, material, frame_index);
+				}
+
+				const u32 obj_constants[2] = {
+					draw.entity_index,
+					draw.skinning_index,
+				};
+				backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
+				backend.cmd_draw_indexed_instanced(cmd,
+												   {
+													   .index_count_per_instance = draw.index_count,
+													   .instance_count			 = 1,
+													   .start_index_location	 = draw.start_index,
+													   .base_vertex_location	 = draw.start_vertex,
+													   .start_instance_location	 = 0,
+												   });
+			}
+		}
 	}
 
 	void world_rendering_t::render_world(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
@@ -275,8 +348,6 @@ namespace sfg
 
 		backend.cmd_barrier(cmd, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 
-		render_resources_t& rr = render_resources_t::get();
-
 		for (u32 view_index = 0; view_index < prep_data.shadow_views.size(); ++view_index)
 		{
 			const world_render_shadow_view_t& view = prep_data.shadow_views[view_index];
@@ -287,38 +358,8 @@ namespace sfg
 			const gpu_index_t rp_constants[3] = {shadow_context.get_view_data_index(frame_index, static_cast<u16>(view_index)), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
 			backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
-			gfx_handle_t bound_vertex	= {};
-			gfx_handle_t bound_index	= {};
-			gfx_handle_t bound_pipeline = {};
-			u32			 bound_material = UINT32_MAX;
-
-			for (u32 i = 0; i < view.draw_count; ++i)
-			{
-				const world_draw_t& draw = ss.draws[prep_data.shadow_draw_indices[view.draw_offset + i]];
-
-				if ((draw.pass_mask & world_pass_flags_shadow) == 0 || draw.direct_pso.is_null() == false)
-					continue;
-
-				const world_render_material_t& mat	 = ss.materials[draw.material_index];
-				bitmask_t<u32>				   flags = shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering;
-				flags.set(shader_variant_flags_double_sided, mat.double_sided != 0);
-				flags.set(shader_variant_flags_alpha_cutoff, mat.use_alpha_cutoff != 0);
-				flags.set(shader_variant_flags_skinned, draw.skinning_index != UINT32_MAX);
-
-				const render_resource_handle_t shader = mat.find_pso(flags);
-
-				if (shader.is_null())
-					continue;
-
-				bind_vertex(backend, cmd, bound_vertex, rr.get_resource(draw.vertex_buffer), draw.vertex_stride);
-				bind_index(backend, cmd, bound_index, rr.get_resource(draw.index_buffer), draw.index_stride);
-				bind_pipeline(backend, cmd, bound_pipeline, rr.get_shader_hw(shader));
-				bind_material(backend, cmd, bound_material, draw.material_index, mat, frame_index);
-
-				const u32 obj_constants[2] = {draw.entity_index, draw.skinning_index == UINT32_MAX ? 0 : draw.skinning_index};
-				backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
-				backend.cmd_draw_indexed_instanced(cmd, {.index_count_per_instance = draw.index_count, .instance_count = 1, .start_index_location = draw.start_index, .base_vertex_location = draw.start_vertex});
-			}
+			const u32* draw_indices = view.draw_count == 0 ? nullptr : prep_data.shadow_draw_indices.data() + view.draw_offset;
+			draw_world_draws(backend, cmd, ss, prep_data, draw_indices, view.draw_count, UINT8_MAX, world_pass_flags_shadow, shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering, frame_index);
 
 			backend.cmd_end_render_pass(cmd, {});
 		}
@@ -341,9 +382,8 @@ namespace sfg
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		const gfx_handle_t	cmd			  = ctx.get_command_buffer_depth(frame_index);
-		const gfx_handle_t	depth_texture = ctx.get_depth_texture(frame_index);
-		render_resources_t& rr			  = render_resources_t::get();
+		const gfx_handle_t cmd			 = ctx.get_command_buffer_depth(frame_index);
+		const gfx_handle_t depth_texture = ctx.get_depth_texture(frame_index);
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
 		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
@@ -377,74 +417,8 @@ namespace sfg
 		gpu_index_t rp_constants[3] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
-		gfx_handle_t bound_vertex	= {};
-		gfx_handle_t bound_index	= {};
-		gfx_handle_t bound_pipeline = {};
-		u32			 bound_material = UINT32_MAX;
-
 		const u32 draw_size = static_cast<u32>(ss.draws.size());
-
-		for (u32 i = 0; i < draw_size; i++)
-		{
-			const world_draw_t& draw = ss.draws[i];
-
-			if ((prep_data.draw_culls[i].cull_mask & (1 << 0llu)) != 0)
-				continue;
-
-			if ((draw.pass_mask & world_pass_flags_depth) == 0)
-				continue;
-
-			const gfx_handle_t vtx = rr.get_resource(draw.vertex_buffer);
-			const gfx_handle_t idx = rr.get_resource(draw.index_buffer);
-			SFG_ASSERT(!vtx.is_null() && !idx.is_null());
-
-			bind_vertex(backend, cmd, bound_vertex, vtx, draw.vertex_stride);
-			bind_index(backend, cmd, bound_index, idx, draw.index_stride);
-
-			if (!draw.direct_pso.is_null())
-			{
-				const gfx_handle_t pipeline = rr.get_shader_hw(draw.direct_pso);
-				bind_pipeline(backend, cmd, bound_pipeline, pipeline);
-			}
-			else
-			{
-				SFG_ASSERT(draw.material_index != UINT32_MAX);
-
-				const world_render_material_t& mat	 = ss.materials[draw.material_index];
-				u32							   flags = shader_variant_flags_z_prepass;
-
-				if (mat.double_sided)
-					flags |= shader_variant_flags_double_sided;
-
-				if (mat.use_alpha_cutoff)
-					flags |= shader_variant_flags_alpha_cutoff;
-
-				if (draw.skinning_index != UINT32_MAX)
-					flags |= shader_variant_flags_skinned;
-
-				const render_resource_handle_t shader_handle = mat.find_pso(flags);
-
-				if (shader_handle.is_null())
-					continue;
-
-				const gfx_handle_t pipeline = rr.get_shader_hw(shader_handle);
-				bind_pipeline(backend, cmd, bound_pipeline, pipeline);
-
-				bind_material(backend, cmd, bound_material, draw.material_index, mat, frame_index);
-			}
-
-			const gpu_index_t obj_constants[] = {draw.entity_index, draw.skinning_index};
-			backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = std::size(obj_constants), .param_index = 0});
-
-			backend.cmd_draw_indexed_instanced(cmd,
-											   {
-												   .index_count_per_instance = draw.index_count,
-												   .instance_count			 = 1,
-												   .start_index_location	 = draw.start_index,
-												   .base_vertex_location	 = draw.start_vertex,
-												   .start_instance_location	 = 0,
-											   });
-		}
+		draw_world_draws(backend, cmd, ss, prep_data, nullptr, draw_size, 0, world_pass_flags_depth, shader_variant_flags_z_prepass, frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
@@ -463,13 +437,12 @@ namespace sfg
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		const gfx_handle_t	cmd				 = ctx.get_command_buffer_gbuffer(frame_index);
-		const gfx_handle_t	depth_texture	 = ctx.get_depth_texture(frame_index);
-		const gfx_handle_t	gbuffer_albedo	 = ctx.get_gbuffer_albedo_texture(frame_index);
-		const gfx_handle_t	gbuffer_normal	 = ctx.get_gbuffer_normal_texture(frame_index);
-		const gfx_handle_t	gbuffer_orm		 = ctx.get_gbuffer_orm_texture(frame_index);
-		const gfx_handle_t	gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
-		render_resources_t& rr				 = render_resources_t::get();
+		const gfx_handle_t cmd				= ctx.get_command_buffer_gbuffer(frame_index);
+		const gfx_handle_t depth_texture	= ctx.get_depth_texture(frame_index);
+		const gfx_handle_t gbuffer_albedo	= ctx.get_gbuffer_albedo_texture(frame_index);
+		const gfx_handle_t gbuffer_normal	= ctx.get_gbuffer_normal_texture(frame_index);
+		const gfx_handle_t gbuffer_orm		= ctx.get_gbuffer_orm_texture(frame_index);
+		const gfx_handle_t gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
 		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
@@ -559,75 +532,8 @@ namespace sfg
 		gpu_index_t rp_constants[3] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
-		gfx_handle_t bound_vertex	= {};
-		gfx_handle_t bound_index	= {};
-		gfx_handle_t bound_pipeline = {};
-		u32			 bound_material = UINT32_MAX;
-
 		const u32 draw_size = static_cast<u32>(ss.draws.size());
-
-		for (u32 i = 0; i < draw_size; i++)
-		{
-			const world_draw_t& draw = ss.draws[i];
-
-			if ((prep_data.draw_culls[i].cull_mask & (1 << 0llu)) != 0)
-				continue;
-
-			if ((draw.pass_mask & world_pass_flags_gbuffer) == 0)
-				continue;
-
-			const gfx_handle_t vtx = rr.get_resource(draw.vertex_buffer);
-			const gfx_handle_t idx = rr.get_resource(draw.index_buffer);
-			SFG_ASSERT(!vtx.is_null() && !idx.is_null());
-
-			bind_vertex(backend, cmd, bound_vertex, vtx, draw.vertex_stride);
-			bind_index(backend, cmd, bound_index, idx, draw.index_stride);
-
-			if (!draw.direct_pso.is_null())
-			{
-				const gfx_handle_t pipeline = rr.get_shader_hw(draw.direct_pso);
-				bind_pipeline(backend, cmd, bound_pipeline, pipeline);
-			}
-			else
-			{
-				SFG_ASSERT(draw.material_index != UINT32_MAX);
-
-				const world_render_material_t& mat = ss.materials[draw.material_index];
-
-				u32 flags = shader_variant_flags_gbuffer;
-
-				if (mat.double_sided)
-					flags |= shader_variant_flags_double_sided;
-
-				if (mat.use_alpha_cutoff)
-					flags |= shader_variant_flags_alpha_cutoff;
-
-				if (draw.skinning_index != UINT32_MAX)
-					flags |= shader_variant_flags_skinned;
-
-				const render_resource_handle_t shader_handle = mat.find_pso(flags);
-
-				if (shader_handle.is_null())
-					continue;
-
-				const gfx_handle_t pipeline = rr.get_shader_hw(shader_handle);
-				bind_pipeline(backend, cmd, bound_pipeline, pipeline);
-
-				bind_material(backend, cmd, bound_material, draw.material_index, mat, frame_index);
-			}
-
-			const gpu_index_t obj_constants[] = {draw.entity_index, draw.skinning_index};
-			backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = std::size(obj_constants), .param_index = 0});
-
-			backend.cmd_draw_indexed_instanced(cmd,
-											   {
-												   .index_count_per_instance = draw.index_count,
-												   .instance_count			 = 1,
-												   .start_index_location	 = draw.start_index,
-												   .base_vertex_location	 = draw.start_vertex,
-												   .start_instance_location	 = 0,
-											   });
-		}
+		draw_world_draws(backend, cmd, ss, prep_data, nullptr, draw_size, 0, world_pass_flags_gbuffer, shader_variant_flags_gbuffer, frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
@@ -963,68 +869,8 @@ namespace sfg
 			END_DEBUG_EVENT((&backend), cmd);
 		}
 
-		gfx_handle_t bound_vertex	= {};
-		gfx_handle_t bound_index	= {};
-		gfx_handle_t bound_pipeline = {};
-		u32			 bound_material = UINT32_MAX;
-
 		const u32 draw_count = static_cast<u32>(snapshot.draws.size());
-
-		for (u32 i = 0; i < draw_count; ++i)
-		{
-			const world_draw_t& draw = snapshot.draws[i];
-
-			if ((prep_data.draw_culls[i].cull_mask & (1ull << 0)) != 0)
-				continue;
-
-			if ((draw.pass_mask & world_pass_flags_forward) == 0)
-				continue;
-
-			const gfx_handle_t vertex_buffer = render_resources.get_resource(draw.vertex_buffer);
-			const gfx_handle_t index_buffer	 = render_resources.get_resource(draw.index_buffer);
-
-			SFG_ASSERT(!vertex_buffer.is_null() && !index_buffer.is_null());
-
-			bind_vertex(backend, cmd, bound_vertex, vertex_buffer, draw.vertex_stride);
-			bind_index(backend, cmd, bound_index, index_buffer, draw.index_stride);
-
-			if (!draw.direct_pso.is_null())
-			{
-				bind_pipeline(backend, cmd, bound_pipeline, render_resources.get_shader_hw(draw.direct_pso));
-			}
-			else
-			{
-				SFG_ASSERT(draw.material_index != UINT32_MAX);
-
-				const world_render_material_t& material		 = snapshot.materials[draw.material_index];
-				bitmask_t<u32>				   variant_flags = {};
-				variant_flags.set(shader_variant_flags_alpha_cutoff, material.use_alpha_cutoff != 0);
-				variant_flags.set(shader_variant_flags_double_sided, material.double_sided != 0);
-				variant_flags.set(shader_variant_flags_skinned, draw.skinning_index != UINT32_MAX);
-
-				const render_resource_handle_t shader_handle = material.find_pso(variant_flags);
-
-				if (shader_handle.is_null())
-					continue;
-
-				bind_pipeline(backend, cmd, bound_pipeline, render_resources.get_shader_hw(shader_handle));
-				bind_material(backend, cmd, bound_material, draw.material_index, material, frame_index);
-			}
-
-			const u32 obj_constants[2] = {
-				draw.entity_index,
-				draw.skinning_index == UINT32_MAX ? 0 : draw.skinning_index,
-			};
-			backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
-			backend.cmd_draw_indexed_instanced(cmd,
-											   {
-												   .index_count_per_instance = draw.index_count,
-												   .instance_count			 = 1,
-												   .start_index_location	 = draw.start_index,
-												   .base_vertex_location	 = draw.start_vertex,
-												   .start_instance_location	 = 0,
-											   });
-		}
+		draw_world_draws(backend, cmd, snapshot, prep_data, nullptr, draw_count, 0, world_pass_flags_forward, 0, frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
