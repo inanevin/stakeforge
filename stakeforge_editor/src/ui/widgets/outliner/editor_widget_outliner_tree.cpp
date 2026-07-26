@@ -51,43 +51,55 @@ namespace sfg
 		}
 
 		vector_t<editor_outliner_row_t>& rows = _outliner_rows;
-		_visible_entity_count				  = 0;
+
+		_visible_entity_count = 0;
 
 		if (_edit_world.is_null())
 		{
+			_visibility_generation = 0;
+
 			for (editor_outliner_row_t& row : rows)
 				set_outliner_row_visible(row, false);
 
 			return;
 		}
 
-		_entity_generation = editor_command_system_t::get().get_entity_generation();
+		editor_world_t* const editor_world = editor_world_controller_t::get().get_editor_world(_edit_world);
+
+		_entity_generation	   = editor_command_system_t::get().get_entity_generation();
+		_visibility_generation = editor_world->get_input_controller().get_visibility_generation();
+
 		collect_entities();
 		prune_entity_selection();
 
 		const bool search_active = !_search_str_lower.empty();
 		u16		   hidden_depth	 = UINT16_MAX;
 
-		editor_world_edit_context_t&		 metadata = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
-		const span_t<editor_outliner_item_t> items	  = metadata.get_outliner_items();
-		frame_vector_t<u8>					 search_visible;
-		frame_vector_t<size_t>				 search_ancestor_stack;
+		editor_world_edit_context_t&		 metadata			   = editor_world->get_edit_context();
+		const span_t<editor_outliner_item_t> items				   = metadata.get_outliner_items();
+		frame_vector_t<u8>					 search_visible		   = {};
+		frame_vector_t<size_t>				 search_ancestor_stack = {};
+
 		if (search_active)
 		{
 			search_visible.reserve(items.size);
 			search_ancestor_stack.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
+
 			for (size_t i = 0; i < items.size; ++i)
 				search_visible.push_back(0);
 
 			for (size_t i = 0; i < items.size; ++i)
 			{
 				const editor_outliner_item_t& item = items.data[i];
+
 				while (search_ancestor_stack.size() > item.depth)
 					search_ancestor_stack.pop_back();
 
-				string_t name_lower;
+				string_t name_lower = {};
+
 				name_lower.assign(item.name, std::strlen(item.name));
 				string_util::to_lower(name_lower);
+
 				if (name_lower.find(_search_str_lower.c_str()) != string_t::npos)
 				{
 					search_visible[i] = 1;
@@ -102,6 +114,7 @@ namespace sfg
 		for (size_t i = 0; i < items.size; ++i)
 		{
 			const editor_outliner_item_t& item = items.data[i];
+
 			if (search_active && !search_visible[i])
 				continue;
 
@@ -115,7 +128,9 @@ namespace sfg
 			const bool			   is_expanded = item.type == editor_outliner_item_type_e::folder ? !metadata.get_folder(item.folder_handle).folded : metadata.is_entity_expanded(item.entity_guid);
 			const bool			   is_folded   = item.has_children && !search_active && !is_expanded;
 			editor_outliner_row_t& row		   = get_or_create_outliner_row(_visible_entity_count++);
+
 			update_outliner_row(row, item, is_folded);
+
 			if (is_folded)
 				hidden_depth = item.depth;
 		}

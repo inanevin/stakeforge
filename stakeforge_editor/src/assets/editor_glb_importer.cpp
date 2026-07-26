@@ -693,9 +693,7 @@ namespace sfg
 
 			const bool is_transparent = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "BLEND";
 			const bool is_cutoff	  = material.alpha_mode.data != nullptr && string_view_t(material.alpha_mode.data, material.alpha_mode.len) == "MASK";
-			const u32  pass_flags =
-				is_transparent ? (world_pass_flags_forward | world_pass_flags_id | world_pass_flags_reflections) : (world_pass_flags_gbuffer | world_pass_flags_depth | world_pass_flags_shadow | world_pass_flags_id | world_pass_flags_reflections);
-			const f32 ao_multiplier = import_textures && orm_index >= 0 && orm_index == occlusion_index ? math::clamp(static_cast<f32>(material.occlusion_texture.strength), 0.0f, 1.0f) : 1.0f;
+			const f32  ao_multiplier  = import_textures && orm_index >= 0 && orm_index == occlusion_index ? math::clamp(static_cast<f32>(material.occlusion_texture.strength), 0.0f, 1.0f) : 1.0f;
 
 			resource_handle_t orm_guid = DEFAULT_ORM_TEXTURE_ASSET_GUID;
 			if (import_textures && orm_index >= 0 && orm_index == occlusion_index)
@@ -756,10 +754,13 @@ namespace sfg
 						make_vec4_parameter("orm_tiling_offset", orm_transform.tiling[0], orm_transform.tiling[1], orm_transform.offset[0], orm_transform.offset[1], shader_param_hint_e::pack_uint2),
 						make_vec4_parameter("emissive_tiling_offset", emissive_transform.tiling[0], emissive_transform.tiling[1], emissive_transform.offset[0], emissive_transform.offset[1], shader_param_hint_e::pack_uint2),
 					},
-				.shader			  = DEFAULT_LIT_SHADER_ASSET_GUID,
-				.pass_flags		  = pass_flags,
-				.double_sided	  = material.double_sided != 0,
-				.use_alpha_cutoff = is_cutoff,
+				.shader			   = DEFAULT_LIT_SHADER_ASSET_GUID,
+				.write_depth	   = !is_transparent,
+				.write_shadows	   = !is_transparent,
+				.write_reflections = true,
+				.is_transparent	   = is_transparent,
+				.double_sided	   = material.double_sided != 0,
+				.use_alpha_cutoff  = is_cutoff,
 			};
 
 			nlohmann::json embedded_source = material_def;

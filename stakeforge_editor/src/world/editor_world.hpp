@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_edit_context.hpp"
 #include "world/editor_world_gizmo.hpp"
 #include "world/editor_world_handle.hpp"
+#include "world/editor_world_input_controller.hpp"
 #include "world/editor_world_render_context.hpp"
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/ostream.hpp>
@@ -158,6 +159,16 @@ namespace sfg
 			return _edit_context;
 		}
 
+		inline editor_world_input_controller_t& get_input_controller()
+		{
+			return _input_controller;
+		}
+
+		inline const editor_world_input_controller_t& get_input_controller() const
+		{
+			return _input_controller;
+		}
+
 		inline vec2u16_t get_render_resolution() const
 		{
 			return _render_resolution;
@@ -191,20 +202,21 @@ namespace sfg
 
 		editor_world_render_context_t _render_context = {};
 
-		editor_world_gizmo_t		_gizmo										 = {};
-		editor_world_edit_context_t _edit_context								 = {};
-		world_t						_world										 = {};
-		atomic_t<u64>				_pick_result								 = {};
-		editor_world_pick_request_t _pending_pick_request						 = {};
-		atomic_t<u8>				_snapshot_mailbox							 = {};
-		u32							_last_render_pick_request_id				 = 0;
-		u32							_next_pick_request_id						 = 0;
-		quat_t						_view_rotation								 = quat_t::identity;
-		vec2u16_t					_render_resolution							 = vec2u16_t::zero;
-		bool						_object_id_readback_valid[BACK_BUFFER_COUNT] = {};
-		u8							_producer_slot								 = 0;
-		u8							_consumer_slot								 = 0;
-		u8							_latest_snapshot_slot						 = UINT8_MAX;
-		editor_play_mode_e			_play_mode									 = editor_play_mode_e::none;
+		editor_world_gizmo_t			_gizmo										 = {};
+		editor_world_edit_context_t		_edit_context								 = {};
+		editor_world_input_controller_t _input_controller							 = {};
+		world_t							_world										 = {};
+		atomic_t<u64>					_pick_result								 = {};
+		editor_world_pick_request_t		_pending_pick_request						 = {};
+		atomic_t<u8>					_snapshot_mailbox							 = {};
+		u32								_last_render_pick_request_id				 = 0;
+		u32								_next_pick_request_id						 = 0;
+		quat_t							_view_rotation								 = quat_t::identity;
+		vec2u16_t						_render_resolution							 = vec2u16_t::zero;
+		bool							_object_id_readback_valid[BACK_BUFFER_COUNT] = {};
+		u8								_producer_slot								 = 0;
+		u8								_consumer_slot								 = 0;
+		u8								_latest_snapshot_slot						 = UINT8_MAX;
+		editor_play_mode_e				_play_mode									 = editor_play_mode_e::none;
 	};
 }

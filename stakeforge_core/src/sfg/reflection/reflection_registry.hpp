@@ -183,6 +183,7 @@ namespace sfg
 		reflected_type_flag_enum			 = 1 << 5,
 		reflected_type_flag_system_component = 1 << 6,
 		reflected_type_flag_tag_component	 = 1 << 7,
+		reflected_type_flag_renderable		 = 1 << 8,
 	};
 
 	struct reflected_field_span_t

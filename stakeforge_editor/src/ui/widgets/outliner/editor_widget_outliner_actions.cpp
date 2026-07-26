@@ -35,13 +35,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/popups/editor_popup_color_wheel.hpp"
 #include "commands/editor_command_primitive_spawn.hpp"
-#include "commands/editor_commands_component.hpp"
 #include "commands/editor_commands_entity.hpp"
 #include "commands/editor_commands_world_edit_context.hpp"
 
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
-#include <sfg/runtime/world/engine_components.hpp>
 
 namespace sfg
 {
@@ -73,6 +70,8 @@ namespace sfg
 		editor_action_menu_row_desc_t ENTITY_ROW_ACTION_MENU_ROWS[] = {
 			{.text = "Create", .children = ENTITY_CREATE_ENTITY_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_ENTITY_ROWS) / sizeof(ENTITY_CREATE_ENTITY_ROWS[0]))},
 			{.text = "Duplicate Entity", .shortcut = "CTRL+D", .command = entity_action_menu_duplicate},
+			{.text = "Hide / Show", .shortcut = "H", .command = entity_action_menu_hide},
+			{.text = "Show Alone", .shortcut = "CTRL+H", .command = entity_action_menu_show_alone},
 			{.text = "Delete Entity", .shortcut = "DEL", .command = entity_action_menu_delete},
 		};
 
@@ -215,15 +214,11 @@ namespace sfg
 	{
 		editor_world_t* editor_world = editor_world_controller_t::get().get_editor_world(_edit_world);
 		world_t&		world		 = editor_world->get_world();
+
 		if (!editor_world->get_edit_context().is_entity_mutation_allowed(world, entity))
 			return;
-		ecs_component_table_t& disabled_table = world.get_component_table(type_id_t<component_disabled_t>::value);
 
-		const sid_t component_type = type_id_t<component_disabled_t>::value;
-		if (ecs_t::table_has(disabled_table, entity))
-			editor_commands_component_t::remove(_edit_world, entity, component_type);
-		else
-			editor_commands_component_t::add(_edit_world, entity, component_type);
+		editor_world->get_input_controller().hide(entity);
 		refresh_entities();
 	}
 
@@ -422,14 +417,18 @@ namespace sfg
 
 	void editor_widget_outliner_t::open_entity_action_menu(const vec2f_t& pos, entity_id_t entity)
 	{
-		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
+		editor_action_menu_controller_t* menu			  = editor_action_menu_controller_t::find(*_ui);
+		frame_vector_t<entity_id_t>		 mutable_entities = {};
+		editor_world_t* const			 editor_world	  = editor_world_controller_t::get().get_editor_world(_edit_world);
 
 		_action_menu_entity						= entity;
 		ENTITY_ROW_ACTION_MENU_ROWS[0].disabled = !is_create_enabled();
-		frame_vector_t<entity_id_t> mutable_entities;
 		append_selected_root_entities(mutable_entities);
+
 		ENTITY_ROW_ACTION_MENU_ROWS[1].disabled = mutable_entities.empty();
 		ENTITY_ROW_ACTION_MENU_ROWS[2].disabled = mutable_entities.empty();
+		ENTITY_ROW_ACTION_MENU_ROWS[3].disabled = editor_world->get_edit_context().get_selected_entities().size == 0 && !editor_world->get_input_controller().is_show_alone_active();
+		ENTITY_ROW_ACTION_MENU_ROWS[4].disabled = mutable_entities.empty();
 
 		editor_action_menu_desc_t desc = {};
 		desc.rows					   = ENTITY_ROW_ACTION_MENU_ROWS;

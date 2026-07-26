@@ -74,10 +74,10 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		virtual void pass_input(const editor_world_camera_input_t& input)			 = 0;
-		virtual void tick(world_t& world, f32 dt_seconds)							 = 0;
-		virtual void serialize(const world_t& world, nlohmann::json& out_json) const = 0;
-		virtual void deserialize(world_t& world, const nlohmann::json& in_json)		 = 0;
+		virtual void pass_input(world_t& world, const editor_world_camera_input_t& input) = 0;
+		virtual void tick(world_t& world, f32 dt_seconds)								  = 0;
+		virtual void serialize(const world_t& world, nlohmann::json& out_json) const	  = 0;
+		virtual void deserialize(world_t& world, const nlohmann::json& in_json)			  = 0;
 		virtual void fit_to_bounds(world_t& world, const aabb_t& bounds)
 		{
 		}
@@ -87,5 +87,22 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		virtual entity_id_t get_entity() const = 0;
+
+		inline bool is_focus_enabled() const
+		{
+			return _focus_enabled;
+		}
+
+	protected:
+		void begin_focus(world_t& world, const vec3f_t& target_position);
+		void cancel_focus();
+		bool tick_focus(world_t& world, f32 dt_seconds);
+
+	private:
+		vec3f_t _focus_start_position  = vec3f_t::zero;
+		vec3f_t _focus_target_position = vec3f_t::zero;
+		f32		_focus_elapsed		   = 0.0f;
+		f32		_focus_duration		   = 0.0f;
+		bool	_focus_enabled		   = false;
 	};
 }

@@ -189,7 +189,7 @@ namespace sfg
 				.type_id   = type_id_t<component_mesh_renderer_t>::value,
 				.size	   = sizeof(component_mesh_renderer_t),
 				.alignment = alignof(component_mesh_renderer_t),
-				.flags	   = reflected_type_flag_component,
+				.flags	   = reflected_type_flag_component | reflected_type_flag_renderable,
 			});
 		}
 
@@ -227,7 +227,7 @@ namespace sfg
 				.type_id   = type_id_t<component_skinned_mesh_renderer_t>::value,
 				.size	   = sizeof(component_skinned_mesh_renderer_t),
 				.alignment = alignof(component_skinned_mesh_renderer_t),
-				.flags	   = reflected_type_flag_component,
+				.flags	   = reflected_type_flag_component | reflected_type_flag_renderable,
 			});
 		}
 

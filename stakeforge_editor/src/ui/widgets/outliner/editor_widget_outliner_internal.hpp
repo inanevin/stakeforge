@@ -42,6 +42,8 @@ namespace sfg
 		entity_action_menu_create_cylinder,
 		entity_action_menu_create_capsule,
 		entity_action_menu_duplicate,
+		entity_action_menu_hide,
+		entity_action_menu_show_alone,
 		entity_action_menu_delete,
 		entity_action_menu_rename_folder,
 		entity_action_menu_change_folder_color,

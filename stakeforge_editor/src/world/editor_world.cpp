@@ -94,6 +94,7 @@ namespace sfg
 		_world.init(world_config);
 		_edit_context.init(edit_type);
 		_edit_context.set_world(handle);
+		_input_controller.init(*this, handle);
 		_gizmo.init();
 		_tick_callback			 = tick_callback;
 		_tick_callback_user_data = tick_callback_user_data;
@@ -155,6 +156,8 @@ namespace sfg
 
 	void editor_world_t::uninit()
 	{
+		_input_controller.uninit();
+
 		if (_play_mode != editor_play_mode_e::none)
 		{
 			_world.end_play();
@@ -254,7 +257,7 @@ namespace sfg
 	void editor_world_t::pass_camera_input(const editor_world_camera_input_t& input)
 	{
 		if (_camera != nullptr)
-			_camera->pass_input(input);
+			_camera->pass_input(_world, input);
 	}
 
 	void editor_world_t::reset_camera_input()

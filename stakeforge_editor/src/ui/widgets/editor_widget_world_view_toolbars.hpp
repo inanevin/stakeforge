@@ -58,6 +58,7 @@ namespace sfg
 		void set_transform_control_type(editor_transform_control_type_e type);
 		void toggle_transform_locality();
 		void toggle_transform_snapping();
+		void refresh();
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -75,7 +76,6 @@ namespace sfg
 			editor_transform_control_type_e		 type	 = {};
 		};
 
-		void refresh();
 		void save_project_settings();
 
 		static void on_transform_control_toggled(bool toggled, void* user_data);

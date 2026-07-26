@@ -216,6 +216,7 @@ namespace sfg
 		entity_guid_t									  _pending_show_entity_guid	  = NULL_ENTITY_GUID;
 		entity_id_t										  _action_menu_entity		  = NULL_ENTITY_ID;
 		u32												  _entity_generation		  = 0;
+		u32												  _visibility_generation	  = 0;
 		u32												  _visible_entity_count		  = 0;
 		bool											  _refresh_entities_pending	  = false;
 		bool											  _focused					  = false;

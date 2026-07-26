@@ -77,6 +77,7 @@ namespace sfg
 	void editor_widget_outliner_t::on_entity_action_menu_command(u16 command, void* user_data)
 	{
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
+
 		if (command == entity_action_menu_create_empty)
 		{
 			if (panel.is_create_enabled())
@@ -104,6 +105,16 @@ namespace sfg
 		}
 		else if (command == entity_action_menu_duplicate)
 			panel.duplicate_selected_entities();
+		else if (command == entity_action_menu_hide)
+		{
+			editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_input_controller().hide_selection();
+			panel.refresh_entities();
+		}
+		else if (command == entity_action_menu_show_alone)
+		{
+			editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_input_controller().toggle_show_alone();
+			panel.refresh_entities();
+		}
 		else if (command == entity_action_menu_delete)
 			panel.destroy_selected_entities();
 	}
@@ -241,8 +252,13 @@ namespace sfg
 
 	void editor_widget_outliner_t::on_entity_tree_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
-		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
-		if (panel._entity_generation != editor_command_system_t::get().get_entity_generation())
+		editor_widget_outliner_t& panel	  = *static_cast<editor_widget_outliner_t*>(user_data);
+		bool					  refresh = panel._entity_generation != editor_command_system_t::get().get_entity_generation();
+
+		if (!panel._edit_world.is_null())
+			refresh |= panel._visibility_generation != editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_input_controller().get_visibility_generation();
+
+		if (refresh)
 			panel.refresh_entities();
 	}
 

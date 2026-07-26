@@ -132,34 +132,39 @@ namespace sfg
 			editor_popup_controller_t::find(*_ui)->close_popup(false);
 
 		editor_command_system_t::get().remove_listener(_command_listener);
+
 		if (!_selection_listener.is_null())
 			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
+
 		editor_payload_controller_t::get().unregister_listener(this);
 		_ui->cancel_mutations(this);
 		_search_input.uninit();
 		_scrollbar.uninit();
+
 		for (const editor_outliner_row_t& row : _outliner_rows)
 		{
 			row.disable_button->uninit();
 			delete row.disable_button;
 		}
+
 		_ui->deallocate_widget(_entity_top_row);
 		_ui->deallocate_widget(_entity_list_area);
 
 		_outliner_rows.clear();
 		_payload_entities.clear();
 
-		_entity_top_row		  = NULL_WIDGET;
-		_entity_list_area	  = NULL_WIDGET;
-		_command_listener	  = {};
-		_selection_listener	  = {};
-		_edit_world			  = {};
-		_action_menu_entity	  = NULL_ENTITY_ID;
-		_action_menu_folder	  = {};
-		_focused_folder		  = {};
-		_edit_folder		  = {};
-		_entity_generation	  = 0;
-		_visible_entity_count = 0;
+		_entity_top_row		   = NULL_WIDGET;
+		_entity_list_area	   = NULL_WIDGET;
+		_command_listener	   = {};
+		_selection_listener	   = {};
+		_edit_world			   = {};
+		_action_menu_entity	   = NULL_ENTITY_ID;
+		_action_menu_folder	   = {};
+		_focused_folder		   = {};
+		_edit_folder		   = {};
+		_entity_generation	   = 0;
+		_visibility_generation = 0;
+		_visible_entity_count  = 0;
 
 		_root = NULL_WIDGET;
 		_ui	  = nullptr;
