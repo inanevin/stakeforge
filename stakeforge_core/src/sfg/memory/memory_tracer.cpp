@@ -305,6 +305,7 @@ namespace sfg
 			process::message_box("Leak detected!", head.str().c_str());
 			leak_stream.clear();
 			head.clear();
+			__debugbreak();
 		}
 	}
 }

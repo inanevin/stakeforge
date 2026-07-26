@@ -35,6 +35,7 @@
 #include "light.hlsl"
 #include "clustered_lighting.hlsl"
 #include "normal.hlsl"
+#include "fog.hlsl"
 
 struct vs_output
 {
@@ -113,6 +114,7 @@ float4 PSMain(vs_output input) : SV_TARGET
 	render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
 	render_pass_data_lighting lighting_data = sfg_get_cbv<render_pass_data_lighting>(SFG_RENDER_PASS_LIGHTING);
 	render_pass_data_deferred_lighting deferred_data = sfg_get_cbv<render_pass_data_deferred_lighting>(SFG_RENDER_PASS_SPECIFIC);
+	render_pass_data_fog fog_data = sfg_get_cbv<render_pass_data_fog>(SFG_RENDER_PASS_FOG);
 
 	Texture2D tex_gbuffer_color	 = sfg_get_texture<Texture2D>(deferred_data.gbuffer_albedo_index);
 	Texture2D tex_gbuffer_normal	 = sfg_get_texture<Texture2D>(deferred_data.gbuffer_normal_index);
@@ -142,7 +144,14 @@ float4 PSMain(vs_output input) : SV_TARGET
 	const float4 orm	   = tex_gbuffer_orm.Load(int3(pixel, 0));
 	const float3 emissive = tex_gbuffer_emissive.Load(int3(pixel, 0)).xyz;
 	if (orm.a >= 0.5)
-		return float4(emissive, 1.0);
+	{
+		float3 unlit_color = emissive;
+
+		if ((view_data.flags & SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_FOG) != 0)
+			unlit_color = apply_fog(unlit_color, world_pos, view_data.camera_pos.xyz, fog_data);
+
+		return float4(unlit_color, 1.0);
+	}
 
 	const float3 V		   = normalize(view_data.camera_pos.xyz - world_pos);
 	const float3 albedo   = tex_gbuffer_color.Load(int3(pixel, 0)).xyz;
@@ -194,5 +203,10 @@ float4 PSMain(vs_output input) : SV_TARGET
 			smp_linear);
 	}
 
-	return float4(lighting + emissive, 1.0);
+	float3 final_color = lighting + emissive;
+
+	if ((view_data.flags & SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_FOG) != 0)
+		final_color = apply_fog(final_color, world_pos, view_data.camera_pos.xyz, fog_data);
+
+	return float4(final_color, 1.0);
 }

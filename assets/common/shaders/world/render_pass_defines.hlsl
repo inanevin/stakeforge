@@ -34,8 +34,10 @@
 #define SFG_RENDER_PASS_BONES sfg_constant_rp2
 #define SFG_RENDER_PASS_LIGHTING sfg_constant_rp3
 #define SFG_RENDER_PASS_SPECIFIC sfg_constant_rp4
+#define SFG_RENDER_PASS_FOG sfg_constant_rp5
 
 static const uint SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_REFLECTIONS = 1u << 0;
+static const uint SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_FOG = 1u << 1;
 
 struct render_pass_data_view
 {
@@ -73,6 +75,16 @@ struct render_pass_data_lighting
     float environment_intensity;
     uint brdf_lut_index;
     uint debug_cluster_heatmap;
+    uint pad;
+};
+
+struct render_pass_data_fog
+{
+    float4 color_intensity;
+    float4 distance_height;
+    float height_falloff;
+    float max_opacity;
+    uint type;
     uint pad;
 };
 

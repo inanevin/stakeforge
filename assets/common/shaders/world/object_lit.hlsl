@@ -37,6 +37,7 @@
 #include "render_pass_defines.hlsl"
 #include "light.hlsl"
 #include "clustered_lighting.hlsl"
+#include "fog.hlsl"
 
 SFG_MATERIAL_TEXTURE("albedo", sfg_texture2d)
 SFG_MATERIAL_TEXTURE("normal", sfg_texture2d)
@@ -327,6 +328,7 @@ float4 PSMain(vs_output IN) : SV_TARGET
 {
     render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
     render_pass_data_lighting lighting_data = sfg_get_cbv<render_pass_data_lighting>(SFG_RENDER_PASS_LIGHTING);
+    render_pass_data_fog fog_data = sfg_get_cbv<render_pass_data_fog>(SFG_RENDER_PASS_FOG);
     StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(lighting_data.light_buffer_index);
     StructuredBuffer<gpu_shadow_view> shadow_buffer = sfg_get_ssbo<gpu_shadow_view>(lighting_data.shadow_buffer_index);
     StructuredBuffer<gpu_reflection_probe> reflection_probe_buffer = sfg_get_ssbo<gpu_reflection_probe>(lighting_data.reflection_probe_buffer_index);
@@ -372,8 +374,7 @@ float4 PSMain(vs_output IN) : SV_TARGET
         smp_shadow,
         smp_shadow_cube);
 
-        
- if ((view_data.flags & SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_REFLECTIONS) != 0)
+    if ((view_data.flags & SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_REFLECTIONS) != 0)
     {
         lighting += evaluate_reflection_probe_lighting(
             surface,
@@ -383,9 +384,13 @@ float4 PSMain(vs_output IN) : SV_TARGET
             lighting_data.brdf_lut_index,
             smp_linear);
     }
-   
 
-    return float4(lighting + material.emissive, material.albedo.a);
+    float3 final_color = lighting + material.emissive;
+
+    if ((view_data.flags & SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_FOG) != 0)
+        final_color = apply_fog(final_color, IN.world_pos, view_data.camera_pos.xyz, fog_data);
+
+    return float4(final_color, material.albedo.a);
 }
 
 #endif

@@ -173,6 +173,7 @@ namespace sfg
 		snapshot.reflection_probes.resize(0);
 		snapshot.draws.resize(0);
 		snapshot.environment  = {};
+		snapshot.fog		  = {};
 		snapshot.post_process = {};
 
 		world.get_debug_draw().write_snapshot(snapshot.debug_draw);
@@ -182,6 +183,7 @@ namespace sfg
 		const ecs_component_table_t& camera_table						= world.get_component_table(type_id_t<component_camera_t>::value);
 		const ecs_component_table_t& post_process_table					= world.get_component_table(type_id_t<component_post_process_t>::value);
 		const ecs_component_table_t& environment_table					= world.get_component_table(type_id_t<component_environment_t>::value);
+		const ecs_component_table_t& fog_table							= world.get_component_table(type_id_t<component_fog_t>::value);
 		const ecs_component_table_t& light_table						= world.get_component_table(type_id_t<component_light_t>::value);
 		const ecs_component_table_t& reflection_probe_table				= world.get_component_table(type_id_t<component_reflection_probe_t>::value);
 		const ecs_component_table_t& disabled_table						= world.get_component_table(type_id_t<component_disabled_t>::value);
@@ -294,6 +296,33 @@ namespace sfg
 					break;
 
 				snapshot.environment.material_index = material_index;
+				break;
+			}
+		}
+
+		// extract fog
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				alive_table.ref(),
+				fog_table.ref(),
+				!disabled_table.ref(),
+			};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				const component_fog_t& fog = ecs_helpers_t::row_get<component_fog_t>(row, 1);
+
+				snapshot.fog = {
+					.color			= fog.color.to_vector(),
+					.intensity		= fog.intensity,
+					.density		= fog.density,
+					.start_distance = fog.start_distance,
+					.end_distance	= fog.end_distance,
+					.height			= fog.height,
+					.height_falloff = fog.height_falloff,
+					.max_opacity	= fog.max_opacity,
+					.type			= static_cast<world_render_fog_type_e>(fog.type),
+				};
 				break;
 			}
 		}

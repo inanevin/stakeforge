@@ -223,6 +223,33 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_environment_t);
 
+	enum class fog_type_e : u8
+	{
+		linear,
+		exponential,
+		exponential_squared,
+		exponential_height,
+	};
+
+	SFG_DEFINE_TYPE_ID(fog_type_e);
+
+	struct component_fog_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_fog";
+
+		color_t	   color		  = color_t::gray;
+		f32		   intensity	  = 1.0f;
+		f32		   density		  = 0.01f;
+		f32		   start_distance = 0.0f;
+		f32		   end_distance	  = 100.0f;
+		f32		   height		  = 0.0f;
+		f32		   height_falloff = 0.1f;
+		f32		   max_opacity	  = 1.0f;
+		fog_type_e type			  = fog_type_e::exponential;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_fog_t);
+
 	enum class reflection_probe_capture_type_e : u8
 	{
 		skybox,

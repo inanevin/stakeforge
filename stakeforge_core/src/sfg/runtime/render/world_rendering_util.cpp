@@ -639,6 +639,7 @@ namespace sfg
 			.cluster_buffer_offset				 = main_prep_view.cluster_buffer_offset,
 			.cluster_light_indices_buffer_offset = main_prep_view.cluster_light_indices_buffer_offset,
 			.cluster_light_capacity				 = main_prep_view.cluster_light_capacity,
+			.flags								 = render_pass_view_flag_sample_reflections | render_pass_view_flag_sample_fog,
 		};
 
 		SFG_MEMCPY(ctx.get_mapped_view_render_pass_data(frame_index), &view_render_pass_data, sizeof(render_pass_data_view_gpu_t));
@@ -661,6 +662,16 @@ namespace sfg
 		};
 
 		SFG_MEMCPY(ctx.get_mapped_lighting_render_pass_data(frame_index), &lighting_render_pass_data, sizeof(render_pass_data_lighting_gpu_t));
+
+		const render_pass_data_fog_gpu_t fog_render_pass_data = {
+			.color_intensity = {snapshot.fog.color.x, snapshot.fog.color.y, snapshot.fog.color.z, snapshot.fog.intensity},
+			.distance_height = {snapshot.fog.density, snapshot.fog.start_distance, snapshot.fog.end_distance, snapshot.fog.height},
+			.height_falloff	 = snapshot.fog.height_falloff,
+			.max_opacity	 = snapshot.fog.max_opacity,
+			.type			 = static_cast<u32>(snapshot.fog.type),
+		};
+
+		SFG_MEMCPY(ctx.get_mapped_fog_render_pass_data(frame_index), &fog_render_pass_data, sizeof(render_pass_data_fog_gpu_t));
 
 		const bool									   ssao_active						  = ctx.is_ssao_enabled() && snapshot.post_process.ssao.enabled != 0;
 		const gpu_index_t							   ambient_occlusion_index			  = ssao_active ? ctx.get_ao_texture_index(frame_index) : render_resources.get_texture_gpu_index(render_resources.get_white_texture(), 0);

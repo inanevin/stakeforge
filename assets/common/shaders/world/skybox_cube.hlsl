@@ -31,6 +31,7 @@
 
 #include "layout_defines.hlsl"
 #include "render_pass_defines.hlsl"
+#include "fog.hlsl"
 
 SFG_MATERIAL_TEXTURE("cubemap", sfg_texturecube)
 SFG_MATERIAL_SAMPLER("cubemap")
@@ -68,8 +69,16 @@ vs_output VSMain(uint vertex_id : SV_VertexID)
 
 float4 PSMain(vs_output input) : SV_TARGET
 {
+	render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
 	render_pass_data_lighting lighting_data = sfg_get_cbv<render_pass_data_lighting>(SFG_RENDER_PASS_LIGHTING);
+	render_pass_data_fog fog_data = sfg_get_cbv<render_pass_data_fog>(SFG_RENDER_PASS_FOG);
 	TextureCube cubemap = sfg_get_texture<TextureCube>(sfg_constant_mat1);
 	SamplerState cubemap_sampler = sfg_get_sampler_state(sfg_constant_mat2);
-	return float4(cubemap.Sample(cubemap_sampler, normalize(input.direction)).rgb * lighting_data.environment_intensity, 1.0);
+	const float3 direction = normalize(input.direction);
+	float3 color = cubemap.Sample(cubemap_sampler, direction).rgb * lighting_data.environment_intensity;
+
+	if ((view_data.flags & SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_FOG) != 0)
+		color = apply_fog(color, view_data.camera_pos.xyz + direction * view_data.far_plane, view_data.camera_pos.xyz, fog_data);
+
+	return float4(color, 1.0);
 }

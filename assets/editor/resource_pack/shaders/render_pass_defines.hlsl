@@ -34,6 +34,10 @@
 #define SFG_RENDER_PASS_BONES sfg_constant_rp2
 #define SFG_RENDER_PASS_LIGHTING sfg_constant_rp3
 #define SFG_RENDER_PASS_SPECIFIC sfg_constant_rp4
+#define SFG_RENDER_PASS_FOG sfg_constant_rp5
+
+static const uint SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_REFLECTIONS = 1u << 0;
+static const uint SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_FOG = 1u << 1;
 
 struct render_pass_data_view
 {
@@ -52,7 +56,8 @@ struct render_pass_data_view
     uint cluster_buffer_offset;
     uint cluster_light_indices_buffer_offset;
     uint cluster_light_capacity;
-    uint2 pad;
+    uint flags;
+    uint pad;
 };
 
 struct render_pass_data_lighting
@@ -70,6 +75,16 @@ struct render_pass_data_lighting
     float environment_intensity;
     uint debug_cluster_heatmap;
     uint2 pad;
+};
+
+struct render_pass_data_fog
+{
+    float4 color_intensity;
+    float4 distance_height;
+    float height_falloff;
+    float max_opacity;
+    uint type;
+    uint pad;
 };
 
 struct render_pass_data_deferred_lighting

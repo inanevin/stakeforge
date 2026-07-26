@@ -545,6 +545,129 @@ namespace sfg
 			});
 		}
 
+		void register_component_fog_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name		  = "fog_type_e",
+				.display_name = "Fog Type",
+				.tooltip	  = "Selects how fog density changes with distance and world height.",
+				.fields =
+					{
+						{.name = "linear", .display_name = "Linear", .tooltip = "Blends fog between the configured start and end distances."},
+						{.name = "exponential", .display_name = "Exponential", .tooltip = "Accumulates constant-density fog exponentially with distance."},
+						{.name = "exponential_squared", .display_name = "Exponential Squared", .tooltip = "Accumulates a denser exponential fog response over distance."},
+						{.name = "exponential_height", .display_name = "Exponential Height", .tooltip = "Integrates exponential density based on world height along the view ray."},
+					},
+				.type_id   = type_id_t<fog_type_e>::value,
+				.size	   = sizeof(fog_type_e),
+				.alignment = alignof(fog_type_e),
+				.flags	   = reflected_type_flag_enum,
+			});
+
+			registry.register_type({
+				.name			 = "component_fog",
+				.display_name	 = "Fog",
+				.category		 = "Graphics",
+				.tooltip		 = "Applies analytical distance or height fog to the active camera view.",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_fog_t*>(ptr), component_fog_t{}); },
+				.fields =
+					{
+						{.name		   = "type",
+						 .display_name = "Type",
+						 .tooltip	   = "Selects the analytical fog density model.",
+						 .sub_type_id  = type_id_t<fog_type_e>::value,
+						 .offset	   = offsetof(component_fog_t, type),
+						 .size		   = sizeof(fog_type_e),
+						 .type		   = reflected_value_type_e::u8},
+						{.name		   = "color",
+						 .display_name = "Color",
+						 .tooltip	   = "Color scattered into the camera view by the fog.",
+						 .sub_type_id  = type_id_t<color_t>::value,
+						 .offset	   = offsetof(component_fog_t, color),
+						 .size		   = sizeof(color_t),
+						 .type		   = reflected_value_type_e::object},
+						{.name				= "intensity",
+						 .display_name		= "Intensity",
+						 .tooltip			= "Multiplier applied to the final fog amount.",
+						 .offset			= offsetof(component_fog_t, intensity),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 64.0f,
+						 .clamp_granularity = 0.01f,
+						 .type				= reflected_value_type_e::f32},
+						{.ui_definition		= {.dependency_field = "type"_hs, .dependency_value = static_cast<u32>(fog_type_e::linear), .dependency_type = reflected_field_dependency_type_e::show_if_not_equal},
+						 .name				= "density",
+						 .display_name		= "Density",
+						 .tooltip			= "Base extinction density used by exponential fog modes.",
+						 .offset			= offsetof(component_fog_t, density),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 10.0f,
+						 .clamp_granularity = 0.001f,
+						 .type				= reflected_value_type_e::f32},
+						{.name				= "start_distance",
+						 .display_name		= "Start Distance",
+						 .tooltip			= "Distance from the camera before fog begins accumulating.",
+						 .offset			= offsetof(component_fog_t, start_distance),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 4000.0f,
+						 .clamp_granularity = 0.1f,
+						 .type				= reflected_value_type_e::f32},
+						{.ui_definition		= {.dependency_field = "type"_hs, .dependency_value = static_cast<u32>(fog_type_e::linear), .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+						 .name				= "end_distance",
+						 .display_name		= "End Distance",
+						 .tooltip			= "Distance where linear fog reaches its maximum opacity.",
+						 .offset			= offsetof(component_fog_t, end_distance),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 1000000.0f,
+						 .clamp_granularity = 0.1f,
+						 .type				= reflected_value_type_e::f32},
+						{.ui_definition		= {.dependency_field = "type"_hs, .dependency_value = static_cast<u32>(fog_type_e::exponential_height), .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+						 .name				= "height",
+						 .display_name		= "Height",
+						 .tooltip			= "World-space height where exponential height fog has its base density.",
+						 .offset			= offsetof(component_fog_t, height),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= -1000000.0f,
+						 .max_clamp			= 1000000.0f,
+						 .clamp_granularity = 0.1f,
+						 .type				= reflected_value_type_e::f32},
+						{.ui_definition		= {.dependency_field = "type"_hs, .dependency_value = static_cast<u32>(fog_type_e::exponential_height), .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+						 .name				= "height_falloff",
+						 .display_name		= "Height Falloff",
+						 .tooltip			= "Rate at which fog density decreases above the configured height.",
+						 .offset			= offsetof(component_fog_t, height_falloff),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 10.0f,
+						 .clamp_granularity = 0.001f,
+						 .type				= reflected_value_type_e::f32},
+						{.name				= "max_opacity",
+						 .display_name		= "Maximum Opacity",
+						 .tooltip			= "Upper limit for the amount of scene color replaced by fog.",
+						 .offset			= offsetof(component_fog_t, max_opacity),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 1.0f,
+						 .clamp_granularity = 0.01f,
+						 .type				= reflected_value_type_e::f32},
+					},
+				.type_id   = type_id_t<component_fog_t>::value,
+				.size	   = sizeof(component_fog_t),
+				.alignment = alignof(component_fog_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
 		void register_component_reflection_probe_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -2471,6 +2594,7 @@ namespace sfg
 		register_component_light_reflection(registry);
 		register_component_post_process_reflection(registry);
 		register_component_environment_reflection(registry);
+		register_component_fog_reflection(registry);
 		register_component_reflection_probe_reflection(registry);
 		register_component_prefab_reference_reflection(registry);
 		register_component_entity_tags_reflection(registry);

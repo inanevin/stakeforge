@@ -35,6 +35,7 @@
 #include "normal.hlsl"
 #include "bone.hlsl"
 #include "render_pass_defines.hlsl"
+#include "fog.hlsl"
 
 SFG_MATERIAL_TEXTURE("albedo", sfg_texture2d)
 SFG_MATERIAL_TEXTURE("emissive", sfg_texture2d)
@@ -75,6 +76,7 @@ struct vs_output
 {
     float4 pos : SV_POSITION;
     float2 uv : TEXCOORD0;
+    float3 world_pos : TEXCOORD1;
 };
 
 vs_output VSMain(vs_input IN)
@@ -109,6 +111,7 @@ vs_output VSMain(vs_input IN)
     float3 world_pos = mul(entity.model, obj_pos).xyz;
     OUT.pos = mul(view_data.view_proj, float4(world_pos, 1.0));
     OUT.uv = IN.uv;
+    OUT.world_pos = world_pos;
 
     return OUT;
 }
@@ -216,6 +219,8 @@ ps_output PSMain(vs_output IN)
 
 float4 PSMain(vs_output IN) : SV_TARGET
 {
+    render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
+    render_pass_data_fog fog_data = sfg_get_cbv<render_pass_data_fog>(SFG_RENDER_PASS_FOG);
     material_data mat_data = sfg_get_cbv<material_data>(sfg_constant_mat0);
     float4 albedo = sample_albedo(IN, mat_data);
 
@@ -224,7 +229,12 @@ float4 PSMain(vs_output IN) : SV_TARGET
         discard;
 #endif
 
-    return float4(albedo.rgb + sample_emissive(IN, mat_data), albedo.a);
+    float3 final_color = albedo.rgb + sample_emissive(IN, mat_data);
+
+    if ((view_data.flags & SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_FOG) != 0)
+        final_color = apply_fog(final_color, IN.world_pos, view_data.camera_pos.xyz, fog_data);
+
+    return float4(final_color, albedo.a);
 }
 
 #endif

@@ -44,6 +44,7 @@ namespace sfg
 	enum render_pass_view_flags_e : u32
 	{
 		render_pass_view_flag_sample_reflections = 1 << 0,
+		render_pass_view_flag_sample_fog		 = 1 << 1,
 	};
 
 	struct render_pass_data_view_gpu_t
@@ -63,7 +64,7 @@ namespace sfg
 		u32			cluster_buffer_offset				= 0;
 		u32			cluster_light_indices_buffer_offset = 0;
 		u32			cluster_light_capacity				= 0;
-		u32			flags								= render_pass_view_flag_sample_reflections;
+		u32			flags								= render_pass_view_flag_sample_reflections | render_pass_view_flag_sample_fog;
 		u32			pad									= 0;
 	};
 
@@ -85,6 +86,16 @@ namespace sfg
 		u32			pad									   = 0;
 	};
 
+	struct render_pass_data_fog_gpu_t
+	{
+		vec4f_t color_intensity = vec4f_t::zero;
+		vec4f_t distance_height = vec4f_t::zero;
+		f32		height_falloff	= 0.0f;
+		f32		max_opacity		= 0.0f;
+		u32		type			= 0;
+		u32		pad				= 0;
+	};
+
 	struct render_pass_data_deferred_lighting_gpu_t
 	{
 		gpu_index_t gbuffer_albedo_index	= NULL_GPU_INDEX;
@@ -97,6 +108,7 @@ namespace sfg
 
 	static_assert(sizeof(render_pass_data_view_gpu_t) == 352);
 	static_assert(sizeof(render_pass_data_lighting_gpu_t) == 80);
+	static_assert(sizeof(render_pass_data_fog_gpu_t) == 48);
 	static_assert(sizeof(render_pass_data_deferred_lighting_gpu_t) == 32);
 
 	struct render_pass_data_post_process_gpu_t
@@ -369,6 +381,11 @@ namespace sfg
 			return _pfd[frame_index].deferred_lighting_render_pass_data_index;
 		}
 
+		inline gpu_index_t get_fog_render_pass_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].fog_render_pass_data_index;
+		}
+
 		inline gpu_index_t get_post_process_render_pass_data_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].post_process_render_pass_data_index;
@@ -569,6 +586,11 @@ namespace sfg
 			return _pfd[frame_index].mapped_deferred_lighting_render_pass_data;
 		}
 
+		inline u8* get_mapped_fog_render_pass_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_fog_render_pass_data;
+		}
+
 		inline u8* get_mapped_post_process_render_pass_data(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_post_process_render_pass_data;
@@ -735,6 +757,7 @@ namespace sfg
 			u8*			 mapped_view_render_pass_data								= nullptr;
 			u8*			 mapped_lighting_render_pass_data							= nullptr;
 			u8*			 mapped_deferred_lighting_render_pass_data					= nullptr;
+			u8*			 mapped_fog_render_pass_data								= nullptr;
 			u8*			 mapped_post_process_render_pass_data						= nullptr;
 			u8*			 mapped_entity_buffer										= nullptr;
 			u8*			 mapped_light_buffer										= nullptr;
@@ -752,6 +775,7 @@ namespace sfg
 			gfx_handle_t view_render_pass_data										= {};
 			gfx_handle_t lighting_render_pass_data									= {};
 			gfx_handle_t deferred_lighting_render_pass_data							= {};
+			gfx_handle_t fog_render_pass_data										= {};
 			gfx_handle_t post_process_render_pass_data								= {};
 			gfx_handle_t ssao_render_pass_data										= {};
 			gfx_handle_t bloom_render_pass_data										= {};
@@ -801,6 +825,7 @@ namespace sfg
 			gpu_index_t	 view_render_pass_data_index								= NULL_GPU_INDEX;
 			gpu_index_t	 lighting_render_pass_data_index							= NULL_GPU_INDEX;
 			gpu_index_t	 deferred_lighting_render_pass_data_index					= NULL_GPU_INDEX;
+			gpu_index_t	 fog_render_pass_data_index									= NULL_GPU_INDEX;
 			gpu_index_t	 post_process_render_pass_data_index						= NULL_GPU_INDEX;
 			gpu_index_t	 ssao_render_pass_data_index								= NULL_GPU_INDEX;
 			gpu_index_t	 bloom_render_pass_data_index								= NULL_GPU_INDEX;

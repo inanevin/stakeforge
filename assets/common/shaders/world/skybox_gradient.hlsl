@@ -31,6 +31,7 @@
 
 #include "layout_defines.hlsl"
 #include "render_pass_defines.hlsl"
+#include "fog.hlsl"
 
 SFG_MATERIAL_PARAM_VEC4("zenith_color", sfg_color)
 SFG_MATERIAL_PARAM_VEC4("horizon_color", sfg_color)
@@ -76,11 +77,19 @@ vs_output VSMain(uint vertex_id : SV_VertexID)
 
 float4 PSMain(vs_output input) : SV_TARGET
 {
+	render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
 	render_pass_data_lighting lighting_data = sfg_get_cbv<render_pass_data_lighting>(SFG_RENDER_PASS_LIGHTING);
+	render_pass_data_fog fog_data = sfg_get_cbv<render_pass_data_fog>(SFG_RENDER_PASS_FOG);
 	material_data material = sfg_get_cbv<material_data>(sfg_constant_mat0);
-	const float horizon = normalize(input.direction).y;
-	const float3 color = horizon >= 0.0
+	const float3 direction = normalize(input.direction);
+	const float horizon = direction.y;
+	float3 color = horizon >= 0.0
 		? lerp(material.horizon_color.rgb, material.zenith_color.rgb, saturate(horizon))
 		: lerp(material.horizon_color.rgb, material.ground_color.rgb, saturate(-horizon));
-	return float4(color * lighting_data.environment_intensity, 1.0);
+	color *= lighting_data.environment_intensity;
+
+	if ((view_data.flags & SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_FOG) != 0)
+		color = apply_fog(color, view_data.camera_pos.xyz + direction * view_data.far_plane, view_data.camera_pos.xyz, fog_data);
+
+	return float4(color, 1.0);
 }

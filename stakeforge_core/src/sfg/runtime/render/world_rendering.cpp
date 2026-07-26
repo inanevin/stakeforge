@@ -535,6 +535,7 @@ namespace sfg
 	{
 		gfx_backend&							 backend			= gfx_backend::get();
 		const world_render_reflection_context_t& reflection_context = ctx.get_reflection_context();
+		const gpu_index_t						 fog_data_index		= ctx.get_fog_render_pass_data_index(frame_index);
 
 		backend.reset_command_buffer(command_buffer);
 		backend.cmd_bind_layout(command_buffer, {.layout = global_layout});
@@ -632,6 +633,7 @@ namespace sfg
 			};
 
 			backend.cmd_bind_constants(command_buffer, {.data = forward_constants, .offset = constant_rp0, .count = 4, .param_index = 0});
+			backend.cmd_bind_constants(command_buffer, {.data = &fog_data_index, .offset = constant_rp5, .count = 1, .param_index = 0});
 
 			draw_skybox(backend, command_buffer, snapshot, frame_index);
 
@@ -1156,6 +1158,10 @@ namespace sfg
 
 		backend.cmd_bind_constants(cmd, {.data = &view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
 		backend.cmd_bind_constants(cmd, {.data = lighting_constants, .offset = constant_rp3, .count = 2, .param_index = 0});
+
+		const gpu_index_t fog_data_index = ctx.get_fog_render_pass_data_index(frame_index);
+		backend.cmd_bind_constants(cmd, {.data = &fog_data_index, .offset = constant_rp5, .count = 1, .param_index = 0});
+
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_lighting_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 
@@ -1224,6 +1230,9 @@ namespace sfg
 		};
 
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 4, .param_index = 0});
+
+		const gpu_index_t fog_data_index = ctx.get_fog_render_pass_data_index(frame_index);
+		backend.cmd_bind_constants(cmd, {.data = &fog_data_index, .offset = constant_rp5, .count = 1, .param_index = 0});
 
 		draw_skybox(backend, cmd, snapshot, frame_index);
 

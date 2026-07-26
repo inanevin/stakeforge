@@ -50,6 +50,27 @@ namespace sfg
 {
 #define WORLD_RENDER_PREP_INITIAL_VIEW_CAPACITY 65
 
+	enum class world_render_fog_type_e : u32
+	{
+		linear,
+		exponential,
+		exponential_squared,
+		exponential_height,
+	};
+
+	struct world_render_fog_t
+	{
+		vec4f_t					color		   = vec4f_t::zero;
+		f32						intensity	   = 0.0f;
+		f32						density		   = 0.01f;
+		f32						start_distance = 0.0f;
+		f32						end_distance   = 100.0f;
+		f32						height		   = 0.0f;
+		f32						height_falloff = 0.1f;
+		f32						max_opacity	   = 1.0f;
+		world_render_fog_type_e type		   = world_render_fog_type_e::exponential;
+	};
+
 	struct world_render_environment_t
 	{
 		vec4f_t ambient_color		  = vec4f_t::zero;
@@ -169,6 +190,7 @@ namespace sfg
 		engine_shadow_settings_t				  shadows			= {};
 		world_render_view_t						  main_view			= {};
 		world_render_environment_t				  environment		= {};
+		world_render_fog_t						  fog				= {};
 		world_render_post_process_t				  post_process		= {};
 		world_debug_draw_snapshot_t				  debug_draw		= {};
 		vector_t<world_render_material_t>		  materials			= {};
