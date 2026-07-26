@@ -54,6 +54,23 @@ struct gpu_shadow_view
 	uint pad;
 };
 
+static const uint SFG_GPU_REFLECTION_PROBE_FLAG_GLOBAL = 1u << 0;
+
+struct gpu_reflection_probe
+{
+	float4 position_blend_distance;
+	float4 rotation;
+	float4 extents_diffuse_intensity;
+	float specular_intensity;
+	uint flags;
+	uint radiance_texture_index;
+	uint specular_texture_index;
+	uint diffuse_sh_buffer_index;
+	uint diffuse_sh_coefficient_offset;
+	uint specular_mip_count;
+	uint padding;
+};
+
 struct gpu_point_light
 {
     float4 color_entity_index;
@@ -361,6 +378,134 @@ struct scene_lighting_data
 	float4x4 view;
 	uint4 light_counts;
 };
+
+float3 rotate_by_quaternion(float3 value, float4 rotation)
+{
+	return value + 2.0 * cross(rotation.xyz, cross(rotation.xyz, value) + rotation.w * value);
+}
+
+float3 world_to_reflection_probe_direction(float3 direction, gpu_reflection_probe probe)
+{
+	return rotate_by_quaternion(direction, float4(-probe.rotation.xyz, probe.rotation.w));
+}
+
+uint find_reflection_probe(
+	float3 camera_position,
+	StructuredBuffer<gpu_reflection_probe> reflection_probe_buffer,
+	uint reflection_probe_count)
+{
+	uint global_probe_index = SFG_INVALID_GPU_INDEX;
+	uint local_probe_index = SFG_INVALID_GPU_INDEX;
+	float local_probe_distance = 3.402823466e+38;
+
+	// prefer the nearest local volume containing the camera
+	[loop]
+	for (uint i = 0; i < reflection_probe_count; ++i)
+	{
+		const gpu_reflection_probe probe = reflection_probe_buffer[i];
+
+		if ((probe.flags & SFG_GPU_REFLECTION_PROBE_FLAG_GLOBAL) != 0)
+		{
+			if (global_probe_index == SFG_INVALID_GPU_INDEX)
+				global_probe_index = i;
+
+			continue;
+		}
+
+		const float3 local_camera_position = world_to_reflection_probe_direction(camera_position - probe.position_blend_distance.xyz, probe);
+
+		if (any(abs(local_camera_position) > probe.extents_diffuse_intensity.xyz))
+			continue;
+
+		const float3 normalized_position = local_camera_position / max(probe.extents_diffuse_intensity.xyz, 0.0001.xxx);
+		const float normalized_distance = dot(normalized_position, normalized_position);
+
+		if (normalized_distance < local_probe_distance)
+		{
+			local_probe_index = i;
+			local_probe_distance = normalized_distance;
+		}
+	}
+
+	return local_probe_index != SFG_INVALID_GPU_INDEX ? local_probe_index : global_probe_index;
+}
+
+float3 fresnel_schlick_roughness(float cos_theta, float3 f0, float roughness)
+{
+	const float3 grazing = max((1.0 - roughness).xxx, f0);
+
+	return f0 + (grazing - f0) * pow(1.0 - saturate(cos_theta), 5.0);
+}
+
+float3 evaluate_reflection_probe_diffuse(gpu_reflection_probe probe, float3 normal)
+{
+	if (probe.diffuse_sh_buffer_index == SFG_INVALID_GPU_INDEX || probe.diffuse_sh_coefficient_offset == SFG_INVALID_GPU_INDEX)
+		return 0.0.xxx;
+
+	StructuredBuffer<float4> diffuse_sh_buffer = sfg_get_ssbo<float4>(probe.diffuse_sh_buffer_index);
+	float3 probe_normal = world_to_reflection_probe_direction(normal, probe);
+	probe_normal.z = -probe_normal.z;
+	const float basis[9] = {
+		0.282095,
+		0.488603 * probe_normal.y,
+		0.488603 * probe_normal.z,
+		0.488603 * probe_normal.x,
+		1.092548 * probe_normal.x * probe_normal.y,
+		1.092548 * probe_normal.y * probe_normal.z,
+		0.315392 * (3.0 * probe_normal.z * probe_normal.z - 1.0),
+		1.092548 * probe_normal.x * probe_normal.z,
+		0.546274 * (probe_normal.x * probe_normal.x - probe_normal.y * probe_normal.y),
+	};
+	float3 irradiance = 0.0.xxx;
+
+	[unroll]
+	for (uint coefficient = 0; coefficient < 9; ++coefficient)
+		irradiance += diffuse_sh_buffer[probe.diffuse_sh_coefficient_offset + coefficient].rgb * basis[coefficient];
+
+	return max(irradiance, 0.0.xxx);
+}
+
+float3 evaluate_reflection_probe_lighting(
+	surface_lighting_data surface,
+	float3 camera_position,
+	StructuredBuffer<gpu_reflection_probe> reflection_probe_buffer,
+	uint reflection_probe_count,
+	uint brdf_lut_index,
+	SamplerState reflection_sampler)
+{
+	if (reflection_probe_count == 0 || brdf_lut_index == SFG_INVALID_GPU_INDEX)
+		return 0.0.xxx;
+
+	const uint probe_index = find_reflection_probe(camera_position, reflection_probe_buffer, reflection_probe_count);
+
+	if (probe_index == SFG_INVALID_GPU_INDEX)
+		return 0.0.xxx;
+
+	const gpu_reflection_probe probe = reflection_probe_buffer[probe_index];
+	const float ndotv = saturate(dot(surface.normal, surface.view_direction));
+	const float3 f0 = lerp(0.04.xxx, surface.albedo, surface.metallic);
+	const float3 fresnel = fresnel_schlick_roughness(ndotv, f0, surface.roughness);
+	const float3 diffuse_weight = (1.0.xxx - fresnel) * (1.0 - surface.metallic);
+	const float3 irradiance = evaluate_reflection_probe_diffuse(probe, surface.normal);
+	const float3 diffuse = diffuse_weight * surface.albedo * irradiance * (surface.ambient_occlusion * probe.extents_diffuse_intensity.w / PI);
+	float3 specular = 0.0.xxx;
+
+	// sample the prefiltered specular lobe with the shared BRDF integration LUT
+	if (probe.specular_texture_index != SFG_INVALID_GPU_INDEX && probe.specular_mip_count != 0)
+	{
+		TextureCube<float4> specular_texture = sfg_get_texture<TextureCube<float4> >(probe.specular_texture_index);
+		Texture2D<float4> brdf_lut = sfg_get_texture<Texture2D<float4> >(brdf_lut_index);
+		float3 reflection_direction = world_to_reflection_probe_direction(reflect(-surface.view_direction, surface.normal), probe);
+		reflection_direction.z = -reflection_direction.z;
+		const float mip_level = surface.roughness * float(probe.specular_mip_count - 1);
+		const float3 prefiltered = specular_texture.SampleLevel(reflection_sampler, reflection_direction, mip_level).rgb;
+		const float2 brdf = brdf_lut.SampleLevel(reflection_sampler, float2(ndotv, surface.roughness), 0.0).rg;
+
+		specular = prefiltered * (fresnel * brdf.x + brdf.y) * probe.specular_intensity;
+	}
+
+	return diffuse + specular;
+}
 
 float evaluate_directional_shadow(
 	gpu_light light,

@@ -76,6 +76,7 @@ namespace sfg
 								 gpu_index_t								 global_cbv_index,
 								 gfx_handle_t								 global_layout);
 		static void render_clustered_lighting(const world_render_clustered_lighting_data_t& data, span_t<const world_render_clustered_lighting_view_t> views);
+		static void render_prefilter_diffuse_sh(const world_render_context_t& ctx, const world_render_reflection_allocation_t& allocation, u8 frame_index, gpu_index_t global_cbv_index);
 		static void render_ssao(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index);
 		static void render_lighting(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		static void render_forward(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);

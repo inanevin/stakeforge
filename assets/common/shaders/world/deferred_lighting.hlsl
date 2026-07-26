@@ -122,6 +122,7 @@ float4 PSMain(vs_output input) : SV_TARGET
 	Texture2D tex_ao				 = sfg_get_texture<Texture2D>(deferred_data.ambient_occlusion_index);
 	StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(lighting_data.light_buffer_index);
 	StructuredBuffer<gpu_shadow_view> shadow_buffer = sfg_get_ssbo<gpu_shadow_view>(lighting_data.shadow_buffer_index);
+	StructuredBuffer<gpu_reflection_probe> reflection_probe_buffer = sfg_get_ssbo<gpu_reflection_probe>(lighting_data.reflection_probe_buffer_index);
 	StructuredBuffer<gpu_light_cluster> cluster_buffer = sfg_get_ssbo<gpu_light_cluster>(lighting_data.cluster_buffer_index);
 	StructuredBuffer<uint> cluster_light_indices = sfg_get_ssbo<uint>(lighting_data.cluster_light_indices_buffer_index);
 
@@ -181,6 +182,17 @@ float4 PSMain(vs_output input) : SV_TARGET
 		cluster.light_count,
 		smp_shadow,
 		smp_shadow_cube);
+
+	if ((view_data.flags & SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_REFLECTIONS) != 0)
+	{
+		lighting += evaluate_reflection_probe_lighting(
+			surface,
+			view_data.camera_pos.xyz,
+			reflection_probe_buffer,
+			lighting_data.reflection_probe_count,
+			lighting_data.brdf_lut_index,
+			smp_linear);
+	}
 
 	return float4(lighting + emissive, 1.0);
 }

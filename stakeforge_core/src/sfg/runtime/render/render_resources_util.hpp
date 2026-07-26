@@ -22,33 +22,23 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
-#define NOMINMAX
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/memory/pool_handle.hpp>
+#include <sfg/runtime/render/render_resource_handle.hpp>
 
 namespace sfg
 {
-#define BACK_BUFFER_COUNT 3
-#define FRAME_LATENCY	  2
-	inline constexpr u8 TEXTURE_MAX_VIEWS = 16;
+	enum class format_e : u8;
+	class render_resources_t;
+	struct vec2u16_t;
 
-	// 0 discrete, 1 integratd
-#define GPU_DEVICE 0
-
-	typedef unsigned short gfx_id_t;
-	typedef u32			   primitive_index;
-	typedef unsigned int   gpu_index_t;
-
-	struct gfx_handle_tag
+	struct render_resources_util_t
 	{
+		static render_resource_handle_t create_uploaded_texture(render_resources_t& resources, format_e format, vec2u16_t size, const u8* pixels, const char* name, render_resource_handle_t& out_staging);
+		static render_resource_handle_t create_brdf_lut(render_resources_t& resources, render_resource_handle_t& out_staging);
 	};
-
-	typedef pool_handle_t<gfx_id_t, gfx_handle_tag> gfx_handle_t;
-
-#define NULL_GFX_ID	   (unsigned short)0xFFFF
-#define NULL_GPU_INDEX (unsigned int)0xFFFFFFFF
 }

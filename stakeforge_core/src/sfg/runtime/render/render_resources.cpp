@@ -1,8 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 
 #include "render_resources.hpp"
+#include "render_resources_util.hpp"
 #include <sfg/gfx/backend/backend.hpp>
-#include <sfg/gfx/common/format.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
@@ -11,51 +11,6 @@
 
 namespace sfg
 {
-	namespace
-	{
-		render_resource_handle_t create_default_texture(render_resources_t& resources, format_e format, vec2u16_t size, const u8* pixels, const char* name, render_resource_handle_t& out_staging)
-		{
-			const u32 row_pitch = format_get_row_pitch(format, size.x);
-			const u32 row_count = format_get_row_count(format, size.y);
-			const u32 data_size = row_pitch * row_count;
-			u8*		  data		= static_cast<u8*>(SFG_MALLOC(data_size));
-			SFG_MEMCPY(data, pixels, data_size);
-
-			texture_desc_t texture_desc = {};
-			texture_desc.texture_format = format;
-			texture_desc.size			= size;
-			texture_desc.flags			= texture_flags::tf_sampled | texture_flags::tf_transfer_dest | texture_flags::tf_is_2d;
-			texture_desc.mip_levels		= 1;
-			texture_desc.array_length	= 1;
-			texture_desc.samples		= 1;
-			texture_desc.set_name(name);
-
-			resource_desc_t staging_desc = {};
-			staging_desc.size			 = gfx_backend::align_texture_size(gfx_backend::align_texture_size_pitch(row_pitch) * row_count);
-			staging_desc.flags			 = resource_flags::rf_cpu_visible;
-			staging_desc.set_name("default_texture_upload_staging");
-
-			texture_buffer_t mip = {};
-			mip.pixels			 = data;
-			mip.data_size		 = data_size;
-			mip.row_pitch		 = row_pitch;
-			mip.size			 = size;
-			mip.bpp				 = format_get_bpp(format);
-
-			const render_resource_handle_t texture = resources.enqueue_create_texture(texture_desc);
-			out_staging							   = resources.enqueue_create_resource(staging_desc);
-			resources.enqueue_texture_upload({
-				.mips			   = {.data = &mip, .size = 1},
-				.texture		   = texture,
-				.staging		   = out_staging,
-				.target_states	   = resource_state_ps_resource,
-				.destination_slice = 0,
-				.ownership		   = texture_data_ownership_e::c_free,
-			});
-			return texture;
-		}
-	}
-
 	render_resources_t& render_resources_t::get()
 	{
 		static render_resources_t instance;
@@ -70,12 +25,13 @@ namespace sfg
 		_default_linear_sampler = enqueue_create_sampler(gfx_util_t::get_sampler_desc_linear());
 
 		const u8 invalid_pixels[] = {0, 0, 0, 255, 255, 0, 255, 255, 255, 0, 255, 255, 0, 0, 0, 255};
-		_invalid_texture		  = create_default_texture(*this, format_e::r8g8b8a8_srgb, {2, 2}, invalid_pixels, "invalid_texture", _invalid_texture_staging);
+		_invalid_texture		  = render_resources_util_t::create_uploaded_texture(*this, format_e::r8g8b8a8_srgb, {2, 2}, invalid_pixels, "invalid_texture", _invalid_texture_staging);
 
 		const u8 white_pixel[] = {255, 255, 255, 255};
 		const u8 black_pixel[] = {0, 0, 0, 255};
-		_white_texture		   = create_default_texture(*this, format_e::r8g8b8a8_unorm, {1, 1}, white_pixel, "white_texture", _white_texture_staging);
-		_black_texture		   = create_default_texture(*this, format_e::r8g8b8a8_unorm, {1, 1}, black_pixel, "black_texture", _black_texture_staging);
+		_white_texture		   = render_resources_util_t::create_uploaded_texture(*this, format_e::r8g8b8a8_unorm, {1, 1}, white_pixel, "white_texture", _white_texture_staging);
+		_black_texture		   = render_resources_util_t::create_uploaded_texture(*this, format_e::r8g8b8a8_unorm, {1, 1}, black_pixel, "black_texture", _black_texture_staging);
+		_brdf_lut			   = render_resources_util_t::create_brdf_lut(*this, _brdf_lut_staging);
 	}
 
 	void render_resources_t::uninit()
@@ -89,6 +45,8 @@ namespace sfg
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_resource, .render_handle = _white_texture_staging});
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_texture, .render_handle = _black_texture});
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_resource, .render_handle = _black_texture_staging});
+		_deferred_destroys.push_back({.kind = request_kind_e::destroy_texture, .render_handle = _brdf_lut});
+		_deferred_destroys.push_back({.kind = request_kind_e::destroy_resource, .render_handle = _brdf_lut_staging});
 
 		drain_destroy_requests();
 
@@ -99,6 +57,8 @@ namespace sfg
 		_white_texture_staging	 = {};
 		_black_texture			 = {};
 		_black_texture_staging	 = {};
+		_brdf_lut				 = {};
+		_brdf_lut_staging		 = {};
 
 		get_texture_upload_queue().uninit();
 

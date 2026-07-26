@@ -525,6 +525,72 @@ namespace sfg
 		create_texture(size);
 	}
 
+	void world_render_context_t::create_light_cluster_buffers(u8 frame_index, u32 cluster_count)
+	{
+		per_frame_data_t& frame_data = _pfd[frame_index];
+
+		SFG_ASSERT(frame_data.light_cluster_buffer.is_null());
+		SFG_ASSERT(frame_data.light_cluster_indices_buffer.is_null());
+
+		resource_desc_t light_cluster_buffer_desc = {};
+		light_cluster_buffer_desc.size			  = static_cast<u32>(sizeof(gpu_light_cluster_t) * cluster_count);
+		light_cluster_buffer_desc.structure_size  = static_cast<u32>(sizeof(gpu_light_cluster_t));
+		light_cluster_buffer_desc.structure_count = cluster_count;
+		light_cluster_buffer_desc.flags			  = resource_flags::rf_storage_buffer | resource_flags::rf_gpu_only | resource_flags::rf_gpu_write;
+		light_cluster_buffer_desc.set_name("world_light_clusters");
+
+		resource_desc_t light_cluster_indices_buffer_desc = {};
+		light_cluster_indices_buffer_desc.size			  = static_cast<u32>(sizeof(u32) * cluster_count * WORLD_RENDER_CLUSTER_LIGHT_CAPACITY);
+		light_cluster_indices_buffer_desc.structure_size  = static_cast<u32>(sizeof(u32));
+		light_cluster_indices_buffer_desc.structure_count = cluster_count * WORLD_RENDER_CLUSTER_LIGHT_CAPACITY;
+		light_cluster_indices_buffer_desc.flags			  = resource_flags::rf_storage_buffer | resource_flags::rf_gpu_only | resource_flags::rf_gpu_write;
+		light_cluster_indices_buffer_desc.set_name("world_light_cluster_indices");
+
+		gfx_backend& backend = gfx_backend::get();
+
+		frame_data.light_cluster_buffer					  = backend.create_resource(light_cluster_buffer_desc);
+		frame_data.light_cluster_indices_buffer			  = backend.create_resource(light_cluster_indices_buffer_desc);
+		frame_data.light_cluster_buffer_index			  = backend.get_resource_gpu_index(frame_data.light_cluster_buffer);
+		frame_data.light_cluster_buffer_uav_index		  = backend.get_resource_gpu_index(frame_data.light_cluster_buffer, true);
+		frame_data.light_cluster_indices_buffer_index	  = backend.get_resource_gpu_index(frame_data.light_cluster_indices_buffer);
+		frame_data.light_cluster_indices_buffer_uav_index = backend.get_resource_gpu_index(frame_data.light_cluster_indices_buffer, true);
+		frame_data.light_cluster_capacity				  = cluster_count;
+	}
+
+	void world_render_context_t::destroy_light_cluster_buffers(u8 frame_index)
+	{
+		per_frame_data_t& frame_data = _pfd[frame_index];
+
+		SFG_ASSERT(!frame_data.light_cluster_buffer.is_null());
+		SFG_ASSERT(!frame_data.light_cluster_indices_buffer.is_null());
+
+		gfx_backend& backend = gfx_backend::get();
+
+		backend.destroy_resource(frame_data.light_cluster_buffer);
+		backend.destroy_resource(frame_data.light_cluster_indices_buffer);
+
+		frame_data.light_cluster_buffer					  = {};
+		frame_data.light_cluster_indices_buffer			  = {};
+		frame_data.light_cluster_buffer_index			  = NULL_GPU_INDEX;
+		frame_data.light_cluster_buffer_uav_index		  = NULL_GPU_INDEX;
+		frame_data.light_cluster_indices_buffer_index	  = NULL_GPU_INDEX;
+		frame_data.light_cluster_indices_buffer_uav_index = NULL_GPU_INDEX;
+		frame_data.light_cluster_capacity				  = 0;
+	}
+
+	void world_render_context_t::ensure_light_cluster_capacity(u8 frame_index, u32 cluster_count)
+	{
+		per_frame_data_t& frame_data = _pfd[frame_index];
+
+		if (frame_data.light_cluster_capacity >= cluster_count)
+			return;
+
+		const u32 grown_capacity = std::max(cluster_count, frame_data.light_cluster_capacity * 2);
+
+		destroy_light_cluster_buffers(frame_index);
+		create_light_cluster_buffers(frame_index, grown_capacity);
+	}
+
 	void world_render_context_t::create_texture(vec2u16_t size)
 	{
 		texture_desc_t lighting_desc = {};
@@ -645,20 +711,6 @@ namespace sfg
 		const u32 light_cluster_count_y = (static_cast<u32>(size.y) + WORLD_RENDER_CLUSTER_TILE_SIZE - 1) / WORLD_RENDER_CLUSTER_TILE_SIZE;
 		const u32 light_cluster_count	= light_cluster_count_x * light_cluster_count_y * WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT;
 
-		resource_desc_t light_cluster_buffer_desc = {};
-		light_cluster_buffer_desc.size			  = static_cast<u32>(sizeof(gpu_light_cluster_t) * light_cluster_count);
-		light_cluster_buffer_desc.structure_size  = static_cast<u32>(sizeof(gpu_light_cluster_t));
-		light_cluster_buffer_desc.structure_count = light_cluster_count;
-		light_cluster_buffer_desc.flags			  = resource_flags::rf_storage_buffer | resource_flags::rf_gpu_only | resource_flags::rf_gpu_write;
-		light_cluster_buffer_desc.set_name("world_light_clusters");
-
-		resource_desc_t light_cluster_indices_buffer_desc = {};
-		light_cluster_indices_buffer_desc.size			  = static_cast<u32>(sizeof(u32) * light_cluster_count * WORLD_RENDER_CLUSTER_LIGHT_CAPACITY);
-		light_cluster_indices_buffer_desc.structure_size  = static_cast<u32>(sizeof(u32));
-		light_cluster_indices_buffer_desc.structure_count = light_cluster_count * WORLD_RENDER_CLUSTER_LIGHT_CAPACITY;
-		light_cluster_indices_buffer_desc.flags			  = resource_flags::rf_storage_buffer | resource_flags::rf_gpu_only | resource_flags::rf_gpu_write;
-		light_cluster_indices_buffer_desc.set_name("world_light_cluster_indices");
-
 		gfx_backend& backend = gfx_backend::get();
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
@@ -675,15 +727,14 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].light_cluster_buffer.is_null());
 			SFG_ASSERT(_pfd[i].light_cluster_indices_buffer.is_null());
 
-			_pfd[i].lighting_texture			 = backend.create_texture(lighting_desc);
-			_pfd[i].post_process_texture		 = backend.create_texture(post_process_desc);
-			_pfd[i].depth_texture				 = backend.create_texture(depth_desc);
-			_pfd[i].gbuffer_albedo				 = backend.create_texture(gbuffer_albedo_desc);
-			_pfd[i].gbuffer_normal				 = backend.create_texture(gbuffer_normal_desc);
-			_pfd[i].gbuffer_orm					 = backend.create_texture(gbuffer_orm_desc);
-			_pfd[i].gbuffer_emissive			 = backend.create_texture(gbuffer_emissive_desc);
-			_pfd[i].light_cluster_buffer		 = backend.create_resource(light_cluster_buffer_desc);
-			_pfd[i].light_cluster_indices_buffer = backend.create_resource(light_cluster_indices_buffer_desc);
+			_pfd[i].lighting_texture	 = backend.create_texture(lighting_desc);
+			_pfd[i].post_process_texture = backend.create_texture(post_process_desc);
+			_pfd[i].depth_texture		 = backend.create_texture(depth_desc);
+			_pfd[i].gbuffer_albedo		 = backend.create_texture(gbuffer_albedo_desc);
+			_pfd[i].gbuffer_normal		 = backend.create_texture(gbuffer_normal_desc);
+			_pfd[i].gbuffer_orm			 = backend.create_texture(gbuffer_orm_desc);
+			_pfd[i].gbuffer_emissive	 = backend.create_texture(gbuffer_emissive_desc);
+			create_light_cluster_buffers(static_cast<u8>(i), light_cluster_count);
 
 			if (_config.enable_ssao != 0)
 			{
@@ -691,17 +742,13 @@ namespace sfg
 				_pfd[i].ao_half_texture = backend.create_texture(ao_half_desc);
 			}
 
-			_pfd[i].lighting_texture_index				   = backend.get_texture_gpu_index(_pfd[i].lighting_texture, 0);
-			_pfd[i].post_process_texture_index			   = backend.get_texture_gpu_index(_pfd[i].post_process_texture, 0);
-			_pfd[i].depth_texture_index					   = backend.get_texture_gpu_index(_pfd[i].depth_texture, 2);
-			_pfd[i].gbuffer_albedo_index				   = backend.get_texture_gpu_index(_pfd[i].gbuffer_albedo, 1);
-			_pfd[i].gbuffer_normal_index				   = backend.get_texture_gpu_index(_pfd[i].gbuffer_normal, 1);
-			_pfd[i].gbuffer_orm_index					   = backend.get_texture_gpu_index(_pfd[i].gbuffer_orm, 1);
-			_pfd[i].gbuffer_emissive_index				   = backend.get_texture_gpu_index(_pfd[i].gbuffer_emissive, 1);
-			_pfd[i].light_cluster_buffer_index			   = backend.get_resource_gpu_index(_pfd[i].light_cluster_buffer);
-			_pfd[i].light_cluster_buffer_uav_index		   = backend.get_resource_gpu_index(_pfd[i].light_cluster_buffer, true);
-			_pfd[i].light_cluster_indices_buffer_index	   = backend.get_resource_gpu_index(_pfd[i].light_cluster_indices_buffer);
-			_pfd[i].light_cluster_indices_buffer_uav_index = backend.get_resource_gpu_index(_pfd[i].light_cluster_indices_buffer, true);
+			_pfd[i].lighting_texture_index	   = backend.get_texture_gpu_index(_pfd[i].lighting_texture, 0);
+			_pfd[i].post_process_texture_index = backend.get_texture_gpu_index(_pfd[i].post_process_texture, 0);
+			_pfd[i].depth_texture_index		   = backend.get_texture_gpu_index(_pfd[i].depth_texture, 2);
+			_pfd[i].gbuffer_albedo_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_albedo, 1);
+			_pfd[i].gbuffer_normal_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_normal, 1);
+			_pfd[i].gbuffer_orm_index		   = backend.get_texture_gpu_index(_pfd[i].gbuffer_orm, 1);
+			_pfd[i].gbuffer_emissive_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_emissive, 1);
 
 			if (_config.enable_ssao != 0)
 			{
@@ -751,8 +798,7 @@ namespace sfg
 			backend.destroy_texture(_pfd[i].gbuffer_normal);
 			backend.destroy_texture(_pfd[i].gbuffer_orm);
 			backend.destroy_texture(_pfd[i].gbuffer_emissive);
-			backend.destroy_resource(_pfd[i].light_cluster_buffer);
-			backend.destroy_resource(_pfd[i].light_cluster_indices_buffer);
+			destroy_light_cluster_buffers(static_cast<u8>(i));
 			if (_config.enable_ssao != 0)
 			{
 				backend.destroy_texture(_pfd[i].ao_texture);
@@ -763,19 +809,17 @@ namespace sfg
 				backend.destroy_texture(_pfd[i].bloom_downsample);
 				backend.destroy_texture(_pfd[i].bloom_upsample);
 			}
-			_pfd[i].lighting_texture			 = {};
-			_pfd[i].post_process_texture		 = {};
-			_pfd[i].depth_texture				 = {};
-			_pfd[i].gbuffer_albedo				 = {};
-			_pfd[i].gbuffer_normal				 = {};
-			_pfd[i].gbuffer_orm					 = {};
-			_pfd[i].gbuffer_emissive			 = {};
-			_pfd[i].light_cluster_buffer		 = {};
-			_pfd[i].light_cluster_indices_buffer = {};
-			_pfd[i].ao_texture					 = {};
-			_pfd[i].ao_half_texture				 = {};
-			_pfd[i].bloom_downsample			 = {};
-			_pfd[i].bloom_upsample				 = {};
+			_pfd[i].lighting_texture	 = {};
+			_pfd[i].post_process_texture = {};
+			_pfd[i].depth_texture		 = {};
+			_pfd[i].gbuffer_albedo		 = {};
+			_pfd[i].gbuffer_normal		 = {};
+			_pfd[i].gbuffer_orm			 = {};
+			_pfd[i].gbuffer_emissive	 = {};
+			_pfd[i].ao_texture			 = {};
+			_pfd[i].ao_half_texture		 = {};
+			_pfd[i].bloom_downsample	 = {};
+			_pfd[i].bloom_upsample		 = {};
 			for (u8 level = 0; level < WORLD_RENDER_BLOOM_LEVEL_COUNT; ++level)
 			{
 				_pfd[i].bloom_downsample_index[level]	  = NULL_GPU_INDEX;
@@ -783,21 +827,17 @@ namespace sfg
 				_pfd[i].bloom_upsample_index[level]		  = NULL_GPU_INDEX;
 				_pfd[i].bloom_upsample_uav_index[level]	  = NULL_GPU_INDEX;
 			}
-			_pfd[i].lighting_texture_index				   = NULL_GPU_INDEX;
-			_pfd[i].post_process_texture_index			   = NULL_GPU_INDEX;
-			_pfd[i].depth_texture_index					   = NULL_GPU_INDEX;
-			_pfd[i].gbuffer_albedo_index				   = NULL_GPU_INDEX;
-			_pfd[i].gbuffer_normal_index				   = NULL_GPU_INDEX;
-			_pfd[i].gbuffer_orm_index					   = NULL_GPU_INDEX;
-			_pfd[i].gbuffer_emissive_index				   = NULL_GPU_INDEX;
-			_pfd[i].light_cluster_buffer_index			   = NULL_GPU_INDEX;
-			_pfd[i].light_cluster_buffer_uav_index		   = NULL_GPU_INDEX;
-			_pfd[i].light_cluster_indices_buffer_index	   = NULL_GPU_INDEX;
-			_pfd[i].light_cluster_indices_buffer_uav_index = NULL_GPU_INDEX;
-			_pfd[i].ao_texture_index					   = NULL_GPU_INDEX;
-			_pfd[i].ao_texture_uav_index				   = NULL_GPU_INDEX;
-			_pfd[i].ao_half_texture_index				   = NULL_GPU_INDEX;
-			_pfd[i].ao_half_texture_uav_index			   = NULL_GPU_INDEX;
+			_pfd[i].lighting_texture_index	   = NULL_GPU_INDEX;
+			_pfd[i].post_process_texture_index = NULL_GPU_INDEX;
+			_pfd[i].depth_texture_index		   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_albedo_index	   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_normal_index	   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_orm_index		   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_emissive_index	   = NULL_GPU_INDEX;
+			_pfd[i].ao_texture_index		   = NULL_GPU_INDEX;
+			_pfd[i].ao_texture_uav_index	   = NULL_GPU_INDEX;
+			_pfd[i].ao_half_texture_index	   = NULL_GPU_INDEX;
+			_pfd[i].ao_half_texture_uav_index  = NULL_GPU_INDEX;
 		}
 		_config.size = vec2u16_t::zero;
 	}

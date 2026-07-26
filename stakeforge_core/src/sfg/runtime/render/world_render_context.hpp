@@ -41,6 +41,11 @@ namespace sfg
 {
 #define WORLD_RENDER_BLOOM_LEVEL_COUNT 5
 
+	enum render_pass_view_flags_e : u32
+	{
+		render_pass_view_flag_sample_reflections = 1 << 0,
+	};
+
 	struct render_pass_data_view_gpu_t
 	{
 		mat4x4_t	view								= mat4x4_t::identity;
@@ -58,7 +63,8 @@ namespace sfg
 		u32			cluster_buffer_offset				= 0;
 		u32			cluster_light_indices_buffer_offset = 0;
 		u32			cluster_light_capacity				= 0;
-		u32			pad[2]								= {};
+		u32			flags								= render_pass_view_flag_sample_reflections;
+		u32			pad									= 0;
 	};
 
 	struct render_pass_data_lighting_gpu_t
@@ -74,8 +80,9 @@ namespace sfg
 		gpu_index_t cluster_light_indices_buffer_uav_index = NULL_GPU_INDEX;
 		u32			reflection_probe_count				   = 0;
 		f32			environment_intensity				   = 1.0f;
+		gpu_index_t brdf_lut_index						   = NULL_GPU_INDEX;
 		u32			debug_cluster_heatmap				   = 0;
-		u32			pad[2]								   = {};
+		u32			pad									   = 0;
 	};
 
 	struct render_pass_data_deferred_lighting_gpu_t
@@ -168,6 +175,11 @@ namespace sfg
 		void init(const world_render_context_config_t& config);
 		void uninit();
 		void resize(vec2u16_t size);
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+		void ensure_light_cluster_capacity(u8 frame_index, u32 cluster_count);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -705,6 +717,8 @@ namespace sfg
 	private:
 		void create_texture(vec2u16_t size);
 		void destroy_texture();
+		void create_light_cluster_buffers(u8 frame_index, u32 cluster_count);
+		void destroy_light_cluster_buffers(u8 frame_index);
 
 		struct per_frame_data_t
 		{
@@ -799,6 +813,7 @@ namespace sfg
 			gpu_index_t	 light_cluster_indices_buffer_uav_index						= NULL_GPU_INDEX;
 			gpu_index_t	 debug_line_data_index										= NULL_GPU_INDEX;
 			gpu_index_t	 debug_text_data_index										= NULL_GPU_INDEX;
+			u32			 light_cluster_capacity										= 0;
 		};
 
 		struct shaders_t

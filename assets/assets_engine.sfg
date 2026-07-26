@@ -80,6 +80,24 @@
                 "schema": "sfg.schema.shader",
                 "type": 21
             }
+        },
+        {
+            "name": "reflection_specular_prefilter",
+            "path": "common/shaders/world/reflection_specular_prefilter.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 22
+            }
+        },
+        {
+            "name": "reflection_diffuse_sh",
+            "path": "common/shaders/world/reflection_diffuse_sh.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 23
+            }
         }
     ]
 }

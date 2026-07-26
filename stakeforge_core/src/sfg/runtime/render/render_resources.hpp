@@ -154,6 +154,11 @@ namespace sfg
 			return _black_texture;
 		}
 
+		inline render_resource_handle_t get_brdf_lut() const
+		{
+			return _brdf_lut;
+		}
+
 		inline texture_queue_t& get_texture_upload_queue()
 		{
 			return _texture_upload_queue;
@@ -274,6 +279,8 @@ namespace sfg
 		render_resource_handle_t								   _white_texture_staging	= {};
 		render_resource_handle_t								   _black_texture			= {};
 		render_resource_handle_t								   _black_texture_staging	= {};
+		render_resource_handle_t								   _brdf_lut				= {};
+		render_resource_handle_t								   _brdf_lut_staging		= {};
 
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _resources;
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _textures;

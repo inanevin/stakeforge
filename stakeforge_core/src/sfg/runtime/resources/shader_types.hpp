@@ -31,6 +31,8 @@ namespace sfg
 		debug_triangle,
 		skybox_shader,
 		clustered_light_culling,
+		reflection_specular_prefilter,
+		reflection_diffuse_sh,
 		count,
 	};
 

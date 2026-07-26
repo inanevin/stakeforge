@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world_render_reflection_context.hpp"
 #include "world_gpu_reflection_probe.hpp"
+#include "render_resources.hpp"
 #include "world_render_context.hpp"
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
@@ -35,6 +36,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/shader.hpp>
 
 namespace sfg
 {
@@ -59,6 +62,10 @@ namespace sfg
 
 		_diffuse_sh_buffer				   = other._diffuse_sh_buffer;
 		other._diffuse_sh_buffer		   = {};
+		_specular_prefilter_shader		   = other._specular_prefilter_shader;
+		other._specular_prefilter_shader   = {};
+		_diffuse_sh_shader				   = other._diffuse_sh_shader;
+		other._diffuse_sh_shader		   = {};
 		_id_counter						   = other._id_counter;
 		other._id_counter				   = 0;
 		_diffuse_sh_buffer_index		   = other._diffuse_sh_buffer_index;
@@ -124,11 +131,23 @@ namespace sfg
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			SFG_ASSERT(_pfd[i].probe_buffer.is_null());
+			SFG_ASSERT(_pfd[i].command_buffer_graphics.is_null());
+			SFG_ASSERT(_pfd[i].command_buffer_compute.is_null());
+			SFG_ASSERT(_pfd[i].semaphore.is_null());
 
-			_pfd[i].probe_buffer = backend.create_resource(probe_buffer_desc);
+			_pfd[i].command_buffer_graphics = backend.create_command_buffer({.type = command_type::graphics, .debug_name = "reflection_gfx"});
+			_pfd[i].command_buffer_compute	= backend.create_command_buffer({.type = command_type::compute, .debug_name = "reflection_cmp"});
+			_pfd[i].semaphore				= backend.create_semaphore();
+			_pfd[i].probe_buffer			= backend.create_resource(probe_buffer_desc);
 			backend.map_resource(_pfd[i].probe_buffer, _pfd[i].mapped_probe_buffer);
 			_pfd[i].probe_buffer_index = backend.get_resource_gpu_index(_pfd[i].probe_buffer);
 		}
+
+		const render_resources_t& render_resources = render_resources_t::get();
+		const shader_internals_t* shader		   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/reflection_specular_prefilter.hlsl"_hs);
+		_specular_prefilter_shader				   = render_resources.get_shader_hw(shader->psos[0]);
+		shader									   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/reflection_diffuse_sh.hlsl"_hs);
+		_diffuse_sh_shader						   = render_resources.get_shader_hw(shader->psos[0]);
 	}
 
 	void world_render_reflection_context_t::uninit()
@@ -142,7 +161,13 @@ namespace sfg
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			SFG_ASSERT(!_pfd[i].probe_buffer.is_null());
+			SFG_ASSERT(!_pfd[i].command_buffer_graphics.is_null());
+			SFG_ASSERT(!_pfd[i].command_buffer_compute.is_null());
+			SFG_ASSERT(!_pfd[i].semaphore.is_null());
 
+			backend.destroy_command_buffer(_pfd[i].command_buffer_graphics);
+			backend.destroy_command_buffer(_pfd[i].command_buffer_compute);
+			backend.destroy_semaphore(_pfd[i].semaphore);
 			backend.destroy_resource(_pfd[i].probe_buffer);
 			_pfd[i] = {};
 		}
@@ -154,6 +179,8 @@ namespace sfg
 		}
 
 		_diffuse_sh_buffer			 = {};
+		_specular_prefilter_shader	 = {};
+		_diffuse_sh_shader			 = {};
 		_id_counter					 = 0;
 		_diffuse_sh_buffer_index	 = NULL_GPU_INDEX;
 		_diffuse_sh_buffer_uav_index = NULL_GPU_INDEX;
@@ -226,7 +253,7 @@ namespace sfg
 
 		texture_desc_t radiance_desc = {};
 		radiance_desc.texture_format = format_e::r16g16b16a16_sfloat;
-		radiance_desc.initial_states = resource_state_ps_resource;
+		radiance_desc.initial_states = resource_state_common;
 		radiance_desc.size			 = texture_size;
 		radiance_desc.flags			 = texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d | texture_flags::tf_cubemap;
 		radiance_desc.view_count	 = WORLD_RENDER_REFLECTION_FACE_COUNT + 1;
@@ -239,16 +266,29 @@ namespace sfg
 		radiance_desc.set_name("world_reflection_probe_radiance");
 
 		const u8 specular_mip_count = image_util_t::calculate_mip_levels(resolution, resolution);
+		SFG_ASSERT(specular_mip_count + 1 <= TEXTURE_MAX_VIEWS);
 
 		texture_desc_t specular_desc = {};
 		specular_desc.texture_format = format_e::r16g16b16a16_sfloat;
-		specular_desc.initial_states = resource_state_ps_resource;
+		specular_desc.initial_states = resource_state_common;
 		specular_desc.size			 = texture_size;
 		specular_desc.flags			 = texture_flags::tf_sampled | texture_flags::tf_gpu_write | texture_flags::tf_is_2d | texture_flags::tf_cubemap;
-		specular_desc.view_count	 = 1;
+		specular_desc.view_count	 = specular_mip_count + 1;
 		specular_desc.mip_levels	 = specular_mip_count;
 		specular_desc.array_length	 = WORLD_RENDER_REFLECTION_FACE_COUNT;
 		specular_desc.views[0]		 = {.type = view_type::sampled, .base_arr_level = 0, .level_count = WORLD_RENDER_REFLECTION_FACE_COUNT, .mip_count = 0, .is_cubemap = 1};
+
+		for (u8 mip = 0; mip < specular_mip_count; ++mip)
+		{
+			specular_desc.views[mip + 1] = {
+				.type			= view_type::gpu_write,
+				.base_arr_level = 0,
+				.level_count	= WORLD_RENDER_REFLECTION_FACE_COUNT,
+				.base_mip_level = mip,
+				.mip_count		= 1,
+			};
+		}
+
 		specular_desc.set_name("world_reflection_probe_specular");
 
 		texture_desc_t depth_desc		= {};
@@ -311,8 +351,12 @@ namespace sfg
 			}
 		}
 
-		allocation->radiance_texture_index		  = backend.get_texture_gpu_index(allocation->radiance_texture, WORLD_RENDER_REFLECTION_FACE_COUNT);
-		allocation->specular_texture_index		  = backend.get_texture_gpu_index(allocation->specular_texture, 0);
+		allocation->radiance_texture_index = backend.get_texture_gpu_index(allocation->radiance_texture, WORLD_RENDER_REFLECTION_FACE_COUNT);
+		allocation->specular_texture_index = backend.get_texture_gpu_index(allocation->specular_texture, 0);
+
+		for (u8 mip = 0; mip < specular_mip_count; ++mip)
+			allocation->specular_texture_uav_indices[mip] = backend.get_texture_gpu_index(allocation->specular_texture, mip + 1);
+
 		allocation->depth_texture_index			  = backend.get_texture_gpu_index(allocation->depth_texture, 2);
 		allocation->diffuse_sh_coefficient_offset = static_cast<u32>(allocation_index) * WORLD_RENDER_REFLECTION_SH_COEFFICIENT_COUNT;
 		allocation->last_used_id				  = _id_counter;

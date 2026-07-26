@@ -37,7 +37,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/commands.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/io/log.hpp>
 #include <sfg/job/job_system.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
@@ -49,6 +48,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define WORLD_RENDER_REFLECTION_SPECULAR_SAMPLE_COUNT 1024
+#define WORLD_RENDER_REFLECTION_SH_SAMPLE_COUNT		  4096
+
 	namespace
 	{
 		void bind_vertex(gfx_backend& backend, gfx_handle_t cmd, gfx_handle_t& bound_vertex, gfx_handle_t handle, u16 vtx_size)
@@ -208,10 +210,12 @@ namespace sfg
 		render_view_t	main_camera_view_t = {};
 		main_camera_view_t.calculate(snapshot.main_view, render_size, interpolation_alpha);
 
+		// logarithmic depth scale for clusters
 		const f32 cluster_log_scale = WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT / std::log2(main_camera_view_t.far_plane / main_camera_view_t.near_plane);
 		const f32 cluster_log_bias	= -std::log2(main_camera_view_t.near_plane) * cluster_log_scale;
 		u32		  light_counts[4]	= {};
 
+		// first view is main camera view.
 		prep_data.add_view({
 			.view								 = main_camera_view_t.view,
 			.view_proj							 = main_camera_view_t.view_proj,
@@ -231,26 +235,7 @@ namespace sfg
 			.cluster_light_capacity				 = WORLD_RENDER_CLUSTER_LIGHT_CAPACITY,
 		});
 
-		// other preps
-		world_rendering_util_t::prep_shadows(ctx, snapshot, prep_data, main_camera_view_t, interpolation_alpha);
-		world_rendering_util_t::prep_light_buffer(ctx, snapshot, prep_data, interpolation_alpha, frame_index, light_counts);
-		world_rendering_util_t::prep_probes(ctx, snapshot, prep_data, main_camera_view_t, interpolation_alpha, frame_index);
-		world_rendering_util_t::prep_shadow_buffer(ctx, snapshot, prep_data, frame_index);
-		world_rendering_util_t::prep_debug_buffer(ctx, snapshot, frame_index);
-		world_rendering_util_t::prep_culls(ctx, snapshot, prep_data, frame_index);
-		world_rendering_util_t::prep_render_pass_buffers(ctx, snapshot, prep_data, main_camera_view_t, light_counts, frame_index);
-
-		for (u16 i = 0; i < reflection_context.get_probe_max(); ++i)
-		{
-			world_render_reflection_allocation_t& allocation = reflection_context.get_allocation(i);
-
-			if (allocation.pending_render == 0)
-				continue;
-
-			SFG_TRACE("reflection allocation pending render: stable id {0}, generation {1}", allocation.stable_id, allocation.generation);
-			allocation.pending_render = 0;
-		}
-
+		// cluster light compute will dispatch per view.
 		inplace_vector_t<world_render_clustered_lighting_view_t, 1 + WORLD_RENDER_REFLECTION_FACE_COUNT> clustered_lighting_views = {};
 		clustered_lighting_views.push_back({
 			.view_data_index = ctx.get_view_render_pass_data_index(frame_index),
@@ -258,6 +243,45 @@ namespace sfg
 			.cluster_count_y = prep_data.views[0].cluster_dims[1],
 			.cluster_count_z = prep_data.views[0].cluster_dims[2],
 		});
+
+		// other preps
+		world_rendering_util_t::prep_shadows(ctx, snapshot, prep_data, main_camera_view_t, interpolation_alpha);
+		world_rendering_util_t::prep_shadow_buffer(ctx, snapshot, prep_data, frame_index);
+		world_rendering_util_t::prep_light_buffer(ctx, snapshot, prep_data, interpolation_alpha, frame_index, light_counts);
+		world_rendering_util_t::prep_probes(ctx, snapshot, prep_data, main_camera_view_t, interpolation_alpha, frame_index);
+
+		// we render 1 reflection probe per frame max.
+		const world_render_reflection_probe_t* reflection_probe													= nullptr;
+		u16									   reflection_cull_view_indices[WORLD_RENDER_REFLECTION_FACE_COUNT] = {};
+		world_render_reflection_allocation_t*  reflection_allocation = world_rendering_util_t::prep_reflection_allocation(ctx, snapshot, prep_data, interpolation_alpha, frame_index, reflection_probe, reflection_cull_view_indices);
+
+		if (reflection_allocation != nullptr)
+		{
+			if (reflection_probe->capture_type == world_render_reflection_probe_capture_type_e::scene)
+			{
+				for (u8 face = 0; face < WORLD_RENDER_REFLECTION_FACE_COUNT; ++face)
+				{
+					const world_render_prep_view_t& prep_view = prep_data.views[reflection_cull_view_indices[face]];
+
+					clustered_lighting_views.push_back({
+						.view_data_index = reflection_context.get_view_data_index(*reflection_allocation, frame_index, face),
+						.cluster_count_x = prep_view.cluster_dims[0],
+						.cluster_count_y = prep_view.cluster_dims[1],
+						.cluster_count_z = prep_view.cluster_dims[2],
+					});
+				}
+			}
+		}
+
+		// cluster light data and cluster indices are shared, make sure we have enough capacity for all probe rendering
+		u32 light_cluster_count = 0;
+		for (const world_render_clustered_lighting_view_t& view : clustered_lighting_views)
+			light_cluster_count += view.cluster_count_x * view.cluster_count_y * view.cluster_count_z;
+		ctx.ensure_light_cluster_capacity(frame_index, light_cluster_count);
+
+		world_rendering_util_t::prep_debug_buffer(ctx, snapshot, frame_index);
+		world_rendering_util_t::prep_culls(ctx, snapshot, prep_data, frame_index);
+		world_rendering_util_t::prep_render_pass_buffers(ctx, snapshot, prep_data, main_camera_view_t, light_counts, frame_index);
 
 		// rendering
 		const gfx_handle_t cmd_depth			  = ctx.get_command_buffer_depth(frame_index);
@@ -286,7 +310,6 @@ namespace sfg
 		});
 		render_graph.emplace([&]() {
 			render_access_scope_t render_scope = {};
-
 			render_gbuffer(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 		});
 		render_graph.emplace([&]() {
@@ -312,6 +335,25 @@ namespace sfg
 			render_graph.emplace([&]() {
 				render_access_scope_t render_scope = {};
 				render_ssao(ctx, snapshot, prep_data, frame_index, global_cbv_index);
+			});
+		}
+
+		if (reflection_allocation != nullptr)
+		{
+			render_graph.emplace([&]() {
+				render_access_scope_t render_scope = {};
+
+				render_probe(reflection_context.get_command_buffer_graphics(frame_index),
+							 ctx,
+							 snapshot,
+							 prep_data,
+							 *reflection_allocation,
+							 reflection_cull_view_indices,
+							 reflection_probe->capture_type == world_render_reflection_probe_capture_type_e::skybox,
+							 frame_index,
+							 global_cbv_index,
+							 global_layout);
+				render_prefilter_diffuse_sh(ctx, *reflection_allocation, frame_index, global_cbv_index);
 			});
 		}
 
@@ -344,6 +386,27 @@ namespace sfg
 		if (!prep_data.shadow_views.empty())
 			backend.submit_commands(queue_gfx, &cmd_shadows, 1);
 
+		backend.queue_wait(queue_gfx, &clustered_lighting_semaphore, &clustered_lighting_ready, 1);
+
+		gfx_handle_t reflection_semaphore	 = {};
+		u64			 reflection_filter_ready = 0;
+
+		if (reflection_allocation != nullptr)
+		{
+			const gfx_handle_t cmd_reflection_graphics	= reflection_context.get_command_buffer_graphics(frame_index);
+			const gfx_handle_t cmd_reflection_compute	= reflection_context.get_command_buffer_compute(frame_index);
+			const u64		   reflection_capture_ready = reflection_context.next_semaphore_value(frame_index);
+
+			reflection_filter_ready = reflection_context.next_semaphore_value(frame_index);
+			reflection_semaphore	= reflection_context.get_semaphore(frame_index);
+
+			backend.submit_commands(queue_gfx, &cmd_reflection_graphics, 1);
+			backend.queue_signal(queue_gfx, &reflection_semaphore, &reflection_capture_ready, 1);
+			backend.queue_wait(queue_compute, &reflection_semaphore, &reflection_capture_ready, 1);
+			backend.submit_commands(queue_compute, &cmd_reflection_compute, 1);
+			backend.queue_signal(queue_compute, &reflection_semaphore, &reflection_filter_ready, 1);
+		}
+
 		render_graph.clear();
 		render_graph.emplace([&]() {
 			render_access_scope_t render_scope = {};
@@ -357,7 +420,8 @@ namespace sfg
 		if (ssao_active)
 			backend.queue_wait(queue_gfx, &ssao_semaphore, &ssao_ready, 1);
 
-		backend.queue_wait(queue_gfx, &clustered_lighting_semaphore, &clustered_lighting_ready, 1);
+		if (reflection_allocation != nullptr)
+			backend.queue_wait(queue_gfx, &reflection_semaphore, &reflection_filter_ready, 1);
 
 		const gfx_handle_t lighting_forward_commands[2] = {cmd_lighting, cmd_forward};
 		backend.submit_commands(queue_gfx, lighting_forward_commands, 2);
@@ -424,10 +488,12 @@ namespace sfg
 		}
 
 		backend.cmd_barrier(cmd, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
+		BEGIN_DEBUG_EVENT((&backend), cmd, "world_shadow_pass");
 
 		for (u32 view_index = 0; view_index < prep_data.shadow_views.size(); ++view_index)
 		{
 			const world_render_shadow_view_t& view = prep_data.shadow_views[view_index];
+
 			backend.cmd_begin_render_pass_depth_only(cmd, {.depth_stencil_attachment = {.texture = view.texture, .clear_depth = 1.0f, .depth_load_op = load_op::clear, .depth_store_op = store_op::store, .view_index = view.view_index}});
 			backend.cmd_set_viewport(cmd, {.min_depth = 0.0f, .max_depth = 1.0f, .width = view.resolution.x, .height = view.resolution.y});
 			backend.cmd_set_scissors(cmd, {.width = view.resolution.x, .height = view.resolution.y});
@@ -440,6 +506,7 @@ namespace sfg
 
 			backend.cmd_end_render_pass(cmd, {});
 		}
+		END_DEBUG_EVENT((&backend), cmd);
 
 		barriers.resize(0);
 
@@ -474,7 +541,7 @@ namespace sfg
 		backend.cmd_bind_constants(command_buffer, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
 		const barrier_t radiance_write_barrier = {
-			.from_states = resource_state_ps_resource,
+			.from_states = resource_state_common,
 			.to_states	 = resource_state_render_target,
 			.texture_t	 = allocation.radiance_texture,
 			.flags		 = barrier_flags::baf_is_texture,
@@ -578,7 +645,7 @@ namespace sfg
 
 		const barrier_t radiance_read_barrier = {
 			.from_states = resource_state_render_target,
-			.to_states	 = resource_state_ps_resource,
+			.to_states	 = resource_state_common,
 			.texture_t	 = allocation.radiance_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
@@ -837,6 +904,114 @@ namespace sfg
 		};
 		backend.cmd_barrier(data.command_buffer, {.barriers = end_barriers, .barrier_count = 2});
 		backend.close_command_buffer(data.command_buffer);
+	}
+
+	void world_rendering_t::render_prefilter_diffuse_sh(const world_render_context_t& ctx, const world_render_reflection_allocation_t& allocation, u8 frame_index, gpu_index_t global_cbv_index)
+	{
+		const world_render_reflection_context_t& reflection_context = ctx.get_reflection_context();
+		const gfx_handle_t						 command_buffer		= reflection_context.get_command_buffer_compute(frame_index);
+		gfx_backend&							 backend			= gfx_backend::get();
+
+		backend.reset_command_buffer(command_buffer);
+		backend.cmd_bind_layout_compute(command_buffer, {.layout = render_globals_t::get_global_compute_bind_layout()});
+		backend.cmd_bind_constants_compute(command_buffer, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
+
+		const barrier_t begin_barriers[3] = {
+			{
+				.from_states = resource_state_common,
+				.to_states	 = resource_state_non_ps_resource,
+				.texture_t	 = allocation.radiance_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+			{
+				.from_states = resource_state_common,
+				.to_states	 = resource_state_uav,
+				.texture_t	 = allocation.specular_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+			{
+				.from_states = resource_state_common,
+				.to_states	 = resource_state_uav,
+				.resource_t	 = reflection_context.get_diffuse_sh_buffer(),
+				.flags		 = barrier_flags::baf_is_resource,
+			},
+		};
+
+		backend.cmd_barrier(command_buffer, {.barriers = begin_barriers, .barrier_count = 3});
+
+		BEGIN_DEBUG_EVENT((&backend), command_buffer, "world_reflection_specular_prefilter");
+		backend.cmd_bind_pipeline_compute(command_buffer, {.pipeline = reflection_context.get_specular_prefilter_shader()});
+
+		for (u8 mip = 0; mip < allocation.specular_mip_count; ++mip)
+		{
+			const u32 mip_size	= std::max<u32>(1, static_cast<u32>(allocation.resolution) >> mip);
+			const f32 roughness = allocation.specular_mip_count > 1 ? static_cast<f32>(mip) / static_cast<f32>(allocation.specular_mip_count - 1) : 0.0f;
+
+			const struct
+			{
+				gpu_index_t source_texture_index	  = NULL_GPU_INDEX;
+				gpu_index_t destination_texture_index = NULL_GPU_INDEX;
+				u32			destination_size		  = 0;
+				u32			sample_count			  = 0;
+				f32			roughness				  = 0.0f;
+				u32			source_size				  = 0;
+			} constants = {
+				.source_texture_index	   = allocation.radiance_texture_index,
+				.destination_texture_index = allocation.specular_texture_uav_indices[mip],
+				.destination_size		   = mip_size,
+				.sample_count			   = WORLD_RENDER_REFLECTION_SPECULAR_SAMPLE_COUNT,
+				.roughness				   = roughness,
+				.source_size			   = allocation.resolution,
+			};
+
+			backend.cmd_bind_constants_compute(command_buffer, {.data = &constants, .offset = constant_rp0, .count = 6, .param_index = 0});
+			backend.cmd_dispatch(command_buffer,
+								 {
+									 .group_size_x = (mip_size + 7) / 8,
+									 .group_size_y = (mip_size + 7) / 8,
+									 .group_size_z = WORLD_RENDER_REFLECTION_FACE_COUNT,
+								 });
+		}
+
+		END_DEBUG_EVENT((&backend), command_buffer);
+
+		BEGIN_DEBUG_EVENT((&backend), command_buffer, "world_reflection_diffuse_sh");
+		backend.cmd_bind_pipeline_compute(command_buffer, {.pipeline = reflection_context.get_diffuse_sh_shader()});
+
+		const gpu_index_t diffuse_sh_constants[4] = {
+			allocation.radiance_texture_index,
+			reflection_context.get_diffuse_sh_buffer_uav_index(),
+			allocation.diffuse_sh_coefficient_offset,
+			WORLD_RENDER_REFLECTION_SH_SAMPLE_COUNT,
+		};
+
+		backend.cmd_bind_constants_compute(command_buffer, {.data = diffuse_sh_constants, .offset = constant_rp0, .count = 4, .param_index = 0});
+		backend.cmd_dispatch(command_buffer, {.group_size_x = 1, .group_size_y = 1, .group_size_z = 1});
+		END_DEBUG_EVENT((&backend), command_buffer);
+
+		const barrier_t end_barriers[3] = {
+			{
+				.from_states = resource_state_non_ps_resource,
+				.to_states	 = resource_state_common,
+				.texture_t	 = allocation.radiance_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+			{
+				.from_states = resource_state_uav,
+				.to_states	 = resource_state_common,
+				.texture_t	 = allocation.specular_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			},
+			{
+				.from_states = resource_state_uav,
+				.to_states	 = resource_state_common,
+				.resource_t	 = reflection_context.get_diffuse_sh_buffer(),
+				.flags		 = barrier_flags::baf_is_resource,
+			},
+		};
+
+		backend.cmd_barrier(command_buffer, {.barriers = end_barriers, .barrier_count = 3});
+		backend.close_command_buffer(command_buffer);
 	}
 
 	void world_rendering_t::render_ssao(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index)

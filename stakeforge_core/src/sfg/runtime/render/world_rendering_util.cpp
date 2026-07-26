@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_render_snapshot.hpp"
 #include <sfg/gfx/util/shadow_util.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/math/mat3x3.hpp>
 #include <sfg/memory/memory.hpp>
@@ -91,10 +92,10 @@ namespace sfg
 
 		shadow_context.begin_allocations();
 
+		// select quality metrics
 		u64 shadow_texels	 = 0;
 		f32 quality_scale	 = 1.0f;
 		u16 quality_view_max = shadows.max_views;
-
 		switch (snapshot.quality_level)
 		{
 		case engine_quality_level_e::low:
@@ -126,11 +127,12 @@ namespace sfg
 			const vec3f_t pos			  = vec3f_t::lerp(light.prev_pos, light.pos, interpolation_alpha);
 			const quat_t  rot			  = quat_t::slerp(light.prev_rot, light.rot, interpolation_alpha);
 			const f32	  camera_distance = vec3f_t::distance(pos, main_camera_view.pos);
-			const f32	  shadow_fade =
-				light.type == static_cast<u8>(world_render_light_type_e::directional) ? 1.0f : 1.0f - math::clamp((camera_distance - light.range - (shadow_distance - shadows.shadow_fade_distance)) / math::max(shadows.shadow_fade_distance, 0.001f), 0.0f, 1.0f);
 
 			if (light.type != static_cast<u8>(world_render_light_type_e::directional) && camera_distance - light.range > shadow_distance)
 				continue;
+
+			const f32 shadow_fade =
+				light.type == static_cast<u8>(world_render_light_type_e::directional) ? 1.0f : 1.0f - math::clamp((camera_distance - light.range - (shadow_distance - shadows.shadow_fade_distance)) / math::max(shadows.shadow_fade_distance, 0.001f), 0.0f, 1.0f);
 
 			u16 resolution = static_cast<u16>(math::clamp<u32>(light.shadow_resolution, shadows.min_resolution, shadows.max_resolution));
 			f32 projected  = 0.0f;
@@ -154,14 +156,13 @@ namespace sfg
 				}
 			}
 
+			// figure out shadow faces & required texels.
 			const u8  layer_count	   = light.type == static_cast<u8>(world_render_light_type_e::point) ? 6 : light.type == static_cast<u8>(world_render_light_type_e::directional) ? math::min<u8>(light.shadow_cascade_count, 8) : 1;
 			const u64 requested_texels = static_cast<u64>(resolution) * resolution * layer_count;
-
 			if (shadow_texels + requested_texels > shadow_texel_budget || prep_data.shadow_views.size() + layer_count > shadow_view_max)
 				continue;
 
 			world_render_shadow_allocation_t* allocation = shadow_context.get_or_create_allocation(light.stable_id, light.type, {resolution, resolution}, layer_count);
-
 			if (allocation == nullptr)
 				continue;
 
@@ -207,7 +208,9 @@ namespace sfg
 					shadow_util_t::get_lightspace_projection(light_proj, light_view, corners, {resolution, resolution}, texel);
 				}
 
-				const mat4x4_t				   view_proj = light_proj * light_view;
+				const mat4x4_t view_proj = light_proj * light_view;
+
+				// this for culling
 				const world_render_prep_view_t prep_view = {
 					.view			   = light_view,
 					.view_proj		   = view_proj,
@@ -222,6 +225,7 @@ namespace sfg
 				};
 				const u16 cull_view_index = prep_data.add_view(prep_view);
 
+				// this for rendering
 				prep_data.shadow_views.push_back({.resolution	   = {resolution, resolution},
 												  .texture		   = allocation->texture,
 												  .texture_index   = allocation->texture_index,
@@ -238,6 +242,52 @@ namespace sfg
 		}
 
 		shadow_context.end_allocations();
+	}
+
+	void world_rendering_util_t::prep_shadow_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
+	{
+		// shadow buffer prep
+		const engine_shadow_settings_t& shadows		   = snapshot.shadows;
+		world_render_shadow_context_t&	shadow_context = ctx.get_shadow_context();
+
+		for (u32 view_index = 0; view_index < prep_data.shadow_views.size(); ++view_index)
+		{
+			const world_render_shadow_view_t& view		= prep_data.shadow_views[view_index];
+			const world_render_prep_view_t&	  prep_view = prep_data.views[view.cull_view_index];
+			const world_render_light_t&		  light		= snapshot.lights[view.light_index];
+
+			// what lighting code uses to shade shadows.
+			const gpu_shadow_view_t gpu_view = {
+				.view_proj	   = prep_view.view_proj,
+				.params0	   = {view.split_near, view.split_far, view.near_plane, view.far_plane},
+				.params1	   = {1.0f / view.resolution.x, 1.0f / view.resolution.y, 0.0f, 0.0f},
+				.params2	   = {light.shadow_bias, light.shadow_normal_bias, view.fade, shadows.shadow_fade_distance},
+				.texture_index = view.texture_index,
+				.slice		   = view.view_index,
+				.type		   = view.type,
+			};
+			SFG_MEMCPY(shadow_context.get_mapped_views(frame_index) + view_index * sizeof(gpu_shadow_view_t), &gpu_view, sizeof(gpu_shadow_view_t));
+
+			// what shadow rendering uses as perspective
+			const render_pass_data_view_gpu_t shadow_pass_data = {
+				.view								 = prep_view.view,
+				.view_proj							 = prep_view.view_proj,
+				.inv_view							 = prep_view.inv_view,
+				.inv_view_proj						 = prep_view.inv_view_proj,
+				.camera_pos							 = prep_view.camera_pos,
+				.cluster_depth						 = prep_view.cluster_depth,
+				.cluster_dims						 = {prep_view.cluster_dims[0], prep_view.cluster_dims[1], prep_view.cluster_dims[2], prep_view.cluster_dims[3]},
+				.viewport_size						 = prep_view.viewport_size,
+				.inv_viewport_size					 = prep_view.inv_viewport_size,
+				.near_plane							 = prep_view.near_plane,
+				.far_plane							 = prep_view.far_plane,
+				.depth_texture_index				 = prep_view.depth_texture_index,
+				.cluster_buffer_offset				 = prep_view.cluster_buffer_offset,
+				.cluster_light_indices_buffer_offset = prep_view.cluster_light_indices_buffer_offset,
+				.cluster_light_capacity				 = prep_view.cluster_light_capacity,
+			};
+			SFG_MEMCPY(shadow_context.get_mapped_view_data(frame_index, static_cast<u16>(view_index)), &shadow_pass_data, sizeof(render_pass_data_view_gpu_t));
+		}
 	}
 
 	void world_rendering_util_t::prep_light_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, u32 (&light_counts)[4])
@@ -305,6 +355,7 @@ namespace sfg
 											u32									   cluster_light_indices_buffer_offset,
 											u16*								   out_cull_view_indices)
 	{
+
 		const vec3f_t  pos				 = vec3f_t::lerp(reflection_probe.prev_pos, reflection_probe.pos, interpolation_alpha);
 		const quat_t   rot				 = quat_t::slerp(reflection_probe.prev_rot, reflection_probe.rot, interpolation_alpha);
 		const vec3f_t  scale			 = vec3f_t::lerp(reflection_probe.prev_scale, reflection_probe.scale, interpolation_alpha);
@@ -321,13 +372,15 @@ namespace sfg
 
 		for (u8 face = 0; face < WORLD_RENDER_REFLECTION_FACE_COUNT; ++face)
 		{
-			const vec3f_t				   direction					= rot * CUBEMAP_FACE_DIRECTIONS[face];
-			const vec3f_t				   up							= rot * CUBEMAP_FACE_UPS[face];
-			const mat4x4_t				   view							= mat4x4_t::look_at(pos, pos + direction, up);
-			const mat4x4_t				   view_proj					= projection * view;
-			const u32					   cluster_offset				= cluster_buffer_offset + static_cast<u32>(face) * cluster_count;
-			const u32					   cluster_light_indices_offset = cluster_light_indices_buffer_offset + static_cast<u32>(face) * cluster_count * WORLD_RENDER_CLUSTER_LIGHT_CAPACITY;
-			const world_render_prep_view_t prep_view					= {
+			const vec3f_t  direction					= rot * CUBEMAP_FACE_DIRECTIONS[face];
+			const vec3f_t  up							= rot * CUBEMAP_FACE_UPS[face];
+			const mat4x4_t view							= mat4x4_t::look_at(pos, pos + direction, up);
+			const mat4x4_t view_proj					= projection * view;
+			const u32	   cluster_offset				= cluster_buffer_offset + static_cast<u32>(face) * cluster_count;
+			const u32	   cluster_light_indices_offset = cluster_light_indices_buffer_offset + static_cast<u32>(face) * cluster_count * WORLD_RENDER_CLUSTER_LIGHT_CAPACITY;
+
+			// for culling
+			const world_render_prep_view_t prep_view = {
 				.view								 = view,
 				.view_proj							 = view_proj,
 				.inv_view							 = view.inverse(),
@@ -346,8 +399,12 @@ namespace sfg
 				.cluster_light_capacity				 = WORLD_RENDER_CLUSTER_LIGHT_CAPACITY,
 			};
 
-			out_cull_view_indices[face] = prep_data.add_view(prep_view);
+			if (reflection_probe.capture_type == world_render_reflection_probe_capture_type_e::scene)
+				out_cull_view_indices[face] = prep_data.add_view(prep_view);
+			else
+				out_cull_view_indices[face] = 0;
 
+			// for rendering view
 			const render_pass_data_view_gpu_t view_data = {
 				.view								 = prep_view.view,
 				.view_proj							 = prep_view.view_proj,
@@ -364,8 +421,8 @@ namespace sfg
 				.cluster_buffer_offset				 = prep_view.cluster_buffer_offset,
 				.cluster_light_indices_buffer_offset = prep_view.cluster_light_indices_buffer_offset,
 				.cluster_light_capacity				 = prep_view.cluster_light_capacity,
+				.flags								 = 0,
 			};
-
 			SFG_MEMCPY(reflection_context.get_mapped_view_data(allocation, frame_index, face), &view_data, sizeof(render_pass_data_view_gpu_t));
 		}
 	}
@@ -386,7 +443,7 @@ namespace sfg
 			const u16							   resolution		= static_cast<u16>(math::round(reflection_probe.resolution));
 			world_render_reflection_allocation_t*  allocation		= reflection_context.get_or_create_allocation(reflection_probe.stable_id, resolution, reflection_probe.generation);
 
-			if (allocation == nullptr || reflection_probe.disabled != 0)
+			if (allocation == nullptr || reflection_probe.disabled != 0 || allocation->ready == 0)
 				continue;
 
 			const vec3f_t pos	  = vec3f_t::lerp(reflection_probe.prev_pos, reflection_probe.pos, interpolation_alpha);
@@ -394,6 +451,7 @@ namespace sfg
 			const vec3f_t scale	  = vec3f_t::lerp(reflection_probe.prev_scale, reflection_probe.scale, interpolation_alpha);
 			const vec3f_t extents = vec3f_t::abs(reflection_probe.extents * scale);
 
+			// if not global, won't be sampled by main camera.
 			if (reflection_probe.is_global == 0)
 			{
 				const vec3f_t influence_extents = extents + vec3f_t::one * reflection_probe.blend_distance;
@@ -416,6 +474,7 @@ namespace sfg
 
 			SFG_ASSERT(prep_data.reflection_probe_count < reflection_context.get_probe_max());
 
+			// buffer will be used for sampling
 			reflection_probe_buffer[prep_data.reflection_probe_count] = {
 				.position_blend_distance	   = {pos.x, pos.y, pos.z, reflection_probe.blend_distance},
 				.rotation					   = {rot.x, rot.y, rot.z, rot.w},
@@ -434,51 +493,49 @@ namespace sfg
 		reflection_context.end_allocations();
 	}
 
-	void world_rendering_util_t::prep_shadow_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
+	world_render_reflection_allocation_t* world_rendering_util_t::prep_reflection_allocation(
+		world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, const world_render_reflection_probe_t*& out_reflection_probe, u16* out_cull_view_indices)
 	{
-		// shadow buffer prep
-		const engine_shadow_settings_t& shadows		   = snapshot.shadows;
-		world_render_shadow_context_t&	shadow_context = ctx.get_shadow_context();
+		// find he first probe that wants to be rendered.
+		world_render_reflection_context_t&	  reflection_context	= ctx.get_reflection_context();
+		world_render_reflection_allocation_t* reflection_allocation = nullptr;
 
-		for (u32 view_index = 0; view_index < prep_data.shadow_views.size(); ++view_index)
+		out_reflection_probe = nullptr;
+
+		for (u16 allocation_index = 0; allocation_index < reflection_context.get_probe_max(); ++allocation_index)
 		{
-			const world_render_shadow_view_t& view		= prep_data.shadow_views[view_index];
-			const world_render_prep_view_t&	  prep_view = prep_data.views[view.cull_view_index];
-			const world_render_light_t&		  light		= snapshot.lights[view.light_index];
+			world_render_reflection_allocation_t& candidate = reflection_context.get_allocation(allocation_index);
 
-			// what lighting code uses to shade shadows.
-			const gpu_shadow_view_t gpu_view = {
-				.view_proj	   = prep_view.view_proj,
-				.params0	   = {view.split_near, view.split_far, view.near_plane, view.far_plane},
-				.params1	   = {1.0f / view.resolution.x, 1.0f / view.resolution.y, 0.0f, 0.0f},
-				.params2	   = {light.shadow_bias, light.shadow_normal_bias, view.fade, shadows.shadow_fade_distance},
-				.texture_index = view.texture_index,
-				.slice		   = view.view_index,
-				.type		   = view.type,
-			};
-			SFG_MEMCPY(shadow_context.get_mapped_views(frame_index) + view_index * sizeof(gpu_shadow_view_t), &gpu_view, sizeof(gpu_shadow_view_t));
+			if (candidate.pending_render == 0)
+				continue;
 
-			// what shadow rendering uses as perspective
-			const render_pass_data_view_gpu_t shadow_pass_data = {
-				.view								 = prep_view.view,
-				.view_proj							 = prep_view.view_proj,
-				.inv_view							 = prep_view.inv_view,
-				.inv_view_proj						 = prep_view.inv_view_proj,
-				.camera_pos							 = prep_view.camera_pos,
-				.cluster_depth						 = prep_view.cluster_depth,
-				.cluster_dims						 = {prep_view.cluster_dims[0], prep_view.cluster_dims[1], prep_view.cluster_dims[2], prep_view.cluster_dims[3]},
-				.viewport_size						 = prep_view.viewport_size,
-				.inv_viewport_size					 = prep_view.inv_viewport_size,
-				.near_plane							 = prep_view.near_plane,
-				.far_plane							 = prep_view.far_plane,
-				.depth_texture_index				 = prep_view.depth_texture_index,
-				.cluster_buffer_offset				 = prep_view.cluster_buffer_offset,
-				.cluster_light_indices_buffer_offset = prep_view.cluster_light_indices_buffer_offset,
-				.cluster_light_capacity				 = prep_view.cluster_light_capacity,
-			};
+			for (const world_render_reflection_probe_t& candidate_probe : snapshot.reflection_probes)
+			{
+				const u16 resolution = static_cast<u16>(math::round(candidate_probe.resolution));
 
-			SFG_MEMCPY(shadow_context.get_mapped_view_data(frame_index, static_cast<u16>(view_index)), &shadow_pass_data, sizeof(render_pass_data_view_gpu_t));
+				if (candidate_probe.disabled != 0 || candidate_probe.stable_id != candidate.stable_id || resolution != candidate.resolution || candidate_probe.generation != candidate.generation)
+					continue;
+
+				reflection_allocation = &candidate;
+				out_reflection_probe  = &candidate_probe;
+				break;
+			}
+
+			if (reflection_allocation != nullptr)
+				break;
 		}
+
+		if (reflection_allocation == nullptr)
+			return nullptr;
+
+		const u32 main_cluster_count = prep_data.views[0].cluster_dims[0] * prep_data.views[0].cluster_dims[1] * prep_data.views[0].cluster_dims[2];
+
+		prep_probe(reflection_context, *reflection_allocation, *out_reflection_probe, prep_data, interpolation_alpha, frame_index, main_cluster_count, main_cluster_count * WORLD_RENDER_CLUSTER_LIGHT_CAPACITY, out_cull_view_indices);
+
+		reflection_allocation->pending_render = 0;
+		reflection_allocation->ready		  = 1;
+
+		return reflection_allocation;
 	}
 
 	void world_rendering_util_t::prep_debug_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index)
@@ -525,7 +582,8 @@ namespace sfg
 
 	void world_rendering_util_t::prep_culls(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index)
 	{
-		// culling
+		// culling, for every prep data view inserted cull every draw against them.
+
 		gpu_entity_t* entity_buffer = reinterpret_cast<gpu_entity_t*>(ctx.get_mapped_entity_buffer(frame_index));
 		const u32	  draw_count	= static_cast<u32>(snapshot.draws.size());
 		const u32	  word_count	= (draw_count + 63) / 64;
@@ -585,6 +643,7 @@ namespace sfg
 
 		SFG_MEMCPY(ctx.get_mapped_view_render_pass_data(frame_index), &view_render_pass_data, sizeof(render_pass_data_view_gpu_t));
 
+		const render_resources_t&			  render_resources			= render_resources_t::get();
 		const render_pass_data_lighting_gpu_t lighting_render_pass_data = {
 			.ambient_color							= snapshot.environment.ambient_color,
 			.light_counts							= {light_counts[0], light_counts[1], light_counts[2], light_counts[3]},
@@ -597,13 +656,13 @@ namespace sfg
 			.cluster_light_indices_buffer_uav_index = ctx.get_light_cluster_indices_buffer_uav_index(frame_index),
 			.reflection_probe_count					= prep_data.reflection_probe_count,
 			.environment_intensity					= snapshot.environment.intensity,
+			.brdf_lut_index							= render_resources.get_texture_gpu_index(render_resources.get_brdf_lut(), 0),
 			.debug_cluster_heatmap					= snapshot.environment.debug_cluster_heatmap,
 		};
 
 		SFG_MEMCPY(ctx.get_mapped_lighting_render_pass_data(frame_index), &lighting_render_pass_data, sizeof(render_pass_data_lighting_gpu_t));
 
 		const bool									   ssao_active						  = ctx.is_ssao_enabled() && snapshot.post_process.ssao.enabled != 0;
-		const render_resources_t&					   render_resources					  = render_resources_t::get();
 		const gpu_index_t							   ambient_occlusion_index			  = ssao_active ? ctx.get_ao_texture_index(frame_index) : render_resources.get_texture_gpu_index(render_resources.get_white_texture(), 0);
 		const render_pass_data_deferred_lighting_gpu_t deferred_lighting_render_pass_data = {
 			.gbuffer_albedo_index	 = ctx.get_gbuffer_albedo_index(frame_index),

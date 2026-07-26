@@ -45,6 +45,7 @@ float3 get_cluster_view_ray(float2 uv, render_pass_data_view view_data)
 
 void get_cluster_aabb(uint3 cluster_id, render_pass_data_view view_data, out float3 aabb_min, out float3 aabb_max)
 {
+	// build this cluster's view-space bounds
 	const float2 pixel_min = float2(cluster_id.xy * view_data.cluster_dims.w);
 	const float2 pixel_max = min(pixel_min + view_data.cluster_dims.w, view_data.viewport_size.xy);
 	const float2 uv_min = pixel_min / view_data.viewport_size.xy;
@@ -83,6 +84,7 @@ bool sphere_intersects_aabb(float3 center, float radius, float3 aabb_min, float3
 [numthreads(4, 4, 1)]
 void CSMain(uint3 dispatch_id : SV_DispatchThreadID)
 {
+	// fetch the view and shared lighting resources
 	const render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
 	const render_pass_data_lighting lighting_data = sfg_get_cbv<render_pass_data_lighting>(SFG_RENDER_PASS_LIGHTING);
 
@@ -126,6 +128,7 @@ void CSMain(uint3 dispatch_id : SV_DispatchThreadID)
 		++matching_light_count;
 	}
 
+	// publish this cluster's compact light range
 	gpu_light_cluster cluster;
 	cluster.light_offset = light_offset;
 	cluster.light_count = min(matching_light_count, view_data.cluster_light_capacity);

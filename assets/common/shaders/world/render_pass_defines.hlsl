@@ -35,6 +35,8 @@
 #define SFG_RENDER_PASS_LIGHTING sfg_constant_rp3
 #define SFG_RENDER_PASS_SPECIFIC sfg_constant_rp4
 
+static const uint SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_REFLECTIONS = 1u << 0;
+
 struct render_pass_data_view
 {
     float4x4 view;
@@ -52,7 +54,8 @@ struct render_pass_data_view
     uint cluster_buffer_offset;
     uint cluster_light_indices_buffer_offset;
     uint cluster_light_capacity;
-    uint2 pad;
+    uint flags;
+    uint pad;
 };
 
 struct render_pass_data_lighting
@@ -68,8 +71,9 @@ struct render_pass_data_lighting
     uint cluster_light_indices_buffer_uav_index;
     uint reflection_probe_count;
     float environment_intensity;
+    uint brdf_lut_index;
     uint debug_cluster_heatmap;
-    uint2 pad;
+    uint pad;
 };
 
 struct render_pass_data_deferred_lighting

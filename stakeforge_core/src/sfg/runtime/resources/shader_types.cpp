@@ -39,6 +39,8 @@ namespace sfg
 					{.name = "debug_triangle", .display_name = "Debug Triangle"},
 					{.name = "skybox_shader", .display_name = "Skybox Shader"},
 					{.name = "clustered_light_culling", .display_name = "Clustered Light Culling"},
+					{.name = "reflection_specular_prefilter", .display_name = "Reflection Specular Prefilter"},
+					{.name = "reflection_diffuse_sh", .display_name = "Reflection Diffuse SH"},
 				},
 			.type_id   = type_id_t<shader_type_e>::value,
 			.size	   = sizeof(shader_type_e),

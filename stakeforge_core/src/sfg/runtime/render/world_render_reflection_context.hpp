@@ -53,6 +53,7 @@ namespace sfg
 		gpu_index_t	 view_data_indices[BACK_BUFFER_COUNT][WORLD_RENDER_REFLECTION_FACE_COUNT] = {};
 		gpu_index_t	 radiance_texture_index													  = NULL_GPU_INDEX;
 		gpu_index_t	 specular_texture_index													  = NULL_GPU_INDEX;
+		gpu_index_t	 specular_texture_uav_indices[TEXTURE_MAX_VIEWS]						  = {};
 		gpu_index_t	 depth_texture_index													  = NULL_GPU_INDEX;
 		u32			 diffuse_sh_coefficient_offset											  = UINT32_MAX;
 		u32			 stable_id																  = UINT32_MAX;
@@ -60,6 +61,8 @@ namespace sfg
 		u16			 resolution																  = 0;
 		u8			 specular_mip_count														  = 0;
 		u8			 pending_render															  = 0;
+		u8			 ready																	  = 0;
+		u8			 pad[3]																	  = {};
 	};
 
 	class world_render_reflection_context_t final
@@ -103,6 +106,26 @@ namespace sfg
 			return _pfd[frame_index].probe_buffer;
 		}
 
+		inline gfx_handle_t get_command_buffer_graphics(u8 frame_index) const
+		{
+			return _pfd[frame_index].command_buffer_graphics;
+		}
+
+		inline gfx_handle_t get_command_buffer_compute(u8 frame_index) const
+		{
+			return _pfd[frame_index].command_buffer_compute;
+		}
+
+		inline gfx_handle_t get_semaphore(u8 frame_index) const
+		{
+			return _pfd[frame_index].semaphore;
+		}
+
+		inline u64 next_semaphore_value(u8 frame_index) const
+		{
+			return ++_pfd[frame_index].semaphore_value;
+		}
+
 		inline u8* get_mapped_probe_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_probe_buffer;
@@ -121,6 +144,16 @@ namespace sfg
 		inline gpu_index_t get_diffuse_sh_buffer_uav_index() const
 		{
 			return _diffuse_sh_buffer_uav_index;
+		}
+
+		inline gfx_handle_t get_specular_prefilter_shader() const
+		{
+			return _specular_prefilter_shader;
+		}
+
+		inline gfx_handle_t get_diffuse_sh_shader() const
+		{
+			return _diffuse_sh_shader;
 		}
 
 		inline gpu_index_t get_view_data_index(const world_render_reflection_allocation_t& allocation, u8 frame_index, u8 face) const
@@ -149,9 +182,13 @@ namespace sfg
 	private:
 		struct per_frame_data_t
 		{
-			u8*			 mapped_probe_buffer = nullptr;
-			gfx_handle_t probe_buffer		 = {};
-			gpu_index_t	 probe_buffer_index	 = NULL_GPU_INDEX;
+			u8*			 mapped_probe_buffer	 = nullptr;
+			gfx_handle_t command_buffer_graphics = {};
+			gfx_handle_t command_buffer_compute	 = {};
+			gfx_handle_t semaphore				 = {};
+			gfx_handle_t probe_buffer			 = {};
+			mutable u64	 semaphore_value		 = 0;
+			gpu_index_t	 probe_buffer_index		 = NULL_GPU_INDEX;
 		};
 
 	private:
@@ -159,6 +196,8 @@ namespace sfg
 		world_render_reflection_allocation_t	 _allocations[WORLD_RENDER_REFLECTION_ALLOCATION_CAPACITY] = {};
 		u64										 _id_counter											   = 0;
 		gfx_handle_t							 _diffuse_sh_buffer										   = {};
+		gfx_handle_t							 _specular_prefilter_shader								   = {};
+		gfx_handle_t							 _diffuse_sh_shader										   = {};
 		gpu_index_t								 _diffuse_sh_buffer_index								   = NULL_GPU_INDEX;
 		gpu_index_t								 _diffuse_sh_buffer_uav_index							   = NULL_GPU_INDEX;
 		world_render_reflection_context_config_t _config												   = {};

@@ -61,6 +61,7 @@ SFG_MATERIAL_PARAM_VEC4("emissive_tiling_offset", sfg_pack_uint2)
 
 SamplerComparisonState smp_shadow : static_sampler_shadow_2d;
 SamplerComparisonState smp_shadow_cube : static_sampler_shadow_cube;
+SamplerState smp_linear : static_sampler_linear;
 
 #ifdef USE_SKINNING
 
@@ -328,6 +329,7 @@ float4 PSMain(vs_output IN) : SV_TARGET
     render_pass_data_lighting lighting_data = sfg_get_cbv<render_pass_data_lighting>(SFG_RENDER_PASS_LIGHTING);
     StructuredBuffer<gpu_light> light_buffer = sfg_get_ssbo<gpu_light>(lighting_data.light_buffer_index);
     StructuredBuffer<gpu_shadow_view> shadow_buffer = sfg_get_ssbo<gpu_shadow_view>(lighting_data.shadow_buffer_index);
+    StructuredBuffer<gpu_reflection_probe> reflection_probe_buffer = sfg_get_ssbo<gpu_reflection_probe>(lighting_data.reflection_probe_buffer_index);
     StructuredBuffer<gpu_light_cluster> cluster_buffer = sfg_get_ssbo<gpu_light_cluster>(lighting_data.cluster_buffer_index);
     StructuredBuffer<uint> cluster_light_indices = sfg_get_ssbo<uint>(lighting_data.cluster_light_indices_buffer_index);
     material_data mat_data = sfg_get_cbv<material_data>(sfg_constant_mat0);
@@ -369,6 +371,19 @@ float4 PSMain(vs_output IN) : SV_TARGET
         cluster.light_count,
         smp_shadow,
         smp_shadow_cube);
+
+        
+ if ((view_data.flags & SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_REFLECTIONS) != 0)
+    {
+        lighting += evaluate_reflection_probe_lighting(
+            surface,
+            view_data.camera_pos.xyz,
+            reflection_probe_buffer,
+            lighting_data.reflection_probe_count,
+            lighting_data.brdf_lut_index,
+            smp_linear);
+    }
+   
 
     return float4(lighting + material.emissive, material.albedo.a);
 }
