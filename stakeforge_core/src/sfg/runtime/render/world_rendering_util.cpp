@@ -369,7 +369,9 @@ namespace sfg
 			const world_render_shadow_view_t& view		= prep_data.shadow_views[view_index];
 			const world_render_prep_view_t&	  prep_view = prep_data.views[view.cull_view_index];
 			const world_render_light_t&		  light		= snapshot.lights[view.light_index];
-			const gpu_shadow_view_t			  gpu_view	= {
+
+			// what lighting code uses to shade shadows.
+			const gpu_shadow_view_t gpu_view = {
 				.view_proj	   = prep_view.view_proj,
 				.params0	   = {view.split_near, view.split_far, view.near_plane, view.far_plane},
 				.params1	   = {1.0f / view.resolution.x, 1.0f / view.resolution.y, 0.0f, 0.0f},
@@ -380,6 +382,7 @@ namespace sfg
 			};
 			SFG_MEMCPY(shadow_context.get_mapped_views(frame_index) + view_index * sizeof(gpu_shadow_view_t), &gpu_view, sizeof(gpu_shadow_view_t));
 
+			// what shadow rendering uses as perspective
 			const render_pass_data_view_gpu_t shadow_pass_data = {
 				.view								 = prep_view.view,
 				.view_proj							 = prep_view.view_proj,

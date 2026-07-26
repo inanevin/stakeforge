@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 #define WORLD_RENDER_REFLECTION_ALLOCATION_CAPACITY	 256
+#define WORLD_RENDER_REFLECTION_FACE_COUNT			 6
 #define WORLD_RENDER_REFLECTION_SH_COEFFICIENT_COUNT 9
 
 	struct world_render_reflection_context_config_t
@@ -42,16 +43,21 @@ namespace sfg
 
 	struct world_render_reflection_allocation_t
 	{
-		gfx_handle_t radiance_texture			   = {};
-		gfx_handle_t specular_texture			   = {};
-		u64			 last_used_id				   = 0;
-		u64			 retire_id					   = 0;
-		gpu_index_t	 radiance_texture_index		   = NULL_GPU_INDEX;
-		gpu_index_t	 specular_texture_index		   = NULL_GPU_INDEX;
-		u32			 diffuse_sh_coefficient_offset = UINT32_MAX;
-		u32			 stable_id					   = UINT32_MAX;
-		u16			 resolution					   = 0;
-		u8			 specular_mip_count			   = 0;
+		u8*			 mapped_view_data[BACK_BUFFER_COUNT][WORLD_RENDER_REFLECTION_FACE_COUNT]  = {};
+		gfx_handle_t view_data[BACK_BUFFER_COUNT][WORLD_RENDER_REFLECTION_FACE_COUNT]		  = {};
+		gfx_handle_t radiance_texture														  = {};
+		gfx_handle_t specular_texture														  = {};
+		gfx_handle_t depth_texture															  = {};
+		u64			 last_used_id															  = 0;
+		u64			 retire_id																  = 0;
+		gpu_index_t	 view_data_indices[BACK_BUFFER_COUNT][WORLD_RENDER_REFLECTION_FACE_COUNT] = {};
+		gpu_index_t	 radiance_texture_index													  = NULL_GPU_INDEX;
+		gpu_index_t	 specular_texture_index													  = NULL_GPU_INDEX;
+		gpu_index_t	 depth_texture_index													  = NULL_GPU_INDEX;
+		u32			 diffuse_sh_coefficient_offset											  = UINT32_MAX;
+		u32			 stable_id																  = UINT32_MAX;
+		u16			 resolution																  = 0;
+		u8			 specular_mip_count														  = 0;
 	};
 
 	class world_render_reflection_context_t final
@@ -115,10 +121,23 @@ namespace sfg
 			return _diffuse_sh_buffer_uav_index;
 		}
 
+		inline gpu_index_t get_view_data_index(const world_render_reflection_allocation_t& allocation, u8 frame_index, u8 face) const
+		{
+			return allocation.view_data_indices[frame_index][face];
+		}
+
+		inline u8* get_mapped_view_data(const world_render_reflection_allocation_t& allocation, u8 frame_index, u8 face) const
+		{
+			return allocation.mapped_view_data[frame_index][face];
+		}
+
 		inline u16 get_probe_max() const
 		{
 			return _config.allocation_max;
 		}
+
+	private:
+		void destroy_allocation(world_render_reflection_allocation_t& allocation);
 
 	private:
 		struct per_frame_data_t
