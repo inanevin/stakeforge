@@ -412,6 +412,7 @@ namespace sfg
 	{
 		editor_dropdown_t& dropdown = *static_cast<editor_dropdown_t*>(user_data);
 		const u64		   value	= dropdown._items[item_index].value;
+
 		if (dropdown.is_field_bound())
 		{
 			const editor_widget_callbacks_t callbacks  = dropdown._config.callbacks;
@@ -435,7 +436,10 @@ namespace sfg
 				callbacks.edit_submitted(callbacks.user_data);
 		}
 		else if (dropdown._config.pressed != nullptr)
+		{
 			dropdown._config.pressed(static_cast<u16>(value), dropdown._config.user_data);
+			dropdown.refresh_title();
+		}
 	}
 
 	void editor_dropdown_t::on_popup_closed(void* user_data)
