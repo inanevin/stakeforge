@@ -84,7 +84,6 @@ namespace sfg
 		world_render_shadow_context_t&	shadow_context = ctx.get_shadow_context();
 
 		prep_data.shadow_views.resize(0);
-		prep_data.shadow_draw_indices.resize(0);
 
 		shadow_context.begin_allocations();
 
@@ -201,19 +200,24 @@ namespace sfg
 					view_proj = light_proj * light_view;
 				}
 
-				prep_data.shadow_views.push_back({.view_proj	 = view_proj,
-												  .frustum		 = frustum_t::extract(view_proj),
-												  .resolution	 = {resolution, resolution},
-												  .texture		 = allocation->texture,
-												  .texture_index = allocation->texture_index,
-												  .light_index	 = light_index,
-												  .split_near	 = split_near,
-												  .split_far	 = split_far,
-												  .near_plane	 = light.shadow_near_plane,
-												  .far_plane	 = light.range,
-												  .fade			 = shadow_fade,
-												  .view_index	 = layer,
-												  .type			 = light.type});
+				const world_render_prep_view_t prep_view = {
+					.view_proj = view_proj,
+					.frustum   = frustum_t::extract(view_proj),
+				};
+				const u16 cull_view_index = prep_data.add_view(prep_view);
+
+				prep_data.shadow_views.push_back({.resolution	   = {resolution, resolution},
+												  .texture		   = allocation->texture,
+												  .texture_index   = allocation->texture_index,
+												  .light_index	   = light_index,
+												  .split_near	   = split_near,
+												  .split_far	   = split_far,
+												  .near_plane	   = light.shadow_near_plane,
+												  .far_plane	   = light.range,
+												  .fade			   = shadow_fade,
+												  .cull_view_index = cull_view_index,
+												  .view_index	   = layer,
+												  .type			   = light.type});
 			}
 		}
 
@@ -347,10 +351,11 @@ namespace sfg
 
 		for (u32 view_index = 0; view_index < prep_data.shadow_views.size(); ++view_index)
 		{
-			const world_render_shadow_view_t& view	   = prep_data.shadow_views[view_index];
-			const world_render_light_t&		  light	   = snapshot.lights[view.light_index];
-			const gpu_shadow_view_t			  gpu_view = {
-				.view_proj	   = view.view_proj,
+			const world_render_shadow_view_t& view		= prep_data.shadow_views[view_index];
+			const world_render_prep_view_t&	  prep_view = prep_data.views[view.cull_view_index];
+			const world_render_light_t&		  light		= snapshot.lights[view.light_index];
+			const gpu_shadow_view_t			  gpu_view	= {
+				.view_proj	   = prep_view.view_proj,
 				.params0	   = {view.split_near, view.split_far, view.near_plane, view.far_plane},
 				.params1	   = {1.0f / view.resolution.x, 1.0f / view.resolution.y, 0.0f, 0.0f},
 				.params2	   = {light.shadow_bias, light.shadow_normal_bias, view.fade, shadows.shadow_fade_distance},
@@ -360,7 +365,7 @@ namespace sfg
 			};
 			SFG_MEMCPY(shadow_context.get_mapped_views(frame_index) + view_index * sizeof(gpu_shadow_view_t), &gpu_view, sizeof(gpu_shadow_view_t));
 
-			const render_pass_data_opaque_gpu_t shadow_pass_data = {.view_proj = view.view_proj};
+			const render_pass_data_opaque_gpu_t shadow_pass_data = {.view_proj = prep_view.view_proj};
 			SFG_MEMCPY(shadow_context.get_mapped_view_data(frame_index, static_cast<u16>(view_index)), &shadow_pass_data, sizeof(render_pass_data_opaque_gpu_t));
 		}
 	}
@@ -410,45 +415,41 @@ namespace sfg
 		}
 	}
 
-	void world_rendering_util_t::prep_culls(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, u8 frame_index)
+	void world_rendering_util_t::prep_culls(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index)
 	{
 		// culling
 		gpu_entity_t* entity_buffer = reinterpret_cast<gpu_entity_t*>(ctx.get_mapped_entity_buffer(frame_index));
+		const u32	  draw_count	= static_cast<u32>(snapshot.draws.size());
+		const u32	  word_count	= (draw_count + 63) / 64;
+		const size_t  mask_count	= prep_data.views.size() * word_count;
 
-		prep_data.draw_culls.resize(snapshot.draws.size());
+		prep_data.cull_word_count = word_count;
+		prep_data.draw_cull_masks.resize(mask_count);
 
-		// main cull
-		const u8 main_view_index = 0;
+		if (mask_count != 0)
+			SFG_MEMSET(prep_data.draw_cull_masks.data(), 0, mask_count * sizeof(u64));
 
-		for (size_t i = 0; i < snapshot.draws.size(); ++i)
+		for (u32 draw_index = 0; draw_index < draw_count; ++draw_index)
 		{
-			const world_draw_t& draw = snapshot.draws[i];
+			const world_draw_t& draw = snapshot.draws[draw_index];
+
+			if (draw.aabb.is_empty())
+				continue;
+
 			SFG_ASSERT(draw.entity_index < snapshot.entities.size());
 
 			const mat4x4_t& model = entity_buffer[draw.entity_index].model;
 			const mat3x3_t	linear_model(model[0], model[1], model[2], model[4], model[5], model[6], model[8], model[9], model[10]);
 			const vec3f_t	position = model.get_translation();
 
-			if (frustum_t::test(main_camera_view.frustum, draw.aabb, linear_model, position) == frustum_result::outside)
-				prep_data.draw_culls[i].cull_mask |= 1ull << main_view_index;
-		}
-
-		// shadow culls.
-		for (world_render_shadow_view_t& view : prep_data.shadow_views)
-		{
-			view.draw_offset = static_cast<u32>(prep_data.shadow_draw_indices.size());
-
-			for (u32 draw_index = 0; draw_index < snapshot.draws.size(); ++draw_index)
+			for (size_t view_index = 0; view_index < prep_data.views.size(); ++view_index)
 			{
-				const world_draw_t& draw  = snapshot.draws[draw_index];
-				const mat4x4_t&		model = entity_buffer[draw.entity_index].model;
-				const mat3x3_t		linear_model(model[0], model[1], model[2], model[4], model[5], model[6], model[8], model[9], model[10]);
+				if (frustum_t::test(prep_data.views[view_index].frustum, draw.aabb, linear_model, position) != frustum_result::outside)
+					continue;
 
-				if (frustum_t::test(view.frustum, draw.aabb, linear_model, model.get_translation()) != frustum_result::outside)
-					prep_data.shadow_draw_indices.push_back(draw_index);
+				u64& mask_word = prep_data.draw_cull_masks[view_index * word_count + draw_index / 64];
+				mask_word |= 1ull << (draw_index % 64);
 			}
-
-			view.draw_count = static_cast<u32>(prep_data.shadow_draw_indices.size()) - view.draw_offset;
 		}
 	}
 

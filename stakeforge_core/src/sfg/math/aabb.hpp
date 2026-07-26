@@ -64,6 +64,11 @@ namespace sfg
 		{
 			bounds_half_extent = (bounds_max - bounds_min) / 2.0f;
 		}
+
+		inline bool is_empty() const
+		{
+			return bounds_half_extent.is_zero();
+		}
 	};
 
 	SFG_DEFINE_TYPE_ID(aabb_t);

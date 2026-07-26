@@ -28,7 +28,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/math/frustum.hpp>
 #include <sfg/math/mat4x4.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec4f.hpp>
@@ -49,20 +48,17 @@ namespace sfg
 
 	struct world_render_shadow_view_t
 	{
-		mat4x4_t	 view_proj	   = mat4x4_t::identity;
-		frustum_t	 frustum	   = {};
-		vec2u16_t	 resolution	   = vec2u16_t::zero;
-		gfx_handle_t texture	   = {};
-		gpu_index_t	 texture_index = NULL_GPU_INDEX;
-		u32			 light_index   = UINT32_MAX;
-		u32			 draw_offset   = 0;
-		u32			 draw_count	   = 0;
-		f32			 split_near	   = 0.0f;
-		f32			 split_far	   = 0.0f;
-		f32			 near_plane	   = 0.0f;
-		f32			 far_plane	   = 0.0f;
-		f32			 fade		   = 1.0f;
-		u8			 view_index	   = 0;
-		u8			 type		   = 0;
+		vec2u16_t	 resolution		 = vec2u16_t::zero;
+		gfx_handle_t texture		 = {};
+		gpu_index_t	 texture_index	 = NULL_GPU_INDEX;
+		u32			 light_index	 = UINT32_MAX;
+		f32			 split_near		 = 0.0f;
+		f32			 split_far		 = 0.0f;
+		f32			 near_plane		 = 0.0f;
+		f32			 far_plane		 = 0.0f;
+		f32			 fade			 = 1.0f;
+		u16			 cull_view_index = UINT16_MAX;
+		u8			 view_index		 = 0;
+		u8			 type			 = 0;
 	};
 }

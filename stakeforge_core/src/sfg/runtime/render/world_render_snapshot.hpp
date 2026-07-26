@@ -38,6 +38,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_render_view.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/math/frustum.hpp>
+#include <sfg/math/mat4x4.hpp>
 #include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
@@ -45,6 +47,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define WORLD_RENDER_PREP_INITIAL_VIEW_CAPACITY 65
+
 	struct world_render_environment_t
 	{
 		vec4f_t ambient_color		  = vec4f_t::zero;
@@ -84,31 +88,49 @@ namespace sfg
 		u32					 tonemap_mode		  = 1;
 	};
 
-	struct world_render_prep_draw_cull_t
+	struct world_render_prep_view_t
 	{
-		u64 cull_mask = 0;
+		mat4x4_t  view_proj = mat4x4_t::identity;
+		frustum_t frustum	= {};
 	};
 
 	struct world_render_prep_data_t
 	{
-		vector_t<world_render_prep_draw_cull_t> draw_culls			   = {};
-		vector_t<world_render_shadow_view_t>	shadow_views		   = {};
-		vector_t<u32>							shadow_draw_indices	   = {};
-		u32										reflection_probe_count = 0;
+		vector_t<world_render_prep_view_t>	 views					= {};
+		vector_t<u64>						 draw_cull_masks		= {};
+		vector_t<world_render_shadow_view_t> shadow_views			= {};
+		u32									 cull_word_count		= 0;
+		u32									 reflection_probe_count = 0;
 
-		inline void reserve(size_t culls)
+		inline void reserve(size_t draws)
 		{
-			draw_culls.reserve(culls);
+			const size_t word_count = (draws + 63) / 64;
+
+			views.reserve(WORLD_RENDER_PREP_INITIAL_VIEW_CAPACITY);
+			draw_cull_masks.reserve(word_count * WORLD_RENDER_PREP_INITIAL_VIEW_CAPACITY);
 			shadow_views.reserve(64);
-			shadow_draw_indices.reserve(culls * 4);
 		}
 
 		inline void reset()
 		{
-			draw_culls.resize(0);
+			views.resize(0);
+			draw_cull_masks.resize(0);
 			shadow_views.resize(0);
-			shadow_draw_indices.resize(0);
+			cull_word_count		   = 0;
 			reflection_probe_count = 0;
+		}
+
+		inline u16 add_view(const world_render_prep_view_t& view)
+		{
+			const u16 index = static_cast<u16>(views.size());
+			views.push_back(view);
+			return index;
+		}
+
+		inline bool is_draw_culled(u16 view_index, u32 draw_index) const
+		{
+			const u64 word = draw_cull_masks[static_cast<size_t>(view_index) * cull_word_count + draw_index / 64];
+			return (word & (1ull << (draw_index % 64))) != 0;
 		}
 	};
 

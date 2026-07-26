@@ -97,21 +97,20 @@ namespace sfg
 			backend.cmd_bind_constants(cmd, {.data = constants.data(), .offset = constant_mat0, .count = static_cast<u8>(constants.size()), .param_index = 0});
 		}
 
-		void draw_world_draws(
-			gfx_backend& backend, gfx_handle_t cmd, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, const u32* draw_indices, u32 draw_count, u8 cull_view_index, u32 pass_mask, u32 initial_variant_flags, u8 frame_index)
+		void draw_world_draws(gfx_backend& backend, gfx_handle_t cmd, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u16 cull_view_index, u32 pass_mask, u32 initial_variant_flags, u8 frame_index)
 		{
 			render_resources_t& render_resources = render_resources_t::get();
 			gfx_handle_t		bound_vertex	 = {};
 			gfx_handle_t		bound_index		 = {};
 			gfx_handle_t		bound_pipeline	 = {};
 			u32					bound_material	 = UINT32_MAX;
+			const u32			draw_count		 = static_cast<u32>(snapshot.draws.size());
 
 			for (u32 i = 0; i < draw_count; ++i)
 			{
-				const u32			draw_index = draw_indices == nullptr ? i : draw_indices[i];
-				const world_draw_t& draw	   = snapshot.draws[draw_index];
+				const world_draw_t& draw = snapshot.draws[i];
 
-				if (cull_view_index != UINT8_MAX && (prep_data.draw_culls[draw_index].cull_mask & (1ull << cull_view_index)) != 0)
+				if (prep_data.is_draw_culled(cull_view_index, i))
 					continue;
 
 				if (pass_mask != 0 && (draw.pass_mask & pass_mask) == 0)
@@ -187,12 +186,17 @@ namespace sfg
 
 		u32 light_counts[4] = {};
 
+		prep_data.add_view({
+			.view_proj = main_camera_view_t.view_proj,
+			.frustum   = main_camera_view_t.frustum,
+		});
+
 		world_rendering_util_t::prep_shadows(ctx, snapshot, prep_data, main_camera_view_t, interpolation_alpha);
 		world_rendering_util_t::prep_light_buffer(ctx, snapshot, prep_data, interpolation_alpha, frame_index, light_counts);
 		world_rendering_util_t::prep_probes(ctx, snapshot, prep_data, main_camera_view_t, interpolation_alpha, frame_index);
 		world_rendering_util_t::prep_shadow_buffer(ctx, snapshot, prep_data, frame_index);
 		world_rendering_util_t::prep_debug_buffer(ctx, snapshot, main_camera_view_t, frame_index);
-		world_rendering_util_t::prep_culls(ctx, snapshot, prep_data, main_camera_view_t, frame_index);
+		world_rendering_util_t::prep_culls(ctx, snapshot, prep_data, frame_index);
 		world_rendering_util_t::prep_render_pass_buffers(ctx, snapshot, main_camera_view_t, light_counts, interpolation_alpha, frame_index);
 
 		const gfx_handle_t cmd_depth			  = ctx.get_command_buffer_depth(frame_index);
@@ -358,8 +362,7 @@ namespace sfg
 			const gpu_index_t rp_constants[3] = {shadow_context.get_view_data_index(frame_index, static_cast<u16>(view_index)), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
 			backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
-			const u32* draw_indices = view.draw_count == 0 ? nullptr : prep_data.shadow_draw_indices.data() + view.draw_offset;
-			draw_world_draws(backend, cmd, ss, prep_data, draw_indices, view.draw_count, UINT8_MAX, world_pass_flags_shadow, shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering, frame_index);
+			draw_world_draws(backend, cmd, ss, prep_data, view.cull_view_index, world_pass_flags_shadow, shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering, frame_index);
 
 			backend.cmd_end_render_pass(cmd, {});
 		}
@@ -417,8 +420,7 @@ namespace sfg
 		gpu_index_t rp_constants[3] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
-		const u32 draw_size = static_cast<u32>(ss.draws.size());
-		draw_world_draws(backend, cmd, ss, prep_data, nullptr, draw_size, 0, world_pass_flags_depth, shader_variant_flags_z_prepass, frame_index);
+		draw_world_draws(backend, cmd, ss, prep_data, 0, world_pass_flags_depth, shader_variant_flags_z_prepass, frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
@@ -532,8 +534,7 @@ namespace sfg
 		gpu_index_t rp_constants[3] = {ctx.get_opaque_render_pass_data_index(frame_index), ctx.get_entity_buffer_index(frame_index), ctx.get_bone_buffer_index(frame_index)};
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
-		const u32 draw_size = static_cast<u32>(ss.draws.size());
-		draw_world_draws(backend, cmd, ss, prep_data, nullptr, draw_size, 0, world_pass_flags_gbuffer, shader_variant_flags_gbuffer, frame_index);
+		draw_world_draws(backend, cmd, ss, prep_data, 0, world_pass_flags_gbuffer, shader_variant_flags_gbuffer, frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
@@ -869,8 +870,7 @@ namespace sfg
 			END_DEBUG_EVENT((&backend), cmd);
 		}
 
-		const u32 draw_count = static_cast<u32>(snapshot.draws.size());
-		draw_world_draws(backend, cmd, snapshot, prep_data, nullptr, draw_count, 0, world_pass_flags_forward, 0, frame_index);
+		draw_world_draws(backend, cmd, snapshot, prep_data, 0, world_pass_flags_forward, 0, frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);

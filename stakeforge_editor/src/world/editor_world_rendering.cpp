@@ -107,7 +107,7 @@ namespace sfg
 		{
 			const world_draw_t& draw = snapshot.draws[i];
 
-			if ((prep_data.draw_culls[i].cull_mask & (1 << 0llu)) != 0)
+			if (prep_data.is_draw_culled(0, i))
 				continue;
 
 			const world_render_entity_t& entity = snapshot.entities[draw.entity_index];
@@ -262,7 +262,7 @@ namespace sfg
 		{
 			const world_draw_t& draw = snapshot.draws[i];
 
-			if ((prep_data.draw_culls[i].cull_mask & (1 << 0llu)) != 0)
+			if (prep_data.is_draw_culled(0, i))
 				continue;
 
 			if ((draw.pass_mask & world_pass_flags_id) == 0)
