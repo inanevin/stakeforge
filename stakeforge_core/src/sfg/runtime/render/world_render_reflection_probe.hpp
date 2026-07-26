@@ -41,9 +41,8 @@ namespace sfg
 
 	enum class world_render_reflection_probe_capture_mode_e : u8
 	{
-		once,
-		realtime,
 		manual,
+		realtime,
 	};
 
 	struct world_render_reflection_probe_t
@@ -62,9 +61,10 @@ namespace sfg
 		f32											 max_distance			= 0.0f;
 		f32											 near_plane				= 0.1f;
 		u32											 stable_id				= UINT32_MAX;
+		u32											 generation				= 0;
 		u32											 realtime_tick_interval = 30;
 		world_render_reflection_probe_capture_type_e capture_type			= world_render_reflection_probe_capture_type_e::scene;
-		world_render_reflection_probe_capture_mode_e capture_mode			= world_render_reflection_probe_capture_mode_e::once;
+		world_render_reflection_probe_capture_mode_e capture_mode			= world_render_reflection_probe_capture_mode_e::manual;
 		u8											 is_global				= 0;
 		u8											 disabled				= 0;
 	};

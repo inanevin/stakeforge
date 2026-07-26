@@ -233,9 +233,8 @@ namespace sfg
 
 	enum class reflection_probe_capture_mode_e : u8
 	{
-		once,
-		realtime,
 		manual,
+		realtime,
 	};
 
 	SFG_DEFINE_TYPE_ID(reflection_probe_capture_mode_e);
@@ -251,9 +250,10 @@ namespace sfg
 		f32								blend_distance		   = 1.0f;
 		f32								max_distance		   = 0.0f;
 		f32								near_plane			   = 0.1f;
+		u32								generation			   = 0;
 		u32								realtime_tick_interval = 30;
 		reflection_probe_capture_type_e capture_type		   = reflection_probe_capture_type_e::scene;
-		reflection_probe_capture_mode_e capture_mode		   = reflection_probe_capture_mode_e::once;
+		reflection_probe_capture_mode_e capture_mode		   = reflection_probe_capture_mode_e::manual;
 		bool							is_global			   = false;
 	};
 

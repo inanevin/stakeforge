@@ -200,6 +200,7 @@ namespace sfg
 		text_allocator_t				  _text_allocator		= {};
 		engine_components_t				  _engine_components	= {};
 		system_components_t				  _system_components	= {};
+		u64								  _tick_count			= 0;
 		entity_id_t						  _entity_head			= 0;
 		entity_id_t						  _main_camera_entity	= NULL_ENTITY_ID;
 		u32								  _play_resource_count	= 0;

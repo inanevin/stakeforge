@@ -110,6 +110,7 @@ namespace sfg
 		_text_allocator.uninit();
 		_engine_components	 = {};
 		_system_components	 = {};
+		_tick_count			 = 0;
 		_entity_head		 = 0;
 		_main_camera_entity	 = NULL_ENTITY_ID;
 		_play_resource_count = 0;
@@ -166,6 +167,7 @@ namespace sfg
 		_text_allocation_free_list.resize(0);
 		_entity_free_list.resize(0);
 		_text_allocator.reset();
+		_tick_count			= 0;
 		_entity_head		= 0;
 		_main_camera_entity = NULL_ENTITY_ID;
 	}
@@ -192,10 +194,29 @@ namespace sfg
 
 	void world_t::tick_post()
 	{
-		const ecs_component_table_t& alive_table	 = get_component_table(type_id_t<component_alive_t>::value);
-		const ecs_component_table_t& camera_table	 = get_component_table(type_id_t<component_camera_t>::value);
-		const ecs_component_table_t& transform_table = get_component_table(type_id_t<component_system_transform_t>::value);
-		const ecs_component_table_t& disabled_table	 = get_component_table(type_id_t<component_disabled_t>::value);
+		++_tick_count;
+
+		const ecs_component_table_t& alive_table			= get_component_table(type_id_t<component_alive_t>::value);
+		const ecs_component_table_t& camera_table			= get_component_table(type_id_t<component_camera_t>::value);
+		const ecs_component_table_t& transform_table		= get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& disabled_table			= get_component_table(type_id_t<component_disabled_t>::value);
+		ecs_component_table_t&		 reflection_probe_table = get_component_table(type_id_t<component_reflection_probe_t>::value);
+
+		const ecs_component_table_ref_t reflection_probe_table_refs[] = {
+			alive_table.ref(),
+			reflection_probe_table.ref(),
+		};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = reflection_probe_table_refs, .size = std::size(reflection_probe_table_refs)}))
+		{
+			component_reflection_probe_t& reflection_probe = ecs_helpers_t::row_get_mutable<component_reflection_probe_t>(row, 1);
+
+			if (reflection_probe.capture_mode != reflection_probe_capture_mode_e::realtime)
+				continue;
+
+			if (_tick_count % reflection_probe.realtime_tick_interval == 0)
+				++reflection_probe.generation;
+		}
 
 		const ecs_component_table_ref_t table_refs[] = {
 			alive_table.ref(),

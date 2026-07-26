@@ -56,8 +56,10 @@ namespace sfg
 		gpu_index_t	 depth_texture_index													  = NULL_GPU_INDEX;
 		u32			 diffuse_sh_coefficient_offset											  = UINT32_MAX;
 		u32			 stable_id																  = UINT32_MAX;
+		u32			 generation																  = UINT32_MAX;
 		u16			 resolution																  = 0;
 		u8			 specular_mip_count														  = 0;
+		u8			 pending_render															  = 0;
 	};
 
 	class world_render_reflection_context_t final
@@ -81,7 +83,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
-		world_render_reflection_allocation_t* get_or_create_allocation(u32 stable_id, u16 resolution);
+		world_render_reflection_allocation_t* get_or_create_allocation(u32 stable_id, u16 resolution, u32 generation);
 
 		// -----------------------------------------------------------------------------
 		// queries
@@ -134,6 +136,11 @@ namespace sfg
 		inline u16 get_probe_max() const
 		{
 			return _config.allocation_max;
+		}
+
+		inline world_render_reflection_allocation_t& get_allocation(u16 index)
+		{
+			return _allocations[index];
 		}
 
 	private:

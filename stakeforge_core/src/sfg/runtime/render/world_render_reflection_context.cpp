@@ -184,7 +184,7 @@ namespace sfg
 		}
 	}
 
-	world_render_reflection_allocation_t* world_render_reflection_context_t::get_or_create_allocation(u32 stable_id, u16 resolution)
+	world_render_reflection_allocation_t* world_render_reflection_context_t::get_or_create_allocation(u32 stable_id, u16 resolution, u32 generation)
 	{
 		for (u16 i = 0; i < _config.allocation_max; ++i)
 		{
@@ -192,6 +192,12 @@ namespace sfg
 
 			if (allocation.stable_id == stable_id && allocation.resolution == resolution)
 			{
+				if (allocation.generation != generation)
+				{
+					allocation.generation	  = generation;
+					allocation.pending_render = 1;
+				}
+
 				allocation.last_used_id = _id_counter;
 				allocation.retire_id	= 0;
 				return &allocation;
@@ -311,8 +317,10 @@ namespace sfg
 		allocation->diffuse_sh_coefficient_offset = static_cast<u32>(allocation_index) * WORLD_RENDER_REFLECTION_SH_COEFFICIENT_COUNT;
 		allocation->last_used_id				  = _id_counter;
 		allocation->stable_id					  = stable_id;
+		allocation->generation					  = generation;
 		allocation->resolution					  = resolution;
 		allocation->specular_mip_count			  = specular_mip_count;
+		allocation->pending_render				  = 1;
 
 		return allocation;
 	}

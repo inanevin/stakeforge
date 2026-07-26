@@ -384,7 +384,7 @@ namespace sfg
 		{
 			const world_render_reflection_probe_t& reflection_probe = snapshot.reflection_probes[i];
 			const u16							   resolution		= static_cast<u16>(math::round(reflection_probe.resolution));
-			world_render_reflection_allocation_t*  allocation		= reflection_context.get_or_create_allocation(reflection_probe.stable_id, resolution);
+			world_render_reflection_allocation_t*  allocation		= reflection_context.get_or_create_allocation(reflection_probe.stable_id, resolution, reflection_probe.generation);
 
 			if (allocation == nullptr || reflection_probe.disabled != 0)
 				continue;

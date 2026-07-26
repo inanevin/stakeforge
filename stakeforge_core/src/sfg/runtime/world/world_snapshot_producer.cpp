@@ -343,6 +343,7 @@ namespace sfg
 				transform_table.ref(),
 				alive_table.ref(),
 				reflection_probe_table.ref(),
+				!disabled_table.ref(),
 			};
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
@@ -365,6 +366,7 @@ namespace sfg
 					.max_distance			= reflection_probe.max_distance,
 					.near_plane				= reflection_probe.near_plane,
 					.stable_id				= row.id,
+					.generation				= reflection_probe.generation,
 					.realtime_tick_interval = reflection_probe.realtime_tick_interval,
 					.capture_type			= static_cast<world_render_reflection_probe_capture_type_e>(reflection_probe.capture_type),
 					.capture_mode			= static_cast<world_render_reflection_probe_capture_mode_e>(reflection_probe.capture_mode),

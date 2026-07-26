@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/commands.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/job/job_system.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
@@ -195,8 +196,9 @@ namespace sfg
 	{
 		ZoneScoped;
 
-		gfx_backend&				   backend		  = gfx_backend::get();
-		world_render_shadow_context_t& shadow_context = ctx.get_shadow_context();
+		gfx_backend&					   backend			  = gfx_backend::get();
+		world_render_shadow_context_t&	   shadow_context	  = ctx.get_shadow_context();
+		world_render_reflection_context_t& reflection_context = ctx.get_reflection_context();
 
 		world_rendering_util_t::prep_entity_buffer(ctx, snapshot, interpolation_alpha, frame_index);
 		world_rendering_util_t::prep_bone_buffer(ctx, snapshot, frame_index);
@@ -204,7 +206,6 @@ namespace sfg
 		// main cam view.
 		const vec2u16_t render_size		   = ctx.get_size();
 		render_view_t	main_camera_view_t = {};
-
 		main_camera_view_t.calculate(snapshot.main_view, render_size, interpolation_alpha);
 
 		const f32 cluster_log_scale = WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT / std::log2(main_camera_view_t.far_plane / main_camera_view_t.near_plane);
@@ -230,6 +231,7 @@ namespace sfg
 			.cluster_light_capacity				 = WORLD_RENDER_CLUSTER_LIGHT_CAPACITY,
 		});
 
+		// other preps
 		world_rendering_util_t::prep_shadows(ctx, snapshot, prep_data, main_camera_view_t, interpolation_alpha);
 		world_rendering_util_t::prep_light_buffer(ctx, snapshot, prep_data, interpolation_alpha, frame_index, light_counts);
 		world_rendering_util_t::prep_probes(ctx, snapshot, prep_data, main_camera_view_t, interpolation_alpha, frame_index);
@@ -238,6 +240,26 @@ namespace sfg
 		world_rendering_util_t::prep_culls(ctx, snapshot, prep_data, frame_index);
 		world_rendering_util_t::prep_render_pass_buffers(ctx, snapshot, prep_data, main_camera_view_t, light_counts, frame_index);
 
+		for (u16 i = 0; i < reflection_context.get_probe_max(); ++i)
+		{
+			world_render_reflection_allocation_t& allocation = reflection_context.get_allocation(i);
+
+			if (allocation.pending_render == 0)
+				continue;
+
+			SFG_TRACE("reflection allocation pending render: stable id {0}, generation {1}", allocation.stable_id, allocation.generation);
+			allocation.pending_render = 0;
+		}
+
+		inplace_vector_t<world_render_clustered_lighting_view_t, 1 + WORLD_RENDER_REFLECTION_FACE_COUNT> clustered_lighting_views = {};
+		clustered_lighting_views.push_back({
+			.view_data_index = ctx.get_view_render_pass_data_index(frame_index),
+			.cluster_count_x = prep_data.views[0].cluster_dims[0],
+			.cluster_count_y = prep_data.views[0].cluster_dims[1],
+			.cluster_count_z = prep_data.views[0].cluster_dims[2],
+		});
+
+		// rendering
 		const gfx_handle_t cmd_depth			  = ctx.get_command_buffer_depth(frame_index);
 		const gfx_handle_t cmd_gbuffer			  = ctx.get_command_buffer_gbuffer(frame_index);
 		const gfx_handle_t cmd_lighting			  = ctx.get_command_buffer_lighting(frame_index);
@@ -270,18 +292,19 @@ namespace sfg
 		render_graph.emplace([&]() {
 			render_access_scope_t render_scope = {};
 
-			render_clustered_lighting({
-				.command_buffer				  = ctx.get_command_buffer_clustered_lighting(frame_index),
-				.cluster_buffer				  = ctx.get_light_cluster_buffer(frame_index),
-				.cluster_light_indices_buffer = ctx.get_light_cluster_indices_buffer(frame_index),
-				.shader						  = ctx.get_clustered_light_culling_shader(),
-				.view_data_index			  = ctx.get_view_render_pass_data_index(frame_index),
-				.lighting_data_index		  = ctx.get_lighting_render_pass_data_index(frame_index),
-				.global_cbv_index			  = global_cbv_index,
-				.cluster_count_x			  = ctx.get_light_cluster_count_x(),
-				.cluster_count_y			  = ctx.get_light_cluster_count_y(),
-				.cluster_count_z			  = WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT,
-			});
+			render_clustered_lighting(
+				{
+					.command_buffer				  = ctx.get_command_buffer_clustered_lighting(frame_index),
+					.cluster_buffer				  = ctx.get_light_cluster_buffer(frame_index),
+					.cluster_light_indices_buffer = ctx.get_light_cluster_indices_buffer(frame_index),
+					.shader						  = ctx.get_clustered_light_culling_shader(),
+					.lighting_data_index		  = ctx.get_lighting_render_pass_data_index(frame_index),
+					.global_cbv_index			  = global_cbv_index,
+				},
+				{
+					.data = clustered_lighting_views.data(),
+					.size = clustered_lighting_views.size(),
+				});
 		});
 
 		if (ssao_active)
@@ -754,7 +777,7 @@ namespace sfg
 		backend.close_command_buffer(cmd);
 	}
 
-	void world_rendering_t::render_clustered_lighting(const world_render_clustered_lighting_data_t& data)
+	void world_rendering_t::render_clustered_lighting(const world_render_clustered_lighting_data_t& data, span_t<const world_render_clustered_lighting_view_t> views)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -778,17 +801,24 @@ namespace sfg
 		};
 		backend.cmd_barrier(data.command_buffer, {.barriers = begin_barriers, .barrier_count = 2});
 
-		backend.cmd_bind_constants_compute(data.command_buffer, {.data = &data.view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
 		backend.cmd_bind_constants_compute(data.command_buffer, {.data = &data.lighting_data_index, .offset = constant_rp3, .count = 1, .param_index = 0});
 		backend.cmd_bind_pipeline_compute(data.command_buffer, {.pipeline = data.shader});
 
 		BEGIN_DEBUG_EVENT((&backend), data.command_buffer, "world_clustered_light_culling");
-		backend.cmd_dispatch(data.command_buffer,
-							 {
-								 .group_size_x = (data.cluster_count_x + 3) / 4,
-								 .group_size_y = (data.cluster_count_y + 3) / 4,
-								 .group_size_z = data.cluster_count_z,
-							 });
+
+		for (size_t i = 0; i < views.size; ++i)
+		{
+			const world_render_clustered_lighting_view_t& view = views.data[i];
+
+			backend.cmd_bind_constants_compute(data.command_buffer, {.data = &view.view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
+			backend.cmd_dispatch(data.command_buffer,
+								 {
+									 .group_size_x = (view.cluster_count_x + 3) / 4,
+									 .group_size_y = (view.cluster_count_y + 3) / 4,
+									 .group_size_z = view.cluster_count_z,
+								 });
+		}
+
 		END_DEBUG_EVENT((&backend), data.command_buffer);
 
 		const barrier_t end_barriers[2] = {
