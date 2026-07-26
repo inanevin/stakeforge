@@ -97,7 +97,28 @@ namespace sfg
 			backend.cmd_bind_constants(cmd, {.data = constants.data(), .offset = constant_mat0, .count = static_cast<u8>(constants.size()), .param_index = 0});
 		}
 
-		void draw_world_draws(gfx_backend& backend, gfx_handle_t cmd, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u16 cull_view_index, u32 pass_mask, u32 initial_variant_flags, u8 frame_index)
+		void draw_skybox(gfx_backend& backend, gfx_handle_t cmd, const world_render_snapshot_t& snapshot, u8 frame_index)
+		{
+			if (snapshot.environment.material_index == UINT32_MAX)
+				return;
+
+			BEGIN_DEBUG_EVENT((&backend), cmd, "world_skybox");
+
+			const world_render_material_t& material		 = snapshot.materials[snapshot.environment.material_index];
+			const render_resource_handle_t shader_handle = material.find_pso(0);
+			SFG_ASSERT(!shader_handle.is_null());
+
+			backend.cmd_bind_pipeline(cmd, {.pipeline = render_resources_t::get().get_shader_hw(shader_handle)});
+
+			u32 bound_material = UINT32_MAX;
+
+			bind_material(backend, cmd, bound_material, snapshot.environment.material_index, material, frame_index);
+			backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 36, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
+
+			END_DEBUG_EVENT((&backend), cmd);
+		}
+
+		void draw_world_draws(gfx_backend& backend, gfx_handle_t cmd, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u16 cull_view_index, u32 required_pass_mask, u32 initial_variant_flags, u8 frame_index)
 		{
 			render_resources_t& render_resources = render_resources_t::get();
 			gfx_handle_t		bound_vertex	 = {};
@@ -113,7 +134,7 @@ namespace sfg
 				if (prep_data.is_draw_culled(cull_view_index, i))
 					continue;
 
-				if (pass_mask != 0 && (draw.pass_mask & pass_mask) == 0)
+				if (required_pass_mask != 0 && (draw.pass_mask & required_pass_mask) != required_pass_mask)
 					continue;
 
 				const gfx_handle_t vertex_buffer = render_resources.get_resource(draw.vertex_buffer);
@@ -409,6 +430,138 @@ namespace sfg
 
 		backend.cmd_barrier(cmd, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
 		backend.close_command_buffer(cmd);
+	}
+
+	void world_rendering_t::render_probe(gfx_handle_t								 command_buffer,
+										 const world_render_context_t&				 ctx,
+										 const world_render_snapshot_t&				 snapshot,
+										 const world_render_prep_data_t&			 prep_data,
+										 const world_render_reflection_allocation_t& allocation,
+										 const u16*									 cull_view_indices,
+										 bool										 skybox_only,
+										 u8											 frame_index,
+										 gpu_index_t								 global_cbv_index,
+										 gfx_handle_t								 global_layout)
+	{
+		gfx_backend&							 backend			= gfx_backend::get();
+		const world_render_reflection_context_t& reflection_context = ctx.get_reflection_context();
+
+		backend.reset_command_buffer(command_buffer);
+		backend.cmd_bind_layout(command_buffer, {.layout = global_layout});
+		backend.cmd_bind_constants(command_buffer, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
+
+		const barrier_t radiance_write_barrier = {
+			.from_states = resource_state_ps_resource,
+			.to_states	 = resource_state_render_target,
+			.texture_t	 = allocation.radiance_texture,
+			.flags		 = barrier_flags::baf_is_texture,
+		};
+
+		backend.cmd_barrier(command_buffer, {.barriers = &radiance_write_barrier, .barrier_count = 1});
+
+		BEGIN_DEBUG_EVENT((&backend), command_buffer, "world_reflection_probe");
+
+		for (u8 face = 0; face < WORLD_RENDER_REFLECTION_FACE_COUNT; ++face)
+		{
+			const barrier_t depth_write_barrier = {
+				.from_states = resource_state_depth_read | resource_state_non_ps_resource | resource_state_ps_resource,
+				.to_states	 = resource_state_depth_write,
+				.texture_t	 = allocation.depth_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+
+			backend.cmd_barrier(command_buffer, {.barriers = &depth_write_barrier, .barrier_count = 1});
+
+			backend.cmd_begin_render_pass_depth_only(command_buffer,
+													 {
+														 .depth_stencil_attachment =
+															 {
+																 .texture		 = allocation.depth_texture,
+																 .clear_stencil	 = 0,
+																 .clear_depth	 = 0.0f,
+																 .depth_load_op	 = load_op::clear,
+																 .depth_store_op = store_op::store,
+																 .view_index	 = 0,
+															 },
+													 });
+			backend.cmd_set_viewport(command_buffer, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = allocation.resolution, .height = allocation.resolution});
+			backend.cmd_set_scissors(command_buffer, {.x = 0, .y = 0, .width = allocation.resolution, .height = allocation.resolution});
+
+			const gpu_index_t depth_constants[3] = {
+				reflection_context.get_view_data_index(allocation, frame_index, face),
+				ctx.get_entity_buffer_index(frame_index),
+				ctx.get_bone_buffer_index(frame_index),
+			};
+
+			backend.cmd_bind_constants(command_buffer, {.data = depth_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
+
+			if (!skybox_only)
+				draw_world_draws(backend, command_buffer, snapshot, prep_data, cull_view_indices[face], world_pass_flags_depth | world_pass_flags_reflections, shader_variant_flags_z_prepass, frame_index);
+
+			backend.cmd_end_render_pass(command_buffer, {});
+
+			const barrier_t depth_read_barrier = {
+				.from_states = resource_state_depth_write,
+				.to_states	 = resource_state_depth_read | resource_state_non_ps_resource | resource_state_ps_resource,
+				.texture_t	 = allocation.depth_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+
+			backend.cmd_barrier(command_buffer, {.barriers = &depth_read_barrier, .barrier_count = 1});
+
+			const render_pass_color_attachment_t color_attachment = {
+				.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
+				.texture	 = allocation.radiance_texture,
+				.load_op	 = load_op::clear,
+				.store_op	 = store_op::store,
+				.view_index	 = face,
+			};
+
+			backend.cmd_begin_render_pass_depth_read_only(command_buffer,
+														  {
+															  .color_attachments = &color_attachment,
+															  .depth_stencil_attachment =
+																  {
+																	  .texture			= allocation.depth_texture,
+																	  .clear_stencil	= 0,
+																	  .clear_depth		= 0.0f,
+																	  .depth_load_op	= load_op::load,
+																	  .stencil_load_op	= load_op::none,
+																	  .depth_store_op	= store_op::store,
+																	  .stencil_store_op = store_op::none,
+																	  .view_index		= 1,
+																  },
+															  .color_attachment_count = 1,
+														  });
+
+			const gpu_index_t forward_constants[4] = {
+				reflection_context.get_view_data_index(allocation, frame_index, face),
+				ctx.get_entity_buffer_index(frame_index),
+				ctx.get_bone_buffer_index(frame_index),
+				ctx.get_lighting_render_pass_data_index(frame_index),
+			};
+
+			backend.cmd_bind_constants(command_buffer, {.data = forward_constants, .offset = constant_rp0, .count = 4, .param_index = 0});
+
+			draw_skybox(backend, command_buffer, snapshot, frame_index);
+
+			if (!skybox_only)
+				draw_world_draws(backend, command_buffer, snapshot, prep_data, cull_view_indices[face], world_pass_flags_reflections, 0, frame_index);
+
+			backend.cmd_end_render_pass(command_buffer, {});
+		}
+
+		END_DEBUG_EVENT((&backend), command_buffer);
+
+		const barrier_t radiance_read_barrier = {
+			.from_states = resource_state_render_target,
+			.to_states	 = resource_state_ps_resource,
+			.texture_t	 = allocation.radiance_texture,
+			.flags		 = barrier_flags::baf_is_texture,
+		};
+
+		backend.cmd_barrier(command_buffer, {.barriers = &radiance_read_barrier, .barrier_count = 1});
+		backend.close_command_buffer(command_buffer);
 	}
 
 	void world_rendering_t::render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
@@ -821,10 +974,9 @@ namespace sfg
 
 	void world_rendering_t::render_forward(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
-		gfx_backend&		backend			 = gfx_backend::get();
-		render_resources_t& render_resources = render_resources_t::get();
-		const gfx_handle_t	cmd				 = ctx.get_command_buffer_forward(frame_index);
-		const bool			bloom_active	 = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
+		gfx_backend&	   backend		= gfx_backend::get();
+		const gfx_handle_t cmd			= ctx.get_command_buffer_forward(frame_index);
+		const bool		   bloom_active = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
 
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
@@ -868,21 +1020,7 @@ namespace sfg
 
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 4, .param_index = 0});
 
-		if (snapshot.environment.material_index != UINT32_MAX)
-		{
-			BEGIN_DEBUG_EVENT((&backend), cmd, "world_skybox");
-
-			const world_render_material_t& material		 = snapshot.materials[snapshot.environment.material_index];
-			const render_resource_handle_t shader_handle = material.find_pso(0);
-			SFG_ASSERT(!shader_handle.is_null());
-
-			backend.cmd_bind_pipeline(cmd, {.pipeline = render_resources.get_shader_hw(shader_handle)});
-
-			u32 bound_material = UINT32_MAX;
-			bind_material(backend, cmd, bound_material, snapshot.environment.material_index, material, frame_index);
-			backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 36, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
-			END_DEBUG_EVENT((&backend), cmd);
-		}
+		draw_skybox(backend, cmd, snapshot, frame_index);
 
 		draw_world_draws(backend, cmd, snapshot, prep_data, 0, world_pass_flags_forward, 0, frame_index);
 

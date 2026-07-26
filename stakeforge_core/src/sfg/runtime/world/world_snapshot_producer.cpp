@@ -363,6 +363,7 @@ namespace sfg
 					.resolution				= reflection_probe.resolution,
 					.extents				= reflection_probe.extents,
 					.max_distance			= reflection_probe.max_distance,
+					.near_plane				= reflection_probe.near_plane,
 					.stable_id				= row.id,
 					.realtime_tick_interval = reflection_probe.realtime_tick_interval,
 					.capture_type			= static_cast<world_render_reflection_probe_capture_type_e>(reflection_probe.capture_type),

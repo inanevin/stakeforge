@@ -43,6 +43,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	static const vec3f_t CUBEMAP_FACE_DIRECTIONS[WORLD_RENDER_REFLECTION_FACE_COUNT] = {vec3f_t::right, -vec3f_t::right, vec3f_t::up, -vec3f_t::up, vec3f_t::forward, -vec3f_t::forward};
+	static const vec3f_t CUBEMAP_FACE_UPS[WORLD_RENDER_REFLECTION_FACE_COUNT]		 = {vec3f_t::up, vec3f_t::up, -vec3f_t::forward, vec3f_t::forward, vec3f_t::up, vec3f_t::up};
+
 	void world_rendering_util_t::prep_entity_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index)
 	{
 		// prep entity buffer.
@@ -179,10 +182,8 @@ namespace sfg
 				}
 				else if (light.type == static_cast<u8>(world_render_light_type_e::point))
 				{
-					static const vec3f_t directions[6] = {vec3f_t::right, -vec3f_t::right, vec3f_t::up, -vec3f_t::up, vec3f_t::forward, -vec3f_t::forward};
-					static const vec3f_t ups[6]		   = {vec3f_t::up, vec3f_t::up, -vec3f_t::forward, vec3f_t::forward, vec3f_t::up, vec3f_t::up};
-					light_view						   = mat4x4_t::look_at(pos, pos + directions[layer], ups[layer]);
-					light_proj						   = mat4x4_t::perspective(90.0f, 1.0f, light.shadow_near_plane, light.range);
+					light_view = mat4x4_t::look_at(pos, pos + CUBEMAP_FACE_DIRECTIONS[layer], CUBEMAP_FACE_UPS[layer]);
+					light_proj = mat4x4_t::perspective(90.0f, 1.0f, light.shadow_near_plane, light.range);
 				}
 				else
 				{
@@ -291,6 +292,81 @@ namespace sfg
 				.color_intensity  = {light.color.x, light.color.y, light.color.z, light.intensity},
 				.shadow			  = {shadow_offset, shadow_count, 0, 0},
 			};
+		}
+	}
+
+	void world_rendering_util_t::prep_probe(world_render_reflection_context_t&	   reflection_context,
+											world_render_reflection_allocation_t&  allocation,
+											const world_render_reflection_probe_t& reflection_probe,
+											world_render_prep_data_t&			   prep_data,
+											f32									   interpolation_alpha,
+											u8									   frame_index,
+											u32									   cluster_buffer_offset,
+											u32									   cluster_light_indices_buffer_offset,
+											u16*								   out_cull_view_indices)
+	{
+		const vec3f_t  pos				 = vec3f_t::lerp(reflection_probe.prev_pos, reflection_probe.pos, interpolation_alpha);
+		const quat_t   rot				 = quat_t::slerp(reflection_probe.prev_rot, reflection_probe.rot, interpolation_alpha);
+		const vec3f_t  scale			 = vec3f_t::lerp(reflection_probe.prev_scale, reflection_probe.scale, interpolation_alpha);
+		const vec3f_t  extents			 = vec3f_t::abs(reflection_probe.extents * scale);
+		const f32	   far_plane		 = math::max(extents.magnitude(), reflection_probe.near_plane + 0.01f);
+		const u32	   cluster_count_x	 = (static_cast<u32>(allocation.resolution) + WORLD_RENDER_CLUSTER_TILE_SIZE - 1) / WORLD_RENDER_CLUSTER_TILE_SIZE;
+		const u32	   cluster_count_y	 = cluster_count_x;
+		const u32	   cluster_count	 = cluster_count_x * cluster_count_y * WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT;
+		const f32	   cluster_log_scale = WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT / std::log2(far_plane / reflection_probe.near_plane);
+		const f32	   cluster_log_bias	 = -std::log2(reflection_probe.near_plane) * cluster_log_scale;
+		const mat4x4_t projection		 = mat4x4_t::perspective_reverse_z(90.0f, 1.0f, reflection_probe.near_plane, far_plane);
+		const vec2f_t  viewport_size	 = vec2f_t(allocation.resolution, allocation.resolution);
+		const vec2f_t  inv_viewport_size = vec2f_t(1.0f / allocation.resolution, 1.0f / allocation.resolution);
+
+		for (u8 face = 0; face < WORLD_RENDER_REFLECTION_FACE_COUNT; ++face)
+		{
+			const vec3f_t				   direction					= rot * CUBEMAP_FACE_DIRECTIONS[face];
+			const vec3f_t				   up							= rot * CUBEMAP_FACE_UPS[face];
+			const mat4x4_t				   view							= mat4x4_t::look_at(pos, pos + direction, up);
+			const mat4x4_t				   view_proj					= projection * view;
+			const u32					   cluster_offset				= cluster_buffer_offset + static_cast<u32>(face) * cluster_count;
+			const u32					   cluster_light_indices_offset = cluster_light_indices_buffer_offset + static_cast<u32>(face) * cluster_count * WORLD_RENDER_CLUSTER_LIGHT_CAPACITY;
+			const world_render_prep_view_t prep_view					= {
+				.view								 = view,
+				.view_proj							 = view_proj,
+				.inv_view							 = view.inverse(),
+				.inv_view_proj						 = view_proj.inverse(),
+				.frustum							 = frustum_t::extract(view_proj),
+				.camera_pos							 = vec4f_t(pos.x, pos.y, pos.z, 1.0f),
+				.cluster_depth						 = vec4f_t(reflection_probe.near_plane, far_plane, cluster_log_scale, cluster_log_bias),
+				.cluster_dims						 = {cluster_count_x, cluster_count_y, WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT, WORLD_RENDER_CLUSTER_TILE_SIZE},
+				.viewport_size						 = viewport_size,
+				.inv_viewport_size					 = inv_viewport_size,
+				.near_plane							 = reflection_probe.near_plane,
+				.far_plane							 = far_plane,
+				.depth_texture_index				 = allocation.depth_texture_index,
+				.cluster_buffer_offset				 = cluster_offset,
+				.cluster_light_indices_buffer_offset = cluster_light_indices_offset,
+				.cluster_light_capacity				 = WORLD_RENDER_CLUSTER_LIGHT_CAPACITY,
+			};
+
+			out_cull_view_indices[face] = prep_data.add_view(prep_view);
+
+			const render_pass_data_view_gpu_t view_data = {
+				.view								 = prep_view.view,
+				.view_proj							 = prep_view.view_proj,
+				.inv_view							 = prep_view.inv_view,
+				.inv_view_proj						 = prep_view.inv_view_proj,
+				.camera_pos							 = prep_view.camera_pos,
+				.cluster_depth						 = prep_view.cluster_depth,
+				.cluster_dims						 = {prep_view.cluster_dims[0], prep_view.cluster_dims[1], prep_view.cluster_dims[2], prep_view.cluster_dims[3]},
+				.viewport_size						 = prep_view.viewport_size,
+				.inv_viewport_size					 = prep_view.inv_viewport_size,
+				.near_plane							 = prep_view.near_plane,
+				.far_plane							 = prep_view.far_plane,
+				.depth_texture_index				 = prep_view.depth_texture_index,
+				.cluster_buffer_offset				 = prep_view.cluster_buffer_offset,
+				.cluster_light_indices_buffer_offset = prep_view.cluster_light_indices_buffer_offset,
+				.cluster_light_capacity				 = prep_view.cluster_light_capacity,
+			};
+
+			SFG_MEMCPY(reflection_context.get_mapped_view_data(allocation, frame_index, face), &view_data, sizeof(render_pass_data_view_gpu_t));
 		}
 	}
 
