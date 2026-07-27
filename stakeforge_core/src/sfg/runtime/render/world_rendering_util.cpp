@@ -42,6 +42,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/math/mat3x3.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/runtime/resources/shader_types.hpp>
+#include <tracy/Tracy.hpp>
 
 namespace sfg
 {
@@ -50,6 +52,8 @@ namespace sfg
 
 	void world_rendering_util_t::prep_entity_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index)
 	{
+		ZoneScoped;
+
 		// prep entity buffer.
 		SFG_ASSERT(snapshot.entities.size() <= ctx.get_entity_max());
 
@@ -75,6 +79,8 @@ namespace sfg
 
 	void world_rendering_util_t::prep_bone_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index)
 	{
+		ZoneScoped;
+
 		// prep bone buffer.
 		SFG_ASSERT(snapshot.bones.size() <= ctx.get_bone_max());
 
@@ -86,6 +92,8 @@ namespace sfg
 
 	void world_rendering_util_t::prep_shadows(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, f32 interpolation_alpha)
 	{
+		ZoneScoped;
+
 		const engine_shadow_settings_t& shadows		   = snapshot.shadows;
 		world_render_shadow_context_t&	shadow_context = ctx.get_shadow_context();
 
@@ -248,6 +256,8 @@ namespace sfg
 
 	void world_rendering_util_t::prep_shadow_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index)
 	{
+		ZoneScoped;
+
 		// shadow buffer prep
 		const engine_shadow_settings_t& shadows		   = snapshot.shadows;
 		world_render_shadow_context_t&	shadow_context = ctx.get_shadow_context();
@@ -294,6 +304,8 @@ namespace sfg
 
 	void world_rendering_util_t::prep_light_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, u32 (&light_counts)[4])
 	{
+		ZoneScoped;
+
 		// light buffer prep.
 		SFG_ASSERT(snapshot.lights.size() <= ctx.get_light_max());
 
@@ -357,6 +369,7 @@ namespace sfg
 											u32									   cluster_light_indices_buffer_offset,
 											u16*								   out_cull_view_indices)
 	{
+		ZoneScoped;
 
 		const vec3f_t  pos				 = vec3f_t::lerp(reflection_probe.prev_pos, reflection_probe.pos, interpolation_alpha);
 		const quat_t   rot				 = quat_t::slerp(reflection_probe.prev_rot, reflection_probe.rot, interpolation_alpha);
@@ -432,6 +445,8 @@ namespace sfg
 
 	void world_rendering_util_t::prep_probes(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, f32 interpolation_alpha, u8 frame_index)
 	{
+		ZoneScoped;
+
 		// reflection probe buffer prep.
 		world_render_reflection_context_t& reflection_context	   = ctx.get_reflection_context();
 		gpu_reflection_probe_t*			   reflection_probe_buffer = reinterpret_cast<gpu_reflection_probe_t*>(reflection_context.get_mapped_probe_buffer(frame_index));
@@ -499,6 +514,8 @@ namespace sfg
 	world_render_reflection_allocation_t* world_rendering_util_t::prep_reflection_allocation(
 		world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, const world_render_reflection_probe_t*& out_reflection_probe, u16* out_cull_view_indices)
 	{
+		ZoneScoped;
+
 		// find he first probe that wants to be rendered.
 		world_render_reflection_context_t&	  reflection_context	= ctx.get_reflection_context();
 		world_render_reflection_allocation_t* reflection_allocation = nullptr;
@@ -543,6 +560,8 @@ namespace sfg
 
 	void world_rendering_util_t::prep_debug_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index)
 	{
+		ZoneScoped;
+
 		// debug copy
 		const world_debug_draw_snapshot_t& debug_draw = snapshot.debug_draw;
 
@@ -583,8 +602,10 @@ namespace sfg
 		}
 	}
 
-	void world_rendering_util_t::prep_render_queues(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index)
+	void world_rendering_util_t::prep_render_queues(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index)
 	{
+		ZoneScoped;
+
 		gpu_entity_t* entity_buffer = reinterpret_cast<gpu_entity_t*>(ctx.get_mapped_entity_buffer(frame_index));
 
 		prep_data.depth_queue.resize(0);
@@ -593,13 +614,10 @@ namespace sfg
 		prep_data.shadow_queue.resize(0);
 		prep_data.visible_queue.resize(0);
 
+		// build and sort the queues for each view
 		for (world_render_prep_view_t& view : prep_data.views)
 		{
-			view.depth_queue_start		 = static_cast<u32>(prep_data.depth_queue.size());
-			view.opaque_queue_start		 = static_cast<u32>(prep_data.opaque_queue.size());
-			view.transparent_queue_start = static_cast<u32>(prep_data.transparent_queue.size());
-			view.shadow_queue_start		 = static_cast<u32>(prep_data.shadow_queue.size());
-			view.visible_queue_start	 = static_cast<u32>(prep_data.visible_queue.size());
+			prep_data.begin_view_queues(view);
 
 			for (u32 renderable_index = 0; renderable_index < snapshot.renderables.size(); ++renderable_index)
 			{
@@ -608,13 +626,14 @@ namespace sfg
 
 				const mat4x4_t& model = entity_buffer[renderable.entity_index].model;
 				const mat3x3_t	linear_model(model[0], model[1], model[2], model[4], model[5], model[6], model[8], model[9], model[10]);
-				const vec3f_t	position = model.get_translation();
+				const vec3f_t	position		 = model.get_translation();
+				const bool		world_space_aabb = (renderable.flags & world_renderable_flag_world_space_aabb) != 0;
 
-				if (!renderable.aabb.is_empty() && frustum_t::test(view.frustum, renderable.aabb, linear_model, position) == frustum_result::outside)
+				if (!renderable.aabb.is_empty() && (world_space_aabb ? frustum_t::test(view.frustum, renderable.aabb) : frustum_t::test(view.frustum, renderable.aabb, linear_model, position)) == frustum_result::outside)
 					continue;
 
 				const vec3f_t					local_center = (renderable.aabb.bounds_min + renderable.aabb.bounds_max) * 0.5f;
-				const vec3f_t					world_center = model * local_center;
+				const vec3f_t					world_center = world_space_aabb ? local_center : model * local_center;
 				const vec4f_t					view_center	 = view.view * vec4f_t(world_center.x, world_center.y, world_center.z, 1.0f);
 				const world_render_queue_item_t item		 = {
 					.depth			  = -view_center.z,
@@ -637,41 +656,39 @@ namespace sfg
 					prep_data.visible_queue.push_back(item);
 			}
 
-			view.depth_queue_count		 = static_cast<u32>(prep_data.depth_queue.size()) - view.depth_queue_start;
-			view.opaque_queue_count		 = static_cast<u32>(prep_data.opaque_queue.size()) - view.opaque_queue_start;
-			view.transparent_queue_count = static_cast<u32>(prep_data.transparent_queue.size()) - view.transparent_queue_start;
-			view.shadow_queue_count		 = static_cast<u32>(prep_data.shadow_queue.size()) - view.shadow_queue_start;
-			view.visible_queue_count	 = static_cast<u32>(prep_data.visible_queue.size()) - view.visible_queue_start;
+			prep_data.end_view_queues(view);
 
-			// depth is sorted front to back
-			std::sort(prep_data.depth_queue.begin() + view.depth_queue_start, prep_data.depth_queue.begin() + view.depth_queue_start + view.depth_queue_count, [](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
-				return left.depth < right.depth;
-			});
+			span_t<world_render_queue_item_t> depth_draws		= prep_data.get_mutable_depth_queue(view);
+			span_t<world_render_queue_item_t> opaque_draws		= prep_data.get_mutable_opaque_queue(view);
+			span_t<world_render_queue_item_t> transparent_draws = prep_data.get_mutable_transparent_queue(view);
+			span_t<world_render_queue_item_t> shadow_draws		= prep_data.get_mutable_shadow_queue(view);
+			span_t<world_render_queue_item_t> visible_draws		= prep_data.get_mutable_visible_queue(view);
 
-			// opaque sorted front to back
-			std::sort(prep_data.opaque_queue.begin() + view.opaque_queue_start, prep_data.opaque_queue.begin() + view.opaque_queue_start + view.opaque_queue_count, [&snapshot](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
+			// sort depth front to back
+			std::sort(depth_draws.begin(), depth_draws.end(), [](const world_render_queue_item_t& left, const world_render_queue_item_t& right) { return left.depth < right.depth; });
+
+			// sort opaque by material then depth
+			std::sort(opaque_draws.begin(), opaque_draws.end(), [&snapshot](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
 				const world_renderable_t& left_renderable  = snapshot.renderables[left.renderable_index];
 				const world_renderable_t& right_renderable = snapshot.renderables[right.renderable_index];
 				return left_renderable.sort_key == right_renderable.sort_key ? left.depth < right.depth : left_renderable.sort_key < right_renderable.sort_key;
 			});
 
-			// transparent draws sorted back to front
-			std::sort(prep_data.transparent_queue.begin() + view.transparent_queue_start,
-					  prep_data.transparent_queue.begin() + view.transparent_queue_start + view.transparent_queue_count,
-					  [](const world_render_queue_item_t& left, const world_render_queue_item_t& right) { return left.depth > right.depth; });
+			// sort transparent back to front
+			std::sort(transparent_draws.begin(), transparent_draws.end(), [](const world_render_queue_item_t& left, const world_render_queue_item_t& right) { return left.depth > right.depth; });
 
-			// shadows fron to back
-			std::sort(prep_data.shadow_queue.begin() + view.shadow_queue_start, prep_data.shadow_queue.begin() + view.shadow_queue_start + view.shadow_queue_count, [&snapshot](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
+			// sort shadows by material then depth
+			std::sort(shadow_draws.begin(), shadow_draws.end(), [&snapshot](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
 				const world_renderable_t& left_renderable  = snapshot.renderables[left.renderable_index];
 				const world_renderable_t& right_renderable = snapshot.renderables[right.renderable_index];
 				return left_renderable.sort_key == right_renderable.sort_key ? left.depth < right.depth : left_renderable.sort_key < right_renderable.sort_key;
 			});
 
-			std::sort(prep_data.visible_queue.begin() + view.visible_queue_start, prep_data.visible_queue.begin() + view.visible_queue_start + view.visible_queue_count, [](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
-				return left.depth > right.depth;
-			});
+			// sort visible back to front
+			std::sort(visible_draws.begin(), visible_draws.end(), [](const world_render_queue_item_t& left, const world_render_queue_item_t& right) { return left.depth > right.depth; });
 		}
 
+		// build sprite instances
 		world_draw_sprite_instance_gpu_t* mapped_instances = reinterpret_cast<world_draw_sprite_instance_gpu_t*>(ctx.get_mapped_sprite_instance_buffer(frame_index));
 		render_resources_t&				  render_resources = render_resources_t::get();
 		u32								  instance_count   = 0;
@@ -691,12 +708,13 @@ namespace sfg
 
 				item.sprite_instance_index		 = instance_count;
 				mapped_instances[instance_count] = {
-					.uv_start	   = sprite.uv_start,
-					.uv_size	   = sprite.uv_size,
-					.size		   = sprite.size,
-					.texture_index = render_resources.get_texture_gpu_index(sprite.texture, 0),
-					.entity_index  = renderable.entity_index,
-					.entity_id	   = entity.entity_id,
+					.uv_start		  = sprite.uv_start,
+					.uv_size		  = sprite.uv_size,
+					.size			  = sprite.size,
+					.texture_index	  = render_resources.get_texture_gpu_index(sprite.texture, 0),
+					.entity_index	  = renderable.entity_index,
+					.entity_id		  = entity.entity_id,
+					.is_linear_sample = sprite.is_linear_sample,
 				};
 				++instance_count;
 			}
@@ -707,10 +725,90 @@ namespace sfg
 		append_sprite_instances(prep_data.transparent_queue);
 		append_sprite_instances(prep_data.shadow_queue);
 		append_sprite_instances(prep_data.visible_queue);
+
+		struct particle_sort_item_t
+		{
+			f32 depth		   = 0.0f;
+			u32 particle_index = UINT32_MAX;
+		};
+
+		// build particle instances
+		world_draw_particle_instance_gpu_t*	 mapped_particle_instances = reinterpret_cast<world_draw_particle_instance_gpu_t*>(ctx.get_mapped_particle_instance_buffer(frame_index));
+		frame_vector_t<particle_sort_item_t> particle_sort_items	   = {};
+		u32									 particle_instance_count   = 0;
+
+		const auto append_particle_instances = [&](span_t<world_render_queue_item_t> draws, const world_render_prep_view_t& view, bool force_sort) {
+			for (world_render_queue_item_t& item : draws)
+			{
+				const world_renderable_t& renderable = snapshot.renderables[item.renderable_index];
+
+				if (renderable.type != world_renderable_type_e::particle)
+					continue;
+
+				const world_particle_draw_t&   draw			  = snapshot.particle_draws[renderable.payload_index];
+				const world_render_material_t& material		  = snapshot.materials[renderable.material_index];
+				const bool					   sort_particles = force_sort || material.particle_variant_flags != shader_variant_flags_particle_additive;
+
+				SFG_ASSERT(particle_instance_count + draw.particle_count <= ctx.get_particle_instance_max());
+				item.particle_instance_index = particle_instance_count;
+
+				// non additive particles get sorted back to front.
+				if (sort_particles)
+				{
+					particle_sort_items.resize(0);
+					particle_sort_items.reserve(draw.particle_count);
+
+					for (u32 particle_offset = 0; particle_offset < draw.particle_count; ++particle_offset)
+					{
+						const u32				particle_index = draw.particle_start + particle_offset;
+						const world_particle_t& particle	   = snapshot.particles[particle_index];
+						const vec3f_t			position	   = vec3f_t::lerp(particle.previous_position, particle.position, interpolation_alpha);
+						const vec4f_t			view_position  = view.view * vec4f_t(position.x, position.y, position.z, 1.0f);
+						particle_sort_items.push_back({.depth = -view_position.z, .particle_index = particle_index});
+					}
+
+					std::sort(particle_sort_items.begin(), particle_sort_items.end(), [](const particle_sort_item_t& left, const particle_sort_item_t& right) { return left.depth > right.depth; });
+
+					for (const particle_sort_item_t& sort_item : particle_sort_items)
+					{
+						const world_particle_t& particle					 = snapshot.particles[sort_item.particle_index];
+						mapped_particle_instances[particle_instance_count++] = {
+							.position = vec3f_t::lerp(particle.previous_position, particle.position, interpolation_alpha),
+							.rotation = particle.rotation,
+							.velocity = particle.velocity,
+							.size	  = particle.size,
+							.color	  = particle.color,
+						};
+					}
+				}
+				else
+				{
+					for (u32 particle_offset = 0; particle_offset < draw.particle_count; ++particle_offset)
+					{
+						const world_particle_t& particle					 = snapshot.particles[draw.particle_start + particle_offset];
+						mapped_particle_instances[particle_instance_count++] = {
+							.position = vec3f_t::lerp(particle.previous_position, particle.position, interpolation_alpha),
+							.rotation = particle.rotation,
+							.velocity = particle.velocity,
+							.size	  = particle.size,
+							.color	  = particle.color,
+						};
+					}
+				}
+			}
+		};
+
+		for (const world_render_prep_view_t& view : prep_data.views)
+		{
+			append_particle_instances(prep_data.get_mutable_transparent_queue(view), view, false);
+			append_particle_instances(prep_data.get_mutable_visible_queue(view), view, true);
+		}
 	}
 
 	void world_rendering_util_t::prep_render_pass_buffers(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, const u32 (&light_counts)[4], u8 frame_index)
 	{
+		ZoneScoped;
+
 		// rp data
 		const world_render_prep_view_t&	  main_prep_view		= prep_data.views[0];
 		const render_pass_data_view_gpu_t view_render_pass_data = {

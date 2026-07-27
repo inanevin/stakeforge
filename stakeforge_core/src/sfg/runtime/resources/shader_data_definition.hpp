@@ -36,11 +36,14 @@ namespace sfg
 {
 #define SFG_SHADER_MATERIAL_NAME_SIZE 64
 
+	enum class resource_type_e : u8;
+
 	enum class shader_texture_type_e : u8
 	{
 		invalid,
 		texture2d,
 		texture_cube,
+		sprite,
 	};
 
 	enum class shader_param_type_e : u8
@@ -98,6 +101,7 @@ namespace sfg
 	};
 
 	const char*			  shader_texture_type_to_string(shader_texture_type_e type);
+	resource_type_e		  shader_texture_type_to_resource_type(shader_texture_type_e type);
 	const char*			  shader_param_type_to_string(shader_param_type_e type);
 	const char*			  shader_param_hint_to_string(shader_param_hint_e hint);
 	shader_texture_type_e shader_texture_type_from_string(const string_t& value);

@@ -39,6 +39,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	enum class material_blend_mode_e : u8
+	{
+		opaque,
+		alpha,
+		premultiplied_alpha,
+		additive,
+	};
+
+	SFG_DEFINE_TYPE_ID(material_blend_mode_e);
+
 	class istream_t;
 	class ostream_t;
 
@@ -75,9 +85,9 @@ namespace sfg
 		inplace_vector_t<material_sampler_value_t, SFG_MATERIAL_MAX_TEXTURES> samplers			= {};
 		inplace_vector_t<material_param_value_t, SFG_MATERIAL_MAX_PARAMS>	  parameters		= {};
 		resource_handle_t													  shader			= NULL_RESOURCE_HANDLE;
+		material_blend_mode_e												  blend_mode		= material_blend_mode_e::opaque;
 		bool																  write_shadows		= false;
 		bool																  write_reflections = false;
-		bool																  is_transparent	= false;
 		bool																  double_sided		= false;
 		bool																  use_alpha_cutoff	= false;
 
@@ -95,6 +105,8 @@ namespace sfg
 	void from_json(const nlohmann::json& j, material_sampler_value_t& value);
 	void to_json(nlohmann::json& j, const material_param_value_t& value);
 	void from_json(const nlohmann::json& j, material_param_value_t& value);
+	void to_json(nlohmann::json& j, material_blend_mode_e value);
+	void from_json(const nlohmann::json& j, material_blend_mode_e& value);
 	void to_json(nlohmann::json& j, const material_def_t& value);
 	void from_json(const nlohmann::json& j, material_def_t& value);
 }

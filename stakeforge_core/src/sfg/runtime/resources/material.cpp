@@ -128,9 +128,9 @@ namespace sfg
 		}
 
 		runtime->shader_guid	   = material.shader;
+		runtime->blend_mode		   = static_cast<u8>(material.blend_mode);
 		runtime->write_shadows	   = material.write_shadows ? 1 : 0;
 		runtime->write_reflections = material.write_reflections ? 1 : 0;
-		runtime->is_transparent	   = material.is_transparent ? 1 : 0;
 		runtime->double_sided	   = material.double_sided ? 1 : 0;
 		runtime->use_alpha_cutoff  = material.use_alpha_cutoff ? 1 : 0;
 		runtime->parameter_count   = static_cast<u32>(material.parameters.size());

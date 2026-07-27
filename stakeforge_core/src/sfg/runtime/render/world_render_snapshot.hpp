@@ -38,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_render_material.hpp"
 #include "world_render_view.hpp"
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/frustum.hpp>
 #include <sfg/math/mat4x4.hpp>
@@ -111,35 +112,36 @@ namespace sfg
 		u32					 tonemap_mode		  = 1;
 	};
 
+	struct world_render_queue_range_t
+	{
+		u32 offset = 0;
+		u32 count  = 0;
+	};
+
 	struct world_render_prep_view_t
 	{
-		mat4x4_t	view								= mat4x4_t::identity;
-		mat4x4_t	view_proj							= mat4x4_t::identity;
-		mat4x4_t	inv_view							= mat4x4_t::identity;
-		mat4x4_t	inv_view_proj						= mat4x4_t::identity;
-		frustum_t	frustum								= {};
-		vec4f_t		camera_pos							= vec4f_t::zero;
-		vec4f_t		cluster_depth						= vec4f_t::zero;
-		u32			cluster_dims[4]						= {};
-		vec2f_t		viewport_size						= vec2f_t::zero;
-		vec2f_t		inv_viewport_size					= vec2f_t::zero;
-		f32			near_plane							= 0.0f;
-		f32			far_plane							= 0.0f;
-		gpu_index_t depth_texture_index					= NULL_GPU_INDEX;
-		u32			cluster_buffer_offset				= 0;
-		u32			cluster_light_indices_buffer_offset = 0;
-		u32			cluster_light_capacity				= 0;
-		u32			queue_flags							= 0;
-		u32			depth_queue_start					= 0;
-		u32			depth_queue_count					= 0;
-		u32			opaque_queue_start					= 0;
-		u32			opaque_queue_count					= 0;
-		u32			transparent_queue_start				= 0;
-		u32			transparent_queue_count				= 0;
-		u32			shadow_queue_start					= 0;
-		u32			shadow_queue_count					= 0;
-		u32			visible_queue_start					= 0;
-		u32			visible_queue_count					= 0;
+		mat4x4_t				   view								   = mat4x4_t::identity;
+		mat4x4_t				   view_proj						   = mat4x4_t::identity;
+		mat4x4_t				   inv_view							   = mat4x4_t::identity;
+		mat4x4_t				   inv_view_proj					   = mat4x4_t::identity;
+		frustum_t				   frustum							   = {};
+		vec4f_t					   camera_pos						   = vec4f_t::zero;
+		vec4f_t					   cluster_depth					   = vec4f_t::zero;
+		u32						   cluster_dims[4]					   = {};
+		vec2f_t					   viewport_size					   = vec2f_t::zero;
+		vec2f_t					   inv_viewport_size				   = vec2f_t::zero;
+		f32						   near_plane						   = 0.0f;
+		f32						   far_plane						   = 0.0f;
+		gpu_index_t				   depth_texture_index				   = NULL_GPU_INDEX;
+		u32						   cluster_buffer_offset			   = 0;
+		u32						   cluster_light_indices_buffer_offset = 0;
+		u32						   cluster_light_capacity			   = 0;
+		u32						   queue_flags						   = 0;
+		world_render_queue_range_t depth_range						   = {};
+		world_render_queue_range_t opaque_range						   = {};
+		world_render_queue_range_t transparent_range				   = {};
+		world_render_queue_range_t shadow_range						   = {};
+		world_render_queue_range_t visible_range					   = {};
 	};
 
 	enum world_render_queue_flags_e : u32
@@ -153,9 +155,10 @@ namespace sfg
 
 	struct world_render_queue_item_t
 	{
-		f32 depth				  = 0.0f;
-		u32 renderable_index	  = UINT32_MAX;
-		u32 sprite_instance_index = UINT32_MAX;
+		f32 depth					= 0.0f;
+		u32 renderable_index		= UINT32_MAX;
+		u32 sprite_instance_index	= UINT32_MAX;
+		u32 particle_instance_index = UINT32_MAX;
 	};
 
 	struct world_render_prep_data_t
@@ -198,6 +201,74 @@ namespace sfg
 			views.push_back(view);
 			return index;
 		}
+
+		inline void begin_view_queues(world_render_prep_view_t& view) const
+		{
+			view.depth_range	   = {.offset = static_cast<u32>(depth_queue.size())};
+			view.opaque_range	   = {.offset = static_cast<u32>(opaque_queue.size())};
+			view.transparent_range = {.offset = static_cast<u32>(transparent_queue.size())};
+			view.shadow_range	   = {.offset = static_cast<u32>(shadow_queue.size())};
+			view.visible_range	   = {.offset = static_cast<u32>(visible_queue.size())};
+		}
+
+		inline void end_view_queues(world_render_prep_view_t& view) const
+		{
+			view.depth_range.count		 = static_cast<u32>(depth_queue.size()) - view.depth_range.offset;
+			view.opaque_range.count		 = static_cast<u32>(opaque_queue.size()) - view.opaque_range.offset;
+			view.transparent_range.count = static_cast<u32>(transparent_queue.size()) - view.transparent_range.offset;
+			view.shadow_range.count		 = static_cast<u32>(shadow_queue.size()) - view.shadow_range.offset;
+			view.visible_range.count	 = static_cast<u32>(visible_queue.size()) - view.visible_range.offset;
+		}
+
+		inline span_t<const world_render_queue_item_t> get_depth_queue(const world_render_prep_view_t& view) const
+		{
+			return {.data = depth_queue.data() + view.depth_range.offset, .size = view.depth_range.count};
+		}
+
+		inline span_t<const world_render_queue_item_t> get_opaque_queue(const world_render_prep_view_t& view) const
+		{
+			return {.data = opaque_queue.data() + view.opaque_range.offset, .size = view.opaque_range.count};
+		}
+
+		inline span_t<const world_render_queue_item_t> get_transparent_queue(const world_render_prep_view_t& view) const
+		{
+			return {.data = transparent_queue.data() + view.transparent_range.offset, .size = view.transparent_range.count};
+		}
+
+		inline span_t<const world_render_queue_item_t> get_shadow_queue(const world_render_prep_view_t& view) const
+		{
+			return {.data = shadow_queue.data() + view.shadow_range.offset, .size = view.shadow_range.count};
+		}
+
+		inline span_t<const world_render_queue_item_t> get_visible_queue(const world_render_prep_view_t& view) const
+		{
+			return {.data = visible_queue.data() + view.visible_range.offset, .size = view.visible_range.count};
+		}
+
+		inline span_t<world_render_queue_item_t> get_mutable_depth_queue(const world_render_prep_view_t& view)
+		{
+			return {.data = depth_queue.data() + view.depth_range.offset, .size = view.depth_range.count};
+		}
+
+		inline span_t<world_render_queue_item_t> get_mutable_opaque_queue(const world_render_prep_view_t& view)
+		{
+			return {.data = opaque_queue.data() + view.opaque_range.offset, .size = view.opaque_range.count};
+		}
+
+		inline span_t<world_render_queue_item_t> get_mutable_transparent_queue(const world_render_prep_view_t& view)
+		{
+			return {.data = transparent_queue.data() + view.transparent_range.offset, .size = view.transparent_range.count};
+		}
+
+		inline span_t<world_render_queue_item_t> get_mutable_shadow_queue(const world_render_prep_view_t& view)
+		{
+			return {.data = shadow_queue.data() + view.shadow_range.offset, .size = view.shadow_range.count};
+		}
+
+		inline span_t<world_render_queue_item_t> get_mutable_visible_queue(const world_render_prep_view_t& view)
+		{
+			return {.data = visible_queue.data() + view.visible_range.offset, .size = view.visible_range.count};
+		}
 	};
 
 	struct world_render_snapshot_reserve_config_t
@@ -206,6 +277,8 @@ namespace sfg
 		size_t renderable_count		  = 0;
 		size_t draw_count			  = 0;
 		size_t sprite_count			  = 0;
+		size_t particle_draw_count	  = 0;
+		size_t particle_count		  = 0;
 		size_t bone_count			  = 0;
 		size_t light_count			  = 0;
 		size_t reflection_probe_count = 0;
@@ -234,6 +307,8 @@ namespace sfg
 		vector_t<world_renderable_t>			  renderables		= {};
 		vector_t<world_mesh_draw_t>				  mesh_draws		= {};
 		vector_t<world_sprite_draw_t>			  sprite_draws		= {};
+		vector_t<world_particle_draw_t>			  particle_draws	= {};
+		vector_t<world_particle_t>				  particles			= {};
 		engine_quality_level_e					  quality_level		= engine_quality_level_e::high;
 
 		inline void reserve(const world_render_snapshot_reserve_config_t& config)
@@ -245,6 +320,8 @@ namespace sfg
 			renderables.reserve(config.renderable_count);
 			mesh_draws.reserve(config.draw_count);
 			sprite_draws.reserve(config.sprite_count);
+			particle_draws.reserve(config.particle_draw_count);
+			particles.reserve(config.particle_count);
 			debug_draw.line_vertices.reserve(config.line_vertex_count);
 			debug_draw.line_indices.reserve(config.line_index_count);
 			debug_draw.triangle_vertices.reserve(config.triangle_vertex_count);

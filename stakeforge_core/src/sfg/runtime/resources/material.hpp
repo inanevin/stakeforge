@@ -13,7 +13,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('M', 'A', 'T', 'L');
-		static constexpr u32 WIRE_VERSION = 10;
+		static constexpr u32 WIRE_VERSION = 11;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
@@ -44,9 +44,9 @@ namespace sfg
 		u32							 parameter_count								= 0;
 		u32							 texture_count									= 0;
 		u32							 sampler_count									= 0;
+		u8							 blend_mode										= 0;
 		u8							 write_shadows									= 0;
 		u8							 write_reflections								= 0;
-		u8							 is_transparent									= 0;
 		u8							 double_sided									= 0;
 		u8							 use_alpha_cutoff								= 0;
 		u8							 parameters_dirty								= 0;

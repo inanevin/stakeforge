@@ -90,7 +90,7 @@ namespace sfg
 
 			const resource_dependency_t dependency = {
 				.handle = texture.texture,
-				.type	= texture.type == shader_texture_type_e::texture_cube ? resource_type_e::cubemap : resource_type_e::texture,
+				.type	= shader_texture_type_to_resource_type(texture.type),
 			};
 
 			stream << dependency;

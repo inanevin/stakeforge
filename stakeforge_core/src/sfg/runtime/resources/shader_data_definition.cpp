@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "shader_data_definition.hpp"
+#include "resource_type.hpp"
 #include <sfg/data/string.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -50,8 +51,25 @@ namespace sfg
 			return "texture2d";
 		case shader_texture_type_e::texture_cube:
 			return "texture_cube";
+		case shader_texture_type_e::sprite:
+			return "sprite";
 		default:
 			return "invalid";
+		}
+	}
+
+	resource_type_e shader_texture_type_to_resource_type(shader_texture_type_e type)
+	{
+		switch (type)
+		{
+		case shader_texture_type_e::texture2d:
+			return resource_type_e::texture;
+		case shader_texture_type_e::texture_cube:
+			return resource_type_e::cubemap;
+		case shader_texture_type_e::sprite:
+			return resource_type_e::sprite;
+		default:
+			return resource_type_e::invalid;
 		}
 	}
 
@@ -93,6 +111,8 @@ namespace sfg
 			return shader_texture_type_e::texture2d;
 		if (value == "texture_cube")
 			return shader_texture_type_e::texture_cube;
+		if (value == "sprite")
+			return shader_texture_type_e::sprite;
 
 		return shader_texture_type_e::invalid;
 	}

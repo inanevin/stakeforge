@@ -353,7 +353,7 @@ namespace sfg
 		SFG_ASSERT(texture_it != _entries.end());
 		SFG_ASSERT(texture_it->second.state == resource_state_e::ready);
 
-		const resource_type_e expected_type = runtime->texture_types[texture_index] == shader_texture_type_e::texture_cube ? resource_type_e::cubemap : resource_type_e::texture;
+		const resource_type_e expected_type = shader_texture_type_to_resource_type(runtime->texture_types[texture_index]);
 		SFG_ASSERT(texture_it->second.type == expected_type);
 
 		runtime->texture_guids[texture_index] = texture;

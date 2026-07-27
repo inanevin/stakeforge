@@ -44,9 +44,9 @@ namespace sfg
 	void material_def_t::serialize(ostream_t& stream) const
 	{
 		stream << shader;
+		stream << blend_mode;
 		stream << write_shadows;
 		stream << write_reflections;
-		stream << is_transparent;
 		stream << double_sided;
 		stream << use_alpha_cutoff;
 
@@ -93,9 +93,9 @@ namespace sfg
 		*this = {};
 
 		stream >> shader;
+		stream >> blend_mode;
 		stream >> write_shadows;
 		stream >> write_reflections;
-		stream >> is_transparent;
 		stream >> double_sided;
 		stream >> use_alpha_cutoff;
 
@@ -255,9 +255,9 @@ namespace sfg
 	void to_json(nlohmann::json& j, const material_def_t& value)
 	{
 		j["shader"]			   = value.shader;
+		j["blend_mode"]		   = value.blend_mode;
 		j["write_shadows"]	   = value.write_shadows;
 		j["write_reflections"] = value.write_reflections;
-		j["is_transparent"]	   = value.is_transparent;
 		j["double_sided"]	   = value.double_sided;
 		j["use_alpha_cutoff"]  = value.use_alpha_cutoff;
 		j["textures"]		   = nlohmann::json::array();
@@ -278,9 +278,9 @@ namespace sfg
 	{
 		value					= {};
 		value.shader			= j.value<resource_handle_t>("shader", NULL_RESOURCE_HANDLE);
+		value.blend_mode		= j.value<material_blend_mode_e>("blend_mode", material_blend_mode_e::opaque);
 		value.write_shadows		= j.value<bool>("write_shadows", false);
 		value.write_reflections = j.value<bool>("write_reflections", false);
-		value.is_transparent	= j.value<bool>("is_transparent", false);
 		value.double_sided		= j.value<bool>("double_sided", false);
 		value.use_alpha_cutoff	= j.value<bool>("use_alpha_cutoff", false);
 
@@ -310,5 +310,38 @@ namespace sfg
 				break;
 			value.parameters.push_back(item.get<material_param_value_t>());
 		}
+	}
+
+	void to_json(nlohmann::json& j, material_blend_mode_e value)
+	{
+		switch (value)
+		{
+		case material_blend_mode_e::opaque:
+			j = "opaque";
+			break;
+		case material_blend_mode_e::alpha:
+			j = "alpha";
+			break;
+		case material_blend_mode_e::premultiplied_alpha:
+			j = "premultiplied_alpha";
+			break;
+		case material_blend_mode_e::additive:
+			j = "additive";
+			break;
+		}
+	}
+
+	void from_json(const nlohmann::json& j, material_blend_mode_e& value)
+	{
+		const string_t text = j.is_string() ? j.get<string_t>() : "";
+
+		if (text == "alpha")
+			value = material_blend_mode_e::alpha;
+		else if (text == "premultiplied_alpha")
+			value = material_blend_mode_e::premultiplied_alpha;
+		else if (text == "additive")
+			value = material_blend_mode_e::additive;
+		else
+			value = material_blend_mode_e::opaque;
 	}
 }

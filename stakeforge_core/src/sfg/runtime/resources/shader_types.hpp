@@ -33,20 +33,25 @@ namespace sfg
 		clustered_light_culling,
 		reflection_specular_prefilter,
 		reflection_diffuse_sh,
-		sprite_shader,
+		sprite_lit_shader,
+		sprite_unlit_shader,
+		particle_shader,
 		count,
 	};
 
 	enum shader_variant_flags_e
 	{
-		shader_variant_flags_skinned		   = 1 << 0,
-		shader_variant_flags_alpha_cutoff	   = 1 << 1,
-		shader_variant_flags_z_prepass		   = 1 << 2,
-		shader_variant_flags_double_sided	   = 1 << 3,
-		shader_variant_flags_shadow_rendering  = 1 << 4,
-		shader_variant_flags_selection_outline = 1 << 5,
-		shader_variant_flags_id_write		   = 1 << 6,
-		shader_variant_flags_gbuffer		   = 1 << 7,
+		shader_variant_flags_skinned					  = 1 << 0,
+		shader_variant_flags_alpha_cutoff				  = 1 << 1,
+		shader_variant_flags_z_prepass					  = 1 << 2,
+		shader_variant_flags_double_sided				  = 1 << 3,
+		shader_variant_flags_shadow_rendering			  = 1 << 4,
+		shader_variant_flags_selection_outline			  = 1 << 5,
+		shader_variant_flags_id_write					  = 1 << 6,
+		shader_variant_flags_gbuffer					  = 1 << 7,
+		shader_variant_flags_particle_alpha				  = 1 << 8,
+		shader_variant_flags_particle_premultiplied_alpha = 1 << 9,
+		shader_variant_flags_particle_additive			  = 1 << 10,
 	};
 
 	SFG_DEFINE_TYPE_ID(shader_type_e);

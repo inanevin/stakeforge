@@ -31,6 +31,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/aabb.hpp>
 #include <sfg/math/vec2f.hpp>
+#include <sfg/math/vec3f.hpp>
+#include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
 
 namespace sfg
@@ -39,6 +41,13 @@ namespace sfg
 	{
 		mesh,
 		sprite,
+		particle,
+	};
+
+	enum world_renderable_flags_e : u8
+	{
+		world_renderable_flag_none			   = 0,
+		world_renderable_flag_world_space_aabb = 1 << 0,
 	};
 
 	struct alignas(64) world_renderable_t
@@ -50,29 +59,64 @@ namespace sfg
 		u32						entity_index   = UINT32_MAX;
 		u32						pass_mask	   = 0;
 		world_renderable_type_e type		   = world_renderable_type_e::mesh;
+		u8						flags		   = world_renderable_flag_none;
 	};
 
 	struct world_sprite_draw_t
 	{
-		render_resource_handle_t texture  = {};
-		vec2f_t					 uv_start = vec2f_t::zero;
-		vec2f_t					 uv_size  = vec2f_t::zero;
-		vec2f_t					 size	  = vec2f_t::zero;
+		render_resource_handle_t texture		  = {};
+		vec2f_t					 uv_start		  = vec2f_t::zero;
+		vec2f_t					 uv_size		  = vec2f_t::zero;
+		vec2f_t					 size			  = vec2f_t::zero;
+		u8						 is_linear_sample = 0;
 	};
 
 	struct world_draw_sprite_instance_gpu_t
 	{
-		vec2f_t		uv_start	  = vec2f_t::zero;
-		vec2f_t		uv_size		  = vec2f_t::zero;
-		vec2f_t		size		  = vec2f_t::zero;
-		gpu_index_t texture_index = NULL_GPU_INDEX;
-		u32			entity_index  = UINT32_MAX;
-		u32			entity_id	  = UINT32_MAX;
-		u32			pad			  = 0;
+		vec2f_t		uv_start		 = vec2f_t::zero;
+		vec2f_t		uv_size			 = vec2f_t::zero;
+		vec2f_t		size			 = vec2f_t::zero;
+		gpu_index_t texture_index	 = NULL_GPU_INDEX;
+		u32			entity_index	 = UINT32_MAX;
+		u32			entity_id		 = UINT32_MAX;
+		u32			is_linear_sample = 0;
 	};
 
 	static_assert(sizeof(world_renderable_t) == 64);
 	static_assert(sizeof(world_draw_sprite_instance_gpu_t) == 40);
+
+	struct world_particle_t
+	{
+		vec3f_t position		  = vec3f_t::zero;
+		f32		rotation		  = 0.0f;
+		vec3f_t previous_position = vec3f_t::zero;
+		f32		size			  = 0.0f;
+		vec3f_t velocity		  = vec3f_t::zero;
+		f32		pad				  = 0.0f;
+		vec4f_t color			  = vec4f_t::zero;
+	};
+
+	struct world_particle_draw_t
+	{
+		vec2f_t uv_start	   = vec2f_t::zero;
+		vec2f_t uv_size		   = vec2f_t::zero;
+		u32		particle_start = 0;
+		u32		particle_count = 0;
+		f32		aspect		   = 1.0f;
+		u8		alignment	   = 0;
+	};
+
+	struct world_draw_particle_instance_gpu_t
+	{
+		vec3f_t position = vec3f_t::zero;
+		f32		rotation = 0.0f;
+		vec3f_t velocity = vec3f_t::zero;
+		f32		size	 = 0.0f;
+		vec4f_t color	 = vec4f_t::zero;
+	};
+
+	static_assert(sizeof(world_particle_t) == 64);
+	static_assert(sizeof(world_draw_particle_instance_gpu_t) == 48);
 
 	struct world_mesh_draw_t
 	{

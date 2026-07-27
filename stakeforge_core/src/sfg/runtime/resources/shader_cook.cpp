@@ -250,6 +250,8 @@ namespace sfg
 				definition.type = shader_texture_type_e::texture2d;
 			else if (args[1] == "sfg_texturecube")
 				definition.type = shader_texture_type_e::texture_cube;
+			else if (args[1] == "sfg_sprite")
+				definition.type = shader_texture_type_e::sprite;
 			else
 				return false;
 
@@ -475,10 +477,18 @@ namespace sfg
 				return false;
 			}
 			break;
-		case shader_type_e::sprite_shader:
+		case shader_type_e::sprite_lit_shader:
+		case shader_type_e::sprite_unlit_shader:
 			if (!shader_cook_variants_t::cook_sprite_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook sprite shader variants: {0}", full_path);
+				return false;
+			}
+			break;
+		case shader_type_e::particle_shader:
+			if (!shader_cook_variants_t::cook_particle_shader(compile_source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook particle shader variants: {0}", full_path);
 				return false;
 			}
 			break;

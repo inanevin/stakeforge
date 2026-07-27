@@ -45,6 +45,7 @@ namespace sfg
 		u32						 pso_count								= 0;
 		u32						 texture_count							= 0;
 		u32						 pass_mask								= 0;
+		u32						 particle_variant_flags					= 0;
 		u8						 double_sided							= 0;
 		u8						 use_alpha_cutoff						= 0;
 

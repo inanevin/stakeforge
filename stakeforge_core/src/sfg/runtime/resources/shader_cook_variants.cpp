@@ -235,6 +235,37 @@ namespace sfg
 
 			out_psos.push_back({.desc = desc, .variant_flags = variant_flags, .compile_variant_index = compile_variant_index});
 		}
+
+		void add_particle_pso(vector_t<cook_pso_variant_t>& out_psos, u8 compile_variant_index, u32 variant_flags)
+		{
+			const bitmask_t<u32> flags = variant_flags;
+			shader_desc_t		 desc  = {};
+			desc.topo				   = topology::triangle_list;
+			desc.cull				   = cull_mode::none;
+			desc.front				   = front_face::ccw;
+			desc.fill				   = fill_mode::solid;
+			desc.poly_mode			   = polygon_mode::fill;
+			desc.samples			   = 1;
+
+			if (flags.is_set(shader_variant_flags_selection_outline))
+				add_attachment(desc, format_e::r8g8b8a8_unorm, blend_attachments_t::get_none());
+			else if (flags.is_set(shader_variant_flags_id_write))
+				add_attachment(desc, format_e::r32_uint, blend_attachments_t::get_none());
+			else if (flags.is_set(shader_variant_flags_particle_premultiplied_alpha))
+				add_attachment(desc, format_e::r16g16b16a16_sfloat, blend_attachments_t::get_premultiplied_alpha());
+			else if (flags.is_set(shader_variant_flags_particle_additive))
+				add_attachment(desc, format_e::r16g16b16a16_sfloat, blend_attachments_t::get_additive());
+			else
+				add_attachment(desc, format_e::r16g16b16a16_sfloat, blend_attachments_t::get_alpha_blend());
+
+			desc.depth_stencil_desc = {
+				.attachment_format = flags.is_set(shader_variant_flags_selection_outline) ? format_e::undefined : format_e::d32_sfloat,
+				.depth_compare	   = compare_op::gequal,
+				.flags			   = static_cast<u8>(flags.is_set(shader_variant_flags_selection_outline) ? 0 : dsf_depth_test),
+			};
+
+			out_psos.push_back({.desc = desc, .variant_flags = variant_flags, .compile_variant_index = compile_variant_index});
+		}
 	}
 
 	bool shader_cook_variants_t::cook_object_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
@@ -354,6 +385,30 @@ namespace sfg
 		add_sprite_pso(out_psos, 2, shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering);
 		add_sprite_pso(out_psos, 3, shader_variant_flags_id_write);
 		add_sprite_pso(out_psos, 4, shader_variant_flags_selection_outline);
+		return true;
+	}
+
+	bool shader_cook_variants_t::cook_particle_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
+	{
+		out_compiles.reserve(5);
+		out_psos.reserve(5);
+
+		if (!add_compile_variant(out_compiles, source, {"PARTICLE_ALPHA"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"PARTICLE_PREMULTIPLIED_ALPHA"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"PARTICLE_ADDITIVE"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"WRITE_ID"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_SELECTION"}, include_paths, true))
+			return false;
+
+		add_particle_pso(out_psos, 0, shader_variant_flags_particle_alpha);
+		add_particle_pso(out_psos, 1, shader_variant_flags_particle_premultiplied_alpha);
+		add_particle_pso(out_psos, 2, shader_variant_flags_particle_additive);
+		add_particle_pso(out_psos, 3, shader_variant_flags_id_write);
+		add_particle_pso(out_psos, 4, shader_variant_flags_selection_outline);
 		return true;
 	}
 
