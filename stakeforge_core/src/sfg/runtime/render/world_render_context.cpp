@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_gpu_bone.hpp"
 #include "world_gpu_entity.hpp"
 #include "world_gpu_light.hpp"
+#include "world_draw.hpp"
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 #include <sfg/gfx/util/render_util.hpp>
@@ -128,6 +129,14 @@ namespace sfg
 		entity_buffer_desc.structure_count = config.entity_max;
 		entity_buffer_desc.flags		   = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
 		entity_buffer_desc.set_name("world_entity_buffer");
+
+		resource_desc_t sprite_instance_buffer_desc = {};
+		const u32		sprite_instance_count		= get_sprite_instance_max();
+		sprite_instance_buffer_desc.size			= static_cast<u32>(sizeof(world_draw_sprite_instance_gpu_t) * sprite_instance_count);
+		sprite_instance_buffer_desc.structure_size	= static_cast<u32>(sizeof(world_draw_sprite_instance_gpu_t));
+		sprite_instance_buffer_desc.structure_count = sprite_instance_count;
+		sprite_instance_buffer_desc.flags			= resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
+		sprite_instance_buffer_desc.set_name("world_sprite_instance_buffer");
 
 		resource_desc_t bone_buffer_desc = {};
 		bone_buffer_desc.size			 = static_cast<u32>(sizeof(gpu_bone_t) * config.bone_max);
@@ -263,6 +272,7 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].deferred_lighting_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].post_process_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].entity_buffer.is_null());
+			SFG_ASSERT(_pfd[i].sprite_instance_buffer.is_null());
 			SFG_ASSERT(_pfd[i].bone_buffer.is_null());
 			SFG_ASSERT(_pfd[i].light_buffer.is_null());
 
@@ -298,6 +308,7 @@ namespace sfg
 			_pfd[i].deferred_lighting_render_pass_data = backend.create_resource(deferred_lighting_render_pass_data_desc);
 			_pfd[i].post_process_render_pass_data	   = backend.create_resource(post_process_render_pass_data_desc);
 			_pfd[i].entity_buffer					   = backend.create_resource(entity_buffer_desc);
+			_pfd[i].sprite_instance_buffer			   = backend.create_resource(sprite_instance_buffer_desc);
 			_pfd[i].bone_buffer						   = backend.create_resource(bone_buffer_desc);
 			_pfd[i].light_buffer					   = backend.create_resource(light_buffer_desc);
 
@@ -325,6 +336,7 @@ namespace sfg
 			backend.map_resource(_pfd[i].deferred_lighting_render_pass_data, _pfd[i].mapped_deferred_lighting_render_pass_data);
 			backend.map_resource(_pfd[i].post_process_render_pass_data, _pfd[i].mapped_post_process_render_pass_data);
 			backend.map_resource(_pfd[i].entity_buffer, _pfd[i].mapped_entity_buffer);
+			backend.map_resource(_pfd[i].sprite_instance_buffer, _pfd[i].mapped_sprite_instance_buffer);
 			backend.map_resource(_pfd[i].bone_buffer, _pfd[i].mapped_bone_buffer);
 			backend.map_resource(_pfd[i].light_buffer, _pfd[i].mapped_light_buffer);
 
@@ -334,6 +346,7 @@ namespace sfg
 			_pfd[i].deferred_lighting_render_pass_data_index = backend.get_resource_gpu_index(_pfd[i].deferred_lighting_render_pass_data);
 			_pfd[i].post_process_render_pass_data_index		 = backend.get_resource_gpu_index(_pfd[i].post_process_render_pass_data);
 			_pfd[i].entity_buffer_index						 = backend.get_resource_gpu_index(_pfd[i].entity_buffer);
+			_pfd[i].sprite_instance_buffer_index			 = backend.get_resource_gpu_index(_pfd[i].sprite_instance_buffer);
 			_pfd[i].bone_buffer_index						 = backend.get_resource_gpu_index(_pfd[i].bone_buffer);
 			_pfd[i].light_buffer_index						 = backend.get_resource_gpu_index(_pfd[i].light_buffer);
 
@@ -420,6 +433,7 @@ namespace sfg
 			SFG_ASSERT(!_pfd[i].deferred_lighting_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].post_process_render_pass_data.is_null());
 			SFG_ASSERT(!_pfd[i].entity_buffer.is_null());
+			SFG_ASSERT(!_pfd[i].sprite_instance_buffer.is_null());
 			SFG_ASSERT(!_pfd[i].bone_buffer.is_null());
 			SFG_ASSERT(!_pfd[i].light_buffer.is_null());
 			SFG_ASSERT(!_pfd[i].cmd_clustered_lighting.is_null());
@@ -431,6 +445,7 @@ namespace sfg
 			backend.destroy_resource(_pfd[i].deferred_lighting_render_pass_data);
 			backend.destroy_resource(_pfd[i].post_process_render_pass_data);
 			backend.destroy_resource(_pfd[i].entity_buffer);
+			backend.destroy_resource(_pfd[i].sprite_instance_buffer);
 			backend.destroy_resource(_pfd[i].bone_buffer);
 			backend.destroy_resource(_pfd[i].light_buffer);
 
@@ -482,6 +497,7 @@ namespace sfg
 			_pfd[i].deferred_lighting_render_pass_data		  = {};
 			_pfd[i].post_process_render_pass_data			  = {};
 			_pfd[i].entity_buffer							  = {};
+			_pfd[i].sprite_instance_buffer					  = {};
 			_pfd[i].bone_buffer								  = {};
 			_pfd[i].light_buffer							  = {};
 			_pfd[i].debug_line_data							  = {};
@@ -496,6 +512,7 @@ namespace sfg
 			_pfd[i].mapped_deferred_lighting_render_pass_data = nullptr;
 			_pfd[i].mapped_post_process_render_pass_data	  = nullptr;
 			_pfd[i].mapped_entity_buffer					  = nullptr;
+			_pfd[i].mapped_sprite_instance_buffer			  = nullptr;
 			_pfd[i].mapped_bone_buffer						  = nullptr;
 			_pfd[i].mapped_light_buffer						  = nullptr;
 			_pfd[i].mapped_debug_line_data					  = nullptr;
@@ -510,6 +527,7 @@ namespace sfg
 			_pfd[i].deferred_lighting_render_pass_data_index  = NULL_GPU_INDEX;
 			_pfd[i].post_process_render_pass_data_index		  = NULL_GPU_INDEX;
 			_pfd[i].entity_buffer_index						  = NULL_GPU_INDEX;
+			_pfd[i].sprite_instance_buffer_index			  = NULL_GPU_INDEX;
 			_pfd[i].bone_buffer_index						  = NULL_GPU_INDEX;
 			_pfd[i].light_buffer_index						  = NULL_GPU_INDEX;
 			_pfd[i].debug_line_data_index					  = NULL_GPU_INDEX;

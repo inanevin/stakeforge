@@ -157,6 +157,7 @@ namespace sfg
 	{
 		vec2u16_t size				   = vec2u16_t::zero;
 		u32		  entity_max		   = 0;
+		u32		  sprite_max		   = 0;
 		u32		  bone_max			   = 0;
 		u32		  light_max			   = 0;
 		u32		  reflection_probe_max = 0;
@@ -269,6 +270,16 @@ namespace sfg
 		inline u32 get_bone_max() const
 		{
 			return _config.bone_max;
+		}
+
+		inline u32 get_sprite_max() const
+		{
+			return _config.sprite_max;
+		}
+
+		inline u32 get_sprite_instance_max() const
+		{
+			return _config.sprite_max == 0 ? 1 : _config.sprite_max * (4 + _config.shadow_view_max + WORLD_RENDER_REFLECTION_FACE_COUNT * 3);
 		}
 
 		inline gfx_handle_t get_world_texture(u8 frame_index) const
@@ -621,6 +632,16 @@ namespace sfg
 			return _pfd[frame_index].mapped_entity_buffer;
 		}
 
+		inline u8* get_mapped_sprite_instance_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_sprite_instance_buffer;
+		}
+
+		inline gpu_index_t get_sprite_instance_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].sprite_instance_buffer_index;
+		}
+
 		inline u8* get_mapped_bone_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_bone_buffer;
@@ -760,6 +781,7 @@ namespace sfg
 			u8*			 mapped_fog_render_pass_data								= nullptr;
 			u8*			 mapped_post_process_render_pass_data						= nullptr;
 			u8*			 mapped_entity_buffer										= nullptr;
+			u8*			 mapped_sprite_instance_buffer								= nullptr;
 			u8*			 mapped_light_buffer										= nullptr;
 			u8*			 mapped_ssao_render_pass_data								= nullptr;
 			u8*			 mapped_bloom_render_pass_data								= nullptr;
@@ -780,6 +802,7 @@ namespace sfg
 			gfx_handle_t ssao_render_pass_data										= {};
 			gfx_handle_t bloom_render_pass_data										= {};
 			gfx_handle_t entity_buffer												= {};
+			gfx_handle_t sprite_instance_buffer										= {};
 			gfx_handle_t bone_buffer												= {};
 			gfx_handle_t light_buffer												= {};
 			gfx_handle_t light_cluster_buffer										= {};
@@ -830,6 +853,7 @@ namespace sfg
 			gpu_index_t	 ssao_render_pass_data_index								= NULL_GPU_INDEX;
 			gpu_index_t	 bloom_render_pass_data_index								= NULL_GPU_INDEX;
 			gpu_index_t	 entity_buffer_index										= NULL_GPU_INDEX;
+			gpu_index_t	 sprite_instance_buffer_index								= NULL_GPU_INDEX;
 			gpu_index_t	 bone_buffer_index											= NULL_GPU_INDEX;
 			gpu_index_t	 light_buffer_index											= NULL_GPU_INDEX;
 			gpu_index_t	 light_cluster_buffer_index									= NULL_GPU_INDEX;
