@@ -165,7 +165,7 @@ namespace sfg
 			joint_transforms.resize(skeleton->joint_count);
 
 			for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
-				joint_transforms[joint_index] = transform.abs_mat * bones.data[joint_index].bone_transform * joints[joint_index].inverse_bind.inverse();
+				joint_transforms[joint_index] = transform.abs_mat * bones.data[joint_index].bone_transform * joints[joint_index].bind_global;
 
 			vec3f_t bounds_min = joint_transforms[0].get_translation();
 			vec3f_t bounds_max = bounds_min;

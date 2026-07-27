@@ -234,6 +234,103 @@ namespace sfg
 		}
 	}
 
+	bool world_animation_controller_t::get_slot_pos_abs(entity_id_t entity, sid_t slot_name_hash, vec3f_t& out_position) const
+	{
+		mat4x3_t transform = mat4x3_t::identity;
+
+		if (!get_slot_transform_abs(entity, slot_name_hash, transform))
+			return false;
+
+		out_position = transform.get_translation();
+		return true;
+	}
+
+	bool world_animation_controller_t::get_slot_rot_abs(entity_id_t entity, sid_t slot_name_hash, quat_t& out_rotation) const
+	{
+		mat4x3_t transform = mat4x3_t::identity;
+
+		if (!get_slot_transform_abs(entity, slot_name_hash, transform))
+			return false;
+
+		vec3f_t position = vec3f_t::zero;
+		vec3f_t scale	 = vec3f_t::one;
+
+		transform.decompose(position, out_rotation, scale);
+		return true;
+	}
+
+	bool world_animation_controller_t::get_slot_transform_abs(entity_id_t entity, sid_t slot_name_hash, mat4x3_t& out_transform) const
+	{
+		if (!_world->is_alive(entity))
+		{
+			SFG_ERR("can't query skeleton slot for dead entity {0}", entity);
+			return false;
+		}
+
+		const ecs_component_table_t&					system_skinned_mesh_renderer_table = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
+		const component_system_skinned_mesh_renderer_t* system_skinned_mesh_renderer	   = ecs_helpers_t::table_find_as_const<component_system_skinned_mesh_renderer_t>(system_skinned_mesh_renderer_table, entity);
+
+		if (system_skinned_mesh_renderer == nullptr)
+		{
+			SFG_ERR("can't query skeleton slot for entity {0}: system skinned mesh renderer is missing", entity);
+			return false;
+		}
+
+		if (!system_skinned_mesh_renderer->final_bones_calculated)
+		{
+			SFG_ERR("can't query skeleton slot for entity {0}: bones have not been finalized", entity);
+			return false;
+		}
+
+		resource_manager_t&		  resource_manager = resource_manager_t::get();
+		const skeleton_runtime_t* skeleton		   = resource_manager.find_runtime<skeleton_runtime_t>(system_skinned_mesh_renderer->skeleton);
+
+		if (skeleton == nullptr)
+		{
+			SFG_ERR("can't query skeleton slot for entity {0}: skeleton runtime is unavailable", entity);
+			return false;
+		}
+
+		if (skeleton->slot_count == 0)
+		{
+			SFG_ERR("can't query skeleton slot for entity {0}: skeleton has no slots", entity);
+			return false;
+		}
+
+		const chunk_allocator_t&		resource_memory = resource_manager.get_memory();
+		const skeleton_joint_runtime_t* joints			= resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
+		const skeleton_slot_runtime_t*	slots			= resource_memory.get<skeleton_slot_runtime_t>(skeleton->slots);
+		const animation_bone_t*			bones			= _bone_memory.get<animation_bone_t>(system_skinned_mesh_renderer->bones_handle);
+		const skeleton_slot_runtime_t*	target_slot		= nullptr;
+
+		for (u32 slot_index = 0; slot_index < skeleton->slot_count; ++slot_index)
+		{
+			if (slots[slot_index].slot_name_hash == slot_name_hash)
+			{
+				target_slot = &slots[slot_index];
+				break;
+			}
+		}
+
+		if (target_slot == nullptr)
+		{
+			SFG_ERR("can't find skeleton slot {0} for entity {1}", slot_name_hash, entity);
+			return false;
+		}
+
+		SFG_ASSERT(target_slot->slot_joint_index < skeleton->joint_count);
+
+		const ecs_component_table_t&		system_transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
+		const component_system_transform_t& system_transform	   = ecs_helpers_t::table_get_as_const<component_system_transform_t>(system_transform_table, entity);
+
+		const u32	   joint_index			= target_slot->slot_joint_index;
+		const mat4x3_t joint_transform		= bones[joint_index].bone_transform * joints[joint_index].bind_global;
+		const mat4x3_t slot_local_transform = mat4x3_t::transform(target_slot->local_position, target_slot->local_rotation, vec3f_t::one);
+
+		out_transform = system_transform.abs_mat * joint_transform * slot_local_transform;
+		return true;
+	}
+
 	void world_animation_controller_t::sync_create_destroy_skinned_renderers()
 	{
 		ecs_component_table_t&		 system_skinned_mesh_renderer_table = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);

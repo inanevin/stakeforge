@@ -62,6 +62,7 @@ namespace sfg
 			runtime_joints[i] = {
 				.local		  = joint.local,
 				.inverse_bind = joint.inverse_bind,
+				.bind_global  = joint.inverse_bind.inverse(),
 				.name_hash	  = joint.name_hash,
 				.name		  = name,
 				.parent_index = joint.parent_index,

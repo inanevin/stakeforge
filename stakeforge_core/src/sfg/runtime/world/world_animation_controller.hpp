@@ -39,7 +39,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	struct animation_graph_runtime_t;
+	class mat4x3_t;
+	class quat_t;
 	struct skeleton_runtime_t;
+	struct vec3f_t;
 	class world_t;
 
 	class world_animation_controller_t final
@@ -68,6 +71,9 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
+		bool get_slot_pos_abs(entity_id_t entity, sid_t slot_name_hash, vec3f_t& out_position) const;
+		bool get_slot_rot_abs(entity_id_t entity, sid_t slot_name_hash, quat_t& out_rotation) const;
+
 		inline span_t<const animation_bone_t> get_bones(chunk_handle32_t handle) const
 		{
 			return {
@@ -85,6 +91,7 @@ namespace sfg
 		void create_animation_graph(entity_id_t id, resource_handle_t animation_graph_handle, const animation_graph_runtime_t& animation_graph, resource_handle_t skeleton_handle, const skeleton_runtime_t& skeleton);
 		void destroy_animation_graph(entity_id_t id);
 
+		bool			 get_slot_transform_abs(entity_id_t entity, sid_t slot_name_hash, mat4x3_t& out_transform) const;
 		chunk_handle32_t allocate_bones(u32 bone_count);
 		void			 deallocate_bones(chunk_handle32_t handle);
 		static void		 on_reload(resource_manager_t& resource_manager, sid_t resource_id, resource_type_e resource_type, void* user_data);

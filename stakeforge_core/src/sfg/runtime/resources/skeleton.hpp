@@ -20,6 +20,7 @@ namespace sfg
 	{
 		mat4x3_t		 local		  = mat4x3_t::identity;
 		mat4x3_t		 inverse_bind = mat4x3_t::identity;
+		mat4x3_t		 bind_global  = mat4x3_t::identity;
 		sid_t			 name_hash	  = NULL_SID;
 		chunk_handle32_t name		  = {};
 		u32				 parent_index = SKELETON_JOINT_NO_PARENT;
