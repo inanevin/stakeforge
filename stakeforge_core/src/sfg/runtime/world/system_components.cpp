@@ -57,6 +57,16 @@ namespace sfg
 		});
 
 		registry.register_type({
+			.name			 = "component_system_sprite_renderer",
+			.display_name	 = "System Sprite Renderer",
+			.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_system_sprite_renderer_t*>(ptr), component_system_sprite_renderer_t{}); },
+			.type_id		 = type_id_t<component_system_sprite_renderer_t>::value,
+			.size			 = sizeof(component_system_sprite_renderer_t),
+			.alignment		 = alignof(component_system_sprite_renderer_t),
+			.flags			 = reflected_type_flag_system_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
+		});
+
+		registry.register_type({
 			.name			 = "component_system_animation_graph",
 			.display_name	 = "System Animation Graph",
 			.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_system_animation_graph_t*>(ptr), component_system_animation_graph_t{}); },
@@ -83,6 +93,16 @@ namespace sfg
 			.type_id		 = type_id_t<component_system_constraints_t>::value,
 			.size			 = sizeof(component_system_constraints_t),
 			.alignment		 = alignof(component_system_constraints_t),
+			.flags			 = reflected_type_flag_system_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
+		});
+
+		registry.register_type({
+			.name			 = "component_system_destroyer",
+			.display_name	 = "System Destroyer",
+			.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_system_destroyer_t*>(ptr), component_system_destroyer_t{}); },
+			.type_id		 = type_id_t<component_system_destroyer_t>::value,
+			.size			 = sizeof(component_system_destroyer_t),
+			.alignment		 = alignof(component_system_destroyer_t),
 			.flags			 = reflected_type_flag_system_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
 		});
 	}

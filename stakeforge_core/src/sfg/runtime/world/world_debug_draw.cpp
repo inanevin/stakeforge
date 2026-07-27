@@ -615,14 +615,22 @@ namespace sfg
 		const ecs_component_table_t& disabled_table				 = world.get_component_table(type_id_t<component_disabled_t>::value);
 		const ecs_component_table_t& mesh_renderer_table		 = world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
 		const ecs_component_table_t& skinned_mesh_renderer_table = world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
+		const ecs_component_table_t& sprite_renderer_table		 = world.get_component_table(type_id_t<component_sprite_renderer_t>::value);
+		const ecs_component_table_t& particle_emitter_table		 = world.get_component_table(type_id_t<component_particle_emitter_t>::value);
 
-		const auto draw_missing_resource_texts = [&](const vec3f_t& position, bool missing_mesh, bool missing_material, bool missing_skeleton) {
-			const u32 missing_count = static_cast<u32>(missing_mesh) + static_cast<u32>(missing_material) + static_cast<u32>(missing_skeleton);
+		const auto draw_missing_resource_texts = [&](const vec3f_t& position, bool missing_mesh, bool missing_sprite, bool missing_material, bool missing_skeleton) {
+			const u32 missing_count = static_cast<u32>(missing_mesh) + static_cast<u32>(missing_sprite) + static_cast<u32>(missing_material) + static_cast<u32>(missing_skeleton);
 			f32		  text_y		= -(static_cast<f32>(missing_count) - 1.0f) * DEBUG_DRAW_MISSING_RESOURCE_TEXT_LINE_SPACING_PX * 0.5f;
 
 			if (missing_mesh)
 			{
 				draw_text_3d(position, "MISSING MESH", color_t::red, DEBUG_DRAW_MISSING_RESOURCE_TEXT_SIZE_PX, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::center, {0.0f, text_y});
+				text_y += DEBUG_DRAW_MISSING_RESOURCE_TEXT_LINE_SPACING_PX;
+			}
+
+			if (missing_sprite)
+			{
+				draw_text_3d(position, "MISSING SPRITE", color_t::red, DEBUG_DRAW_MISSING_RESOURCE_TEXT_SIZE_PX, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::center, {0.0f, text_y});
 				text_y += DEBUG_DRAW_MISSING_RESOURCE_TEXT_LINE_SPACING_PX;
 			}
 
@@ -661,7 +669,46 @@ namespace sfg
 				}
 
 				if (missing_mesh || missing_material)
-					draw_missing_resource_texts(transform.abs_pos, missing_mesh, missing_material, false);
+					draw_missing_resource_texts(transform.abs_pos, missing_mesh, false, missing_material, false);
+			}
+		}
+
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				alive_table.ref(),
+				transform_table.ref(),
+				sprite_renderer_table.ref(),
+				!disabled_table.ref(),
+			};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				const component_system_transform_t& transform		 = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
+				const component_sprite_renderer_t&	sprite_renderer	 = ecs_helpers_t::row_get<component_sprite_renderer_t>(row, 2);
+				const bool							missing_sprite	 = resource_manager.find_entry(sprite_renderer.sprite) == nullptr;
+				const bool							missing_material = resource_manager.find_entry(sprite_renderer.material) == nullptr;
+
+				if (missing_sprite || missing_material)
+					draw_missing_resource_texts(transform.abs_pos, false, missing_sprite, missing_material, false);
+			}
+		}
+
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				alive_table.ref(),
+				transform_table.ref(),
+				particle_emitter_table.ref(),
+				!disabled_table.ref(),
+			};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				const component_system_transform_t& transform		 = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
+				const component_particle_emitter_t& emitter			 = ecs_helpers_t::row_get<component_particle_emitter_t>(row, 2);
+				const bool							missing_material = resource_manager.find_entry(emitter.material) == nullptr;
+
+				if (missing_material)
+					draw_missing_resource_texts(transform.abs_pos, false, false, true, false);
 			}
 		}
 
@@ -691,7 +738,7 @@ namespace sfg
 				}
 
 				if (missing_mesh || missing_material || missing_skeleton)
-					draw_missing_resource_texts(transform.abs_pos, missing_mesh, missing_material, missing_skeleton);
+					draw_missing_resource_texts(transform.abs_pos, missing_mesh, false, missing_material, missing_skeleton);
 			}
 		}
 	}

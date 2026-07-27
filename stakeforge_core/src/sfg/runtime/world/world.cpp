@@ -79,7 +79,11 @@ namespace sfg
 		_engine_components.prefab_table	   = &get_component_table(type_id_t<component_prefab_reference_t>::value);
 		_system_components.transform_table = &get_component_table(type_id_t<component_system_transform_t>::value);
 
+		_logic_helper.init(*this);
+
 		_animation_controller.init(*this, config.render_bone_max, config.animation_graph_memory_reserve);
+
+		_particle_simulation.init(*this);
 
 		if (config.physics_enabled)
 		{
@@ -91,12 +95,16 @@ namespace sfg
 	{
 		SFG_ASSERT(!_is_playing);
 
+		_particle_simulation.uninit();
+
 		_animation_controller.uninit();
 
 		if (_physics_world.is_init())
 		{
 			_physics_world.uninit();
 		}
+
+		_logic_helper.uninit();
 
 		_debug_draw.uninit();
 		for (ecs_component_table_t& table : _component_tables)
@@ -125,6 +133,7 @@ namespace sfg
 		_is_playing			 = true;
 
 		update_world_transforms(false);
+		_particle_simulation.begin_play();
 
 		if (_physics_world.is_init())
 		{
@@ -136,6 +145,8 @@ namespace sfg
 	void world_t::end_play()
 	{
 		SFG_ASSERT(_is_playing);
+
+		_particle_simulation.end_play();
 
 		if (_physics_world.is_init())
 			_physics_world.clear();
@@ -158,6 +169,8 @@ namespace sfg
 
 		if (_physics_world.is_init())
 			_physics_world.clear();
+
+		_particle_simulation.clear();
 
 		_debug_draw.begin_frame();
 		for (ecs_component_table_t& table : _component_tables)
@@ -184,61 +197,36 @@ namespace sfg
 
 	void world_t::tick_animation_prep(f32 dt)
 	{
+		ZoneScoped;
+
 		_animation_controller.tick_prep(dt);
 	}
 
 	void world_t::tick_animation_logic(f32 dt)
 	{
+		ZoneScoped;
+
 		_animation_controller.tick_logic(dt);
 	}
 
-	void world_t::tick_post()
+	void world_t::tick_logic(f32 dt)
 	{
+		ZoneScoped;
+
+		_logic_helper.sync_destroyers(dt);
+	}
+
+	void world_t::tick_post(f32 dt)
+	{
+		ZoneScoped;
+
 		++_tick_count;
 
-		const ecs_component_table_t& alive_table			= get_component_table(type_id_t<component_alive_t>::value);
-		const ecs_component_table_t& camera_table			= get_component_table(type_id_t<component_camera_t>::value);
-		const ecs_component_table_t& transform_table		= get_component_table(type_id_t<component_system_transform_t>::value);
-		const ecs_component_table_t& disabled_table			= get_component_table(type_id_t<component_disabled_t>::value);
-		ecs_component_table_t&		 reflection_probe_table = get_component_table(type_id_t<component_reflection_probe_t>::value);
+		_particle_simulation.tick(dt);
 
-		const ecs_component_table_ref_t reflection_probe_table_refs[] = {
-			alive_table.ref(),
-			reflection_probe_table.ref(),
-		};
-
-		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = reflection_probe_table_refs, .size = std::size(reflection_probe_table_refs)}))
-		{
-			component_reflection_probe_t& reflection_probe = ecs_helpers_t::row_get_mutable<component_reflection_probe_t>(row, 1);
-
-			if (reflection_probe.capture_mode != reflection_probe_capture_mode_e::realtime)
-				continue;
-
-			if (_tick_count % reflection_probe.realtime_tick_interval == 0)
-				++reflection_probe.generation;
-		}
-
-		const ecs_component_table_ref_t table_refs[] = {
-			alive_table.ref(),
-			camera_table.ref(),
-			transform_table.ref(),
-			!disabled_table.ref(),
-		};
-
-		i8 min_priority = 0;
-
-		_main_camera_entity = NULL_ENTITY_ID;
-
-		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
-		{
-			const component_camera_t& camera = ecs_helpers_t::row_get<component_camera_t>(row, 1);
-
-			if (_main_camera_entity == NULL_ENTITY_ID || camera.priority < min_priority)
-			{
-				min_priority		= camera.priority;
-				_main_camera_entity = row.id;
-			}
-		}
+		_logic_helper.sync_sprite_renderers();
+		_logic_helper.sync_reflection_probes(_tick_count);
+		_main_camera_entity = _logic_helper.sync_main_camera();
 	}
 
 	void world_t::recreate_physical(entity_id_t id)
@@ -313,6 +301,8 @@ namespace sfg
 	void world_t::destroy_entity(entity_id_t id)
 	{
 		SFG_ASSERT(is_alive(id));
+
+		_particle_simulation.destroy_entity(id);
 
 		component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
 		SFG_ASSERT(hierarchy.first_child == NULL_ENTITY_ID);

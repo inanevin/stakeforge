@@ -12,6 +12,8 @@
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/world/world_animation_controller.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
+#include <sfg/runtime/world/world_logic_helper.hpp>
+#include <sfg/runtime/world/world_particle_simulation.hpp>
 #include <sfg/runtime/physics/physics_world.hpp>
 
 namespace sfg
@@ -59,7 +61,8 @@ namespace sfg
 		void tick_physics(f32 dt);
 		void tick_animation_prep(f32 dt);
 		void tick_animation_logic(f32 dt);
-		void tick_post();
+		void tick_logic(f32 dt);
+		void tick_post(f32 dt);
 
 		// -----------------------------------------------------------------------------
 		// entity
@@ -157,6 +160,16 @@ namespace sfg
 			return _animation_controller;
 		}
 
+		inline world_particle_simulation_t& get_particle_simulation()
+		{
+			return _particle_simulation;
+		}
+
+		inline const world_particle_simulation_t& get_particle_simulation() const
+		{
+			return _particle_simulation;
+		}
+
 		inline entity_id_t get_main_camera_entity() const
 		{
 			return _main_camera_entity;
@@ -197,6 +210,8 @@ namespace sfg
 		world_debug_draw_t				  _debug_draw			= {};
 		physics_world_t					  _physics_world		= {};
 		world_animation_controller_t	  _animation_controller = {};
+		world_logic_helper_t			  _logic_helper			= {};
+		world_particle_simulation_t		  _particle_simulation	= {};
 		text_allocator_t				  _text_allocator		= {};
 		engine_components_t				  _engine_components	= {};
 		system_components_t				  _system_components	= {};

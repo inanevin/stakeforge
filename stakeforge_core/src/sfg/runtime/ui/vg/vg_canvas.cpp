@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader.hpp>
+#include <sfg/runtime/resources/sprite.hpp>
 #include <sfg/runtime/resources/texture.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
 
@@ -330,14 +331,19 @@ namespace sfg::ui
 			return internals->find_pso(0);
 		}
 
-		render_resource_handle_t resolve_texture(resource_handle_t handle)
+		render_resource_handle_t resolve_texture(resource_handle_t handle, ui_resource_type_e type)
 		{
 			if (handle == NULL_RESOURCE_HANDLE)
 				return {};
+
+			if (type == ui_resource_type_e::sprite)
+			{
+				const sprite_internals_t* internals = resource_manager_t::get().find_internals<sprite_internals_t>(handle);
+				return internals != nullptr ? internals->texture : render_resource_handle_t{};
+			}
+
 			const texture_internals_t* internals = resource_manager_t::get().find_internals<texture_internals_t>(handle);
-			if (internals == nullptr || internals->texture.is_null())
-				return {};
-			return internals->texture;
+			return internals != nullptr ? internals->texture : render_resource_handle_t{};
 		}
 
 	}
@@ -364,9 +370,9 @@ namespace sfg::ui
 					for (u8 j = 0; j < BACK_BUFFER_COUNT; ++j)
 						dst.gpu_indices[j] = ref.gpu_indices[j];
 				}
-				else if (ref.type == ui_resource_type_e::texture)
+				else if (ref.type == ui_resource_type_e::texture || ref.type == ui_resource_type_e::sprite)
 				{
-					dst.texture = resolve_texture(ref.handle);
+					dst.texture = resolve_texture(ref.handle, ref.type);
 					SFG_ASSERT(!dst.texture.is_null());
 				}
 				else

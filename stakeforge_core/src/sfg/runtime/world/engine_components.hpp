@@ -32,7 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/color.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec2f.hpp>
-#include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/physics/physics_types.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
@@ -90,6 +89,113 @@ namespace sfg
 	};
 
 	SFG_DEFINE_TYPE_ID(component_mesh_renderer_t);
+
+	struct component_sprite_renderer_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_sprite_renderer";
+
+		resource_handle_t sprite		   = NULL_RESOURCE_HANDLE;
+		resource_handle_t material		   = NULL_RESOURCE_HANDLE;
+		u16				  row			   = 0;
+		u16				  column		   = 0;
+		bool			  is_linear_sample = false;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_sprite_renderer_t);
+
+	enum class particle_spawn_shape_e : u8
+	{
+		point,
+		box,
+		sphere,
+		cone,
+	};
+
+	SFG_DEFINE_TYPE_ID(particle_spawn_shape_e);
+
+	enum class particle_simulation_space_e : u8
+	{
+		local,
+		world,
+	};
+
+	SFG_DEFINE_TYPE_ID(particle_simulation_space_e);
+
+	enum class particle_alignment_e : u8
+	{
+		camera,
+		velocity,
+		vertical,
+		horizontal,
+	};
+
+	SFG_DEFINE_TYPE_ID(particle_alignment_e);
+
+	enum class particle_loop_mode_e : u8
+	{
+		once,
+		loop,
+		loop_count,
+	};
+
+	SFG_DEFINE_TYPE_ID(particle_loop_mode_e);
+
+	struct component_particle_emitter_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_particle_emitter";
+
+		resource_handle_t			material				   = NULL_RESOURCE_HANDLE;
+		resource_handle_t			acceleration_over_lifetime = NULL_RESOURCE_HANDLE;
+		resource_handle_t			color_over_lifetime		   = NULL_RESOURCE_HANDLE;
+		resource_handle_t			size_over_lifetime		   = NULL_RESOURCE_HANDLE;
+		resource_handle_t			opacity_over_lifetime	   = NULL_RESOURCE_HANDLE;
+		vec3f_t						velocity_min			   = {0.0f, 1.0f, 0.0f};
+		vec3f_t						velocity_max			   = {0.0f, 2.0f, 0.0f};
+		vec3f_t						acceleration_amplitude	   = vec3f_t::one;
+		vec3f_t						box_half_extents		   = {0.5f, 0.5f, 0.5f};
+		color_t						start_color_min			   = color_t::white;
+		color_t						start_color_max			   = color_t::white;
+		color_t						color_amplitude			   = color_t::white;
+		f32							lifetime_min			   = 1.0f;
+		f32							lifetime_max			   = 2.0f;
+		f32							start_size_min			   = 0.1f;
+		f32							start_size_max			   = 0.2f;
+		f32							size_amplitude			   = 1.0f;
+		f32							opacity_amplitude		   = 1.0f;
+		f32							start_rotation_min		   = 0.0f;
+		f32							start_rotation_max		   = 0.0f;
+		f32							angular_velocity_min	   = 0.0f;
+		f32							angular_velocity_max	   = 0.0f;
+		f32							emission_rate			   = 20.0f;
+		f32							duration				   = 5.0f;
+		f32							start_delay				   = 0.0f;
+		f32							shape_radius			   = 0.5f;
+		f32							cone_length				   = 1.0f;
+		f32							cone_angle_degrees		   = 25.0f;
+		f32							gravity_multiplier		   = 0.0f;
+		f32							drag					   = 0.0f;
+		u32							max_particles			   = 1024;
+		u32							burst_count				   = 0;
+		u32							random_seed				   = 1;
+		u32							loop_count				   = 1;
+		particle_spawn_shape_e		shape					   = particle_spawn_shape_e::point;
+		particle_simulation_space_e simulation_space		   = particle_simulation_space_e::world;
+		particle_alignment_e		alignment				   = particle_alignment_e::camera;
+		particle_loop_mode_e		loop_mode				   = particle_loop_mode_e::loop;
+		u8							play_on_create			   = 1;
+		u8							prewarm					   = 0;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_particle_emitter_t);
+
+	struct component_system_particle_emitter_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_particle_emitter";
+
+		u32 runtime_index = UINT32_MAX;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_particle_emitter_t);
 
 	struct component_skinned_mesh_renderer_t
 	{
@@ -683,6 +789,18 @@ namespace sfg
 	};
 
 	SFG_DEFINE_TYPE_ID(component_disabled_t);
+
+	struct component_destroyer_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_destroyer";
+
+		f32	 destroy_duration	= 1.0f;
+		f32	 min_duration		= 0.1f;
+		f32	 max_duration		= 1.0f;
+		bool randomize_duration = false;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_destroyer_t);
 
 	struct component_no_serialize_t
 	{

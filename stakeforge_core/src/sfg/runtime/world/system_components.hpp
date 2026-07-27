@@ -30,8 +30,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/type_id.hpp>
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/quat.hpp>
+#include <sfg/math/vec2f.hpp>
+#include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/memory/chunk_handle.hpp>
+#include <sfg/runtime/render/render_resource_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
 
@@ -93,6 +96,18 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_system_skinned_mesh_renderer_t);
 
+	struct component_system_sprite_renderer_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_sprite_renderer";
+
+		render_resource_handle_t texture	  = {};
+		vec2f_t					 uv_start	  = vec2f_t::zero;
+		vec2f_t					 uv_size	  = vec2f_t::zero;
+		vec2u16_t				 texture_size = vec2u16_t::zero;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_sprite_renderer_t);
+
 	struct component_system_animation_graph_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_animation_graph";
@@ -135,6 +150,16 @@ namespace sfg
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_constraints_t);
+
+	struct component_system_destroyer_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_destroyer";
+
+		f32 timer	 = 0.0f;
+		f32 end_time = 0.0f;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_destroyer_t);
 
 	struct system_component_reflection_t
 	{

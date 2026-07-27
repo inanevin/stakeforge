@@ -30,14 +30,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_debug_draw.hpp"
 #include <sfg/io/assert.hpp>
 #include <sfg/data/frame_hash_map.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/runtime/animation/animation_bone.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/resources/cubemap.hpp>
+#include <sfg/runtime/resources/curve.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/material.hpp>
+#include <sfg/runtime/resources/material_def.hpp>
+#include <sfg/runtime/resources/sprite.hpp>
 #include <sfg/runtime/resources/texture_sampler.hpp>
 #include <sfg/runtime/resources/texture.hpp>
 #include <sfg/runtime/resources/shader.hpp>
@@ -95,9 +99,24 @@ namespace sfg
 				render_mat.texture_count			= mat_runtime->texture_count;
 				render_mat.pso_count				= shader->pso_count;
 
-				render_mat.pass_mask |= mat_runtime->is_transparent != 0 ? world_pass_flags_forward : world_pass_flags_gbuffer;
+				switch (static_cast<material_blend_mode_e>(mat_runtime->blend_mode))
+				{
+				case material_blend_mode_e::opaque:
+				case material_blend_mode_e::alpha:
+					render_mat.particle_variant_flags = shader_variant_flags_particle_alpha;
+					break;
+				case material_blend_mode_e::premultiplied_alpha:
+					render_mat.particle_variant_flags = shader_variant_flags_particle_premultiplied_alpha;
+					break;
+				case material_blend_mode_e::additive:
+					render_mat.particle_variant_flags = shader_variant_flags_particle_additive;
+					break;
+				}
 
-				if (mat_runtime->is_transparent == 0)
+				const bool is_opaque = static_cast<material_blend_mode_e>(mat_runtime->blend_mode) == material_blend_mode_e::opaque;
+				render_mat.pass_mask |= is_opaque ? world_pass_flags_gbuffer : world_pass_flags_forward;
+
+				if (is_opaque)
 					render_mat.pass_mask |= world_pass_flags_depth;
 
 				if (mat_runtime->write_shadows != 0)
@@ -123,6 +142,11 @@ namespace sfg
 						const resource_entry_t*	   cubemap_entry	 = rm.find_entry(mat_runtime->texture_guids[j]);
 						const cubemap_internals_t* cubemap_internals = rm_aux.get<cubemap_internals_t>(cubemap_entry->internals);
 						render_mat.material_textures[j]				 = cubemap_internals->texture;
+						break;
+					}
+					case shader_texture_type_e::sprite: {
+						const sprite_internals_t* sprite_internals = rm.find_internals<sprite_internals_t>(mat_runtime->texture_guids[j]);
+						render_mat.material_textures[j]			   = sprite_internals != nullptr ? sprite_internals->texture : render_resources_t::get().get_invalid_texture();
 						break;
 					}
 					default: {
@@ -186,6 +210,8 @@ namespace sfg
 		snapshot.renderables.resize(0);
 		snapshot.mesh_draws.resize(0);
 		snapshot.sprite_draws.resize(0);
+		snapshot.particle_draws.resize(0);
+		snapshot.particles.resize(0);
 		snapshot.environment  = {};
 		snapshot.fog		  = {};
 		snapshot.post_process = {};
@@ -204,6 +230,8 @@ namespace sfg
 		const ecs_component_table_t& mesh_renderer_table				= world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
 		const ecs_component_table_t& sprite_renderer_table				= world.get_component_table(type_id_t<component_sprite_renderer_t>::value);
 		const ecs_component_table_t& system_sprite_renderer_table		= world.get_component_table(type_id_t<component_system_sprite_renderer_t>::value);
+		const ecs_component_table_t& particle_emitter_table				= world.get_component_table(type_id_t<component_particle_emitter_t>::value);
+		const ecs_component_table_t& system_particle_emitter_table		= world.get_component_table(type_id_t<component_system_particle_emitter_t>::value);
 		const ecs_component_table_t& skinned_mesh_renderer_table		= world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
 		const ecs_component_table_t& system_skinned_mesh_renderer_table = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
 
@@ -601,7 +629,7 @@ namespace sfg
 
 				const shader_runtime_t* shader_runtime = rm.find_runtime<shader_runtime_t>(material_runtime->shader_guid);
 
-				if (shader_runtime == nullptr || shader_runtime->type != shader_type_e::sprite_shader)
+				if (shader_runtime == nullptr || (shader_runtime->type != shader_type_e::sprite_lit_shader && shader_runtime->type != shader_type_e::sprite_unlit_shader))
 					continue;
 
 				const u32 material_index = push_material_from_guid(material_guid_to_index, snapshot, sprite.material);
@@ -617,10 +645,11 @@ namespace sfg
 
 				// sprite draw
 				snapshot.sprite_draws.push_back({
-					.texture  = system_sprite.texture,
-					.uv_start = system_sprite.uv_start,
-					.uv_size  = system_sprite.uv_size,
-					.size	  = {aspect, 1.0f},
+					.texture		  = system_sprite.texture,
+					.uv_start		  = system_sprite.uv_start,
+					.uv_size		  = system_sprite.uv_size,
+					.size			  = {aspect, 1.0f},
+					.is_linear_sample = static_cast<u8>(sprite.is_linear_sample),
 				});
 
 				// renderable instance
@@ -632,6 +661,112 @@ namespace sfg
 					.entity_index	= entity_index,
 					.pass_mask		= snapshot.materials[material_index].pass_mask,
 					.type			= world_renderable_type_e::sprite,
+				});
+			}
+		}
+
+		// extract particle emitters
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				transform_table.ref(),
+				alive_table.ref(),
+				particle_emitter_table.ref(),
+				system_particle_emitter_table.ref(),
+				!disabled_table.ref(),
+			};
+
+			const span_t<const particle_emitter_runtime_t> emitter_runtimes = world.get_particle_simulation().get_emitters();
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				const component_system_transform_t&		   transform	  = ecs_helpers_t::row_get<component_system_transform_t>(row, 0);
+				const component_particle_emitter_t&		   emitter		  = ecs_helpers_t::row_get<component_particle_emitter_t>(row, 2);
+				const component_system_particle_emitter_t& system_emitter = ecs_helpers_t::row_get<component_system_particle_emitter_t>(row, 3);
+				const particle_emitter_runtime_t&		   runtime		  = emitter_runtimes.data[system_emitter.runtime_index];
+
+				if (runtime.particles.empty())
+					continue;
+
+				const material_runtime_t* material_runtime = rm.find_runtime<material_runtime_t>(emitter.material);
+
+				if (material_runtime == nullptr || material_runtime->texture_count == 0 || material_runtime->texture_types[0] != shader_texture_type_e::sprite)
+					continue;
+
+				const shader_runtime_t* shader_runtime = rm.find_runtime<shader_runtime_t>(material_runtime->shader_guid);
+
+				if (shader_runtime == nullptr || shader_runtime->type != shader_type_e::particle_shader)
+					continue;
+
+				const sprite_runtime_t* sprite_runtime = rm.find_runtime<sprite_runtime_t>(material_runtime->texture_guids[0]);
+
+				if (sprite_runtime == nullptr)
+					continue;
+
+				const u32 material_index = push_material_from_guid(material_guid_to_index, snapshot, emitter.material);
+
+				if (material_index == UINT32_MAX)
+					continue;
+
+				const curve_runtime_t* size_curve	  = emitter.size_over_lifetime != NULL_RESOURCE_HANDLE ? rm.find_runtime<curve_runtime_t>(emitter.size_over_lifetime) : nullptr;
+				const curve_runtime_t* opacity_curve  = emitter.opacity_over_lifetime != NULL_RESOURCE_HANDLE ? rm.find_runtime<curve_runtime_t>(emitter.opacity_over_lifetime) : nullptr;
+				const curve_runtime_t* color_curve	  = emitter.color_over_lifetime != NULL_RESOURCE_HANDLE ? rm.find_runtime<curve_runtime_t>(emitter.color_over_lifetime) : nullptr;
+				const u32			   particle_start = static_cast<u32>(snapshot.particles.size());
+
+				for (const particle_state_t& particle : runtime.particles)
+				{
+					const f32	  normalized_age	 = particle.age / particle.lifetime;
+					const f32	  size_multiplier	 = math::max((size_curve != nullptr ? size_curve->sample(normalized_age).x : 1.0f) * emitter.size_amplitude, 0.0f);
+					const f32	  opacity_multiplier = math::max((opacity_curve != nullptr ? opacity_curve->sample(normalized_age).x : 1.0f) * emitter.opacity_amplitude, 0.0f);
+					const vec4f_t color_curve_sample = color_curve != nullptr ? color_curve->sample(normalized_age) : vec4f_t{1.0f, 1.0f, 1.0f, 1.0f};
+					const vec4f_t color_amplitude	 = emitter.color_amplitude.to_vector();
+					const vec4f_t start_color		 = particle.start_color.to_vector();
+					const vec3f_t position			 = emitter.simulation_space == particle_simulation_space_e::world ? particle.position : transform.abs_mat * particle.position;
+					const vec3f_t previous_position	 = emitter.simulation_space == particle_simulation_space_e::world ? particle.previous_position : transform.prev_abs_mat * particle.previous_position;
+					const vec3f_t velocity			 = emitter.simulation_space == particle_simulation_space_e::world ? particle.velocity : transform.abs_rot * particle.velocity;
+
+					snapshot.particles.push_back({
+						.position		   = position,
+						.rotation		   = particle.rotation,
+						.previous_position = previous_position,
+						.size			   = particle.start_size * size_multiplier,
+						.velocity		   = velocity,
+						.color =
+							{
+								start_color.x * color_curve_sample.x * color_amplitude.x,
+								start_color.y * color_curve_sample.y * color_amplitude.y,
+								start_color.z * color_curve_sample.z * color_amplitude.z,
+								start_color.w * color_curve_sample.w * color_amplitude.w * opacity_multiplier,
+							},
+					});
+				}
+
+				const f32 frame_width		  = sprite_runtime->uv_size.x * static_cast<f32>(sprite_runtime->header.size.x);
+				const f32 frame_height		  = sprite_runtime->uv_size.y * static_cast<f32>(sprite_runtime->header.size.y);
+				const u32 particle_draw_index = static_cast<u32>(snapshot.particle_draws.size());
+				const u32 entity_index		  = push_render_object(entity_to_render_id, snapshot, row.id, transform_table);
+				u32		  pass_mask			  = world_pass_flags_forward | world_pass_flags_id;
+
+				if ((snapshot.materials[material_index].pass_mask & world_pass_flags_reflections) != 0)
+					pass_mask |= world_pass_flags_reflections;
+
+				snapshot.particle_draws.push_back({
+					.uv_start		= vec2f_t::zero,
+					.uv_size		= sprite_runtime->uv_size,
+					.particle_start = particle_start,
+					.particle_count = static_cast<u32>(runtime.particles.size()),
+					.aspect			= frame_width / frame_height,
+					.alignment		= static_cast<u8>(emitter.alignment),
+				});
+
+				snapshot.renderables.push_back({
+					.sort_key		= emitter.material,
+					.aabb			= runtime.bounds,
+					.payload_index	= particle_draw_index,
+					.material_index = material_index,
+					.entity_index	= entity_index,
+					.pass_mask		= pass_mask,
+					.type			= world_renderable_type_e::particle,
+					.flags			= world_renderable_flag_world_space_aabb,
 				});
 			}
 		}
