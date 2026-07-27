@@ -27,6 +27,8 @@
 #include "resource_manifest.hpp"
 #include "shader_cook.hpp"
 #include "cubemap_cook.hpp"
+#include "curve_cook.hpp"
+#include "curve_def.hpp"
 #include "texture_cook.hpp"
 #include "texture_sampler_cook.hpp"
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -183,6 +185,20 @@ namespace sfg
 				}
 
 				return texture_sampler_cooker::cook_from_desc(desc, out_header, stream);
+			}
+
+			if (schema == "sfg.schema.curve")
+			{
+				curve_def_t def = {};
+
+				if (!reflection_registry_t::get().type_from_json(type_id_t<curve_def_t>::value, &def, nullptr, config))
+				{
+					SFG_ERR("failed to deserialize curve definition");
+
+					return false;
+				}
+
+				return curve_cooker::cook_from_def(def, out_header, stream);
 			}
 
 			if (schema == "sfg.schema.cubemap")
@@ -404,6 +420,26 @@ namespace sfg
 				}
 
 				expected.source_tick = hashing_t::hash_u64(desc_stream.get_raw(), desc_stream.get_size());
+			}
+			else if (entry.type == resource_type_e::curve)
+			{
+				curve_def_t def = {};
+
+				if (!reflection_registry_t::get().type_from_json(type_id_t<curve_def_t>::value, &def, nullptr, entry.config))
+				{
+					SFG_ERR("failed to deserialize curve definition for {0}", entry.path.c_str());
+					return false;
+				}
+
+				ostream_t def_stream = {};
+
+				if (!reflection_registry_t::get().type_to_stream(type_id_t<curve_def_t>::value, &def, nullptr, def_stream))
+				{
+					SFG_ERR("failed to serialize curve definition for {0}", entry.path.c_str());
+					return false;
+				}
+
+				expected.source_tick = hashing_t::hash_u64(def_stream.get_raw(), def_stream.get_size());
 			}
 			else
 				expected.source_tick = file_system_t::get_last_modified_ticks(source_path.c_str());

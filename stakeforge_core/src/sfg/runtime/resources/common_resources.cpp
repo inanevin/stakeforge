@@ -22,7 +22,9 @@
 #include "prefab.hpp"
 #include "shader.hpp"
 #include "skeleton.hpp"
+#include "sprite.hpp"
 #include "cubemap.hpp"
+#include "curve.hpp"
 #include "texture.hpp"
 #include "texture_sampler.hpp"
 
@@ -95,6 +97,8 @@ namespace sfg
 		&animation_graph_resource_desc,
 		&cubemap_resource_desc,
 		&physics_collision_mesh_resource_desc,
+		&sprite_resource_desc,
+		&curve_resource_desc,
 	};
 
 	const char* resource_state_to_string(resource_state_e state)
@@ -142,6 +146,10 @@ namespace sfg
 			return "Cubemap";
 		case resource_type_e::physics_collision_mesh:
 			return "Physics Collision Mesh";
+		case resource_type_e::sprite:
+			return "Sprite";
+		case resource_type_e::curve:
+			return "Curve";
 		default:
 			return "Invalid";
 		}
@@ -182,6 +190,8 @@ namespace sfg
 					{.name = "animation_graph", .display_name = "Animation Graph"},
 					{.name = "cubemap", .display_name = "Cubemap"},
 					{.name = "physics_collision_mesh", .display_name = "Physics Collision Mesh"},
+					{.name = "sprite", .display_name = "Sprite"},
+					{.name = "curve", .display_name = "Curve"},
 				},
 			.type_id   = type_id_t<resource_type_e>::value,
 			.size	   = sizeof(resource_type_e),

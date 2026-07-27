@@ -26,9 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "texture_cook.hpp"
-#include <cstddef>
-#include <sfg/reflection/reflection_registry.hpp>
+#include "ktx2_util.hpp"
 #include "texture.hpp"
+
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/gfx/common/format.hpp>
@@ -39,19 +39,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/serialization/compression.hpp>
-#include <sfg/vendor/stb/stb_image_write.h>
+
+#include <cstddef>
 #include <cstdint>
-#include <cstdlib>
-#include <ktx.h>
 
 namespace sfg
 {
-#define SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM   37
-#define SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB	   43
-#define SFG_KTX_ZSTD_COMPRESSION_FASTER	   1
-#define SFG_KTX_ZSTD_COMPRESSION_DEFAULT   3
-#define SFG_KTX_ZSTD_COMPRESSION_HIGH	   5
 #define TEXTURE_AVERAGE_COLOR_SAMPLE_COUNT 1024
 
 	namespace
@@ -87,11 +82,6 @@ namespace sfg
 
 			for (u8 i = 1; i < levels; ++i)
 				SFG_FREE(buffers[i].pixels);
-		}
-
-		void write_png_data(void* context, void* data, int size)
-		{
-			static_cast<ostream_t*>(context)->write_raw(static_cast<const u8*>(data), static_cast<size_t>(size));
 		}
 
 		u8 get_texture_cook_level_count(const texture_cook_config_t& cfg, const vec2u16_t& size)
@@ -134,7 +124,7 @@ namespace sfg
 
 			if (cfg.payload_type == texture_payload_type_e::uncompressed)
 			{
-				ostream_t raw_stream;
+				ostream_t raw_stream  = {};
 				u32		  byte_offset = 0;
 
 				for (u8 i = 0; i < levels; i++)
@@ -173,7 +163,8 @@ namespace sfg
 				{
 					const texture_buffer_t& buf		   = buffers[i];
 					ostream_t&				png_stream = png_streams[i];
-					if (stbi_write_png_to_func(write_png_data, &png_stream, buf.size.x, buf.size.y, channels, buf.pixels, buf.row_pitch) == 0 || png_stream.get_size() == 0)
+
+					if (!image_util_t::write_png(buf, channels, png_stream))
 					{
 						SFG_ERR("failed to encode PNG texture for {0}", source_name);
 						return false;
@@ -200,92 +191,17 @@ namespace sfg
 			}
 			else
 			{
-				ktxTextureCreateInfo create_info = {};
-				create_info.vkFormat			 = cfg.is_linear ? SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM : SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB;
-				create_info.baseWidth			 = size.x;
-				create_info.baseHeight			 = size.y;
-				create_info.baseDepth			 = 1;
-				create_info.numDimensions		 = 2;
-				create_info.numLevels			 = levels;
-				create_info.numLayers			 = 1;
-				create_info.numFaces			 = 1;
+				ostream_t							 ktx_stream = {};
+				const span_t<const texture_buffer_t> mips		= {
+					.data = buffers,
+					.size = levels,
+				};
 
-				ktxTexture2*   ktx_texture = nullptr;
-				KTX_error_code ktx_result  = ktxTexture2_Create(&create_info, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &ktx_texture);
-				if (ktx_result == KTX_SUCCESS)
-				{
-					for (u8 i = 0; i < levels; i++)
-					{
-						const texture_buffer_t& buf = buffers[i];
-						ktx_result					= ktxTexture_SetImageFromMemory(ktxTexture(ktx_texture), i, 0, 0, buf.pixels, buf.data_size);
-						if (ktx_result != KTX_SUCCESS)
-							break;
-					}
-				}
-
-				if (ktx_result == KTX_SUCCESS)
-				{
-					ktx_pack_uastc_flags uastc_flags = KTX_PACK_UASTC_LEVEL_DEFAULT;
-					switch (cfg.ktx2_compression)
-					{
-					case texture_ktx2_compression_e::fastest:
-						uastc_flags = KTX_PACK_UASTC_LEVEL_FASTEST;
-						break;
-					case texture_ktx2_compression_e::faster:
-						uastc_flags = KTX_PACK_UASTC_LEVEL_FASTER;
-						break;
-					case texture_ktx2_compression_e::default_quality:
-						uastc_flags = KTX_PACK_UASTC_LEVEL_DEFAULT;
-						break;
-					case texture_ktx2_compression_e::high_quality:
-						uastc_flags = KTX_PACK_UASTC_LEVEL_SLOWER;
-						break;
-					}
-
-					ktxBasisParams basis_params = {};
-					basis_params.structSize		= sizeof(basis_params);
-					basis_params.uastc			= KTX_TRUE;
-					basis_params.uastcFlags		= uastc_flags | KTX_PACK_UASTC_FAVOR_BC7_ERROR;
-					basis_params.threadCount	= 4;
-					ktx_result					= ktxTexture2_CompressBasisEx(ktx_texture, &basis_params);
-				}
-
-				if (ktx_result == KTX_SUCCESS && cfg.ktx2_compression != texture_ktx2_compression_e::fastest)
-				{
-					u32 zstd_level = SFG_KTX_ZSTD_COMPRESSION_DEFAULT;
-					switch (cfg.ktx2_compression)
-					{
-					case texture_ktx2_compression_e::fastest:
-						break;
-					case texture_ktx2_compression_e::faster:
-						zstd_level = SFG_KTX_ZSTD_COMPRESSION_FASTER;
-						break;
-					case texture_ktx2_compression_e::default_quality:
-						zstd_level = SFG_KTX_ZSTD_COMPRESSION_DEFAULT;
-						break;
-					case texture_ktx2_compression_e::high_quality:
-						zstd_level = SFG_KTX_ZSTD_COMPRESSION_HIGH;
-						break;
-					}
-
-					ktx_result = ktxTexture2_DeflateZstd(ktx_texture, zstd_level);
-				}
-
-				ktx_uint8_t* ktx_bytes = nullptr;
-				ktx_size_t	 ktx_size  = 0;
-				if (ktx_result == KTX_SUCCESS)
-					ktx_result = ktxTexture2_WriteToMemory(ktx_texture, &ktx_bytes, &ktx_size);
-
-				if (ktx_result != KTX_SUCCESS)
-				{
-					SFG_ERR("failed to encode KTX2 UASTC texture for {0}: {1}", source_name, ktxErrorString(ktx_result));
-					if (ktx_texture != nullptr)
-						ktxTexture2_Destroy(ktx_texture);
+				if (!ktx2_util_t::encode_uastc(mips, cfg.is_linear, cfg.ktx2_compression, source_name, ktx_stream))
 					return false;
-				}
 
-				SFG_ASSERT(ktx_size <= UINT32_MAX);
-				const u32 blob_size	   = static_cast<u32>(ktx_size);
+				SFG_ASSERT(ktx_stream.get_size() <= UINT32_MAX);
+				const u32 blob_size	   = static_cast<u32>(ktx_stream.get_size());
 				texture_header.mips[0] = {
 					.byte_offset = 0,
 					.data_size	 = blob_size,
@@ -293,11 +209,9 @@ namespace sfg
 					.size		 = buffers[0].size,
 					.bpp		 = buffers[0].bpp,
 				};
-				stream << texture_header;
-				stream.write_raw(ktx_bytes, blob_size);
 
-				SFG_FREE(ktx_bytes);
-				ktxTexture2_Destroy(ktx_texture);
+				stream << texture_header;
+				stream.write_raw(ktx_stream.get_raw(), blob_size);
 			}
 
 			return true;
@@ -351,12 +265,6 @@ namespace sfg
 		free_texture_buffers(buffers, get_texture_cook_level_count(cfg, cfg.size), false);
 		return result;
 	}
-
-#undef SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM
-#undef SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB
-#undef SFG_KTX_ZSTD_COMPRESSION_FASTER
-#undef SFG_KTX_ZSTD_COMPRESSION_DEFAULT
-#undef SFG_KTX_ZSTD_COMPRESSION_HIGH
 }
 
 namespace sfg

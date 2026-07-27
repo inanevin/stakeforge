@@ -46,6 +46,8 @@ namespace sfg
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_GRAPH		   "reflection_resource_subtype_animation_graph"_hs
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_CUBEMAP				   "reflection_resource_subtype_cubemap"_hs
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICS_COLLISION_MESH "reflection_resource_subtype_physics_collision_mesh"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SPRITE				   "reflection_resource_subtype_sprite"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_CURVE				   "reflection_resource_subtype_curve"_hs
 
 	enum class resource_type_e : u8
 	{
@@ -64,6 +66,8 @@ namespace sfg
 		animation_graph,
 		cubemap,
 		physics_collision_mesh,
+		sprite,
+		curve,
 		count,
 	};
 
@@ -99,6 +103,10 @@ namespace sfg
 			return resource_type_e::cubemap;
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICS_COLLISION_MESH)
 			return resource_type_e::physics_collision_mesh;
+		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SPRITE)
+			return resource_type_e::sprite;
+		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_CURVE)
+			return resource_type_e::curve;
 		return resource_type_e::invalid;
 	}
 

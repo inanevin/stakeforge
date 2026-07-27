@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "texture_streamer.hpp"
+#include "ktx2_util.hpp"
 #include "resource_file_system.hpp"
 #include "resource_manager.hpp"
 #include "texture.hpp"
@@ -41,41 +42,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/serialization/compression.hpp>
 #include <sfg/vendor/stb/stb_image.h>
+
 #include <cstdint>
-#include <ktx.h>
 
 namespace sfg
 {
-#define SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM  37
-#define SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB	  43
-#define SFG_KTX_VK_FORMAT_BC7_UNORM_BLOCK 145
-#define SFG_KTX_VK_FORMAT_BC7_SRGB_BLOCK  146
-
 	namespace
 	{
-		u16 get_mip_size(u32 base_size, u8 mip)
-		{
-			const u32 size = base_size >> mip;
-			return static_cast<u16>(size == 0 ? 1 : size);
-		}
-
-		format_e get_format_from_ktx(ktx_uint32_t vk_format)
-		{
-			switch (vk_format)
-			{
-			case SFG_KTX_VK_FORMAT_BC7_SRGB_BLOCK:
-				return format_e::bc7_block_srgb;
-			case SFG_KTX_VK_FORMAT_BC7_UNORM_BLOCK:
-				return format_e::bc7_block_unorm;
-			case SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB:
-				return format_e::r8g8b8a8_srgb;
-			case SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM:
-				return format_e::r8g8b8a8_unorm;
-			default:
-				return format_e::undefined;
-			}
-		}
-
 		texture_desc_t make_texture_desc(const texture_header_t& header, const char* debug_name)
 		{
 			texture_desc_t desc = {};
@@ -292,90 +265,25 @@ namespace sfg
 
 			const texture_mip_header_t& ktx_mip		   = result.header.mips[0];
 			const size_t				payload_offset = stream.tellg();
-			ktxTexture2*				ktx_texture	   = nullptr;
-			KTX_error_code				ktx_result	   = ktxTexture2_CreateFromMemory(file_stream.get_raw() + payload_offset + ktx_mip.byte_offset, ktx_mip.data_size, 0, &ktx_texture);
+			const span_t<const u8>		ktx_data	   = {
+				.data = file_stream.get_raw() + payload_offset + ktx_mip.byte_offset,
+				.size = ktx_mip.data_size,
+			};
+			ktx2_image_desc_t ktx_desc = {};
 
-			if (ktx_result == KTX_SUCCESS && result.header.ktx2_compression == texture_ktx2_compression_e::fastest)
-				SFG_ASSERT(ktx_texture->supercompressionScheme != KTX_SS_ZSTD);
-
-			if (ktx_result == KTX_SUCCESS)
-				ktx_result = ktxTexture2_LoadImageData(ktx_texture, nullptr, 0);
-
-			if (ktx_result == KTX_SUCCESS && ktxTexture2_NeedsTranscoding(ktx_texture))
-				ktx_result = ktxTexture2_TranscodeBasis(ktx_texture, KTX_TTF_BC7_RGBA, KTX_TF_HIGH_QUALITY);
-
-			if (ktx_result != KTX_SUCCESS)
-			{
-				SFG_ERR("failed to transcode KTX2 texture: {0}", ktxErrorString(ktx_result));
-
-				if (ktx_texture != nullptr)
-					ktxTexture2_Destroy(ktx_texture);
-
+			if (!ktx2_util_t::decode_uastc(ktx_data, result.header.ktx2_compression, hash, result.mips, texture_loader_t::MAX_MIPS, ktx_desc))
 				return result;
-			}
 
-			result.header.texture_format = get_format_from_ktx(ktx_texture->vkFormat);
-
-			if (result.header.texture_format == format_e::undefined)
-			{
-				SFG_ERR("unsupported KTX2 transcode format");
-				ktxTexture2_Destroy(ktx_texture);
-				return result;
-			}
-
-			result.header.mip_count = static_cast<u8>(ktx_texture->numLevels);
-
-			if (result.header.mip_count > texture_loader_t::MAX_MIPS)
-			{
-				SFG_ERR("texture has too many KTX2 mip levels");
-				ktxTexture2_Destroy(ktx_texture);
-				return result;
-			}
-
-			result.header.size = vec2u16_t(static_cast<u16>(ktx_texture->baseWidth), static_cast<u16>(ktx_texture->baseHeight));
-			result.header.bpp  = format_is_block_compressed(result.header.texture_format) ? 16 : format_get_bpp(result.header.texture_format);
+			result.header.texture_format = ktx_desc.format;
+			result.header.mip_count		 = ktx_desc.mip_count;
+			result.header.size			 = ktx_desc.size;
+			result.header.bpp			 = format_is_block_compressed(ktx_desc.format) ? 16 : format_get_bpp(ktx_desc.format);
 
 			for (u8 i = 0; i < result.header.mip_count; ++i)
 			{
-				ktx_size_t offset = 0;
-				ktx_result		  = ktxTexture_GetImageOffset(ktxTexture(ktx_texture), i, 0, 0, &offset);
-
-				if (ktx_result != KTX_SUCCESS)
-				{
-					SFG_ERR("failed to get KTX2 texture image offset: {0}", ktxErrorString(ktx_result));
-					release_stream_result(result);
-					ktxTexture2_Destroy(ktx_texture);
-					return result;
-				}
-
-				const ktx_size_t image_size = ktxTexture_GetImageSize(ktxTexture(ktx_texture), i);
-
-				if (image_size > UINT32_MAX)
-				{
-					SFG_ERR("texture KTX2 image is too large");
-					release_stream_result(result);
-					ktxTexture2_Destroy(ktx_texture);
-					return result;
-				}
-
-				texture_buffer_t& buf = result.mips[i];
-				buf.data_size		  = static_cast<u32>(image_size);
-				buf.row_pitch		  = ktxTexture_GetRowPitch(ktxTexture(ktx_texture), i);
-				buf.size			  = vec2u16_t(get_mip_size(ktx_texture->baseWidth, i), get_mip_size(ktx_texture->baseHeight, i));
-				buf.bpp				  = result.header.bpp;
-				buf.pixels			  = static_cast<u8*>(SFG_MALLOC(buf.data_size));
-
-				if (buf.pixels == nullptr)
-				{
-					SFG_ERR("failed to allocate KTX2 texture mip pixels: {0}", hash);
-					release_stream_result(result);
-					ktxTexture2_Destroy(ktx_texture);
-					return result;
-				}
-
-				SFG_MEMCPY(buf.pixels, ktxTexture_GetData(ktxTexture(ktx_texture)) + offset, buf.data_size);
-				result.header.mips[i] = {
-					.byte_offset = static_cast<u32>(offset),
+				const texture_buffer_t& buf = result.mips[i];
+				result.header.mips[i]		= {
+					.byte_offset = 0,
 					.data_size	 = buf.data_size,
 					.row_pitch	 = buf.row_pitch,
 					.size		 = buf.size,
@@ -383,7 +291,6 @@ namespace sfg
 				};
 			}
 
-			ktxTexture2_Destroy(ktx_texture);
 			result.success = true;
 
 			return result;
@@ -455,9 +362,4 @@ namespace sfg
 				result.mips[i].pixels = nullptr;
 		}
 	}
-
-#undef SFG_KTX_VK_FORMAT_R8G8B8A8_UNORM
-#undef SFG_KTX_VK_FORMAT_R8G8B8A8_SRGB
-#undef SFG_KTX_VK_FORMAT_BC7_UNORM_BLOCK
-#undef SFG_KTX_VK_FORMAT_BC7_SRGB_BLOCK
 }
