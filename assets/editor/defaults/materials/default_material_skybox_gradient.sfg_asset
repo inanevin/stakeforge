@@ -12,9 +12,9 @@
         "textures": [],
         "samplers": [],
         "parameters": [
-            {"name": "zenith_color", "type": "vec4", "hint": "color", "value": [0.04, 0.15, 0.45, 1.0]},
-            {"name": "horizon_color", "type": "vec4", "hint": "color", "value": [0.65, 0.82, 1.0, 1.0]},
-            {"name": "ground_color", "type": "vec4", "hint": "color", "value": [0.08, 0.09, 0.12, 1.0]}
+            {"name": "zenith_color", "type": "vec4", "hint": "color", "value": [0.07323896, 0.6920711, 1.0, 1.0]},
+            {"name": "horizon_color", "type": "vec4", "hint": "color", "value": [1.0, 1.0, 1.0, 1.0]},
+            {"name": "ground_color", "type": "vec4", "hint": "color", "value": [1.0, 1.0, 1.0, 1.0]}
         ],
         "double_sided": false,
         "use_alpha_cutoff": false
