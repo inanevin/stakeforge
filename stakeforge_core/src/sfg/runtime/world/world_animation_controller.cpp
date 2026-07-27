@@ -41,10 +41,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void world_animation_controller_t::init(world_t& world, u32 bone_reserve, u32 animation_graph_memory_reserve)
+	void world_animation_controller_t::init(world_t& world, u32 bone_max_count, u32 animation_graph_budget_bytes)
 	{
-		_animation_graph_storage.init(animation_graph_memory_reserve);
-		_bone_memory.init(sizeof(animation_bone_t) * bone_reserve * 2);
+		_animation_graph_storage.init(animation_graph_budget_bytes);
+		_bone_memory.init(sizeof(animation_bone_t) * bone_max_count * 2);
 
 		_world					  = &world;
 		_resource_reload_listener = resource_manager_t::get().add_reload_listener(on_reload, this);

@@ -46,7 +46,13 @@ namespace sfg
 
 	class editor_world_controller_t;
 
-	class editor_renderer_t
+	struct editor_renderer_config_t
+	{
+		size_t frame_budget_bytes		= 4ull * 1024ull * 1024ull;
+		u32	   surface_initial_capacity = 8;
+	};
+
+	class editor_renderer_t final
 	{
 	private:
 		struct per_frame_data_t
@@ -74,11 +80,16 @@ namespace sfg
 		};
 
 	public:
+		editor_renderer_t()									   = default;
+		~editor_renderer_t()								   = default;
+		editor_renderer_t(const editor_renderer_t&)			   = delete;
+		editor_renderer_t& operator=(const editor_renderer_t&) = delete;
+
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		bool init();
+		bool init(const editor_renderer_config_t& config = {});
 		void uninit();
 		void render(editor_world_controller_t& world_controller);
 		void join();
@@ -103,15 +114,15 @@ namespace sfg
 	private:
 		void render_loop();
 
-		static constexpr size_t			  RENDER_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
 		per_frame_data_t				  _pfd[BACK_BUFFER_COUNT] = {};
 		vector_t<surface_render_target_t> _render_targets;
-		gfx_handle_t					  _shader_ui_default = {};
-		gfx_handle_t					  _shader_ui_text	 = {};
-		gfx_handle_t					  _shader_ui_sdf	 = {};
-		u64								  _frame_counter	 = 0;
-		u8								  _frame_index		 = 0;
-		editor_world_controller_t*		  _world_controller	 = nullptr;
+		gfx_handle_t					  _shader_ui_default  = {};
+		gfx_handle_t					  _shader_ui_text	  = {};
+		gfx_handle_t					  _shader_ui_sdf	  = {};
+		u64								  _frame_counter	  = 0;
+		size_t							  _frame_budget_bytes = 0;
+		u8								  _frame_index		  = 0;
+		editor_world_controller_t*		  _world_controller	  = nullptr;
 		std::thread						  _render_thread;
 		atomic_t<bool>					  _render_thread_active = false;
 	};

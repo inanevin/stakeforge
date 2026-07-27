@@ -76,21 +76,23 @@ namespace sfg::ui
 
 	struct vg_canvas_config_t
 	{
-		u64 vertex_buffer_bytes		= 1u << 21;
-		u64 index_buffer_bytes		= 1u << 21;
-		u32 buffer_count			= 16;
-		u32 text_cache_vertex_bytes = 1u << 22;
-		u32 text_cache_index_bytes	= 1u << 22;
-		u32 clip_stack_capacity		= 64;
+		u64 vertex_pool_budget_bytes	   = 1u << 21;
+		u64 index_pool_budget_bytes		   = 1u << 21;
+		u32 buffer_count				   = 16;
+		u32 text_cache_vertex_budget_bytes = 1u << 22;
+		u32 text_cache_index_budget_bytes  = 1u << 22;
+		u32 clip_stack_initial_capacity	   = 64;
+		u32 text_cache_initial_capacity	   = 256;
+		u32 path_initial_capacity		   = 512;
 	};
 
-	class vg_canvas_t
+	class vg_canvas_t final
 	{
 	public:
-		vg_canvas_t()							   = default;
+		vg_canvas_t() = default;
+		~vg_canvas_t();
 		vg_canvas_t(const vg_canvas_t&)			   = delete;
 		vg_canvas_t& operator=(const vg_canvas_t&) = delete;
-		~vg_canvas_t();
 
 		// -----------------------------------------------------------------------------
 		// lifetime

@@ -17,10 +17,22 @@ namespace sfg
 		return instance;
 	}
 
-	void render_resources_t::init()
+	void render_resources_t::init(const render_resources_config_t& config)
 	{
-		get_texture_upload_queue().init();
-		_pending_material_parameter_updates.reserve(64);
+		get_texture_upload_queue().init(config.texture_upload_initial_capacity);
+		_pending_material_parameter_updates.reserve(config.pending_material_update_initial_capacity);
+
+		if (config.resource_initial_capacity != 0)
+			_resources.reserve(config.resource_initial_capacity);
+
+		if (config.texture_initial_capacity != 0)
+			_textures.reserve(config.texture_initial_capacity);
+
+		if (config.sampler_initial_capacity != 0)
+			_samplers.reserve(config.sampler_initial_capacity);
+
+		if (config.shader_initial_capacity != 0)
+			_shaders.reserve(config.shader_initial_capacity);
 
 		_default_linear_sampler = enqueue_create_sampler(gfx_util_t::get_sampler_desc_linear());
 

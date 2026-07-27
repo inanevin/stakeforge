@@ -54,6 +54,11 @@ namespace sfg::ui
 
 	void ui_context::init(const ui_config_t& cfg)
 	{
+		SFG_ASSERT(cfg.snapshot_vertex_max_bytes != 0);
+		SFG_ASSERT(cfg.snapshot_index_max_bytes != 0);
+		SFG_ASSERT(cfg.snapshot_vertex_max_bytes <= cfg.canvas.vertex_pool_budget_bytes);
+		SFG_ASSERT(cfg.snapshot_index_max_bytes <= cfg.canvas.index_pool_budget_bytes);
+
 		_user_ui_scale = get_valid_scale(cfg.user_ui_scale);
 		_dpi_scale	   = get_valid_scale(cfg.dpi_scale);
 		_ui_scale	   = _dpi_scale * _user_ui_scale;
@@ -62,7 +67,7 @@ namespace sfg::ui
 		_paint.init(cfg.max_widgets);
 		_input.init(cfg.input, cfg.max_widgets);
 		_canvas.init(cfg.canvas);
-		_text_pool.init(cfg.text_pool_capacity);
+		_text_pool.init(cfg.text_pool_budget_bytes);
 		_mutation_requests.init(cfg.max_widgets);
 		_pre_layout_tick_defs.init(cfg.max_widgets);
 		_pre_layout_tick_widgets.init(cfg.max_widgets);
@@ -73,8 +78,9 @@ namespace sfg::ui
 		_debug_hover_text.ptr = _text_pool.allocate(DEBUG_HOVER_TEXT_CAPACITY);
 		_debug_hover_text.len = 0;
 
-		const u32 snap_vtx_cap = static_cast<u32>(cfg.canvas.vertex_buffer_bytes / sizeof(vg_vertex_t));
-		const u32 snap_idx_cap = static_cast<u32>(cfg.canvas.index_buffer_bytes / sizeof(vg_index_t));
+		const u32 snap_vtx_cap = cfg.snapshot_vertex_max_bytes / static_cast<u32>(sizeof(vg_vertex_t));
+		const u32 snap_idx_cap = cfg.snapshot_index_max_bytes / static_cast<u32>(sizeof(vg_index_t));
+
 		for (snapshot_slot_t& slot : _snapshot_slots)
 			allocate_snapshot_slot(slot, cfg.canvas.buffer_count, snap_vtx_cap, snap_idx_cap);
 

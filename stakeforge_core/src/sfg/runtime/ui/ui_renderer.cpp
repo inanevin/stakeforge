@@ -80,8 +80,8 @@ namespace sfg::ui
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		_vtx_capacity = cfg.vertex_buffer_bytes;
-		_idx_capacity = cfg.index_buffer_bytes;
+		_vtx_capacity = cfg.vertex_buffer_max_bytes;
+		_idx_capacity = cfg.index_buffer_max_bytes;
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{

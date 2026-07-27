@@ -34,12 +34,15 @@ namespace sfg
 {
 	void editor_command_system_t::init(const editor_command_system_config_t& config)
 	{
+		SFG_ASSERT(config.command_max_count != 0);
+		SFG_ASSERT(config.aux_data_budget_bytes != 0);
+
 		s_instance = this;
 		_config	   = config;
-		_commands.reserve(config.max_commands);
-		_listeners.reserve(config.max_listeners);
-		_history.reserve(config.max_commands);
-		_aux_data.init(config.aux_data_size);
+		_commands.reserve(config.command_max_count);
+		_listeners.reserve(config.listener_initial_capacity);
+		_history.reserve(config.command_max_count);
+		_aux_data.init(config.aux_data_budget_bytes);
 		_cursor			   = 0;
 		_next_sequence	   = 1;
 		_generation		   = 0;
@@ -264,12 +267,13 @@ namespace sfg
 
 	void editor_command_system_t::trim_history_for_new_command()
 	{
-		if (_history.size() < _config.max_commands)
+		if (_history.size() < _config.command_max_count)
 			return;
 
 		const editor_command_handle_t handle = _history.front();
 		_history.erase(_history.begin());
 		destroy_command(handle);
+
 		if (_cursor != 0)
 			--_cursor;
 	}

@@ -107,13 +107,13 @@ namespace sfg
 		s_instance = nullptr;
 	}
 
-	editor_world_handle_t editor_world_controller_t::create_world(const world_init_config_t& init_config, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
+	editor_world_handle_t editor_world_controller_t::create_world(const editor_world_init_config_t& init_config, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
 	{
 		editor_app_t::get().stop_render();
 
-		world_init_config_t		  world_config	   = init_config;
-		const project_settings_t& project_settings = engine_runtime_t::get().get_project_settings();
-		world_config.physics					   = project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps);
+		editor_world_init_config_t world_config		= init_config;
+		const project_settings_t&  project_settings = engine_runtime_t::get().get_project_settings();
+		world_config.world.physics					= project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps);
 
 		const editor_world_handle_t handle = _worlds.add();
 		_worlds.get(handle)				   = new editor_world_t();
@@ -521,18 +521,7 @@ namespace sfg
 
 		destroy_main_world_internal();
 
-		const world_init_config_t init_config{
-			.render_resolution				= editor_surface_controller_t::get().get_main_surface().swapchain_size,
-			.render_entity_max				= 1024 * 10,
-			.render_bone_max				= 4096,
-			.render_bone_reserve			= 1024,
-			.animation_graph_memory_reserve = 1 * 1024 * 1024,
-			.component_table_reserve		= 64,
-			.free_list_reserve				= 1024,
-			.used_resource_reserve			= 512,
-			.text_allocation_reserve		= 1024,
-			.physics_enabled				= true,
-		};
+		const editor_world_init_config_t init_config = editor_world_init_config_t::make_main(editor_surface_controller_t::get().get_main_surface().swapchain_size);
 
 		const editor_world_handle_t handle = create_world(init_config);
 		install_default_world(handle);
@@ -555,18 +544,7 @@ namespace sfg
 
 		destroy_main_world_internal();
 
-		const world_init_config_t init_config{
-			.render_resolution				= editor_surface_controller_t::get().get_main_surface().swapchain_size,
-			.render_entity_max				= 1024 * 10,
-			.render_bone_max				= 4096,
-			.render_bone_reserve			= 1024,
-			.animation_graph_memory_reserve = 1 * 1024 * 1024,
-			.component_table_reserve		= 64,
-			.free_list_reserve				= 1024,
-			.used_resource_reserve			= 512,
-			.text_allocation_reserve		= 1024,
-			.physics_enabled				= true,
-		};
+		const editor_world_init_config_t init_config = editor_world_init_config_t::make_main(editor_surface_controller_t::get().get_main_surface().swapchain_size);
 
 		const editor_world_handle_t handle = create_world(init_config);
 

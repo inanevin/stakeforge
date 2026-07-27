@@ -50,8 +50,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define WORLD_RENDER_PREP_INITIAL_VIEW_CAPACITY 65
-
 	enum class world_render_fog_type_e : u32
 	{
 		linear,
@@ -161,6 +159,17 @@ namespace sfg
 		u32 particle_instance_index = UINT32_MAX;
 	};
 
+	struct world_render_prep_initial_capacity_config_t
+	{
+		size_t view_initial_capacity			  = 65;
+		size_t depth_queue_initial_capacity		  = 0;
+		size_t opaque_queue_initial_capacity	  = 0;
+		size_t transparent_queue_initial_capacity = 0;
+		size_t shadow_queue_initial_capacity	  = 0;
+		size_t visible_queue_initial_capacity	  = 0;
+		size_t shadow_view_initial_capacity		  = 0;
+	};
+
 	struct world_render_prep_data_t
 	{
 		vector_t<world_render_prep_view_t>	 views					= {};
@@ -172,15 +181,15 @@ namespace sfg
 		vector_t<world_render_shadow_view_t> shadow_views			= {};
 		u32									 reflection_probe_count = 0;
 
-		inline void reserve(size_t draws)
+		inline void reserve(const world_render_prep_initial_capacity_config_t& config)
 		{
-			views.reserve(WORLD_RENDER_PREP_INITIAL_VIEW_CAPACITY);
-			depth_queue.reserve(draws * 8);
-			opaque_queue.reserve(draws * 8);
-			transparent_queue.reserve(draws * 8);
-			shadow_queue.reserve(draws * 64);
-			visible_queue.reserve(draws);
-			shadow_views.reserve(64);
+			views.reserve(config.view_initial_capacity);
+			depth_queue.reserve(config.depth_queue_initial_capacity);
+			opaque_queue.reserve(config.opaque_queue_initial_capacity);
+			transparent_queue.reserve(config.transparent_queue_initial_capacity);
+			shadow_queue.reserve(config.shadow_queue_initial_capacity);
+			visible_queue.reserve(config.visible_queue_initial_capacity);
+			shadow_views.reserve(config.shadow_view_initial_capacity);
 		}
 
 		inline void reset()
@@ -271,23 +280,24 @@ namespace sfg
 		}
 	};
 
-	struct world_render_snapshot_reserve_config_t
+	struct world_render_snapshot_initial_capacity_config_t
 	{
-		size_t entity_count			  = 0;
-		size_t renderable_count		  = 0;
-		size_t draw_count			  = 0;
-		size_t sprite_count			  = 0;
-		size_t particle_draw_count	  = 0;
-		size_t particle_count		  = 0;
-		size_t bone_count			  = 0;
-		size_t light_count			  = 0;
-		size_t reflection_probe_count = 0;
-		size_t line_vertex_count	  = 0;
-		size_t line_index_count		  = 0;
-		size_t triangle_vertex_count  = 0;
-		size_t triangle_index_count	  = 0;
-		size_t text_vertex_count	  = 0;
-		size_t text_index_count		  = 0;
+		size_t material_initial_capacity		 = 0;
+		size_t entity_initial_capacity			 = 0;
+		size_t renderable_initial_capacity		 = 0;
+		size_t draw_initial_capacity			 = 0;
+		size_t sprite_initial_capacity			 = 0;
+		size_t particle_draw_initial_capacity	 = 0;
+		size_t particle_initial_capacity		 = 0;
+		size_t bone_initial_capacity			 = 0;
+		size_t light_initial_capacity			 = 0;
+		size_t reflection_probe_initial_capacity = 0;
+		size_t line_vertex_initial_capacity		 = 0;
+		size_t line_index_initial_capacity		 = 0;
+		size_t triangle_vertex_initial_capacity	 = 0;
+		size_t triangle_index_initial_capacity	 = 0;
+		size_t text_vertex_initial_capacity		 = 0;
+		size_t text_index_initial_capacity		 = 0;
 	};
 
 	struct world_render_snapshot_t
@@ -311,23 +321,24 @@ namespace sfg
 		vector_t<world_particle_t>				  particles			= {};
 		engine_quality_level_e					  quality_level		= engine_quality_level_e::high;
 
-		inline void reserve(const world_render_snapshot_reserve_config_t& config)
+		inline void reserve(const world_render_snapshot_initial_capacity_config_t& config)
 		{
-			entities.reserve(config.entity_count);
-			bones.reserve(config.bone_count);
-			lights.reserve(config.light_count);
-			reflection_probes.reserve(config.reflection_probe_count);
-			renderables.reserve(config.renderable_count);
-			mesh_draws.reserve(config.draw_count);
-			sprite_draws.reserve(config.sprite_count);
-			particle_draws.reserve(config.particle_draw_count);
-			particles.reserve(config.particle_count);
-			debug_draw.line_vertices.reserve(config.line_vertex_count);
-			debug_draw.line_indices.reserve(config.line_index_count);
-			debug_draw.triangle_vertices.reserve(config.triangle_vertex_count);
-			debug_draw.triangle_indices.reserve(config.triangle_index_count);
-			debug_draw.text_vertices.reserve(config.text_vertex_count);
-			debug_draw.text_indices.reserve(config.text_index_count);
+			materials.reserve(config.material_initial_capacity);
+			entities.reserve(config.entity_initial_capacity);
+			bones.reserve(config.bone_initial_capacity);
+			lights.reserve(config.light_initial_capacity);
+			reflection_probes.reserve(config.reflection_probe_initial_capacity);
+			renderables.reserve(config.renderable_initial_capacity);
+			mesh_draws.reserve(config.draw_initial_capacity);
+			sprite_draws.reserve(config.sprite_initial_capacity);
+			particle_draws.reserve(config.particle_draw_initial_capacity);
+			particles.reserve(config.particle_initial_capacity);
+			debug_draw.line_vertices.reserve(config.line_vertex_initial_capacity);
+			debug_draw.line_indices.reserve(config.line_index_initial_capacity);
+			debug_draw.triangle_vertices.reserve(config.triangle_vertex_initial_capacity);
+			debug_draw.triangle_indices.reserve(config.triangle_index_initial_capacity);
+			debug_draw.text_vertices.reserve(config.text_vertex_initial_capacity);
+			debug_draw.text_indices.reserve(config.text_index_initial_capacity);
 		}
 	};
 }

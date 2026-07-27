@@ -27,29 +27,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/data/hash_map.hpp>
+#include <sfg/gfx/backend/backend.hpp>
+#include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/ui/glyph_atlas.hpp>
 
 namespace sfg
 {
-	struct animation_def_t;
-
-	class animation_storage_t final
+	struct engine_global_config_t
 	{
-	public:
-		animation_storage_t()									   = default;
-		~animation_storage_t()									   = default;
-		animation_storage_t(const animation_storage_t&)			   = delete;
-		animation_storage_t& operator=(const animation_storage_t&) = delete;
+		resource_manager_config_t resource_manager = {};
+		u32						  job_worker_count = 0;
+	};
 
-		void init();
-		void uninit();
+	struct engine_backend_config_t
+	{
+		gfx_backend_config_t	  gfx			   = {};
+		render_resources_config_t render_resources = {};
+		ui::glyph_atlas_config_t  glyph_atlas	   = {};
+	};
 
-		void				   add_animation(sid_t hash, const animation_def_t& def);
-		void				   remove_animation(sid_t hash);
-		const animation_def_t* find_animation(sid_t hash) const;
-
-	private:
-		hash_map_t<sid_t, const animation_def_t*> _animations;
+	struct engine_runtime_config_t
+	{
+		engine_global_config_t	global	= {};
+		engine_backend_config_t backend = {};
 	};
 }

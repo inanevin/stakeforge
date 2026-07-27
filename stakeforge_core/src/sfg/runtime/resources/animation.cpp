@@ -46,14 +46,12 @@ namespace sfg
 		}
 
 		runtime->duration = runtime->def.duration;
-		ctx.resource_manager.get_animation_storage().add_animation(entry.hash, runtime->def);
 
 		return true;
 	}
 
 	void animation_loader_t::unload(resource_entry_t& entry, resource_context_t& ctx)
 	{
-		ctx.resource_manager.get_animation_storage().remove_animation(entry.hash);
 		animation_runtime_t* runtime = ctx.resource_manager.get_memory().get<animation_runtime_t>(entry.runtime);
 		std::destroy_at(runtime);
 	}

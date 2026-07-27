@@ -53,29 +53,30 @@ namespace sfg
 
 	void world_debug_draw_t::init(const world_debug_draw_config_t& config)
 	{
-		SFG_ASSERT((config.line_vertex_reserve == 0) == (config.line_index_reserve == 0));
-		SFG_ASSERT((config.triangle_vertex_reserve == 0) == (config.triangle_index_reserve == 0));
-		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_index_max == 0));
-		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_command_reserve == 0));
-		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_byte_reserve == 0));
-		_config = config;
-		_vertices.reserve(config.line_vertex_reserve);
-		_indices.reserve(config.line_index_reserve);
-		_triangle_vertices.reserve(config.triangle_vertex_reserve);
-		_triangle_indices.reserve(config.triangle_index_reserve);
-		_text_commands.reserve(config.text_command_reserve);
-		_text_bytes.reserve(config.text_byte_reserve);
+		SFG_ASSERT((config.line_vertex_max_count == 0) == (config.line_index_max_count == 0));
+		SFG_ASSERT((config.triangle_vertex_max_count == 0) == (config.triangle_index_max_count == 0));
+		SFG_ASSERT((config.text_vertex_max_count == 0) == (config.text_index_max_count == 0));
+		SFG_ASSERT((config.text_vertex_max_count == 0) == (config.text_command_max_count == 0));
+		SFG_ASSERT((config.text_vertex_max_count == 0) == (config.text_budget_bytes == 0));
 
-		if (config.text_vertex_max > 0)
+		_config = config;
+		_vertices.reserve(config.line_vertex_max_count);
+		_indices.reserve(config.line_index_max_count);
+		_triangle_vertices.reserve(config.triangle_vertex_max_count);
+		_triangle_indices.reserve(config.triangle_index_max_count);
+		_text_commands.reserve(config.text_command_max_count);
+		_text_bytes.reserve(config.text_budget_bytes);
+
+		if (config.text_vertex_max_count > 0)
 		{
 			_text_canvas = make_unique<ui::vg_canvas_t>();
 			_text_canvas->init({
-				.vertex_buffer_bytes	 = config.text_vertex_max * sizeof(ui::vg_vertex_t),
-				.index_buffer_bytes		 = config.text_index_max * sizeof(ui::vg_index_t),
-				.buffer_count			 = 1,
-				.text_cache_vertex_bytes = config.text_vertex_max * sizeof(ui::vg_vertex_t),
-				.text_cache_index_bytes	 = config.text_index_max * sizeof(ui::vg_index_t),
-				.clip_stack_capacity	 = 1,
+				.vertex_pool_budget_bytes		= config.text_vertex_max_count * sizeof(ui::vg_vertex_t),
+				.index_pool_budget_bytes		= config.text_index_max_count * sizeof(ui::vg_index_t),
+				.buffer_count					= 1,
+				.text_cache_vertex_budget_bytes = config.text_vertex_max_count * sizeof(ui::vg_vertex_t),
+				.text_cache_index_budget_bytes	= config.text_index_max_count * sizeof(ui::vg_index_t),
+				.clip_stack_initial_capacity	= 1,
 			});
 		}
 
@@ -127,7 +128,7 @@ namespace sfg
 		if (from.equals(to) || thickness_px <= 0.0f)
 			return;
 
-		if (_vertices.size() + 4 > _config.line_vertex_reserve || _indices.size() + 6 > _config.line_index_reserve)
+		if (_vertices.size() + 4 > _config.line_vertex_max_count || _indices.size() + 6 > _config.line_index_max_count)
 		{
 			++_dropped_line_count;
 			return;
@@ -177,7 +178,7 @@ namespace sfg
 
 	void world_debug_draw_t::draw_triangle(const vec3f_t& p0, const vec3f_t& p1, const vec3f_t& p2, const color_t& color)
 	{
-		if (_triangle_vertices.size() + 3 > _config.triangle_vertex_reserve || _triangle_indices.size() + 3 > _config.triangle_index_reserve)
+		if (_triangle_vertices.size() + 3 > _config.triangle_vertex_max_count || _triangle_indices.size() + 3 > _config.triangle_index_max_count)
 		{
 			++_dropped_triangle_count;
 			return;
@@ -555,7 +556,7 @@ namespace sfg
 		if (text_length == 0)
 			return;
 
-		if (_config.text_vertex_max == 0 || _text_commands.size() >= _config.text_command_reserve || _text_bytes.size() + text_length > _config.text_byte_reserve)
+		if (_config.text_vertex_max_count == 0 || _text_commands.size() >= _config.text_command_max_count || _text_bytes.size() + text_length > _config.text_budget_bytes)
 		{
 			++_dropped_text_count;
 			return;
@@ -584,7 +585,7 @@ namespace sfg
 		if (text_length == 0)
 			return;
 
-		if (_config.text_vertex_max == 0 || _text_commands.size() >= _config.text_command_reserve || _text_bytes.size() + text_length > _config.text_byte_reserve)
+		if (_config.text_vertex_max_count == 0 || _text_commands.size() >= _config.text_command_max_count || _text_bytes.size() + text_length > _config.text_budget_bytes)
 		{
 			++_dropped_text_count;
 			return;
@@ -766,12 +767,12 @@ namespace sfg
 		if (_text_commands.empty())
 			return;
 
-		_text_canvas->frame_begin({0.0f, 0.0f, static_cast<f32>(_config.text_byte_reserve), static_cast<f32>(_config.text_byte_reserve)});
+		_text_canvas->frame_begin({0.0f, 0.0f, static_cast<f32>(_config.text_budget_bytes), static_cast<f32>(_config.text_budget_bytes)});
 		const ui::ui_render_state_t state = {};
 
 		for (const text_command_t& command : _text_commands)
 		{
-			if (snapshot.text_vertices.size() + command.text_length * 4 > _config.text_vertex_max || snapshot.text_indices.size() + command.text_length * 6 > _config.text_index_max)
+			if (snapshot.text_vertices.size() + command.text_length * 4 > _config.text_vertex_max_count || snapshot.text_indices.size() + command.text_length * 6 > _config.text_index_max_count)
 			{
 				++_dropped_text_count;
 				continue;

@@ -37,21 +37,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 
-	void dx12_heap_t::init(ID3D12Device* device, u32 heap_type, u32 num_descriptors, u32 descriptor_size, bool shader_access)
+	void dx12_heap_t::init(ID3D12Device* device, u32 heap_type, u32 num_descriptors, u32 descriptor_size, u32 free_block_initial_capacity, bool shader_access)
 	{
 		_type			 = heap_type;
 		_max_descriptors = num_descriptors;
 		_shader_access	 = shader_access;
-		_available_blocks.reserve(num_descriptors / 2);
+		_available_blocks.reserve(free_block_initial_capacity);
 		_descriptor_size = descriptor_size;
 
 		try
 		{
-			D3D12_DESCRIPTOR_HEAP_DESC heapDesc;
-			heapDesc.NumDescriptors = _max_descriptors;
-			heapDesc.Type			= static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(_type);
-			heapDesc.Flags			= _shader_access ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-			heapDesc.NodeMask		= 0;
+			D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+			heapDesc.NumDescriptors				= _max_descriptors;
+			heapDesc.Type						= static_cast<D3D12_DESCRIPTOR_HEAP_TYPE>(_type);
+			heapDesc.Flags						= _shader_access ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			heapDesc.NodeMask					= 0;
 			throw_if_failed(device->CreateDescriptorHeap(&heapDesc, IID_PPV_ARGS(&_heap)));
 		}
 		catch (HrException e)
@@ -119,7 +119,7 @@ namespace sfg
 		u32 new_id	  = 0;
 		u32 block_end = _current_index + count;
 
-		if (block_end < _max_descriptors)
+		if (block_end <= _max_descriptors)
 		{
 			new_id		   = _current_index;
 			_current_index = block_end;

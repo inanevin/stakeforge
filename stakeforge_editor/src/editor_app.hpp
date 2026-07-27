@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/runtime/engine/engine_runtime_config.hpp>
 #include <sfg/runtime/resources/resource_pack.hpp>
 #include <sfg/vendor/taskflow/core/declarations.hpp>
 #include <sfg/data/mutex.hpp>
@@ -49,7 +50,16 @@ namespace sfg
 		project_creator,
 	};
 
-	class editor_app_t
+	struct editor_app_config_t
+	{
+		engine_runtime_config_t		   engine							 = {};
+		editor_command_system_config_t command_system					 = {};
+		editor_renderer_config_t	   renderer							 = {};
+		size_t						   main_frame_budget_bytes			 = 4ull * 1024ull * 1024ull;
+		u32							   editor_work_executor_thread_count = 4;
+	};
+
+	class editor_app_t final
 	{
 	public:
 		editor_app_t();
@@ -67,7 +77,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		bool init();
+		bool init(const editor_app_config_t& config = {});
 		void uninit();
 		void tick();
 		void stop_render();
@@ -107,13 +117,12 @@ namespace sfg
 		}
 
 	private:
-		static constexpr size_t MAIN_FRAME_ALLOC_SIZE = 1024ull * 1024ull * 4ull;
-
 		bool		init_normal_mode();
 		void		uninit_normal_mode();
 		static void on_project_assets_progress(void* user_data, f32 progress, const char* progress_text);
 
 	private:
+		editor_app_config_t			_config = {};
 		editor_asset_manager_t		_asset_manager;
 		editor_renderer_t			_renderer;
 		editor_command_system_t		_command_system;

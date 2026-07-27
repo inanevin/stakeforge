@@ -41,18 +41,22 @@ namespace sfg::ui
 
 	struct glyph_atlas_config_t
 	{
-		u32 width		  = 4096;
-		u32 height		  = 4096;
-		u32 staging_bytes = 4u << 20; // 4 MB per back buffer slot
+		u32 width							= 4096;
+		u32 height							= 4096;
+		u32 staging_budget_bytes			= 4u << 20; // 4 MB per back buffer slot
+		u32 glyph_initial_capacity			= 1024;
+		u32 size_metric_initial_capacity	= 64;
+		u32 shelf_initial_capacity			= 64;
+		u32 pending_upload_initial_capacity = 256;
 	};
 
-	class glyph_atlas_t
+	class glyph_atlas_t final
 	{
 	public:
-		glyph_atlas_t()								   = default;
+		glyph_atlas_t() = default;
+		~glyph_atlas_t();
 		glyph_atlas_t(const glyph_atlas_t&)			   = delete;
 		glyph_atlas_t& operator=(const glyph_atlas_t&) = delete;
-		~glyph_atlas_t();
 
 		void init(const glyph_atlas_config_t& cfg = {});
 		void uninit();

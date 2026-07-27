@@ -38,12 +38,23 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/quat.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
 	struct aabb_t;
-	struct world_init_config_t;
+	struct editor_world_init_config_t
+	{
+		world_init_config_t								world							 = {};
+		world_render_context_config_t					render_context					 = {};
+		world_render_snapshot_initial_capacity_config_t snapshot						 = {};
+		world_render_prep_initial_capacity_config_t		render_prep						 = {};
+		u32												selected_entity_initial_capacity = 0;
+
+		static editor_world_init_config_t make_main(vec2u16_t render_resolution);
+		static editor_world_init_config_t make_preview(vec2u16_t render_resolution);
+	};
 
 	struct editor_world_pick_request_t
 	{
@@ -92,7 +103,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data);
+		void init(const editor_world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data);
 		void uninit();
 
 		// -----------------------------------------------------------------------------

@@ -82,19 +82,6 @@ namespace sfg
 
 	namespace
 	{
-		constexpr gfx_id_t INITIAL_RESOURCES		  = 1024;
-		constexpr gfx_id_t INITIAL_TEXTURES			  = 1024;
-		constexpr gfx_id_t INITIAL_SAMPLERS			  = 128;
-		constexpr gfx_id_t INITIAL_SEMAPHORES		  = 64;
-		constexpr gfx_id_t INITIAL_SHADERS			  = 2048;
-		constexpr gfx_id_t INITIAL_PIPELINE_LAYOUTS	  = 256;
-		constexpr gfx_id_t INITIAL_SWAPCHAINS		  = 8;
-		constexpr gfx_id_t INITIAL_BIND_GROUPS		  = 512;
-		constexpr gfx_id_t INITIAL_BIND_LAYOUTS		  = 128;
-		constexpr gfx_id_t INITIAL_COMMAND_BUFFERS	  = 256;
-		constexpr gfx_id_t INITIAL_QUEUES			  = 8;
-		constexpr gfx_id_t INITIAL_DESCRIPTOR_HANDLES = 1024;
-
 		D3D12_TEXTURE_ADDRESS_MODE get_address_mode(address_mode mode)
 		{
 			if (mode == address_mode::repeat)
@@ -658,15 +645,21 @@ namespace sfg
 	}
 
 	DWORD msgcallback = 0;
-	bool  dx12_backend_t::init()
+	bool  dx12_backend_t::init(const dx12_backend_config_t& config)
 	{
 		if (_device != nullptr)
 			return false;
 
+		SFG_ASSERT(config.queue_initial_capacity >= 3);
+		SFG_ASSERT(config.dsv_descriptor_max_count != 0);
+		SFG_ASSERT(config.rtv_descriptor_max_count != 0);
+		SFG_ASSERT(config.resource_descriptor_max_count != 0);
+		SFG_ASSERT(config.sampler_descriptor_max_count != 0);
+
 		UINT dxgiFactoryFlags = 0;
 
 #ifdef SFG_GFX_USE_DEBUG_LAYERS
-		ComPtr<ID3D12Debug> debugController;
+		ComPtr<ID3D12Debug> debugController = {};
 		if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
 		{
 			debugController->EnableDebugLayer();
@@ -682,8 +675,8 @@ namespace sfg
 
 		throw_if_failed(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&_factory)));
 
-		ComPtr<IDXGIFactory5> factory5;
-		HRESULT				  facres = _factory.As(&factory5);
+		ComPtr<IDXGIFactory5> factory5 = {};
+		HRESULT				  facres   = _factory.As(&factory5);
 		if (SUCCEEDED(facres))
 			facres = factory5->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &_tearing_supported, sizeof(_tearing_supported));
 
@@ -731,32 +724,32 @@ namespace sfg
 
 		// Allocator
 		{
-			D3D12MA::ALLOCATOR_DESC allocatorDesc;
-			allocatorDesc.pDevice			   = _device.Get();
-			allocatorDesc.PreferredBlockSize   = 0;
-			allocatorDesc.Flags				   = D3D12MA::ALLOCATOR_FLAG_NONE;
-			allocatorDesc.pAdapter			   = _adapter.Get();
-			allocatorDesc.pAllocationCallbacks = NULL;
+			D3D12MA::ALLOCATOR_DESC allocatorDesc = {};
+			allocatorDesc.pDevice				  = _device.Get();
+			allocatorDesc.PreferredBlockSize	  = 0;
+			allocatorDesc.Flags					  = D3D12MA::ALLOCATOR_FLAG_NONE;
+			allocatorDesc.pAdapter				  = _adapter.Get();
+			allocatorDesc.pAllocationCallbacks	  = NULL;
 			throw_if_failed(D3D12MA::CreateAllocator(&allocatorDesc, &_allocator));
 		}
 
 		if (!ensure_idxc_lib())
 			return false;
 
-		_resources.reserve(INITIAL_RESOURCES);
-		_textures.reserve(INITIAL_TEXTURES);
-		_texture_shared_handles.reserve(INITIAL_TEXTURES);
-		_samplers.reserve(INITIAL_SAMPLERS);
-		_swapchains.reserve(INITIAL_SWAPCHAINS);
-		_semaphores.reserve(INITIAL_SEMAPHORES);
-		_shaders.reserve(INITIAL_SHADERS);
-		_bind_groups.reserve(INITIAL_BIND_GROUPS);
-		_command_buffers.reserve(INITIAL_COMMAND_BUFFERS);
-		_command_allocators.reserve(INITIAL_COMMAND_BUFFERS);
-		_queues.reserve(INITIAL_QUEUES);
-		_indirect_signatures.reserve(INITIAL_PIPELINE_LAYOUTS);
-		_descriptors.reserve(INITIAL_DESCRIPTOR_HANDLES);
-		_bind_layouts.reserve(INITIAL_BIND_LAYOUTS);
+		_resources.reserve(config.resource_initial_capacity);
+		_textures.reserve(config.texture_initial_capacity);
+		_texture_shared_handles.reserve(config.texture_initial_capacity);
+		_samplers.reserve(config.sampler_initial_capacity);
+		_swapchains.reserve(config.swapchain_initial_capacity);
+		_semaphores.reserve(config.semaphore_initial_capacity);
+		_shaders.reserve(config.shader_initial_capacity);
+		_bind_groups.reserve(config.bind_group_initial_capacity);
+		_command_buffers.reserve(config.command_buffer_initial_capacity);
+		_command_allocators.reserve(config.command_buffer_initial_capacity);
+		_queues.reserve(config.queue_initial_capacity);
+		_indirect_signatures.reserve(config.indirect_signature_initial_capacity);
+		_descriptors.reserve(config.descriptor_initial_capacity);
+		_bind_layouts.reserve(config.bind_layout_initial_capacity);
 
 		_queue_graphics = create_queue({
 			.type		= command_type::graphics,
@@ -776,23 +769,18 @@ namespace sfg
 		const u32 size_rtv		   = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 		const u32 size_sampler	   = _device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
-		constexpr size_t count_dsv		   = 2048;
-		constexpr size_t count_rtv		   = 2048;
-		constexpr size_t count_cbv_srv_uav = 2048;
-		constexpr size_t count_sampler	   = 2048;
+		_heap_dsv.init(_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, config.dsv_descriptor_max_count, size_dsv, config.descriptor_free_block_initial_capacity, false);
+		_heap_rtv.init(_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, config.rtv_descriptor_max_count, size_rtv, config.descriptor_free_block_initial_capacity, false);
+		_heap_gpu_buffer.init(_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, config.resource_descriptor_max_count, size_cbv_srv_uav, config.descriptor_free_block_initial_capacity, true);
+		_heap_gpu_sampler.init(_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, config.sampler_descriptor_max_count, size_sampler, config.descriptor_free_block_initial_capacity, true);
 
-		_heap_dsv.init(_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, count_dsv, size_dsv, false);
-		_heap_rtv.init(_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, count_rtv, size_rtv, false);
-		_heap_gpu_buffer.init(_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, count_cbv_srv_uav, size_cbv_srv_uav, true);
-		_heap_gpu_sampler.init(_device.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, count_sampler, size_sampler, true);
-
-		_reuse_dest_descriptors_buffer.reserve(100);
-		_reuse_dest_descriptors_sampler.reserve(100);
-		_reuse_src_descriptors_buffer.reserve(100);
-		_reuse_src_descriptors_sampler.reserve(100);
-		_reuse_root_params.reserve(100);
-		_reuse_root_ranges.reserve(100);
-		_reuse_static_samplers.reserve(100);
+		_reuse_dest_descriptors_buffer.reserve(config.scratch_initial_capacity);
+		_reuse_dest_descriptors_sampler.reserve(config.scratch_initial_capacity);
+		_reuse_src_descriptors_buffer.reserve(config.scratch_initial_capacity);
+		_reuse_src_descriptors_sampler.reserve(config.scratch_initial_capacity);
+		_reuse_root_params.reserve(config.scratch_initial_capacity);
+		_reuse_root_ranges.reserve(config.scratch_initial_capacity);
+		_reuse_static_samplers.reserve(config.scratch_initial_capacity);
 		return true;
 	}
 

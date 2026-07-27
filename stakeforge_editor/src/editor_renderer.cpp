@@ -57,8 +57,12 @@ namespace sfg
 		};
 	}
 
-	bool editor_renderer_t::init()
+	bool editor_renderer_t::init(const editor_renderer_config_t& config)
 	{
+		SFG_ASSERT(config.frame_budget_bytes != 0);
+
+		_frame_budget_bytes = config.frame_budget_bytes;
+
 		gfx_backend& backend = gfx_backend::get();
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
@@ -93,7 +97,7 @@ namespace sfg
 			pfd.global_index = backend.get_resource_gpu_index(pfd.global_buffer);
 		}
 
-		_render_targets.reserve(8);
+		_render_targets.reserve(config.surface_initial_capacity);
 
 		return true;
 	}
@@ -126,8 +130,9 @@ namespace sfg
 		}
 
 		_render_targets.resize(0);
-		_frame_counter = 0;
-		_frame_index   = 0;
+		_frame_counter		= 0;
+		_frame_budget_bytes = 0;
+		_frame_index		= 0;
 	}
 
 	void editor_renderer_t::join()
@@ -158,7 +163,10 @@ namespace sfg
 		});
 
 		unique_t<ui::ui_renderer_t> ui_renderer = make_unique<ui::ui_renderer_t>();
-		ui_renderer->init();
+		ui_renderer->init({
+			.vertex_buffer_max_bytes = ui->get_snapshot_vertex_max_bytes(),
+			.index_buffer_max_bytes	 = ui->get_snapshot_index_max_bytes(),
+		});
 
 		_render_targets.push_back({
 			.swapchain	 = swapchain,
@@ -394,7 +402,7 @@ namespace sfg
 
 	void editor_renderer_t::render_loop()
 	{
-		frame_allocator_tls_t::init(RENDER_FRAME_ALLOC_SIZE);
+		frame_allocator_tls_t::init(_frame_budget_bytes);
 		g_engine_thread_ids.render_thread_id = SFG_THIS_THREAD_ID();
 #ifdef TRACY_ENABLE
 		tracy::SetThreadName("render");

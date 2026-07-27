@@ -55,35 +55,207 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_WORLD_SNAPSHOT_SLOT_COUNT		   3
-#define EDITOR_WORLD_SNAPSHOT_SLOT_MASK			   0x3
-#define EDITOR_WORLD_SNAPSHOT_FRESH_FLAG		   0x80
-#define EDITOR_WORLD_PICK_RESULT_REQUEST_SHIFT	   32
-#define EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE	   (8192 * 4)
-#define EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE	   (8192 * 6)
-#define EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_RESERVE 164000
-#define EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_RESERVE  164000
-#define EDITOR_WORLD_DEBUG_TEXT_COMMAND_RESERVE	   256
-#define EDITOR_WORLD_DEBUG_TEXT_BYTE_RESERVE	   32768
-#define EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX		   16384
-#define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX		   24576
-#define EDITOR_WORLD_LIGHT_MAX					   1024
-#define EDITOR_WORLD_REFLECTION_PROBE_MAX		   256
+#define EDITOR_WORLD_SNAPSHOT_SLOT_COUNT				3
+#define EDITOR_WORLD_SNAPSHOT_SLOT_MASK					0x3
+#define EDITOR_WORLD_SNAPSHOT_FRESH_FLAG				0x80
+#define EDITOR_WORLD_PICK_RESULT_REQUEST_SHIFT			32
+#define EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT		(8192 * 4)
+#define EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT			(8192 * 6)
+#define EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT	164000
+#define EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT		164000
+#define EDITOR_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT		256
+#define EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES			32768
+#define EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT		16384
+#define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT			24576
+#define EDITOR_MAIN_WORLD_LIGHT_MAX_COUNT				1024
+#define EDITOR_MAIN_WORLD_REFLECTION_PROBE_MAX_COUNT	256
+#define EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY			8000
+#define EDITOR_PREVIEW_WORLD_LIGHT_MAX_COUNT			16
+#define EDITOR_PREVIEW_WORLD_REFLECTION_PROBE_MAX_COUNT 8
+#define EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY		64
 
-	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
+	editor_world_init_config_t editor_world_init_config_t::make_main(vec2u16_t render_resolution)
 	{
-		world_init_config_t world_config = init_config;
-		world_config.debug_draw			 = {
-			.font					 = editor_theme_t::get().font_default,
-			.line_vertex_reserve	 = EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
-			.line_index_reserve		 = EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
-			.triangle_vertex_reserve = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_RESERVE,
-			.triangle_index_reserve	 = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_RESERVE,
-			.text_command_reserve	 = EDITOR_WORLD_DEBUG_TEXT_COMMAND_RESERVE,
-			.text_byte_reserve		 = EDITOR_WORLD_DEBUG_TEXT_BYTE_RESERVE,
-			.text_vertex_max		 = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
-			.text_index_max			 = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
+		return {
+			.world =
+				{
+					.debug_draw =
+						{
+							.line_vertex_max_count	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
+							.line_index_max_count	   = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
+							.triangle_vertex_max_count = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
+							.triangle_index_max_count  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
+							.text_command_max_count	   = EDITOR_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
+							.text_budget_bytes		   = EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES,
+							.text_vertex_max_count	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
+							.text_index_max_count	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+						},
+					.render_resolution				   = render_resolution,
+					.render_entity_max_count		   = 1024 * 10,
+					.render_sprite_max_count		   = 256,
+					.render_particle_max_count		   = 8192,
+					.render_bone_max_count			   = 4096,
+					.render_bone_initial_capacity	   = 1024,
+					.animation_graph_budget_bytes	   = 1 * 1024 * 1024,
+					.component_table_initial_capacity  = 64,
+					.entity_free_list_initial_capacity = 1024,
+					.used_resource_initial_capacity	   = 512,
+					.text_allocation_initial_capacity  = 1024,
+					.text_budget_bytes				   = 64 * 1024,
+					.physics_enabled				   = true,
+				},
+			.render_context =
+				{
+					.size				  = render_resolution,
+					.entity_max			  = 1024 * 10,
+					.sprite_max			  = 256,
+					.particle_max		  = 8192,
+					.bone_max			  = 4096,
+					.light_max			  = EDITOR_MAIN_WORLD_LIGHT_MAX_COUNT,
+					.reflection_probe_max = EDITOR_MAIN_WORLD_REFLECTION_PROBE_MAX_COUNT,
+					.line_vertex_max	  = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
+					.line_index_max		  = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
+					.triangle_vertex_max  = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
+					.triangle_index_max	  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
+					.text_vertex_max	  = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
+					.text_index_max		  = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+					.shadow_view_max	  = ENGINE_SHADOW_VIEW_MAX,
+				},
+			.snapshot =
+				{
+					.material_initial_capacity		   = 256,
+					.entity_initial_capacity		   = EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY,
+					.renderable_initial_capacity	   = EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY,
+					.draw_initial_capacity			   = EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY,
+					.sprite_initial_capacity		   = 256,
+					.particle_draw_initial_capacity	   = 1024 * 10,
+					.particle_initial_capacity		   = 8192,
+					.bone_initial_capacity			   = 1024,
+					.light_initial_capacity			   = EDITOR_MAIN_WORLD_LIGHT_MAX_COUNT,
+					.reflection_probe_initial_capacity = EDITOR_MAIN_WORLD_REFLECTION_PROBE_MAX_COUNT,
+					.line_vertex_initial_capacity	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
+					.line_index_initial_capacity	   = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
+					.triangle_vertex_initial_capacity  = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
+					.triangle_index_initial_capacity   = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
+					.text_vertex_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
+					.text_index_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+				},
+			.render_prep =
+				{
+					.view_initial_capacity				= 65,
+					.depth_queue_initial_capacity		= EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY * 8,
+					.opaque_queue_initial_capacity		= EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY * 8,
+					.transparent_queue_initial_capacity = EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY * 8,
+					.shadow_queue_initial_capacity		= EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY * ENGINE_SHADOW_VIEW_MAX,
+					.visible_queue_initial_capacity		= EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY,
+					.shadow_view_initial_capacity		= ENGINE_SHADOW_VIEW_MAX,
+				},
+			.selected_entity_initial_capacity = 256,
 		};
+	}
+
+	editor_world_init_config_t editor_world_init_config_t::make_preview(vec2u16_t render_resolution)
+	{
+		return {
+			.world =
+				{
+					.debug_draw =
+						{
+							.line_vertex_max_count	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
+							.line_index_max_count	   = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
+							.triangle_vertex_max_count = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
+							.triangle_index_max_count  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
+							.text_command_max_count	   = EDITOR_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
+							.text_budget_bytes		   = EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES,
+							.text_vertex_max_count	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
+							.text_index_max_count	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+						},
+					.particle_simulation =
+						{
+							.emitter_initial_capacity			   = 0,
+							.particle_per_emitter_initial_capacity = 0,
+							.particle_max_count					   = 0,
+						},
+					.render_resolution				   = render_resolution,
+					.render_entity_max_count		   = 10,
+					.render_sprite_max_count		   = 16,
+					.render_particle_max_count		   = 0,
+					.render_bone_max_count			   = 128,
+					.render_bone_initial_capacity	   = 128,
+					.animation_graph_budget_bytes	   = 64 * 1024,
+					.component_table_initial_capacity  = 64,
+					.entity_free_list_initial_capacity = 128,
+					.used_resource_initial_capacity	   = 64,
+					.text_allocation_initial_capacity  = 256,
+					.text_budget_bytes				   = 4096,
+					.physics_enabled				   = false,
+				},
+			.render_context =
+				{
+					.size				  = render_resolution,
+					.entity_max			  = 10,
+					.sprite_max			  = 16,
+					.particle_max		  = 0,
+					.bone_max			  = 128,
+					.light_max			  = EDITOR_PREVIEW_WORLD_LIGHT_MAX_COUNT,
+					.reflection_probe_max = EDITOR_PREVIEW_WORLD_REFLECTION_PROBE_MAX_COUNT,
+					.line_vertex_max	  = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
+					.line_index_max		  = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
+					.triangle_vertex_max  = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
+					.triangle_index_max	  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
+					.text_vertex_max	  = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
+					.text_index_max		  = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+					.shadow_view_max	  = 8,
+				},
+			.snapshot =
+				{
+					.material_initial_capacity		   = 64,
+					.entity_initial_capacity		   = 64,
+					.renderable_initial_capacity	   = 80,
+					.draw_initial_capacity			   = EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY,
+					.sprite_initial_capacity		   = 16,
+					.particle_draw_initial_capacity	   = 0,
+					.particle_initial_capacity		   = 0,
+					.bone_initial_capacity			   = 128,
+					.light_initial_capacity			   = EDITOR_PREVIEW_WORLD_LIGHT_MAX_COUNT,
+					.reflection_probe_initial_capacity = EDITOR_PREVIEW_WORLD_REFLECTION_PROBE_MAX_COUNT,
+					.line_vertex_initial_capacity	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
+					.line_index_initial_capacity	   = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
+					.triangle_vertex_initial_capacity  = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
+					.triangle_index_initial_capacity   = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
+					.text_vertex_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
+					.text_index_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+				},
+			.render_prep =
+				{
+					.view_initial_capacity				= 9,
+					.depth_queue_initial_capacity		= EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY * 8,
+					.opaque_queue_initial_capacity		= EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY * 8,
+					.transparent_queue_initial_capacity = EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY * 8,
+					.shadow_queue_initial_capacity		= EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY * 8,
+					.visible_queue_initial_capacity		= EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY,
+					.shadow_view_initial_capacity		= 8,
+				},
+			.selected_entity_initial_capacity = 64,
+		};
+	}
+
+	void editor_world_t::init(const editor_world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
+	{
+		SFG_ASSERT(init_config.world.render_resolution == init_config.render_context.size);
+		SFG_ASSERT(init_config.world.render_entity_max_count == init_config.render_context.entity_max);
+		SFG_ASSERT(init_config.world.render_sprite_max_count == init_config.render_context.sprite_max);
+		SFG_ASSERT(init_config.world.render_particle_max_count == init_config.render_context.particle_max);
+		SFG_ASSERT(init_config.world.render_bone_max_count == init_config.render_context.bone_max);
+		SFG_ASSERT(init_config.snapshot.entity_initial_capacity <= init_config.render_context.entity_max);
+		SFG_ASSERT(init_config.snapshot.sprite_initial_capacity <= init_config.render_context.sprite_max);
+		SFG_ASSERT(init_config.snapshot.particle_initial_capacity <= init_config.render_context.particle_max);
+		SFG_ASSERT(init_config.snapshot.bone_initial_capacity <= init_config.render_context.bone_max);
+		SFG_ASSERT(init_config.snapshot.light_initial_capacity <= init_config.render_context.light_max);
+		SFG_ASSERT(init_config.snapshot.reflection_probe_initial_capacity <= init_config.render_context.reflection_probe_max);
+
+		world_init_config_t world_config = init_config.world;
+		world_config.debug_draw.font	 = editor_theme_t::get().font_default;
 
 		_world.init(world_config);
 		_edit_context.init(edit_type);
@@ -109,48 +281,16 @@ namespace sfg
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 			_object_id_readback_valid[i] = false;
 
-		_render_resolution = init_config.render_resolution;
-		_render_context.init({
-			.size				  = init_config.render_resolution,
-			.entity_max			  = init_config.render_entity_max,
-			.sprite_max			  = init_config.render_sprite_max,
-			.particle_max		  = init_config.render_particle_max,
-			.bone_max			  = init_config.render_bone_max,
-			.light_max			  = EDITOR_WORLD_LIGHT_MAX,
-			.reflection_probe_max = EDITOR_WORLD_REFLECTION_PROBE_MAX,
-			.line_vertex_max	  = EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
-			.line_index_max		  = EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
-			.triangle_vertex_max  = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_RESERVE,
-			.triangle_index_max	  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_RESERVE,
-			.text_vertex_max	  = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
-			.text_index_max		  = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
-			.shadow_view_max	  = ENGINE_SHADOW_VIEW_MAX,
-		});
-
-		_render_prep_data.reserve(8000);
+		_render_resolution = init_config.render_context.size;
+		_render_context.init(init_config.render_context);
+		_render_prep_data.reserve(init_config.render_prep);
 
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
-			_snapshot_slots[i].reserve({
-				.entity_count			= 8000,
-				.renderable_count		= 8000,
-				.draw_count				= 8000,
-				.sprite_count			= init_config.render_sprite_max,
-				.particle_draw_count	= init_config.render_entity_max,
-				.particle_count			= init_config.render_particle_max,
-				.bone_count				= init_config.render_bone_reserve,
-				.light_count			= EDITOR_WORLD_LIGHT_MAX,
-				.reflection_probe_count = EDITOR_WORLD_REFLECTION_PROBE_MAX,
-				.line_vertex_count		= EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE,
-				.line_index_count		= EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE,
-				.triangle_vertex_count	= EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_RESERVE,
-				.triangle_index_count	= EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_RESERVE,
-				.text_vertex_count		= EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX,
-				.text_index_count		= EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX,
-			});
+			_snapshot_slots[i].reserve(init_config.snapshot);
 
 			editor_world_snapshot_data_t* data = new editor_world_snapshot_data_t();
-			data->selected_entities.reserve(256);
+			data->selected_entities.reserve(init_config.selected_entity_initial_capacity);
 			_snapshot_slots[i].user_data = data;
 		}
 	}

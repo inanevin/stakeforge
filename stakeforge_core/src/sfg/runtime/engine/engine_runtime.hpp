@@ -11,6 +11,9 @@ namespace sfg
 		struct glyph_atlas_config_t;
 	}
 
+	struct engine_global_config_t;
+	struct engine_backend_config_t;
+
 	class engine_runtime_t final
 	{
 	public:
@@ -21,9 +24,14 @@ namespace sfg
 		engine_runtime_t(const engine_runtime_t&)			 = delete;
 		engine_runtime_t& operator=(const engine_runtime_t&) = delete;
 
-		void init_globals(size_t resource_manager_memory = 64ull * 1024ull * 1024ull);
+		void init_globals();
+		void init_globals(size_t resource_manager_memory);
 		void init_globals(resource_file_system_t& resource_file_system, size_t resource_manager_memory = 64ull * 1024ull * 1024ull);
+		void init_globals(const engine_global_config_t& config);
+		void init_globals(resource_file_system_t& resource_file_system, const engine_global_config_t& config);
 		void uninit_globals();
+		bool init_backend();
+		bool init_backend(const engine_backend_config_t& config);
 		bool init_backend(const ui::glyph_atlas_config_t& glyph_atlas_config);
 		void uninit_backend();
 

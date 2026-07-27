@@ -247,18 +247,7 @@ namespace sfg
 
 	void editor_panel_skeleton_viewer_t::create_preview_world()
 	{
-		const world_init_config_t init_config{
-			.render_resolution				= editor_surface_controller_t::get().get_main_surface().swapchain_size,
-			.render_entity_max				= 10,
-			.render_bone_max				= 128,
-			.render_bone_reserve			= 128,
-			.animation_graph_memory_reserve = 64 * 1024,
-			.component_table_reserve		= 64,
-			.free_list_reserve				= 128,
-			.used_resource_reserve			= 64,
-			.text_allocation_reserve		= 256,
-			.physics_enabled				= false,
-		};
+		const editor_world_init_config_t init_config = editor_world_init_config_t::make_preview(editor_surface_controller_t::get().get_main_surface().swapchain_size);
 
 		editor_world_controller_t& controller = editor_world_controller_t::get();
 		_world								  = controller.create_world(init_config, editor_world_edit_type_e::view_with_debug, on_world_tick, this);

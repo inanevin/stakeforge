@@ -36,11 +36,11 @@ namespace sfg::ui
 
 	struct ui_renderer_config_t
 	{
-		u32 vertex_buffer_bytes = 1u << 20;
-		u32 index_buffer_bytes	= 1u << 20;
+		u32 vertex_buffer_max_bytes = 1u << 20;
+		u32 index_buffer_max_bytes	= 1u << 20;
 	};
 
-	class ui_renderer_t
+	class ui_renderer_t final
 	{
 	public:
 		ui_renderer_t()								   = default;

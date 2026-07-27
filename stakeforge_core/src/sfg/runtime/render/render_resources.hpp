@@ -17,6 +17,16 @@ namespace sfg
 	{
 	};
 
+	struct render_resources_config_t
+	{
+		u32 texture_upload_initial_capacity			 = 32;
+		u32 pending_material_update_initial_capacity = 64;
+		u32 resource_initial_capacity				 = 0;
+		u32 texture_initial_capacity				 = 0;
+		u32 sampler_initial_capacity				 = 0;
+		u32 shader_initial_capacity					 = 0;
+	};
+
 	struct render_texture_upload_desc_t
 	{
 		span_t<const texture_buffer_t> mips				 = {};
@@ -79,7 +89,7 @@ namespace sfg
 		render_resources_t(const render_resources_t&)			 = delete;
 		render_resources_t& operator=(const render_resources_t&) = delete;
 
-		void init();
+		void init(const render_resources_config_t& config = {});
 		void uninit();
 
 		// -----------------------------------------------------------------------------

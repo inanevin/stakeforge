@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/vector.hpp>
 #include <sfg/math/aabb.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
+#include <sfg/runtime/world/world_init_config.hpp>
 
 namespace sfg
 {
@@ -77,7 +78,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(world_t& world);
+		void init(world_t& world, const world_particle_simulation_config_t& config);
 		void uninit();
 		void clear();
 		void begin_play();
@@ -123,7 +124,9 @@ namespace sfg
 
 	private:
 		vector_t<particle_emitter_runtime_t> _emitters;
+		world_particle_simulation_config_t	 _config			= {};
 		world_t*							 _world				= nullptr;
 		f32									 _fixed_accumulator = 0.0f;
+		u32									 _particle_count	= 0;
 	};
 }

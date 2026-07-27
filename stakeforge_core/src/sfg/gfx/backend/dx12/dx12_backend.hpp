@@ -108,7 +108,29 @@ namespace sfg
 #define END_DEBUG_EVENT(backend, CMD_BUF)
 #endif
 
-	class dx12_backend_t
+	struct dx12_backend_config_t
+	{
+		gfx_id_t resource_initial_capacity				= 1024;
+		gfx_id_t texture_initial_capacity				= 1024;
+		gfx_id_t sampler_initial_capacity				= 128;
+		gfx_id_t semaphore_initial_capacity				= 64;
+		gfx_id_t shader_initial_capacity				= 2048;
+		gfx_id_t indirect_signature_initial_capacity	= 256;
+		gfx_id_t swapchain_initial_capacity				= 8;
+		gfx_id_t bind_group_initial_capacity			= 512;
+		gfx_id_t bind_layout_initial_capacity			= 128;
+		gfx_id_t command_buffer_initial_capacity		= 256;
+		gfx_id_t queue_initial_capacity					= 8;
+		gfx_id_t descriptor_initial_capacity			= 1024;
+		u32		 dsv_descriptor_max_count				= 2048;
+		u32		 rtv_descriptor_max_count				= 2048;
+		u32		 resource_descriptor_max_count			= 2048;
+		u32		 sampler_descriptor_max_count			= 2048;
+		u32		 descriptor_free_block_initial_capacity = 1024;
+		u32		 scratch_initial_capacity				= 100;
+	};
+
+	class dx12_backend_t final
 	{
 	private:
 		struct resource_t
@@ -218,13 +240,18 @@ namespace sfg
 		};
 
 	public:
+		dx12_backend_t()								 = default;
+		~dx12_backend_t()								 = default;
+		dx12_backend_t(const dx12_backend_t&)			 = delete;
+		dx12_backend_t& operator=(const dx12_backend_t&) = delete;
+
 		inline static dx12_backend_t& get()
 		{
 			static dx12_backend_t instance;
 			return instance;
 		}
 
-		bool init();
+		bool init(const dx12_backend_config_t& config = {});
 		void uninit();
 		void reset_command_buffer(gfx_handle_t cmd_buffer);
 		void reset_command_buffer_transfer(gfx_handle_t cmd_buffer);

@@ -58,12 +58,14 @@ namespace sfg::ui
 
 	struct ui_config_t
 	{
-		vg_canvas_config_t canvas			  = {};
-		input_config_t	   input			  = {};
-		f32				   user_ui_scale	  = 1.0f;
-		f32				   dpi_scale		  = 1.0f;
-		u32				   max_widgets		  = 1024;
-		u32				   text_pool_capacity = 64 * 1024;
+		vg_canvas_config_t canvas					 = {};
+		input_config_t	   input					 = {};
+		f32				   user_ui_scale			 = 1.0f;
+		f32				   dpi_scale				 = 1.0f;
+		u32				   max_widgets				 = 1024;
+		u32				   text_pool_budget_bytes	 = 64 * 1024;
+		u32				   snapshot_vertex_max_bytes = 1u << 20;
+		u32				   snapshot_index_max_bytes	 = 1u << 20;
 	};
 
 	struct widget_text_ref_t
@@ -72,13 +74,13 @@ namespace sfg::ui
 		u32			len = 0;
 	};
 
-	class ui_context
+	class ui_context final
 	{
 	public:
 		ui_context()							 = default;
+		~ui_context()							 = default;
 		ui_context(const ui_context&)			 = delete;
 		ui_context& operator=(const ui_context&) = delete;
-		~ui_context()							 = default;
 
 		// -----------------------------------------------------------------------------
 		// lifetime
@@ -192,6 +194,16 @@ namespace sfg::ui
 		inline ui_phase_e get_phase() const
 		{
 			return _phase;
+		}
+
+		inline u32 get_snapshot_vertex_max_bytes() const
+		{
+			return _snapshot_slots[0].vertex_capacity * static_cast<u32>(sizeof(vg_vertex_t));
+		}
+
+		inline u32 get_snapshot_index_max_bytes() const
+		{
+			return _snapshot_slots[0].index_capacity * static_cast<u32>(sizeof(vg_index_t));
 		}
 
 	private:

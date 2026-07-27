@@ -54,7 +54,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(world_t& world, u32 bone_reserve, u32 animation_graph_memory_reserve);
+		void init(world_t& world, u32 bone_max_count, u32 animation_graph_budget_bytes);
 		void uninit();
 
 		// -----------------------------------------------------------------------------

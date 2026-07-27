@@ -12,7 +12,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	sfg::engine_runtime_t& runtime = sfg::engine_runtime_t::get();
 	runtime.init_globals();
 
-	if (!runtime.init_backend({}))
+	if (!runtime.init_backend())
 	{
 		runtime.uninit_globals();
 		return static_cast<int>(sfg_api_result_backend_failed);

@@ -51,11 +51,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_RAW_WHEEL_DELTA		 120.0f
-#define EDITOR_WORK_EXECUTOR_THREADS 4
-#define EDITOR_SPLASH_ASPECT_X		 16.0f
-#define EDITOR_SPLASH_ASPECT_Y		 9.0f
-#define EDITOR_SPLASH_MONITOR_SCALE	 0.25f
+#define EDITOR_RAW_WHEEL_DELTA		120.0f
+#define EDITOR_SPLASH_ASPECT_X		16.0f
+#define EDITOR_SPLASH_ASPECT_Y		9.0f
+#define EDITOR_SPLASH_MONITOR_SCALE 0.25f
 
 	editor_app_t::editor_app_t()  = default;
 	editor_app_t::~editor_app_t() = default;
@@ -75,8 +74,14 @@ namespace sfg
 			app.request_switch_mode(editor_app_mode_e::normal);
 	}
 
-	bool editor_app_t::init()
+	bool editor_app_t::init(const editor_app_config_t& config)
 	{
+		SFG_ASSERT(config.main_frame_budget_bytes != 0);
+		SFG_ASSERT(config.renderer.frame_budget_bytes != 0);
+		SFG_ASSERT(config.editor_work_executor_thread_count != 0);
+
+		_config = config;
+
 		engine_runtime_t& runtime = engine_runtime_t::get();
 
 		editor_text_rasterization_t::set_subpixel_enabled(true);
@@ -85,9 +90,9 @@ namespace sfg
 			return false;
 
 		/* engine globals, init backend & engine & editor managers */
-		runtime.init_globals(64ull * 1024ull * 1024ull);
+		runtime.init_globals(config.engine.global);
 
-		if (!runtime.init_backend({}))
+		if (!runtime.init_backend(config.engine.backend))
 		{
 			runtime.uninit_globals();
 			return false;
@@ -137,7 +142,7 @@ namespace sfg
 
 		render_resources_t::get().drain_requests();
 		resource_manager_t::get().flush();
-		if (!_renderer.init())
+		if (!_renderer.init(config.renderer))
 		{
 			_editor_resource_pack.uninit();
 			_engine_resource_pack.uninit();
@@ -149,8 +154,8 @@ namespace sfg
 		}
 		editor_surface_controller_t::get().init(_renderer, _payload_controller);
 
-		frame_allocator_tls_t::init(MAIN_FRAME_ALLOC_SIZE);
-		_editor_work_executor = make_unique<tf::Executor>(EDITOR_WORK_EXECUTOR_THREADS);
+		frame_allocator_tls_t::init(config.main_frame_budget_bytes);
+		_editor_work_executor = make_unique<tf::Executor>(config.editor_work_executor_thread_count);
 
 		const string_t& last_project = editor_settings_t::get().last_project_path;
 		if (!last_project.empty() && file_system_t::exists(last_project.c_str()))
@@ -211,7 +216,8 @@ namespace sfg
 		runtime.uninit_globals();
 		runtime.uninit_backend();
 		frame_allocator_tls_t::uninit();
-		_mode = editor_app_mode_e::none;
+		_config = {};
+		_mode	= editor_app_mode_e::none;
 	}
 
 	void editor_app_t::stop_render()
@@ -233,7 +239,7 @@ namespace sfg
 		_payload_controller.init(surfaces.get_surface(payload_surface));
 		_payload_controller.set_unhandled_listener(editor_surface_controller_t::on_payload_unhandled, this);
 
-		_command_system.init();
+		_command_system.init(_config.command_system);
 		_world_controller.init();
 
 		editor_asset_thumbnail_manager_t::get().init();

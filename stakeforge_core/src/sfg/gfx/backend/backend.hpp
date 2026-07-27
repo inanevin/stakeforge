@@ -34,7 +34,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 #ifdef SFG_PLATFORM_WINDOWS
-	typedef dx12_backend_t gfx_backend;
+	typedef dx12_backend_t		  gfx_backend;
+	typedef dx12_backend_config_t gfx_backend_config_t;
 #else
 
 #endif

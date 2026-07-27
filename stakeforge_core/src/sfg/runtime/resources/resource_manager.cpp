@@ -23,21 +23,28 @@ namespace sfg
 		return instance;
 	}
 
-	void resource_manager_t::init(resource_file_system_t& resource_file_system, size_t resource_memory_size)
+	void resource_manager_t::init(resource_file_system_t& resource_file_system, const resource_manager_config_t& config)
 	{
 		SFG_ASSERT(is_main_thread());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(resource_memory_size != 0);
+		SFG_ASSERT(config.memory_budget_bytes != 0);
 		SFG_ASSERT(_reload_listeners.empty());
 
 		_resource_file_system = &resource_file_system;
 		_generation			  = 0;
 
-		_memory.init(resource_memory_size);
-		_animation_storage.init();
+		_memory.init(config.memory_budget_bytes);
 
-		_entries.reserve(256);
-		_dirty_materials.reserve(64);
+		_entries.reserve(config.resource_initial_capacity);
+		_dirty_materials.reserve(config.dirty_material_initial_capacity);
+
+		if (config.reload_listener_initial_capacity != 0)
+			_reload_listeners.reserve(config.reload_listener_initial_capacity);
+	}
+
+	void resource_manager_t::init(resource_file_system_t& resource_file_system, size_t resource_memory_size)
+	{
+		init(resource_file_system, {.memory_budget_bytes = resource_memory_size});
 	}
 
 	void resource_manager_t::init_atlases(const ui::glyph_atlas_config_t& glyph_atlas_config)
@@ -73,7 +80,6 @@ namespace sfg
 		_dirty_materials.resize(0);
 
 		uninit_atlases();
-		_animation_storage.uninit();
 		_memory.uninit();
 		_reload_listeners.clear();
 		_resource_file_system = nullptr;

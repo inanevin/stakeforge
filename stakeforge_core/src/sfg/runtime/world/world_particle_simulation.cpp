@@ -43,30 +43,30 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define PARTICLE_SIMULATION_FIXED_STEP		  (1.0f / 60.0f)
-#define PARTICLE_SIMULATION_MAX_STEPS		  4
-#define PARTICLE_SIMULATION_EMITTER_RESERVE	  32
-#define PARTICLE_SIMULATION_PREWARM_MAX_STEPS 240
-
-	void world_particle_simulation_t::init(world_t& world)
+	void world_particle_simulation_t::init(world_t& world, const world_particle_simulation_config_t& config)
 	{
 		SFG_ASSERT(_world == nullptr);
+		SFG_ASSERT(config.fixed_step_seconds > 0.0f);
+		SFG_ASSERT(config.max_steps_per_tick != 0);
 
-		_world = &world;
-		_emitters.reserve(PARTICLE_SIMULATION_EMITTER_RESERVE);
+		_world	= &world;
+		_config = config;
+		_emitters.reserve(config.emitter_initial_capacity);
 	}
 
 	void world_particle_simulation_t::uninit()
 	{
 		clear();
 		_emitters.shrink_to_fit();
-		_world = nullptr;
+		_config = {};
+		_world	= nullptr;
 	}
 
 	void world_particle_simulation_t::clear()
 	{
 		_emitters.resize(0);
 		_fixed_accumulator = 0.0f;
+		_particle_count	   = 0;
 	}
 
 	void world_particle_simulation_t::begin_play()
@@ -97,15 +97,15 @@ namespace sfg
 		_fixed_accumulator += math::max(delta_time, 0.0f);
 		u32 step_count = 0;
 
-		while (_fixed_accumulator >= PARTICLE_SIMULATION_FIXED_STEP && step_count < PARTICLE_SIMULATION_MAX_STEPS)
+		while (_fixed_accumulator >= _config.fixed_step_seconds && step_count < _config.max_steps_per_tick)
 		{
-			simulate_step(PARTICLE_SIMULATION_FIXED_STEP);
-			_fixed_accumulator -= PARTICLE_SIMULATION_FIXED_STEP;
+			simulate_step(_config.fixed_step_seconds);
+			_fixed_accumulator -= _config.fixed_step_seconds;
 			++step_count;
 		}
 
-		if (step_count == PARTICLE_SIMULATION_MAX_STEPS)
-			_fixed_accumulator = math::min(_fixed_accumulator, PARTICLE_SIMULATION_FIXED_STEP);
+		if (step_count == _config.max_steps_per_tick)
+			_fixed_accumulator = math::min(_fixed_accumulator, _config.fixed_step_seconds);
 
 		const ecs_component_table_t& emitter_table	 = _world->get_component_table(type_id_t<component_particle_emitter_t>::value);
 		const ecs_component_table_t& transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
@@ -137,7 +137,10 @@ namespace sfg
 		runtime.playing = 0;
 
 		if (clear_particles)
+		{
+			_particle_count -= static_cast<u32>(runtime.particles.size());
 			runtime.particles.resize(0);
+		}
 	}
 
 	void world_particle_simulation_t::restart(entity_id_t entity)
@@ -146,6 +149,7 @@ namespace sfg
 		const component_system_particle_emitter_t& system		= ecs_helpers_t::table_get_as_const<component_system_particle_emitter_t>(system_table, entity);
 		particle_emitter_runtime_t&				   runtime		= _emitters[system.runtime_index];
 
+		_particle_count -= static_cast<u32>(runtime.particles.size());
 		runtime.particles.resize(0);
 		runtime.emitter_age			 = 0.0f;
 		runtime.emission_accumulator = 0.0f;
@@ -184,6 +188,7 @@ namespace sfg
 
 	void world_particle_simulation_t::reset_runtime(particle_emitter_runtime_t& runtime, const component_particle_emitter_t& emitter, const component_system_transform_t& transform)
 	{
+		_particle_count -= static_cast<u32>(runtime.particles.size());
 		runtime.particles.resize(0);
 		runtime.bounds				 = {};
 		runtime.emitter_age			 = 0.0f;
@@ -192,14 +197,14 @@ namespace sfg
 		runtime.completed_loops		 = 0;
 		runtime.burst_emitted		 = 0;
 		runtime.playing				 = emitter.play_on_create;
-		runtime.particles.reserve(emitter.max_particles);
+		runtime.particles.reserve(math::min(emitter.max_particles, math::min(_config.particle_per_emitter_initial_capacity, _config.particle_max_count)));
 
 		if (emitter.prewarm != 0 && emitter.loop_mode != particle_loop_mode_e::once && runtime.playing != 0)
 		{
-			const u32 prewarm_steps = math::min(static_cast<u32>(math::ceil(emitter.duration / PARTICLE_SIMULATION_FIXED_STEP)), static_cast<u32>(PARTICLE_SIMULATION_PREWARM_MAX_STEPS));
+			const u32 prewarm_steps = math::min(static_cast<u32>(math::ceil(emitter.duration / _config.fixed_step_seconds)), _config.prewarm_max_steps);
 
 			for (u32 step = 0; step < prewarm_steps; ++step)
-				simulate_emitter(runtime, emitter, transform, PARTICLE_SIMULATION_FIXED_STEP);
+				simulate_emitter(runtime, emitter, transform, _config.fixed_step_seconds);
 
 			const f32 active_age = runtime.emitter_age - emitter.start_delay;
 
@@ -236,6 +241,8 @@ namespace sfg
 		ecs_component_table_t& system_table	  = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
 		const entity_id_t	   removed_entity = _emitters[runtime_index].entity;
 		const u32			   last_index	  = static_cast<u32>(_emitters.size() - 1);
+
+		_particle_count -= static_cast<u32>(_emitters[runtime_index].particles.size());
 
 		if (runtime_index != last_index)
 		{
@@ -341,7 +348,7 @@ namespace sfg
 	void world_particle_simulation_t::simulate_emitter(particle_emitter_runtime_t& runtime, const component_particle_emitter_t& emitter, const component_system_transform_t& transform, f32 delta_time)
 	{
 		const curve_runtime_t* acceleration_curve	= emitter.acceleration_over_lifetime != NULL_RESOURCE_HANDLE ? resource_manager_t::get().find_runtime<curve_runtime_t>(emitter.acceleration_over_lifetime) : nullptr;
-		const vec3f_t		   gravity				= {0.0f, -9.81f * emitter.gravity_multiplier, 0.0f};
+		const vec3f_t		   gravity				= _config.gravity * emitter.gravity_multiplier;
 		const vec3f_t		   gravity_acceleration = emitter.simulation_space == particle_simulation_space_e::world ? gravity : transform.abs_rot.conjugate() * gravity;
 		const f32			   damping				= math::max(0.0f, 1.0f - emitter.drag * delta_time);
 
@@ -354,6 +361,7 @@ namespace sfg
 			{
 				particle = runtime.particles.back();
 				runtime.particles.pop_back();
+				--_particle_count;
 				continue;
 			}
 
@@ -428,8 +436,9 @@ namespace sfg
 
 	void world_particle_simulation_t::emit_particles(particle_emitter_runtime_t& runtime, const component_particle_emitter_t& emitter, const component_system_transform_t& transform, u32 count)
 	{
-		const u32 available	  = emitter.max_particles - static_cast<u32>(runtime.particles.size());
-		const u32 spawn_count = math::min(count, available);
+		const u32 emitter_available = emitter.max_particles - static_cast<u32>(runtime.particles.size());
+		const u32 world_available	= _config.particle_max_count - _particle_count;
+		const u32 spawn_count		= math::min(count, math::min(emitter_available, world_available));
 
 		for (u32 particle_index = 0; particle_index < spawn_count; ++particle_index)
 		{
@@ -462,6 +471,8 @@ namespace sfg
 
 			runtime.particles.push_back(particle);
 		}
+
+		_particle_count += spawn_count;
 	}
 
 	void world_particle_simulation_t::update_bounds(particle_emitter_runtime_t& runtime, const component_particle_emitter_t& emitter, const component_system_transform_t& transform)

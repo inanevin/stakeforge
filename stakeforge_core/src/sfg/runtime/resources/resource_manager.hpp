@@ -1,7 +1,6 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
-#include "animation_storage.hpp"
 #include "common_resources.hpp"
 #include "resource_reload_listener.hpp"
 #include "texture_streamer.hpp"
@@ -21,6 +20,14 @@ namespace sfg
 	struct vec4f_t;
 	enum class shader_param_type_e : u8;
 
+	struct resource_manager_config_t
+	{
+		size_t memory_budget_bytes				= 64ull * 1024ull * 1024ull;
+		u32	   resource_initial_capacity		= 256;
+		u32	   dirty_material_initial_capacity	= 64;
+		u32	   reload_listener_initial_capacity = 0;
+	};
+
 	class resource_manager_t final
 	{
 	public:
@@ -35,6 +42,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
+		void init(resource_file_system_t& resource_file_system, const resource_manager_config_t& config = {});
 		void init(resource_file_system_t& resource_file_system, size_t resource_memory_size);
 		void init_atlases(const ui::glyph_atlas_config_t& glyph_atlas_config = {});
 		void uninit_atlases();
@@ -108,16 +116,6 @@ namespace sfg
 			return _memory;
 		}
 
-		inline animation_storage_t& get_animation_storage()
-		{
-			return _animation_storage;
-		}
-
-		inline const animation_storage_t& get_animation_storage() const
-		{
-			return _animation_storage;
-		}
-
 		inline ui::glyph_atlas_t& get_glyph_atlas()
 		{
 			return _glyph_atlas;
@@ -163,7 +161,6 @@ namespace sfg
 		void update_material_parameter_data(resource_handle_t material, sid_t parameter_name, shader_param_type_e type, const void* data, size_t data_size);
 
 	private:
-		animation_storage_t																	_animation_storage;
 		chunk_allocator_t																	_memory;
 		hash_map_t<sid_t, resource_entry_t>													_entries;
 		dynamic_gen_pool_t<resource_reload_listener_t, u32, resource_reload_listener_tag_t> _reload_listeners;

@@ -266,10 +266,10 @@ namespace sfg::ui
 
 	void vg_canvas_t::init(const vg_canvas_config_t& cfg)
 	{
-		SFG_ASSERT(cfg.vertex_buffer_bytes > 0 && cfg.index_buffer_bytes > 0 && cfg.buffer_count > 0);
+		SFG_ASSERT(cfg.vertex_pool_budget_bytes > 0 && cfg.index_pool_budget_bytes > 0 && cfg.buffer_count > 0);
 
-		const u64 vtx_count = cfg.vertex_buffer_bytes / sizeof(vg_vertex_t);
-		const u64 idx_count = cfg.index_buffer_bytes / sizeof(vg_index_t);
+		const u64 vtx_count = cfg.vertex_pool_budget_bytes / sizeof(vg_vertex_t);
+		const u64 idx_count = cfg.index_pool_budget_bytes / sizeof(vg_index_t);
 
 		_vertex_pool				= static_cast<vg_vertex_t*>(SFG_MALLOC(sizeof(vg_vertex_t) * vtx_count));
 		_index_pool					= static_cast<vg_index_t*>(SFG_MALLOC(sizeof(vg_index_t) * idx_count));
@@ -277,8 +277,8 @@ namespace sfg::ui
 		_index_capacity_per_buffer	= static_cast<u32>(idx_count / cfg.buffer_count);
 		_buffer_count				= cfg.buffer_count;
 
-		const u64 cache_vtx = cfg.text_cache_vertex_bytes / sizeof(vg_vertex_t);
-		const u64 cache_idx = cfg.text_cache_index_bytes / sizeof(vg_index_t);
+		const u64 cache_vtx = cfg.text_cache_vertex_budget_bytes / sizeof(vg_vertex_t);
+		const u64 cache_idx = cfg.text_cache_index_budget_bytes / sizeof(vg_index_t);
 
 		_text_cache_vertex_buffer	= static_cast<vg_vertex_t*>(SFG_MALLOC(sizeof(vg_vertex_t) * cache_vtx));
 		_text_cache_index_buffer	= static_cast<vg_index_t*>(SFG_MALLOC(sizeof(vg_index_t) * cache_idx));
@@ -286,12 +286,12 @@ namespace sfg::ui
 		_text_cache_index_capacity	= static_cast<u32>(cache_idx);
 
 		_draw_buffers.reserve(cfg.buffer_count);
-		_scissor_clip_stack.reserve(cfg.clip_stack_capacity);
-		_cpu_clip_stack.reserve(cfg.clip_stack_capacity);
-		_text_cache.reserve(256);
-		_path0.reserve(512);
-		_path1.reserve(512);
-		_path2.reserve(512);
+		_scissor_clip_stack.reserve(cfg.clip_stack_initial_capacity);
+		_cpu_clip_stack.reserve(cfg.clip_stack_initial_capacity);
+		_text_cache.reserve(cfg.text_cache_initial_capacity);
+		_path0.reserve(cfg.path_initial_capacity);
+		_path1.reserve(cfg.path_initial_capacity);
+		_path2.reserve(cfg.path_initial_capacity);
 	}
 
 	void vg_canvas_t::uninit()

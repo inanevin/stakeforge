@@ -51,13 +51,15 @@ namespace sfg
 
 	void world_t::init(const world_init_config_t& config)
 	{
+		SFG_ASSERT(config.particle_simulation.particle_max_count == config.render_particle_max_count);
+
 		_debug_draw.init(config.debug_draw);
-		_component_tables.reserve(config.component_table_reserve);
-		_entity_free_list.reserve(config.free_list_reserve);
-		_text_allocations.reserve(config.text_allocation_reserve);
-		_text_allocation_free_list.reserve(config.text_allocation_reserve);
-		_text_allocator.init(config.text_byte_reserve);
-		_used_resources.reserve(config.used_resource_reserve);
+		_component_tables.reserve(config.component_table_initial_capacity);
+		_entity_free_list.reserve(config.entity_free_list_initial_capacity);
+		_text_allocations.reserve(config.text_allocation_initial_capacity);
+		_text_allocation_free_list.reserve(config.text_allocation_initial_capacity);
+		_text_allocator.init(config.text_budget_bytes);
+		_used_resources.reserve(config.used_resource_initial_capacity);
 
 		const vector_t<reflected_type_t>& types = reflection_registry_t::get().get_types();
 		for (const reflected_type_t& type : types)
@@ -81,9 +83,9 @@ namespace sfg
 
 		_logic_helper.init(*this);
 
-		_animation_controller.init(*this, config.render_bone_max, config.animation_graph_memory_reserve);
+		_animation_controller.init(*this, config.render_bone_max_count, config.animation_graph_budget_bytes);
 
-		_particle_simulation.init(*this);
+		_particle_simulation.init(*this, config.particle_simulation);
 
 		if (config.physics_enabled)
 		{
