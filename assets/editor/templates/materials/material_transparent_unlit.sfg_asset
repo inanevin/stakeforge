@@ -5,7 +5,6 @@
     "sub_type": 4,
     "embedded_source": {
         "schema": "sfg.schema.material",
-        "write_depth": false,
         "write_shadows": false,
         "write_reflections": true,
         "is_transparent": true,
