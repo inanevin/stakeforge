@@ -39,6 +39,10 @@ namespace sfg
 
 		// [min_inclusive, max_inclusive].
 		int random_int(int min_inclusive, int max_inclusive);
+
+		u32 next_u32(u32& state);
+		f32 random_01(u32& state);
+		f32 random_range(u32& state, f32 minimum, f32 maximum);
 	}
 
 }

@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "image_util.hpp"
+#include <sfg/data/ostream.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/math/math.hpp>
@@ -41,6 +42,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	namespace
+	{
+		void write_png_data(void* context, void* data, int size)
+		{
+			static_cast<ostream_t*>(context)->write_raw(static_cast<const u8*>(data), static_cast<size_t>(size));
+		}
+	}
+
 	void* image_util_t::load_from_file_ch(const char* file, u8 force_channels)
 	{
 		int		 x = 0, y = 0, comp = 0;
@@ -163,6 +172,11 @@ namespace sfg
 
 		const int result = stbir_resize_uint8_generic(src.data, src_size.x, src_size.y, 0, dst.data, dst_size.x, dst_size.y, 0, 4, 3, 0, stbir_edge::STBIR_EDGE_CLAMP, stbir_filter::STBIR_FILTER_DEFAULT, stbir_colorspace::STBIR_COLORSPACE_SRGB, nullptr);
 		return result != 0;
+	}
+
+	bool image_util_t::write_png(const texture_buffer_t& buffer, u8 channels, ostream_t& stream)
+	{
+		return stbi_write_png_to_func(write_png_data, &stream, buffer.size.x, buffer.size.y, channels, buffer.pixels, buffer.row_pitch) != 0 && stream.get_size() != 0;
 	}
 
 	u8 image_util_t::calculate_mip_levels(u16 width, u16 height)

@@ -32,5 +32,20 @@ namespace sfg
 	{
 		T*	   data = nullptr;
 		size_t size = 0;
+
+		inline T& operator[](size_t index) const
+		{
+			return data[index];
+		}
+
+		inline T* begin() const
+		{
+			return data;
+		}
+
+		inline T* end() const
+		{
+			return data + size;
+		}
 	};
 }

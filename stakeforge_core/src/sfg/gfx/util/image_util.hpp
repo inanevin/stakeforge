@@ -53,6 +53,7 @@ namespace sfg
 		static void* load_from_file_ch(const char* file, vec2u16_t& out_size, u8 force_channels);
 		static void* load_from_file(const char* file, u8& out_channels);
 		static void* load_from_file(const char* file, vec2u16_t& out_size, u8& out_channels);
+		static bool	 write_png(const texture_buffer_t& buffer, u8 channels, ostream_t& stream);
 		static bool	 resize_rgba8(span_t<const u8> src, const vec2u16_t& src_size, span_t<u8> dst, const vec2u16_t& dst_size);
 		static void	 generate_mips(texture_buffer_t* out_buffers, u8 target_levels, mip_gen_filter filter, u8 channels, bool is_linear, bool premultiplied_alpha);
 		static u8	 calculate_mip_levels(u16 width, u16 height);

@@ -70,7 +70,7 @@ namespace sfg::ui
 				return ref.gpu_indices[0];
 			if (ref.type == ui_resource_type_e::gpu_index_fof)
 				return ref.gpu_indices[frame_slot];
-			if (ref.type == ui_resource_type_e::texture)
+			if (ref.type == ui_resource_type_e::texture || ref.type == ui_resource_type_e::sprite)
 				return render_resources_t::get().get_texture_gpu_index(ref.texture, 0);
 			return NULL_GPU_INDEX;
 		}
