@@ -175,7 +175,6 @@ namespace sfg
 				return false;
 
 			out_material				   = material_def_from_shader_def(definition, shader);
-			out_material.write_depth	   = src.write_depth;
 			out_material.write_shadows	   = src.write_shadows;
 			out_material.write_reflections = src.write_reflections;
 			out_material.is_transparent	   = src.is_transparent;

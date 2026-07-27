@@ -66,6 +66,7 @@ namespace sfg
 		_world_config = {
 			.render_resolution				= vec2u16_t(EDITOR_THUMBNAIL_RENDER_SIZE, EDITOR_THUMBNAIL_RENDER_SIZE),
 			.render_entity_max				= 10,
+			.render_sprite_max				= 16,
 			.render_bone_max				= 128,
 			.render_bone_reserve			= 128,
 			.animation_graph_memory_reserve = 64 * 1024,
@@ -131,6 +132,7 @@ namespace sfg
 
 		_render_context.init({.size				   = _world_config.render_resolution,
 							  .entity_max		   = 10,
+							  .sprite_max		   = 16,
 							  .bone_max			   = 128,
 							  .triangle_vertex_max = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_VERTEX_MAX,
 							  .triangle_index_max  = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_INDEX_MAX,
@@ -143,6 +145,9 @@ namespace sfg
 		_debug_triangle_shader							= render_resources_t::get().get_shader_hw(debug_triangle_shader->psos[0]);
 		_snapshot.reserve({
 			.entity_count		   = 64,
+			.renderable_count	   = 80,
+			.draw_count			   = 64,
+			.sprite_count		   = 16,
 			.bone_count			   = 128,
 			.triangle_vertex_count = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_VERTEX_MAX,
 			.triangle_index_count  = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_INDEX_MAX,
