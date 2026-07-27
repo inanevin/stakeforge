@@ -547,6 +547,9 @@ namespace sfg
 		case assets_action_menu_create_skybox_shader:
 			text = "skybox_shader";
 			break;
+		case assets_action_menu_create_sprite_shader:
+			text = "sprite_shader";
+			break;
 		case assets_action_menu_create_texture_sampler:
 			text = "texture_sampler";
 			break;
@@ -564,6 +567,9 @@ namespace sfg
 			break;
 		case assets_action_menu_create_skybox_material:
 			text = "skybox_material";
+			break;
+		case assets_action_menu_create_sprite_material:
+			text = "sprite_material";
 			break;
 		case assets_action_menu_create_physical_material:
 			text = "physical_material";
@@ -671,6 +677,10 @@ namespace sfg
 			out_desc.asset_type = editor_asset_type_e::shader;
 			out_desc.sub_type	= static_cast<u8>(shader_type_e::skybox_shader);
 			return true;
+		case assets_action_menu_create_sprite_shader:
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::sprite_shader);
+			return true;
 		case assets_action_menu_create_texture_sampler:
 			out_desc.asset_type = editor_asset_type_e::texture_sampler;
 			return true;
@@ -693,6 +703,10 @@ namespace sfg
 		case assets_action_menu_create_skybox_material:
 			out_desc.asset_type = editor_asset_type_e::material;
 			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::skybox);
+			return true;
+		case assets_action_menu_create_sprite_material:
+			out_desc.asset_type = editor_asset_type_e::material;
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::sprite);
 			return true;
 		case assets_action_menu_create_physical_material:
 			out_desc.asset_type = editor_asset_type_e::physical_material;

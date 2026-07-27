@@ -75,5 +75,7 @@ namespace sfg
 		assets_action_menu_create_skybox_shader				 = 28,
 		assets_action_menu_create_skybox_material			 = 29,
 		assets_action_menu_create_transparent_unlit_material = 30,
+		assets_action_menu_create_sprite_shader				 = 31,
+		assets_action_menu_create_sprite_material			 = 32,
 	};
 }
