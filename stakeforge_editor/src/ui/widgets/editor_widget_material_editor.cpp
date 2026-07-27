@@ -190,7 +190,6 @@ namespace sfg
 			append_property_row(row.row);
 		};
 
-		append_bool_property("Write Depth", &material_def_t::write_depth);
 		append_bool_property("Write Shadows", &material_def_t::write_shadows);
 		append_bool_property("Write Reflections", &material_def_t::write_reflections);
 		append_bool_property("Transparent", &material_def_t::is_transparent);
@@ -484,7 +483,6 @@ namespace sfg
 		for (material_def_t& material : _materials)
 		{
 			material_def_t normalized	 = material_def_from_shader_def(_shader_definition, material.shader);
-			normalized.write_depth		 = material.write_depth;
 			normalized.write_shadows	 = material.write_shadows;
 			normalized.write_reflections = material.write_reflections;
 			normalized.is_transparent	 = material.is_transparent;
