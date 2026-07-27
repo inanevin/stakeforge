@@ -475,6 +475,13 @@ namespace sfg
 				return false;
 			}
 			break;
+		case shader_type_e::sprite_shader:
+			if (!shader_cook_variants_t::cook_sprite_shader(compile_source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook sprite shader variants: {0}", full_path);
+				return false;
+			}
+			break;
 		case shader_type_e::post_process_shader:
 			if (!shader_cook_variants_t::cook_post_process_shader(compile_source, include_paths, compiles, psos))
 			{

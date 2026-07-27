@@ -33,6 +33,7 @@ namespace sfg
 		clustered_light_culling,
 		reflection_specular_prefilter,
 		reflection_diffuse_sh,
+		sprite_shader,
 		count,
 	};
 

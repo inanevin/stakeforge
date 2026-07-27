@@ -193,6 +193,48 @@ namespace sfg
 
 			out_psos.push_back({.desc = desc, .variant_flags = variant_flags, .compile_variant_index = compile_variant_index});
 		}
+
+		void add_sprite_pso(vector_t<cook_pso_variant_t>& out_psos, u8 compile_variant_index, u32 variant_flags)
+		{
+			const bitmask_t<u32> flags = variant_flags;
+			shader_desc_t		 desc  = {};
+			desc.topo				   = topology::triangle_list;
+			desc.cull				   = cull_mode::none;
+			desc.front				   = front_face::ccw;
+			desc.fill				   = fill_mode::solid;
+			desc.poly_mode			   = polygon_mode::fill;
+			desc.samples			   = 1;
+
+			if (flags.is_set(shader_variant_flags_selection_outline))
+			{
+				add_attachment(desc, format_e::r8g8b8a8_unorm, blend_attachments_t::get_none());
+			}
+			else if (flags.is_set(shader_variant_flags_id_write))
+			{
+				add_attachment(desc, format_e::r32_uint, blend_attachments_t::get_none());
+			}
+			else if (flags.is_set(shader_variant_flags_gbuffer))
+			{
+				add_attachment(desc, format_e::r8g8b8a8_srgb, blend_attachments_t::get_none());
+				add_attachment(desc, format_e::r10g0b10a2_unorm, blend_attachments_t::get_none());
+				add_attachment(desc, format_e::r8g8b8a8_unorm, blend_attachments_t::get_none());
+				add_attachment(desc, format_e::r16g16b16a16_sfloat, blend_attachments_t::get_none());
+			}
+			else if (!flags.is_set(shader_variant_flags_z_prepass))
+			{
+				add_attachment(desc, format_e::r16g16b16a16_sfloat, blend_attachments_t::get_alpha_blend());
+			}
+
+			bitmask_t<u8> depth_flags = flags.is_set(shader_variant_flags_selection_outline) ? 0 : dsf_depth_test;
+			depth_flags.set(dsf_depth_write, flags.is_set(shader_variant_flags_z_prepass));
+			desc.depth_stencil_desc = {
+				.attachment_format = flags.is_set(shader_variant_flags_selection_outline) ? format_e::undefined : format_e::d32_sfloat,
+				.depth_compare	   = flags.is_set(shader_variant_flags_shadow_rendering) ? compare_op::lequal : compare_op::gequal,
+				.flags			   = depth_flags,
+			};
+
+			out_psos.push_back({.desc = desc, .variant_flags = variant_flags, .compile_variant_index = compile_variant_index});
+		}
 	}
 
 	bool shader_cook_variants_t::cook_object_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
@@ -287,6 +329,31 @@ namespace sfg
 			add_object_pso(out_psos, compile_variant, flags | shader_variant_flags_double_sided);
 		}
 
+		return true;
+	}
+
+	bool shader_cook_variants_t::cook_sprite_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
+	{
+		out_compiles.reserve(5);
+		out_psos.reserve(6);
+
+		if (!add_compile_variant(out_compiles, source, {}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_GBUFFER"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_ZPREPASS"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"WRITE_ID"}, include_paths, true))
+			return false;
+		if (!add_compile_variant(out_compiles, source, {"USE_SELECTION"}, include_paths, true))
+			return false;
+
+		add_sprite_pso(out_psos, 0, 0);
+		add_sprite_pso(out_psos, 1, shader_variant_flags_gbuffer);
+		add_sprite_pso(out_psos, 2, shader_variant_flags_z_prepass);
+		add_sprite_pso(out_psos, 2, shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering);
+		add_sprite_pso(out_psos, 3, shader_variant_flags_id_write);
+		add_sprite_pso(out_psos, 4, shader_variant_flags_selection_outline);
 		return true;
 	}
 
