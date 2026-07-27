@@ -63,7 +63,7 @@ namespace sfg
 			world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, const world_render_reflection_probe_t*& out_reflection_probe, u16* out_cull_view_indices);
 		static void prep_shadow_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index);
 		static void prep_debug_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index);
-		static void prep_culls(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index);
+		static void prep_render_queues(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index);
 		static void prep_render_pass_buffers(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, const u32 (&light_counts)[4], u8 frame_index);
 	};
 }

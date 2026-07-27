@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_gpu_entity.hpp"
 #include "world_gpu_light.hpp"
 #include "world_gpu_reflection_probe.hpp"
+#include "world_draw_common.hpp"
 #include "render_resources.hpp"
 #include "world_render_context.hpp"
 #include "world_render_reflection_context.hpp"
@@ -222,6 +223,7 @@ namespace sfg
 					.inv_viewport_size = vec2f_t(1.0f / resolution, 1.0f / resolution),
 					.near_plane		   = light.shadow_near_plane,
 					.far_plane		   = light.range,
+					.queue_flags	   = world_render_queue_flag_shadow,
 				};
 				const u16 cull_view_index = prep_data.add_view(prep_view);
 
@@ -397,6 +399,7 @@ namespace sfg
 				.cluster_buffer_offset				 = cluster_offset,
 				.cluster_light_indices_buffer_offset = cluster_light_indices_offset,
 				.cluster_light_capacity				 = WORLD_RENDER_CLUSTER_LIGHT_CAPACITY,
+				.queue_flags						 = world_render_queue_flag_depth | world_render_queue_flag_opaque | world_render_queue_flag_transparent,
 			};
 
 			if (reflection_probe.capture_type == world_render_reflection_probe_capture_type_e::scene)
@@ -580,43 +583,130 @@ namespace sfg
 		}
 	}
 
-	void world_rendering_util_t::prep_culls(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index)
+	void world_rendering_util_t::prep_render_queues(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index)
 	{
-		// culling, for every prep data view inserted cull every draw against them.
-
 		gpu_entity_t* entity_buffer = reinterpret_cast<gpu_entity_t*>(ctx.get_mapped_entity_buffer(frame_index));
-		const u32	  draw_count	= static_cast<u32>(snapshot.draws.size());
-		const u32	  word_count	= (draw_count + 63) / 64;
-		const size_t  mask_count	= prep_data.views.size() * word_count;
 
-		prep_data.cull_word_count = word_count;
-		prep_data.draw_cull_masks.resize(mask_count);
+		prep_data.depth_queue.resize(0);
+		prep_data.opaque_queue.resize(0);
+		prep_data.transparent_queue.resize(0);
+		prep_data.shadow_queue.resize(0);
+		prep_data.visible_queue.resize(0);
 
-		if (mask_count != 0)
-			SFG_MEMSET(prep_data.draw_cull_masks.data(), 0, mask_count * sizeof(u64));
-
-		for (u32 draw_index = 0; draw_index < draw_count; ++draw_index)
+		for (world_render_prep_view_t& view : prep_data.views)
 		{
-			const world_draw_t& draw = snapshot.draws[draw_index];
+			view.depth_queue_start		 = static_cast<u32>(prep_data.depth_queue.size());
+			view.opaque_queue_start		 = static_cast<u32>(prep_data.opaque_queue.size());
+			view.transparent_queue_start = static_cast<u32>(prep_data.transparent_queue.size());
+			view.shadow_queue_start		 = static_cast<u32>(prep_data.shadow_queue.size());
+			view.visible_queue_start	 = static_cast<u32>(prep_data.visible_queue.size());
 
-			if (draw.aabb.is_empty())
-				continue;
-
-			SFG_ASSERT(draw.entity_index < snapshot.entities.size());
-
-			const mat4x4_t& model = entity_buffer[draw.entity_index].model;
-			const mat3x3_t	linear_model(model[0], model[1], model[2], model[4], model[5], model[6], model[8], model[9], model[10]);
-			const vec3f_t	position = model.get_translation();
-
-			for (size_t view_index = 0; view_index < prep_data.views.size(); ++view_index)
+			for (u32 renderable_index = 0; renderable_index < snapshot.renderables.size(); ++renderable_index)
 			{
-				if (frustum_t::test(prep_data.views[view_index].frustum, draw.aabb, linear_model, position) != frustum_result::outside)
+				const world_renderable_t& renderable = snapshot.renderables[renderable_index];
+				SFG_ASSERT(renderable.entity_index < snapshot.entities.size());
+
+				const mat4x4_t& model = entity_buffer[renderable.entity_index].model;
+				const mat3x3_t	linear_model(model[0], model[1], model[2], model[4], model[5], model[6], model[8], model[9], model[10]);
+				const vec3f_t	position = model.get_translation();
+
+				if (!renderable.aabb.is_empty() && frustum_t::test(view.frustum, renderable.aabb, linear_model, position) == frustum_result::outside)
 					continue;
 
-				u64& mask_word = prep_data.draw_cull_masks[view_index * word_count + draw_index / 64];
-				mask_word |= 1ull << (draw_index % 64);
+				const vec3f_t					local_center = (renderable.aabb.bounds_min + renderable.aabb.bounds_max) * 0.5f;
+				const vec3f_t					world_center = model * local_center;
+				const vec4f_t					view_center	 = view.view * vec4f_t(world_center.x, world_center.y, world_center.z, 1.0f);
+				const world_render_queue_item_t item		 = {
+					.depth			  = -view_center.z,
+					.renderable_index = renderable_index,
+				};
+
+				if ((view.queue_flags & world_render_queue_flag_depth) != 0 && (renderable.pass_mask & world_pass_flags_depth) != 0)
+					prep_data.depth_queue.push_back(item);
+
+				if ((view.queue_flags & world_render_queue_flag_opaque) != 0 && (renderable.pass_mask & world_pass_flags_gbuffer) != 0)
+					prep_data.opaque_queue.push_back(item);
+
+				if ((view.queue_flags & world_render_queue_flag_transparent) != 0 && (renderable.pass_mask & world_pass_flags_forward) != 0)
+					prep_data.transparent_queue.push_back(item);
+
+				if ((view.queue_flags & world_render_queue_flag_shadow) != 0 && (renderable.pass_mask & world_pass_flags_shadow) != 0)
+					prep_data.shadow_queue.push_back(item);
+
+				if ((view.queue_flags & world_render_queue_flag_visible) != 0 && (renderable.pass_mask & world_pass_flags_id) != 0)
+					prep_data.visible_queue.push_back(item);
 			}
+
+			view.depth_queue_count		 = static_cast<u32>(prep_data.depth_queue.size()) - view.depth_queue_start;
+			view.opaque_queue_count		 = static_cast<u32>(prep_data.opaque_queue.size()) - view.opaque_queue_start;
+			view.transparent_queue_count = static_cast<u32>(prep_data.transparent_queue.size()) - view.transparent_queue_start;
+			view.shadow_queue_count		 = static_cast<u32>(prep_data.shadow_queue.size()) - view.shadow_queue_start;
+			view.visible_queue_count	 = static_cast<u32>(prep_data.visible_queue.size()) - view.visible_queue_start;
+
+			// depth is sorted front to back
+			std::sort(prep_data.depth_queue.begin() + view.depth_queue_start, prep_data.depth_queue.begin() + view.depth_queue_start + view.depth_queue_count, [](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
+				return left.depth < right.depth;
+			});
+
+			// opaque sorted front to back
+			std::sort(prep_data.opaque_queue.begin() + view.opaque_queue_start, prep_data.opaque_queue.begin() + view.opaque_queue_start + view.opaque_queue_count, [&snapshot](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
+				const world_renderable_t& left_renderable  = snapshot.renderables[left.renderable_index];
+				const world_renderable_t& right_renderable = snapshot.renderables[right.renderable_index];
+				return left_renderable.sort_key == right_renderable.sort_key ? left.depth < right.depth : left_renderable.sort_key < right_renderable.sort_key;
+			});
+
+			// transparent draws sorted back to front
+			std::sort(prep_data.transparent_queue.begin() + view.transparent_queue_start,
+					  prep_data.transparent_queue.begin() + view.transparent_queue_start + view.transparent_queue_count,
+					  [](const world_render_queue_item_t& left, const world_render_queue_item_t& right) { return left.depth > right.depth; });
+
+			// shadows fron to back
+			std::sort(prep_data.shadow_queue.begin() + view.shadow_queue_start, prep_data.shadow_queue.begin() + view.shadow_queue_start + view.shadow_queue_count, [&snapshot](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
+				const world_renderable_t& left_renderable  = snapshot.renderables[left.renderable_index];
+				const world_renderable_t& right_renderable = snapshot.renderables[right.renderable_index];
+				return left_renderable.sort_key == right_renderable.sort_key ? left.depth < right.depth : left_renderable.sort_key < right_renderable.sort_key;
+			});
+
+			std::sort(prep_data.visible_queue.begin() + view.visible_queue_start, prep_data.visible_queue.begin() + view.visible_queue_start + view.visible_queue_count, [](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
+				return left.depth > right.depth;
+			});
 		}
+
+		world_draw_sprite_instance_gpu_t* mapped_instances = reinterpret_cast<world_draw_sprite_instance_gpu_t*>(ctx.get_mapped_sprite_instance_buffer(frame_index));
+		render_resources_t&				  render_resources = render_resources_t::get();
+		u32								  instance_count   = 0;
+
+		auto append_sprite_instances = [&](vector_t<world_render_queue_item_t>& queue) {
+			for (world_render_queue_item_t& item : queue)
+			{
+				const world_renderable_t& renderable = snapshot.renderables[item.renderable_index];
+
+				if (renderable.type != world_renderable_type_e::sprite)
+					continue;
+
+				SFG_ASSERT(instance_count < ctx.get_sprite_instance_max());
+
+				const world_sprite_draw_t&	 sprite = snapshot.sprite_draws[renderable.payload_index];
+				const world_render_entity_t& entity = snapshot.entities[renderable.entity_index];
+
+				item.sprite_instance_index		 = instance_count;
+				mapped_instances[instance_count] = {
+					.uv_start	   = sprite.uv_start,
+					.uv_size	   = sprite.uv_size,
+					.size		   = sprite.size,
+					.texture_index = render_resources.get_texture_gpu_index(sprite.texture, 0),
+					.entity_index  = renderable.entity_index,
+					.entity_id	   = entity.entity_id,
+				};
+				++instance_count;
+			}
+		};
+
+		append_sprite_instances(prep_data.depth_queue);
+		append_sprite_instances(prep_data.opaque_queue);
+		append_sprite_instances(prep_data.transparent_queue);
+		append_sprite_instances(prep_data.shadow_queue);
+		append_sprite_instances(prep_data.visible_queue);
 	}
 
 	void world_rendering_util_t::prep_render_pass_buffers(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, const u32 (&light_counts)[4], u8 frame_index)
