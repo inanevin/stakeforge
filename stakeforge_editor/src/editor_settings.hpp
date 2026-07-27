@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/runtime/resources/audio_cook.hpp>
 #include <sfg/runtime/resources/cubemap_cook.hpp>
+#include <sfg/runtime/resources/sprite_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
@@ -42,6 +43,7 @@ namespace sfg
 		audio_cook_config_t	  audio	  = {};
 		cubemap_cook_config_t cubemap = {};
 		glb_cook_config_t	  glb	  = {};
+		sprite_cook_config_t  sprite  = {};
 	};
 
 	struct editor_settings_t

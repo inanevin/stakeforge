@@ -402,6 +402,7 @@ namespace sfg
 		_payload_asset_nodes.clear();
 		clear_pending_import();
 		clear_pending_import_orm_texture();
+		clear_pending_import_sprite();
 
 		editor_panel_t::uninit();
 	}

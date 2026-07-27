@@ -156,8 +156,14 @@ namespace sfg
 			return false;
 		}
 
-		const string_t					 extension	 = file_system_t::get_file_extension(source_path);
-		const editor_asset_import_type_e import_type = get_import_type_from_extension(extension);
+		string_t extension = file_system_t::get_file_extension(source_path);
+		string_util::to_lower(extension);
+
+		editor_asset_import_type_e import_type = get_import_type_from_extension(extension);
+
+		if (extension == "png" && find_import_options(options, editor_asset_import_type_e::sprite) != nullptr)
+			import_type = editor_asset_import_type_e::sprite;
+
 		if (import_type == editor_asset_import_type_e::invalid)
 		{
 			SFG_ERR("unsupported import extension: {0}", extension.c_str());
@@ -214,6 +220,42 @@ namespace sfg
 				SFG_ERR("failed to cook imported texture asset {0}", asset.guid);
 				return false;
 			}
+			break;
+		}
+		case editor_asset_import_type_e::sprite: {
+			string_t status = "Importing sprite: ";
+			status += asset_name;
+			context.report_status(status.c_str());
+
+			const sprite_cook_config_t& sprite_config = import_options->sprite_cook_config;
+			nlohmann::json				cook_options  = nlohmann::json::object();
+
+			if (!reflection_registry_t::get().type_to_json(type_id_t<sprite_cook_config_t>::value, const_cast<sprite_cook_config_t*>(&sprite_config), nullptr, cook_options))
+			{
+				SFG_ERR("failed to serialize sprite import options for {0}", source_path.c_str());
+				return false;
+			}
+
+			const editor_asset_write_existing_file_desc_t write_desc{
+				.cook_options	  = &cook_options,
+				.parent_path	  = target_directory,
+				.name			  = asset_name.c_str(),
+				.source_full_path = source_path.c_str(),
+				.asset_type		  = editor_asset_type_e::sprite,
+			};
+
+			if (!editor_asset_writer_t::write_existing_file_asset(write_desc, &asset, &asset_path))
+			{
+				SFG_ERR("failed to create imported sprite asset {0}", asset_name.c_str());
+				return false;
+			}
+
+			if (!editor_asset_cooker_t::cook_sprite(asset, asset_name.c_str()))
+			{
+				SFG_ERR("failed to cook imported sprite asset {0}", asset.guid);
+				return false;
+			}
+
 			break;
 		}
 		case editor_asset_import_type_e::font: {

@@ -43,6 +43,7 @@ namespace sfg
 
 	class editor_checkbox_t;
 	class editor_color_field_t;
+	class editor_dropdown_t;
 	class editor_input_field_t;
 	class editor_vec2_field_t;
 	class editor_vec4_field_t;
@@ -107,6 +108,7 @@ namespace sfg
 		vector_t<editor_widget_reference_t*> _references					 = {};
 		vector_t<editor_checkbox_t*>		 _checkboxes					 = {};
 		vector_t<editor_color_field_t*>		 _color_fields					 = {};
+		vector_t<editor_dropdown_t*>		 _dropdowns						 = {};
 		vector_t<editor_input_field_t*>		 _inputs						 = {};
 		vector_t<editor_vec2_field_t*>		 _vec2_fields					 = {};
 		vector_t<editor_vec4_field_t*>		 _vec4_fields					 = {};

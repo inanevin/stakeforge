@@ -93,6 +93,7 @@ namespace sfg
 		j["audio"]	 = reflected_to_json(settings.audio);
 		j["cubemap"] = reflected_to_json(settings.cubemap);
 		j["glb"]	 = reflected_to_json(settings.glb);
+		j["sprite"]	 = reflected_to_json(settings.sprite);
 	}
 
 	void from_json(const nlohmann::json& j, editor_import_settings_t& settings)
@@ -101,6 +102,7 @@ namespace sfg
 		reflected_from_json(j.value("audio", nlohmann::json::object()), settings.audio);
 		reflected_from_json(j.value("cubemap", nlohmann::json::object()), settings.cubemap);
 		reflected_from_json(j.value("glb", nlohmann::json::object()), settings.glb);
+		reflected_from_json(j.value("sprite", nlohmann::json::object()), settings.sprite);
 	}
 
 	void to_json(nlohmann::json& j, const editor_settings_t& settings)

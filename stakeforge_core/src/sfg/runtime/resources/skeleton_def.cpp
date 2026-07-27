@@ -137,6 +137,25 @@ namespace sfg
 		});
 	}
 
+	skeleton_slot_def_reflection_t::skeleton_slot_def_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+
+		registry.register_type({
+			.name = "skeleton_slot_def_t",
+			.fields =
+				{
+					{.name = "slot_name", .display_name = "Slot Name", .offset = offsetof(skeleton_slot_def_t, slot_name), .size = sizeof(skeleton_slot_def_t::slot_name), .type = reflected_value_type_e::char_array},
+					{.name = "slot_joint_index", .display_name = "Target Joint", .offset = offsetof(skeleton_slot_def_t, slot_joint_index), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+					{.name = "local_position", .display_name = "Local Position", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(skeleton_slot_def_t, local_position), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
+					{.name = "local_rotation", .display_name = "Local Rotation", .sub_type_id = type_id_t<quat_t>::value, .offset = offsetof(skeleton_slot_def_t, local_rotation), .size = sizeof(quat_t), .type = reflected_value_type_e::object},
+				},
+			.type_id   = type_id_t<skeleton_slot_def_t>::value,
+			.size	   = sizeof(skeleton_slot_def_t),
+			.alignment = alignof(skeleton_slot_def_t),
+		});
+	}
+
 	skeleton_def_reflection_t::skeleton_def_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();
@@ -145,20 +164,28 @@ namespace sfg
 			.name = "skeleton_def_t",
 			.fields =
 				{
-					{.name = "name", .display_name = "Name", .offset = offsetof(skeleton_def_t, name), .size = sizeof(string_t), .type = reflected_value_type_e::string},
+					{.name = "name", .display_name = "Name", .offset = offsetof(skeleton_def_t, name), .size = sizeof(string_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::string},
 					{.container_ops = reflection_container_ops_t::vector_ops<skeleton_joint_def_t>(reflected_value_type_e::object, type_id_t<skeleton_joint_def_t>::value),
 					 .name			= "joints",
 					 .display_name	= "Joints",
 					 .offset		= offsetof(skeleton_def_t, joints),
 					 .size			= sizeof(vector_t<skeleton_joint_def_t>),
+					 .flags			= reflected_field_flag_no_ui,
 					 .type			= reflected_value_type_e::container},
 					{.container_ops = reflection_container_ops_t::vector_ops<u32>(reflected_value_type_e::u32),
 					 .name			= "evaluation_order",
 					 .display_name	= "Evaluation Order",
 					 .offset		= offsetof(skeleton_def_t, evaluation_order),
 					 .size			= sizeof(vector_t<u32>),
+					 .flags			= reflected_field_flag_no_ui,
 					 .type			= reflected_value_type_e::container},
-					{.name = "root_index", .display_name = "Root Index", .offset = offsetof(skeleton_def_t, root_joint_index), .size = sizeof(u32), .type = reflected_value_type_e::u32},
+					{.container_ops = reflection_container_ops_t::vector_ops<skeleton_slot_def_t>(reflected_value_type_e::object, type_id_t<skeleton_slot_def_t>::value),
+					 .name			= "slots",
+					 .display_name	= "Slots",
+					 .offset		= offsetof(skeleton_def_t, slots),
+					 .size			= sizeof(vector_t<skeleton_slot_def_t>),
+					 .type			= reflected_value_type_e::container},
+					{.name = "root_index", .display_name = "Root Index", .offset = offsetof(skeleton_def_t, root_joint_index), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
 				},
 			.type_id   = type_id_t<skeleton_def_t>::value,
 			.size	   = sizeof(skeleton_def_t),

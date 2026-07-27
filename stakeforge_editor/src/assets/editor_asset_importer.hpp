@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/resources/audio_cook.hpp>
 #include <sfg/runtime/resources/cubemap_cook.hpp>
+#include <sfg/runtime/resources/sprite_cook.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 
 namespace sfg
@@ -51,6 +52,7 @@ namespace sfg
 		model,
 		cubemap,
 		orm_texture,
+		sprite,
 	};
 
 	struct editor_texture_orm_import_sources_t
@@ -75,6 +77,7 @@ namespace sfg
 		audio_cook_config_t		   audio_cook_config   = {};
 		cubemap_cook_config_t	   cubemap_cook_config = {};
 		glb_cook_config_t		   glb_cook_config	   = {};
+		sprite_cook_config_t	   sprite_cook_config  = {};
 		editor_asset_import_type_e type				   = editor_asset_import_type_e::invalid;
 	};
 

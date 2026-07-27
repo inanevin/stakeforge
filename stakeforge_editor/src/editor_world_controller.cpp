@@ -395,7 +395,7 @@ namespace sfg
 			world.tick_physics(dt_seconds);
 
 			world.tick_animation_prep(dt_seconds);
-			world.tick_post();
+			world.tick_post(dt_seconds);
 			return;
 		}
 
@@ -410,6 +410,7 @@ namespace sfg
 
 			break;
 		case editor_play_mode_e::play:
+			world.tick_logic(dt_seconds);
 			world.update_world_transforms();
 			world.tick_physics(dt_seconds);
 
@@ -425,6 +426,7 @@ namespace sfg
 		case editor_play_mode_e::play_paused:
 			if (force_simulation)
 			{
+				world.tick_logic(dt_seconds);
 				world.update_world_transforms();
 				world.tick_physics(dt_seconds);
 
@@ -444,7 +446,8 @@ namespace sfg
 			break;
 		}
 
-		world.tick_post();
+		const bool simulation_paused = mode == editor_play_mode_e::play_paused || mode == editor_play_mode_e::play_physics_paused;
+		world.tick_post(simulation_paused && !force_simulation ? 0.0f : dt_seconds);
 	}
 
 	void editor_world_controller_t::update_physics_settings(const u64* collision_masks, u64 active_layers, u32 physics_rate, u32 max_sub_steps)

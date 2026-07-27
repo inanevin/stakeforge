@@ -58,7 +58,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/skeleton_cook.hpp>
 #include <sfg/runtime/resources/skeleton_def.hpp>
+#include <sfg/runtime/resources/sprite_cook.hpp>
 #include <sfg/runtime/resources/cubemap_cook.hpp>
+#include <sfg/runtime/resources/curve_cook.hpp>
+#include <sfg/runtime/resources/curve_def.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
 #include <sfg/serialization/serialization.hpp>
@@ -135,6 +138,10 @@ namespace sfg
 			return cook_animation(asset, asset_name);
 		case editor_asset_type_e::texture:
 			return cook_texture(asset, asset_name);
+		case editor_asset_type_e::sprite:
+			return cook_sprite(asset, asset_name);
+		case editor_asset_type_e::curve:
+			return cook_curve(asset, asset_name);
 		case editor_asset_type_e::texture_sampler:
 			return cook_texture_sampler(asset, asset_name);
 		case editor_asset_type_e::physical_material:
@@ -165,6 +172,8 @@ namespace sfg
 		case editor_asset_type_e::skeleton:
 		case editor_asset_type_e::animation:
 		case editor_asset_type_e::texture:
+		case editor_asset_type_e::sprite:
+		case editor_asset_type_e::curve:
 		case editor_asset_type_e::texture_sampler:
 		case editor_asset_type_e::physical_material:
 		case editor_asset_type_e::animation_graph:
@@ -326,6 +335,32 @@ namespace sfg
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 
+	bool editor_asset_cooker_t::cook_curve(const editor_asset_t& asset, const char* asset_name)
+	{
+		SFG_ASSERT(asset.asset_type == editor_asset_type_e::curve);
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
+
+		curve_def_t			 def			 = {};
+		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<curve_def_t>::value, &def, nullptr, embedded_source))
+		{
+			SFG_ERR("failed to deserialize curve definition for asset {0}", asset.guid);
+			return false;
+		}
+
+		resource_header_t header = {};
+		ostream_t		  stream = {};
+
+		if (!curve_cooker::cook_from_def(def, header, stream))
+		{
+			SFG_ERR("failed to cook curve asset {0}", asset.guid);
+			return false;
+		}
+
+		return save_cooked_asset(asset, header, stream, asset_name);
+	}
+
 	bool editor_asset_cooker_t::cook_animation_graph(const editor_asset_t& asset, const char* asset_name)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::animation_graph);
@@ -373,6 +408,33 @@ namespace sfg
 		if (!texture_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
 		{
 			SFG_ERR("failed to cook texture asset {0}", asset.guid);
+			return false;
+		}
+
+		return save_cooked_asset(asset, header, stream, asset_name);
+	}
+
+	bool editor_asset_cooker_t::cook_sprite(const editor_asset_t& asset, const char* asset_name)
+	{
+		SFG_ASSERT(asset.asset_type == editor_asset_type_e::sprite);
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob);
+
+		sprite_cook_config_t config		  = {};
+		const nlohmann::json cook_options = editor_asset_io_t::get_cook_options_json(asset);
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<sprite_cook_config_t>::value, &config, nullptr, cook_options))
+		{
+			SFG_ERR("failed to deserialize sprite cook options for asset {0}", asset.guid);
+			return false;
+		}
+
+		resource_header_t header		   = {};
+		ostream_t		  stream		   = {};
+		const string_t	  source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+
+		if (!sprite_cooker::cook_from_file(config, source_full_path.c_str(), header, stream))
+		{
+			SFG_ERR("failed to cook sprite asset {0}", asset.guid);
 			return false;
 		}
 

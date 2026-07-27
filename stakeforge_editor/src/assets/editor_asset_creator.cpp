@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/animation_graph_def.hpp>
+#include <sfg/runtime/resources/curve_def.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -68,8 +69,12 @@ namespace sfg
 				return EDITOR_TEMPLATE_MATERIALS "material_transparent_unlit.sfg_asset";
 			case editor_material_type_e::skybox:
 				return EDITOR_TEMPLATE_MATERIALS "material_skybox.sfg_asset";
-			case editor_material_type_e::sprite:
-				return EDITOR_TEMPLATE_MATERIALS "material_sprite.sfg_asset";
+			case editor_material_type_e::sprite_lit:
+				return EDITOR_TEMPLATE_MATERIALS "material_sprite_lit.sfg_asset";
+			case editor_material_type_e::sprite_unlit:
+				return EDITOR_TEMPLATE_MATERIALS "material_sprite_unlit.sfg_asset";
+			case editor_material_type_e::particle:
+				return EDITOR_TEMPLATE_MATERIALS "material_particle.sfg_asset";
 			default:
 				return EDITOR_TEMPLATE_MATERIALS "material_opaque.sfg_asset";
 			}
@@ -89,8 +94,12 @@ namespace sfg
 				return EDITOR_SHADERS "editor_ui_text_grayscale.hlsl";
 			case shader_type_e::skybox_shader:
 				return COMMON_SHADERS "world/skybox_cube.hlsl";
-			case shader_type_e::sprite_shader:
-				return COMMON_SHADERS "world/sprite.hlsl";
+			case shader_type_e::sprite_lit_shader:
+				return COMMON_SHADERS "world/sprite_lit.hlsl";
+			case shader_type_e::sprite_unlit_shader:
+				return COMMON_SHADERS "world/sprite_unlit.hlsl";
+			case shader_type_e::particle_shader:
+				return COMMON_SHADERS "world/particle.hlsl";
 			default:
 				return COMMON_SHADERS "world/object_lit.hlsl";
 			}
@@ -180,6 +189,32 @@ namespace sfg
 				.sub_type		 = desc.sub_type,
 				.allow_overwrite = desc.allow_overwrite,
 			};
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
+		}
+
+		bool create_curve_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
+		{
+			curve_def_t	   definition	   = {};
+			nlohmann::json embedded_source = nlohmann::json::object();
+
+			if (!reflection_registry_t::get().type_to_json(type_id_t<curve_def_t>::value, &definition, nullptr, embedded_source))
+			{
+				SFG_ERR("failed to serialize initial curve definition");
+				return false;
+			}
+
+			embedded_source["schema"] = "sfg.schema.curve";
+
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &embedded_source,
+				.parent_path	 = parent_path,
+				.name			 = desc.name,
+				.guid			 = desc.guid,
+				.asset_type		 = editor_asset_type_e::curve,
+				.sub_type		 = desc.sub_type,
+				.allow_overwrite = desc.allow_overwrite,
+			};
+
 			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
@@ -300,6 +335,11 @@ namespace sfg
 			result = create_physical_material_asset(desc, parent_path, &asset, &asset_path);
 			if (result)
 				result = editor_asset_cooker_t::cook_physical_material(asset, desc.name);
+			break;
+		case editor_asset_type_e::curve:
+			result = create_curve_asset(desc, parent_path, &asset, &asset_path);
+			if (result)
+				result = editor_asset_cooker_t::cook_curve(asset, desc.name);
 			break;
 		case editor_asset_type_e::animation_graph:
 			result = create_animation_graph_asset(desc, parent_path, &asset, &asset_path);

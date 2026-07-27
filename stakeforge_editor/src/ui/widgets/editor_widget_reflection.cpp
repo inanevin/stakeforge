@@ -53,6 +53,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/platform/process.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 
 namespace sfg
 {

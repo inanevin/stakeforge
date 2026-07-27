@@ -26,7 +26,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/panels/editor_panel_skeleton_viewer.hpp"
 #include "assets/editor_asset.hpp"
+#include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "commands/editor_command_skeleton.hpp"
+#include "editor_command_system.hpp"
 #include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -35,12 +38,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
 #include "world/editor_world.hpp"
+#include "world/editor_world_util.hpp"
 
+#include <sfg/common/hashing.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/math/aabb.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/math.hpp>
-#include <sfg/runtime/resources/resource_manager.hpp>
-#include <sfg/runtime/resources/skeleton.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
@@ -56,6 +61,7 @@ namespace sfg
 #define SKELETON_VIEWER_SPLIT_BORDER_THICKNESS_MULT 2.0f
 #define SKELETON_VIEWER_JOINT_RADIUS_RATIO			0.02f
 #define SKELETON_VIEWER_AXIS_LENGTH_RATIO			0.12f
+#define SKELETON_VIEWER_SLOT_HALF_EXTENT_SCALE		1.5f
 
 	editor_panel_skeleton_viewer_t::editor_panel_skeleton_viewer_t()
 	{
@@ -141,85 +147,102 @@ namespace sfg
 		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 		_root_joint_value = append_property_value_row("Root Joint");
 
+		void* skeleton_object = &_skeleton;
+		_skeleton_reflection.init(ui,
+								  _right_pane,
+								  {
+									  .fold_states = &_fold_states,
+									  .callbacks =
+										  {
+											  .edit_begin	  = on_edit_begin,
+											  .edit_submitted = on_edit_submitted,
+											  .user_data	  = this,
+										  },
+									  .objects					= {.data = &skeleton_object, .size = 1},
+									  .type_id					= type_id_t<skeleton_def_t>::value,
+									  .dropdown_items			= resolve_dropdown_items,
+									  .dropdown_items_user_data = this,
+									  .block_edits				= _skeleton_guid == NULL_SID,
+								  });
+
 		create_preview_world();
 
 		if (_skeleton_guid != 0)
 			set_skeleton(_skeleton_guid, _asset_name.c_str());
 		else
+		{
 			refresh_info();
+			refresh_reflection();
+		}
 
 		apply_pane_split();
 	}
 
 	void editor_panel_skeleton_viewer_t::uninit()
 	{
-		editor_asset_manager_t::get().remove_asset_deletion_listener(_asset_deletion_listener);
-		_asset_deletion_listener = {};
+		editor_command_skeleton_edit_t::cancel(*this);
+		editor_command_system_t::get().clear_user_data(this);
+		_edit_active = false;
 
+		editor_asset_manager_t::get().remove_asset_deletion_listener(_asset_deletion_listener);
+
+		_asset_deletion_listener = {};
+		_skeleton_reflection.uninit();
 		_world_view.uninit();
 		_split_border.uninit();
 		_ui->deallocate_widget(_left_pane);
 		_ui->deallocate_widget(_right_pane);
 		destroy_preview_world();
+
 		_joint_draw_data.resize(0);
+		_joint_dropdown_items.resize(0);
+		_fold_states.resize(0);
+		_skeleton = {};
+
 		editor_panel_t::uninit();
 	}
 
 	void editor_panel_skeleton_viewer_t::set_skeleton(sid_t skeleton_guid, const char* asset_name)
 	{
+		if (_skeleton_guid != skeleton_guid)
+		{
+			editor_command_skeleton_edit_t::cancel(*this);
+			editor_command_system_t::get().clear_user_data(this);
+			_edit_active = false;
+		}
+
 		_skeleton_guid = skeleton_guid;
 		set_sub_item_id(skeleton_guid);
 		_asset_name = asset_name;
+		_skeleton	= {};
 		_joint_draw_data.resize(0);
 		_root_joint_index = UINT32_MAX;
 
-		if (!_world.is_null() && skeleton_guid != 0)
+		if (skeleton_guid != NULL_SID)
 		{
-			world_t& world = editor_world_controller_t::get().get_editor_world(_world)->get_world();
-			world.add_resource(resource_type_e::skeleton, skeleton_guid);
-			world.load_all_used_resources();
+			const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(skeleton_guid);
 
-			resource_manager_t&		  resource_manager = resource_manager_t::get();
-			const skeleton_runtime_t* skeleton		   = resource_manager.find_runtime<skeleton_runtime_t>(skeleton_guid);
-
-			if (skeleton != nullptr)
+			if (asset != nullptr && asset->asset_type == editor_asset_type_e::skeleton && !asset->embedded_source.empty())
 			{
-				const skeleton_joint_runtime_t* joints			 = resource_manager.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
-				const u32*						evaluation_order = resource_manager.get_memory().get<u32>(skeleton->evaluation_order);
-				_joint_draw_data.resize(skeleton->joint_count);
-				_root_joint_index = skeleton->root_joint_index;
+				const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
 
-				for (u32 i = 0; i < skeleton->joint_count; ++i)
-				{
-					const u32						joint_index = evaluation_order[i];
-					const skeleton_joint_runtime_t& joint		= joints[joint_index];
-					joint_draw_data_t&				draw_data	= _joint_draw_data[joint_index];
-					draw_data.parent_index						= joint.parent_index;
-					draw_data.transform							= joint.parent_index == SKELETON_JOINT_NO_PARENT ? joint.local : _joint_draw_data[joint.parent_index].transform * joint.local;
-				}
-
-				vec3f_t bounds_min = _joint_draw_data[0].transform.get_translation();
-				vec3f_t bounds_max = bounds_min;
-
-				for (const joint_draw_data_t& draw_data : _joint_draw_data)
-				{
-					const vec3f_t position = draw_data.transform.get_translation();
-					bounds_min			   = vec3f_t::min(bounds_min, position);
-					bounds_max			   = vec3f_t::max(bounds_max, position);
-				}
-
-				const vec3f_t dimensions   = bounds_max - bounds_min;
-				const f32	  visual_scale = math::max(math::max(dimensions.x, dimensions.y), math::max(dimensions.z, 1.0f));
-				_joint_radius			   = visual_scale * SKELETON_VIEWER_JOINT_RADIUS_RATIO;
-				_axis_length			   = visual_scale * SKELETON_VIEWER_AXIS_LENGTH_RATIO;
-
-				const vec3f_t bounds_margin(_axis_length, _axis_length, _axis_length);
-				editor_world_controller_t::get().get_editor_world(_world)->fit_camera_to_bounds(aabb_t(bounds_min - bounds_margin, bounds_max + bounds_margin));
+				if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &_skeleton, nullptr, embedded_source))
+					_skeleton = {};
 			}
 		}
 
+		rebuild_joint_draw_data();
 		refresh_info();
+		refresh_reflection();
 		refresh_title(_asset_name.c_str(), "S: ");
+	}
+
+	void editor_panel_skeleton_viewer_t::apply_skeleton_def(skeleton_def_t&& skeleton)
+	{
+		_skeleton = std::move(skeleton);
+		rebuild_joint_draw_data();
+		refresh_info();
+		refresh_reflection();
 	}
 
 	void editor_panel_skeleton_viewer_t::create_preview_world()
@@ -267,24 +290,62 @@ namespace sfg
 		world.scan_for_resources(_environment_entity, true);
 	}
 
-	void editor_panel_skeleton_viewer_t::draw_skeleton(world_t& world) const
+	void editor_panel_skeleton_viewer_t::rebuild_joint_draw_data()
 	{
-		resource_manager_t&		  resource_manager = resource_manager_t::get();
-		const skeleton_runtime_t* skeleton		   = resource_manager.find_runtime<skeleton_runtime_t>(_skeleton_guid);
+		_joint_draw_data.resize(0);
+		_root_joint_index = UINT32_MAX;
 
-		if (skeleton == nullptr || _joint_draw_data.empty())
+		if (!_skeleton.is_evaluation_order_valid())
 			return;
 
-		chunk_allocator_t&				resource_memory = resource_manager.get_memory();
-		const skeleton_joint_runtime_t* joints			= resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
-		const editor_theme_t&			theme			= editor_theme_t::get();
-		world_debug_draw_t&				debug_draw		= world.get_debug_draw();
+		const u32 joint_count = static_cast<u32>(_skeleton.joints.size());
+		_joint_draw_data.resize(joint_count);
+		_root_joint_index = _skeleton.root_joint_index;
 
-		for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
+		for (u32 i = 0; i < joint_count; ++i)
+		{
+			const u32					joint_index = _skeleton.evaluation_order[i];
+			const skeleton_joint_def_t& joint		= _skeleton.joints[joint_index];
+			joint_draw_data_t&			draw_data	= _joint_draw_data[joint_index];
+			draw_data.parent_index					= joint.parent_index;
+			draw_data.transform						= joint.parent_index == SKELETON_JOINT_NO_PARENT ? joint.local : _joint_draw_data[joint.parent_index].transform * joint.local;
+		}
+
+		vec3f_t bounds_min = _joint_draw_data[0].transform.get_translation();
+		vec3f_t bounds_max = bounds_min;
+
+		for (const joint_draw_data_t& draw_data : _joint_draw_data)
+		{
+			const vec3f_t position = draw_data.transform.get_translation();
+			bounds_min			   = vec3f_t::min(bounds_min, position);
+			bounds_max			   = vec3f_t::max(bounds_max, position);
+		}
+
+		const vec3f_t dimensions   = bounds_max - bounds_min;
+		const f32	  visual_scale = math::max(math::max(dimensions.x, dimensions.y), math::max(dimensions.z, 1.0f));
+		_joint_radius			   = visual_scale * SKELETON_VIEWER_JOINT_RADIUS_RATIO;
+		_axis_length			   = visual_scale * SKELETON_VIEWER_AXIS_LENGTH_RATIO;
+
+		if (!_world.is_null())
+		{
+			const vec3f_t bounds_margin(_axis_length, _axis_length, _axis_length);
+			editor_world_controller_t::get().get_editor_world(_world)->fit_camera_to_bounds(aabb_t(bounds_min - bounds_margin, bounds_max + bounds_margin));
+		}
+	}
+
+	void editor_panel_skeleton_viewer_t::draw_skeleton(world_t& world) const
+	{
+		if (_joint_draw_data.empty())
+			return;
+
+		const editor_theme_t& theme		 = editor_theme_t::get();
+		world_debug_draw_t&	  debug_draw = world.get_debug_draw();
+
+		for (u32 joint_index = 0; joint_index < _skeleton.joints.size(); ++joint_index)
 		{
 			const joint_draw_data_t& draw_data	= _joint_draw_data[joint_index];
 			const vec3f_t			 position	= draw_data.transform.get_translation();
-			const char*				 joint_name = resource_memory.get_text(joints[joint_index].name);
+			const char*				 joint_name = _skeleton.joints[joint_index].name.c_str();
 
 			if (draw_data.parent_index != SKELETON_JOINT_NO_PARENT)
 			{
@@ -293,15 +354,21 @@ namespace sfg
 			}
 
 			debug_draw.draw_sphere(position, _joint_radius, color_t::purple, 1.5f, debug_draw_depth_e::depth_tested, 10);
-
-			const vec3f_t axis_x = draw_data.transform.get_column(0).normalized();
-			const vec3f_t axis_y = draw_data.transform.get_column(1).normalized();
-			const vec3f_t axis_z = draw_data.transform.get_column(2).normalized();
-
-			debug_draw.draw_line(position, position + axis_x * _axis_length, color_t::red, 1.5f, debug_draw_depth_e::depth_tested);
-			debug_draw.draw_line(position, position + axis_y * _axis_length, color_t::green, 1.5f, debug_draw_depth_e::depth_tested);
-			debug_draw.draw_line(position, position + axis_z * _axis_length, color_t::blue, 1.5f, debug_draw_depth_e::depth_tested);
+			editor_world_util_t::draw_transform_axes(debug_draw, draw_data.transform, _axis_length, 1.5f, debug_draw_depth_e::depth_tested);
 			debug_draw.draw_text_3d(position, joint_name, color_t::white, theme.text_small_px_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
+		}
+
+		for (const skeleton_slot_def_t& slot : _skeleton.slots)
+		{
+			if (slot.slot_joint_index == SKELETON_JOINT_NO_PARENT)
+				continue;
+
+			SFG_ASSERT(slot.slot_joint_index < _joint_draw_data.size());
+
+			const mat4x3_t slot_local_transform = mat4x3_t::transform(slot.local_position, slot.local_rotation, vec3f_t::one);
+			const mat4x3_t slot_transform		= _joint_draw_data[slot.slot_joint_index].transform * slot_local_transform;
+
+			editor_world_util_t::draw_skeleton_slot(debug_draw, slot_transform, slot.slot_name, _joint_radius * SKELETON_VIEWER_SLOT_HALF_EXTENT_SCALE, _axis_length, theme.text_small_px_size);
 		}
 	}
 
@@ -342,10 +409,74 @@ namespace sfg
 		paint.set_text(_root_joint_value, _ui->widget_text(_root_joint_value), _ui->widget_text_len(_root_joint_value), value_paint);
 	}
 
+	void editor_panel_skeleton_viewer_t::refresh_reflection()
+	{
+		if (_ui == nullptr)
+			return;
+
+		_joint_dropdown_items.resize(0);
+		_joint_dropdown_items.reserve(_skeleton.joints.size() + 1);
+		_joint_dropdown_items.push_back({.text = "None", .value = SKELETON_JOINT_NO_PARENT});
+
+		for (u32 joint_index = 0; joint_index < _skeleton.joints.size(); ++joint_index)
+		{
+			const skeleton_joint_def_t& joint = _skeleton.joints[joint_index];
+
+			_joint_dropdown_items.push_back({
+				.text  = joint.name.empty() ? "Unnamed Joint" : joint.name.c_str(),
+				.value = joint_index,
+			});
+		}
+
+		void* skeleton_object = &_skeleton;
+		_skeleton_reflection.save_fold_states();
+		_skeleton_reflection.set_reflection({
+			.fold_states = &_fold_states,
+			.callbacks =
+				{
+					.edit_begin		= on_edit_begin,
+					.edit_submitted = on_edit_submitted,
+					.user_data		= this,
+				},
+			.objects				  = {.data = &skeleton_object, .size = 1},
+			.type_id				  = type_id_t<skeleton_def_t>::value,
+			.dropdown_items			  = resolve_dropdown_items,
+			.dropdown_items_user_data = this,
+			.block_edits			  = _skeleton_guid == NULL_SID,
+		});
+	}
+
 	void editor_panel_skeleton_viewer_t::apply_pane_split()
 	{
 		if (_ui != nullptr)
 			_ui->get_tree().in(_left_pane).size_value.x = _pane_split;
+	}
+
+	void editor_panel_skeleton_viewer_t::on_edit_begin()
+	{
+		if (_edit_active)
+			return;
+
+		_edit_active = editor_command_skeleton_edit_t::begin(*this);
+	}
+
+	void editor_panel_skeleton_viewer_t::on_edit_submitted()
+	{
+		if (!_edit_active)
+			return;
+
+		editor_command_skeleton_edit_t::submit(*this, "Skeleton Edit Property", false);
+		_edit_active = false;
+	}
+
+	span_t<const editor_widget_reflection_dropdown_item_t> editor_panel_skeleton_viewer_t::resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		if (field_id == "slot_joint_index"_hs)
+			return {.data = viewer._joint_dropdown_items.data(), .size = viewer._joint_dropdown_items.size()};
+
+		return {};
 	}
 
 	void editor_panel_skeleton_viewer_t::on_asset_deletion(editor_asset_manager_t&, span_t<const sid_t> asset_ids, void* user_data)
@@ -368,7 +499,9 @@ namespace sfg
 		editor_world_controller_t::get().get_editor_world(panel._world)->get_world().unload_all_used_resources();
 
 		panel._skeleton_guid = NULL_SID;
+		panel._skeleton		 = {};
 		panel._joint_draw_data.resize(0);
+		panel._joint_dropdown_items.resize(0);
 		panel._root_joint_index = UINT32_MAX;
 		panel._asset_name.resize(0);
 		panel.set_sub_item_id(NULL_SID);
@@ -411,6 +544,16 @@ namespace sfg
 									  .raster_mode = editor_text_rasterization_t::get_rasterization_type(),
 								  });
 		return label;
+	}
+
+	void editor_panel_skeleton_viewer_t::on_edit_begin(void* user_data)
+	{
+		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->on_edit_begin();
+	}
+
+	void editor_panel_skeleton_viewer_t::on_edit_submitted(void* user_data)
+	{
+		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->on_edit_submitted();
 	}
 
 	void editor_panel_skeleton_viewer_t::on_world_tick(world_t& world, f32 delta_time, void* user_data)

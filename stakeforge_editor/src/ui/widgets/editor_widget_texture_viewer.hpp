@@ -39,6 +39,12 @@ namespace sfg
 		class ui_context;
 	}
 
+	enum class editor_widget_texture_viewer_resource_e : u8
+	{
+		texture,
+		sprite,
+	};
+
 	class editor_widget_texture_viewer_t final
 	{
 	public:
@@ -51,7 +57,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(ui::ui_context& ui, ui::widget_id_t parent);
+		void init(ui::ui_context& ui, ui::widget_id_t parent, editor_widget_texture_viewer_resource_e resource_type = editor_widget_texture_viewer_resource_e::texture);
 		void uninit();
 
 		// -----------------------------------------------------------------------------
@@ -60,6 +66,8 @@ namespace sfg
 
 		void set_texture(sid_t texture_guid);
 		void clear_texture();
+		void set_resource(sid_t resource_guid);
+		void clear_resource();
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -91,35 +99,36 @@ namespace sfg
 		static void on_mip_selected(u16 value, void* user_data);
 
 	private:
-		editor_dropdown_t				 _mip_dropdown			  = {};
-		vector_t<editor_dropdown_item_t> _mip_dropdown_items	  = {};
-		vector_t<ui::widget_id_t>		 _rows					  = {};
-		vector_t<ui::widget_id_t>		 _dividers				  = {};
-		vector_t<ui::widget_id_t>		 _labels				  = {};
-		string_t						 _texture_size_text		  = {};
-		string_t						 _is_linear_text		  = {};
-		string_t						 _payload_format_text	  = {};
-		string_t						 _runtime_format_text	  = {};
-		string_t						 _mip_count_text		  = {};
-		string_t						 _mip_label_storage[16]	  = {};
-		ui::ui_context*					 _ui					  = nullptr;
-		sid_t							 _texture_guid			  = 0;
-		sid_t							 _pending_texture_guid	  = 0;
-		ui::widget_id_t					 _root					  = NULL_WIDGET;
-		ui::widget_id_t					 _top_pane				  = NULL_WIDGET;
-		ui::widget_id_t					 _bottom_pane			  = NULL_WIDGET;
-		ui::widget_id_t					 _texture_display		  = NULL_WIDGET;
-		ui::widget_id_t					 _texture_size_value	  = NULL_WIDGET;
-		ui::widget_id_t					 _is_linear_value		  = NULL_WIDGET;
-		ui::widget_id_t					 _mip_dropdown_row		  = NULL_WIDGET;
-		ui::widget_id_t					 _payload_format_value	  = NULL_WIDGET;
-		ui::widget_id_t					 _runtime_format_value	  = NULL_WIDGET;
-		ui::widget_id_t					 _mip_count_value		  = NULL_WIDGET;
-		u16								 _selected_mip			  = 0;
-		u8								 _loaded_mip_count		  = 0;
-		bool							 _texture_loaded		  = false;
-		bool							 _texture_failed		  = false;
-		bool							 _mip_dropdown_inited	  = false;
-		bool							 _refresh_texture_pending = false;
+		editor_dropdown_t						_mip_dropdown			 = {};
+		vector_t<editor_dropdown_item_t>		_mip_dropdown_items		 = {};
+		vector_t<ui::widget_id_t>				_rows					 = {};
+		vector_t<ui::widget_id_t>				_dividers				 = {};
+		vector_t<ui::widget_id_t>				_labels					 = {};
+		string_t								_texture_size_text		 = {};
+		string_t								_is_linear_text			 = {};
+		string_t								_payload_format_text	 = {};
+		string_t								_runtime_format_text	 = {};
+		string_t								_mip_count_text			 = {};
+		string_t								_mip_label_storage[16]	 = {};
+		ui::ui_context*							_ui						 = nullptr;
+		sid_t									_texture_guid			 = 0;
+		sid_t									_pending_texture_guid	 = 0;
+		ui::widget_id_t							_root					 = NULL_WIDGET;
+		ui::widget_id_t							_top_pane				 = NULL_WIDGET;
+		ui::widget_id_t							_bottom_pane			 = NULL_WIDGET;
+		ui::widget_id_t							_texture_display		 = NULL_WIDGET;
+		ui::widget_id_t							_texture_size_value		 = NULL_WIDGET;
+		ui::widget_id_t							_is_linear_value		 = NULL_WIDGET;
+		ui::widget_id_t							_mip_dropdown_row		 = NULL_WIDGET;
+		ui::widget_id_t							_payload_format_value	 = NULL_WIDGET;
+		ui::widget_id_t							_runtime_format_value	 = NULL_WIDGET;
+		ui::widget_id_t							_mip_count_value		 = NULL_WIDGET;
+		u16										_selected_mip			 = 0;
+		u8										_loaded_mip_count		 = 0;
+		editor_widget_texture_viewer_resource_e _resource_type			 = editor_widget_texture_viewer_resource_e::texture;
+		bool									_texture_loaded			 = false;
+		bool									_texture_failed			 = false;
+		bool									_mip_dropdown_inited	 = false;
+		bool									_refresh_texture_pending = false;
 	};
 }

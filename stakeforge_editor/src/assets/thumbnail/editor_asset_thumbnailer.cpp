@@ -208,7 +208,7 @@ namespace sfg
 
 		bool filled = false;
 
-		if (asset.asset_type == editor_asset_type_e::texture)
+		if (asset.asset_type == editor_asset_type_e::texture || asset.asset_type == editor_asset_type_e::sprite)
 			filled = fill_texture_thumbnail(asset, pixels);
 		else if (asset.asset_type == editor_asset_type_e::font)
 			filled = fill_font_thumbnail(asset, pixels);
@@ -300,6 +300,8 @@ namespace sfg
 		case editor_asset_type_e::physical_material:
 			return "editor/resource_pack/textures/thumbnails/physical_material.png"_hs;
 		case editor_asset_type_e::world:
+			return "editor/resource_pack/textures/thumbnails/world.png"_hs;
+		case editor_asset_type_e::curve:
 			return "editor/resource_pack/textures/thumbnails/world.png"_hs;
 		case editor_asset_type_e::cubemap:
 			return "editor/resource_pack/textures/thumbnails/world.png"_hs;

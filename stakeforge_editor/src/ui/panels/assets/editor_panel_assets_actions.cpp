@@ -45,6 +45,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project.hpp"
 #include "editor_settings.hpp"
 #include <sfg/common/hashing.hpp>
+#include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
@@ -191,6 +192,89 @@ namespace sfg
 	{
 		_pending_orm_import_sources = {};
 		_pending_orm_texture_config = {};
+	}
+
+	void editor_panel_assets_t::request_import_sprite()
+	{
+		clear_pending_import_sprite();
+
+		process::select_files("Import Sprites", "png", _pending_sprite_import_paths);
+
+		if (_pending_sprite_import_paths.empty())
+			return;
+
+		_pending_sprite_cook_config = editor_settings_t::get().import.sprite;
+		show_import_sprite_modal();
+	}
+
+	void editor_panel_assets_t::show_import_sprite_modal()
+	{
+		const editor_modal_cook_option_desc_t modal_options[] = {
+			{.object = &_pending_sprite_cook_config, .title = "Sprite", .type_id = type_id_t<sprite_cook_config_t>::value},
+		};
+
+		_cook_options_modal.set_options(modal_options, static_cast<u16>(sizeof(modal_options) / sizeof(modal_options[0])));
+
+		const editor_modal_button_desc_t buttons[] = {
+			{.text = "Cancel", .callback = on_import_sprite_cancelled, .user_data = this},
+			{.text = "Import", .callback = on_import_sprite_submitted, .user_data = this},
+		};
+
+		editor_modal_controller_t*		  modal	  = editor_modal_controller_t::find(*_ui);
+		const editor_modal_content_desc_t content = _cook_options_modal.get_content_desc();
+		modal->request_modal("Import Sprite", "Configure sprite cook options for the selected PNG files.", true, buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), &content);
+	}
+
+	void editor_panel_assets_t::submit_import_sprite()
+	{
+		bool sources_valid = true;
+
+		for (const string_t& source_path : _pending_sprite_import_paths)
+		{
+			string_t extension = file_system_t::get_file_extension(source_path);
+			string_util::to_lower(extension);
+
+			if (extension != "png" || !file_system_t::exists(source_path.c_str()))
+			{
+				sources_valid = false;
+				break;
+			}
+		}
+
+		if (!sources_valid)
+		{
+			const editor_modal_button_desc_t buttons[] = {
+				{.text = "Back", .callback = on_import_sprite_error_acknowledged, .user_data = this},
+			};
+
+			editor_modal_controller_t::find(*_ui)->request_modal("Import Sprite", "Select valid PNG sprite files.", buttons, static_cast<u16>(sizeof(buttons) / sizeof(buttons[0])), editor_modal_severity_e::error);
+			return;
+		}
+
+		frame_vector_t<editor_asset_import_options_t> import_options = {};
+		import_options.push_back({
+			.sprite_cook_config = _pending_sprite_cook_config,
+			.type				= editor_asset_import_type_e::sprite,
+		});
+
+		editor_settings_t::get().import.sprite = _pending_sprite_cook_config;
+		editor_settings_t::get().save();
+
+		frame_vector_t<string_t> import_paths = {};
+		import_paths.reserve(_pending_sprite_import_paths.size());
+
+		for (const string_t& path : _pending_sprite_import_paths)
+			import_paths.push_back(path);
+
+		editor_asset_manager_t::get().import_assets(_selected_folder_node, import_paths, import_options);
+
+		clear_pending_import_sprite();
+	}
+
+	void editor_panel_assets_t::clear_pending_import_sprite()
+	{
+		_pending_sprite_import_paths.resize(0);
+		_pending_sprite_cook_config = {};
 	}
 
 	void editor_panel_assets_t::collect_pending_import_options(const vector_t<string_t>& paths)
@@ -547,11 +631,20 @@ namespace sfg
 		case assets_action_menu_create_skybox_shader:
 			text = "skybox_shader";
 			break;
-		case assets_action_menu_create_sprite_shader:
-			text = "sprite_shader";
+		case assets_action_menu_create_sprite_lit_shader:
+			text = "sprite_lit_shader";
+			break;
+		case assets_action_menu_create_sprite_unlit_shader:
+			text = "sprite_unlit_shader";
+			break;
+		case assets_action_menu_create_particle_shader:
+			text = "particle_shader";
 			break;
 		case assets_action_menu_create_texture_sampler:
 			text = "texture_sampler";
+			break;
+		case assets_action_menu_create_curve:
+			text = "curve";
 			break;
 		case assets_action_menu_create_opaque_material:
 			text = "opaque_material";
@@ -568,8 +661,14 @@ namespace sfg
 		case assets_action_menu_create_skybox_material:
 			text = "skybox_material";
 			break;
-		case assets_action_menu_create_sprite_material:
-			text = "sprite_material";
+		case assets_action_menu_create_sprite_lit_material:
+			text = "sprite_lit_material";
+			break;
+		case assets_action_menu_create_sprite_unlit_material:
+			text = "sprite_unlit_material";
+			break;
+		case assets_action_menu_create_particle_material:
+			text = "particle_material";
 			break;
 		case assets_action_menu_create_physical_material:
 			text = "physical_material";
@@ -677,12 +776,23 @@ namespace sfg
 			out_desc.asset_type = editor_asset_type_e::shader;
 			out_desc.sub_type	= static_cast<u8>(shader_type_e::skybox_shader);
 			return true;
-		case assets_action_menu_create_sprite_shader:
+		case assets_action_menu_create_sprite_lit_shader:
 			out_desc.asset_type = editor_asset_type_e::shader;
-			out_desc.sub_type	= static_cast<u8>(shader_type_e::sprite_shader);
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::sprite_lit_shader);
+			return true;
+		case assets_action_menu_create_sprite_unlit_shader:
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::sprite_unlit_shader);
+			return true;
+		case assets_action_menu_create_particle_shader:
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::particle_shader);
 			return true;
 		case assets_action_menu_create_texture_sampler:
 			out_desc.asset_type = editor_asset_type_e::texture_sampler;
+			return true;
+		case assets_action_menu_create_curve:
+			out_desc.asset_type = editor_asset_type_e::curve;
 			return true;
 		case assets_action_menu_create_opaque_material:
 			out_desc.asset_type = editor_asset_type_e::material;
@@ -704,9 +814,17 @@ namespace sfg
 			out_desc.asset_type = editor_asset_type_e::material;
 			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::skybox);
 			return true;
-		case assets_action_menu_create_sprite_material:
+		case assets_action_menu_create_sprite_lit_material:
 			out_desc.asset_type = editor_asset_type_e::material;
-			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::sprite);
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::sprite_lit);
+			return true;
+		case assets_action_menu_create_sprite_unlit_material:
+			out_desc.asset_type = editor_asset_type_e::material;
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::sprite_unlit);
+			return true;
+		case assets_action_menu_create_particle_material:
+			out_desc.asset_type = editor_asset_type_e::material;
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::particle);
 			return true;
 		case assets_action_menu_create_physical_material:
 			out_desc.asset_type = editor_asset_type_e::physical_material;

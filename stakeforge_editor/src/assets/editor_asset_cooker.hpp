@@ -53,6 +53,8 @@ namespace sfg
 		static bool cook_physical_material(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool cook_animation_graph(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool cook_texture(const editor_asset_t& asset, const char* asset_name = nullptr);
+		static bool cook_sprite(const editor_asset_t& asset, const char* asset_name = nullptr);
+		static bool cook_curve(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool cook_font(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool cook_skeleton(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool cook_animation(const editor_asset_t& asset, const char* asset_name = nullptr);

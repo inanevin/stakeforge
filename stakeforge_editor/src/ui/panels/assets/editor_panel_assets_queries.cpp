@@ -243,18 +243,6 @@ namespace sfg
 		return asset != nullptr ? asset->guid : NULL_SID;
 	}
 
-	void editor_panel_assets_t::collect_selected_asset_guids(vector_t<sid_t>& out_guids) const
-	{
-		out_guids.resize(0);
-		out_guids.reserve(_selected_asset_nodes.size());
-		for (editor_asset_node_handle_t node : _selected_asset_nodes)
-		{
-			const sid_t guid = get_asset_guid(node);
-			if (guid != NULL_SID)
-				out_guids.push_back(guid);
-		}
-	}
-
 	bool editor_panel_assets_t::is_asset_favourite(sid_t guid) const
 	{
 		return guid != NULL_SID && std::find(_favourite_asset_guids.begin(), _favourite_asset_guids.end(), guid) != _favourite_asset_guids.end();

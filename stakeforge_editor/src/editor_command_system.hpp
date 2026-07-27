@@ -64,11 +64,13 @@ namespace sfg
 		material_edit,
 		shader_edit,
 		texture_sampler_edit,
+		curve_edit,
 		physical_material_edit,
 		animation_graph_select_transition,
 		animation_graph_select_node,
 		animation_graph_set_display_mode,
 		animation_graph_edit,
+		skeleton_edit,
 	};
 
 	enum class editor_command_state_e : u8

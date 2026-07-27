@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/sprite.hpp>
 #include <sfg/runtime/resources/texture.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
@@ -54,9 +55,10 @@ namespace sfg
 		}
 	}
 
-	void editor_widget_texture_viewer_t::init(ui::ui_context& ui, ui::widget_id_t parent)
+	void editor_widget_texture_viewer_t::init(ui::ui_context& ui, ui::widget_id_t parent, editor_widget_texture_viewer_resource_e resource_type)
 	{
-		_ui = &ui;
+		_ui			   = &ui;
+		_resource_type = resource_type;
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
@@ -87,11 +89,14 @@ namespace sfg
 		top_in.size_value		= {1.0f, 1.0f};
 		top_in.child_spacing	= 0.0f;
 
-		_labels.push_back(make_section_label("Texture"));
+		_labels.push_back(make_section_label(_resource_type == editor_widget_texture_viewer_resource_e::sprite ? "Sprite" : "Texture"));
 
-		_texture_size_value	  = append_property_value_row("Texture Size");
-		_is_linear_value	  = append_property_value_row("Is Linear");
-		_mip_dropdown_row	  = append_property_control_row("Mipmaps");
+		_texture_size_value = append_property_value_row(_resource_type == editor_widget_texture_viewer_resource_e::sprite ? "Sprite Size" : "Texture Size");
+		_is_linear_value	= append_property_value_row("Is Linear");
+
+		if (_resource_type == editor_widget_texture_viewer_resource_e::texture)
+			_mip_dropdown_row = append_property_control_row("Mipmaps");
+
 		_mip_count_value	  = append_property_value_row("Mip Count");
 		_payload_format_value = append_property_value_row("Payload Format");
 		_runtime_format_value = append_property_value_row("Runtime Format");
@@ -128,7 +133,9 @@ namespace sfg
 		texture_in.size_value		= {1.0f, 1.0f};
 
 		ui.set_pre_layout_tick(_bottom_pane, on_texture_display_tick, this);
-		rebuild_mip_dropdown();
+		if (_resource_type == editor_widget_texture_viewer_resource_e::texture)
+			rebuild_mip_dropdown();
+
 		refresh_info();
 		refresh_texture_state();
 	}
@@ -136,11 +143,13 @@ namespace sfg
 	void editor_widget_texture_viewer_t::uninit()
 	{
 		_ui->cancel_mutations(this);
+
 		if (_mip_dropdown_inited)
 		{
 			_mip_dropdown.uninit();
 			_mip_dropdown_inited = false;
 		}
+
 		unload_texture();
 		_ui->deallocate_widget(_root);
 
@@ -171,35 +180,49 @@ namespace sfg
 		_texture_loaded			 = false;
 		_texture_failed			 = false;
 		_refresh_texture_pending = false;
+		_resource_type			 = editor_widget_texture_viewer_resource_e::texture;
 	}
 
 	void editor_widget_texture_viewer_t::set_texture(sid_t texture_guid)
 	{
-		if (!can_mutate_ui_topology())
-		{
-			if (_texture_guid != texture_guid)
-			{
-				unload_texture();
-				_texture_guid = texture_guid;
-			}
-
-			request_texture_refresh(texture_guid);
-			return;
-		}
-
-		if (_texture_guid != texture_guid)
-			unload_texture();
-
-		_texture_guid = texture_guid;
-		load_texture();
-		rebuild_mip_dropdown();
-		refresh_info();
-		refresh_texture_state();
+		set_resource(texture_guid);
 	}
 
 	void editor_widget_texture_viewer_t::clear_texture()
 	{
-		set_texture(0);
+		clear_resource();
+	}
+
+	void editor_widget_texture_viewer_t::set_resource(sid_t resource_guid)
+	{
+		if (!can_mutate_ui_topology())
+		{
+			if (_texture_guid != resource_guid)
+			{
+				unload_texture();
+				_texture_guid = resource_guid;
+			}
+
+			request_texture_refresh(resource_guid);
+			return;
+		}
+
+		if (_texture_guid != resource_guid)
+			unload_texture();
+
+		_texture_guid = resource_guid;
+		load_texture();
+
+		if (_resource_type == editor_widget_texture_viewer_resource_e::texture)
+			rebuild_mip_dropdown();
+
+		refresh_info();
+		refresh_texture_state();
+	}
+
+	void editor_widget_texture_viewer_t::clear_resource()
+	{
+		set_resource(0);
 	}
 
 	void editor_widget_texture_viewer_t::load_texture()
@@ -207,8 +230,9 @@ namespace sfg
 		if (_texture_guid == 0 || _texture_loaded || _ui == nullptr)
 			return;
 
-		_texture_failed = resource_manager_t::get().load_resource(_texture_guid, resource_type_e::texture) == resource_state_e::failed;
-		_texture_loaded = !_texture_failed;
+		const resource_type_e resource_type = _resource_type == editor_widget_texture_viewer_resource_e::sprite ? resource_type_e::sprite : resource_type_e::texture;
+		_texture_failed						= resource_manager_t::get().load_resource(_texture_guid, resource_type) == resource_state_e::failed;
+		_texture_loaded						= !_texture_failed;
 	}
 
 	void editor_widget_texture_viewer_t::unload_texture()
@@ -235,7 +259,8 @@ namespace sfg
 
 		_mip_dropdown_items.resize(0);
 		_loaded_mip_count = 1;
-		if (_texture_loaded)
+
+		if (_texture_loaded && _resource_type == editor_widget_texture_viewer_resource_e::texture)
 		{
 			if (const texture_runtime_t* runtime = resource_manager_t::get().find_runtime<texture_runtime_t>(_texture_guid))
 				_loaded_mip_count = math::max<u8>(runtime->header.mip_count, 1);
@@ -243,6 +268,7 @@ namespace sfg
 
 		_selected_mip = math::min<u16>(_selected_mip, static_cast<u16>(_loaded_mip_count - 1));
 		_mip_dropdown_items.reserve(_loaded_mip_count);
+
 		for (u16 i = 0; i < _loaded_mip_count; ++i)
 		{
 			_mip_label_storage[i] = "Mip ";
@@ -276,18 +302,35 @@ namespace sfg
 		_runtime_format_text = "-";
 		_mip_count_text		 = "-";
 
-		if (_texture_loaded)
+		if (_texture_loaded && _resource_type == editor_widget_texture_viewer_resource_e::texture)
 		{
 			if (const texture_runtime_t* runtime = resource_manager_t::get().find_runtime<texture_runtime_t>(_texture_guid))
 			{
 				const texture_header_t& header = runtime->header;
-				_texture_size_text			   = std::to_string(header.size.x);
+
+				_texture_size_text = std::to_string(header.size.x);
 				_texture_size_text += " x ";
 				_texture_size_text += std::to_string(header.size.y);
 				_is_linear_text		 = header.is_linear ? "true" : "false";
 				_payload_format_text = reflected_enum_display_name(type_id_t<texture_payload_type_e>::value, static_cast<u32>(header.payload_type));
 				_runtime_format_text = reflected_enum_display_name(type_id_t<format_e>::value, static_cast<u32>(header.texture_format));
 				_mip_count_text		 = std::to_string(header.mip_count);
+			}
+		}
+		else if (_texture_loaded)
+		{
+			if (const sprite_runtime_t* runtime = resource_manager_t::get().find_runtime<sprite_runtime_t>(_texture_guid))
+			{
+				const sprite_header_t& header		  = runtime->header;
+				const format_e		   runtime_format = header.payload_type == sprite_payload_type_e::png ? format_e::r8g8b8a8_srgb : format_e::bc7_block_srgb;
+
+				_texture_size_text = std::to_string(header.size.x);
+				_texture_size_text += " x ";
+				_texture_size_text += std::to_string(header.size.y);
+				_is_linear_text		 = "false";
+				_payload_format_text = reflected_enum_display_name(type_id_t<sprite_payload_type_e>::value, static_cast<u32>(header.payload_type));
+				_runtime_format_text = reflected_enum_display_name(type_id_t<format_e>::value, static_cast<u32>(runtime_format));
+				_mip_count_text		 = "1";
 			}
 		}
 
@@ -314,11 +357,12 @@ namespace sfg
 			return;
 
 		ui::ui_render_state_t state = {};
+
 		if (_texture_loaded)
 		{
 			state.pipeline					  = TEXTURE_VIEWER_TEXTURE_SHADER;
 			state.constants[0].handle		  = _texture_guid;
-			state.constants[0].type			  = ui::ui_resource_type_e::texture;
+			state.constants[0].type			  = _resource_type == editor_widget_texture_viewer_resource_e::sprite ? ui::ui_resource_type_e::sprite : ui::ui_resource_type_e::texture;
 			state.constants[1].type			  = ui::ui_resource_type_e::test;
 			state.constants[1].gpu_indices[0] = static_cast<gpu_index_t>(_selected_mip);
 		}
@@ -434,29 +478,46 @@ namespace sfg
 		const sid_t texture_guid = _pending_texture_guid;
 		_pending_texture_guid	 = 0;
 		_refresh_texture_pending = false;
-		set_texture(texture_guid);
+		set_resource(texture_guid);
 	}
 
 	void editor_widget_texture_viewer_t::on_texture_display_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
 		editor_widget_texture_viewer_t& viewer = *static_cast<editor_widget_texture_viewer_t*>(user_data);
+
 		if (!viewer._texture_loaded)
 			return;
 
-		const texture_runtime_t* runtime = resource_manager_t::get().find_runtime<texture_runtime_t>(viewer._texture_guid);
-		if (runtime == nullptr)
-			return;
+		const editor_theme_t&	theme		 = editor_theme_t::get();
+		const ui::layout_out_t& out			 = viewer._ui->get_tree().out(viewer._bottom_pane);
+		const f32				scale		 = ui::get_valid_scale(viewer._ui->get_ui_scale());
+		const f32				max_width	 = math::max(1.0f, out.size.x / scale - theme.margin_horizontal * 2.0f);
+		const f32				max_height	 = math::max(1.0f, out.size.y / scale - theme.margin_vertical * 2.0f);
+		vec2u16_t				texture_size = vec2u16_t::zero;
 
-		const editor_theme_t&		theme		   = editor_theme_t::get();
-		const ui::layout_out_t&		out			   = viewer._ui->get_tree().out(viewer._bottom_pane);
-		const texture_mip_header_t& mip			   = runtime->header.mips[viewer._selected_mip];
-		const f32					scale		   = ui::get_valid_scale(viewer._ui->get_ui_scale());
-		const f32					max_width	   = math::max(1.0f, out.size.x / scale - theme.margin_horizontal * 2.0f);
-		const f32					max_height	   = math::max(1.0f, out.size.y / scale - theme.margin_vertical * 2.0f);
-		const f32					texture_width  = math::max(1.0f, static_cast<f32>(mip.size.x));
-		const f32					texture_height = math::max(1.0f, static_cast<f32>(mip.size.y));
-		const f32					aspect		   = texture_width / texture_height;
-		vec2f_t						display_size   = {};
+		if (viewer._resource_type == editor_widget_texture_viewer_resource_e::sprite)
+		{
+			const sprite_runtime_t* runtime = resource_manager_t::get().find_runtime<sprite_runtime_t>(viewer._texture_guid);
+
+			if (runtime == nullptr)
+				return;
+
+			texture_size = runtime->header.size;
+		}
+		else
+		{
+			const texture_runtime_t* runtime = resource_manager_t::get().find_runtime<texture_runtime_t>(viewer._texture_guid);
+
+			if (runtime == nullptr)
+				return;
+
+			texture_size = runtime->header.mips[viewer._selected_mip].size;
+		}
+
+		const f32 texture_width	 = math::max(1.0f, static_cast<f32>(texture_size.x));
+		const f32 texture_height = math::max(1.0f, static_cast<f32>(texture_size.y));
+		const f32 aspect		 = texture_width / texture_height;
+		vec2f_t	  display_size	 = {};
 
 		if (max_width / max_height > aspect)
 			display_size = {max_height * aspect, max_height};

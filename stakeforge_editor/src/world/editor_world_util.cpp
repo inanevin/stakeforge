@@ -137,6 +137,7 @@ namespace sfg
 		const ecs_component_table_t& reflection_probe_table = world.get_component_table(type_id_t<component_reflection_probe_t>::value);
 		const ecs_component_table_t& physical_table			= world.get_component_table(type_id_t<component_physical_t>::value);
 		const ecs_component_table_t& compound_shape_table	= world.get_component_table(type_id_t<component_compound_shape_t>::value);
+		const ecs_component_table_t& particle_emitter_table = world.get_component_table(type_id_t<component_particle_emitter_t>::value);
 		frame_vector_t<entity_id_t>	 compound_parents		= {};
 		compound_parents.reserve(selected_entities.size);
 
@@ -184,6 +185,46 @@ namespace sfg
 			}
 
 			draw_constraint_gizmos(world, entity, transform, debug_draw);
+
+			const component_particle_emitter_t* particle_emitter = ecs_helpers_t::table_find_as_const<component_particle_emitter_t>(particle_emitter_table, entity);
+
+			if (particle_emitter != nullptr)
+			{
+				const aabb_t* bounds = world.get_particle_simulation().find_bounds(entity);
+
+				if (bounds != nullptr)
+					debug_draw.draw_aabb(*bounds, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+
+				switch (particle_emitter->shape)
+				{
+				case particle_spawn_shape_e::point:
+					debug_draw.draw_sphere(transform.abs_pos, 0.05f, debug_color, 2.0f, debug_draw_depth_e::always_visible, 12);
+					break;
+				case particle_spawn_shape_e::box: {
+					const mat4x3_t shape_transform = mat4x3_t::transform(transform.abs_pos, transform.abs_rot, vec3f_t::one);
+					const vec3f_t  half_extents	   = vec3f_t::abs(particle_emitter->box_half_extents * transform.abs_scale);
+
+					debug_draw.draw_box(shape_transform, half_extents, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+					break;
+				}
+				case particle_spawn_shape_e::sphere: {
+					const f32 radius = particle_emitter->shape_radius * math::max(math::abs(transform.abs_scale.x), math::max(math::abs(transform.abs_scale.y), math::abs(transform.abs_scale.z)));
+
+					debug_draw.draw_sphere(transform.abs_pos, radius, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+					break;
+				}
+				case particle_spawn_shape_e::cone:
+					debug_draw.draw_cone(transform.abs_pos,
+										 transform.abs_rot.get_forward(),
+										 particle_emitter->cone_length * math::abs(transform.abs_scale.z),
+										 math::degrees_to_radians(particle_emitter->cone_angle_degrees),
+										 debug_color,
+										 2.0f,
+										 debug_draw_depth_e::always_visible,
+										 24);
+					break;
+				}
+			}
 
 			const component_reflection_probe_t* reflection_probe = ecs_helpers_t::table_find_as_const<component_reflection_probe_t>(reflection_probe_table, entity);
 
@@ -257,6 +298,36 @@ namespace sfg
 				child = child_hierarchy.next_sibling;
 			}
 		}
+	}
+
+	void editor_world_util_t::draw_transform_axes(world_debug_draw_t& debug_draw, const mat4x3_t& transform, f32 axis_length, f32 thickness_px, debug_draw_depth_e depth)
+	{
+		const editor_theme_t& theme			 = editor_theme_t::get();
+		const color_t		  axis_colors[3] = {
+			{theme.color_accent0.x, theme.color_accent0.y, theme.color_accent0.z, theme.color_accent0.w},
+			{theme.color_accent_green.x, theme.color_accent_green.y, theme.color_accent_green.z, theme.color_accent_green.w},
+			{theme.color_accent1.x, theme.color_accent1.y, theme.color_accent1.z, theme.color_accent1.w},
+		};
+		const vec3f_t position = transform.get_translation();
+
+		for (u32 axis_index = 0; axis_index < 3; ++axis_index)
+		{
+			const vec3f_t axis = transform.get_column(axis_index).normalized();
+			debug_draw.draw_line(position, position + axis * axis_length, axis_colors[axis_index], thickness_px, depth);
+		}
+	}
+
+	void editor_world_util_t::draw_skeleton_slot(world_debug_draw_t& debug_draw, const mat4x3_t& transform, const char* name, f32 half_extent, f32 axis_length, f32 text_size)
+	{
+		const editor_theme_t& theme		 = editor_theme_t::get();
+		const color_t		  slot_color = {theme.color_accent2.x, theme.color_accent2.y, theme.color_accent2.z, theme.color_accent2.w};
+		const vec3f_t		  extents(half_extent, half_extent, half_extent);
+		const vec3f_t		  position	   = transform.get_translation();
+		const char*			  display_name = name[0] == '\0' ? "Unnamed Slot" : name;
+
+		debug_draw.draw_box(transform, extents, slot_color, 2.0f, debug_draw_depth_e::depth_tested);
+		draw_transform_axes(debug_draw, transform, axis_length, 1.5f, debug_draw_depth_e::depth_tested);
+		debug_draw.draw_text_3d(position, display_name, slot_color, text_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
 	}
 
 	void editor_world_util_t::draw_constraint_gizmos(world_t& world, entity_id_t entity, const component_system_transform_t& transform, world_debug_draw_t& debug_draw)

@@ -35,10 +35,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_input_field.hpp"
 #include "ui/widgets/editor_widget_reference.hpp"
 #include "ui/widgets/editor_widgets_color_field.hpp"
+#include "ui/widgets/editor_widgets_dropdown.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include <sfg/io/assert.hpp>
+#include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -192,9 +194,61 @@ namespace sfg
 
 		append_bool_property("Write Shadows", &material_def_t::write_shadows);
 		append_bool_property("Write Reflections", &material_def_t::write_reflections);
-		append_bool_property("Transparent", &material_def_t::is_transparent);
 		append_bool_property("Double Sided", &material_def_t::double_sided);
 		append_bool_property("Alpha Cutoff", &material_def_t::use_alpha_cutoff);
+
+		const editor_asset_t* shader_asset		 = _materials.empty() ? nullptr : editor_asset_manager_t::get().find_asset(_materials.front().shader);
+		const bool			  is_particle_shader = shader_asset != nullptr && shader_asset->asset_type == editor_asset_type_e::shader && shader_asset->sub_type == static_cast<u8>(shader_type_e::particle_shader);
+		vector_t<u8*>		  fields			 = {};
+		fields.reserve(_materials.size());
+
+		for (material_def_t& material : _materials)
+			fields.push_back(reinterpret_cast<u8*>(&material.blend_mode));
+
+		const editor_property_row_t row		 = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, "Blend Mode");
+		editor_dropdown_t*			dropdown = new editor_dropdown_t();
+
+		if (is_particle_shader)
+		{
+			const editor_dropdown_item_t items[] = {
+				{.text = "Alpha", .value = static_cast<u64>(material_blend_mode_e::alpha)},
+				{.text = "Premultiplied Alpha", .value = static_cast<u64>(material_blend_mode_e::premultiplied_alpha)},
+				{.text = "Additive", .value = static_cast<u64>(material_blend_mode_e::additive)},
+			};
+
+			dropdown->init(*_ui,
+						   row.right,
+						   {
+							   .items	   = items,
+							   .field	   = {.fields = {.data = fields.data(), .size = fields.size()}, .field_size = sizeof(material_blend_mode_e)},
+							   .callbacks  = callbacks,
+							   .item_count = static_cast<u16>(std::size(items)),
+							   .width	   = editor_dropdown_width_e::parent_relative,
+							   .pos_y	   = editor_dropdown_pos_y_e::center,
+						   });
+		}
+		else
+		{
+			const editor_dropdown_item_t items[] = {
+				{.text = "Opaque", .value = static_cast<u64>(material_blend_mode_e::opaque)},
+				{.text = "Alpha", .value = static_cast<u64>(material_blend_mode_e::alpha)},
+			};
+
+			dropdown->init(*_ui,
+						   row.right,
+						   {
+							   .items	   = items,
+							   .field	   = {.fields = {.data = fields.data(), .size = fields.size()}, .field_size = sizeof(material_blend_mode_e)},
+							   .callbacks  = callbacks,
+							   .item_count = static_cast<u16>(std::size(items)),
+							   .width	   = editor_dropdown_width_e::parent_relative,
+							   .pos_y	   = editor_dropdown_pos_y_e::center,
+						   });
+		}
+
+		fit_control(dropdown->get_root());
+		_dropdowns.push_back(dropdown);
+		append_property_row(row.row);
 	}
 
 	void editor_widget_material_editor_t::refresh_display_data()
@@ -215,10 +269,23 @@ namespace sfg
 			for (material_def_t& material : _materials)
 				fields.push_back(reinterpret_cast<u64*>(&material.textures[texture_index].texture));
 
-			const char*					label	   = _shader_definition.textures[texture_index].texture_name;
-			const editor_asset_type_e	asset_type = _shader_definition.textures[texture_index].type == shader_texture_type_e::texture_cube ? editor_asset_type_e::cubemap : editor_asset_type_e::texture;
-			const editor_property_row_t row		   = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, label != nullptr ? label : "Texture");
-			editor_widget_reference_t*	control	   = new editor_widget_reference_t();
+			const char*			label	   = _shader_definition.textures[texture_index].texture_name;
+			editor_asset_type_e asset_type = editor_asset_type_e::texture;
+
+			switch (_shader_definition.textures[texture_index].type)
+			{
+			case shader_texture_type_e::texture_cube:
+				asset_type = editor_asset_type_e::cubemap;
+				break;
+			case shader_texture_type_e::sprite:
+				asset_type = editor_asset_type_e::sprite;
+				break;
+			default:
+				break;
+			}
+
+			const editor_property_row_t row		= editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, label != nullptr ? label : "Texture");
+			editor_widget_reference_t*	control = new editor_widget_reference_t();
 			control->init(*_ui,
 						  row.right,
 						  {
@@ -404,6 +471,11 @@ namespace sfg
 			color->uninit();
 			delete color;
 		}
+		for (editor_dropdown_t* dropdown : _dropdowns)
+		{
+			dropdown->uninit();
+			delete dropdown;
+		}
 		for (editor_input_field_t* input : _inputs)
 		{
 			input->uninit();
@@ -429,6 +501,7 @@ namespace sfg
 		_references.resize(0);
 		_checkboxes.resize(0);
 		_color_fields.resize(0);
+		_dropdowns.resize(0);
 		_inputs.resize(0);
 		_vec2_fields.resize(0);
 		_vec4_fields.resize(0);
@@ -483,9 +556,9 @@ namespace sfg
 		for (material_def_t& material : _materials)
 		{
 			material_def_t normalized	 = material_def_from_shader_def(_shader_definition, material.shader);
+			normalized.blend_mode		 = material.blend_mode;
 			normalized.write_shadows	 = material.write_shadows;
 			normalized.write_reflections = material.write_reflections;
-			normalized.is_transparent	 = material.is_transparent;
 			normalized.double_sided		 = material.double_sided;
 			normalized.use_alpha_cutoff	 = material.use_alpha_cutoff;
 

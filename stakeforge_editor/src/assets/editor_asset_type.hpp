@@ -51,6 +51,8 @@ namespace sfg
 		animation_graph,
 		cubemap,
 		physics_collision_mesh,
+		sprite,
+		curve,
 		world,
 		count,
 	};

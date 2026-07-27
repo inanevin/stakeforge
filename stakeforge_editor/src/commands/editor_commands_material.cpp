@@ -175,9 +175,9 @@ namespace sfg
 				return false;
 
 			out_material				   = material_def_from_shader_def(definition, shader);
+			out_material.blend_mode		   = src.blend_mode;
 			out_material.write_shadows	   = src.write_shadows;
 			out_material.write_reflections = src.write_reflections;
-			out_material.is_transparent	   = src.is_transparent;
 			out_material.double_sided	   = src.double_sided;
 			out_material.use_alpha_cutoff  = src.use_alpha_cutoff;
 			preserve_matching_values(out_material, src);

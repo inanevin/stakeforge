@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_split_border.hpp"
+#include "ui/widgets/editor_widget_reflection.hpp"
 #include "ui/widgets/editor_widget_world_view.hpp"
 #include "world/editor_world_handle.hpp"
 
@@ -35,12 +36,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/mat4x3.hpp>
+#include <sfg/memory/chunk_handle.hpp>
 #include <sfg/memory/pool_handle.hpp>
+#include <sfg/runtime/resources/skeleton_def.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
 	class editor_asset_manager_t;
+	class editor_command_skeleton_edit_t;
 	class world_t;
 	struct editor_asset_deletion_listener_tag_t;
 
@@ -66,8 +70,25 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void set_skeleton(sid_t skeleton_guid, const char* asset_name);
+		void apply_skeleton_def(skeleton_def_t&& skeleton);
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline skeleton_def_t& get_skeleton_def()
+		{
+			return _skeleton;
+		}
+
+		inline sid_t get_skeleton_guid() const
+		{
+			return _skeleton_guid;
+		}
 
 	private:
+		friend class editor_command_skeleton_edit_t;
+
 		struct joint_draw_data_t
 		{
 			mat4x3_t transform	  = mat4x3_t::identity;
@@ -77,25 +98,37 @@ namespace sfg
 		void			create_preview_world();
 		void			destroy_preview_world();
 		void			create_environment();
+		void			rebuild_joint_draw_data();
 		void			draw_skeleton(world_t& world) const;
 		void			refresh_info();
+		void			refresh_reflection();
 		void			apply_pane_split();
+		void			on_edit_begin();
+		void			on_edit_submitted();
 		ui::widget_id_t append_property_value_row(const char* label);
 		ui::widget_id_t append_value_label(ui::widget_id_t parent);
 
-		static void on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data);
-		static void on_world_tick(world_t& world, f32 delta_time, void* user_data);
-		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static span_t<const editor_widget_reflection_dropdown_item_t> resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, void* user_data);
+		static void													  on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data);
+		static void													  on_edit_begin(void* user_data);
+		static void													  on_edit_submitted(void* user_data);
+		static void													  on_world_tick(world_t& world, f32 delta_time, void* user_data);
+		static void													  on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 
 	private:
 		editor_widget_world_view_t								 _world_view			  = {};
+		editor_widget_reflection_t								 _skeleton_reflection	  = {};
 		editor_split_border_t									 _split_border			  = {};
+		skeleton_def_t											 _skeleton				  = {};
 		vector_t<joint_draw_data_t>								 _joint_draw_data		  = {};
+		vector_t<editor_widget_reflection_dropdown_item_t>		 _joint_dropdown_items	  = {};
+		vector_t<editor_widget_reflection_fold_state_t>			 _fold_states			  = {};
 		string_t												 _asset_name			  = {};
 		string_t												 _joint_count_text		  = {};
 		string_t												 _root_joint_text		  = {};
 		editor_world_handle_t									 _world					  = {};
 		pool_handle_t<u32, editor_asset_deletion_listener_tag_t> _asset_deletion_listener = {};
+		chunk_handle32_t										 _edit_previous_stream	  = {};
 		sid_t													 _skeleton_guid			  = 0;
 		u32														 _root_joint_index		  = UINT32_MAX;
 		entity_id_t												 _environment_entity	  = NULL_ENTITY_ID;
@@ -106,5 +139,6 @@ namespace sfg
 		f32														 _joint_radius			  = 0.025f;
 		f32														 _axis_length			  = 0.15f;
 		f32														 _pane_split			  = 0.72f;
+		bool													 _edit_active			  = false;
 	};
 }

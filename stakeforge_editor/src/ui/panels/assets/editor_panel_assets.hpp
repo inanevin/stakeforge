@@ -76,11 +76,27 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void		show_asset(sid_t guid);
-		void		collect_selected_asset_guids(vector_t<sid_t>& out_guids) const;
+		void									  show_asset(sid_t guid);
+		template <typename allocator_type_t> void collect_selected_asset_guids(vector_t<sid_t, allocator_type_t>& out_guids) const
+		{
+			out_guids.resize(0);
+			out_guids.reserve(_selected_asset_nodes.size());
+
+			for (editor_asset_node_handle_t node : _selected_asset_nodes)
+			{
+				const sid_t guid = get_asset_guid(node);
+
+				if (guid != NULL_SID)
+					out_guids.push_back(guid);
+			}
+		}
 		inline bool is_asset_selection_empty() const
 		{
 			return _selected_asset_nodes.empty();
+		}
+		inline sid_t get_single_selected_asset_guid() const
+		{
+			return _selected_asset_nodes.size() == 1 ? get_asset_guid(_selected_asset_nodes[0]) : NULL_SID;
 		}
 
 	private:
@@ -140,6 +156,10 @@ namespace sfg
 		void show_import_orm_texture_modal();
 		void submit_import_orm_texture();
 		void clear_pending_import_orm_texture();
+		void request_import_sprite();
+		void show_import_sprite_modal();
+		void submit_import_sprite();
+		void clear_pending_import_sprite();
 		void refresh_folder_rows();
 		bool append_folder_rows(editor_asset_node_handle_t node, u16 depth, frame_string_t<char>& current_path);
 		void refresh_asset_grid(bool force);
@@ -250,6 +270,9 @@ namespace sfg
 		static void on_import_orm_texture_submitted(void* user_data);
 		static void on_import_orm_texture_cancelled(void* user_data);
 		static void on_import_orm_texture_error_acknowledged(void* user_data);
+		static void on_import_sprite_submitted(void* user_data);
+		static void on_import_sprite_cancelled(void* user_data);
+		static void on_import_sprite_error_acknowledged(void* user_data);
 		static void on_search_changed(void* user_data);
 		static void on_asset_search_changed(void* user_data);
 		static void on_show_file_assets_pressed(bool toggled, void* user_data);
@@ -302,6 +325,8 @@ namespace sfg
 		vector_t<editor_asset_import_options_t> _pending_import_options			 = {};
 		editor_texture_orm_import_sources_t		_pending_orm_import_sources		 = {};
 		texture_cook_config_t					_pending_orm_texture_config		 = {};
+		vector_t<string_t>						_pending_sprite_import_paths	 = {};
+		sprite_cook_config_t					_pending_sprite_cook_config		 = {};
 		editor_modal_cook_options_t				_cook_options_modal				 = {};
 		editor_modal_assets_override_t			_assets_override_modal			 = {};
 		vector_t<editor_entity_payload_t>		_pending_override_entities		 = {};

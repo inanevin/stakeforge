@@ -22,36 +22,37 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
-#include <sfg/data/span.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
+#include <sfg/memory/chunk_handle.hpp>
 
 namespace sfg
 {
-	class world_debug_draw_t;
-	class world_t;
-	class mat4x3_t;
-	struct component_system_transform_t;
-	struct vec2u16_t;
-	enum class debug_draw_depth_e : u8;
+	class editor_panel_skeleton_viewer_t;
 
-	class editor_world_util_t final
+	struct editor_command_skeleton_edit_payload_t
+	{
+		chunk_handle32_t previous_stream = {};
+		chunk_handle32_t post_stream	 = {};
+	};
+
+	class editor_command_skeleton_edit_t final
 	{
 	public:
-		editor_world_util_t() = delete;
+		editor_command_skeleton_edit_t()												 = delete;
+		~editor_command_skeleton_edit_t()												 = delete;
+		editor_command_skeleton_edit_t(const editor_command_skeleton_edit_t&)			 = delete;
+		editor_command_skeleton_edit_t& operator=(const editor_command_skeleton_edit_t&) = delete;
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
-		static void draw_selection_gizmos(world_t& world, span_t<const entity_id_t> selected_entities, const vec2u16_t& render_resolution);
-		static void draw_transform_axes(world_debug_draw_t& debug_draw, const mat4x3_t& transform, f32 axis_length, f32 thickness_px, debug_draw_depth_e depth);
-		static void draw_skeleton_slot(world_debug_draw_t& debug_draw, const mat4x3_t& transform, const char* name, f32 half_extent, f32 axis_length, f32 text_size);
-
-	private:
-		static void draw_constraint_gizmos(world_t& world, entity_id_t entity, const component_system_transform_t& transform, world_debug_draw_t& debug_draw);
+		static bool begin(editor_panel_skeleton_viewer_t& viewer);
+		static bool submit(editor_panel_skeleton_viewer_t& viewer, const char* debug_name, bool notify);
+		static void cancel(editor_panel_skeleton_viewer_t& viewer);
 	};
 }

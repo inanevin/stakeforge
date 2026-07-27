@@ -33,6 +33,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/mat4x3.hpp>
+#include <sfg/math/quat.hpp>
+#include <sfg/math/vec3f.hpp>
 
 namespace sfg
 {
@@ -47,10 +49,19 @@ namespace sfg
 		u32		 parent_index = SKELETON_JOINT_NO_PARENT;
 	};
 
+	struct skeleton_slot_def_t
+	{
+		char	slot_name[128]	 = {};
+		u32		slot_joint_index = SKELETON_JOINT_NO_PARENT;
+		vec3f_t local_position	 = vec3f_t::zero;
+		quat_t	local_rotation	 = quat_t::identity;
+	};
+
 	struct skeleton_def_t
 	{
 		vector_t<skeleton_joint_def_t> joints			= {};
 		vector_t<u32>				   evaluation_order = {};
+		vector_t<skeleton_slot_def_t>  slots			= {};
 		string_t					   name				= {};
 		u32							   root_joint_index = UINT32_MAX;
 
@@ -59,11 +70,17 @@ namespace sfg
 	};
 
 	SFG_DEFINE_TYPE_ID(skeleton_joint_def_t);
+	SFG_DEFINE_TYPE_ID(skeleton_slot_def_t);
 	SFG_DEFINE_TYPE_ID(skeleton_def_t);
 
 	struct skeleton_joint_def_reflection_t
 	{
 		skeleton_joint_def_reflection_t();
+	};
+
+	struct skeleton_slot_def_reflection_t
+	{
+		skeleton_slot_def_reflection_t();
 	};
 
 	struct skeleton_def_reflection_t
@@ -72,5 +89,6 @@ namespace sfg
 	};
 
 	inline skeleton_joint_def_reflection_t g_reflect_skeleton_joint_def;
+	inline skeleton_slot_def_reflection_t  g_reflect_skeleton_slot_def;
 	inline skeleton_def_reflection_t	   g_reflect_skeleton_def;
 }

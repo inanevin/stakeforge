@@ -128,7 +128,7 @@ namespace sfg
 		callbacks.edit_submitted			= on_sampler_edit_submitted;
 		callbacks.user_data					= this;
 
-		vector_t<void*> objects;
+		frame_vector_t<void*> objects;
 		objects.reserve(_samplers.size());
 		for (sampler_desc_t& sampler : _samplers)
 			objects.push_back(&sampler);

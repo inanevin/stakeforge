@@ -59,22 +59,23 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_WORLD_SNAPSHOT_SLOT_COUNT		   3
-#define EDITOR_WORLD_SNAPSHOT_SLOT_MASK			   0x3
-#define EDITOR_WORLD_SNAPSHOT_FRESH_FLAG		   0x80
-#define EDITOR_WORLD_PICK_RESULT_REQUEST_SHIFT	   32
-#define EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE	   (8192 * 4)
-#define EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE	   (8192 * 6)
-#define EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_RESERVE 164000
-#define EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_RESERVE  164000
-#define EDITOR_WORLD_DEBUG_TEXT_COMMAND_RESERVE	   256
-#define EDITOR_WORLD_DEBUG_TEXT_BYTE_RESERVE	   32768
-#define EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX		   16384
-#define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX		   24576
-#define EDITOR_WORLD_SKELETON_JOINT_RADIUS_RATIO   0.02f
-#define EDITOR_WORLD_SKELETON_AXIS_LENGTH_RATIO	   0.12f
-#define EDITOR_WORLD_LIGHT_MAX					   1024
-#define EDITOR_WORLD_REFLECTION_PROBE_MAX		   256
+#define EDITOR_WORLD_SNAPSHOT_SLOT_COUNT			 3
+#define EDITOR_WORLD_SNAPSHOT_SLOT_MASK				 0x3
+#define EDITOR_WORLD_SNAPSHOT_FRESH_FLAG			 0x80
+#define EDITOR_WORLD_PICK_RESULT_REQUEST_SHIFT		 32
+#define EDITOR_WORLD_DEBUG_LINE_VERTEX_RESERVE		 (8192 * 4)
+#define EDITOR_WORLD_DEBUG_LINE_INDEX_RESERVE		 (8192 * 6)
+#define EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_RESERVE	 164000
+#define EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_RESERVE	 164000
+#define EDITOR_WORLD_DEBUG_TEXT_COMMAND_RESERVE		 256
+#define EDITOR_WORLD_DEBUG_TEXT_BYTE_RESERVE		 32768
+#define EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX			 16384
+#define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX			 24576
+#define EDITOR_WORLD_SKELETON_JOINT_RADIUS_RATIO	 0.02f
+#define EDITOR_WORLD_SKELETON_AXIS_LENGTH_RATIO		 0.12f
+#define EDITOR_WORLD_SKELETON_SLOT_HALF_EXTENT_SCALE 1.5f
+#define EDITOR_WORLD_LIGHT_MAX						 1024
+#define EDITOR_WORLD_REFLECTION_PROBE_MAX			 256
 
 	void editor_world_t::init(const world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
 	{
@@ -119,6 +120,8 @@ namespace sfg
 		_render_context.init({
 			.size				  = init_config.render_resolution,
 			.entity_max			  = init_config.render_entity_max,
+			.sprite_max			  = init_config.render_sprite_max,
+			.particle_max		  = init_config.render_particle_max,
 			.bone_max			  = init_config.render_bone_max,
 			.light_max			  = EDITOR_WORLD_LIGHT_MAX,
 			.reflection_probe_max = EDITOR_WORLD_REFLECTION_PROBE_MAX,
@@ -131,12 +134,17 @@ namespace sfg
 			.shadow_view_max	  = ENGINE_SHADOW_VIEW_MAX,
 		});
 
-		_render_prep_data.reserve(1000);
+		_render_prep_data.reserve(8000);
 
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
 			_snapshot_slots[i].reserve({
 				.entity_count			= 8000,
+				.renderable_count		= 8000,
+				.draw_count				= 8000,
+				.sprite_count			= init_config.render_sprite_max,
+				.particle_draw_count	= init_config.render_entity_max,
+				.particle_count			= init_config.render_particle_max,
 				.bone_count				= init_config.render_bone_reserve,
 				.light_count			= EDITOR_WORLD_LIGHT_MAX,
 				.reflection_probe_count = EDITOR_WORLD_REFLECTION_PROBE_MAX,
@@ -621,15 +629,29 @@ namespace sfg
 					}
 
 					debug_draw.draw_sphere(position, joint_radius, color_t::purple, 1.5f, debug_draw_depth_e::depth_tested, 10);
-
-					const vec3f_t axis_x = joint_transform.get_column(0).normalized();
-					const vec3f_t axis_y = joint_transform.get_column(1).normalized();
-					const vec3f_t axis_z = joint_transform.get_column(2).normalized();
-
-					debug_draw.draw_line(position, position + axis_x * axis_length, color_t::red, 1.5f, debug_draw_depth_e::depth_tested);
-					debug_draw.draw_line(position, position + axis_y * axis_length, color_t::green, 1.5f, debug_draw_depth_e::depth_tested);
-					debug_draw.draw_line(position, position + axis_z * axis_length, color_t::blue, 1.5f, debug_draw_depth_e::depth_tested);
+					editor_world_util_t::draw_transform_axes(debug_draw, joint_transform, axis_length, 1.5f, debug_draw_depth_e::depth_tested);
 					debug_draw.draw_text_3d(position, joint_name, color_t::white, theme.text_small_px_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
+				}
+
+				if (skeleton->slot_count != 0)
+				{
+					const skeleton_slot_runtime_t* slots = resource_memory.get<skeleton_slot_runtime_t>(skeleton->slots);
+
+					for (u32 slot_index = 0; slot_index < skeleton->slot_count; ++slot_index)
+					{
+						const skeleton_slot_runtime_t& slot = slots[slot_index];
+
+						if (slot.slot_joint_index == SKELETON_JOINT_NO_PARENT)
+							continue;
+
+						SFG_ASSERT(slot.slot_joint_index < skeleton->joint_count);
+
+						const mat4x3_t slot_local_transform = mat4x3_t::transform(slot.local_position, slot.local_rotation, vec3f_t::one);
+						const mat4x3_t slot_transform		= joint_transforms[slot.slot_joint_index] * slot_local_transform;
+						const char*	   slot_name			= resource_memory.get_text(slot.debug_name);
+
+						editor_world_util_t::draw_skeleton_slot(debug_draw, slot_transform, slot_name, joint_radius * EDITOR_WORLD_SKELETON_SLOT_HALF_EXTENT_SCALE, axis_length, theme.text_small_px_size);
+					}
 				}
 			}
 		}
@@ -641,15 +663,15 @@ namespace sfg
 			const editor_theme_t&		   theme		= editor_theme_t::get();
 			const color_t				   bounds_color = {theme.color_highlight.x, theme.color_highlight.y, theme.color_highlight.z, theme.color_highlight.w};
 
-			for (const world_draw_t& draw : snapshot.draws)
+			for (const world_renderable_t& renderable : snapshot.renderables)
 			{
-				const world_render_entity_t& entity		   = snapshot.entities[draw.entity_index];
-				const vec3f_t				 center		   = (draw.aabb.bounds_min + draw.aabb.bounds_max) * 0.5f;
-				const vec3f_t				 dimensions	   = draw.aabb.bounds_half_extent * 2.0f;
+				const world_render_entity_t& entity		   = snapshot.entities[renderable.entity_index];
+				const vec3f_t				 center		   = (renderable.aabb.bounds_min + renderable.aabb.bounds_max) * 0.5f;
+				const vec3f_t				 dimensions	   = renderable.aabb.bounds_half_extent * 2.0f;
 				const mat4x3_t				 box_transform = entity.transform * mat4x3_t::translation(center);
-				const vec3f_t				 text_position = entity.transform * vec3f_t(center.x, draw.aabb.bounds_max.y, center.z);
+				const vec3f_t				 text_position = entity.transform * vec3f_t(center.x, renderable.aabb.bounds_max.y, center.z);
 
-				debug_draw.draw_box(box_transform, draw.aabb.bounds_half_extent, bounds_color, 2.0f, debug_draw_depth_e::always_visible);
+				debug_draw.draw_box(box_transform, renderable.aabb.bounds_half_extent, bounds_color, 2.0f, debug_draw_depth_e::always_visible);
 
 				char  dimensions_text[96] = {};
 				char* text_cur			  = dimensions_text;

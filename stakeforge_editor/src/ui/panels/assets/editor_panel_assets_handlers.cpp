@@ -190,14 +190,19 @@ namespace sfg
 		case assets_action_menu_create_ui_shader:
 		case assets_action_menu_create_ui_text_shader:
 		case assets_action_menu_create_skybox_shader:
-		case assets_action_menu_create_sprite_shader:
+		case assets_action_menu_create_sprite_lit_shader:
+		case assets_action_menu_create_sprite_unlit_shader:
+		case assets_action_menu_create_particle_shader:
 		case assets_action_menu_create_texture_sampler:
+		case assets_action_menu_create_curve:
 		case assets_action_menu_create_opaque_material:
 		case assets_action_menu_create_opaque_unlit_material:
 		case assets_action_menu_create_transparent_material:
 		case assets_action_menu_create_transparent_unlit_material:
 		case assets_action_menu_create_skybox_material:
-		case assets_action_menu_create_sprite_material:
+		case assets_action_menu_create_sprite_lit_material:
+		case assets_action_menu_create_sprite_unlit_material:
+		case assets_action_menu_create_particle_material:
 		case assets_action_menu_create_physical_material:
 			panel._create_asset_popup_command = command;
 			return;
@@ -206,6 +211,9 @@ namespace sfg
 			return;
 		case assets_action_menu_import_orm_texture:
 			panel.request_import_orm_texture();
+			return;
+		case assets_action_menu_import_sprite:
+			panel.request_import_sprite();
 			return;
 		case assets_action_menu_delete:
 			panel.delete_folder();
@@ -381,6 +389,21 @@ namespace sfg
 	void editor_panel_assets_t::on_import_orm_texture_error_acknowledged(void* user_data)
 	{
 		static_cast<editor_panel_assets_t*>(user_data)->show_import_orm_texture_modal();
+	}
+
+	void editor_panel_assets_t::on_import_sprite_submitted(void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->submit_import_sprite();
+	}
+
+	void editor_panel_assets_t::on_import_sprite_cancelled(void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->clear_pending_import_sprite();
+	}
+
+	void editor_panel_assets_t::on_import_sprite_error_acknowledged(void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->show_import_sprite_modal();
 	}
 
 	void editor_panel_assets_t::on_search_changed(void* user_data)

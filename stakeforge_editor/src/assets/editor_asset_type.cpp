@@ -78,6 +78,12 @@ namespace sfg
 		case editor_asset_type_e::physics_collision_mesh:
 			j = "physics_collision_mesh";
 			break;
+		case editor_asset_type_e::sprite:
+			j = "sprite";
+			break;
+		case editor_asset_type_e::curve:
+			j = "curve";
+			break;
 		case editor_asset_type_e::world:
 			j = "world";
 			break;
@@ -119,6 +125,10 @@ namespace sfg
 			t = editor_asset_type_e::cubemap;
 		else if (s == "physics_collision_mesh")
 			t = editor_asset_type_e::physics_collision_mesh;
+		else if (s == "sprite")
+			t = editor_asset_type_e::sprite;
+		else if (s == "curve")
+			t = editor_asset_type_e::curve;
 		else if (s == "world")
 			t = editor_asset_type_e::world;
 		else
@@ -157,6 +167,10 @@ namespace sfg
 			return editor_asset_type_e::cubemap;
 		case resource_type_e::physics_collision_mesh:
 			return editor_asset_type_e::physics_collision_mesh;
+		case resource_type_e::sprite:
+			return editor_asset_type_e::sprite;
+		case resource_type_e::curve:
+			return editor_asset_type_e::curve;
 		default:
 			return editor_asset_type_e::invalid;
 		}
