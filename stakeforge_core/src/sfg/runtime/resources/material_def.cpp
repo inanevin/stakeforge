@@ -44,7 +44,6 @@ namespace sfg
 	void material_def_t::serialize(ostream_t& stream) const
 	{
 		stream << shader;
-		stream << write_depth;
 		stream << write_shadows;
 		stream << write_reflections;
 		stream << is_transparent;
@@ -94,7 +93,6 @@ namespace sfg
 		*this = {};
 
 		stream >> shader;
-		stream >> write_depth;
 		stream >> write_shadows;
 		stream >> write_reflections;
 		stream >> is_transparent;
@@ -257,7 +255,6 @@ namespace sfg
 	void to_json(nlohmann::json& j, const material_def_t& value)
 	{
 		j["shader"]			   = value.shader;
-		j["write_depth"]	   = value.write_depth;
 		j["write_shadows"]	   = value.write_shadows;
 		j["write_reflections"] = value.write_reflections;
 		j["is_transparent"]	   = value.is_transparent;
@@ -281,7 +278,6 @@ namespace sfg
 	{
 		value					= {};
 		value.shader			= j.value<resource_handle_t>("shader", NULL_RESOURCE_HANDLE);
-		value.write_depth		= j.value<bool>("write_depth", false);
 		value.write_shadows		= j.value<bool>("write_shadows", false);
 		value.write_reflections = j.value<bool>("write_reflections", false);
 		value.is_transparent	= j.value<bool>("is_transparent", false);

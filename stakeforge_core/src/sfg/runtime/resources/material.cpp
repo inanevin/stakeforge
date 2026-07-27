@@ -128,7 +128,6 @@ namespace sfg
 		}
 
 		runtime->shader_guid	   = material.shader;
-		runtime->write_depth	   = material.write_depth ? 1 : 0;
 		runtime->write_shadows	   = material.write_shadows ? 1 : 0;
 		runtime->write_reflections = material.write_reflections ? 1 : 0;
 		runtime->is_transparent	   = material.is_transparent ? 1 : 0;

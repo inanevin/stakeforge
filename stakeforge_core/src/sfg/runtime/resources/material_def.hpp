@@ -75,7 +75,6 @@ namespace sfg
 		inplace_vector_t<material_sampler_value_t, SFG_MATERIAL_MAX_TEXTURES> samplers			= {};
 		inplace_vector_t<material_param_value_t, SFG_MATERIAL_MAX_PARAMS>	  parameters		= {};
 		resource_handle_t													  shader			= NULL_RESOURCE_HANDLE;
-		bool																  write_depth		= false;
 		bool																  write_shadows		= false;
 		bool																  write_reflections = false;
 		bool																  is_transparent	= false;
