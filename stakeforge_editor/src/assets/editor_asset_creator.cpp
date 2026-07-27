@@ -68,6 +68,8 @@ namespace sfg
 				return EDITOR_TEMPLATE_MATERIALS "material_transparent_unlit.sfg_asset";
 			case editor_material_type_e::skybox:
 				return EDITOR_TEMPLATE_MATERIALS "material_skybox.sfg_asset";
+			case editor_material_type_e::sprite:
+				return EDITOR_TEMPLATE_MATERIALS "material_sprite.sfg_asset";
 			default:
 				return EDITOR_TEMPLATE_MATERIALS "material_opaque.sfg_asset";
 			}
@@ -87,6 +89,8 @@ namespace sfg
 				return EDITOR_SHADERS "editor_ui_text_grayscale.hlsl";
 			case shader_type_e::skybox_shader:
 				return COMMON_SHADERS "world/skybox_cube.hlsl";
+			case shader_type_e::sprite_shader:
+				return COMMON_SHADERS "world/sprite.hlsl";
 			default:
 				return COMMON_SHADERS "world/object_lit.hlsl";
 			}

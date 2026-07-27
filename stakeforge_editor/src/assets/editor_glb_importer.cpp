@@ -755,7 +755,6 @@ namespace sfg
 						make_vec4_parameter("emissive_tiling_offset", emissive_transform.tiling[0], emissive_transform.tiling[1], emissive_transform.offset[0], emissive_transform.offset[1], shader_param_hint_e::pack_uint2),
 					},
 				.shader			   = DEFAULT_LIT_SHADER_ASSET_GUID,
-				.write_depth	   = !is_transparent,
 				.write_shadows	   = !is_transparent,
 				.write_reflections = true,
 				.is_transparent	   = is_transparent,

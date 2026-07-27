@@ -38,6 +38,7 @@ namespace sfg
 		opaque_unlit,
 		skybox,
 		transparent_unlit,
+		sprite,
 	};
 
 	enum class editor_object_shader_template_e : u8

@@ -173,6 +173,7 @@ namespace sfg
 				 .source_template_relative = COMMON_SHADERS "world/skybox_gradient.hlsl",
 				 .guid					   = DEFAULT_GRADIENT_SKYBOX_SHADER_ASSET_GUID,
 				 .shader_type			   = shader_type_e::skybox_shader},
+				{.asset_name = "default_shader_sprite", .source_base_name = "default_shader_sprite", .source_template_relative = COMMON_SHADERS "world/sprite.hlsl", .guid = DEFAULT_SPRITE_SHADER_ASSET_GUID, .shader_type = shader_type_e::sprite_shader},
 			};
 
 			for (const default_shader_asset_desc_t& desc : default_shader_assets)
@@ -331,6 +332,11 @@ namespace sfg
 				 .guid				  = DEFAULT_TRANSPARENT_UNLIT_MATERIAL_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::material,
 				 .sub_type			  = static_cast<u8>(editor_material_type_e::transparent_unlit)},
+				{.asset_name		  = "default_sprite_material",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_sprite_material.sfg_asset",
+				 .guid				  = DEFAULT_SPRITE_MATERIAL_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::material,
+				 .sub_type			  = static_cast<u8>(editor_material_type_e::sprite)},
 				{.asset_name		  = "default_material_skybox_cube",
 				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_material_skybox_cube.sfg_asset",
 				 .guid				  = DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID,
