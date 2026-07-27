@@ -40,6 +40,7 @@ namespace sfg
 		physics_runtime_config_t  physics						 = {};
 		vec2u16_t				  render_resolution				 = vec2u16_t(512, 512);
 		u32						  render_entity_max				 = 256;
+		u32						  render_sprite_max				 = 256;
 		u32						  render_bone_max				 = 256;
 		u32						  render_bone_reserve			 = 256;
 		u32						  animation_graph_memory_reserve = 1 * 1024 * 1024;
