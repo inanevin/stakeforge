@@ -30,22 +30,56 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/aabb.hpp>
+#include <sfg/math/vec2f.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
-#include <sfg/runtime/resources/material_limits.hpp>
 
 namespace sfg
 {
-	struct alignas(64) world_draw_t
+	enum class world_renderable_type_e : u8
 	{
-		aabb_t					 aabb			= {};
-		u64						 sort_key		= 0;
+		mesh,
+		sprite,
+	};
+
+	struct alignas(64) world_renderable_t
+	{
+		u64						sort_key	   = 0;
+		aabb_t					aabb		   = {};
+		u32						payload_index  = UINT32_MAX;
+		u32						material_index = UINT32_MAX;
+		u32						entity_index   = UINT32_MAX;
+		u32						pass_mask	   = 0;
+		world_renderable_type_e type		   = world_renderable_type_e::mesh;
+	};
+
+	struct world_sprite_draw_t
+	{
+		render_resource_handle_t texture  = {};
+		vec2f_t					 uv_start = vec2f_t::zero;
+		vec2f_t					 uv_size  = vec2f_t::zero;
+		vec2f_t					 size	  = vec2f_t::zero;
+	};
+
+	struct world_draw_sprite_instance_gpu_t
+	{
+		vec2f_t		uv_start	  = vec2f_t::zero;
+		vec2f_t		uv_size		  = vec2f_t::zero;
+		vec2f_t		size		  = vec2f_t::zero;
+		gpu_index_t texture_index = NULL_GPU_INDEX;
+		u32			entity_index  = UINT32_MAX;
+		u32			entity_id	  = UINT32_MAX;
+		u32			pad			  = 0;
+	};
+
+	static_assert(sizeof(world_renderable_t) == 64);
+	static_assert(sizeof(world_draw_sprite_instance_gpu_t) == 40);
+
+	struct world_mesh_draw_t
+	{
 		render_resource_handle_t vertex_buffer	= {};
 		render_resource_handle_t index_buffer	= {};
 		render_resource_handle_t direct_pso		= {};
-		u32						 pass_mask		= 0;
 		u32						 draw_flags		= 0;
-		u32						 material_index = UINT32_MAX;
-		u32						 entity_index	= UINT32_MAX;
 		u32						 skinning_index = UINT32_MAX;
 		u32						 index_count	= 0;
 		u32						 vertex_count	= 0;

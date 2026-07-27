@@ -1,4 +1,5 @@
 /*
+/*
 This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
 Copyright [2025-] Inan Evin
 
@@ -128,31 +129,66 @@ namespace sfg
 		u32			cluster_buffer_offset				= 0;
 		u32			cluster_light_indices_buffer_offset = 0;
 		u32			cluster_light_capacity				= 0;
+		u32			queue_flags							= 0;
+		u32			depth_queue_start					= 0;
+		u32			depth_queue_count					= 0;
+		u32			opaque_queue_start					= 0;
+		u32			opaque_queue_count					= 0;
+		u32			transparent_queue_start				= 0;
+		u32			transparent_queue_count				= 0;
+		u32			shadow_queue_start					= 0;
+		u32			shadow_queue_count					= 0;
+		u32			visible_queue_start					= 0;
+		u32			visible_queue_count					= 0;
+	};
+
+	enum world_render_queue_flags_e : u32
+	{
+		world_render_queue_flag_depth		= 1 << 0,
+		world_render_queue_flag_opaque		= 1 << 1,
+		world_render_queue_flag_transparent = 1 << 2,
+		world_render_queue_flag_shadow		= 1 << 3,
+		world_render_queue_flag_visible		= 1 << 4,
+	};
+
+	struct world_render_queue_item_t
+	{
+		f32 depth				  = 0.0f;
+		u32 renderable_index	  = UINT32_MAX;
+		u32 sprite_instance_index = UINT32_MAX;
 	};
 
 	struct world_render_prep_data_t
 	{
 		vector_t<world_render_prep_view_t>	 views					= {};
-		vector_t<u64>						 draw_cull_masks		= {};
+		vector_t<world_render_queue_item_t>	 depth_queue			= {};
+		vector_t<world_render_queue_item_t>	 opaque_queue			= {};
+		vector_t<world_render_queue_item_t>	 transparent_queue		= {};
+		vector_t<world_render_queue_item_t>	 shadow_queue			= {};
+		vector_t<world_render_queue_item_t>	 visible_queue			= {};
 		vector_t<world_render_shadow_view_t> shadow_views			= {};
-		u32									 cull_word_count		= 0;
 		u32									 reflection_probe_count = 0;
 
 		inline void reserve(size_t draws)
 		{
-			const size_t word_count = (draws + 63) / 64;
-
 			views.reserve(WORLD_RENDER_PREP_INITIAL_VIEW_CAPACITY);
-			draw_cull_masks.reserve(word_count * WORLD_RENDER_PREP_INITIAL_VIEW_CAPACITY);
+			depth_queue.reserve(draws * 8);
+			opaque_queue.reserve(draws * 8);
+			transparent_queue.reserve(draws * 8);
+			shadow_queue.reserve(draws * 64);
+			visible_queue.reserve(draws);
 			shadow_views.reserve(64);
 		}
 
 		inline void reset()
 		{
 			views.resize(0);
-			draw_cull_masks.resize(0);
+			depth_queue.resize(0);
+			opaque_queue.resize(0);
+			transparent_queue.resize(0);
+			shadow_queue.resize(0);
+			visible_queue.resize(0);
 			shadow_views.resize(0);
-			cull_word_count		   = 0;
 			reflection_probe_count = 0;
 		}
 
@@ -162,17 +198,14 @@ namespace sfg
 			views.push_back(view);
 			return index;
 		}
-
-		inline bool is_draw_culled(u16 view_index, u32 draw_index) const
-		{
-			const u64 word = draw_cull_masks[static_cast<size_t>(view_index) * cull_word_count + draw_index / 64];
-			return (word & (1ull << (draw_index % 64))) != 0;
-		}
 	};
 
 	struct world_render_snapshot_reserve_config_t
 	{
 		size_t entity_count			  = 0;
+		size_t renderable_count		  = 0;
+		size_t draw_count			  = 0;
+		size_t sprite_count			  = 0;
 		size_t bone_count			  = 0;
 		size_t light_count			  = 0;
 		size_t reflection_probe_count = 0;
@@ -198,7 +231,9 @@ namespace sfg
 		vector_t<world_render_bone_t>			  bones				= {};
 		vector_t<world_render_light_t>			  lights			= {};
 		vector_t<world_render_reflection_probe_t> reflection_probes = {};
-		vector_t<world_draw_t>					  draws				= {};
+		vector_t<world_renderable_t>			  renderables		= {};
+		vector_t<world_mesh_draw_t>				  mesh_draws		= {};
+		vector_t<world_sprite_draw_t>			  sprite_draws		= {};
 		engine_quality_level_e					  quality_level		= engine_quality_level_e::high;
 
 		inline void reserve(const world_render_snapshot_reserve_config_t& config)
@@ -207,6 +242,9 @@ namespace sfg
 			bones.reserve(config.bone_count);
 			lights.reserve(config.light_count);
 			reflection_probes.reserve(config.reflection_probe_count);
+			renderables.reserve(config.renderable_count);
+			mesh_draws.reserve(config.draw_count);
+			sprite_draws.reserve(config.sprite_count);
 			debug_draw.line_vertices.reserve(config.line_vertex_count);
 			debug_draw.line_indices.reserve(config.line_index_count);
 			debug_draw.triangle_vertices.reserve(config.triangle_vertex_count);

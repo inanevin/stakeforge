@@ -97,7 +97,7 @@ namespace sfg
 
 				render_mat.pass_mask |= mat_runtime->is_transparent != 0 ? world_pass_flags_forward : world_pass_flags_gbuffer;
 
-				if (mat_runtime->is_transparent == 0 && mat_runtime->write_depth != 0)
+				if (mat_runtime->is_transparent == 0)
 					render_mat.pass_mask |= world_pass_flags_depth;
 
 				if (mat_runtime->write_shadows != 0)
@@ -183,7 +183,9 @@ namespace sfg
 		snapshot.bones.resize(0);
 		snapshot.lights.resize(0);
 		snapshot.reflection_probes.resize(0);
-		snapshot.draws.resize(0);
+		snapshot.renderables.resize(0);
+		snapshot.mesh_draws.resize(0);
+		snapshot.sprite_draws.resize(0);
 		snapshot.environment  = {};
 		snapshot.fog		  = {};
 		snapshot.post_process = {};
@@ -200,10 +202,12 @@ namespace sfg
 		const ecs_component_table_t& reflection_probe_table				= world.get_component_table(type_id_t<component_reflection_probe_t>::value);
 		const ecs_component_table_t& disabled_table						= world.get_component_table(type_id_t<component_disabled_t>::value);
 		const ecs_component_table_t& mesh_renderer_table				= world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
+		const ecs_component_table_t& sprite_renderer_table				= world.get_component_table(type_id_t<component_sprite_renderer_t>::value);
+		const ecs_component_table_t& system_sprite_renderer_table		= world.get_component_table(type_id_t<component_system_sprite_renderer_t>::value);
 		const ecs_component_table_t& skinned_mesh_renderer_table		= world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
 		const ecs_component_table_t& system_skinned_mesh_renderer_table = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
 
-		const resource_manager_t&  rm	  = resource_manager_t::get();
+		resource_manager_t&		   rm	  = resource_manager_t::get();
 		const chunk_allocator32_t& rm_aux = rm.get_memory();
 
 		frame_hash_map_t<entity_id_t, u32>		 entity_to_render_id	= {};
@@ -459,23 +463,30 @@ namespace sfg
 
 					const u32 entity_index = push_render_object(entity_to_render_id, snapshot, row.id, transform_table);
 
-					world_draw_t& draw	= snapshot.draws.emplace_back();
-					draw.aabb			= mesh_internals->local_bounds;
-					draw.sort_key		= mat_handle;
-					draw.vertex_buffer	= vtx;
-					draw.index_buffer	= idx;
-					draw.pass_mask		= snapshot.materials[draw_material_index].pass_mask;
-					draw.draw_flags		= 0;
-					draw.material_index = draw_material_index;
-					draw.entity_index	= entity_index;
-					draw.skinning_index = UINT32_MAX;
-					draw.index_count	= prim.index_count;
-					draw.vertex_count	= UINT32_MAX;
-					draw.start_index	= prim.start_index;
-					draw.start_vertex	= prim.start_vertex;
-					draw.start_instance = 0;
-					draw.vertex_stride	= mesh_runtime->vertex_stride;
-					draw.index_stride	= mesh_runtime->index_stride;
+					// mesh draw
+					world_mesh_draw_t& draw = snapshot.mesh_draws.emplace_back();
+					draw.vertex_buffer		= vtx;
+					draw.index_buffer		= idx;
+					draw.draw_flags			= 0;
+					draw.skinning_index		= UINT32_MAX;
+					draw.index_count		= prim.index_count;
+					draw.vertex_count		= UINT32_MAX;
+					draw.start_index		= prim.start_index;
+					draw.start_vertex		= prim.start_vertex;
+					draw.start_instance		= 0;
+					draw.vertex_stride		= mesh_runtime->vertex_stride;
+					draw.index_stride		= mesh_runtime->index_stride;
+
+					// renderable instance
+					snapshot.renderables.push_back({
+						.sort_key		= mat_handle,
+						.aabb			= mesh_internals->local_bounds,
+						.payload_index	= static_cast<u32>(snapshot.mesh_draws.size() - 1),
+						.material_index = draw_material_index,
+						.entity_index	= entity_index,
+						.pass_mask		= snapshot.materials[draw_material_index].pass_mask,
+						.type			= world_renderable_type_e::mesh,
+					});
 				}
 			}
 		}
@@ -541,28 +552,90 @@ namespace sfg
 
 					const u32 entity_index = push_render_object(entity_to_render_id, snapshot, row.id, transform_table);
 
-					world_draw_t& draw	= snapshot.draws.emplace_back();
-					draw.aabb			= mesh_internals->local_bounds;
-					draw.sort_key		= mat_handle;
-					draw.vertex_buffer	= vertex_buffer;
-					draw.index_buffer	= index_buffer;
-					draw.pass_mask		= snapshot.materials[draw_material_index].pass_mask;
-					draw.draw_flags		= 0;
-					draw.material_index = draw_material_index;
-					draw.entity_index	= entity_index;
-					draw.skinning_index = idx;
-					draw.index_count	= prim.index_count;
-					draw.vertex_count	= UINT32_MAX;
-					draw.start_index	= prim.start_index;
-					draw.start_vertex	= prim.start_vertex;
-					draw.start_instance = 0;
-					draw.vertex_stride	= mesh_runtime->vertex_stride;
-					draw.index_stride	= mesh_runtime->index_stride;
+					// mesh draw
+					world_mesh_draw_t& draw = snapshot.mesh_draws.emplace_back();
+					draw.vertex_buffer		= vertex_buffer;
+					draw.index_buffer		= index_buffer;
+					draw.draw_flags			= 0;
+					draw.skinning_index		= idx;
+					draw.index_count		= prim.index_count;
+					draw.vertex_count		= UINT32_MAX;
+					draw.start_index		= prim.start_index;
+					draw.start_vertex		= prim.start_vertex;
+					draw.start_instance		= 0;
+					draw.vertex_stride		= mesh_runtime->vertex_stride;
+					draw.index_stride		= mesh_runtime->index_stride;
+
+					// renderable instance
+					snapshot.renderables.push_back({
+						.sort_key		= mat_handle,
+						.aabb			= mesh_internals->local_bounds,
+						.payload_index	= static_cast<u32>(snapshot.mesh_draws.size() - 1),
+						.material_index = draw_material_index,
+						.entity_index	= entity_index,
+						.pass_mask		= snapshot.materials[draw_material_index].pass_mask,
+						.type			= world_renderable_type_e::mesh,
+					});
 				}
 			}
 		}
 
+		// extract sprite renderers
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				transform_table.ref(),
+				alive_table.ref(),
+				sprite_renderer_table.ref(),
+				system_sprite_renderer_table.ref(),
+				!disabled_table.ref(),
+			};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				const component_sprite_renderer_t&		  sprite		   = ecs_helpers_t::row_get<component_sprite_renderer_t>(row, 2);
+				const component_system_sprite_renderer_t& system_sprite	   = ecs_helpers_t::row_get<component_system_sprite_renderer_t>(row, 3);
+				const material_runtime_t*				  material_runtime = rm.find_runtime<material_runtime_t>(sprite.material);
+
+				if (material_runtime == nullptr)
+					continue;
+
+				const shader_runtime_t* shader_runtime = rm.find_runtime<shader_runtime_t>(material_runtime->shader_guid);
+
+				if (shader_runtime == nullptr || shader_runtime->type != shader_type_e::sprite_shader)
+					continue;
+
+				const u32 material_index = push_material_from_guid(material_guid_to_index, snapshot, sprite.material);
+
+				if (material_index == UINT32_MAX)
+					continue;
+
+				const f32 frame_width  = system_sprite.uv_size.x * static_cast<f32>(system_sprite.texture_size.x);
+				const f32 frame_height = system_sprite.uv_size.y * static_cast<f32>(system_sprite.texture_size.y);
+				const f32 aspect	   = frame_width / frame_height;
+				const u32 entity_index = push_render_object(entity_to_render_id, snapshot, row.id, transform_table);
+				const u32 sprite_index = static_cast<u32>(snapshot.sprite_draws.size());
+
+				// sprite draw
+				snapshot.sprite_draws.push_back({
+					.texture  = system_sprite.texture,
+					.uv_start = system_sprite.uv_start,
+					.uv_size  = system_sprite.uv_size,
+					.size	  = {aspect, 1.0f},
+				});
+
+				// renderable instance
+				snapshot.renderables.push_back({
+					.sort_key		= sprite.material,
+					.aabb			= aabb_t({-aspect * 0.5f, -0.5f, -0.01f}, {aspect * 0.5f, 0.5f, 0.01f}),
+					.payload_index	= sprite_index,
+					.material_index = material_index,
+					.entity_index	= entity_index,
+					.pass_mask		= snapshot.materials[material_index].pass_mask,
+					.type			= world_renderable_type_e::sprite,
+				});
+			}
+		}
+
 		std::sort(snapshot.lights.begin(), snapshot.lights.end(), [](const world_render_light_t& l0, const world_render_light_t& l1) -> bool { return l0.type < l1.type; });
-		std::sort(snapshot.draws.begin(), snapshot.draws.end(), [](const world_draw_t& d0, const world_draw_t& d1) -> bool { return d0.sort_key < d1.sort_key; });
 	}
 }
