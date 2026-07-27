@@ -29,93 +29,9 @@
 //  OF THE POSSIBILITY OF SUCH DAMAGE.
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#include "layout_defines.hlsl"
-#include "entity.hlsl"
-#include "normal.hlsl"
-#include "render_pass_defines.hlsl"
-#include "fog.hlsl"
+#include "sprite_common.hlsl"
 
-SFG_MATERIAL_TEXTURE("texture", sfg_texture2d)
-SFG_MATERIAL_SAMPLER("texture")
 SFG_MATERIAL_PARAM_VEC4("tint", sfg_color)
-
-struct sprite_instance
-{
-    float2 uv_start;
-    float2 uv_size;
-    float2 size;
-    uint texture_index;
-    uint entity_index;
-    uint entity_id;
-    uint pad;
-};
-
-struct material_data
-{
-    float4 tint;
-};
-
-struct vs_output
-{
-    float4 pos : SV_POSITION;
-    float2 uv : TEXCOORD0;
-    float3 world_pos : TEXCOORD1;
-#ifdef USE_GBUFFER
-    float3 world_normal : TEXCOORD2;
-#endif
-    nointerpolation uint texture_index : TEXCOORD3;
-    nointerpolation uint entity_id : TEXCOORD4;
-};
-
-vs_output VSMain(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
-{
-    static const float2 positions[6] = {
-        float2(-0.5, -0.5),
-        float2(-0.5, 0.5),
-        float2(0.5, 0.5),
-        float2(-0.5, -0.5),
-        float2(0.5, 0.5),
-        float2(0.5, -0.5)
-    };
-    static const float2 uvs[6] = {
-        float2(0.0, 1.0),
-        float2(0.0, 0.0),
-        float2(1.0, 0.0),
-        float2(0.0, 1.0),
-        float2(1.0, 0.0),
-        float2(1.0, 1.0)
-    };
-
-    render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
-    StructuredBuffer<gpu_entity> entity_buffer = sfg_get_ssbo<gpu_entity>(SFG_RENDER_PASS_ENTITIES);
-    StructuredBuffer<sprite_instance> instance_buffer = sfg_get_ssbo<sprite_instance>(sfg_constant_obj0);
-    sprite_instance instance = instance_buffer[sfg_constant_obj1 + instance_id];
-    gpu_entity entity = entity_buffer[instance.entity_index];
-
-    float2 local_position = positions[vertex_id] * instance.size;
-    float3 world_position = mul(entity.model, float4(local_position, 0.0, 1.0)).xyz;
-
-    vs_output OUT;
-    OUT.pos = mul(view_data.view_proj, float4(world_position, 1.0));
-    OUT.uv = instance.uv_start + uvs[vertex_id] * instance.uv_size;
-    OUT.world_pos = world_position;
-#ifdef USE_GBUFFER
-    OUT.world_normal = normalize(mul(entity.normal_matrix, float4(0.0, 0.0, 1.0, 0.0)).xyz);
-#endif
-    OUT.texture_index = instance.texture_index;
-    OUT.entity_id = instance.entity_id;
-    return OUT;
-}
-
-float4 sample_sprite(vs_output IN)
-{
-    material_data mat_data = sfg_get_cbv<material_data>(sfg_constant_mat0);
-    Texture2D texture_sprite = sfg_get_texture<Texture2D>(IN.texture_index);
-    SamplerState sampler_sprite = sfg_get_sampler_state(sfg_constant_mat2);
-    float4 color = texture_sprite.Sample(sampler_sprite, IN.uv) * mat_data.tint;
-    clip(color.a - 0.001);
-    return color;
-}
 
 #ifdef USE_SELECTION
 

@@ -7,7 +7,7 @@
         "schema": "sfg.schema.material",
         "write_shadows": false,
         "write_reflections": true,
-        "is_transparent": true,
+        "blend_mode": "alpha",
         "shader": 1029,
         "textures": [
             {"name": "albedo", "texture": 1002},

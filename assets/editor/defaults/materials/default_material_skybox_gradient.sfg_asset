@@ -7,7 +7,7 @@
         "schema": "sfg.schema.material",
         "write_shadows": false,
         "write_reflections": false,
-        "is_transparent": false,
+        "blend_mode": "opaque",
         "shader": 1026,
         "textures": [],
         "samplers": [],

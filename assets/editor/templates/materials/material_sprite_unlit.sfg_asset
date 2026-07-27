@@ -1,0 +1,23 @@
+{
+    "version": 0,
+    "guid": 1044,
+    "asset_type": "material",
+    "sub_type": 6,
+    "embedded_source": {
+        "schema": "sfg.schema.material",
+        "write_shadows": false,
+        "write_reflections": true,
+        "blend_mode": "alpha",
+        "shader": 1043,
+        "textures": [],
+        "samplers": [],
+        "parameters": [
+            {"name": "tint", "type": "vec4", "hint": "color", "value": [1.0, 1.0, 1.0, 1.0]}
+        ],
+        "double_sided": true,
+        "use_alpha_cutoff": false
+    },
+    "cook_options": {},
+    "source_relative": "",
+    "source_type": "embedded"
+}

@@ -1,19 +1,19 @@
 {
     "version": 0,
-    "guid": 1042,
+    "guid": 1046,
     "asset_type": "material",
-    "sub_type": 5,
+    "sub_type": 7,
     "embedded_source": {
         "schema": "sfg.schema.material",
         "write_shadows": false,
         "write_reflections": true,
-        "is_transparent": true,
-        "shader": 1041,
+        "blend_mode": "alpha",
+        "shader": 1045,
         "textures": [
-            {"name": "texture", "texture": 1002}
+            {"name": "sprite", "texture": 0, "type": "sprite"}
         ],
         "samplers": [
-            {"name": "texture", "sampler": 1009}
+            {"name": "sprite", "sampler": 1009}
         ],
         "parameters": [
             {"name": "tint", "type": "vec4", "hint": "color", "value": [1.0, 1.0, 1.0, 1.0]}
