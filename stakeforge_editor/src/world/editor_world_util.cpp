@@ -25,6 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "editor_world_util.hpp"
+#include "assets/editor_asset.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/data/char_util.hpp>
 #include <sfg/data/frame_vector.hpp>
@@ -32,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/color.hpp>
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/math.hpp>
+#include <sfg/math/quat.hpp>
 #include <sfg/math/vec2u16.hpp>
 #include <sfg/runtime/animation/animation_bone.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
@@ -126,6 +128,38 @@ namespace sfg
 				break;
 			}
 		}
+	}
+
+	entity_id_t editor_world_util_t::install_default_scene(world_t& world)
+	{
+		const entity_id_t environment = world.create_entity("environment");
+		world.set_entity_rot_local(environment, quat_t::from_euler(-32.0f, 0.0f, 0.0f));
+
+		component_light_t& light = ecs_helpers_t::table_add_or_get_as<component_light_t>(world.get_component_table(type_id_t<component_light_t>::value), environment);
+		light.intensity			 = 4.5f;
+		light.range				 = 10.0f;
+		light.type				 = light_type_e::directional;
+		light.cast_shadows		 = 1;
+
+		component_environment_t& environment_component = ecs_helpers_t::table_add_or_get_as<component_environment_t>(world.get_component_table(type_id_t<component_environment_t>::value), environment);
+		environment_component.skybox_material		   = DEFAULT_GRADIENT_SKYBOX_MATERIAL_ASSET_GUID;
+		environment_component.ambient_color			   = color_t::white;
+		environment_component.intensity				   = 1.0f;
+
+		world.scan_for_resources(environment, true);
+
+		const entity_id_t ground = world.create_entity("ground");
+
+		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), ground);
+		mesh_renderer.mesh						 = DEFAULT_MESH_PLANE_GUID;
+		mesh_renderer.materials.push_back(DEFAULT_GRID_MATERIAL_ASSET_GUID);
+
+		component_transform_t& transform = ecs_helpers_t::table_add_or_get_as<component_transform_t>(world.get_component_table(type_id_t<component_transform_t>::value), ground);
+		transform.scale					 = vec3f_t(50, 1, 50);
+
+		world.scan_for_resources(ground, true);
+
+		return environment;
 	}
 
 	void editor_world_util_t::draw_skeletons(world_t& world)

@@ -62,6 +62,8 @@ namespace sfg
 				return "Cylinder";
 			case DEFAULT_MESH_CAPSULE_GUID:
 				return "Capsule";
+			case DEFAULT_MESH_PLANE_GUID:
+				return "Plane";
 			default:
 				return nullptr;
 			}

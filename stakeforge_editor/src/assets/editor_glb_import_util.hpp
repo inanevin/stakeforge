@@ -73,7 +73,7 @@ namespace sfg
 		static mat4x3_t				  convert_transform(const glb_basis_conversion_t& basis, const mat4x3_t& value);
 
 		static i32	find_attribute(const tg3_primitive& primitive, const char* name);
-		static bool import_animation(const tg3_model& model, const tg3_animation& animation, const glb_basis_conversion_t& basis, animation_def_t& out);
+		static bool import_animation(const tg3_model& model, const tg3_animation& animation, const glb_basis_conversion_t& basis, animation_def_t& out, u32& out_skin_index);
 		static bool read_inverse_bind_matrix(const tg3_model& model, const tg3_skin& skin, const glb_basis_conversion_t& basis, u32 joint_index, mat4x3_t& out_matrix);
 		static bool import_static_primitive(const tg3_model& model, const tg3_primitive& primitive, const glb_basis_conversion_t& basis, u32 material_index, primitive_static_def_t& out);
 		static bool import_skinned_primitive(const tg3_model& model, const tg3_primitive& primitive, const glb_basis_conversion_t& basis, u32 material_index, primitive_skinned_def_t& out);

@@ -29,14 +29,17 @@ namespace sfg
 
 	struct animation_runtime_t
 	{
-		animation_def_t						  def				= {};
-		const animation_channel_v3_runtime_t* position_channels = nullptr;
-		const animation_channel_q_runtime_t*  rotation_channels = nullptr;
-		const animation_channel_v3_runtime_t* scale_channels	= nullptr;
-		u32									  position_count	= 0;
-		u32									  rotation_count	= 0;
-		u32									  scale_count		= 0;
-		f32									  duration			= 0.0f;
+		animation_def_t							def				  = {};
+		inplace_vector_t<resource_handle_t, 16> preview_materials = {};
+		const animation_channel_v3_runtime_t*	position_channels = nullptr;
+		const animation_channel_q_runtime_t*	rotation_channels = nullptr;
+		const animation_channel_v3_runtime_t*	scale_channels	  = nullptr;
+		resource_handle_t						preview_mesh	  = NULL_RESOURCE_HANDLE;
+		resource_handle_t						preview_skeleton  = NULL_RESOURCE_HANDLE;
+		u32										position_count	  = 0;
+		u32										rotation_count	  = 0;
+		u32										scale_count		  = 0;
+		f32										duration		  = 0.0f;
 	};
 
 	struct animation_internals_t
@@ -48,7 +51,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('A', 'N', 'I', 'M');
-		static constexpr u32 WIRE_VERSION = 3;
+		static constexpr u32 WIRE_VERSION = 4;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);

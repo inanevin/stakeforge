@@ -742,12 +742,11 @@ namespace sfg
 											static_cast<f32>(material.pbr_metallic_roughness.base_color_factor[2]),
 											static_cast<f32>(material.pbr_metallic_roughness.base_color_factor[3]),
 											shader_param_hint_e::color),
-						make_vec4_parameter("emissive_factor", static_cast<f32>(material.emissive_factor[0]), static_cast<f32>(material.emissive_factor[1]), static_cast<f32>(material.emissive_factor[2]), 1.0f, shader_param_hint_e::color),
+						make_vec4_parameter("emissive_factor", static_cast<f32>(material.emissive_factor[0]), static_cast<f32>(material.emissive_factor[1]), static_cast<f32>(material.emissive_factor[2]), 1.0f, shader_param_hint_e::color_hdr),
 						make_f32_parameter("ao_multiplier", ao_multiplier),
 						make_f32_parameter("roughness_multiplier", static_cast<f32>(material.pbr_metallic_roughness.roughness_factor)),
 						make_f32_parameter("metallic_multiplier", static_cast<f32>(material.pbr_metallic_roughness.metallic_factor)),
 						make_f32_parameter("normal_strength", static_cast<f32>(material.normal_texture.scale)),
-						make_f32_parameter("emissive_multiplier", 1.0f),
 						make_f32_parameter("alpha_cutoff", static_cast<f32>(material.alpha_cutoff)),
 						make_vec4_parameter("albedo_tiling_offset", base_transform.tiling[0], base_transform.tiling[1], base_transform.offset[0], base_transform.offset[1], shader_param_hint_e::pack_uint2),
 						make_vec4_parameter("normal_tiling_offset", normal_transform.tiling[0], normal_transform.tiling[1], normal_transform.offset[0], normal_transform.offset[1], shader_param_hint_e::pack_uint2),
@@ -971,12 +970,19 @@ namespace sfg
 			return true;
 		}
 
+		void collect_mesh_materials(
+			const tg3_model& model, const tg3_mesh* meshes, u32 mesh_count, const hash_map_t<u32, sid_t>& material_guid_map, vector_t<resource_handle_t>& out_materials, vector_t<u32>* out_local_material_indices, u32* out_default_material_index);
+
 		bool import_animation(const char*						   target_directory,
 							  const char*						   source_full_path,
 							  const tg3_model&					   model,
 							  const tg3_animation&				   animation,
 							  const glb_basis_conversion_t&		   basis,
 							  u32								   animation_index,
+							  const hash_map_t<u32, sid_t>&		   mesh_guid_map,
+							  const hash_map_t<u32, sid_t>&		   skeleton_guid_map,
+							  const hash_map_t<u32, sid_t>&		   material_guid_map,
+							  sid_t								   combined_mesh_guid,
 							  glb_asset_name_registry_t&		   asset_names,
 							  const editor_asset_import_context_t& context,
 							  vector_t<editor_asset_t>&			   out_assets,
@@ -1008,10 +1014,68 @@ namespace sfg
 				.name_hash = hashing_t::to_sid(asset_name),
 			};
 
-			if (!editor_glb_import_util_t::import_animation(model, animation, basis, animation_def))
+			u32 preview_skin_index = UINT32_MAX;
+
+			if (!editor_glb_import_util_t::import_animation(model, animation, basis, animation_def, preview_skin_index))
 			{
 				SFG_ERR("failed to build GLB animation definition {0}", asset_name.c_str());
 				return false;
+			}
+
+			const auto skeleton_it = skeleton_guid_map.find(preview_skin_index);
+
+			if (skeleton_it == skeleton_guid_map.end())
+			{
+				SFG_ERR("failed to find imported GLB skeleton {0} for animation preview", preview_skin_index);
+				return false;
+			}
+
+			animation_def.preview_skeleton = skeleton_it->second;
+
+			const tg3_mesh* preview_meshes	   = nullptr;
+			u32				preview_mesh_count = 0;
+
+			if (combined_mesh_guid != NULL_SID)
+			{
+				animation_def.preview_mesh = combined_mesh_guid;
+				preview_meshes			   = model.meshes;
+				preview_mesh_count		   = model.meshes_count;
+			}
+			else
+			{
+				for (u32 node_index = 0; node_index < model.nodes_count; ++node_index)
+				{
+					const tg3_node& node = model.nodes[node_index];
+
+					if (node.skin != static_cast<i32>(preview_skin_index) || node.mesh < 0 || static_cast<u32>(node.mesh) >= model.meshes_count)
+						continue;
+
+					const u32  mesh_index = static_cast<u32>(node.mesh);
+					const auto mesh_it	  = mesh_guid_map.find(mesh_index);
+
+					if (mesh_it == mesh_guid_map.end())
+						continue;
+
+					animation_def.preview_mesh = mesh_it->second;
+					preview_meshes			   = model.meshes + mesh_index;
+					preview_mesh_count		   = 1;
+					break;
+				}
+			}
+
+			if (preview_meshes != nullptr)
+			{
+				vector_t<resource_handle_t> preview_materials = {};
+				collect_mesh_materials(model, preview_meshes, preview_mesh_count, material_guid_map, preview_materials, nullptr, nullptr);
+
+				if (preview_materials.size() > decltype(animation_def.preview_materials)::capacity)
+				{
+					SFG_ERR("GLB animation preview mesh has too many material slots");
+					return false;
+				}
+
+				for (const resource_handle_t material : preview_materials)
+					animation_def.preview_materials.push_back(material);
 			}
 
 			const string_t blob_path  = editor_asset_path_t::make_blob_path(target_directory, asset_name.c_str());
@@ -2201,30 +2265,18 @@ namespace sfg
 				}
 			}
 
-			if (result && cook_config.import_animations)
-			{
-				for (u32 i = 0; result && i < model.animations_count; ++i)
-				{
-					if (!import_animation(target_directory, source_full_path, model, model.animations[i], basis, i, asset_names, context, out_assets, out_asset_paths))
-					{
-						SFG_ERR("failed to import GLB animation {0}", i);
-						result = false;
-					}
-				}
-			}
+			hash_map_t<u32, sid_t> mesh_guid_map		   = {};
+			hash_map_t<u32, sid_t> collision_guid_map	   = {};
+			sid_t				   combined_mesh_guid	   = NULL_SID;
+			sid_t				   combined_collision_guid = NULL_SID;
+
+			mesh_guid_map.reserve(model.meshes_count);
+			collision_guid_map.reserve(model.meshes_count);
 
 			if (result && (cook_config.import_meshes || cook_config.import_collisions) && model.meshes_count != 0)
 			{
-				hash_map_t<u32, sid_t> mesh_guid_map	  = {};
-				hash_map_t<u32, sid_t> collision_guid_map = {};
-				mesh_guid_map.reserve(model.meshes_count);
-				collision_guid_map.reserve(model.meshes_count);
-
 				if (cook_config.combine_meshes)
 				{
-					sid_t combined_mesh_guid	  = NULL_SID;
-					sid_t combined_collision_guid = NULL_SID;
-
 					if (cook_config.import_meshes)
 						result = import_mesh(target_directory, source_full_path, model, model.meshes, basis, model.meshes_count, material_guid_map, nullptr, asset_names, context, &combined_mesh_guid, out_assets, out_asset_paths);
 
@@ -2271,6 +2323,18 @@ namespace sfg
 					if (!import_prefab(target_directory, source_full_path, model, basis, mesh_guid_map, skeleton_guid_map, collision_guid_map, material_guid_map, asset_names, context, NULL_SID, NULL_SID, out_assets, out_asset_paths))
 					{
 						SFG_ERR("failed to import GLB prefab");
+						result = false;
+					}
+				}
+			}
+
+			if (result && cook_config.import_animations)
+			{
+				for (u32 i = 0; result && i < model.animations_count; ++i)
+				{
+					if (!import_animation(target_directory, source_full_path, model, model.animations[i], basis, i, mesh_guid_map, skeleton_guid_map, material_guid_map, combined_mesh_guid, asset_names, context, out_assets, out_asset_paths))
+					{
+						SFG_ERR("failed to import GLB animation {0}", i);
 						result = false;
 					}
 				}

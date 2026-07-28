@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/render/render_view.hpp>
 #include <sfg/runtime/render/world_render_view.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
+#include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
@@ -177,11 +178,11 @@ namespace sfg
 							.particle_max_count					   = 0,
 						},
 					.render_resolution				   = render_resolution,
-					.render_entity_max_count		   = 10,
+					.render_entity_max_count		   = 128,
 					.render_sprite_max_count		   = 16,
 					.render_particle_max_count		   = 0,
-					.render_bone_max_count			   = 128,
-					.render_bone_initial_capacity	   = 128,
+					.render_bone_max_count			   = MAX_SKELETON_BONES,
+					.render_bone_initial_capacity	   = MAX_SKELETON_BONES,
 					.animation_graph_budget_bytes	   = 64 * 1024,
 					.component_table_initial_capacity  = 64,
 					.entity_free_list_initial_capacity = 128,
@@ -193,10 +194,10 @@ namespace sfg
 			.render_context =
 				{
 					.size				  = render_resolution,
-					.entity_max			  = 10,
+					.entity_max			  = 128,
 					.sprite_max			  = 16,
 					.particle_max		  = 0,
-					.bone_max			  = 128,
+					.bone_max			  = MAX_SKELETON_BONES,
 					.light_max			  = EDITOR_PREVIEW_WORLD_LIGHT_MAX_COUNT,
 					.reflection_probe_max = EDITOR_PREVIEW_WORLD_REFLECTION_PROBE_MAX_COUNT,
 					.line_vertex_max	  = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
@@ -216,7 +217,7 @@ namespace sfg
 					.sprite_initial_capacity		   = 16,
 					.particle_draw_initial_capacity	   = 0,
 					.particle_initial_capacity		   = 0,
-					.bone_initial_capacity			   = 128,
+					.bone_initial_capacity			   = MAX_SKELETON_BONES,
 					.light_initial_capacity			   = EDITOR_PREVIEW_WORLD_LIGHT_MAX_COUNT,
 					.reflection_probe_initial_capacity = EDITOR_PREVIEW_WORLD_REFLECTION_PROBE_MAX_COUNT,
 					.line_vertex_initial_capacity	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,

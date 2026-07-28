@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/reflection/reflection_container_ops.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/resources/resource_type.hpp>
 
 #include <cstddef>
 
@@ -113,6 +114,27 @@ namespace sfg
 					{.name = "name", .display_name = "Name", .offset = offsetof(animation_def_t, name), .size = sizeof(string_t), .type = reflected_value_type_e::string},
 					{.name = "name_hash", .display_name = "Name Hash", .offset = offsetof(animation_def_t, name_hash), .size = sizeof(sid_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u64},
 					{.name = "duration", .display_name = "Duration", .offset = offsetof(animation_def_t, duration), .size = sizeof(f32), .type = reflected_value_type_e::f32},
+					{.name		   = "preview_mesh",
+					 .display_name = "Preview Mesh",
+					 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MESH,
+					 .offset	   = offsetof(animation_def_t, preview_mesh),
+					 .size		   = sizeof(resource_handle_t),
+					 .flags		   = reflected_field_flag_no_ui,
+					 .type		   = reflected_value_type_e::u64},
+					{.name		   = "preview_skeleton",
+					 .display_name = "Preview Skeleton",
+					 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SKELETON,
+					 .offset	   = offsetof(animation_def_t, preview_skeleton),
+					 .size		   = sizeof(resource_handle_t),
+					 .flags		   = reflected_field_flag_no_ui,
+					 .type		   = reflected_value_type_e::u64},
+					{.container_ops = reflection_container_ops_t::inplace_vector_ops_with_default<resource_handle_t, 16, NULL_RESOURCE_HANDLE>(reflected_value_type_e::u64, SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MATERIAL),
+					 .name			= "preview_materials",
+					 .display_name	= "Preview Materials",
+					 .offset		= offsetof(animation_def_t, preview_materials),
+					 .size			= sizeof(inplace_vector_t<resource_handle_t, 16>),
+					 .flags			= reflected_field_flag_no_ui,
+					 .type			= reflected_value_type_e::container},
 					{.container_ops = reflection_container_ops_t::vector_ops<animation_channel_v3_def_t>(reflected_value_type_e::object, type_id_t<animation_channel_v3_def_t>::value),
 					 .name			= "position_channels",
 					 .display_name	= "Position Channels",

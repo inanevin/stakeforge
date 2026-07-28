@@ -331,6 +331,13 @@ namespace sfg
 				 .guid				  = DEFAULT_OPAQUE_MATERIAL_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::material,
 				 .sub_type			  = static_cast<u8>(editor_material_type_e::opaque)},
+				{
+					.asset_name			 = "default_material_grid",
+					.asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_material_grid.sfg_asset",
+					.guid				 = DEFAULT_GRID_MATERIAL_ASSET_GUID,
+					.asset_type			 = editor_asset_type_e::material,
+					.sub_type			 = static_cast<u8>(editor_material_type_e::opaque),
+				},
 				{.asset_name		  = "default_opaque_unlit_material",
 				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_opaque_unlit_material.sfg_asset",
 				 .guid				  = DEFAULT_OPAQUE_UNLIT_MATERIAL_ASSET_GUID,
@@ -412,6 +419,7 @@ namespace sfg
 				nlohmann::json embedded_source		= {};
 				const bool	   read_embedded_source = editor_asset_writer_t::read_embedded_source(desc.asset_relative_path, embedded_source);
 				SFG_ASSERT(read_embedded_source);
+
 				if (!read_embedded_source)
 					continue;
 
@@ -427,6 +435,7 @@ namespace sfg
 				editor_asset_t asset	  = {};
 				string_t	   asset_path = {};
 				bool		   created	  = editor_asset_writer_t::write_embedded_asset(write_desc, &asset, &asset_path);
+
 				if (created && desc.asset_type == editor_asset_type_e::material)
 					created = editor_asset_cooker_t::cook_material(asset, desc.asset_name);
 				else if (created && desc.asset_type == editor_asset_type_e::physical_material)

@@ -89,6 +89,7 @@ namespace sfg
 					.sprite_max			 = 16,
 					.particle_max		 = 0,
 					.bone_max			 = 128,
+					.light_max			 = 4,
 					.triangle_vertex_max = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_VERTEX_MAX,
 					.triangle_index_max	 = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_INDEX_MAX,
 					.enable_ssao		 = 0,

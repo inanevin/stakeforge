@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_world.hpp"
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "world/editor_world.hpp"
+#include "world/editor_world_util.hpp"
 
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
@@ -54,11 +55,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/platform/time.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/physics/physics_world.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
-#include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -395,6 +393,7 @@ namespace sfg
 			world.tick_physics(dt_seconds);
 
 			world.tick_animation_prep(dt_seconds);
+			world.tick_animation_logic(dt_seconds);
 			world.tick_post(dt_seconds);
 			return;
 		}
@@ -472,24 +471,7 @@ namespace sfg
 		editor_world->install_camera(editor_world_camera_type_e::fly);
 		world_t& world = editor_world->get_world();
 
-		const entity_id_t		 environment		   = world.create_entity("environment");
-		component_environment_t& environment_component = ecs_helpers_t::table_add_or_get_as<component_environment_t>(world.get_component_table(type_id_t<component_environment_t>::value), environment);
-		environment_component.skybox_material		   = DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID;
-		environment_component.intensity				   = 0.25f;
-
-		ecs_component_table_t& debug_widgets_table	= world.get_component_table(type_id_t<component_debug_widgets_t>::value);
-		const bool			   debug_widgets_exists = ecs_t::table_has(debug_widgets_table, environment);
-		void*				   debug_widgets		= ecs_t::table_add(debug_widgets_table, environment);
-
-		if (!debug_widgets_exists)
-		{
-			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(debug_widgets_table.type_desc.type_id);
-			SFG_ASSERT(reflected_type != nullptr && reflected_type->default_init_fn != nullptr);
-			reflected_type->default_init_fn(debug_widgets);
-		}
-
-		world.add_resource(resource_type_e::material, DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID);
-		world.load_all_used_resources();
+		editor_world_util_t::install_default_scene(world);
 	}
 
 	bool editor_world_controller_t::load_main_world(sid_t asset_guid)

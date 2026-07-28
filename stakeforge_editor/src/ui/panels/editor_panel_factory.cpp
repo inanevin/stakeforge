@@ -48,7 +48,7 @@ namespace sfg
 			{.type = editor_panel_type_e::log},
 			{.type = editor_panel_type_e::world},
 			{.type = editor_panel_type_e::inspector},
-			{.type = editor_panel_type_e::animation},
+			{.type = editor_panel_type_e::animation, .allows_multiple_instances = true},
 			{.type = editor_panel_type_e::resources},
 			{.type = editor_panel_type_e::project_settings},
 			{.type = editor_panel_type_e::mesh_viewer, .allows_multiple_instances = true},

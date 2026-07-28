@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/assets/editor_panel_assets_internal.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/panels/editor_panel_animation.hpp"
 #include "ui/panels/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/editor_panel_mesh_viewer.hpp"
@@ -516,6 +517,13 @@ namespace sfg
 			editor_panel_t* panel = editor_surface_controller_t::get().create_panel_instance(editor_panel_type_e::skeleton_viewer, {}, true, asset->guid);
 			if (panel != nullptr)
 				static_cast<editor_panel_skeleton_viewer_t*>(panel)->set_skeleton(asset->guid, asset_node.name.c_str());
+		}
+		else if (asset->asset_type == editor_asset_type_e::animation)
+		{
+			editor_panel_t* panel = editor_surface_controller_t::get().create_panel_instance(editor_panel_type_e::animation, {}, true, asset->guid);
+
+			if (panel != nullptr)
+				static_cast<editor_panel_animation_t*>(panel)->set_animation(asset->guid, asset_node.name.c_str());
 		}
 		else if (asset->asset_type == editor_asset_type_e::animation_graph)
 		{

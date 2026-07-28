@@ -339,8 +339,10 @@ namespace sfg
 		return -1;
 	}
 
-	bool editor_glb_import_util_t::import_animation(const tg3_model& model, const tg3_animation& animation, const glb_basis_conversion_t& basis, animation_def_t& out)
+	bool editor_glb_import_util_t::import_animation(const tg3_model& model, const tg3_animation& animation, const glb_basis_conversion_t& basis, animation_def_t& out, u32& out_skin_index)
 	{
+		out_skin_index = UINT32_MAX;
+
 		if (model.skins_count == 0)
 		{
 			SFG_ERR("glb animation has no skeleton");
@@ -396,6 +398,7 @@ namespace sfg
 			if (skin_is_valid)
 			{
 				found_compatible_skin = true;
+				out_skin_index		  = skin_index;
 				break;
 			}
 		}

@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_builtin_types.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "world/editor_world_util.hpp"
 
 #include <sfg/io/assert.hpp>
 #include <sfg/math/aabb.hpp>
@@ -61,13 +62,7 @@ namespace sfg
 	{
 		world_t& world = *thumbnail_world.world;
 
-		thumbnail_world.environment_entity	 = world.create_entity("thumbnail_environment");
-		component_environment_t& environment = ecs_helpers_t::table_add_or_get_as<component_environment_t>(world.get_component_table(type_id_t<component_environment_t>::value), thumbnail_world.environment_entity);
-		environment.skybox_material			 = DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID;
-		environment.intensity				 = 0.25f;
-
-		world.add_resource(resource_type_e::material, DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID);
-		world.scan_for_resources(thumbnail_world.environment_entity, true);
+		thumbnail_world.environment_entity = editor_world_util_t::install_default_scene(world);
 
 		thumbnail_world.camera_entity = world.create_entity("thumbnail_camera");
 		component_camera_t& camera	  = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), thumbnail_world.camera_entity);
@@ -77,6 +72,7 @@ namespace sfg
 		camera.far_plane			  = 250.0f;
 
 		ecs_helpers_t::table_add_or_get_as<component_post_process_t>(world.get_component_table(type_id_t<component_post_process_t>::value), thumbnail_world.camera_entity);
+
 		setup_camera_for_asset(thumbnail_world);
 	}
 
