@@ -91,6 +91,7 @@ namespace sfg
 		_texture_sampler_editor.init(ui, _content);
 		_curve_editor.init(ui, _content);
 		_physical_material_editor.init(ui, _content);
+		_audio_viewer.init(ui, _content);
 		_texture_viewer.init(ui, _content);
 		_sprite_viewer.init(ui, _content, editor_widget_texture_viewer_resource_e::sprite);
 
@@ -113,6 +114,7 @@ namespace sfg
 
 		_sprite_viewer.uninit();
 		_texture_viewer.uninit();
+		_audio_viewer.uninit();
 		_curve_editor.uninit();
 		_physical_material_editor.uninit();
 		_texture_sampler_editor.uninit();
@@ -130,6 +132,7 @@ namespace sfg
 
 		_texture_id				 = 0;
 		_sprite_id				 = 0;
+		_audio_id				 = 0;
 		_command_listener		 = {};
 		_asset_deletion_listener = {};
 		_selection_listener		 = {};
@@ -154,6 +157,7 @@ namespace sfg
 		_physical_material_ids.resize(0);
 		_texture_id = 0;
 		_sprite_id	= 0;
+		_audio_id	= 0;
 
 		_entity_inspector.set_display_entity(span_t<const entity_id_t>{});
 		_material_editor.set_materials({});
@@ -162,6 +166,7 @@ namespace sfg
 		_physical_material_editor.set_physical_materials({});
 		_texture_viewer.clear_texture();
 		_sprite_viewer.clear_resource();
+		_audio_viewer.clear_audio();
 
 		_display = editor_panel_inspector_display_e::none;
 		apply_display_visibility();
@@ -175,6 +180,7 @@ namespace sfg
 		_display_entities.assign(&entity, &entity + 1);
 		_texture_viewer.clear_texture();
 		_sprite_viewer.clear_resource();
+		_audio_viewer.clear_audio();
 
 		_entity_inspector.set_display_entity(entity);
 		_display	 = editor_panel_inspector_display_e::entity;
@@ -191,6 +197,7 @@ namespace sfg
 		_display_entities.assign(entities.data, entities.data + entities.size);
 		_texture_viewer.clear_texture();
 		_sprite_viewer.clear_resource();
+		_audio_viewer.clear_audio();
 
 		_entity_inspector.set_display_entity(entities);
 		_display	 = editor_panel_inspector_display_e::entity;
@@ -216,6 +223,8 @@ namespace sfg
 			_curve_editor.set_curves({.data = _curve_ids.data(), .size = _curve_ids.size()});
 		else if (_display == editor_panel_inspector_display_e::physical_material)
 			_physical_material_editor.set_physical_materials({.data = _physical_material_ids.data(), .size = _physical_material_ids.size()});
+		else if (_display == editor_panel_inspector_display_e::audio)
+			_audio_viewer.set_audio(_audio_id);
 		else if (_display == editor_panel_inspector_display_e::texture)
 			_texture_viewer.set_texture(_texture_id);
 		else if (_display == editor_panel_inspector_display_e::sprite)
@@ -263,6 +272,7 @@ namespace sfg
 		_display_entities.resize(0);
 		_texture_viewer.clear_texture();
 		_sprite_viewer.clear_resource();
+		_audio_viewer.clear_audio();
 
 		_material_ids.assign(materials.data, materials.data + materials.size);
 		_material_editor.set_materials({.data = _material_ids.data(), .size = _material_ids.size()});
@@ -280,6 +290,7 @@ namespace sfg
 		_display_entities.resize(0);
 		_texture_viewer.clear_texture();
 		_sprite_viewer.clear_resource();
+		_audio_viewer.clear_audio();
 
 		_texture_sampler_ids.assign(samplers.data, samplers.data + samplers.size);
 		_texture_sampler_editor.set_texture_samplers({.data = _texture_sampler_ids.data(), .size = _texture_sampler_ids.size()});
@@ -297,6 +308,7 @@ namespace sfg
 		_display_entities.resize(0);
 		_texture_viewer.clear_texture();
 		_sprite_viewer.clear_resource();
+		_audio_viewer.clear_audio();
 
 		_curve_ids.assign(curves.data, curves.data + curves.size);
 		_curve_editor.set_curves({.data = _curve_ids.data(), .size = _curve_ids.size()});
@@ -314,6 +326,7 @@ namespace sfg
 		_display_entities.resize(0);
 		_texture_viewer.clear_texture();
 		_sprite_viewer.clear_resource();
+		_audio_viewer.clear_audio();
 
 		_physical_material_ids.assign(physical_materials.data, physical_materials.data + physical_materials.size);
 		_physical_material_editor.set_physical_materials({.data = _physical_material_ids.data(), .size = _physical_material_ids.size()});
@@ -330,10 +343,29 @@ namespace sfg
 
 		_display_entities.resize(0);
 		_sprite_viewer.clear_resource();
+		_audio_viewer.clear_audio();
 
 		_texture_id = texture;
 		_texture_viewer.set_texture(texture);
 		_display	 = editor_panel_inspector_display_e::texture;
+		_last_source = editor_panel_inspector_source_e::asset;
+
+		apply_display_visibility();
+		reset_scroll_state();
+	}
+
+	void editor_panel_inspector_t::set_display_audio(sid_t audio)
+	{
+		save_entity_scroll_state();
+
+		_display_entities.resize(0);
+		_texture_viewer.clear_texture();
+		_audio_viewer.clear_audio();
+		_sprite_viewer.clear_resource();
+
+		_audio_id = audio;
+		_audio_viewer.set_audio(audio);
+		_display	 = editor_panel_inspector_display_e::audio;
 		_last_source = editor_panel_inspector_source_e::asset;
 
 		apply_display_visibility();
@@ -369,12 +401,14 @@ namespace sfg
 		frame_vector_t<sid_t> selected_physical_materials = {};
 		sid_t				  selected_texture			  = 0;
 		sid_t				  selected_sprite			  = 0;
+		sid_t				  selected_audio			  = 0;
 		const bool			  has_materials				  = collect_selected_materials(selected_materials);
 		const bool			  has_samplers				  = collect_selected_texture_samplers(selected_samplers);
 		const bool			  has_curves				  = collect_selected_curves(selected_curves);
 		const bool			  has_physical_materials	  = collect_selected_physical_materials(selected_physical_materials);
 		const bool			  has_texture				  = collect_selected_texture(selected_texture);
 		const bool			  has_sprite				  = collect_selected_sprite(selected_sprite);
+		const bool			  has_audio					  = collect_selected_audio(selected_audio);
 		const bool			  has_entities				  = edit_context != nullptr && !edit_context->get_world().is_null() && selected_entities.size != 0;
 
 		if (preferred_source == editor_panel_inspector_source_e::asset)
@@ -392,6 +426,8 @@ namespace sfg
 				set_display_curve({.data = selected_curves.data(), .size = selected_curves.size()});
 			else if (has_physical_materials)
 				set_display_physical_material({.data = selected_physical_materials.data(), .size = selected_physical_materials.size()});
+			else if (has_audio)
+				set_display_audio(selected_audio);
 			else if (has_texture)
 				set_display_texture(selected_texture);
 			else if (has_sprite)
@@ -423,6 +459,8 @@ namespace sfg
 				set_display_curve({.data = selected_curves.data(), .size = selected_curves.size()});
 			else if (has_physical_materials)
 				set_display_physical_material({.data = selected_physical_materials.data(), .size = selected_physical_materials.size()});
+			else if (has_audio)
+				set_display_audio(selected_audio);
 			else if (has_texture)
 				set_display_texture(selected_texture);
 			else if (has_sprite)
@@ -479,6 +517,12 @@ namespace sfg
 			return;
 		}
 
+		if (has_audio)
+		{
+			set_display_audio(selected_audio);
+			return;
+		}
+
 		if (has_sprite)
 		{
 			set_display_sprite(selected_sprite);
@@ -497,6 +541,7 @@ namespace sfg
 		tree.set_visible(_texture_sampler_editor.get_root(), _display == editor_panel_inspector_display_e::texture_sampler, false);
 		tree.set_visible(_curve_editor.get_root(), _display == editor_panel_inspector_display_e::curve, false);
 		tree.set_visible(_physical_material_editor.get_root(), _display == editor_panel_inspector_display_e::physical_material, false);
+		tree.set_visible(_audio_viewer.get_root(), _display == editor_panel_inspector_display_e::audio, false);
 		tree.set_visible(_texture_viewer.get_root(), _display == editor_panel_inspector_display_e::texture, false);
 		tree.set_visible(_sprite_viewer.get_root(), _display == editor_panel_inspector_display_e::sprite, false);
 	}
@@ -693,6 +738,29 @@ namespace sfg
 		return true;
 	}
 
+	bool editor_panel_inspector_t::collect_selected_audio(sid_t& out_audio) const
+	{
+		out_audio = 0;
+
+		editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::assets);
+
+		if (panel == nullptr)
+			return false;
+
+		const sid_t selected_audio = static_cast<editor_panel_assets_t*>(panel)->get_single_selected_asset_guid();
+
+		if (selected_audio == NULL_SID)
+			return false;
+
+		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(selected_audio);
+
+		if (asset == nullptr || asset->asset_type != editor_asset_type_e::audio)
+			return false;
+
+		out_audio = selected_audio;
+		return true;
+	}
+
 	bool editor_panel_inspector_t::collect_selected_sprite(sid_t& out_sprite) const
 	{
 		out_sprite = 0;
@@ -754,6 +822,9 @@ namespace sfg
 			case editor_panel_inspector_display_e::physical_material:
 				asset_is_displayed = std::find(panel._physical_material_ids.begin(), panel._physical_material_ids.end(), asset_id) != panel._physical_material_ids.end();
 				break;
+			case editor_panel_inspector_display_e::audio:
+				asset_is_displayed = panel._audio_id == asset_id;
+				break;
 			case editor_panel_inspector_display_e::texture:
 				asset_is_displayed = panel._texture_id == asset_id;
 				break;
@@ -789,6 +860,10 @@ namespace sfg
 			break;
 		case editor_command_type_e::texture_sampler_edit:
 			if (panel._display == editor_panel_inspector_display_e::texture_sampler)
+				panel.refresh_display();
+			break;
+		case editor_command_type_e::audio_edit:
+			if (panel._display == editor_panel_inspector_display_e::audio)
 				panel.refresh_display();
 			break;
 		case editor_command_type_e::curve_edit:

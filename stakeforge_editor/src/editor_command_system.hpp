@@ -64,6 +64,7 @@ namespace sfg
 		material_edit,
 		shader_edit,
 		texture_sampler_edit,
+		audio_edit,
 		curve_edit,
 		physical_material_edit,
 		animation_graph_select_transition,

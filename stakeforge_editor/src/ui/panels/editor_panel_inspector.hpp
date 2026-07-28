@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_widget_material_editor.hpp"
+#include "ui/widgets/editor_widget_audio_viewer.hpp"
 #include "ui/widgets/editor_widget_curve_editor.hpp"
 #include "ui/widgets/editor_widget_physical_material_editor.hpp"
 #include "ui/widgets/editor_widget_texture_sampler_editor.hpp"
@@ -51,6 +52,7 @@ namespace sfg
 		texture_sampler,
 		curve,
 		physical_material,
+		audio,
 		texture,
 		sprite,
 	};
@@ -102,6 +104,7 @@ namespace sfg
 		void				   set_display_texture_sampler(span_t<const sid_t> samplers);
 		void				   set_display_curve(span_t<const sid_t> curves);
 		void				   set_display_physical_material(span_t<const sid_t> physical_materials);
+		void				   set_display_audio(sid_t audio);
 		void				   set_display_texture(sid_t texture);
 		void				   set_display_sprite(sid_t sprite);
 		void				   refresh_from_available_selection(editor_panel_inspector_source_e preferred_source);
@@ -114,6 +117,7 @@ namespace sfg
 		bool				   collect_selected_texture_samplers(frame_vector_t<sid_t>& out_samplers) const;
 		bool				   collect_selected_curves(frame_vector_t<sid_t>& out_curves) const;
 		bool				   collect_selected_physical_materials(frame_vector_t<sid_t>& out_physical_materials) const;
+		bool				   collect_selected_audio(sid_t& out_audio) const;
 		bool				   collect_selected_texture(sid_t& out_texture) const;
 		bool				   collect_selected_sprite(sid_t& out_sprite) const;
 		entity_scroll_state_t* find_entity_scroll_state(entity_id_t entity);
@@ -129,6 +133,7 @@ namespace sfg
 		editor_widget_texture_sampler_editor_t					 _texture_sampler_editor   = {};
 		editor_widget_curve_editor_t							 _curve_editor			   = {};
 		editor_widget_physical_material_editor_t				 _physical_material_editor = {};
+		editor_widget_audio_viewer_t							 _audio_viewer			   = {};
 		editor_widget_texture_viewer_t							 _texture_viewer		   = {};
 		editor_widget_texture_viewer_t							 _sprite_viewer			   = {};
 		editor_scrollbar_t										 _scrollbar				   = {};
@@ -140,6 +145,7 @@ namespace sfg
 		vector_t<sid_t>											 _physical_material_ids	   = {};
 		sid_t													 _texture_id			   = 0;
 		sid_t													 _sprite_id				   = 0;
+		sid_t													 _audio_id				   = 0;
 		editor_command_listener_handle_t						 _command_listener		   = {};
 		pool_handle_t<u32, editor_asset_deletion_listener_tag_t> _asset_deletion_listener  = {};
 		editor_selection_listener_handle_t						 _selection_listener	   = {};

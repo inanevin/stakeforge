@@ -300,6 +300,7 @@ namespace sfg
 		const ecs_component_table_t& transform_table		= world.get_component_table(type_id_t<component_transform_t>::value);
 		const ecs_component_table_t& hierarchy_table		= world.get_component_table(type_id_t<component_hierarchy_t>::value);
 		const ecs_component_table_t& camera_table			= world.get_component_table(type_id_t<component_camera_t>::value);
+		const ecs_component_table_t& audio_source_table		= world.get_component_table(type_id_t<component_audio_source_t>::value);
 		const ecs_component_table_t& light_table			= world.get_component_table(type_id_t<component_light_t>::value);
 		const ecs_component_table_t& reflection_probe_table = world.get_component_table(type_id_t<component_reflection_probe_t>::value);
 		const ecs_component_table_t& physical_table			= world.get_component_table(type_id_t<component_physical_t>::value);
@@ -337,6 +338,17 @@ namespace sfg
 										debug_color,
 										2.0f,
 										debug_draw_depth_e::always_visible);
+			}
+
+			const component_audio_source_t* audio_source = ecs_helpers_t::table_find_as_const<component_audio_source_t>(audio_source_table, entity);
+
+			if (audio_source != nullptr && audio_source->spatialized != 0)
+			{
+				if (audio_source->min_distance > 0.0f)
+					debug_draw.draw_sphere(transform.abs_pos, audio_source->min_distance, debug_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+
+				if (audio_source->max_distance > 0.0f && audio_source->max_distance != audio_source->min_distance)
+					debug_draw.draw_sphere(transform.abs_pos, audio_source->max_distance, debug_color, 2.0f, debug_draw_depth_e::always_visible, 24);
 			}
 
 			const component_physical_t* physical = ecs_helpers_t::table_find_as_const<component_physical_t>(physical_table, entity);

@@ -664,6 +664,12 @@ namespace sfg
 		const bool full_pause_transition	= (_play_mode == editor_play_mode_e::play && mode == editor_play_mode_e::play_paused) || (_play_mode == editor_play_mode_e::play_paused && mode == editor_play_mode_e::play);
 		const bool physics_pause_transition = (_play_mode == editor_play_mode_e::play_physics && mode == editor_play_mode_e::play_physics_paused) || (_play_mode == editor_play_mode_e::play_physics_paused && mode == editor_play_mode_e::play_physics);
 		SFG_ASSERT(full_pause_transition || physics_pause_transition);
+
+		if (full_pause_transition && mode == editor_play_mode_e::play_paused)
+			_world.pause_audio();
+		else if (full_pause_transition)
+			_world.resume_audio();
+
 		_play_mode = mode;
 	}
 
