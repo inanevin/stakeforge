@@ -36,7 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/engine/engine_runtime_config.hpp>
-#include <sfg/runtime/resources/resource_pack.hpp>
+#include <sfg/runtime/resources/resource_preload.hpp>
 #include <sfg/vendor/taskflow/core/declarations.hpp>
 #include <sfg/data/mutex.hpp>
 
@@ -129,8 +129,8 @@ namespace sfg
 		editor_renderer_t			_renderer;
 		editor_command_system_t		_command_system;
 		editor_world_controller_t	_world_controller;
-		resource_pack_t				_editor_resource_pack;
-		resource_pack_t				_engine_resource_pack;
+		resource_preload_t			_editor_resource_preload;
+		resource_preload_t			_engine_resource_preload;
 		editor_payload_controller_t _payload_controller;
 		editor_modal_progress_bar_t _debug_progress_modal;
 		unique_t<tf::Executor>		_editor_work_executor;

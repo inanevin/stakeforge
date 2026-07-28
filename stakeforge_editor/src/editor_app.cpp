@@ -140,12 +140,12 @@ namespace sfg
 
 		runtime.get_resource_file_system().set_mode_directory("", editor_directories_t::get_editor_resource_cache().c_str());
 
-		const resource_pack_t::init_params_t engine_pack_params{
+		const resource_preload_t::init_params_t engine_preload_params{
 			.manifest_path = editor_directories_t::get_engine_manifest(),
 			.assets_dir	   = editor_directories_t::get_editor_assets(),
 			.cache_dir	   = editor_directories_t::get_editor_resource_cache(),
 		};
-		if (!_engine_resource_pack.init(resource_manager_t::get(), engine_pack_params))
+		if (!_engine_resource_preload.init(resource_manager_t::get(), engine_preload_params))
 		{
 			_world_controller.uninit();
 			runtime.uninit();
@@ -154,14 +154,14 @@ namespace sfg
 			return false;
 		}
 
-		const resource_pack_t::init_params_t editor_pack_params{
+		const resource_preload_t::init_params_t editor_preload_params{
 			.manifest_path = editor_directories_t::get_editor_manifest(),
 			.assets_dir	   = editor_directories_t::get_editor_assets(),
 			.cache_dir	   = editor_directories_t::get_editor_resource_cache(),
 		};
-		if (!_editor_resource_pack.init(resource_manager_t::get(), editor_pack_params))
+		if (!_editor_resource_preload.init(resource_manager_t::get(), editor_preload_params))
 		{
-			_engine_resource_pack.uninit();
+			_engine_resource_preload.uninit();
 			_world_controller.uninit();
 			runtime.uninit();
 			runtime.uninit_globals();
@@ -173,8 +173,8 @@ namespace sfg
 		resource_manager_t::get().flush();
 		if (!_renderer.init(config.renderer))
 		{
-			_editor_resource_pack.uninit();
-			_engine_resource_pack.uninit();
+			_editor_resource_preload.uninit();
+			_engine_resource_preload.uninit();
 			_world_controller.uninit();
 			runtime.uninit();
 			runtime.uninit_globals();
@@ -206,8 +206,8 @@ namespace sfg
 			_editor_work_executor.reset();
 			editor_surface_controller_t::get().uninit();
 			_renderer.uninit();
-			_editor_resource_pack.uninit();
-			_engine_resource_pack.uninit();
+			_editor_resource_preload.uninit();
+			_engine_resource_preload.uninit();
 			runtime.uninit();
 			runtime.uninit_globals();
 			runtime.uninit_backend();
@@ -235,8 +235,8 @@ namespace sfg
 		resource_manager_t::get().flush();
 		_editor_work_executor->wait_for_all();
 		_renderer.uninit();
-		_editor_resource_pack.uninit();
-		_engine_resource_pack.uninit();
+		_editor_resource_preload.uninit();
+		_engine_resource_preload.uninit();
 
 		if (_mode == editor_app_mode_e::normal)
 			uninit_normal_mode();
@@ -470,8 +470,8 @@ namespace sfg
 
 			process::pump_os_messages();
 
-			_engine_resource_pack.tick();
-			_editor_resource_pack.tick();
+			_engine_resource_preload.tick();
+			_editor_resource_preload.tick();
 
 			resource_manager_t::get().flush();
 
