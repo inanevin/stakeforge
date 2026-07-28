@@ -16,6 +16,7 @@
 _build
 docs
 stakeforge_managed/Stakeforge.ScriptHost/bin
+stakeforge_managed/Stakeforge.Managed/bin
 [Oo]bj
 *.DS_Store
 _stakeforge_cache

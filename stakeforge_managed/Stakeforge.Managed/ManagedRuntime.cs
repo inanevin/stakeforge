@@ -1,0 +1,159 @@
+using System;
+using System.Runtime.InteropServices;
+
+namespace SFG;
+
+[StructLayout(LayoutKind.Sequential)]
+internal unsafe struct NativeApi
+{
+    internal uint Size;
+    internal uint Version;
+    internal delegate* unmanaged[Cdecl]<byte*, void> LogInfo;
+    internal delegate* unmanaged[Cdecl]<byte*, void> LogError;
+    internal NativePlatformApi* Platform;
+    internal NativeRenderApi* Render;
+    internal NativeResourceApi* Resource;
+    internal NativeWorldApi* World;
+    internal NativeAudioApi* Audio;
+    internal NativePhysicsApi* Physics;
+    internal NativeAnimationApi* Animation;
+}
+
+internal static unsafe class ManagedRuntime
+{
+    private const uint ApiVersion = 3;
+    private const uint CategoryApiVersion = 1;
+
+    private static NativeApi* _api;
+
+    internal static int Initialize(void* apiAddress)
+    {
+        NativeApi* api = (NativeApi*)apiAddress;
+
+        if (sizeof(Entity) != 4 ||
+            sizeof(ResourceHandle) != 8 ||
+            sizeof(RenderResolution) != 4 ||
+            sizeof(Vector2) != 8 ||
+            sizeof(Vector3) != 12 ||
+            sizeof(Vector4) != 16 ||
+            sizeof(Quaternion) != 16 ||
+            sizeof(Matrix3x3) != 36 ||
+            sizeof(Matrix4x3) != 48 ||
+            sizeof(Matrix4x4) != 64 ||
+            sizeof(PhysicsQueryFilter) != 40 ||
+            sizeof(PhysicsRaycast) != 28 ||
+            sizeof(PhysicsLinecast) != 24 ||
+            sizeof(PhysicsSpherecast) != 32 ||
+            sizeof(PhysicsHit) != 56 ||
+            sizeof(PhysicsQueryResult) != 8 ||
+            sizeof(PhysicsBodyState) != 56 ||
+            sizeof(CharacterMoverState) != 48 ||
+            Hash.StringId("move_speed") != 10935991027489123434UL ||
+            Hash.StringId("\u00E9") != 11062259058118930795UL ||
+            Hash.Fnv1A64("Stakeforge") != 3213806815071520380UL ||
+            api == null ||
+            api->Size < sizeof(NativeApi) ||
+            api->Version != ApiVersion ||
+            api->LogInfo == null ||
+            api->LogError == null ||
+            api->Platform == null ||
+            api->Platform->Size < sizeof(NativePlatformApi) ||
+            api->Platform->Version != CategoryApiVersion ||
+            api->Render == null ||
+            api->Render->Size < sizeof(NativeRenderApi) ||
+            api->Render->Version != CategoryApiVersion ||
+            api->Resource == null ||
+            api->Resource->Size < sizeof(NativeResourceApi) ||
+            api->Resource->Version != CategoryApiVersion ||
+            api->World == null ||
+            api->World->Size < sizeof(NativeWorldApi) ||
+            api->World->Version != CategoryApiVersion ||
+            api->Audio == null ||
+            api->Audio->Size < sizeof(NativeAudioApi) ||
+            api->Audio->Version != CategoryApiVersion ||
+            api->Physics == null ||
+            api->Physics->Size < sizeof(NativePhysicsApi) ||
+            api->Physics->Version != CategoryApiVersion ||
+            api->Animation == null ||
+            api->Animation->Size < sizeof(NativeAnimationApi) ||
+            api->Animation->Version != CategoryApiVersion)
+        {
+            return -1;
+        }
+
+        _api = api;
+        LogInfo("managed scripting API initialized correctly.");
+        return 0;
+    }
+
+    internal static void Shutdown()
+    {
+        _api = null;
+    }
+
+    internal static NativeApi* GetApi()
+    {
+        if (_api == null)
+        {
+            throw new InvalidOperationException("Stakeforge managed API is not initialized.");
+        }
+
+        return _api;
+    }
+
+    internal static void LogInfo(string message)
+    {
+        Log(GetApi()->LogInfo, message);
+    }
+
+    internal static void TryLogError(void* apiAddress, string message)
+    {
+        try
+        {
+            NativeApi* api = (NativeApi*)apiAddress;
+
+            if (api != null && api->Size >= 24 && api->LogError != null)
+            {
+                Log(api->LogError, message);
+            }
+        }
+        catch
+        {
+        }
+    }
+
+    internal static void TryLogError(string message)
+    {
+        TryLogError(_api, message);
+    }
+
+    internal static void TryLogError(void* apiAddress, Exception exception)
+    {
+        try
+        {
+            TryLogError(apiAddress, exception.ToString());
+        }
+        catch
+        {
+        }
+    }
+
+    internal static void TryLogError(Exception exception)
+    {
+        TryLogError(_api, exception);
+    }
+
+    private static void Log(delegate* unmanaged[Cdecl]<byte*, void> callback, string message)
+    {
+        nint utf8Message = Marshal.StringToCoTaskMemUTF8(message);
+
+        try
+        {
+            callback((byte*)utf8Message);
+        }
+        finally
+        {
+            Marshal.FreeCoTaskMem(utf8Message);
+        }
+    }
+}

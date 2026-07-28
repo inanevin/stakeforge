@@ -150,7 +150,7 @@ namespace sfg
 
 		// load bridge assmbly functions
 		const load_assembly_and_get_function_pointer_fn load_managed_function = reinterpret_cast<load_assembly_and_get_function_pointer_fn>(load_assembly_delegate);
-		const char_t* const								managed_type		  = L"Stakeforge.ScriptHost.NativeEntryPoints, Stakeforge.ScriptHost";
+		const char_t* const								managed_type		  = L"SFG.ScriptHost.NativeEntryPoints, Stakeforge.ScriptHost";
 		void*											initialize_function	  = nullptr;
 		void*											shutdown_function	  = nullptr;
 

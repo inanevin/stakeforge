@@ -34,7 +34,7 @@ namespace sfg
 {
 	class ostrem;
 	class istream_t;
-	// LH coordinates
+
 	class quat_t
 	{
 	public:

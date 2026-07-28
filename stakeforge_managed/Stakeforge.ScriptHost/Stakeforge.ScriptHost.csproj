@@ -6,6 +6,9 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>Stakeforge.ScriptHost</AssemblyName>
-    <RootNamespace>Stakeforge.ScriptHost</RootNamespace>
+    <RootNamespace>SFG.ScriptHost</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Stakeforge.Managed/Stakeforge.Managed.csproj" />
+  </ItemGroup>
 </Project>
