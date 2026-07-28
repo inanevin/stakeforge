@@ -46,6 +46,7 @@ namespace sfg
 	{
 		editor_action_menu_row_desc_t ENTITY_CREATE_PRIMITIVE_ROWS[] = {
 			{.text = "Cube", .command = entity_action_menu_create_cube},
+			{.text = "Plane", .command = entity_action_menu_create_plane},
 			{.text = "Sphere", .command = entity_action_menu_create_sphere},
 			{.text = "Cylinder", .command = entity_action_menu_create_cylinder},
 			{.text = "Capsule", .command = entity_action_menu_create_capsule},

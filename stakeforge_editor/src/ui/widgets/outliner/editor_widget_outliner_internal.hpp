@@ -41,6 +41,7 @@ namespace sfg
 		entity_action_menu_create_sphere,
 		entity_action_menu_create_cylinder,
 		entity_action_menu_create_capsule,
+		entity_action_menu_create_plane,
 		entity_action_menu_duplicate,
 		entity_action_menu_hide,
 		entity_action_menu_show_alone,

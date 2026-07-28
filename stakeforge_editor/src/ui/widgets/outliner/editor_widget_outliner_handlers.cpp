@@ -58,10 +58,13 @@ namespace sfg
 	void editor_widget_outliner_t::on_empty_action_menu_command(u16 command, void* user_data)
 	{
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
+
 		if (command == entity_action_menu_create_empty)
 			panel.create_entity(NULL_ENTITY_ID);
 		else if (command == entity_action_menu_create_cube)
 			panel.create_primitive(editor_primitive_type_e::cube, NULL_ENTITY_ID);
+		else if (command == entity_action_menu_create_plane)
+			panel.create_primitive(editor_primitive_type_e::plane, NULL_ENTITY_ID);
 		else if (command == entity_action_menu_create_sphere)
 			panel.create_primitive(editor_primitive_type_e::sphere, NULL_ENTITY_ID);
 		else if (command == entity_action_menu_create_cylinder)
@@ -87,6 +90,11 @@ namespace sfg
 		{
 			if (panel.is_create_enabled())
 				panel.create_primitive(editor_primitive_type_e::cube, panel._action_menu_entity);
+		}
+		else if (command == entity_action_menu_create_plane)
+		{
+			if (panel.is_create_enabled())
+				panel.create_primitive(editor_primitive_type_e::plane, panel._action_menu_entity);
 		}
 		else if (command == entity_action_menu_create_sphere)
 		{
@@ -122,10 +130,13 @@ namespace sfg
 	void editor_widget_outliner_t::on_folder_action_menu_command(u16 command, void* user_data)
 	{
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
+
 		if (command == entity_action_menu_create_empty)
 			panel.create_entity(NULL_ENTITY_ID, panel._action_menu_folder);
 		else if (command == entity_action_menu_create_cube)
 			panel.create_primitive(editor_primitive_type_e::cube, NULL_ENTITY_ID, panel._action_menu_folder);
+		else if (command == entity_action_menu_create_plane)
+			panel.create_primitive(editor_primitive_type_e::plane, NULL_ENTITY_ID, panel._action_menu_folder);
 		else if (command == entity_action_menu_create_sphere)
 			panel.create_primitive(editor_primitive_type_e::sphere, NULL_ENTITY_ID, panel._action_menu_folder);
 		else if (command == entity_action_menu_create_cylinder)

@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec3f.hpp>
 
 namespace sfg
@@ -37,6 +38,11 @@ namespace sfg
 	struct editor_mesh_generator_cube_params_t
 	{
 		vec3f_t size = vec3f_t::one;
+	};
+
+	struct editor_mesh_generator_plane_params_t
+	{
+		vec2f_t size = vec2f_t::one;
 	};
 
 	struct editor_mesh_generator_sphere_params_t
@@ -96,6 +102,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		static bool generate_cube(const editor_mesh_generator_cube_params_t& params, ostream_t& out);
+		static bool generate_plane(const editor_mesh_generator_plane_params_t& params, ostream_t& out);
 		static bool generate_sphere(const editor_mesh_generator_sphere_params_t& params, ostream_t& out);
 		static bool generate_cylinder(const editor_mesh_generator_cylinder_params_t& params, ostream_t& out);
 		static bool generate_capsule(const editor_mesh_generator_capsule_params_t& params, ostream_t& out);

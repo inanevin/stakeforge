@@ -40,6 +40,7 @@ namespace sfg
 		sphere,
 		cylinder,
 		capsule,
+		plane,
 	};
 
 	struct editor_command_primitive_spawn_payload_t

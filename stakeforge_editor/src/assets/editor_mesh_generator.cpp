@@ -205,6 +205,21 @@ namespace sfg
 		return write_mesh_def(def, primitive, out);
 	}
 
+	bool editor_mesh_generator_t::generate_plane(const editor_mesh_generator_plane_params_t& params, ostream_t& out)
+	{
+		const vec2f_t		   half		 = params.size * 0.5f;
+		primitive_static_def_t primitive = {};
+
+		push_quad(primitive, {0.0f, 1.0f, 0.0f}, {-half.x, 0.0f, half.y}, {half.x, 0.0f, half.y}, {half.x, 0.0f, -half.y}, {-half.x, 0.0f, -half.y});
+
+		mesh_def_t def = {
+			.local_bounds = aabb_t({-half.x, 0.0f, -half.y}, {half.x, 0.0f, half.y}),
+			.name		  = "plane",
+		};
+
+		return write_mesh_def(def, primitive, out);
+	}
+
 	bool editor_mesh_generator_t::generate_sphere(const editor_mesh_generator_sphere_params_t& params, ostream_t& out)
 	{
 		const f32			   radius	 = math::max(params.radius, MATH_EPS);

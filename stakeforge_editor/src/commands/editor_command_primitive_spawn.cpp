@@ -54,6 +54,8 @@ namespace sfg
 				return "Cylinder";
 			case editor_primitive_type_e::capsule:
 				return "Capsule";
+			case editor_primitive_type_e::plane:
+				return "Plane";
 			default:
 				SFG_ASSERT(false);
 				return "Primitive";
@@ -72,6 +74,8 @@ namespace sfg
 				return DEFAULT_MESH_CYLINDER_GUID;
 			case editor_primitive_type_e::capsule:
 				return DEFAULT_MESH_CAPSULE_GUID;
+			case editor_primitive_type_e::plane:
+				return DEFAULT_MESH_PLANE_GUID;
 			default:
 				SFG_ASSERT(false);
 				return DEFAULT_MESH_CUBE_GUID;
