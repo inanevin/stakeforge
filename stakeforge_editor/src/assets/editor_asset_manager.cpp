@@ -718,6 +718,41 @@ namespace sfg
 		return true;
 	}
 
+	bool editor_asset_manager_t::save_and_cook_file_asset_options_async(sid_t asset_id, const nlohmann::json& cook_options)
+	{
+		editor_asset_t* asset = _database.find_asset(asset_id);
+
+		if (asset == nullptr)
+		{
+			SFG_ERR("failed to find file asset {0}", asset_id);
+			return false;
+		}
+
+		if (asset->source_type != editor_asset_source_type_e::file && asset->source_type != editor_asset_source_type_e::file_blob)
+		{
+			SFG_ERR("asset {0} does not have a file source", asset_id);
+			return false;
+		}
+
+		const editor_asset_node_handle_t node = _database.find_asset_node(asset_id);
+
+		if (node.is_null())
+		{
+			SFG_ERR("failed to find file asset node {0}", asset_id);
+			return false;
+		}
+
+		const editor_asset_node_t& asset_node = _database.get_asset_tree().value(node);
+		editor_asset_t			   updated	  = *asset;
+		editor_asset_io_t::set_cook_options_json(updated, cook_options);
+		*asset = updated;
+		notify_changed();
+
+		schedule_asset_cook(asset_id, std::move(updated), asset_node.full_path.c_str(), asset_node.name.c_str(), true);
+
+		return true;
+	}
+
 	bool editor_asset_manager_t::cook_asset_async(sid_t asset_id)
 	{
 		const editor_asset_t* asset = _database.find_asset(asset_id);
