@@ -11,6 +11,7 @@
 #include <sfg/runtime/world/ecs_component_type.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/world/world_animation_controller.hpp>
+#include <sfg/runtime/world/world_audio_controller.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/runtime/world/world_logic_helper.hpp>
 #include <sfg/runtime/world/world_particle_simulation.hpp>
@@ -57,6 +58,8 @@ namespace sfg
 		void uninit();
 		void begin_play();
 		void end_play();
+		void pause_audio();
+		void resume_audio();
 		void clear_entities();
 		void tick_physics(f32 dt);
 		void tick_animation_prep(f32 dt);
@@ -160,6 +163,16 @@ namespace sfg
 			return _animation_controller;
 		}
 
+		inline world_audio_controller_t& get_audio_controller()
+		{
+			return _audio_controller;
+		}
+
+		inline const world_audio_controller_t& get_audio_controller() const
+		{
+			return _audio_controller;
+		}
+
 		inline world_particle_simulation_t& get_particle_simulation()
 		{
 			return _particle_simulation;
@@ -210,6 +223,7 @@ namespace sfg
 		world_debug_draw_t				  _debug_draw			= {};
 		physics_world_t					  _physics_world		= {};
 		world_animation_controller_t	  _animation_controller = {};
+		world_audio_controller_t		  _audio_controller		= {};
 		world_logic_helper_t			  _logic_helper			= {};
 		world_particle_simulation_t		  _particle_simulation	= {};
 		text_allocator_t				  _text_allocator		= {};

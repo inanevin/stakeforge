@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/audio/audio_engine.hpp>
 #include <sfg/common/type_id.hpp>
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/quat.hpp>
@@ -108,6 +109,16 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_system_sprite_renderer_t);
 
+	struct component_system_animation_player_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_animation_player";
+
+		resource_handle_t animation	  = NULL_RESOURCE_HANDLE;
+		f32				  sample_time = 0.0f;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_animation_player_t);
+
 	struct component_system_animation_graph_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_animation_graph";
@@ -124,6 +135,19 @@ namespace sfg
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_animation_graph_t);
+
+	struct component_system_audio_source_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_audio_source";
+
+		audio_voice_handle_t voice				= {};
+		resource_handle_t	 audio				= NULL_RESOURCE_HANDLE;
+		audio_bus_e			 bus				= audio_bus_e::sfx;
+		bool				 play_requested		= false;
+		bool				 resume_after_pause = false;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_audio_source_t);
 
 	struct component_system_physics_t
 	{

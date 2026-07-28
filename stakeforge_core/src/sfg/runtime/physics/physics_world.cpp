@@ -1242,8 +1242,13 @@ namespace sfg
 		const ecs_component_table_t& system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
 		component_system_physics_t*	 sys				  = ecs_helpers_t::table_find_as<component_system_physics_t>(system_physics_table, entity);
 
-		if (sys)
-			_impl->destroy_body(entity, *sys);
+		if (!sys)
+		{
+			SFG_ERR("can not destroy body as entity don't have one!");
+			return;
+		}
+
+		_impl->destroy_body(entity, *sys);
 	}
 
 	void physics_world_t::set_body_linear_velocity(entity_id_t entity, const vec3f_t& velocity)

@@ -12,6 +12,9 @@ namespace sfg
 
 	struct audio_cook_config_t
 	{
+		audio_storage_e storage = audio_storage_e::resident;
+
+		bool operator==(const audio_cook_config_t&) const = default;
 	};
 
 	class audio_cooker

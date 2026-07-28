@@ -85,6 +85,8 @@ namespace sfg
 
 		_animation_controller.init(*this, config.render_bone_max_count, config.animation_graph_budget_bytes);
 
+		_audio_controller.init(*this);
+
 		_particle_simulation.init(*this, config.particle_simulation);
 
 		if (config.physics_enabled)
@@ -98,6 +100,8 @@ namespace sfg
 		SFG_ASSERT(!_is_playing);
 
 		_particle_simulation.uninit();
+
+		_audio_controller.uninit();
 
 		_animation_controller.uninit();
 
@@ -135,6 +139,7 @@ namespace sfg
 		_is_playing			 = true;
 
 		update_world_transforms(false);
+		_audio_controller.begin_play();
 		_particle_simulation.begin_play();
 
 		if (_physics_world.is_init())
@@ -148,6 +153,7 @@ namespace sfg
 	{
 		SFG_ASSERT(_is_playing);
 
+		_audio_controller.end_play();
 		_particle_simulation.end_play();
 
 		if (_physics_world.is_init())
@@ -163,6 +169,20 @@ namespace sfg
 		_used_resources.resize(_play_resource_count);
 		_play_resource_count = 0;
 		_is_playing			 = false;
+	}
+
+	void world_t::pause_audio()
+	{
+		SFG_ASSERT(_is_playing);
+
+		_audio_controller.pause_all();
+	}
+
+	void world_t::resume_audio()
+	{
+		SFG_ASSERT(_is_playing);
+
+		_audio_controller.resume_all();
 	}
 
 	void world_t::clear_entities()
@@ -216,6 +236,7 @@ namespace sfg
 		ZoneScoped;
 
 		_logic_helper.sync_destroyers(dt);
+		_audio_controller.tick(dt);
 	}
 
 	void world_t::tick_post(f32 dt)
@@ -305,6 +326,7 @@ namespace sfg
 		SFG_ASSERT(is_alive(id));
 
 		_particle_simulation.destroy_entity(id);
+		_audio_controller.destroy_entity(id);
 
 		component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
 		SFG_ASSERT(hierarchy.first_child == NULL_ENTITY_ID);

@@ -792,6 +792,241 @@ namespace sfg
 			});
 		}
 
+		void register_component_animation_player_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name			 = "component_animation_player",
+				.display_name	 = "Animation Player",
+				.category		 = "Animation",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_animation_player_t*>(ptr), component_animation_player_t{}); },
+				.fields =
+					{
+						{.name		   = "animation",
+						 .display_name = "Animation",
+						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION,
+						 .offset	   = offsetof(component_animation_player_t, animation),
+						 .size		   = sizeof(resource_handle_t),
+						 .type		   = reflected_value_type_e::u64},
+						{
+							.name			   = "speed_multiplier",
+							.display_name	   = "Speed Multiplier",
+							.offset			   = offsetof(component_animation_player_t, speed_multiplier),
+							.size			   = sizeof(f32),
+							.flags			   = reflected_field_flag_clamped,
+							.min_clamp		   = 0.0f,
+							.max_clamp		   = 10.0f,
+							.clamp_granularity = 0.1f,
+							.type			   = reflected_value_type_e::f32,
+						},
+						{
+							.name		  = "is_looping",
+							.display_name = "Is Looping",
+							.offset		  = offsetof(component_animation_player_t, is_looping),
+							.size		  = sizeof(bool),
+							.type		  = reflected_value_type_e::boolean,
+						},
+						{
+							.ui_definition = {.dependency_field = "is_looping"_hs, .dependency_value = 0, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+							.name		   = "is_scrub",
+							.display_name  = "Is Scrub",
+							.offset		   = offsetof(component_animation_player_t, is_scrub),
+							.size		   = sizeof(bool),
+							.type		   = reflected_value_type_e::boolean,
+						},
+						{
+							.ui_definition	   = {.dependency_field = "is_scrub"_hs, .dependency_value = 1, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+							.name			   = "scrub_ratio",
+							.display_name	   = "Scrub Ratio",
+							.offset			   = offsetof(component_animation_player_t, scrub_ratio),
+							.size			   = sizeof(f32),
+							.flags			   = reflected_field_flag_clamped,
+							.min_clamp		   = 0.0f,
+							.max_clamp		   = 1.0f,
+							.clamp_granularity = 0.01f,
+							.type			   = reflected_value_type_e::f32,
+						},
+					},
+				.type_id   = type_id_t<component_animation_player_t>::value,
+				.size	   = sizeof(component_animation_player_t),
+				.alignment = alignof(component_animation_player_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
+		void register_audio_component_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name		  = "audio_bus_e",
+				.display_name = "Audio Bus",
+				.tooltip	  = "Mixing bus receiving the audio source output.",
+				.fields =
+					{
+						{.name = "sfx", .display_name = "SFX", .tooltip = "Routes output through the sound-effects bus."},
+						{.name = "music", .display_name = "Music", .tooltip = "Routes output through the music bus."},
+						{.name = "voice", .display_name = "Voice", .tooltip = "Routes output through the voice bus."},
+						{.name = "ui", .display_name = "UI", .tooltip = "Routes output through the user-interface bus."},
+					},
+				.type_id   = type_id_t<audio_bus_e>::value,
+				.size	   = sizeof(audio_bus_e),
+				.alignment = alignof(audio_bus_e),
+				.flags	   = reflected_type_flag_enum,
+			});
+
+			registry.register_type({
+				.name		  = "audio_attenuation_e",
+				.display_name = "Audio Attenuation",
+				.tooltip	  = "Distance curve used to attenuate a spatialized source.",
+				.fields =
+					{
+						{.name = "none", .display_name = "None", .tooltip = "Keeps volume constant regardless of listener distance."},
+						{.name = "inverse", .display_name = "Inverse", .tooltip = "Reduces volume using an inverse-distance curve."},
+						{.name = "linear", .display_name = "Linear", .tooltip = "Reduces volume linearly between the minimum and maximum distances."},
+						{.name = "exponential", .display_name = "Exponential", .tooltip = "Reduces volume using an exponential distance curve."},
+					},
+				.type_id   = type_id_t<audio_attenuation_e>::value,
+				.size	   = sizeof(audio_attenuation_e),
+				.alignment = alignof(audio_attenuation_e),
+				.flags	   = reflected_type_flag_enum,
+			});
+
+			registry.register_type({
+				.name			 = "component_audio_source",
+				.display_name	 = "Audio Source",
+				.category		 = "Audio",
+				.tooltip		 = "Plays an audio asset with optional world-space positioning and distance attenuation.",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_audio_source_t*>(ptr), component_audio_source_t{}); },
+				.fields =
+					{
+						{.name		   = "audio",
+						 .display_name = "Audio",
+						 .tooltip	   = "Audio asset played by this source.",
+						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_AUDIO,
+						 .offset	   = offsetof(component_audio_source_t, audio),
+						 .size		   = sizeof(resource_handle_t),
+						 .type		   = reflected_value_type_e::u64},
+						{.name				= "volume",
+						 .display_name		= "Volume",
+						 .tooltip			= "Source volume multiplier before bus volume and spatial attenuation.",
+						 .offset			= offsetof(component_audio_source_t, volume),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 4.0f,
+						 .clamp_granularity = 0.01f,
+						 .type				= reflected_value_type_e::f32},
+						{.name				= "pitch",
+						 .display_name		= "Pitch",
+						 .tooltip			= "Playback-rate multiplier; one uses the original pitch and duration.",
+						 .offset			= offsetof(component_audio_source_t, pitch),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.1f,
+						 .max_clamp			= 4.0f,
+						 .clamp_granularity = 0.01f,
+						 .type				= reflected_value_type_e::f32},
+						{.name		   = "bus",
+						 .display_name = "Bus",
+						 .tooltip	   = "Mixing bus receiving this source.",
+						 .sub_type_id  = type_id_t<audio_bus_e>::value,
+						 .offset	   = offsetof(component_audio_source_t, bus),
+						 .size		   = sizeof(audio_bus_e),
+						 .type		   = reflected_value_type_e::u8},
+						{.name		   = "spatialized",
+						 .display_name = "Spatialized",
+						 .tooltip	   = "Positions the source in world space relative to the active audio listener.",
+						 .offset	   = offsetof(component_audio_source_t, spatialized),
+						 .size		   = sizeof(u8),
+						 .type		   = reflected_value_type_e::boolean},
+						{.ui_definition = {.dependency_field = "spatialized"_hs, .dependency_value = 1, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+						 .name			= "attenuation",
+						 .display_name	= "Attenuation",
+						 .tooltip		= "Distance curve used to reduce source volume.",
+						 .sub_type_id	= type_id_t<audio_attenuation_e>::value,
+						 .offset		= offsetof(component_audio_source_t, attenuation),
+						 .size			= sizeof(audio_attenuation_e),
+						 .type			= reflected_value_type_e::u8},
+						{.ui_definition		= {.dependency_field = "spatialized"_hs, .dependency_value = 1, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+						 .name				= "min_distance",
+						 .display_name		= "Min Distance",
+						 .tooltip			= "World-space radius within which distance attenuation remains at its maximum.",
+						 .offset			= offsetof(component_audio_source_t, min_distance),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 100000.0f,
+						 .clamp_granularity = 0.1f,
+						 .type				= reflected_value_type_e::f32},
+						{.ui_definition		= {.dependency_field = "spatialized"_hs, .dependency_value = 1, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+						 .name				= "max_distance",
+						 .display_name		= "Max Distance",
+						 .tooltip			= "World-space radius beyond which distance attenuation no longer changes.",
+						 .offset			= offsetof(component_audio_source_t, max_distance),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 100000.0f,
+						 .clamp_granularity = 0.1f,
+						 .type				= reflected_value_type_e::f32},
+						{.ui_definition		= {.dependency_field = "spatialized"_hs, .dependency_value = 1, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+						 .name				= "rolloff",
+						 .display_name		= "Rolloff",
+						 .tooltip			= "Strength of the selected distance attenuation curve; zero disables distance volume loss.",
+						 .offset			= offsetof(component_audio_source_t, rolloff),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 16.0f,
+						 .clamp_granularity = 0.1f,
+						 .type				= reflected_value_type_e::f32},
+						{.ui_definition		= {.dependency_field = "spatialized"_hs, .dependency_value = 1, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+						 .name				= "doppler_factor",
+						 .display_name		= "Doppler Factor",
+						 .tooltip			= "Strength of velocity-based Doppler pitch shifting; zero disables the effect.",
+						 .offset			= offsetof(component_audio_source_t, doppler_factor),
+						 .size				= sizeof(f32),
+						 .flags				= reflected_field_flag_clamped,
+						 .min_clamp			= 0.0f,
+						 .max_clamp			= 8.0f,
+						 .clamp_granularity = 0.1f,
+						 .type				= reflected_value_type_e::f32},
+						{.name		   = "play_on_start",
+						 .display_name = "Play On Start",
+						 .tooltip	   = "Starts playback automatically when the world enters play mode.",
+						 .offset	   = offsetof(component_audio_source_t, play_on_start),
+						 .size		   = sizeof(u8),
+						 .type		   = reflected_value_type_e::boolean},
+						{.name		   = "looping",
+						 .display_name = "Looping",
+						 .tooltip	   = "Restarts playback from the beginning when the audio reaches its end.",
+						 .offset	   = offsetof(component_audio_source_t, looping),
+						 .size		   = sizeof(u8),
+						 .type		   = reflected_value_type_e::boolean},
+					},
+				.type_id   = type_id_t<component_audio_source_t>::value,
+				.size	   = sizeof(component_audio_source_t),
+				.alignment = alignof(component_audio_source_t),
+				.flags	   = reflected_type_flag_component,
+			});
+
+			registry.register_type({
+				.name			 = "component_audio_listener",
+				.display_name	 = "Audio Listener",
+				.category		 = "Audio",
+				.tooltip		 = "Defines the world-space listener used for spatialized audio.",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_audio_listener_t*>(ptr), component_audio_listener_t{}); },
+				.fields			 = {{.name		   = "priority",
+									 .display_name = "Priority",
+									 .tooltip	   = "Listener selection priority; the highest enabled value becomes active.",
+									 .offset	   = offsetof(component_audio_listener_t, priority),
+									 .size		   = sizeof(i8),
+									 .type		   = reflected_value_type_e::i8}},
+				.type_id		 = type_id_t<component_audio_listener_t>::value,
+				.size			 = sizeof(component_audio_listener_t),
+				.alignment		 = alignof(component_audio_listener_t),
+				.flags			 = reflected_type_flag_component,
+			});
+		}
+
 		void register_component_camera_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -3084,7 +3319,9 @@ namespace sfg
 		register_component_sprite_renderer_reflection(registry);
 		register_particle_reflection(registry);
 		register_component_skinned_mesh_renderer_reflection(registry);
+		register_component_animation_player_reflection(registry);
 		register_component_animation_graph_reflection(registry);
+		register_audio_component_reflection(registry);
 		register_component_camera_reflection(registry);
 		register_component_light_reflection(registry);
 		register_component_post_process_reflection(registry);

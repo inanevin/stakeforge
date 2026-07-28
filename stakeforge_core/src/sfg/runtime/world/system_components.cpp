@@ -67,12 +67,32 @@ namespace sfg
 		});
 
 		registry.register_type({
+			.name			 = "component_system_animation_player",
+			.display_name	 = "System Animation Player",
+			.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_system_animation_player_t*>(ptr), component_system_animation_player_t{}); },
+			.type_id		 = type_id_t<component_system_animation_player_t>::value,
+			.size			 = sizeof(component_system_animation_player_t),
+			.alignment		 = alignof(component_system_animation_player_t),
+			.flags			 = reflected_type_flag_system_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
+		});
+
+		registry.register_type({
 			.name			 = "component_system_animation_graph",
 			.display_name	 = "System Animation Graph",
 			.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_system_animation_graph_t*>(ptr), component_system_animation_graph_t{}); },
 			.type_id		 = type_id_t<component_system_animation_graph_t>::value,
 			.size			 = sizeof(component_system_animation_graph_t),
 			.alignment		 = alignof(component_system_animation_graph_t),
+			.flags			 = reflected_type_flag_system_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
+		});
+
+		registry.register_type({
+			.name			 = "component_system_audio_source",
+			.display_name	 = "System Audio Source",
+			.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_system_audio_source_t*>(ptr), component_system_audio_source_t{}); },
+			.type_id		 = type_id_t<component_system_audio_source_t>::value,
+			.size			 = sizeof(component_system_audio_source_t),
+			.alignment		 = alignof(component_system_audio_source_t),
 			.flags			 = reflected_type_flag_system_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
 		});
 

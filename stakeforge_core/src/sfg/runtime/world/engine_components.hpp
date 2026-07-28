@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/type_id.hpp>
+#include <sfg/audio/audio_engine.hpp>
 #include <sfg/data/inplace_vector.hpp>
 #include <sfg/math/color.hpp>
 #include <sfg/math/quat.hpp>
@@ -208,6 +209,19 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_skinned_mesh_renderer_t);
 
+	struct component_animation_player_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_animation_player";
+
+		resource_handle_t animation		   = NULL_RESOURCE_HANDLE;
+		f32				  scrub_ratio	   = 0.0f;
+		f32				  speed_multiplier = 1.0f;
+		bool			  is_looping	   = false;
+		bool			  is_scrub		   = false;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_animation_player_t);
+
 	struct component_animation_graph_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_animation_graph";
@@ -224,6 +238,35 @@ namespace sfg
 	};
 
 	SFG_DEFINE_TYPE_ID(component_animation_graph_t);
+
+	struct component_audio_source_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_audio_source";
+
+		resource_handle_t	audio		   = NULL_RESOURCE_HANDLE;
+		f32					volume		   = 1.0f;
+		f32					pitch		   = 1.0f;
+		f32					min_distance   = 1.0f;
+		f32					max_distance   = 100.0f;
+		f32					rolloff		   = 1.0f;
+		f32					doppler_factor = 1.0f;
+		audio_attenuation_e attenuation	   = audio_attenuation_e::inverse;
+		audio_bus_e			bus			   = audio_bus_e::sfx;
+		u8					play_on_start  = 1;
+		u8					looping		   = 0;
+		u8					spatialized	   = 1;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_audio_source_t);
+
+	struct component_audio_listener_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_audio_listener";
+
+		i8 priority = 0;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_audio_listener_t);
 
 	struct component_camera_t
 	{
