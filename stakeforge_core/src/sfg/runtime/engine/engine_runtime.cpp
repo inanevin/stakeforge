@@ -2,6 +2,7 @@
 
 #include "engine_runtime.hpp"
 #include "engine_runtime_config.hpp"
+#include <sfg/audio/audio_engine.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/log.hpp>
@@ -46,6 +47,7 @@ namespace sfg
 
 	void engine_runtime_t::init_globals(resource_file_system_t& resource_file_system, const engine_global_config_t& config)
 	{
+		_audio_config					   = config.audio;
 		g_engine_thread_ids.main_thread_id = SFG_THIS_THREAD_ID();
 		job_system_t::get().init(config.job_worker_count);
 		physics_runtime_t::init();
@@ -110,12 +112,22 @@ namespace sfg
 
 	bool engine_runtime_t::init()
 	{
+		if (!audio_engine_t::get().init(_resource_file_system, _audio_config))
+			return false;
+
 		SFG_INFO("engine runtime initialized correctly.");
 		return true;
 	}
 
 	void engine_runtime_t::uninit()
 	{
+		audio_engine_t::get().uninit();
+		_audio_config = {};
+	}
+
+	void engine_runtime_t::tick()
+	{
+		audio_engine_t::get().tick();
 	}
 
 	void engine_runtime_t::update_project_settings(const project_settings_t& settings)

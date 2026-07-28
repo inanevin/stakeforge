@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/audio/audio_engine.hpp>
 #include <sfg/runtime/project/project_settings.hpp>
 #include <sfg/runtime/resources/resource_file_system.hpp>
 
@@ -37,6 +38,7 @@ namespace sfg
 
 		bool init();
 		void uninit();
+		void tick();
 		void update_project_settings(const project_settings_t& settings);
 
 		inline resource_file_system_t& get_resource_file_system()
@@ -51,5 +53,6 @@ namespace sfg
 	private:
 		resource_file_system_t _resource_file_system;
 		project_settings_t	   _project_settings = {};
+		audio_engine_config_t  _audio_config	 = {};
 	};
 }

@@ -32,10 +32,85 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <filesystem>
+#include <fstream>
 #include <limits>
 
 namespace sfg
 {
+	resource_stream_t::~resource_stream_t()
+	{
+		close();
+	}
+
+	void resource_stream_t::close()
+	{
+		if (_stream == nullptr)
+			return;
+
+		std::ifstream* stream = static_cast<std::ifstream*>(_stream);
+		stream->close();
+		delete stream;
+
+		_stream		 = nullptr;
+		_base_offset = 0;
+		_size		 = 0;
+		_cursor		 = 0;
+	}
+
+	bool resource_stream_t::read(void* destination, size_t size, size_t& out_read)
+	{
+		SFG_ASSERT(_stream != nullptr);
+		SFG_ASSERT(destination != nullptr);
+
+		const u64 remaining = _size - _cursor;
+		const u64 read_size = size < remaining ? size : remaining;
+		out_read			= static_cast<size_t>(read_size);
+
+		if (read_size == 0)
+			return true;
+
+		std::ifstream& stream = *static_cast<std::ifstream*>(_stream);
+		stream.clear();
+		stream.seekg(static_cast<std::streamoff>(_base_offset + _cursor), std::ios::beg);
+		stream.read(static_cast<char*>(destination), static_cast<std::streamsize>(read_size));
+
+		if (stream.gcount() != static_cast<std::streamsize>(read_size))
+		{
+			out_read = static_cast<size_t>(stream.gcount());
+			_cursor += out_read;
+			return false;
+		}
+
+		_cursor += read_size;
+		return true;
+	}
+
+	bool resource_stream_t::seek(i64 offset, resource_seek_origin_e origin)
+	{
+		SFG_ASSERT(_stream != nullptr);
+
+		i64 cursor = 0;
+
+		switch (origin)
+		{
+		case resource_seek_origin_e::start:
+			cursor = offset;
+			break;
+		case resource_seek_origin_e::current:
+			cursor = static_cast<i64>(_cursor) + offset;
+			break;
+		case resource_seek_origin_e::end:
+			cursor = static_cast<i64>(_size) + offset;
+			break;
+		}
+
+		if (cursor < 0 || static_cast<u64>(cursor) > _size)
+			return false;
+
+		_cursor = static_cast<u64>(cursor);
+		return true;
+	}
+
 	void resource_file_system_t::set_mode_directory(const char* directory_path, const char* engine_cache)
 	{
 		SFG_ASSERT(directory_path != nullptr);
@@ -112,6 +187,107 @@ namespace sfg
 		return false;
 	}
 
+	bool resource_file_system_t::open_resource_stream(u64 hash, size_t offset, size_t size, resource_stream_t& out) const
+	{
+		SFG_ASSERT(!out.is_open());
+
+		string_t path		  = {};
+		u64		 range_offset = 0;
+		u64		 range_size	  = 0;
+
+		if (!resolve_resource_range(hash, offset, size, path, range_offset, range_size))
+			return false;
+
+		std::ifstream* stream = new std::ifstream(path.c_str(), std::ios::binary);
+
+		if (!stream->is_open())
+		{
+			SFG_ERR("failed to open resource stream: {0}", path.c_str());
+			delete stream;
+			return false;
+		}
+
+		out._stream		 = stream;
+		out._base_offset = range_offset;
+		out._size		 = range_size;
+		out._cursor		 = 0;
+
+		return true;
+	}
+
+	bool resource_file_system_t::resolve_resource_range(u64 hash, size_t offset, size_t size, string_t& out_path, u64& out_offset, u64& out_size) const
+	{
+		u64 resource_offset = 0;
+		u64 resource_size	= 0;
+
+		if (_mode == mode_e::directory)
+		{
+			const string_t filename_base	 = std::to_string(hash);
+			const string_t resource_filename = filename_base + ".sfg_bin";
+
+			if (!_engine_cache.empty())
+			{
+				const string_t engine_path = _engine_cache + resource_filename;
+
+				if (file_system_t::exists(engine_path.c_str()))
+					out_path = engine_path;
+			}
+
+			if (out_path.empty() && !_directory_path.empty())
+			{
+				const string_t directory_path = _directory_path + resource_filename;
+
+				if (file_system_t::exists(directory_path.c_str()))
+					out_path = directory_path;
+			}
+
+			if (out_path.empty())
+			{
+				SFG_ERR("resource not found for streaming: {0}", hash);
+				return false;
+			}
+
+			resource_size = file_system_t::get_file_size(out_path.c_str());
+		}
+		else if (_mode == mode_e::filepack)
+		{
+			const auto it = _resource_map.find(hash);
+
+			if (it == _resource_map.end())
+			{
+				SFG_ERR("resource not found in file pack for streaming: {0}", hash);
+				return false;
+			}
+
+			out_path		= _file_pack_path;
+			resource_offset = it->second.offset;
+			resource_size	= it->second.size;
+		}
+		else
+		{
+			SFG_ERR("resource file system mode is not set");
+			return false;
+		}
+
+		if (offset > resource_size)
+		{
+			SFG_ERR("resource stream offset out of range: {0}", hash);
+			return false;
+		}
+
+		const u64 range_size = size == 0 ? resource_size - offset : size;
+
+		if (range_size > resource_size - offset)
+		{
+			SFG_ERR("resource stream size out of range: {0}", hash);
+			return false;
+		}
+
+		out_offset = resource_offset + offset;
+		out_size   = range_size;
+		return true;
+	}
+
 	bool resource_file_system_t::read_file_range(const char* path, size_t offset, size_t size, ostream_t& out)
 	{
 		if (!file_system_t::exists(path))
@@ -120,7 +296,7 @@ namespace sfg
 			return false;
 		}
 
-		std::error_code ec;
+		std::error_code ec		  = {};
 		const size_t	file_size = static_cast<size_t>(std::filesystem::file_size(path, ec));
 		if (ec)
 		{

@@ -473,6 +473,7 @@ namespace sfg
 			const f32 dt  = static_cast<f32>(now - _last_tick_us) / 1.0e6f;
 			_last_tick_us = now;
 
+			engine_runtime_t::get().tick();
 			surfaces.tick_surfaces(dt);
 
 			resource_manager_t::get().drain_atlases(_atlas_upload_frame_slot);
