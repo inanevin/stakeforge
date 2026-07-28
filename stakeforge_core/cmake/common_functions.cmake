@@ -65,6 +65,30 @@ function(sfg_group_generated target_name)
 endfunction()
 
 function (sfg_add_copy_commands target_name sfg_core_dir)
+
+    # copy nethost dll to target,
+    # copy engine managed dll, deps json and runtime config to target
+    if(WIN32)
+        add_dependencies(${target_name} stakeforge_managed_script_host)
+
+        add_custom_command(
+        TARGET ${target_name}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${target_name}>/managed"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${SFG_DOTNET_NATIVE_HOST_DIR}/nethost.dll"
+            "$<TARGET_FILE_DIR:${target_name}>"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${SFG_MANAGED_SCRIPT_HOST_OUTPUT_DIRECTORY}/Stakeforge.ScriptHost.dll"
+            "$<TARGET_FILE_DIR:${target_name}>/managed"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${SFG_MANAGED_SCRIPT_HOST_OUTPUT_DIRECTORY}/Stakeforge.ScriptHost.deps.json"
+            "$<TARGET_FILE_DIR:${target_name}>/managed"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${SFG_MANAGED_SCRIPT_HOST_OUTPUT_DIRECTORY}/Stakeforge.ScriptHost.runtimeconfig.json"
+            "$<TARGET_FILE_DIR:${target_name}>/managed")
+    endif()
+
     add_custom_command(
     TARGET ${target_name}
     POST_BUILD

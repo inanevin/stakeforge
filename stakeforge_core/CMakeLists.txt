@@ -108,6 +108,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/animation/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/engine/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/render/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/resources/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/scripting/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/world/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/physics/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/project/*.cpp
@@ -165,6 +166,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/animation/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/engine/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/render/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/resources/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/scripting/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/world/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/reflection/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/serialization/*.hpp
@@ -232,6 +234,7 @@ if(WIN32)
 
     target_link_libraries(${SFG_CORE_TARGET}
         PUBLIC Jolt
+        PUBLIC ${SFG_DOTNET_NATIVE_HOST_DIR}/nethost.lib
         PUBLIC d3d12.lib
         PUBLIC dxgi.lib
         PUBLIC dxguid.lib
@@ -239,6 +242,10 @@ if(WIN32)
         PUBLIC Shcore.lib
         PUBLIC Winmm.lib
     )
+endif()
+
+if(WIN32)
+    target_include_directories(${SFG_CORE_TARGET} PRIVATE ${SFG_DOTNET_NATIVE_HOST_DIR})
 endif()
 
 target_link_libraries(${SFG_CORE_TARGET} PUBLIC lz4 freetype)
