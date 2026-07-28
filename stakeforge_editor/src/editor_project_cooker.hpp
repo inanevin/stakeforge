@@ -22,50 +22,53 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
-#include "assets/editor_glb_importer.hpp"
-#include "editor_layout.hpp"
-#include "editor_project_cook_options.hpp"
-
-#include <sfg/runtime/resources/audio_cook.hpp>
-#include <sfg/runtime/resources/cubemap_cook.hpp>
-#include <sfg/runtime/resources/sprite_cook.hpp>
-#include <sfg/runtime/resources/texture_cook.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/data/unique.hpp>
 
 namespace sfg
 {
-	struct editor_import_settings_t
-	{
-		texture_cook_config_t texture = {};
-		audio_cook_config_t	  audio	  = {};
-		cubemap_cook_config_t cubemap = {};
-		glb_cook_config_t	  glb	  = {};
-		sprite_cook_config_t  sprite  = {};
-	};
+	struct editor_project_cook_options_t;
+	class editor_modal_progress_bar_t;
+	class editor_modal_project_cooker_t;
 
-	struct editor_settings_t
+	class editor_project_cooker_t final
 	{
-		inline static editor_settings_t& get()
+	public:
+		editor_project_cooker_t();
+		~editor_project_cooker_t();
+		editor_project_cooker_t(const editor_project_cooker_t&)			   = delete;
+		editor_project_cooker_t& operator=(const editor_project_cooker_t&) = delete;
+
+		inline static editor_project_cooker_t& get()
 		{
-			static editor_settings_t instance;
+			static editor_project_cooker_t instance;
 			return instance;
 		}
 
-		bool save();
-		bool ensure_loaded();
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
 
-		editor_layout_t				  layout			= {};
-		editor_import_settings_t	  import			= {};
-		editor_project_cook_options_t project_cook		= {};
-		string_t					  last_project_path = "";
+		void init();
+		void uninit();
+		void tick();
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		void request_cook();
+		void cook_project(const editor_project_cook_options_t& options);
+
+	private:
+		unique_t<editor_project_cook_options_t> _cook_options;
+		unique_t<editor_modal_project_cooker_t> _options_modal;
+		unique_t<editor_modal_progress_bar_t>	_progress_modal;
+		bool									_is_cooking	 = false;
+		bool									_initialized = false;
 	};
-
-	void to_json(nlohmann::json& j, const editor_import_settings_t& settings);
-	void from_json(const nlohmann::json& j, editor_import_settings_t& settings);
-	void to_json(nlohmann::json& j, const editor_settings_t& settings);
-	void from_json(const nlohmann::json& j, editor_settings_t& settings);
 }

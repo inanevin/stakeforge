@@ -806,7 +806,20 @@ namespace sfg
 
 	void process::open_url(const char* url)
 	{
-		ShellExecute(0, "open", url, NULL, NULL, SW_SHOWNORMAL);
+		SHELLEXECUTEINFOA execute_info = {
+			.cbSize = sizeof(SHELLEXECUTEINFOA),
+			.fMask	= SEE_MASK_NO_CONSOLE,
+			.lpVerb = "open",
+			.lpFile = url,
+			.nShow	= SW_SHOWNORMAL,
+		};
+
+		if (!ShellExecuteExA(&execute_info))
+		{
+			const DWORD error = GetLastError();
+
+			SFG_ERR("could not open URL: {0}", error);
+		}
 	}
 
 	bool process::open_directory(const char* dir)

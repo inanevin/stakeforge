@@ -624,10 +624,11 @@ namespace sfg
 	bool editor_widget_reflection_t::create_reference(
 		ui::widget_id_t parent, const reflected_field_t* field, span_t<u64*> fields, editor_world_handle_t world, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
 	{
-		const resource_type_e	  resource_type	   = resource_type_from_reflection_sub_type_id(field->sub_type_id);
-		const editor_asset_type_e asset_type	   = editor_asset_type_from_resource_type(resource_type);
-		const bool				  entity_reference = field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_ENTITY_GUID;
-		if (!entity_reference && asset_type == editor_asset_type_e::invalid)
+		const editor_asset_type_e asset_type			 = editor_asset_type_from_reflection_sub_type_id(field->sub_type_id);
+		const bool				  any_resource_reference = field->sub_type_id == SFG_EDITOR_REFLECTION_ASSET_SUB_TYPE_ID_ANY_RESOURCE;
+		const bool				  entity_reference		 = field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_ENTITY_GUID;
+
+		if (!entity_reference && !any_resource_reference && asset_type == editor_asset_type_e::invalid)
 			return false;
 
 		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, field->display_name ? field->display_name : "missing_display_name", sub_item, false, indentation);
@@ -637,11 +638,12 @@ namespace sfg
 		reference->init(*_ui,
 						row.right,
 						{
-							.callbacks	= _field_callbacks,
-							.fields		= fields,
-							.world		= world,
-							.asset_type = asset_type,
-							.type		= entity_reference ? editor_widget_reference_type_e::entity : editor_widget_reference_type_e::asset,
+							.callbacks				 = _field_callbacks,
+							.fields					 = fields,
+							.world					 = world,
+							.asset_type				 = asset_type,
+							.type					 = entity_reference ? editor_widget_reference_type_e::entity : editor_widget_reference_type_e::asset,
+							.allow_any_resource_type = any_resource_reference,
 						});
 		fit_control(reference->get_root());
 		if (removable_item)

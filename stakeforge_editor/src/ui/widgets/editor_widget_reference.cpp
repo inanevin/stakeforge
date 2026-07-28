@@ -183,7 +183,7 @@ namespace sfg
 
 	void editor_widget_reference_t::set_reference(const editor_widget_reference_config_t& config)
 	{
-		SFG_ASSERT(config.type != editor_widget_reference_type_e::asset || config.asset_type != editor_asset_type_e::invalid);
+		SFG_ASSERT(config.type != editor_widget_reference_type_e::asset || config.allow_any_resource_type || config.asset_type != editor_asset_type_e::invalid);
 		SFG_ASSERT(config.type != editor_widget_reference_type_e::entity || !config.world.is_null());
 
 		if (config.fields.data != _fields.data())
@@ -240,7 +240,15 @@ namespace sfg
 			return NULL_SID;
 
 		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(node.asset_id);
-		if (asset == nullptr || asset->asset_type != _config.asset_type)
+		if (asset == nullptr)
+			return NULL_SID;
+
+		if (_config.allow_any_resource_type)
+		{
+			if (asset->asset_type == editor_asset_type_e::invalid || asset->asset_type == editor_asset_type_e::world)
+				return NULL_SID;
+		}
+		else if (asset->asset_type != _config.asset_type)
 			return NULL_SID;
 
 		return asset->guid;
@@ -370,6 +378,7 @@ namespace sfg
 			desc.pressed				   = on_popup_asset_pressed;
 			desc.user_data				   = this;
 			desc.selected				   = get_selected_value();
+			desc.allow_any_resource_type   = _config.allow_any_resource_type;
 			popup->request_asset_popup(desc);
 			return;
 		}

@@ -87,14 +87,15 @@ namespace sfg
 
 	struct editor_asset_popup_desc_t
 	{
-		editor_popup_asset_pressed_fn pressed		   = nullptr;
-		editor_popup_closed_fn		  closed		   = nullptr;
-		void*						  user_data		   = nullptr;
-		vec2f_t						  pos			   = {};
-		f32							  width			   = 0.0f;
-		sid_t						  selected		   = NULL_SID;
-		editor_asset_type_e			  asset_type	   = editor_asset_type_e::invalid;
-		bool						  close_on_pressed = true;
+		editor_popup_asset_pressed_fn pressed				  = nullptr;
+		editor_popup_closed_fn		  closed				  = nullptr;
+		void*						  user_data				  = nullptr;
+		vec2f_t						  pos					  = {};
+		f32							  width					  = 0.0f;
+		sid_t						  selected				  = NULL_SID;
+		editor_asset_type_e			  asset_type			  = editor_asset_type_e::invalid;
+		bool						  close_on_pressed		  = true;
+		bool						  allow_any_resource_type = false;
 	};
 
 	struct editor_entity_popup_desc_t

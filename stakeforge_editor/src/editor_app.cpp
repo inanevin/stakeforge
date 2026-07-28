@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/thumbnail/editor_thumbnail_render_service.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
+#include "editor_project_cooker.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -354,12 +355,15 @@ namespace sfg
 
 		set_script_api_platform_window_runtime(surfaces.get_main_surface().runtime.get());
 		set_script_api_render_resolution_callbacks(get_script_render_resolution, set_script_render_resolution);
+		editor_project_cooker_t::get().init();
 
 		return true;
 	}
 
 	void editor_app_t::uninit_normal_mode()
 	{
+		editor_project_cooker_t::get().uninit();
+
 		_asset_manager.flush_asset_cook_jobs();
 		editor_thumbnail_render_service_t::get().uninit();
 		editor_asset_thumbnail_manager_t::get().uninit();
@@ -478,6 +482,7 @@ namespace sfg
 			if (_mode == editor_app_mode_e::normal)
 			{
 				_asset_manager.tick();
+				editor_project_cooker_t::get().tick();
 
 				if (!_asset_manager.is_import_in_progress())
 					editor_asset_thumbnail_manager_t::get().tick();

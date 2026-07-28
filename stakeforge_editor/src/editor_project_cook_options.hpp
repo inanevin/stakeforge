@@ -22,50 +22,33 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
-#include "assets/editor_glb_importer.hpp"
-#include "editor_layout.hpp"
-#include "editor_project_cook_options.hpp"
-
-#include <sfg/runtime/resources/audio_cook.hpp>
-#include <sfg/runtime/resources/cubemap_cook.hpp>
-#include <sfg/runtime/resources/sprite_cook.hpp>
-#include <sfg/runtime/resources/texture_cook.hpp>
-#include <sfg/vendor/nhlohmann/json_fwd.hpp>
+#include <sfg/common/type_id.hpp>
+#include <sfg/data/vector.hpp>
+#include <sfg/math/vec2u16.hpp>
+#include <sfg/runtime/resources/resource_handle.hpp>
 
 namespace sfg
 {
-	struct editor_import_settings_t
+	struct editor_project_cook_options_t
 	{
-		texture_cook_config_t texture = {};
-		audio_cook_config_t	  audio	  = {};
-		cubemap_cook_config_t cubemap = {};
-		glb_cook_config_t	  glb	  = {};
-		sprite_cook_config_t  sprite  = {};
+		vector_t<resource_handle_t> worlds			= {};
+		vector_t<resource_handle_t> extra_resources = {};
+		vec2u16_t					resolution		= {1920, 1080};
+		bool						is_borderless	= true;
+		bool						is_fullscreen	= false;
 	};
 
-	struct editor_settings_t
+	SFG_DEFINE_TYPE_ID(editor_project_cook_options_t);
+
+	struct editor_project_cook_options_reflection_t
 	{
-		inline static editor_settings_t& get()
-		{
-			static editor_settings_t instance;
-			return instance;
-		}
-
-		bool save();
-		bool ensure_loaded();
-
-		editor_layout_t				  layout			= {};
-		editor_import_settings_t	  import			= {};
-		editor_project_cook_options_t project_cook		= {};
-		string_t					  last_project_path = "";
+		editor_project_cook_options_reflection_t();
 	};
 
-	void to_json(nlohmann::json& j, const editor_import_settings_t& settings);
-	void from_json(const nlohmann::json& j, editor_import_settings_t& settings);
-	void to_json(nlohmann::json& j, const editor_settings_t& settings);
-	void from_json(const nlohmann::json& j, editor_settings_t& settings);
+	inline editor_project_cook_options_reflection_t g_reflect_editor_project_cook_options;
 }

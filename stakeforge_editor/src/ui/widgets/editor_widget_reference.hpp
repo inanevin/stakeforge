@@ -56,13 +56,14 @@ namespace sfg
 
 	struct editor_widget_reference_config_t
 	{
-		editor_widget_callbacks_t	   callbacks	   = {};
-		span_t<u64*>				   fields		   = {};
-		sid_t						   selected_asset  = NULL_SID;
-		entity_guid_t				   selected_entity = NULL_ENTITY_GUID;
-		editor_world_handle_t		   world		   = {};
-		editor_asset_type_e			   asset_type	   = editor_asset_type_e::invalid;
-		editor_widget_reference_type_e type			   = editor_widget_reference_type_e::asset;
+		editor_widget_callbacks_t	   callbacks			   = {};
+		span_t<u64*>				   fields				   = {};
+		sid_t						   selected_asset		   = NULL_SID;
+		entity_guid_t				   selected_entity		   = NULL_ENTITY_GUID;
+		editor_world_handle_t		   world				   = {};
+		editor_asset_type_e			   asset_type			   = editor_asset_type_e::invalid;
+		editor_widget_reference_type_e type					   = editor_widget_reference_type_e::asset;
+		bool						   allow_any_resource_type = false;
 	};
 
 	struct vec2i16_t;

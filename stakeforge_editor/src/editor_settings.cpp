@@ -109,13 +109,15 @@ namespace sfg
 	{
 		j["layout"]		  = settings.layout;
 		j["import"]		  = settings.import;
+		j["project_cook"] = reflected_to_json(settings.project_cook);
 		j["project_path"] = settings.last_project_path;
 	}
 
 	void from_json(const nlohmann::json& j, editor_settings_t& settings)
 	{
-		settings.layout			   = j.value("layout", editor_layout_t{});
-		settings.import			   = j.value("import", editor_import_settings_t{});
+		settings.layout = j.value("layout", editor_layout_t{});
+		settings.import = j.value("import", editor_import_settings_t{});
+		reflected_from_json(j.value("project_cook", nlohmann::json::object()), settings.project_cook);
 		settings.last_project_path = j.value<string_t>("project_path", {});
 	}
 }

@@ -868,7 +868,15 @@ namespace sfg
 				continue;
 
 			const editor_asset_t* asset = asset_manager.find_asset(node.asset_id);
-			if (asset == nullptr || asset->asset_type != _asset_desc.asset_type)
+			if (asset == nullptr)
+				continue;
+
+			if (_asset_desc.allow_any_resource_type)
+			{
+				if (asset->asset_type == editor_asset_type_e::invalid || asset->asset_type == editor_asset_type_e::world)
+					continue;
+			}
+			else if (asset->asset_type != _asset_desc.asset_type)
 				continue;
 
 			_asset_items.push_back({.name = node.name, .guid = asset->guid, .thumbnail = asset->thumbnail_guid});
