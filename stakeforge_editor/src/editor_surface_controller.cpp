@@ -48,6 +48,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_window_frame.hpp"
 #include "world/editor_world.hpp"
 #include <sfg/runtime/engine/engine_runtime.hpp>
+#include <sfg/runtime/scripting/api/script_api_platform.hpp>
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -611,7 +612,10 @@ namespace sfg
 		}
 
 		if (surface.type == editor_surface_type_e::primary)
+		{
+			set_script_api_platform_window_runtime(nullptr);
 			save_layout();
+		}
 
 		if (surface.type == editor_surface_type_e::primary)
 			surface.primary->uninit();

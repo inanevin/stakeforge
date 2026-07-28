@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/widgets/editor_splash_screen.hpp"
+#include "world/editor_world.hpp"
 #include <sfg/data/vector.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
@@ -46,6 +47,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/runtime/scripting/api/script_api_platform.hpp>
+#include <sfg/runtime/scripting/api/script_api_render.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
 #include <tracy/Tracy.hpp>
 
@@ -72,6 +75,32 @@ namespace sfg
 		app._splash_progress_text_dirty.store(true, std::memory_order_release);
 		if (progress >= 1.0f)
 			app.request_switch_mode(editor_app_mode_e::normal);
+	}
+
+	u8 editor_app_t::get_script_render_resolution(vec2u16_t& out_resolution)
+	{
+		out_resolution = vec2u16_t::zero;
+
+		editor_world_controller_t&	world_controller = editor_app_t::get().get_world_controller();
+		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+
+		if (main_world.is_null())
+			return 0;
+
+		out_resolution = world_controller.get_editor_world(main_world)->get_render_resolution();
+		return 1;
+	}
+
+	u8 editor_app_t::set_script_render_resolution(const vec2u16_t& resolution)
+	{
+		editor_world_controller_t&	world_controller = editor_app_t::get().get_world_controller();
+		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+
+		if (main_world.is_null())
+			return 0;
+
+		world_controller.resize_world(main_world, resolution);
+		return 1;
 	}
 
 	bool editor_app_t::init(const editor_app_config_t& config)
@@ -195,6 +224,9 @@ namespace sfg
 	void editor_app_t::uninit()
 	{
 		engine_runtime_t& runtime = engine_runtime_t::get();
+
+		set_script_api_platform_window_runtime(nullptr);
+		set_script_api_render_resolution_callbacks(nullptr, nullptr);
 
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
 		SFG_ASSERT(surfaces.is_empty());
@@ -320,6 +352,9 @@ namespace sfg
 		if (proj.settings.last_world_guid == NULL_SID || !_world_controller.load_main_world(proj.settings.last_world_guid))
 			_world_controller.load_dummy_world();
 
+		set_script_api_platform_window_runtime(surfaces.get_main_surface().runtime.get());
+		set_script_api_render_resolution_callbacks(get_script_render_resolution, set_script_render_resolution);
+
 		return true;
 	}
 
@@ -338,6 +373,13 @@ namespace sfg
 			return;
 
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
+
+		if (_mode == editor_app_mode_e::normal)
+		{
+			set_script_api_platform_window_runtime(nullptr);
+			set_script_api_render_resolution_callbacks(nullptr, nullptr);
+		}
+
 		surfaces.destroy_all_surfaces();
 
 		if (_mode == editor_app_mode_e::normal)
