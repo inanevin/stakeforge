@@ -823,21 +823,21 @@ namespace sfg
 
 	void process::open_file(const char* path)
 	{
-		wchar_t	   windows_directory[MAX_PATH] = {};
-		const UINT windows_directory_length	   = GetWindowsDirectoryW(windows_directory, MAX_PATH);
+		wchar_t	   system_directory[MAX_PATH] = {};
+		const UINT system_directory_length	  = GetSystemDirectoryW(system_directory, MAX_PATH);
 
-		if (windows_directory_length == 0 || windows_directory_length >= MAX_PATH)
+		if (system_directory_length == 0 || system_directory_length >= MAX_PATH)
 		{
-			SFG_ERR("could not find the Windows directory.");
+			SFG_ERR("could not find the Windows system directory.");
 			return;
 		}
 
-		wstring_t explorer_path(windows_directory, windows_directory_length);
-		explorer_path += L"\\explorer.exe";
+		wstring_t command_path(system_directory, system_directory_length);
+		command_path += L"\\cmd.exe";
 
 		wstring_t command_line = L"\"";
-		command_line += explorer_path;
-		command_line += L"\" \"";
+		command_line += command_path;
+		command_line += L"\" /D /V:OFF /C start \"\" \"";
 		command_line += string_util::to_wstr(path);
 		command_line += L"\"";
 
@@ -845,7 +845,7 @@ namespace sfg
 		startup_info.cb			  = sizeof(STARTUPINFOW);
 
 		PROCESS_INFORMATION process_info = {};
-		const BOOL			created		 = CreateProcessW(explorer_path.c_str(), command_line.data(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &startup_info, &process_info);
+		const BOOL			created		 = CreateProcessW(command_path.c_str(), command_line.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP, nullptr, nullptr, &startup_info, &process_info);
 
 		if (!created)
 		{

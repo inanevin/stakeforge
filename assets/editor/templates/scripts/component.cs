@@ -3,6 +3,6 @@ using SFG;
 
 [Component]
 [StructLayout(LayoutKind.Sequential)]
-public struct @#SCRIPT_NAME#
+public struct #SCRIPT_NAME#
 {
 }

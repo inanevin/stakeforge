@@ -1,6 +1,6 @@
 using SFG;
 
-public sealed class @#SCRIPT_NAME# : WorldScript
+public sealed class #SCRIPT_NAME# : WorldScript
 {
     public override void BeginPlay(World world)
     {
