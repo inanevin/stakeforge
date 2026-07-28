@@ -106,6 +106,7 @@ namespace sfg
 		icon_in.anchor_y		 = ui::anchor_e::center;
 		icon_in.size_mode_x		 = ui::axis_mode_e::fixed;
 		icon_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		tree.draw_order(_icon)	 = tree.draw_order_const(_slider) + 1;
 
 		ui.set_widget_text(_icon, ICON_FILLED_CIRCLE);
 		paint.set_text(
