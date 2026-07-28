@@ -34,19 +34,20 @@ namespace sfg
 	struct window_runtime_t;
 	enum class window_style_e : u8;
 
+	void set_script_api_platform_window_runtime(window_runtime_t* window);
 	void api_platform_set_cursor_visible(u8 visible);
-	void api_platform_lock_cursor(window_runtime_t* window, u8 locked);
-	void api_platform_set_window_size(window_runtime_t* window, u16 width, u16 height);
-	void api_platform_set_window_style(window_runtime_t* window, window_style_e style);
+	void api_platform_lock_cursor(u8 locked);
+	void api_platform_set_window_size(u16 width, u16 height);
+	void api_platform_set_window_style(window_style_e style);
 
 	struct script_api_platform_t
 	{
-		u32 size																 = 0;
-		u32 version																 = 0;
-		void (*set_cursor_visible)(u8 visible)									 = nullptr;
-		void (*lock_cursor)(window_runtime_t* window, u8 locked)				 = nullptr;
-		void (*set_window_size)(window_runtime_t* window, u16 width, u16 height) = nullptr;
-		void (*set_window_style)(window_runtime_t* window, window_style_e style) = nullptr;
+		u32 size									   = 0;
+		u32 version									   = 0;
+		void (*set_cursor_visible)(u8 visible)		   = nullptr;
+		void (*lock_cursor)(u8 locked)				   = nullptr;
+		void (*set_window_size)(u16 width, u16 height) = nullptr;
+		void (*set_window_style)(window_style_e style) = nullptr;
 	};
 
 	const script_api_platform_t& get_script_api_platform();

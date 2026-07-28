@@ -86,6 +86,7 @@ namespace sfg
 		void add_body_impulse(entity_id_t entity, const vec3f_t& impulse);
 		void wake_body(entity_id_t entity);
 		bool get_body_state(entity_id_t entity, physics_body_state_t& out_state) const;
+		bool is_body(entity_id_t entity) const;
 
 		// -----------------------------------------------------------------------------
 		// queries
@@ -109,6 +110,7 @@ namespace sfg
 		void jump_character(entity_id_t entity, f32 speed);
 		void teleport_character(entity_id_t entity, const vec3f_t& position);
 		bool get_character_state(entity_id_t entity, character_mover_state_t& out_state) const;
+		bool is_character(entity_id_t entity) const;
 
 		// -----------------------------------------------------------------------------
 		// settings

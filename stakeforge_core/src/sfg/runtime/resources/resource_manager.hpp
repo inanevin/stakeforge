@@ -102,6 +102,10 @@ namespace sfg
 			return entry != nullptr ? entry->state : resource_state_e::failed;
 		}
 
+		bool is_material_parameter_valid(resource_handle_t material, sid_t parameter_name, shader_param_type_e parameter_type) const;
+		bool is_material_texture_valid(resource_handle_t material, sid_t texture_name, resource_handle_t texture) const;
+		bool is_material_sampler_valid(resource_handle_t material, sid_t sampler_name, resource_handle_t sampler) const;
+
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------

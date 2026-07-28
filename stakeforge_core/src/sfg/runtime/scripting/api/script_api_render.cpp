@@ -27,13 +27,53 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "script_api_render.hpp"
 
+#include <sfg/gfx/util/render_util.hpp>
+#include <sfg/io/assert.hpp>
+#include <sfg/math/vec2u16.hpp>
+
 namespace sfg
 {
+	namespace
+	{
+		script_api_render_get_render_resolution_fn g_get_render_resolution = nullptr;
+		script_api_render_set_render_resolution_fn g_set_render_resolution = nullptr;
+	}
+
+	void set_script_api_render_resolution_callbacks(script_api_render_get_render_resolution_fn get_resolution, script_api_render_set_render_resolution_fn set_resolution)
+	{
+		g_get_render_resolution = get_resolution;
+		g_set_render_resolution = set_resolution;
+	}
+
+	u8 api_render_get_render_resolution(vec2u16_t* out_resolution)
+	{
+		SFG_ASSERT(out_resolution != nullptr);
+
+		*out_resolution = vec2u16_t::zero;
+
+		if (g_get_render_resolution == nullptr)
+			return 0;
+
+		return g_get_render_resolution(*out_resolution);
+	}
+
+	u8 api_render_set_render_resolution(u16 width, u16 height)
+	{
+		if (g_set_render_resolution == nullptr)
+			return 0;
+
+		vec2u16_t resolution{width, height};
+		render_util_t::ensure_world_resolution(resolution);
+		return g_set_render_resolution(resolution);
+	}
+
 	const script_api_render_t& get_script_api_render()
 	{
 		static const script_api_render_t api{
-			.size	 = static_cast<u32>(sizeof(script_api_render_t)),
-			.version = 1,
+			.size				   = static_cast<u32>(sizeof(script_api_render_t)),
+			.version			   = 1,
+			.get_render_resolution = api_render_get_render_resolution,
+			.set_render_resolution = api_render_set_render_resolution,
 		};
 
 		return api;

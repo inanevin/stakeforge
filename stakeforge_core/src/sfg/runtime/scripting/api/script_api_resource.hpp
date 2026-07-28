@@ -28,13 +28,30 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/runtime/resources/resource_handle.hpp>
 
 namespace sfg
 {
+	struct vec2f_t;
+	struct vec4f_t;
+
+	u8 api_resource_update_material_parameter_f32(resource_handle_t material, sid_t parameter_name, f32 value);
+	u8 api_resource_update_material_parameter_vec2(resource_handle_t material, sid_t parameter_name, const vec2f_t* value);
+	u8 api_resource_update_material_parameter_vec4(resource_handle_t material, sid_t parameter_name, const vec4f_t* value);
+	u8 api_resource_update_material_parameter_u32(resource_handle_t material, sid_t parameter_name, u32 value);
+	u8 api_resource_update_material_texture(resource_handle_t material, sid_t texture_name, resource_handle_t texture);
+	u8 api_resource_update_material_sampler(resource_handle_t material, sid_t sampler_name, resource_handle_t sampler);
+
 	struct script_api_resource_t
 	{
-		u32 size	= 0;
-		u32 version = 0;
+		u32													   size							  = 0;
+		u32													   version						  = 0;
+		decltype(&api_resource_update_material_parameter_f32)  update_material_parameter_f32  = nullptr;
+		decltype(&api_resource_update_material_parameter_vec2) update_material_parameter_vec2 = nullptr;
+		decltype(&api_resource_update_material_parameter_vec4) update_material_parameter_vec4 = nullptr;
+		decltype(&api_resource_update_material_parameter_u32)  update_material_parameter_u32  = nullptr;
+		decltype(&api_resource_update_material_texture)		   update_material_texture		  = nullptr;
+		decltype(&api_resource_update_material_sampler)		   update_material_sampler		  = nullptr;
 	};
 
 	const script_api_resource_t& get_script_api_resource();

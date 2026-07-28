@@ -27,100 +27,297 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "script_api_physics.hpp"
 
+#include <sfg/io/assert.hpp>
+#include <sfg/runtime/physics/physics_world.hpp>
+#include <sfg/runtime/world/world.hpp>
+
 namespace sfg
 {
 	u8 api_physics_set_body_linear_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(velocity != nullptr);
+
+		physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_body(entity))
+			return 0;
+
+		physics.set_body_linear_velocity(entity, *velocity);
+		return 1;
 	}
 
 	u8 api_physics_set_body_angular_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(velocity != nullptr);
+
+		physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_body(entity))
+			return 0;
+
+		physics.set_body_angular_velocity(entity, *velocity);
+		return 1;
 	}
 
 	u8 api_physics_add_body_force(world_t* world, entity_id_t entity, const vec3f_t* force)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(force != nullptr);
+
+		physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_body(entity))
+			return 0;
+
+		physics.add_body_force(entity, *force);
+		return 1;
 	}
 
 	u8 api_physics_add_body_impulse(world_t* world, entity_id_t entity, const vec3f_t* impulse)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(impulse != nullptr);
+
+		physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_body(entity))
+			return 0;
+
+		physics.add_body_impulse(entity, *impulse);
+		return 1;
 	}
 
 	u8 api_physics_wake_body(world_t* world, entity_id_t entity)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+
+		physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_body(entity))
+			return 0;
+
+		physics.wake_body(entity);
+		return 1;
 	}
 
 	u8 api_physics_get_body_state(const world_t* world, entity_id_t entity, physics_body_state_t* out_state)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(out_state != nullptr);
+
+		*out_state					   = {};
+		const physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_body(entity))
+			return 0;
+
+		return physics.get_body_state(entity, *out_state) ? 1 : 0;
 	}
 
 	u8 api_physics_raycast_any(const world_t* world, const physics_raycast_t* ray, const physics_query_filter_t* filter)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(ray != nullptr);
+
+		const physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init())
+			return 0;
+
+		const physics_query_filter_t query_filter = filter == nullptr ? physics_query_filter_t{} : *filter;
+		return physics.raycast_any(*ray, query_filter) ? 1 : 0;
 	}
 
 	u8 api_physics_raycast_closest(const world_t* world, const physics_raycast_t* ray, const physics_query_filter_t* filter, physics_hit_t* out_hit)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(ray != nullptr);
+		SFG_ASSERT(out_hit != nullptr);
+
+		*out_hit					   = {};
+		const physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init())
+			return 0;
+
+		const physics_query_filter_t query_filter = filter == nullptr ? physics_query_filter_t{} : *filter;
+		return physics.raycast_closest(*ray, *out_hit, query_filter) ? 1 : 0;
 	}
 
 	u8 api_physics_raycast_all(const world_t* world, const physics_raycast_t* ray, const physics_query_filter_t* filter, physics_hit_t* out_hits, u32 capacity, physics_query_result_t* out_result)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(ray != nullptr);
+		SFG_ASSERT(out_hits != nullptr || capacity == 0);
+		SFG_ASSERT(out_result != nullptr);
+
+		*out_result					   = {};
+		const physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init())
+			return 0;
+
+		const physics_query_filter_t query_filter = filter == nullptr ? physics_query_filter_t{} : *filter;
+		*out_result								  = physics.raycast_all(*ray, {.data = out_hits, .size = capacity}, query_filter);
+		return 1;
 	}
 
 	u8 api_physics_linecast_closest(const world_t* world, const physics_linecast_t* line, const physics_query_filter_t* filter, physics_hit_t* out_hit)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(line != nullptr);
+		SFG_ASSERT(out_hit != nullptr);
+
+		*out_hit					   = {};
+		const physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init())
+			return 0;
+
+		const physics_query_filter_t query_filter = filter == nullptr ? physics_query_filter_t{} : *filter;
+		return physics.linecast_closest(*line, *out_hit, query_filter) ? 1 : 0;
 	}
 
 	void api_physics_linecast_closest_batch(const world_t* world, const physics_linecast_t* lines, physics_hit_t* out_hits, u32 count, const physics_query_filter_t* filter)
 	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(lines != nullptr || count == 0);
+		SFG_ASSERT(out_hits != nullptr || count == 0);
+
+		if (count == 0)
+			return;
+
+		const physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init())
+		{
+			for (u32 i = 0; i < count; ++i)
+				out_hits[i] = {};
+
+			return;
+		}
+
+		const physics_query_filter_t query_filter = filter == nullptr ? physics_query_filter_t{} : *filter;
+		physics.linecast_closest_batch({.data = lines, .size = count}, {.data = out_hits, .size = count}, query_filter);
 	}
 
 	u8 api_physics_spherecast_any(const world_t* world, const physics_spherecast_t* sphere, const physics_query_filter_t* filter)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(sphere != nullptr);
+
+		const physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init())
+			return 0;
+
+		const physics_query_filter_t query_filter = filter == nullptr ? physics_query_filter_t{} : *filter;
+		return physics.spherecast_any(*sphere, query_filter) ? 1 : 0;
 	}
 
 	u8 api_physics_spherecast_closest(const world_t* world, const physics_spherecast_t* sphere, const physics_query_filter_t* filter, physics_hit_t* out_hit)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(sphere != nullptr);
+		SFG_ASSERT(out_hit != nullptr);
+
+		*out_hit					   = {};
+		const physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init())
+			return 0;
+
+		const physics_query_filter_t query_filter = filter == nullptr ? physics_query_filter_t{} : *filter;
+		return physics.spherecast_closest(*sphere, *out_hit, query_filter) ? 1 : 0;
 	}
 
 	u8 api_physics_spherecast_all(const world_t* world, const physics_spherecast_t* sphere, const physics_query_filter_t* filter, physics_hit_t* out_hits, u32 capacity, physics_query_result_t* out_result)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(sphere != nullptr);
+		SFG_ASSERT(out_hits != nullptr || capacity == 0);
+		SFG_ASSERT(out_result != nullptr);
+
+		*out_result					   = {};
+		const physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init())
+			return 0;
+
+		const physics_query_filter_t query_filter = filter == nullptr ? physics_query_filter_t{} : *filter;
+		*out_result								  = physics.spherecast_all(*sphere, {.data = out_hits, .size = capacity}, query_filter);
+		return 1;
 	}
 
 	u8 api_physics_set_character_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(velocity != nullptr);
+
+		physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_character(entity))
+			return 0;
+
+		physics.set_character_velocity(entity, *velocity);
+		return 1;
 	}
 
 	u8 api_physics_add_character_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(velocity != nullptr);
+
+		physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_character(entity))
+			return 0;
+
+		physics.add_character_velocity(entity, *velocity);
+		return 1;
 	}
 
 	u8 api_physics_jump_character(world_t* world, entity_id_t entity, f32 speed)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+
+		physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_character(entity))
+			return 0;
+
+		physics.jump_character(entity, speed);
+		return 1;
 	}
 
 	u8 api_physics_teleport_character(world_t* world, entity_id_t entity, const vec3f_t* position)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(position != nullptr);
+
+		physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_character(entity))
+			return 0;
+
+		physics.teleport_character(entity, *position);
+		return 1;
 	}
 
 	u8 api_physics_get_character_state(const world_t* world, entity_id_t entity, character_mover_state_t* out_state)
 	{
-		return 0;
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(out_state != nullptr);
+
+		*out_state					   = {};
+		const physics_world_t& physics = world->get_physics();
+
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_character(entity))
+			return 0;
+
+		return physics.get_character_state(entity, *out_state) ? 1 : 0;
 	}
 
 	const script_api_physics_t& get_script_api_physics()

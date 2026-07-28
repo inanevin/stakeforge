@@ -31,10 +31,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct vec2u16_t;
+
+	typedef u8 (*script_api_render_get_render_resolution_fn)(vec2u16_t& out_resolution);
+	typedef u8 (*script_api_render_set_render_resolution_fn)(const vec2u16_t& resolution);
+
+	void set_script_api_render_resolution_callbacks(script_api_render_get_render_resolution_fn get_resolution, script_api_render_set_render_resolution_fn set_resolution);
+	u8	 api_render_get_render_resolution(vec2u16_t* out_resolution);
+	u8	 api_render_set_render_resolution(u16 width, u16 height);
+
 	struct script_api_render_t
 	{
-		u32 size	= 0;
-		u32 version = 0;
+		u32											size				  = 0;
+		u32											version				  = 0;
+		decltype(&api_render_get_render_resolution) get_render_resolution = nullptr;
+		decltype(&api_render_set_render_resolution) set_render_resolution = nullptr;
 	};
 
 	const script_api_render_t& get_script_api_render();

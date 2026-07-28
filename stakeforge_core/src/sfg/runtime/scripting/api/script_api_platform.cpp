@@ -27,22 +27,72 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "script_api_platform.hpp"
 
+#include <sfg/platform/common_window.hpp>
+#include <sfg/platform/process.hpp>
+
 namespace sfg
 {
+	namespace
+	{
+		window_runtime_t* g_window_runtime = nullptr;
+		bool			  g_cursor_locked  = false;
+		bool			  g_cursor_visible = true;
+	}
+
+	void set_script_api_platform_window_runtime(window_runtime_t* window)
+	{
+		if (g_window_runtime != nullptr && g_window_runtime != window)
+		{
+			if (g_cursor_locked)
+				process::set_cursor_confinement(g_window_runtime->window_handle, window_cursor_confinement_e::none);
+
+			if (!g_cursor_visible)
+				process::set_cursor_visible(true);
+
+			g_cursor_locked	 = false;
+			g_cursor_visible = true;
+		}
+
+		g_window_runtime = window;
+	}
+
 	void api_platform_set_cursor_visible(u8 visible)
 	{
+		if (g_window_runtime == nullptr)
+			return;
+
+		process::set_cursor_visible(visible != 0);
+		g_cursor_visible = visible != 0;
 	}
 
-	void api_platform_lock_cursor(window_runtime_t* window, u8 locked)
+	void api_platform_lock_cursor(u8 locked)
 	{
+		if (g_window_runtime == nullptr)
+			return;
+
+		const bool is_locked = locked != 0;
+
+		if (g_cursor_locked == is_locked)
+			return;
+
+		process::set_cursor_confinement(g_window_runtime->window_handle, is_locked ? window_cursor_confinement_e::pointer : window_cursor_confinement_e::none);
+		g_cursor_locked = is_locked;
 	}
 
-	void api_platform_set_window_size(window_runtime_t* window, u16 width, u16 height)
+	void api_platform_set_window_size(u16 width, u16 height)
 	{
+		if (g_window_runtime == nullptr)
+			return;
+
+		process::set_window_size(g_window_runtime->window_handle, {width, height}, g_window_runtime->style);
 	}
 
-	void api_platform_set_window_style(window_runtime_t* window, window_style_e style)
+	void api_platform_set_window_style(window_style_e style)
 	{
+		if (g_window_runtime == nullptr)
+			return;
+
+		process::set_window_style(g_window_runtime->window_handle, g_window_runtime->size, style);
 	}
 
 	const script_api_platform_t& get_script_api_platform()

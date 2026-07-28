@@ -399,6 +399,74 @@ namespace sfg
 		runtime->sampler_guids[sampler_index] = sampler;
 	}
 
+	bool resource_manager_t::is_material_parameter_valid(resource_handle_t material, sid_t parameter_name, shader_param_type_e parameter_type) const
+	{
+		if (material == NULL_RESOURCE_HANDLE || parameter_name == NULL_SID || parameter_type == shader_param_type_e::invalid)
+			return false;
+
+		const resource_entry_t* material_entry = find_entry(material);
+
+		if (material_entry == nullptr || material_entry->type != resource_type_e::material || material_entry->state != resource_state_e::ready || material_entry->runtime.size == 0)
+			return false;
+
+		const material_runtime_t* runtime = _memory.get<material_runtime_t>(material_entry->runtime);
+
+		for (u32 parameter_index = 0; parameter_index < runtime->parameter_count; ++parameter_index)
+		{
+			if (runtime->parameter_name_hashes[parameter_index] == parameter_name)
+				return runtime->parameters[parameter_index].type == parameter_type;
+		}
+
+		return false;
+	}
+
+	bool resource_manager_t::is_material_texture_valid(resource_handle_t material, sid_t texture_name, resource_handle_t texture) const
+	{
+		if (material == NULL_RESOURCE_HANDLE || texture_name == NULL_SID || texture == NULL_RESOURCE_HANDLE)
+			return false;
+
+		const resource_entry_t* material_entry = find_entry(material);
+		const resource_entry_t* texture_entry  = find_entry(texture);
+
+		if (material_entry == nullptr || material_entry->type != resource_type_e::material || material_entry->state != resource_state_e::ready || material_entry->runtime.size == 0 || texture_entry == nullptr || texture_entry->state != resource_state_e::ready)
+			return false;
+
+		const material_runtime_t* runtime = _memory.get<material_runtime_t>(material_entry->runtime);
+
+		for (u32 texture_index = 0; texture_index < runtime->texture_count; ++texture_index)
+		{
+			if (runtime->texture_name_hashes[texture_index] != texture_name)
+				continue;
+
+			return texture_entry->type == shader_texture_type_to_resource_type(runtime->texture_types[texture_index]);
+		}
+
+		return false;
+	}
+
+	bool resource_manager_t::is_material_sampler_valid(resource_handle_t material, sid_t sampler_name, resource_handle_t sampler) const
+	{
+		if (material == NULL_RESOURCE_HANDLE || sampler_name == NULL_SID || sampler == NULL_RESOURCE_HANDLE)
+			return false;
+
+		const resource_entry_t* material_entry = find_entry(material);
+		const resource_entry_t* sampler_entry  = find_entry(sampler);
+
+		if (material_entry == nullptr || material_entry->type != resource_type_e::material || material_entry->state != resource_state_e::ready || material_entry->runtime.size == 0 || sampler_entry == nullptr ||
+			sampler_entry->type != resource_type_e::texture_sampler || sampler_entry->state != resource_state_e::ready)
+			return false;
+
+		const material_runtime_t* runtime = _memory.get<material_runtime_t>(material_entry->runtime);
+
+		for (u32 sampler_index = 0; sampler_index < runtime->sampler_count; ++sampler_index)
+		{
+			if (runtime->sampler_name_hashes[sampler_index] == sampler_name)
+				return true;
+		}
+
+		return false;
+	}
+
 	void resource_manager_t::flush_material_updates()
 	{
 		SFG_ASSERT(is_main_thread());

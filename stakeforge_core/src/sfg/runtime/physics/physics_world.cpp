@@ -1335,6 +1335,14 @@ namespace sfg
 		return true;
 	}
 
+	bool physics_world_t::is_body(entity_id_t entity) const
+	{
+		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
+		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+
+		return system_physics != nullptr && system_physics->character == nullptr && system_physics->body_id != UINT32_MAX;
+	}
+
 	bool physics_world_t::raycast_any(const physics_raycast_t& ray, const physics_query_filter_t& filter) const
 	{
 		return _impl->raycast_any(ray, filter);
@@ -1448,6 +1456,14 @@ namespace sfg
 		out_state.ground_entity				  = _impl->resolve_body_entity(ground_body_id);
 		out_state.ground_sub_shape_id		  = ground_sub_shape_id;
 		return true;
+	}
+
+	bool physics_world_t::is_character(entity_id_t entity) const
+	{
+		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
+		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+
+		return system_physics != nullptr && system_physics->character != nullptr;
 	}
 
 	void physics_world_t::update_collision_masks(const u64 masks[PHYSICS_COLLISION_LAYER_MAX], u64 active_layers)
