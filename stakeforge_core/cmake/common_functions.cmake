@@ -86,6 +86,9 @@ function (sfg_add_copy_commands target_name sfg_core_dir)
             "$<TARGET_FILE_DIR:${target_name}>/managed"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${SFG_MANAGED_SCRIPT_HOST_OUTPUT_DIRECTORY}/Stakeforge.ScriptHost.runtimeconfig.json"
+            "$<TARGET_FILE_DIR:${target_name}>/managed"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${SFG_MANAGED_SCRIPT_HOST_OUTPUT_DIRECTORY}/Stakeforge.Managed.dll"
             "$<TARGET_FILE_DIR:${target_name}>/managed")
     endif()
 
