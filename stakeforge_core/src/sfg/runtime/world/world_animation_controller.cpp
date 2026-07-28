@@ -331,6 +331,138 @@ namespace sfg
 		return true;
 	}
 
+	bool world_animation_controller_t::set_graph_parameter_f32(entity_id_t entity, sid_t parameter_hash, f32 value)
+	{
+		animation_graph_param_t* parameter = find_graph_parameter(entity, parameter_hash);
+
+		if (parameter == nullptr || parameter->type != animation_param_type_e::f32)
+			return false;
+
+		parameter->f32_value = value;
+		return true;
+	}
+
+	bool world_animation_controller_t::set_graph_parameter_vec2(entity_id_t entity, sid_t parameter_hash, const vec2f_t& value)
+	{
+		animation_graph_param_t* parameter = find_graph_parameter(entity, parameter_hash);
+
+		if (parameter == nullptr || parameter->type != animation_param_type_e::vec2)
+			return false;
+
+		parameter->vec2_value = value;
+		return true;
+	}
+
+	bool world_animation_controller_t::set_graph_parameter_vec3(entity_id_t entity, sid_t parameter_hash, const vec3f_t& value)
+	{
+		animation_graph_param_t* parameter = find_graph_parameter(entity, parameter_hash);
+
+		if (parameter == nullptr || parameter->type != animation_param_type_e::vec3)
+			return false;
+
+		parameter->vec3_value = value;
+		return true;
+	}
+
+	bool world_animation_controller_t::set_graph_parameter_quat(entity_id_t entity, sid_t parameter_hash, const quat_t& value)
+	{
+		animation_graph_param_t* parameter = find_graph_parameter(entity, parameter_hash);
+
+		if (parameter == nullptr || parameter->type != animation_param_type_e::quat)
+			return false;
+
+		parameter->quat_value = value;
+		return true;
+	}
+
+	bool world_animation_controller_t::set_graph_parameter_bool(entity_id_t entity, sid_t parameter_hash, bool value)
+	{
+		animation_graph_param_t* parameter = find_graph_parameter(entity, parameter_hash);
+
+		if (parameter == nullptr || parameter->type != animation_param_type_e::boolean)
+			return false;
+
+		parameter->bool_value = value;
+		return true;
+	}
+
+	bool world_animation_controller_t::get_graph_parameter_f32(entity_id_t entity, sid_t parameter_hash, f32& out_value) const
+	{
+		const animation_graph_param_t* parameter = find_graph_parameter(entity, parameter_hash);
+
+		if (parameter == nullptr || parameter->type != animation_param_type_e::f32)
+			return false;
+
+		out_value = parameter->f32_value;
+		return true;
+	}
+
+	bool world_animation_controller_t::get_graph_parameter_vec2(entity_id_t entity, sid_t parameter_hash, vec2f_t& out_value) const
+	{
+		const animation_graph_param_t* parameter = find_graph_parameter(entity, parameter_hash);
+
+		if (parameter == nullptr || parameter->type != animation_param_type_e::vec2)
+			return false;
+
+		out_value = parameter->vec2_value;
+		return true;
+	}
+
+	bool world_animation_controller_t::get_graph_parameter_vec3(entity_id_t entity, sid_t parameter_hash, vec3f_t& out_value) const
+	{
+		const animation_graph_param_t* parameter = find_graph_parameter(entity, parameter_hash);
+
+		if (parameter == nullptr || parameter->type != animation_param_type_e::vec3)
+			return false;
+
+		out_value = parameter->vec3_value;
+		return true;
+	}
+
+	bool world_animation_controller_t::get_graph_parameter_quat(entity_id_t entity, sid_t parameter_hash, quat_t& out_value) const
+	{
+		const animation_graph_param_t* parameter = find_graph_parameter(entity, parameter_hash);
+
+		if (parameter == nullptr || parameter->type != animation_param_type_e::quat)
+			return false;
+
+		out_value = parameter->quat_value;
+		return true;
+	}
+
+	bool world_animation_controller_t::get_graph_parameter_bool(entity_id_t entity, sid_t parameter_hash, bool& out_value) const
+	{
+		const animation_graph_param_t* parameter = find_graph_parameter(entity, parameter_hash);
+
+		if (parameter == nullptr || parameter->type != animation_param_type_e::boolean)
+			return false;
+
+		out_value = parameter->bool_value;
+		return true;
+	}
+
+	animation_graph_param_t* world_animation_controller_t::find_graph_parameter(entity_id_t entity, sid_t parameter_hash)
+	{
+		ecs_component_table_t&				system_animation_graph_table = _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+		component_system_animation_graph_t* system_animation_graph		 = ecs_helpers_t::table_find_as<component_system_animation_graph_t>(system_animation_graph_table, entity);
+
+		if (system_animation_graph == nullptr)
+			return nullptr;
+
+		return _animation_graph_storage.find_parameter(system_animation_graph->parameters, system_animation_graph->parameter_count, parameter_hash);
+	}
+
+	const animation_graph_param_t* world_animation_controller_t::find_graph_parameter(entity_id_t entity, sid_t parameter_hash) const
+	{
+		const ecs_component_table_t&			  system_animation_graph_table = _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+		const component_system_animation_graph_t* system_animation_graph	   = ecs_helpers_t::table_find_as_const<component_system_animation_graph_t>(system_animation_graph_table, entity);
+
+		if (system_animation_graph == nullptr)
+			return nullptr;
+
+		return _animation_graph_storage.find_parameter(system_animation_graph->parameters, system_animation_graph->parameter_count, parameter_hash);
+	}
+
 	bool world_animation_controller_t::get_slot_transform_abs(entity_id_t entity, sid_t slot_name_hash, mat4x3_t& out_transform) const
 	{
 		if (!_world->is_alive(entity))

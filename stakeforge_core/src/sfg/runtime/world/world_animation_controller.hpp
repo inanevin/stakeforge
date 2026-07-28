@@ -66,6 +66,16 @@ namespace sfg
 
 		void tick_prep(f32 delta_time);
 		void tick_logic(f32 delta_time);
+		bool set_graph_parameter_f32(entity_id_t entity, sid_t parameter_hash, f32 value);
+		bool set_graph_parameter_vec2(entity_id_t entity, sid_t parameter_hash, const vec2f_t& value);
+		bool set_graph_parameter_vec3(entity_id_t entity, sid_t parameter_hash, const vec3f_t& value);
+		bool set_graph_parameter_quat(entity_id_t entity, sid_t parameter_hash, const quat_t& value);
+		bool set_graph_parameter_bool(entity_id_t entity, sid_t parameter_hash, bool value);
+		bool get_graph_parameter_f32(entity_id_t entity, sid_t parameter_hash, f32& out_value) const;
+		bool get_graph_parameter_vec2(entity_id_t entity, sid_t parameter_hash, vec2f_t& out_value) const;
+		bool get_graph_parameter_vec3(entity_id_t entity, sid_t parameter_hash, vec3f_t& out_value) const;
+		bool get_graph_parameter_quat(entity_id_t entity, sid_t parameter_hash, quat_t& out_value) const;
+		bool get_graph_parameter_bool(entity_id_t entity, sid_t parameter_hash, bool& out_value) const;
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -95,10 +105,12 @@ namespace sfg
 		void create_animation_graph(entity_id_t id, resource_handle_t animation_graph_handle, const animation_graph_runtime_t& animation_graph, resource_handle_t skeleton_handle, const skeleton_runtime_t& skeleton);
 		void destroy_animation_graph(entity_id_t id);
 
-		bool			 get_slot_transform_abs(entity_id_t entity, sid_t slot_name_hash, mat4x3_t& out_transform) const;
-		chunk_handle32_t allocate_bones(u32 bone_count);
-		void			 deallocate_bones(chunk_handle32_t handle);
-		static void		 on_reload(resource_manager_t& resource_manager, sid_t resource_id, resource_type_e resource_type, void* user_data);
+		animation_graph_param_t*	   find_graph_parameter(entity_id_t entity, sid_t parameter_hash);
+		const animation_graph_param_t* find_graph_parameter(entity_id_t entity, sid_t parameter_hash) const;
+		bool						   get_slot_transform_abs(entity_id_t entity, sid_t slot_name_hash, mat4x3_t& out_transform) const;
+		chunk_handle32_t			   allocate_bones(u32 bone_count);
+		void						   deallocate_bones(chunk_handle32_t handle);
+		static void					   on_reload(resource_manager_t& resource_manager, sid_t resource_id, resource_type_e resource_type, void* user_data);
 
 	private:
 		animation_graph_storage_t		  _animation_graph_storage	= {};
