@@ -27,6 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/panels/animation_graph/editor_animation_graph_widget_inspector.hpp"
 #include "ui/panels/animation_graph/editor_animation_graph_context.hpp"
+#include "assets/editor_asset.hpp"
+#include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "commands/editor_command_animation_graph.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -36,7 +38,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -326,6 +330,16 @@ namespace sfg
 		const editor_asset_t* skeleton_asset = editor_asset_manager_t::get().find_asset(graph.target_skeleton);
 
 		if (skeleton_asset == nullptr || skeleton_asset->asset_type != editor_asset_type_e::skeleton || skeleton_asset->embedded_source.empty())
+		{
+			tree.set_visible(_invalid_skeleton_frame, true, false);
+			return;
+		}
+
+		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*skeleton_asset);
+
+		_skeleton = {};
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &_skeleton, nullptr, embedded_source))
 		{
 			tree.set_visible(_invalid_skeleton_frame, true, false);
 			return;

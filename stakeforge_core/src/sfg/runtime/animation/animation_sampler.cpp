@@ -55,7 +55,8 @@ namespace sfg
 		for (const animation_channel_v3_def_t& channel : animation->def.position_channels)
 		{
 			const u32 node_index = static_cast<u32>(channel.node_index);
-			SFG_ASSERT(node_index < pose_bones.size);
+			if (node_index >= pose_bones.size)
+				continue;
 
 			if (is_masked(node_index, bitmasks))
 				continue;
@@ -75,7 +76,8 @@ namespace sfg
 		for (const animation_channel_q_def_t& channel : animation->def.rotation_channels)
 		{
 			const u32 node_index = static_cast<u32>(channel.node_index);
-			SFG_ASSERT(node_index < pose_bones.size);
+			if (node_index >= pose_bones.size)
+				continue;
 
 			if (is_masked(node_index, bitmasks))
 				continue;
@@ -95,7 +97,8 @@ namespace sfg
 		for (const animation_channel_v3_def_t& channel : animation->def.scale_channels)
 		{
 			const u32 node_index = static_cast<u32>(channel.node_index);
-			SFG_ASSERT(node_index < pose_bones.size);
+			if (node_index >= pose_bones.size)
+				continue;
 
 			if (is_masked(node_index, bitmasks))
 				continue;

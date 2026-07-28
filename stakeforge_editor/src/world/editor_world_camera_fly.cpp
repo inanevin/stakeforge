@@ -41,7 +41,9 @@ namespace sfg
 
 	void editor_world_camera_fly_t::init(world_t& world)
 	{
-		_camera_entity			   = world.create_entity("editor camera");
+		_camera_entity = world.create_entity("editor camera");
+		world.set_entity_pos_local(_camera_entity, vec3f_t(0.0f, 0.0f, 2.5f));
+
 		component_camera_t& camera = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), _camera_entity);
 		camera.priority			   = -1;
 		camera.near_plane		   = 0.05f;

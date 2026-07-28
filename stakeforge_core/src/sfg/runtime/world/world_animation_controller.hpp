@@ -87,6 +87,10 @@ namespace sfg
 		void create_skinned_renderer(entity_id_t id, resource_handle_t skeleton_handle);
 		void destroy_skinned_renderer(entity_id_t id);
 
+		void sync_create_destroy_animation_player();
+		void create_animation_player(entity_id_t id, resource_handle_t animation_handle);
+		void destroy_animation_player(entity_id_t id);
+
 		void sync_create_destroy_animation_graph();
 		void create_animation_graph(entity_id_t id, resource_handle_t animation_graph_handle, const animation_graph_runtime_t& animation_graph, resource_handle_t skeleton_handle, const skeleton_runtime_t& skeleton);
 		void destroy_animation_graph(entity_id_t id);
