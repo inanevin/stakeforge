@@ -289,6 +289,16 @@ namespace sfg
 			return _world_view;
 		}
 
+		inline void set_editor_camera_entity(entity_id_t entity)
+		{
+			_editor_camera_entity = entity;
+		}
+
+		inline entity_id_t get_editor_camera_entity() const
+		{
+			return _editor_camera_entity;
+		}
+
 		// -----------------------------------------------------------------------------
 		// play
 		// -----------------------------------------------------------------------------
@@ -417,6 +427,7 @@ namespace sfg
 		vector_t<entity_id_t>														  _selected_entities	  = {};
 		editor_world_handle_t														  _world				  = {};
 		entity_id_t																	  _entity_anchor		  = NULL_ENTITY_ID;
+		entity_id_t																	  _editor_camera_entity	  = NULL_ENTITY_ID;
 		u64																			  _next_guid			  = 1;
 		u32																			  _selection_generation	  = 0;
 		editor_transform_control_type_e												  _transform_control_type = editor_transform_control_type_e::move;

@@ -134,6 +134,13 @@ T sfg_get_texture(uint index)
     return txt;
 }
 
+template<typename T>
+T sfg_get_texture_non_uniform(uint index)
+{
+    T txt = ResourceDescriptorHeap[NonUniformResourceIndex(index)];
+    return txt;
+}
+
 SamplerState sfg_get_sampler_state(uint index)
 {
     SamplerState ss = SamplerDescriptorHeap[index];

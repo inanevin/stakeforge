@@ -377,6 +377,7 @@ namespace sfg
 		}
 
 		_camera->init(_world);
+		_edit_context.set_editor_camera_entity(_camera->get_entity());
 	}
 
 	void editor_world_t::uninstall_camera()
@@ -389,6 +390,7 @@ namespace sfg
 		_camera->uninit(_world);
 		delete _camera;
 		_camera = nullptr;
+		_edit_context.set_editor_camera_entity(NULL_ENTITY_ID);
 	}
 
 	void editor_world_t::serialize_camera(nlohmann::json& out_json) const
@@ -704,11 +706,12 @@ namespace sfg
 			_gizmo.draw_rotation_visualization(_world.get_debug_draw(), {color.x, color.y, color.z, color.w}, color_t::white, editor_theme_t::get().text_small_px_size * 1.5f);
 		}
 
-		const span_t<const entity_id_t> selected = _edit_context.get_selected_entities();
+		const span_t<const entity_id_t> selected			 = _edit_context.get_selected_entities();
+		const entity_id_t				editor_camera_entity = _edit_context.get_editor_camera_entity();
 
 		if (_play_mode == editor_play_mode_e::none)
 		{
-			editor_world_util_t::draw_component_icons(_world);
+			editor_world_util_t::draw_component_icons(_world, editor_camera_entity);
 
 			if (selected.size != 0)
 				editor_world_util_t::draw_selection_gizmos(_world, selected, _render_resolution);
@@ -718,7 +721,7 @@ namespace sfg
 			editor_world_util_t::draw_skeletons(_world);
 
 		if (_edit_context.is_bounding_boxes_enabled() && _latest_snapshot_slot != UINT8_MAX)
-			editor_world_util_t::draw_bounding_boxes(_world, _snapshot_slots[_latest_snapshot_slot]);
+			editor_world_util_t::draw_bounding_boxes(_world, _snapshot_slots[_latest_snapshot_slot], editor_camera_entity);
 	}
 
 	void editor_world_t::update_world_transforms(bool advance_interpolation)

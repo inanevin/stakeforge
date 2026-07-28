@@ -100,7 +100,7 @@ vs_output VSMain(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
 
 float4 sample_debug_texture(vs_output input)
 {
-	Texture2D texture = sfg_get_texture<Texture2D>(input.texture_index);
+	Texture2D texture = sfg_get_texture_non_uniform<Texture2D>(input.texture_index);
 	float4 color = (input.flags & DEBUG_TEXTURE_FLAG_LINEAR_SAMPLE) != 0 ? texture.Sample(smp_linear, input.uv) : texture.Sample(smp_nearest, input.uv);
 	color *= input.color;
 	clip(color.a - 0.001);

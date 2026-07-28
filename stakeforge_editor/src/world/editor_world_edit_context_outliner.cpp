@@ -151,6 +151,9 @@ namespace sfg
 
 	void editor_world_edit_context_t::append_entity_items(const world_t& world, const outliner_component_tables_t& tables, entity_id_t id, u16 depth)
 	{
+		if (id == _editor_camera_entity)
+			return;
+
 		const component_hierarchy_t& hierarchy		  = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*tables.hierarchy, id);
 		const component_name_t&		 name			  = ecs_helpers_t::table_get_as_const<component_name_t>(*tables.name, id);
 		const entity_guid_t			 guid			  = world.get_entity_guid(id);

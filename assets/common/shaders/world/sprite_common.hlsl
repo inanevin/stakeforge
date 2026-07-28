@@ -108,7 +108,7 @@ vs_output VSMain(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
 float4 sample_sprite(vs_output IN)
 {
     material_data mat_data = sfg_get_cbv<material_data>(sfg_constant_mat0);
-    Texture2D texture_sprite = sfg_get_texture<Texture2D>(IN.texture_index);
+    Texture2D texture_sprite = sfg_get_texture_non_uniform<Texture2D>(IN.texture_index);
     float4 color = IN.is_linear_sample != 0 ? texture_sprite.Sample(smp_linear, IN.uv) : texture_sprite.Sample(smp_nearest, IN.uv);
     color *= mat_data.tint;
     clip(color.a - 0.001);

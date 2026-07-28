@@ -267,7 +267,7 @@ namespace sfg
 		}
 	}
 
-	void editor_world_util_t::draw_bounding_boxes(world_t& world, const world_render_snapshot_t& snapshot)
+	void editor_world_util_t::draw_bounding_boxes(world_t& world, const world_render_snapshot_t& snapshot, entity_id_t editor_camera_entity)
 	{
 		world_debug_draw_t&	  debug_draw   = world.get_debug_draw();
 		const editor_theme_t& theme		   = editor_theme_t::get();
@@ -275,11 +275,15 @@ namespace sfg
 
 		for (const world_renderable_t& renderable : snapshot.renderables)
 		{
-			const world_render_entity_t& entity		   = snapshot.entities[renderable.entity_index];
-			const vec3f_t				 center		   = (renderable.aabb.bounds_min + renderable.aabb.bounds_max) * 0.5f;
-			const vec3f_t				 dimensions	   = renderable.aabb.bounds_half_extent * 2.0f;
-			const mat4x3_t				 box_transform = entity.transform * mat4x3_t::translation(center);
-			const vec3f_t				 text_position = entity.transform * vec3f_t(center.x, renderable.aabb.bounds_max.y, center.z);
+			const world_render_entity_t& entity = snapshot.entities[renderable.entity_index];
+
+			if (entity.entity_id == editor_camera_entity)
+				continue;
+
+			const vec3f_t  center		 = (renderable.aabb.bounds_min + renderable.aabb.bounds_max) * 0.5f;
+			const vec3f_t  dimensions	 = renderable.aabb.bounds_half_extent * 2.0f;
+			const mat4x3_t box_transform = entity.transform * mat4x3_t::translation(center);
+			const vec3f_t  text_position = entity.transform * vec3f_t(center.x, renderable.aabb.bounds_max.y, center.z);
 
 			debug_draw.draw_box(box_transform, renderable.aabb.bounds_half_extent, bounds_color, 2.0f, debug_draw_depth_e::always_visible);
 
@@ -296,7 +300,7 @@ namespace sfg
 		}
 	}
 
-	void editor_world_util_t::draw_component_icons(world_t& world)
+	void editor_world_util_t::draw_component_icons(world_t& world, entity_id_t editor_camera_entity)
 	{
 		world_debug_draw_t&			 debug_draw				= world.get_debug_draw();
 		const ecs_component_table_t& alive_table			= world.get_component_table(type_id_t<component_alive_t>::value);
@@ -337,6 +341,9 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
+			if (row.id == editor_camera_entity)
+				continue;
+
 			const component_system_transform_t& transform  = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
 			resource_handle_t					icons[5]   = {};
 			u32									icon_count = 0;

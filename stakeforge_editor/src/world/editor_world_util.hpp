@@ -49,10 +49,10 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		static entity_id_t install_default_scene(world_t& world);
-		static void		   draw_component_icons(world_t& world);
+		static void		   draw_component_icons(world_t& world, entity_id_t editor_camera_entity);
 		static void		   draw_selection_gizmos(world_t& world, span_t<const entity_id_t> selected_entities, const vec2u16_t& render_resolution);
 		static void		   draw_skeletons(world_t& world);
-		static void		   draw_bounding_boxes(world_t& world, const world_render_snapshot_t& snapshot);
+		static void		   draw_bounding_boxes(world_t& world, const world_render_snapshot_t& snapshot, entity_id_t editor_camera_entity);
 		static void		   draw_transform_axes(world_debug_draw_t& debug_draw, const mat4x3_t& transform, f32 axis_length, f32 thickness_px, debug_draw_depth_e depth);
 		static void		   draw_skeleton_slot(world_debug_draw_t& debug_draw, const mat4x3_t& transform, const char* name, f32 half_extent, f32 axis_length, f32 text_size);
 

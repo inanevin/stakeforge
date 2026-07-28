@@ -64,6 +64,7 @@ namespace sfg
 
 		_world				  = {};
 		_entity_anchor		  = NULL_ENTITY_ID;
+		_editor_camera_entity = NULL_ENTITY_ID;
 		_next_guid			  = 1;
 		_selection_generation = 0;
 
