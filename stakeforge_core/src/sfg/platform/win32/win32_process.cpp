@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/platform/process.hpp>
 #include <sfg/common/hashing.hpp>
+#include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/input/input_mappings.hpp>
@@ -1617,5 +1618,72 @@ namespace sfg
 
 		while (cursor_count >= 0)
 			cursor_count = ShowCursor(FALSE);
+	}
+
+	process_execute_result_t process::execute(const char* command_line)
+	{
+		process_execute_result_t result = {};
+		SECURITY_ATTRIBUTES		 security_attributes{
+			.nLength			  = sizeof(SECURITY_ATTRIBUTES),
+			.lpSecurityDescriptor = nullptr,
+			.bInheritHandle		  = TRUE,
+		};
+		HANDLE read_pipe  = nullptr;
+		HANDLE write_pipe = nullptr;
+
+		if (!CreatePipe(&read_pipe, &write_pipe, &security_attributes, 0))
+		{
+			result.output = "could not create the child process output pipe.";
+			return result;
+		}
+
+		if (!SetHandleInformation(read_pipe, HANDLE_FLAG_INHERIT, 0))
+		{
+			result.output = "could not configure the child process output pipe.";
+			CloseHandle(read_pipe);
+			CloseHandle(write_pipe);
+			return result;
+		}
+
+		STARTUPINFOW startup_info = {};
+		startup_info.cb			  = sizeof(STARTUPINFOW);
+		startup_info.dwFlags	  = STARTF_USESTDHANDLES;
+		startup_info.hStdOutput	  = write_pipe;
+		startup_info.hStdError	  = write_pipe;
+		startup_info.hStdInput	  = GetStdHandle(STD_INPUT_HANDLE);
+
+		PROCESS_INFORMATION process_info = {};
+		wstring_t			wide_command = string_util::to_wstr(command_line);
+		const BOOL			created		 = CreateProcessW(nullptr, wide_command.data(), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, nullptr, &startup_info, &process_info);
+		const DWORD			create_error = created ? ERROR_SUCCESS : GetLastError();
+
+		CloseHandle(write_pipe);
+
+		if (!created)
+		{
+			result.output = "could not start the child process. Windows error: ";
+			result.output += std::to_string(create_error);
+			CloseHandle(read_pipe);
+			return result;
+		}
+
+		result.started = true;
+
+		char  output_buffer[4096] = {};
+		DWORD bytes_read		  = 0;
+
+		while (ReadFile(read_pipe, output_buffer, sizeof(output_buffer), &bytes_read, nullptr) && bytes_read != 0)
+			result.output.append(output_buffer, bytes_read);
+
+		WaitForSingleObject(process_info.hProcess, INFINITE);
+
+		DWORD exit_code = 0;
+		if (GetExitCodeProcess(process_info.hProcess, &exit_code))
+			result.exit_code = static_cast<i32>(exit_code);
+
+		CloseHandle(read_pipe);
+		CloseHandle(process_info.hThread);
+		CloseHandle(process_info.hProcess);
+		return result;
 	}
 }

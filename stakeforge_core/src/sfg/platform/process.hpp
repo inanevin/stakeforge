@@ -53,6 +53,13 @@ namespace sfg
 		sign	   = 1 << 9,
 	};
 
+	struct process_execute_result_t
+	{
+		string_t output;
+		i32		 exit_code = -1;
+		bool	 started   = false;
+	};
+
 	class process
 	{
 
@@ -69,15 +76,16 @@ namespace sfg
 		// io
 		// -----------------------------------------------------------------------------
 
-		static void		open_url(const char* url);
-		static bool		open_directory(const char* dir);
-		static void		message_box(const char* title, const char* msg);
-		static void		select_files(const char* title, const char* extension, vector_t<string_t>& out_files);
-		static void		push_clipboard(const char* cp);
-		static string_t select_folder(const char* title);
-		static string_t select_file(const char* title, const char* extension);
-		static string_t save_file(const char* title, const char* extension);
-		static string_t get_clipboard();
+		static void						open_url(const char* url);
+		static bool						open_directory(const char* dir);
+		static void						message_box(const char* title, const char* msg);
+		static void						select_files(const char* title, const char* extension, vector_t<string_t>& out_files);
+		static void						push_clipboard(const char* cp);
+		static process_execute_result_t execute(const char* command_line);
+		static string_t					select_folder(const char* title);
+		static string_t					select_file(const char* title, const char* extension);
+		static string_t					save_file(const char* title, const char* extension);
+		static string_t					get_clipboard();
 
 		// -----------------------------------------------------------------------------
 		// os query

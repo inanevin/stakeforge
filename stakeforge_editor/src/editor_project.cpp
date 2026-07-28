@@ -25,7 +25,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_project.hpp"
+#include "scripting/script_compiler.hpp"
+#include <sfg/data/string_util.hpp>
 #include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/serialization/serialization.hpp>
@@ -62,7 +65,7 @@ namespace sfg
 		if (js.is_discarded())
 			return false;
 
-		editor_project_t project = make_default_project(path);
+		editor_project_t project = {};
 		if (!reflection_registry_t::get().type_from_json(type_id_t<editor_project_t>::value, &project, nullptr, js))
 			return false;
 
@@ -73,19 +76,74 @@ namespace sfg
 		return true;
 	}
 
+	bool editor_project_t::ensure_script_project()
+	{
+		if (!file_system_t::ensure_directory(_runtime.csharp_intermediate_path.c_str()))
+			return false;
+
+		if (!file_system_t::ensure_directory(_runtime.script_library_path.c_str()))
+			return false;
+
+		string_t managed_assembly_path = file_system_t::get_running_directory() + "managed/Stakeforge.Managed.dll";
+		file_system_t::fix_path(managed_assembly_path);
+		string_util::replace_all(managed_assembly_path, "&", "&amp;");
+		string_util::replace_all(managed_assembly_path, "\"", "&quot;");
+		string_util::replace_all(managed_assembly_path, "<", "&lt;");
+		string_util::replace_all(managed_assembly_path, ">", "&gt;");
+
+		string_t contents = R"(<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <OutputPath>Build/</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../assets/**/*.cs" Exclude="../../assets/_cache/**;../../assets/_sfg_assets/**;../../assets/_game_assets/**" />
+    <Reference Include="Stakeforge.Managed">
+      <HintPath>)";
+		contents += managed_assembly_path;
+		contents += R"(</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>
+)";
+
+		if (file_system_t::exists(_runtime.script_project_path.c_str()))
+		{
+			const string_t existing_contents = file_system_t::read_file_as_string(_runtime.script_project_path.c_str());
+
+			if (existing_contents == contents)
+				return true;
+		}
+
+		return serializer_t::write_to_file(contents, _runtime.script_project_path.c_str());
+	}
+
 	void editor_project_t::refresh_runtime(const char* path)
 	{
 		_runtime = {};
 
 		_runtime.path = path;
 		file_system_t::fix_path(_runtime.path);
+
 		_runtime.name	   = file_system_t::get_filename_from_path(path);
 		const string_t dir = file_system_t::get_directory_of_file(_runtime.path.c_str());
 
-		_runtime.assets_path		 = dir + "assets/";
-		_runtime.cache_path			 = _runtime.assets_path + "_cache/";
-		_runtime.default_assets_path = _runtime.assets_path + "_sfg_assets/";
-		_runtime.game_assets_path	 = _runtime.assets_path + "_game_assets/";
+		_runtime.assets_path			  = dir + "assets/";
+		_runtime.cache_path				  = _runtime.assets_path + "_cache/";
+		_runtime.default_assets_path	  = _runtime.assets_path + "_sfg_assets/";
+		_runtime.game_assets_path		  = _runtime.assets_path + "_game_assets/";
+		_runtime.intermediate_path		  = dir + "Intermediate/";
+		_runtime.csharp_intermediate_path = _runtime.intermediate_path + "CSharp/";
+		_runtime.script_project_path	  = _runtime.csharp_intermediate_path + _runtime.name + ".csproj";
+		_runtime.library_path			  = dir + "Library/";
+		_runtime.script_library_path	  = _runtime.library_path + "Scripts/";
 
 		if (!file_system_t::exists(_runtime.assets_path.c_str()))
 			file_system_t::create_directory(_runtime.assets_path.c_str());
@@ -98,6 +156,17 @@ namespace sfg
 
 		if (!file_system_t::exists(_runtime.game_assets_path.c_str()))
 			file_system_t::create_directory(_runtime.game_assets_path.c_str());
+
+		if (!ensure_script_project())
+		{
+			SFG_ERR("could not ensure the C# script project.");
+			return;
+		}
+
+		const script_compile_result_t compile_result = script_compiler_t::compile(_runtime.script_project_path.c_str());
+
+		if (!compile_result.success)
+			SFG_ERR("could not compile the C# script project. Exit code: {0}\n{1}", compile_result.exit_code, compile_result.diagnostics);
 	}
 
 }

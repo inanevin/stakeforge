@@ -40,6 +40,11 @@ namespace sfg
 		string_t cache_path;
 		string_t default_assets_path;
 		string_t game_assets_path;
+		string_t intermediate_path;
+		string_t csharp_intermediate_path;
+		string_t script_project_path;
+		string_t library_path;
+		string_t script_library_path;
 		string_t name;
 	};
 
@@ -69,6 +74,7 @@ namespace sfg
 
 		bool					save(const char* path);
 		bool					try_load(const char* path);
+		bool					ensure_script_project();
 		void					refresh_runtime(const char* path);
 		static editor_project_t make_default_project(const char* path);
 	};
