@@ -1,0 +1,17 @@
+{
+    "version": 0,
+    "guid": 1049,
+    "asset_type": "sprite",
+    "sub_type": 0,
+    "embedded_source": null,
+    "cook_options": {
+        "row_count": 0,
+        "column_count": 0,
+        "padding_x": 0,
+        "padding_y": 0,
+        "ktx2_compression": 1,
+        "payload_type": 1
+    },
+    "source_relative": "",
+    "source_type": "file"
+}
