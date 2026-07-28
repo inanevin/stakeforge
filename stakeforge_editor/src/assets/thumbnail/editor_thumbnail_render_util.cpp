@@ -119,9 +119,10 @@ namespace sfg
 
 		world.update_world_transforms(false);
 
-		const ecs_component_table_t& hierarchy_table	 = world.get_component_table(type_id_t<component_hierarchy_t>::value);
-		const ecs_component_table_t& mesh_renderer_table = world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
-		const ecs_component_table_t& transform_table	 = world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& hierarchy_table			 = world.get_component_table(type_id_t<component_hierarchy_t>::value);
+		const ecs_component_table_t& mesh_renderer_table		 = world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
+		const ecs_component_table_t& skinned_mesh_renderer_table = world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
+		const ecs_component_table_t& transform_table			 = world.get_component_table(type_id_t<component_system_transform_t>::value);
 
 		aabb_t prefab_aabb = {};
 		bool   has_aabb	   = false;
@@ -138,12 +139,11 @@ namespace sfg
 			prefab_aabb.bounds_max = vec3f_t::max(prefab_aabb.bounds_max, point);
 		};
 
-		const auto add_mesh_renderer = [&](entity_id_t entity) {
-			const component_mesh_renderer_t* mesh_renderer = ecs_helpers_t::table_find_as_const<component_mesh_renderer_t>(mesh_renderer_table, entity);
-			if (mesh_renderer == nullptr || mesh_renderer->mesh == NULL_RESOURCE_HANDLE)
+		const auto add_mesh = [&](entity_id_t entity, resource_handle_t mesh) {
+			if (mesh == NULL_RESOURCE_HANDLE)
 				return;
 
-			const mesh_internals_t*				runtime	   = resource_manager_t::get().find_internals<mesh_internals_t>(mesh_renderer->mesh);
+			const mesh_internals_t*				runtime	   = resource_manager_t::get().find_internals<mesh_internals_t>(mesh);
 			const component_system_transform_t& transform  = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
 			const vec3f_t&						bounds_min = runtime->local_bounds.bounds_min;
 			const vec3f_t&						bounds_max = runtime->local_bounds.bounds_max;
@@ -159,9 +159,18 @@ namespace sfg
 		};
 
 		const auto scan = [&](const auto& self, entity_id_t current) -> void {
-			add_mesh_renderer(current);
+			const component_mesh_renderer_t* mesh_renderer = ecs_helpers_t::table_find_as_const<component_mesh_renderer_t>(mesh_renderer_table, current);
+
+			if (mesh_renderer != nullptr)
+				add_mesh(current, mesh_renderer->mesh);
+
+			const component_skinned_mesh_renderer_t* skinned_mesh_renderer = ecs_helpers_t::table_find_as_const<component_skinned_mesh_renderer_t>(skinned_mesh_renderer_table, current);
+
+			if (skinned_mesh_renderer != nullptr)
+				add_mesh(current, skinned_mesh_renderer->mesh);
 
 			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, current);
+
 			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
 			{
 				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
