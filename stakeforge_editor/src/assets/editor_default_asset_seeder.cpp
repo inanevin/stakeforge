@@ -62,9 +62,10 @@ namespace sfg
 
 		struct default_file_asset_desc_t
 		{
-			const char* asset_name;
-			const char* source_base_name;
-			sid_t		guid;
+			const char*			asset_name;
+			const char*			source_base_name;
+			sid_t				guid;
+			editor_asset_type_e asset_type = editor_asset_type_e::texture;
 		};
 
 		struct default_embedded_asset_desc_t
@@ -76,7 +77,7 @@ namespace sfg
 			u8					sub_type;
 		};
 
-		bool is_default_asset_ready(const char* default_assets_dir, const char* asset_name, sid_t guid, editor_asset_type_e asset_type, u8 sub_type)
+		bool is_default_asset_ready(const char* default_assets_dir, const char* asset_name, sid_t guid, editor_asset_type_e asset_type, u8 sub_type, const nlohmann::json* expected_embedded_source = nullptr)
 		{
 			const string_t asset_path = editor_asset_path_t::make_asset_path(default_assets_dir, asset_name);
 			editor_asset_t asset	  = {};
@@ -93,6 +94,9 @@ namespace sfg
 			if (asset.source_type == editor_asset_source_type_e::embedded)
 			{
 				if (asset.embedded_source.empty())
+					return false;
+
+				if (expected_embedded_source != nullptr && editor_asset_io_t::get_embedded_source_json(asset) != *expected_embedded_source)
 					return false;
 			}
 			else if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
@@ -230,9 +234,9 @@ namespace sfg
 			}
 		}
 
-		void ensure_texture_assets(const char* default_assets_dir)
+		void ensure_image_assets(const char* default_assets_dir)
 		{
-			const default_file_asset_desc_t default_texture_assets[] = {
+			const default_file_asset_desc_t default_image_assets[] = {
 				{.asset_name = "default_texture_albedo", .source_base_name = "default_texture_albedo", .guid = DEFAULT_ALBEDO_TEXTURE_ASSET_GUID},
 				{.asset_name = "default_texture_orm", .source_base_name = "default_texture_orm", .guid = DEFAULT_ORM_TEXTURE_ASSET_GUID},
 				{.asset_name = "default_texture_normal", .source_base_name = "default_texture_normal", .guid = DEFAULT_NORMAL_TEXTURE_ASSET_GUID},
@@ -243,11 +247,17 @@ namespace sfg
 				{.asset_name = "default_texture_grid_orange", .source_base_name = "default_texture_grid_orange", .guid = DEFAULT_GRID_ORANGE_TEXTURE_ASSET_GUID},
 				{.asset_name = "default_texture_grid_purple", .source_base_name = "default_texture_grid_purple", .guid = DEFAULT_GRID_PURPLE_TEXTURE_ASSET_GUID},
 				{.asset_name = "default_texture_grid_red", .source_base_name = "default_texture_grid_red", .guid = DEFAULT_GRID_RED_TEXTURE_ASSET_GUID},
+				{
+					.asset_name		  = "default_sprite_circle",
+					.source_base_name = "default_sprite_circle",
+					.guid			  = DEFAULT_SPRITE_CIRCLE_ASSET_GUID,
+					.asset_type		  = editor_asset_type_e::sprite,
+				},
 			};
 
-			for (const default_file_asset_desc_t& desc : default_texture_assets)
+			for (const default_file_asset_desc_t& desc : default_image_assets)
 			{
-				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, editor_asset_type_e::texture, 0))
+				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, desc.asset_type, 0))
 					continue;
 
 				nlohmann::json cook_options			  = {};
@@ -268,7 +278,7 @@ namespace sfg
 					.source_extension		  = "png",
 					.source_template_relative = texture_source_relative.c_str(),
 					.guid					  = desc.guid,
-					.asset_type				  = editor_asset_type_e::texture,
+					.asset_type				  = desc.asset_type,
 					.allow_overwrite		  = true,
 				};
 
@@ -277,7 +287,7 @@ namespace sfg
 				bool		   created	  = editor_asset_writer_t::write_file_asset(write_desc, &asset, &asset_path);
 
 				if (created)
-					created = editor_asset_cooker_t::cook_texture(asset, desc.asset_name);
+					created = desc.asset_type == editor_asset_type_e::texture ? editor_asset_cooker_t::cook_texture(asset, desc.asset_name) : editor_asset_cooker_t::cook_sprite(asset, desc.asset_name);
 
 				SFG_ASSERT(created);
 			}
@@ -413,14 +423,14 @@ namespace sfg
 
 			for (const default_embedded_asset_desc_t& desc : default_embedded_assets)
 			{
-				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, desc.asset_type, desc.sub_type))
-					continue;
-
 				nlohmann::json embedded_source		= {};
 				const bool	   read_embedded_source = editor_asset_writer_t::read_embedded_source(desc.asset_relative_path, embedded_source);
 				SFG_ASSERT(read_embedded_source);
 
 				if (!read_embedded_source)
+					continue;
+
+				if (is_default_asset_ready(default_assets_dir, desc.asset_name, desc.guid, desc.asset_type, desc.sub_type, &embedded_source))
 					continue;
 
 				const editor_asset_write_embedded_desc_t write_desc{
@@ -451,7 +461,7 @@ namespace sfg
 	void editor_default_asset_seeder_t::ensure(const char* default_assets_dir)
 	{
 		ensure_shader_assets(default_assets_dir);
-		ensure_texture_assets(default_assets_dir);
+		ensure_image_assets(default_assets_dir);
 		ensure_cubemap_assets(default_assets_dir);
 		ensure_embedded_assets(default_assets_dir);
 	}

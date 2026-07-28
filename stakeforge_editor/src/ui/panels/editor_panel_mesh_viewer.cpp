@@ -216,6 +216,7 @@ namespace sfg
 	void editor_panel_mesh_viewer_t::create_display_entity()
 	{
 		clear_display_entity();
+
 		if (_mesh_guid == 0)
 			return;
 
@@ -223,12 +224,20 @@ namespace sfg
 		_display_entity							 = world.create_entity("mesh_viewer_mesh");
 		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), _display_entity);
 		mesh_renderer.mesh						 = _mesh_guid;
+
 		for (size_t i = 0; i < decltype(mesh_renderer.materials)::capacity; ++i)
 			mesh_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
+
 		world.scan_for_resources(_display_entity, true);
 
 		if (const mesh_internals_t* internals = resource_manager_t::get().find_internals<mesh_internals_t>(_mesh_guid))
-			editor_world_controller_t::get().get_editor_world(_world)->fit_camera_to_bounds(internals->local_bounds);
+		{
+			const vec3f_t display_position{0.0f, -internals->local_bounds.bounds_min.y, 0.0f};
+			const aabb_t  display_bounds(internals->local_bounds.bounds_min + display_position, internals->local_bounds.bounds_max + display_position);
+
+			world.set_entity_pos_local(_display_entity, display_position);
+			editor_world_controller_t::get().get_editor_world(_world)->fit_camera_to_bounds(display_bounds);
+		}
 	}
 
 	void editor_panel_mesh_viewer_t::refresh_info()

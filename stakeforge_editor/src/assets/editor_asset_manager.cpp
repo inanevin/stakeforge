@@ -567,6 +567,8 @@ namespace sfg
 			notify_asset_deletion({.data = deleted_asset_guids.data(), .size = deleted_asset_guids.size()});
 
 		// cancel thumbnail work and unload live resources
+		editor_app_t::get().stop_render();
+
 		editor_asset_thumbnail_manager_t& thumbnail_manager = editor_asset_thumbnail_manager_t::get();
 		resource_manager_t&				  resource_manager	= resource_manager_t::get();
 

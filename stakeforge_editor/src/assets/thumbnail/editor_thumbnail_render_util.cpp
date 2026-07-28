@@ -52,10 +52,12 @@ namespace sfg
 
 	void editor_thumbnail_render_util_t::place_camera_for_aabb(world_t& world, entity_id_t camera_entity, const aabb_t& aabb)
 	{
-		const vec3f_t& half = aabb.bounds_half_extent;
-		const f32	   rad	= math::max(half.x, math::max(half.y, half.z));
-		const f32	   dist = rad / math::sin(DEG_2_RAD * EDITOR_THUMBNAIL_CAMERA_FOV / 2.0f);
-		world.set_entity_pos_local(camera_entity, vec3f_t(0, 0, dist));
+		const vec3f_t& half	  = aabb.bounds_half_extent;
+		const vec3f_t  center = (aabb.bounds_min + aabb.bounds_max) * 0.5f;
+		const f32	   rad	  = math::max(half.x, math::max(half.y, half.z));
+		const f32	   dist	  = rad / math::sin(DEG_2_RAD * EDITOR_THUMBNAIL_CAMERA_FOV / 2.0f);
+
+		world.set_entity_pos_local(camera_entity, center + vec3f_t(0.0f, 0.0f, dist));
 	}
 
 	void editor_thumbnail_render_util_t::setup_base_world(editor_thumbnail_world_t& thumbnail_world)
@@ -206,7 +208,6 @@ namespace sfg
 
 	void editor_thumbnail_render_util_t::setup_world_for_mesh(editor_thumbnail_world_t& thumbnail_world, resource_handle_t asset_guid)
 	{
-
 		world_t& world				   = *thumbnail_world.world;
 		thumbnail_world.display_entity = world.create_entity("thumbnail_mesh");
 
@@ -219,7 +220,11 @@ namespace sfg
 		world.scan_for_resources(thumbnail_world.display_entity, true);
 
 		const mesh_internals_t* runtime = resource_manager_t::get().find_internals<mesh_internals_t>(asset_guid);
-		place_camera_for_aabb(world, thumbnail_world.camera_entity, runtime->local_bounds);
+		const vec3f_t			display_position{0.0f, -runtime->local_bounds.bounds_min.y, 0.0f};
+		const aabb_t			display_bounds(runtime->local_bounds.bounds_min + display_position, runtime->local_bounds.bounds_max + display_position);
+
+		world.set_entity_pos_local(thumbnail_world.display_entity, display_position);
+		place_camera_for_aabb(world, thumbnail_world.camera_entity, display_bounds);
 	}
 
 	void editor_thumbnail_render_util_t::setup_world_for_animation(editor_thumbnail_world_t& thumbnail_world, resource_handle_t asset_guid)
@@ -245,8 +250,11 @@ namespace sfg
 			bounds_max = vec3f_t::max(bounds_max, vertices[i]);
 		}
 
-		thumbnail_world.collision_mesh_center = (bounds_min + bounds_max) * 0.5f;
-		place_camera_for_aabb(world, thumbnail_world.camera_entity, aabb_t(bounds_min, bounds_max));
+		const vec3f_t collision_mesh_center = (bounds_min + bounds_max) * 0.5f;
+		const aabb_t  display_bounds(bounds_min - collision_mesh_center, bounds_max - collision_mesh_center);
+
+		thumbnail_world.collision_mesh_center = collision_mesh_center;
+		place_camera_for_aabb(world, thumbnail_world.camera_entity, display_bounds);
 	}
 
 	void editor_thumbnail_render_util_t::collect_texture_resources(editor_thumbnail_world_t& thumbnail_world)
