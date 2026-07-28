@@ -80,6 +80,7 @@ namespace sfg
 #define DEFAULT_PARTICLE_SHADER_ASSET_GUID			  1045
 #define DEFAULT_PARTICLE_MATERIAL_ASSET_GUID		  1046
 #define DEFAULT_GRID_MATERIAL_ASSET_GUID			  1048
+#define DEFAULT_SPRITE_CIRCLE_ASSET_GUID			  1049
 
 	enum class editor_asset_source_type_e : u8
 	{
