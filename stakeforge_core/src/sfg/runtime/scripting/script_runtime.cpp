@@ -149,23 +149,30 @@ namespace sfg
 		}
 
 		// load bridge assmbly functions
-		const load_assembly_and_get_function_pointer_fn load_managed_function = reinterpret_cast<load_assembly_and_get_function_pointer_fn>(load_assembly_delegate);
-		const char_t* const								managed_type		  = L"SFG.ScriptHost.NativeEntryPoints, Stakeforge.ScriptHost";
-		void*											initialize_function	  = nullptr;
-		void*											shutdown_function	  = nullptr;
+		const load_assembly_and_get_function_pointer_fn load_managed_function			 = reinterpret_cast<load_assembly_and_get_function_pointer_fn>(load_assembly_delegate);
+		const char_t* const								managed_type					 = L"SFG.ScriptHost.NativeEntryPoints, Stakeforge.ScriptHost";
+		void*											initialize_function				 = nullptr;
+		void*											shutdown_function				 = nullptr;
+		void*											load_project_assembly_function	 = nullptr;
+		void*											unload_project_assembly_function = nullptr;
 
-		const i32 load_initialize_result = load_managed_function(assembly_path_wide.c_str(), managed_type, L"Initialize", UNMANAGEDCALLERSONLY_METHOD, nullptr, &initialize_function);
-		const i32 load_shutdown_result	 = load_managed_function(assembly_path_wide.c_str(), managed_type, L"Shutdown", UNMANAGEDCALLERSONLY_METHOD, nullptr, &shutdown_function);
+		const i32 load_initialize_result		 = load_managed_function(assembly_path_wide.c_str(), managed_type, L"Initialize", UNMANAGEDCALLERSONLY_METHOD, nullptr, &initialize_function);
+		const i32 load_shutdown_result			 = load_managed_function(assembly_path_wide.c_str(), managed_type, L"Shutdown", UNMANAGEDCALLERSONLY_METHOD, nullptr, &shutdown_function);
+		const i32 load_project_assembly_result	 = load_managed_function(assembly_path_wide.c_str(), managed_type, L"LoadProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &load_project_assembly_function);
+		const i32 unload_project_assembly_result = load_managed_function(assembly_path_wide.c_str(), managed_type, L"UnloadProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &unload_project_assembly_function);
 
-		if (load_initialize_result != 0 || initialize_function == nullptr || load_shutdown_result != 0 || shutdown_function == nullptr)
+		if (load_initialize_result != 0 || initialize_function == nullptr || load_shutdown_result != 0 || shutdown_function == nullptr || load_project_assembly_result != 0 || load_project_assembly_function == nullptr || unload_project_assembly_result != 0 ||
+			unload_project_assembly_function == nullptr)
 		{
-			SFG_ERR("could not load managed entry points, errors: {0}, {1}", load_initialize_result, load_shutdown_result);
+			SFG_ERR("could not load managed entry points, errors: {0}, {1}, {2}, {3}", load_initialize_result, load_shutdown_result, load_project_assembly_result, unload_project_assembly_result);
 			unload_hostfxr(hostfxr_library);
 			return false;
 		}
 
-		const script_host_initialize_fn initialize = reinterpret_cast<script_host_initialize_fn>(initialize_function);
-		const script_host_shutdown_fn	shutdown   = reinterpret_cast<script_host_shutdown_fn>(shutdown_function);
+		const script_host_initialize_fn				 initialize				 = reinterpret_cast<script_host_initialize_fn>(initialize_function);
+		const script_host_shutdown_fn				 shutdown				 = reinterpret_cast<script_host_shutdown_fn>(shutdown_function);
+		const script_host_load_project_assembly_fn	 load_project_assembly	 = reinterpret_cast<script_host_load_project_assembly_fn>(load_project_assembly_function);
+		const script_host_unload_project_assembly_fn unload_project_assembly = reinterpret_cast<script_host_unload_project_assembly_fn>(unload_project_assembly_function);
 
 		_native_api = {
 			.size	   = static_cast<u32>(sizeof(script_host_native_api_t)),
@@ -190,9 +197,11 @@ namespace sfg
 			return false;
 		}
 
-		_hostfxr_library = hostfxr_library;
-		_shutdown		 = shutdown;
-		_is_initialized	 = true;
+		_hostfxr_library		 = hostfxr_library;
+		_shutdown				 = shutdown;
+		_load_project_assembly	 = load_project_assembly;
+		_unload_project_assembly = unload_project_assembly;
+		_is_initialized			 = true;
 
 		return true;
 #else
@@ -214,9 +223,53 @@ namespace sfg
 		unload_hostfxr(static_cast<HMODULE>(_hostfxr_library));
 #endif
 
-		_native_api		 = {};
-		_hostfxr_library = nullptr;
-		_shutdown		 = nullptr;
-		_is_initialized	 = false;
+		_native_api					= {};
+		_hostfxr_library			= nullptr;
+		_shutdown					= nullptr;
+		_load_project_assembly		= nullptr;
+		_unload_project_assembly	= nullptr;
+		_is_initialized				= false;
+		_is_project_assembly_loaded = false;
+	}
+
+	bool script_runtime_t::load_project_assembly(const char* assembly_path)
+	{
+		SFG_ASSERT(_is_initialized);
+
+		const i32 result = _load_project_assembly(assembly_path);
+
+		if (result != 0)
+		{
+			SFG_ERR("managed C# project assembly loading failed, error: {0}", result);
+			return false;
+		}
+
+		_is_project_assembly_loaded = true;
+		return true;
+	}
+
+	bool script_runtime_t::reload_project_assembly(const char* assembly_path)
+	{
+		SFG_ASSERT(_is_initialized);
+		SFG_ASSERT(_is_project_assembly_loaded);
+
+		return load_project_assembly(assembly_path);
+	}
+
+	bool script_runtime_t::unload_project_assembly()
+	{
+		SFG_ASSERT(_is_initialized);
+		SFG_ASSERT(_is_project_assembly_loaded);
+
+		const i32 result = _unload_project_assembly();
+
+		if (result != 0)
+		{
+			SFG_ERR("managed C# project assembly unloading failed, error: {0}", result);
+			return false;
+		}
+
+		_is_project_assembly_loaded = false;
+		return true;
 	}
 }

@@ -316,8 +316,9 @@ namespace sfg
 			return node;
 		}
 
-		const string_t					 name = file_system_t::get_filename_and_extension_from_path(path);
-		const editor_asset_node_handle_t node = _database.emplace_node(editor_asset_node_t{.name = name, .full_path = path, .type = editor_asset_node_type_e::file});
+		const string_t					 name	   = file_system_t::get_filename_and_extension_from_path(path);
+		const editor_asset_node_type_e	 node_type = file_system_t::get_file_extension(path) == "cs" ? editor_asset_node_type_e::script_file : editor_asset_node_type_e::file;
+		const editor_asset_node_handle_t node	   = _database.emplace_node(editor_asset_node_t{.name = name, .full_path = path, .type = node_type});
 		_database.attach_node(parent, node);
 		notify_changed();
 		return node;

@@ -36,6 +36,14 @@ namespace sfg
 	enum class shader_type_e : u8;
 	struct editor_asset_t;
 
+	enum class editor_script_template_e : u8
+	{
+		invalid,
+		component,
+		world_script,
+		class_script,
+	};
+
 	struct editor_asset_create_desc_t
 	{
 		editor_asset_node_handle_t		parent_node			   = {};
@@ -49,6 +57,14 @@ namespace sfg
 		bool							allow_overwrite		   = false;
 	};
 
+	struct editor_script_create_desc_t
+	{
+		editor_asset_node_handle_t parent_node	   = {};
+		const char*				   name			   = nullptr;
+		editor_script_template_e   script_template = editor_script_template_e::invalid;
+		bool					   allow_overwrite = false;
+	};
+
 	class editor_asset_creator_t final
 	{
 	public:
@@ -58,5 +74,6 @@ namespace sfg
 		editor_asset_creator_t& operator=(const editor_asset_creator_t&) = delete;
 
 		static bool create_asset(const editor_asset_create_desc_t& desc, editor_asset_t* out_asset = nullptr);
+		static bool create_script(const editor_script_create_desc_t& desc, string_t* out_path = nullptr);
 	};
 }

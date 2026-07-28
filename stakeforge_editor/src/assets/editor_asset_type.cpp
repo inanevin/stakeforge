@@ -175,4 +175,15 @@ namespace sfg
 			return editor_asset_type_e::invalid;
 		}
 	}
+
+	editor_asset_type_e editor_asset_type_from_reflection_sub_type_id(sid_t sub_type_id)
+	{
+		if (sub_type_id == SFG_EDITOR_REFLECTION_ASSET_SUB_TYPE_ID_WORLD)
+			return editor_asset_type_e::world;
+
+		if (sub_type_id == SFG_EDITOR_REFLECTION_ASSET_SUB_TYPE_ID_ANY_RESOURCE)
+			return editor_asset_type_e::invalid;
+
+		return editor_asset_type_from_resource_type(resource_type_from_reflection_sub_type_id(sub_type_id));
+	}
 }

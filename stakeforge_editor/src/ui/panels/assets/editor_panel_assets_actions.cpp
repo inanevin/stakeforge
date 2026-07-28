@@ -438,6 +438,8 @@ namespace sfg
 		if (_selected_asset_nodes.empty())
 			return;
 
+		bool scripts_changed = false;
+
 		for (editor_asset_node_handle_t node : _selected_asset_nodes)
 		{
 			if (node.is_null() || !tree.is_valid(node))
@@ -458,13 +460,21 @@ namespace sfg
 				if (auto it = std::find(_favourite_asset_guids.begin(), _favourite_asset_guids.end(), guid); it != _favourite_asset_guids.end())
 					_favourite_asset_guids.erase(it);
 			}
-			else if (asset_node.type == editor_asset_node_type_e::file)
-				asset_manager.delete_node_subtree(node);
+			else if (asset_node.type == editor_asset_node_type_e::file || asset_node.type == editor_asset_node_type_e::script_file)
+			{
+				const bool is_script_file = asset_node.type == editor_asset_node_type_e::script_file;
+
+				if (asset_manager.delete_node_subtree(node) && is_script_file)
+					scripts_changed = true;
+			}
 		}
 
 		clear_asset_grid_selection();
 
 		refresh_folder_rows();
+
+		if (scripts_changed)
+			editor_project_t::get().compile_scripts();
 	}
 
 	void editor_panel_assets_t::duplicate_asset()
@@ -501,7 +511,14 @@ namespace sfg
 		const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
 
 		const editor_asset_node_t& asset_node = tree.value(node);
-		const editor_asset_t*	   asset	  = editor_asset_manager_t::get().find_asset(asset_node.asset_id);
+
+		if (asset_node.type == editor_asset_node_type_e::script_file)
+		{
+			process::open_url(asset_node.full_path.c_str());
+			return;
+		}
+
+		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(asset_node.asset_id);
 		SFG_ASSERT(asset != nullptr);
 
 		if (asset->asset_type == editor_asset_type_e::world)
@@ -681,6 +698,15 @@ namespace sfg
 		case assets_action_menu_create_physical_material:
 			text = "physical_material";
 			break;
+		case assets_action_menu_create_csharp_component:
+			text = "NewComponent";
+			break;
+		case assets_action_menu_create_csharp_world_script:
+			text = "NewWorldScript";
+			break;
+		case assets_action_menu_create_csharp_class:
+			text = "NewClass";
+			break;
 		default:
 			SFG_ASSERT(false);
 			return;
@@ -690,7 +716,7 @@ namespace sfg
 		desc.closed					   = on_create_asset_popup_closed;
 		desc.user_data				   = this;
 		desc.text					   = text;
-		desc.placeholder			   = "Asset Name";
+		desc.placeholder			   = command >= assets_action_menu_create_csharp_component && command <= assets_action_menu_create_csharp_class ? "Class Name" : "Asset Name";
 		desc.pos					   = _action_menu_pos;
 		desc.width					   = editor_theme_t::get().item_width;
 		popup->request_input_popup(desc);
@@ -700,6 +726,32 @@ namespace sfg
 	{
 		if (name == nullptr || name[0] == '\0')
 			return;
+
+		if (command >= assets_action_menu_create_csharp_component && command <= assets_action_menu_create_csharp_class)
+		{
+			editor_script_create_desc_t desc = {};
+
+			if (!make_create_script_desc(command, name, false, desc))
+				return;
+
+			string_t script_path = editor_asset_path_t::normalize_directory(get_selected_folder_path());
+			script_path += name;
+			script_path += ".cs";
+
+			if (file_system_t::exists(script_path.c_str()))
+			{
+				vector_t<string_t> rows = {};
+				rows.push_back(file_system_t::get_filename_and_extension_from_path(script_path));
+				_pending_override_create_command = command;
+				_pending_override_asset_name	 = name;
+				_pending_override_target_folder	 = _selected_folder_node;
+				request_assets_override(asset_override_operation_e::create_asset, "A C# script with this name already exists. Overwrite it?", rows);
+				return;
+			}
+
+			create_asset_item_internal(command, name, false);
+			return;
+		}
 
 		editor_asset_create_desc_t desc = {};
 		if (!make_create_asset_desc(command, name, false, desc))
@@ -724,6 +776,31 @@ namespace sfg
 	bool editor_panel_assets_t::create_asset_item_internal(u16 command, const char* name, bool allow_overwrite)
 	{
 		string_t asset_name = name != nullptr ? name : "";
+
+		if (command >= assets_action_menu_create_csharp_component && command <= assets_action_menu_create_csharp_class)
+		{
+			editor_script_create_desc_t desc = {};
+
+			if (!make_create_script_desc(command, asset_name.c_str(), allow_overwrite, desc))
+				return false;
+
+			string_t script_path = {};
+
+			if (!editor_asset_creator_t::create_script(desc, &script_path))
+				return false;
+
+			editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
+			const editor_asset_node_handle_t existing	   = asset_manager.find_node_by_path(script_path.c_str());
+
+			if (existing.is_null())
+				asset_manager.add_path_node(_selected_folder_node, script_path.c_str());
+			else
+				asset_manager.notify_changed();
+
+			refresh_folder_rows();
+			editor_project_t::get().compile_scripts();
+			return true;
+		}
 
 		editor_asset_create_desc_t desc = {};
 		if (!make_create_asset_desc(command, asset_name.c_str(), allow_overwrite, desc))
@@ -836,6 +913,31 @@ namespace sfg
 			return true;
 		case assets_action_menu_create_physical_material:
 			out_desc.asset_type = editor_asset_type_e::physical_material;
+			return true;
+		default:
+			SFG_ASSERT(false);
+			return false;
+		}
+	}
+
+	bool editor_panel_assets_t::make_create_script_desc(u16 command, const char* name, bool allow_overwrite, editor_script_create_desc_t& out_desc) const
+	{
+		out_desc = {
+			.parent_node	 = _selected_folder_node,
+			.name			 = name,
+			.allow_overwrite = allow_overwrite,
+		};
+
+		switch (command)
+		{
+		case assets_action_menu_create_csharp_component:
+			out_desc.script_template = editor_script_template_e::component;
+			return true;
+		case assets_action_menu_create_csharp_world_script:
+			out_desc.script_template = editor_script_template_e::world_script;
+			return true;
+		case assets_action_menu_create_csharp_class:
+			out_desc.script_template = editor_script_template_e::class_script;
 			return true;
 		default:
 			SFG_ASSERT(false);
@@ -1003,8 +1105,9 @@ namespace sfg
 		editor_input_popup_desc_t desc = {};
 		desc.closed					   = on_asset_rename_popup_closed;
 		desc.user_data				   = this;
-		const string_t file_name_stem  = asset_node.type == editor_asset_node_type_e::file ? file_system_t::remove_extensions_from_path(asset_node.name) : "";
-		desc.text					   = asset_node.type == editor_asset_node_type_e::file ? file_name_stem.c_str() : asset_node.name.c_str();
+		const bool	   is_file		   = asset_node.type == editor_asset_node_type_e::file || asset_node.type == editor_asset_node_type_e::script_file;
+		const string_t file_name_stem  = is_file ? file_system_t::remove_extensions_from_path(asset_node.name) : "";
+		desc.text					   = is_file ? file_name_stem.c_str() : asset_node.name.c_str();
 		desc.pos					   = item_out.pos;
 		desc.width					   = math::max(item_out.size.x / scale, editor_theme_t::get().item_width);
 		popup->request_input_popup(desc);
@@ -1015,17 +1118,20 @@ namespace sfg
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
 
-		string_t new_name = name != nullptr ? name : "";
-		if (!editor_directories_t::is_valid_asset_name(new_name.c_str()))
+		const editor_asset_node_t& asset_node	  = tree.value(_selected_asset_node);
+		const bool				   is_script_file = asset_node.type == editor_asset_node_type_e::script_file;
+		string_t				   new_name		  = name != nullptr ? name : "";
+
+		if (is_script_file ? !editor_directories_t::is_valid_csharp_identifier(new_name.c_str()) : !editor_directories_t::is_valid_asset_name(new_name.c_str()))
 			return;
 
-		const editor_asset_node_t& asset_node = tree.value(_selected_asset_node);
-
-		const string_t old_file_extension = asset_node.type == editor_asset_node_type_e::file ? file_system_t::get_file_extension(asset_node.name) : "";
-		if (asset_node.type == editor_asset_node_type_e::file)
+		const bool	   is_file			  = asset_node.type == editor_asset_node_type_e::file || asset_node.type == editor_asset_node_type_e::script_file;
+		const string_t old_file_extension = is_file ? file_system_t::get_file_extension(asset_node.name) : "";
+		if (is_file)
 		{
 			new_name = file_system_t::remove_extensions_from_path(new_name);
-			if (!editor_directories_t::is_valid_asset_name(new_name.c_str()))
+
+			if (is_script_file ? !editor_directories_t::is_valid_csharp_identifier(new_name.c_str()) : !editor_directories_t::is_valid_asset_name(new_name.c_str()))
 				return;
 		}
 
@@ -1063,6 +1169,9 @@ namespace sfg
 		asset_manager.update_node_path(_selected_asset_node, new_path.c_str());
 		_selected_asset_node = {};
 		refresh_folder_rows();
+
+		if (is_script_file)
+			editor_project_t::get().compile_scripts();
 	}
 
 }

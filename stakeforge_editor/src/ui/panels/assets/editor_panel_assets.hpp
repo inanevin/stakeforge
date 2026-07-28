@@ -52,6 +52,7 @@ namespace sfg
 {
 	struct editor_payload_t;
 	struct editor_asset_create_desc_t;
+	struct editor_script_create_desc_t;
 	class editor_widget_thumbnail_t;
 
 	class editor_panel_assets_t final : public editor_panel_t
@@ -213,6 +214,7 @@ namespace sfg
 		void create_asset_item(u16 command, const char* name);
 		bool create_asset_item_internal(u16 command, const char* name, bool allow_overwrite);
 		bool make_create_asset_desc(u16 command, const char* name, bool allow_overwrite, editor_asset_create_desc_t& out_desc) const;
+		bool make_create_script_desc(u16 command, const char* name, bool allow_overwrite, editor_script_create_desc_t& out_desc) const;
 		bool create_prefab_from_entity_payload(const editor_entity_payload_t& entity_payload, editor_asset_node_handle_t parent_node, bool allow_overwrite);
 		bool create_prefabs_from_entity_payloads(span_t<const editor_entity_payload_t> entities, editor_asset_node_handle_t parent_node, bool allow_overwrite);
 		bool find_matching_asset_override(const char* path, editor_asset_type_e asset_type, string_t* out_row) const;

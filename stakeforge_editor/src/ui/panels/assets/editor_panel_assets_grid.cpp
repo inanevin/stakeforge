@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project.hpp"
 #include "assets/editor_asset_manager.hpp"
 
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
@@ -271,9 +272,10 @@ namespace sfg
 			const auto	descriptor_it = descriptors.find(asset->asset_type);
 			descriptor				  = descriptor_it != descriptors.end() ? &descriptor_it->second : nullptr;
 		}
-		const char*	  type_text	 = descriptor != nullptr && !descriptor->display_name.empty() ? descriptor->display_name.c_str() : "File";
+		const char*	  type_text	 = descriptor != nullptr && !descriptor->display_name.empty() ? descriptor->display_name.c_str() : asset_node.type == editor_asset_node_type_e::script_file ? "C# Script" : "File";
 		const vec4f_t item_color = descriptor != nullptr ? descriptor->color : theme.color_outline_light;
 		const bool	  has_status = asset != nullptr && asset->status != editor_asset_status_e::ok;
+		const sid_t	  thumbnail	 = asset != nullptr ? asset->thumbnail_guid : asset_node.type == editor_asset_node_type_e::script_file ? "editor/resource_pack/textures/thumbnails/csharp.png"_hs : NULL_SID;
 
 		asset_grid_item_t item = {};
 		item.node			   = node;
@@ -345,7 +347,7 @@ namespace sfg
 		paint.set_rect(item.thumbnail_frame, thumbnail_rect);
 
 		item.thumbnail = new editor_widget_thumbnail_t();
-		item.thumbnail->init(ui, item.thumbnail_frame, {.thumbnail = asset != nullptr ? asset->thumbnail_guid : NULL_SID});
+		item.thumbnail->init(ui, item.thumbnail_frame, {.thumbnail = thumbnail});
 
 		item.status_text = ui.allocate_widget();
 		ui.set_widget_debug_name(item.status_text, "asset_grid_item_status");
@@ -476,9 +478,10 @@ namespace sfg
 			const auto	descriptor_it = descriptors.find(asset->asset_type);
 			descriptor				  = descriptor_it != descriptors.end() ? &descriptor_it->second : nullptr;
 		}
-		const char*	  type_text	 = descriptor != nullptr && !descriptor->display_name.empty() ? descriptor->display_name.c_str() : "File";
+		const char*	  type_text	 = descriptor != nullptr && !descriptor->display_name.empty() ? descriptor->display_name.c_str() : asset_node.type == editor_asset_node_type_e::script_file ? "C# Script" : "File";
 		const vec4f_t item_color = descriptor != nullptr ? descriptor->color : theme.color_outline_light;
 		const bool	  has_status = asset != nullptr && asset->status != editor_asset_status_e::ok;
+		const sid_t	  thumbnail	 = asset != nullptr ? asset->thumbnail_guid : asset_node.type == editor_asset_node_type_e::script_file ? "editor/resource_pack/textures/thumbnails/csharp.png"_hs : NULL_SID;
 
 		asset_grid_item_t item = {};
 		item.node			   = node;
@@ -571,7 +574,7 @@ namespace sfg
 		paint.set_rect(item.thumbnail_frame, thumbnail_rect);
 
 		item.thumbnail = new editor_widget_thumbnail_t();
-		item.thumbnail->init(ui, item.thumbnail_frame, {.thumbnail = asset != nullptr ? asset->thumbnail_guid : NULL_SID});
+		item.thumbnail->init(ui, item.thumbnail_frame, {.thumbnail = thumbnail});
 
 		item.label = ui.allocate_widget();
 		ui.set_widget_debug_name(item.label, "asset_list_item_label");

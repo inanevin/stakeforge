@@ -65,7 +65,9 @@ namespace sfg
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GAMEPLAY_ROWS[] = {
-			{.text = "C# Script"},
+			{.text = "C# Component", .command = assets_action_menu_create_csharp_component},
+			{.text = "C# World Script", .command = assets_action_menu_create_csharp_world_script},
+			{.text = "C# Class", .command = assets_action_menu_create_csharp_class},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_PHYSICS_ROWS[] = {
@@ -164,13 +166,14 @@ namespace sfg
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 
-		_create_asset_popup_command				   = 0;
-		_create_folder_popup_pending			   = false;
-		const editor_asset_tree_t& tree			   = editor_asset_manager_t::get().get_asset_tree();
-		const bool				   is_asset_node   = !_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && tree.value(_selected_asset_node).type == editor_asset_node_type_e::asset;
-		const bool				   is_file_node	   = !_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && tree.value(_selected_asset_node).type == editor_asset_node_type_e::file;
-		const bool				   multi_selected  = _selected_asset_nodes.size() > 1;
-		const editor_asset_t*	   selected_asset  = is_asset_node ? editor_asset_manager_t::get().find_asset(tree.value(_selected_asset_node).asset_id) : nullptr;
+		_create_asset_popup_command				 = 0;
+		_create_folder_popup_pending			 = false;
+		const editor_asset_tree_t& tree			 = editor_asset_manager_t::get().get_asset_tree();
+		const bool				   is_asset_node = !_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && tree.value(_selected_asset_node).type == editor_asset_node_type_e::asset;
+		const bool				   is_file_node =
+			!_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && (tree.value(_selected_asset_node).type == editor_asset_node_type_e::file || tree.value(_selected_asset_node).type == editor_asset_node_type_e::script_file);
+		const bool			  multi_selected	   = _selected_asset_nodes.size() > 1;
+		const editor_asset_t* selected_asset	   = is_asset_node ? editor_asset_manager_t::get().find_asset(tree.value(_selected_asset_node).asset_id) : nullptr;
 		ASSETS_ITEM_ACTION_MENU_ROWS[0].disabled   = multi_selected;
 		ASSETS_ITEM_ACTION_MENU_ROWS[1].disabled   = multi_selected || selected_asset == nullptr || selected_asset->status == editor_asset_status_e::ok;
 		ASSETS_ITEM_ACTION_MENU_ROWS[2].disabled   = !is_asset_node;

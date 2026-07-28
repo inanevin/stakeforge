@@ -83,5 +83,8 @@ namespace sfg
 		assets_action_menu_create_sprite_unlit_material		 = 36,
 		assets_action_menu_create_particle_shader			 = 37,
 		assets_action_menu_create_particle_material			 = 38,
+		assets_action_menu_create_csharp_component			 = 39,
+		assets_action_menu_create_csharp_world_script		 = 40,
+		assets_action_menu_create_csharp_class				 = 41,
 	};
 }

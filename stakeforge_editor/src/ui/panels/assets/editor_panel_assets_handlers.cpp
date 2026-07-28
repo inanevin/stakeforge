@@ -204,6 +204,9 @@ namespace sfg
 		case assets_action_menu_create_sprite_unlit_material:
 		case assets_action_menu_create_particle_material:
 		case assets_action_menu_create_physical_material:
+		case assets_action_menu_create_csharp_component:
+		case assets_action_menu_create_csharp_world_script:
+		case assets_action_menu_create_csharp_class:
 			panel._create_asset_popup_command = command;
 			return;
 		case assets_action_menu_import:

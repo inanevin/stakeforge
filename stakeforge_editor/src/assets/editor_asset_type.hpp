@@ -34,6 +34,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define SFG_EDITOR_REFLECTION_ASSET_SUB_TYPE_ID_ANY_RESOURCE "editor_reflection_asset_subtype_any_resource"_hs
+#define SFG_EDITOR_REFLECTION_ASSET_SUB_TYPE_ID_WORLD		 "editor_reflection_asset_subtype_world"_hs
+
 	enum class editor_asset_type_e : u8
 	{
 		invalid,
@@ -60,4 +63,5 @@ namespace sfg
 	void				to_json(nlohmann::json& j, const editor_asset_type_e& t);
 	void				from_json(const nlohmann::json& j, editor_asset_type_e& t);
 	editor_asset_type_e editor_asset_type_from_resource_type(resource_type_e type);
+	editor_asset_type_e editor_asset_type_from_reflection_sub_type_id(sid_t sub_type_id);
 }

@@ -55,6 +55,27 @@ namespace sfg
 		return true;
 	}
 
+	bool editor_directories_t::is_valid_csharp_identifier(const char* name)
+	{
+		if (name == nullptr || name[0] == '\0')
+			return false;
+
+		const unsigned char first = static_cast<unsigned char>(name[0]);
+
+		if (std::isalpha(first) == 0 && name[0] != '_')
+			return false;
+
+		for (const char* it = name + 1; *it != '\0'; ++it)
+		{
+			const unsigned char character = static_cast<unsigned char>(*it);
+
+			if (std::isalnum(character) == 0 && *it != '_')
+				return false;
+		}
+
+		return true;
+	}
+
 	void editor_directories_t::init_paths()
 	{
 		// user dir

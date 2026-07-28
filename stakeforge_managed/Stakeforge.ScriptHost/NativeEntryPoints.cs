@@ -34,6 +34,7 @@ public static unsafe class NativeEntryPoints
     {
         try
         {
+            ProjectAssemblyRuntime.Unload();
             ManagedRuntime.LogInfo("managed scripting host shut down correctly.");
             return 0;
         }
@@ -45,6 +46,44 @@ public static unsafe class NativeEntryPoints
         finally
         {
             ManagedRuntime.Shutdown();
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int LoadProjectAssembly(byte* assemblyPath)
+    {
+        try
+        {
+            string? path = Marshal.PtrToStringUTF8((nint)assemblyPath);
+
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                ManagedRuntime.TryLogError("the C# project assembly path is empty.");
+                return -1;
+            }
+
+            ProjectAssemblyRuntime.Load(path);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int UnloadProjectAssembly()
+    {
+        try
+        {
+            ProjectAssemblyRuntime.Unload();
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
         }
     }
 }

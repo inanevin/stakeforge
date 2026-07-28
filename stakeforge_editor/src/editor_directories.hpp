@@ -66,6 +66,7 @@ namespace sfg
 		}
 
 		static bool is_valid_asset_name(const char* name);
+		static bool is_valid_csharp_identifier(const char* name);
 
 	private:
 		friend class editor_app_t;

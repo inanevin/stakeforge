@@ -175,7 +175,8 @@ namespace sfg
 			}
 			else
 			{
-				const editor_asset_node_handle_t file_node = database.emplace_node(editor_asset_node_t{.name = parts.back(), .full_path = entry.path, .type = editor_asset_node_type_e::file});
+				const editor_asset_node_type_e	 node_type = file_system_t::get_file_extension(entry.path) == "cs" ? editor_asset_node_type_e::script_file : editor_asset_node_type_e::file;
+				const editor_asset_node_handle_t file_node = database.emplace_node(editor_asset_node_t{.name = parts.back(), .full_path = entry.path, .type = node_type});
 				database.attach_node(parent, file_node);
 			}
 		}
