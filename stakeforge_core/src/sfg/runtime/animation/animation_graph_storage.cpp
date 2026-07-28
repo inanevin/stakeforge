@@ -348,6 +348,38 @@ namespace sfg
 		animation_graph_util_t::destroy_pose(instance.initial_pose, _poses, _pose_bones, _aux);
 	}
 
+	animation_graph_param_t* animation_graph_storage_t::find_parameter(chunk_handle32_t parameters, u32 parameter_count, sid_t parameter_hash)
+	{
+		if (parameter_count == 0)
+			return nullptr;
+
+		animation_graph_param_t* values = _params.get<animation_graph_param_t>(parameters);
+
+		for (u32 parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
+		{
+			if (values[parameter_index].name_hash == parameter_hash)
+				return &values[parameter_index];
+		}
+
+		return nullptr;
+	}
+
+	const animation_graph_param_t* animation_graph_storage_t::find_parameter(chunk_handle32_t parameters, u32 parameter_count, sid_t parameter_hash) const
+	{
+		if (parameter_count == 0)
+			return nullptr;
+
+		const animation_graph_param_t* values = _params.get<animation_graph_param_t>(parameters);
+
+		for (u32 parameter_index = 0; parameter_index < parameter_count; ++parameter_index)
+		{
+			if (values[parameter_index].name_hash == parameter_hash)
+				return &values[parameter_index];
+		}
+
+		return nullptr;
+	}
+
 	void animation_graph_storage_t::copy_pose_to_bones(chunk_handle32_t pose_handle, span_t<animation_bone_t> bones) const
 	{
 		const animation_graph_pose_t& pose		 = *_poses.get<animation_graph_pose_t>(pose_handle);

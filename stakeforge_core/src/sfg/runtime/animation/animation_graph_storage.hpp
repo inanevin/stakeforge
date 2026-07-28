@@ -71,6 +71,13 @@ namespace sfg
 		void							   copy_pose_to_bones(chunk_handle32_t pose, span_t<animation_bone_t> bones) const;
 		void							   process_graph(chunk_handle32_t nodes, u32 node_count, chunk_handle32_t initial_pose, const mat4x3_t& entity_transform, span_t<animation_bone_t> bones, f32 delta_time);
 
+		// -----------------------------------------------------------------------------
+		// queries
+		// -----------------------------------------------------------------------------
+
+		animation_graph_param_t*	   find_parameter(chunk_handle32_t parameters, u32 parameter_count, sid_t parameter_hash);
+		const animation_graph_param_t* find_parameter(chunk_handle32_t parameters, u32 parameter_count, sid_t parameter_hash) const;
+
 	private:
 		void process_node_asm(animation_graph_node_asm_t& node, chunk_handle32_t mask_handle, span_t<animation_graph_bone_t> pose_bones, f32 delta_time);
 		void process_node_bone_control(animation_graph_node_bone_control_t& node, const mat4x3_t& entity_transform, span_t<animation_graph_bone_t> pose_bones, f32 delta_time);
