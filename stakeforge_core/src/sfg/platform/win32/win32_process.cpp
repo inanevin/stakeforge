@@ -808,7 +808,6 @@ namespace sfg
 	{
 		SHELLEXECUTEINFOA execute_info = {
 			.cbSize = sizeof(SHELLEXECUTEINFOA),
-			.fMask	= SEE_MASK_NO_CONSOLE,
 			.lpVerb = "open",
 			.lpFile = url,
 			.nShow	= SW_SHOWNORMAL,
@@ -820,6 +819,44 @@ namespace sfg
 
 			SFG_ERR("could not open URL: {0}", error);
 		}
+	}
+
+	void process::open_file(const char* path)
+	{
+		wchar_t	   windows_directory[MAX_PATH] = {};
+		const UINT windows_directory_length	   = GetWindowsDirectoryW(windows_directory, MAX_PATH);
+
+		if (windows_directory_length == 0 || windows_directory_length >= MAX_PATH)
+		{
+			SFG_ERR("could not find the Windows directory.");
+			return;
+		}
+
+		wstring_t explorer_path(windows_directory, windows_directory_length);
+		explorer_path += L"\\explorer.exe";
+
+		wstring_t command_line = L"\"";
+		command_line += explorer_path;
+		command_line += L"\" \"";
+		command_line += string_util::to_wstr(path);
+		command_line += L"\"";
+
+		STARTUPINFOW startup_info = {};
+		startup_info.cb			  = sizeof(STARTUPINFOW);
+
+		PROCESS_INFORMATION process_info = {};
+		const BOOL			created		 = CreateProcessW(explorer_path.c_str(), command_line.data(), nullptr, nullptr, FALSE, DETACHED_PROCESS, nullptr, nullptr, &startup_info, &process_info);
+
+		if (!created)
+		{
+			const DWORD error = GetLastError();
+
+			SFG_ERR("could not open file: {0}", error);
+			return;
+		}
+
+		CloseHandle(process_info.hThread);
+		CloseHandle(process_info.hProcess);
 	}
 
 	bool process::open_directory(const char* dir)

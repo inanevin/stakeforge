@@ -163,6 +163,7 @@ namespace sfg
 		_runtime.cache_path				  = _runtime.assets_path + "_cache/";
 		_runtime.default_assets_path	  = _runtime.assets_path + "_sfg_assets/";
 		_runtime.game_assets_path		  = _runtime.assets_path + "_game_assets/";
+		_runtime.cook_path				  = dir + "Cooked/";
 		_runtime.intermediate_path		  = dir + "Intermediate/";
 		_runtime.csharp_intermediate_path = _runtime.intermediate_path + "CSharp/";
 		_runtime.script_project_path	  = _runtime.csharp_intermediate_path + _runtime.name + ".csproj";
@@ -180,6 +181,9 @@ namespace sfg
 
 		if (!file_system_t::exists(_runtime.game_assets_path.c_str()))
 			file_system_t::create_directory(_runtime.game_assets_path.c_str());
+
+		if (!file_system_t::exists(_runtime.cook_path.c_str()))
+			file_system_t::create_directory(_runtime.cook_path.c_str());
 
 		if (!ensure_script_project())
 		{

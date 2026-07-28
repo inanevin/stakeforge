@@ -38,6 +38,7 @@ namespace sfg
 	{
 		vector_t<resource_handle_t> worlds			= {};
 		vector_t<resource_handle_t> extra_resources = {};
+		resource_handle_t			main_world		= NULL_RESOURCE_HANDLE;
 		vec2u16_t					resolution		= {1920, 1080};
 		bool						is_borderless	= true;
 		bool						is_fullscreen	= false;

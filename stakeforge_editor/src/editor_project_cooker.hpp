@@ -27,11 +27,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/common/size_definitions.hpp>
+#include <sfg/data/atomic.hpp>
 #include <sfg/data/unique.hpp>
 
 namespace sfg
 {
 	struct editor_project_cook_options_t;
+	struct project_package_meta_t;
 	class editor_modal_progress_bar_t;
 	class editor_modal_project_cooker_t;
 
@@ -65,10 +68,22 @@ namespace sfg
 		void cook_project(const editor_project_cook_options_t& options);
 
 	private:
+		enum class cook_state_e : u8
+		{
+			idle,
+			cooking,
+			succeeded,
+			failed,
+		};
+
+		bool cook_project_worker(const char* target_path);
+
+	private:
 		unique_t<editor_project_cook_options_t> _cook_options;
+		unique_t<project_package_meta_t>		_package_meta;
 		unique_t<editor_modal_project_cooker_t> _options_modal;
 		unique_t<editor_modal_progress_bar_t>	_progress_modal;
-		bool									_is_cooking	 = false;
+		atomic_t<cook_state_e>					_cook_state	 = cook_state_e::idle;
 		bool									_initialized = false;
 	};
 }

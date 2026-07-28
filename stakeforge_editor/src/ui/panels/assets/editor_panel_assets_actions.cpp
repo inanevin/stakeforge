@@ -514,7 +514,7 @@ namespace sfg
 
 		if (asset_node.type == editor_asset_node_type_e::script_file)
 		{
-			process::open_url(asset_node.full_path.c_str());
+			process::open_file(asset_node.full_path.c_str());
 			return;
 		}
 
