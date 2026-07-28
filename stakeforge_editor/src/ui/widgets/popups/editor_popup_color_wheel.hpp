@@ -37,6 +37,7 @@ namespace sfg
 		editor_color_wheel_edit_begin_fn   edit_begin	   = nullptr;
 		editor_color_wheel_data_changed_fn on_data_changed = nullptr;
 		void*							   user_data	   = nullptr;
+		bool							   hdr			   = false;
 	};
 
 	class editor_popup_color_wheel_t final
@@ -58,8 +59,8 @@ namespace sfg
 		// queries
 		// -----------------------------------------------------------------------------
 
-		static vec2f_t calculate_size(ui::ui_context& ui);
-		static vec2f_t calculate_position(ui::ui_context& ui, const vec2f_t& requested_position);
+		static vec2f_t calculate_size(ui::ui_context& ui, bool hdr);
+		static vec2f_t calculate_position(ui::ui_context& ui, const vec2f_t& requested_position, bool hdr = false);
 
 		// -----------------------------------------------------------------------------
 		// accessors

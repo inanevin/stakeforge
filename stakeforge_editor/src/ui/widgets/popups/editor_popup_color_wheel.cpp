@@ -43,7 +43,7 @@ namespace sfg
 		_ui							= &ui;
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		const editor_theme_t& theme = editor_theme_t::get();
-		const vec2f_t		  size	= calculate_size(ui);
+		const vec2f_t		  size	= calculate_size(ui, config.hdr);
 
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "color_wheel_popup");
@@ -61,6 +61,7 @@ namespace sfg
 							  .edit_begin	   = config.edit_begin,
 							  .on_data_changed = config.on_data_changed,
 							  .user_data	   = config.user_data,
+							  .hdr			   = config.hdr,
 						  });
 		tree.set_visible(_color_wheel.get_root(), true, false);
 	}
@@ -74,7 +75,7 @@ namespace sfg
 		_root = NULL_WIDGET;
 	}
 
-	vec2f_t editor_popup_color_wheel_t::calculate_size(ui::ui_context& ui)
+	vec2f_t editor_popup_color_wheel_t::calculate_size(ui::ui_context& ui, bool hdr)
 	{
 		const ui::layout_tree_t& tree	  = ui.get_tree();
 		const ui::layout_out_t&	 screen	  = tree.out(tree.get_root());
@@ -82,15 +83,15 @@ namespace sfg
 		const f32				 scale	  = ui.get_ui_scale() > 0.0f ? ui.get_ui_scale() : 1.0f;
 		const f32				 screen_w = screen.clip.z / scale;
 		const f32				 max_w	  = math::max(theme.item_width, screen_w - theme.margin_horizontal * 2.0f);
-		return {math::min(math::max(screen_w * 0.2f, COLOR_WHEEL_POPUP_MIN_WIDTH), max_w), editor_widget_color_wheel_t::calculate_min_height()};
+		return {math::min(math::max(screen_w * 0.2f, COLOR_WHEEL_POPUP_MIN_WIDTH), max_w), editor_widget_color_wheel_t::calculate_min_height(hdr)};
 	}
 
-	vec2f_t editor_popup_color_wheel_t::calculate_position(ui::ui_context& ui, const vec2f_t& requested_position)
+	vec2f_t editor_popup_color_wheel_t::calculate_position(ui::ui_context& ui, const vec2f_t& requested_position, bool hdr)
 	{
 		const ui::layout_tree_t& tree	  = ui.get_tree();
 		const ui::layout_out_t&	 screen	  = tree.out(tree.get_root());
 		const f32				 scale	  = ui.get_ui_scale() > 0.0f ? ui.get_ui_scale() : 1.0f;
-		const vec2f_t			 size	  = calculate_size(ui) * scale;
+		const vec2f_t			 size	  = calculate_size(ui, hdr) * scale;
 		vec2f_t					 position = requested_position;
 		if (position.x + size.x > screen.clip.x + screen.clip.z)
 			position.x = screen.clip.x + screen.clip.z - size.x;

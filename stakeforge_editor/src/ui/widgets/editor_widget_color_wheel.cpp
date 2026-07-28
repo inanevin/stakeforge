@@ -67,18 +67,19 @@ namespace sfg
 		make_number_row(bottom_left_pane, 1, 1, "G");
 		make_number_row(bottom_left_pane, 2, 2, "B");
 		make_number_row(bottom_left_pane, 3, 3, "A");
+		make_number_row(bottom_left_pane, EXPOSURE_ROW, EXPOSURE_FIELD, "EV");
 		make_number_row(bottom_right_pane, 4, 4, "H");
 		make_number_row(bottom_right_pane, 5, 5, "S");
 		make_number_row(bottom_right_pane, 6, 6, "V");
-		make_text_row(bottom_right_pane, 7, "Hex");
+		make_text_row(bottom_right_pane, HEX_ROW, "Hex");
 
 		update_config(config);
 	}
 
-	f32 editor_widget_color_wheel_t::calculate_min_height()
+	f32 editor_widget_color_wheel_t::calculate_min_height(bool hdr)
 	{
 		const editor_theme_t& theme		  = editor_theme_t::get();
-		const f32			  bottom_pane = theme.item_area_height * 4.0f + theme.margin_vertical * 2.0f;
+		const f32			  bottom_pane = theme.item_area_height * (hdr ? 5.0f : 4.0f) + theme.margin_vertical * 2.0f;
 		const f32			  top_pane	  = bottom_pane * 1.5f;
 		return bottom_pane + top_pane;
 	}
@@ -93,18 +94,29 @@ namespace sfg
 		_root			 = NULL_WIDGET;
 		_top_left_frame	 = NULL_WIDGET;
 		_top_left_handle = NULL_WIDGET;
+		_exposure_row	 = NULL_WIDGET;
+		_exposure_label	 = NULL_WIDGET;
+
 		for (ui::widget_id_t& frame : _top_right_frames)
 			frame = NULL_WIDGET;
+
 		for (ui::widget_id_t& handle : _top_right_handles)
 			handle = NULL_WIDGET;
+
 		_fields.resize(0);
-		_config				  = {};
-		_display_color		  = {};
-		_top_right_drag_color = {};
+		_config		   = {};
+		_display_color = color_t::white;
+		_exposure	   = 0.0f;
+
 		for (f32& value : _top_right_values)
 			value = 0.0f;
+
+		for (color_t& color : _top_right_base_colors)
+			color = color_t::white;
+
 		for (f32& value : _number_values)
 			value = 0.0f;
+
 		_hex_value[0] = '\0';
 	}
 
@@ -113,6 +125,14 @@ namespace sfg
 		_config.edit_begin		= config.edit_begin;
 		_config.on_data_changed = config.on_data_changed;
 		_config.user_data		= config.user_data;
+		_config.hdr				= config.hdr;
+
+		ui::layout_in_t& exposure_row_in = _ui->get_tree().in(_exposure_row);
+		exposure_row_in.size_value.y	 = config.hdr ? editor_theme_t::get().item_area_height : 0.0f;
+		_ui->get_tree().set_visible(_exposure_row, config.hdr);
+		_ui->get_tree().set_visible(_exposure_label, config.hdr);
+		_inputs[EXPOSURE_ROW].set_visible(config.hdr);
+
 		update_field_data(config.field);
 	}
 
@@ -124,10 +144,33 @@ namespace sfg
 		field.fields  = {.data = _fields.data(), .size = _fields.size()};
 		_config.field = field;
 
-		_display_color = *field.fields.data[0];
-		for (f32& value : _top_right_values)
-			value = 0.0f;
-		update_displays(true);
+		const color_t& linear_color	  = *field.fields.data[0];
+		color_t		   display_linear = linear_color;
+		_exposure					  = 0.0f;
+
+		if (_config.hdr)
+		{
+			const f32 max_channel = math::max(linear_color.x, math::max(linear_color.y, linear_color.z));
+
+			if (max_channel > 1.0f)
+			{
+				_exposure = std::log2(max_channel);
+				display_linear.x /= max_channel;
+				display_linear.y /= max_channel;
+				display_linear.z /= max_channel;
+			}
+		}
+
+		_display_color	 = color_utils_t::linear_to_srgb(display_linear);
+		_display_color.w = linear_color.w;
+
+		for (u32 i = 0; i < TOP_RIGHT_FRAME_COUNT; ++i)
+		{
+			_top_right_values[i]	  = 0.0f;
+			_top_right_base_colors[i] = _display_color;
+		}
+
+		update_displays(true, false);
 	}
 
 	void editor_widget_color_wheel_t::refresh_field_data()
@@ -268,6 +311,9 @@ namespace sfg
 		_ui->set_widget_debug_name(row_widget, "color_wheel_channel_row");
 		tree.attach(parent, row_widget);
 
+		if (field == EXPOSURE_FIELD)
+			_exposure_row = row_widget;
+
 		ui::layout_in_t& row_in = tree.in(row_widget);
 		row_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		row_in.size_mode_y		= ui::axis_mode_e::fixed;
@@ -279,6 +325,9 @@ namespace sfg
 		const ui::widget_id_t label_widget = _ui->allocate_widget();
 		_ui->set_widget_debug_name(label_widget, "color_wheel_channel_label");
 		tree.attach(row_widget, label_widget);
+
+		if (field == EXPOSURE_FIELD)
+			_exposure_label = label_widget;
 
 		ui::layout_in_t& label_in = tree.in(label_widget);
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
@@ -300,11 +349,15 @@ namespace sfg
 			.field_size = sizeof(f32),
 			.type		= editor_input_field_field_type_e::pod_number,
 		};
-		input_config.field.is_slider	 = true;
-		input_config.min_value			 = 0.0f;
-		input_config.max_value			 = 1.0f;
-		input_config.callbacks.edited	 = field < 4 ? on_rgba_changed : on_hsv_changed;
-		input_config.callbacks.user_data = this;
+
+		const bool is_exposure				  = field == EXPOSURE_FIELD;
+		input_config.field.is_slider		  = !is_exposure;
+		input_config.increment				  = is_exposure ? 0.1f : 0.01f;
+		input_config.min_value				  = is_exposure ? -15.0f : 0.0f;
+		input_config.max_value				  = is_exposure ? 15.0f : 1.0f;
+		input_config.callbacks.edited		  = field < 4 ? on_rgba_changed : (is_exposure ? on_exposure_changed : on_hsv_changed);
+		input_config.callbacks.edit_submitted = on_input_edit_submitted;
+		input_config.callbacks.user_data	  = this;
 		_inputs[row].init(*_ui, row_widget, input_config);
 
 		ui::layout_in_t& input_in				 = tree.in(_inputs[row].get_root());
@@ -359,8 +412,9 @@ namespace sfg
 			.field_size = HEX_TEXT_CAPACITY,
 			.type		= editor_input_field_field_type_e::char_array,
 		};
-		input_config.callbacks.edited	 = on_hex_changed;
-		input_config.callbacks.user_data = this;
+		input_config.callbacks.edited		  = on_hex_changed;
+		input_config.callbacks.edit_submitted = on_input_edit_submitted;
+		input_config.callbacks.user_data	  = this;
 		_inputs[row].init(*_ui, row_widget, input_config);
 
 		ui::layout_in_t& input_in				 = tree.in(_inputs[row].get_root());
@@ -378,24 +432,37 @@ namespace sfg
 		if (_config.edit_begin != nullptr)
 			_config.edit_begin(_config.user_data);
 
+		color_t linear_color = color_utils_t::srgb_to_linear(_display_color);
+		linear_color.w		 = _display_color.w;
+
+		if (_config.hdr)
+		{
+			const double multiplier = math::pow(2.0, static_cast<double>(_exposure));
+			const double max_value	= static_cast<double>(std::numeric_limits<f32>::max());
+			linear_color.x			= static_cast<f32>(math::min(static_cast<double>(linear_color.x) * multiplier, max_value));
+			linear_color.y			= static_cast<f32>(math::min(static_cast<double>(linear_color.y) * multiplier, max_value));
+			linear_color.z			= static_cast<f32>(math::min(static_cast<double>(linear_color.z) * multiplier, max_value));
+		}
+
 		for (size_t i = 0; i < _config.field.fields.size; ++i)
-			*_config.field.fields.data[i] = _display_color;
+			*_config.field.fields.data[i] = linear_color;
 
 		if (_config.on_data_changed != nullptr)
 			_config.on_data_changed(_config.user_data);
 	}
 
-	void editor_widget_color_wheel_t::update_displays(bool apply_wheel)
+	void editor_widget_color_wheel_t::update_displays(bool apply_wheel, bool preserve_focused_input)
 	{
 		_number_values[0] = _display_color.x;
 		_number_values[1] = _display_color.y;
 		_number_values[2] = _display_color.z;
 		_number_values[3] = _display_color.w;
 
-		const color_t hsv = color_utils_t::srgb_to_hsv(_display_color);
-		_number_values[4] = hsv.x / 360.0f;
-		_number_values[5] = hsv.y;
-		_number_values[6] = hsv.z;
+		const color_t hsv			   = color_utils_t::srgb_to_hsv(_display_color);
+		_number_values[4]			   = hsv.x / 360.0f;
+		_number_values[5]			   = hsv.y;
+		_number_values[6]			   = hsv.z;
+		_number_values[EXPOSURE_FIELD] = _exposure;
 		color_utils_t::to_hex(_display_color, _hex_value, sizeof(_hex_value));
 
 		if (apply_wheel)
@@ -406,35 +473,45 @@ namespace sfg
 			top_left_handle_in.pos_value.y		= -math::sin(top_left_angle) * _number_values[5] * 0.5f + 0.5f;
 		}
 
+		const ui::widget_id_t focused_input = _ui->get_input().get_focused();
+
 		for (editor_input_field_t& input : _inputs)
+		{
+			if (preserve_focused_input && input.get_root() == focused_input)
+				continue;
+
 			input.refresh_field_data();
+		}
 
 		for (u32 i = 0; i < TOP_RIGHT_FRAME_COUNT; ++i)
 			_ui->get_tree().in(_top_right_handles[i]).pos_value.y = _top_right_values[i];
 
-		const vec4f_t display_color = _display_color.to_vector();
+		for (u32 i = 0; i < TOP_RIGHT_FRAME_COUNT; ++i)
+		{
+			color_t linear_base_color = color_utils_t::srgb_to_linear(_top_right_base_colors[i]);
+			linear_base_color.w		  = _top_right_base_colors[i].w;
 
-		ui::vg_rect_paint_t brightness = {};
-		brightness.fill_color_a		   = display_color;
-		brightness.fill_color_b		   = {1.0f, 1.0f, 1.0f, 1.0f};
-		brightness.gradient			   = ui::vg_gradient_e::vertical;
-		_ui->get_paint().set_rect(_top_right_frames[0], brightness);
-
-		ui::vg_rect_paint_t darkness = {};
-		darkness.fill_color_a		 = display_color;
-		darkness.fill_color_b		 = {0.0f, 0.0f, 0.0f, 1.0f};
-		darkness.gradient			 = ui::vg_gradient_e::vertical;
-		_ui->get_paint().set_rect(_top_right_frames[1], darkness);
+			ui::vg_rect_paint_t value = {};
+			value.fill_color_a		  = linear_base_color.to_vector();
+			value.fill_color_b		  = i == 0 ? vec4f_t{1.0f, 1.0f, 1.0f, linear_base_color.w} : vec4f_t{0.0f, 0.0f, 0.0f, linear_base_color.w};
+			value.gradient			  = ui::vg_gradient_e::vertical;
+			_ui->get_paint().set_rect(_top_right_frames[i], value);
+		}
 	}
 
 	void editor_widget_color_wheel_t::on_rgba_changed(void* user_data)
 	{
 		editor_widget_color_wheel_t& wheel = *static_cast<editor_widget_color_wheel_t*>(user_data);
 		wheel._display_color			   = {wheel._number_values[0], wheel._number_values[1], wheel._number_values[2], wheel._number_values[3]};
-		for (f32& value : wheel._top_right_values)
-			value = 0.0f;
+
+		for (u32 i = 0; i < TOP_RIGHT_FRAME_COUNT; ++i)
+		{
+			wheel._top_right_values[i]		= 0.0f;
+			wheel._top_right_base_colors[i] = wheel._display_color;
+		}
+
 		wheel.modify_field();
-		wheel.update_displays(true);
+		wheel.update_displays(true, true);
 	}
 
 	void editor_widget_color_wheel_t::on_hsv_changed(void* user_data)
@@ -442,10 +519,23 @@ namespace sfg
 		editor_widget_color_wheel_t& wheel = *static_cast<editor_widget_color_wheel_t*>(user_data);
 		const color_t				 color = color_utils_t::hsv_to_srgb({wheel._number_values[4] * 360.0f, wheel._number_values[5], wheel._number_values[6], wheel._display_color.w});
 		wheel._display_color			   = color;
-		for (f32& value : wheel._top_right_values)
-			value = 0.0f;
+
+		for (u32 i = 0; i < TOP_RIGHT_FRAME_COUNT; ++i)
+		{
+			wheel._top_right_values[i]		= 0.0f;
+			wheel._top_right_base_colors[i] = wheel._display_color;
+		}
+
 		wheel.modify_field();
-		wheel.update_displays(true);
+		wheel.update_displays(true, true);
+	}
+
+	void editor_widget_color_wheel_t::on_exposure_changed(void* user_data)
+	{
+		editor_widget_color_wheel_t& wheel = *static_cast<editor_widget_color_wheel_t*>(user_data);
+		wheel._exposure					   = math::clamp(wheel._number_values[EXPOSURE_FIELD], -15.0f, 15.0f);
+		wheel.modify_field();
+		wheel.update_displays(true, true);
 	}
 
 	void editor_widget_color_wheel_t::on_hex_changed(void* user_data)
@@ -455,10 +545,21 @@ namespace sfg
 			return;
 
 		wheel._display_color = color_utils_t::from_hex(wheel._hex_value);
-		for (f32& value : wheel._top_right_values)
-			value = 0.0f;
+
+		for (u32 i = 0; i < TOP_RIGHT_FRAME_COUNT; ++i)
+		{
+			wheel._top_right_values[i]		= 0.0f;
+			wheel._top_right_base_colors[i] = wheel._display_color;
+		}
+
 		wheel.modify_field();
-		wheel.update_displays(true);
+		wheel.update_displays(true, true);
+	}
+
+	void editor_widget_color_wheel_t::on_input_edit_submitted(void* user_data)
+	{
+		editor_widget_color_wheel_t& wheel = *static_cast<editor_widget_color_wheel_t*>(user_data);
+		wheel.update_displays(true, false);
 	}
 
 	void editor_widget_color_wheel_t::apply_top_left_wheel(const vec2f_t& pos)
@@ -483,10 +584,15 @@ namespace sfg
 		top_left_handle_in.pos_value.y		= y * inv_r * s * 0.5f + 0.5f;
 
 		_display_color = color_utils_t::hsv_to_srgb({h, s, 1.0f, _display_color.w});
-		for (f32& value : _top_right_values)
-			value = 0.0f;
+
+		for (u32 i = 0; i < TOP_RIGHT_FRAME_COUNT; ++i)
+		{
+			_top_right_values[i]	  = 0.0f;
+			_top_right_base_colors[i] = _display_color;
+		}
+
 		modify_field();
-		update_displays(false);
+		update_displays(false, false);
 	}
 
 	void editor_widget_color_wheel_t::apply_top_right_slider(ui::widget_id_t id, const vec2f_t& pos)
@@ -504,9 +610,16 @@ namespace sfg
 		const ui::layout_out_t& out = _ui->get_tree().out(id);
 		const f32				t	= out.size.y > 0.0f ? math::clamp((pos.y - out.pos.y) / out.size.y, 0.0f, 1.0f) : 0.0f;
 		_top_right_values[index]	= t;
-		_display_color				= index == 0 ? color_utils_t::lerp(_top_right_drag_color, color_t::white, t) : color_utils_t::lerp(_top_right_drag_color, color_t::black, t);
+
+		_display_color	 = index == 0 ? color_utils_t::lerp(_top_right_base_colors[index], color_t::white, t) : color_utils_t::lerp(_top_right_base_colors[index], color_t::black, t);
+		_display_color.w = _top_right_base_colors[index].w;
+
+		const u32 other_index				= index == 0 ? 1 : 0;
+		_top_right_values[other_index]		= 0.0f;
+		_top_right_base_colors[other_index] = _display_color;
+
 		modify_field();
-		update_displays(true);
+		update_displays(true, false);
 	}
 
 	void editor_widget_color_wheel_t::on_top_left_frame_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
@@ -528,9 +641,7 @@ namespace sfg
 		if (btn != ui::mouse_button_e::left)
 			return;
 
-		editor_widget_color_wheel_t& wheel = *static_cast<editor_widget_color_wheel_t*>(user_data);
-		wheel._top_right_drag_color		   = wheel._display_color;
-		wheel.apply_top_right_slider(id, pos);
+		static_cast<editor_widget_color_wheel_t*>(user_data)->apply_top_right_slider(id, pos);
 	}
 
 	void editor_widget_color_wheel_t::on_top_right_frame_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t&, void* user_data)
