@@ -421,15 +421,21 @@ namespace sfg
 				break;
 			}
 			case shader_param_type_e::vec4: {
-				if (definition.hint == shader_param_hint_e::color)
+				if (definition.hint == shader_param_hint_e::color || definition.hint == shader_param_hint_e::color_hdr)
 				{
-					vector_t<color_t*> fields = {};
+					vector_t<f32*> fields = {};
 					fields.reserve(_materials.size());
 					for (material_def_t& material : _materials)
-						fields.push_back(reinterpret_cast<color_t*>(material.parameters[parameter_index].value));
+						fields.push_back(material.parameters[parameter_index].value);
 
 					editor_color_field_t* control = new editor_color_field_t();
-					control->init(*_ui, row.right, {.field = {.fields = {.data = fields.data(), .size = fields.size()}}, .callbacks = callbacks});
+					control->init(*_ui,
+								  row.right,
+								  {
+									  .field	 = {.float4_fields = {.data = fields.data(), .size = fields.size()}},
+									  .callbacks = callbacks,
+									  .hdr		 = definition.hint == shader_param_hint_e::color_hdr,
+								  });
 					fit_control(control->get_root());
 					_color_fields.push_back(control);
 					break;

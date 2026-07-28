@@ -47,8 +47,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
-#include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
@@ -254,7 +252,9 @@ namespace sfg
 		editor_world_t* const editor_world	  = controller.get_editor_world(_world);
 
 		editor_world->install_camera(editor_world_camera_type_e::orbit);
-		create_environment();
+
+		editor_world_util_t::install_default_scene(editor_world->get_world());
+
 		_world_view.set_edit_world(_world);
 	}
 
@@ -264,19 +264,8 @@ namespace sfg
 			return;
 
 		editor_world_controller_t::get().destroy_world(_world);
-		_world				= {};
-		_environment_entity = NULL_ENTITY_ID;
-	}
 
-	void editor_panel_skeleton_viewer_t::create_environment()
-	{
-		world_t& world						 = editor_world_controller_t::get().get_editor_world(_world)->get_world();
-		_environment_entity					 = world.create_entity("skeleton_viewer_environment");
-		component_environment_t& environment = ecs_helpers_t::table_add_or_get_as<component_environment_t>(world.get_component_table(type_id_t<component_environment_t>::value), _environment_entity);
-		environment.skybox_material			 = DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID;
-		environment.intensity				 = 0.25f;
-
-		world.scan_for_resources(_environment_entity, true);
+		_world = {};
 	}
 
 	void editor_panel_skeleton_viewer_t::rebuild_joint_draw_data()

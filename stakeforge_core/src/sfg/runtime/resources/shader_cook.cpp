@@ -279,6 +279,11 @@ namespace sfg
 				out = shader_param_hint_e::color;
 				return true;
 			}
+			if (arg == "sfg_color_hdr")
+			{
+				out = shader_param_hint_e::color_hdr;
+				return true;
+			}
 			if (arg == "sfg_pack_uint2")
 			{
 				out = shader_param_hint_e::pack_uint2;

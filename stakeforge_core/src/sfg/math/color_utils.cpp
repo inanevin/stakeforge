@@ -86,7 +86,7 @@ namespace sfg
 
 	color_t color_utils_t::srgb_to_hsv(const color_t& col)
 	{
-		color_t hsv;
+		color_t hsv = color_t::black;
 
 		const f32 min_value = math::min(col.x, math::min(col.y, col.z));
 		const f32 max_value = math::max(col.x, math::max(col.y, col.z));
@@ -95,10 +95,7 @@ namespace sfg
 		if (delta == 0.0f)
 			hsv.x = 0.0f;
 		else if (max_value == col.x)
-		{
-			f32 integ = 0.0f;
-			hsv.x	  = 60.0f * math::modf((col.y - col.z) / delta, &integ);
-		}
+			hsv.x = 60.0f * math::fmodf((col.y - col.z) / delta, 6.0f);
 		else if (max_value == col.y)
 			hsv.x = 60.0f * (((col.z - col.x) / delta) + 2.0f);
 		else if (max_value == col.z)
@@ -116,12 +113,13 @@ namespace sfg
 
 	color_t color_utils_t::hsv_to_srgb(const color_t& col)
 	{
-		color_t rgb;
-		f32		C	  = col.z * col.y;
-		f32		integ = 0.0f;
-		f32		X	  = C * (1 - math::abs(math::modf(col.x / 60.0f, &integ) - 1.0f));
-		f32		m	  = col.z - C;
-		f32		R1, G1, B1;
+		color_t	  rgb = color_t::black;
+		const f32 C	  = col.z * col.y;
+		const f32 X	  = C * (1.0f - math::abs(math::fmodf(col.x / 60.0f, 2.0f) - 1.0f));
+		const f32 m	  = col.z - C;
+		f32		  R1  = 0.0f;
+		f32		  G1  = 0.0f;
+		f32		  B1  = 0.0f;
 
 		if (col.x >= 0 && col.x < 60)
 		{

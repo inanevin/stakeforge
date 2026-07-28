@@ -96,6 +96,8 @@ namespace sfg
 		{
 		case shader_param_hint_e::color:
 			return "color";
+		case shader_param_hint_e::color_hdr:
+			return "color_hdr";
 		case shader_param_hint_e::pack_uint2:
 			return "pack_uint2";
 		case shader_param_hint_e::toggle:
@@ -134,6 +136,8 @@ namespace sfg
 	{
 		if (value == "color")
 			return shader_param_hint_e::color;
+		if (value == "color_hdr")
+			return shader_param_hint_e::color_hdr;
 		if (value == "pack_uint2")
 			return shader_param_hint_e::pack_uint2;
 		if (value == "toggle")

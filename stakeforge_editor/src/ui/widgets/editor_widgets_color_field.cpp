@@ -100,6 +100,7 @@ namespace sfg
 		_swatch = NULL_WIDGET;
 		_label	= NULL_WIDGET;
 		_fields.resize(0);
+		_float4_fields.resize(0);
 		_config		 = {};
 		_color		 = {};
 		_mixed		 = false;
@@ -117,22 +118,56 @@ namespace sfg
 
 	void editor_color_field_t::update_field_data(editor_color_field_field_t field)
 	{
-		if (field.fields.data != _fields.data())
-			_fields.assign(field.fields.data, field.fields.data + field.fields.size);
+		if (field.fields.size > 0)
+		{
+			if (field.fields.data != _fields.data())
+				_fields.assign(field.fields.data, field.fields.data + field.fields.size);
 
-		field.fields  = {.data = _fields.data(), .size = _fields.size()};
+			_float4_fields.resize(0);
+			field.fields		= {.data = _fields.data(), .size = _fields.size()};
+			field.float4_fields = {};
+			_color				= *field.fields.data[0];
+		}
+		else
+		{
+			if (field.float4_fields.data != _float4_fields.data())
+				_float4_fields.assign(field.float4_fields.data, field.float4_fields.data + field.float4_fields.size);
+
+			_fields.resize(0);
+			field.fields		= {};
+			field.float4_fields = {.data = _float4_fields.data(), .size = _float4_fields.size()};
+			const f32* value	= field.float4_fields.data[0];
+			_color				= {value[0], value[1], value[2], value[3]};
+		}
+
 		_config.field = field;
-		_color		  = *field.fields.data[0];
 		_mixed		  = false;
 
-		for (size_t i = 1; i < field.fields.size; ++i)
+		if (field.fields.size > 0)
 		{
-			if (*field.fields.data[i] != _color)
+			for (size_t i = 1; i < field.fields.size; ++i)
 			{
-				_mixed = true;
-				break;
+				if (*field.fields.data[i] != _color)
+				{
+					_mixed = true;
+					break;
+				}
 			}
 		}
+		else
+		{
+			for (size_t i = 1; i < field.float4_fields.size; ++i)
+			{
+				const f32* value = field.float4_fields.data[i];
+
+				if (color_t(value[0], value[1], value[2], value[3]) != _color)
+				{
+					_mixed = true;
+					break;
+				}
+			}
+		}
+
 		refresh_color();
 	}
 
@@ -173,8 +208,22 @@ namespace sfg
 
 	void editor_color_field_t::modify_field()
 	{
-		for (size_t i = 0; i < _config.field.fields.size; ++i)
-			*_config.field.fields.data[i] = _color;
+		if (_config.field.fields.size > 0)
+		{
+			for (size_t i = 0; i < _config.field.fields.size; ++i)
+				*_config.field.fields.data[i] = _color;
+		}
+		else
+		{
+			for (size_t i = 0; i < _config.field.float4_fields.size; ++i)
+			{
+				f32* value = _config.field.float4_fields.data[i];
+				value[0]   = _color.x;
+				value[1]   = _color.y;
+				value[2]   = _color.z;
+				value[3]   = _color.w;
+			}
+		}
 
 		if (_config.callbacks.edited != nullptr)
 			_config.callbacks.edited(_config.callbacks.user_data);
@@ -214,21 +263,23 @@ namespace sfg
 			.install   = on_color_wheel_popup_install,
 			.uninstall = on_color_wheel_popup_uninstall,
 			.user_data = &field,
-			.pos	   = editor_popup_color_wheel_t::calculate_position(*field._ui, pos),
+			.pos	   = editor_popup_color_wheel_t::calculate_position(*field._ui, pos, field._config.hdr),
 		});
 	}
 
 	void editor_color_field_t::on_color_wheel_popup_install(ui::ui_context& ui, ui::widget_id_t parent, void* user_data)
 	{
 		editor_color_field_t& field = *static_cast<editor_color_field_t*>(user_data);
+		color_t*			  color = &field._color;
 		field._color_wheel_popup	= new editor_popup_color_wheel_t();
 		field._color_wheel_popup->init(ui,
 									   parent,
 									   {
-										   .fields			= {.data = field._fields.data(), .size = field._fields.size()},
+										   .fields			= {.data = &color, .size = 1},
 										   .edit_begin		= on_color_wheel_edit_begin,
 										   .on_data_changed = on_color_wheel_data_changed,
 										   .user_data		= &field,
+										   .hdr				= field._config.hdr,
 									   });
 	}
 
@@ -250,15 +301,28 @@ namespace sfg
 	{
 		editor_color_field_t& field	  = *static_cast<editor_color_field_t*>(user_data);
 		bool				  changed = field._mixed;
-		for (size_t i = 0; i < field._config.field.fields.size; ++i)
-			changed |= *field._config.field.fields.data[i] != field._color;
+
+		if (field._config.field.fields.size > 0)
+		{
+			for (size_t i = 0; i < field._config.field.fields.size; ++i)
+				changed |= *field._config.field.fields.data[i] != field._color;
+		}
+		else
+		{
+			for (size_t i = 0; i < field._config.field.float4_fields.size; ++i)
+			{
+				const f32* value = field._config.field.float4_fields.data[i];
+				changed |= color_t(value[0], value[1], value[2], value[3]) != field._color;
+			}
+		}
+
 		if (!changed)
 			return;
 
-		field.refresh_field_data();
+		field._mixed = false;
+		field.modify_field();
+		field.refresh_color();
 		field._edit_dirty = true;
-		if (field._config.callbacks.edited != nullptr)
-			field._config.callbacks.edited(field._config.callbacks.user_data);
 	}
 
 }

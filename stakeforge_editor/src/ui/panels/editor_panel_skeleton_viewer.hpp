@@ -39,7 +39,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/memory/pool_handle.hpp>
 #include <sfg/runtime/resources/skeleton_def.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
@@ -97,7 +96,6 @@ namespace sfg
 
 		void			create_preview_world();
 		void			destroy_preview_world();
-		void			create_environment();
 		void			rebuild_joint_draw_data();
 		void			draw_skeleton(world_t& world) const;
 		void			refresh_info();
@@ -131,7 +129,6 @@ namespace sfg
 		chunk_handle32_t										 _edit_previous_stream	  = {};
 		sid_t													 _skeleton_guid			  = 0;
 		u32														 _root_joint_index		  = UINT32_MAX;
-		entity_id_t												 _environment_entity	  = NULL_ENTITY_ID;
 		ui::widget_id_t											 _left_pane				  = NULL_WIDGET;
 		ui::widget_id_t											 _right_pane			  = NULL_WIDGET;
 		ui::widget_id_t											 _joint_count_value		  = NULL_WIDGET;

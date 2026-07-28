@@ -46,7 +46,8 @@ namespace sfg
 
 	struct editor_color_field_field_t
 	{
-		span_t<color_t*> fields = {};
+		span_t<color_t*> fields		   = {};
+		span_t<f32*>	 float4_fields = {};
 	};
 
 	struct editor_color_field_config_t
@@ -54,6 +55,7 @@ namespace sfg
 		editor_color_field_field_t	 field	   = {};
 		editor_widget_width_config_t width	   = {};
 		editor_widget_callbacks_t	 callbacks = {};
+		bool						 hdr	   = false;
 	};
 
 	class editor_color_field_t final
@@ -95,6 +97,7 @@ namespace sfg
 	private:
 		editor_color_field_config_t _config			   = {};
 		vector_t<color_t*>			_fields			   = {};
+		vector_t<f32*>				_float4_fields	   = {};
 		ui::ui_context*				_ui				   = nullptr;
 		editor_popup_color_wheel_t* _color_wheel_popup = nullptr;
 		color_t						_color			   = {};

@@ -59,6 +59,7 @@ namespace sfg
 	{
 		none,
 		color,
+		color_hdr,
 		pack_uint2,
 		toggle,
 	};

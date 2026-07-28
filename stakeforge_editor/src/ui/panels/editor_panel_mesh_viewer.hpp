@@ -66,7 +66,6 @@ namespace sfg
 	private:
 		void			create_preview_world();
 		void			destroy_preview_world();
-		void			create_environment();
 		void			clear_display_entity();
 		void			create_display_entity();
 		void			refresh_info();
@@ -90,7 +89,6 @@ namespace sfg
 		pool_handle_t<u32, editor_asset_deletion_listener_tag_t> _asset_deletion_listener = {};
 		sid_t													 _mesh_guid				  = 0;
 		entity_id_t												 _display_entity		  = NULL_ENTITY_ID;
-		entity_id_t												 _environment_entity	  = NULL_ENTITY_ID;
 		ui::widget_id_t											 _left_pane				  = NULL_WIDGET;
 		ui::widget_id_t											 _right_pane			  = NULL_WIDGET;
 		ui::widget_id_t											 _vertex_count_value	  = NULL_WIDGET;
