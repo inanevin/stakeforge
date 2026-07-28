@@ -85,6 +85,7 @@ namespace sfg
 		_runtime.assets_path		 = dir + "assets/";
 		_runtime.cache_path			 = _runtime.assets_path + "_cache/";
 		_runtime.default_assets_path = _runtime.assets_path + "_sfg_assets/";
+		_runtime.game_assets_path	 = _runtime.assets_path + "_game_assets/";
 
 		if (!file_system_t::exists(_runtime.assets_path.c_str()))
 			file_system_t::create_directory(_runtime.assets_path.c_str());
@@ -94,6 +95,9 @@ namespace sfg
 
 		if (!file_system_t::exists(_runtime.default_assets_path.c_str()))
 			file_system_t::create_directory(_runtime.default_assets_path.c_str());
+
+		if (!file_system_t::exists(_runtime.game_assets_path.c_str()))
+			file_system_t::create_directory(_runtime.game_assets_path.c_str());
 	}
 
 }
