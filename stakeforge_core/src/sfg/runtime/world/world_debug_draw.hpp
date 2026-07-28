@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/resources/vertex.hpp>
+#include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/world/world_debug_draw_config.hpp>
 
 namespace sfg::ui
@@ -117,6 +118,14 @@ namespace sfg
 						  debug_draw_text_alignment_e alignment		= debug_draw_text_alignment_e::center,
 						  const vec2f_t&			  screen_offset = vec2f_t::zero,
 						  resource_handle_t			  font			= NULL_RESOURCE_HANDLE);
+		void draw_texture_3d(const vec3f_t&		position,
+							 resource_handle_t	texture,
+							 const vec2f_t&		size_px,
+							 const color_t&		color,
+							 entity_id_t		entity_id		 = NULL_ENTITY_ID,
+							 debug_draw_depth_e depth			 = debug_draw_depth_e::always_visible,
+							 const vec2f_t&		screen_offset	 = vec2f_t::zero,
+							 bool				is_linear_sample = true);
 		void debug_draw_missing_resources(const world_t& world);
 		void write_snapshot(world_debug_draw_snapshot_t& snapshot);
 
@@ -139,6 +148,11 @@ namespace sfg
 			return _dropped_text_count;
 		}
 
+		inline u32 get_dropped_texture_count() const
+		{
+			return _dropped_texture_count;
+		}
+
 	private:
 		struct text_command_t
 		{
@@ -154,16 +168,30 @@ namespace sfg
 			bool						is_screen	  = false;
 		};
 
+		struct texture_command_t
+		{
+			vec4f_t			   color			= vec4f_t::zero;
+			vec3f_t			   position			= vec3f_t::zero;
+			resource_handle_t  texture			= NULL_RESOURCE_HANDLE;
+			vec2f_t			   size_px			= vec2f_t::zero;
+			vec2f_t			   screen_offset	= vec2f_t::zero;
+			entity_id_t		   entity_id		= NULL_ENTITY_ID;
+			debug_draw_depth_e depth			= debug_draw_depth_e::always_visible;
+			bool			   is_linear_sample = true;
+		};
+
 		vector_t<vertex_debug_line_t>	  _vertices;
 		vector_t<primitive_index>		  _indices;
 		vector_t<vertex_debug_triangle_t> _triangle_vertices;
 		vector_t<primitive_index>		  _triangle_indices;
 		vector_t<text_command_t>		  _text_commands;
+		vector_t<texture_command_t>		  _texture_commands;
 		vector_t<char>					  _text_bytes;
 		unique_t<ui::vg_canvas_t>		  _text_canvas;
 		world_debug_draw_config_t		  _config				  = {};
 		u32								  _dropped_line_count	  = 0;
 		u32								  _dropped_triangle_count = 0;
 		u32								  _dropped_text_count	  = 0;
+		u32								  _dropped_texture_count  = 0;
 	};
 }

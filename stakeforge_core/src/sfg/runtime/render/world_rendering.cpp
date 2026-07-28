@@ -1563,6 +1563,23 @@ namespace sfg
 		// debug draws
 		const world_debug_draw_snapshot_t& debug_draw = snapshot.debug_draw;
 
+		if (!debug_draw.textures.empty())
+		{
+			const gpu_index_t view_data_index	   = ctx.get_view_render_pass_data_index(frame_index);
+			const gpu_index_t texture_buffer_index = ctx.get_debug_texture_buffer_index(frame_index);
+
+			backend.cmd_bind_constants(cmd, {.data = &view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
+			backend.cmd_bind_constants(cmd, {.data = &texture_buffer_index, .offset = constant_obj0, .count = 1, .param_index = 0});
+			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_debug_texture_shader()});
+			backend.cmd_draw_instanced(cmd,
+									   {
+										   .vertex_count_per_instance = 6,
+										   .instance_count			  = static_cast<u32>(debug_draw.textures.size()),
+										   .start_vertex_location	  = 0,
+										   .start_instance_location	  = 0,
+									   });
+		}
+
 		if (!debug_draw.line_indices.empty())
 		{
 			const gpu_index_t view_data_index = ctx.get_view_render_pass_data_index(frame_index);

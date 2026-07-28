@@ -298,6 +298,7 @@ namespace sfg
 		size_t triangle_index_initial_capacity	 = 0;
 		size_t text_vertex_initial_capacity		 = 0;
 		size_t text_index_initial_capacity		 = 0;
+		size_t debug_texture_initial_capacity	 = 0;
 	};
 
 	struct world_render_snapshot_t
@@ -339,6 +340,7 @@ namespace sfg
 			debug_draw.triangle_indices.reserve(config.triangle_index_initial_capacity);
 			debug_draw.text_vertices.reserve(config.text_vertex_initial_capacity);
 			debug_draw.text_indices.reserve(config.text_index_initial_capacity);
+			debug_draw.textures.reserve(config.debug_texture_initial_capacity);
 		}
 	};
 }

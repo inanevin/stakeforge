@@ -49,6 +49,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		static entity_id_t install_default_scene(world_t& world);
+		static void		   draw_component_icons(world_t& world);
 		static void		   draw_selection_gizmos(world_t& world, span_t<const entity_id_t> selected_entities, const vec2u16_t& render_resolution);
 		static void		   draw_skeletons(world_t& world);
 		static void		   draw_bounding_boxes(world_t& world, const world_render_snapshot_t& snapshot);

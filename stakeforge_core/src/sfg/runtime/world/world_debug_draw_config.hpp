@@ -43,5 +43,6 @@ namespace sfg
 		u32				  text_budget_bytes			= 0;
 		u32				  text_vertex_max_count		= 0;
 		u32				  text_index_max_count		= 0;
+		u32				  texture_max_count			= 0;
 	};
 }

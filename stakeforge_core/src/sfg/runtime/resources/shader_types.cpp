@@ -44,6 +44,7 @@ namespace sfg
 					{.name = "sprite_lit_shader", .display_name = "Sprite Lit Shader"},
 					{.name = "sprite_unlit_shader", .display_name = "Sprite Unlit Shader"},
 					{.name = "particle_shader", .display_name = "Particle Shader"},
+					{.name = "debug_texture", .display_name = "Debug Texture"},
 				},
 			.type_id   = type_id_t<shader_type_e>::value,
 			.size	   = sizeof(shader_type_e),

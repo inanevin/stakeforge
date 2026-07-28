@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_world_util.hpp"
 #include "assets/editor_asset.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/char_util.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/io/assert.hpp>
@@ -59,6 +60,13 @@ namespace sfg
 #define EDITOR_WORLD_SKELETON_JOINT_RADIUS_RATIO	 0.02f
 #define EDITOR_WORLD_SKELETON_AXIS_LENGTH_RATIO		 0.12f
 #define EDITOR_WORLD_SKELETON_SLOT_HALF_EXTENT_SCALE 1.5f
+#define EDITOR_WORLD_COMPONENT_ICON_SIZE_PX			 42.0f
+#define EDITOR_WORLD_COMPONENT_ICON_GAP_PX			 4.0f
+#define EDITOR_WORLD_ICON_AUDIO						 "editor/resource_pack/textures/icon_audio.png"_hs
+#define EDITOR_WORLD_ICON_BULB						 "editor/resource_pack/textures/icon_bulb.png"_hs
+#define EDITOR_WORLD_ICON_CAMERA					 "editor/resource_pack/textures/icon_camera.png"_hs
+#define EDITOR_WORLD_ICON_CONSTRAINT				 "editor/resource_pack/textures/icon_constraint.png"_hs
+#define EDITOR_WORLD_ICON_PROBE						 "editor/resource_pack/textures/icon_probe.png"_hs
 
 	namespace
 	{
@@ -285,6 +293,91 @@ namespace sfg
 			char_util::append(text_cur, text_end, " x ");
 			char_util::append_double(text_cur, text_end, dimensions.z, 2);
 			debug_draw.draw_text_3d(text_position, dimensions_text, bounds_color, theme.text_small_px_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
+		}
+	}
+
+	void editor_world_util_t::draw_component_icons(world_t& world)
+	{
+		world_debug_draw_t&			 debug_draw				= world.get_debug_draw();
+		const ecs_component_table_t& alive_table			= world.get_component_table(type_id_t<component_alive_t>::value);
+		const ecs_component_table_t& transform_table		= world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& disabled_table			= world.get_component_table(type_id_t<component_disabled_t>::value);
+		const ecs_component_table_t& audio_source_table		= world.get_component_table(type_id_t<component_audio_source_t>::value);
+		const ecs_component_table_t& audio_listener_table	= world.get_component_table(type_id_t<component_audio_listener_t>::value);
+		const ecs_component_table_t& camera_table			= world.get_component_table(type_id_t<component_camera_t>::value);
+		const ecs_component_table_t& light_table			= world.get_component_table(type_id_t<component_light_t>::value);
+		const ecs_component_table_t& reflection_probe_table = world.get_component_table(type_id_t<component_reflection_probe_t>::value);
+		const ecs_component_table_t& fixed_table			= world.get_component_table(type_id_t<component_fixed_constraint_t>::value);
+		const ecs_component_table_t& distance_table			= world.get_component_table(type_id_t<component_distance_constraint_t>::value);
+		const ecs_component_table_t& point_table			= world.get_component_table(type_id_t<component_point_constraint_t>::value);
+		const ecs_component_table_t& hinge_table			= world.get_component_table(type_id_t<component_hinge_constraint_t>::value);
+		const ecs_component_table_t& cone_table				= world.get_component_table(type_id_t<component_cone_constraint_t>::value);
+		const ecs_component_table_t& slider_table			= world.get_component_table(type_id_t<component_slider_constraint_t>::value);
+		const ecs_component_table_t& swing_twist_table		= world.get_component_table(type_id_t<component_swing_twist_constraint_t>::value);
+		const ecs_component_table_t& six_dof_table			= world.get_component_table(type_id_t<component_six_dof_constraint_t>::value);
+		const ecs_component_table_t& pulley_table			= world.get_component_table(type_id_t<component_pulley_constraint_t>::value);
+		const ecs_component_table_t& vehicle_table			= world.get_component_table(type_id_t<component_vehicle_constraint_t>::value);
+		const ecs_component_table_t* constraint_tables[]	= {
+			&fixed_table,
+			&distance_table,
+			&point_table,
+			&hinge_table,
+			&cone_table,
+			&slider_table,
+			&swing_twist_table,
+			&six_dof_table,
+			&pulley_table,
+			&vehicle_table,
+		};
+		const ecs_component_table_ref_t table_refs[] = {
+			alive_table.ref(),
+			transform_table.ref(),
+			!disabled_table.ref(),
+		};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+		{
+			const component_system_transform_t& transform  = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
+			resource_handle_t					icons[5]   = {};
+			u32									icon_count = 0;
+
+			if (ecs_t::table_has(audio_source_table, row.id) || ecs_t::table_has(audio_listener_table, row.id))
+				icons[icon_count++] = EDITOR_WORLD_ICON_AUDIO;
+
+			if (ecs_t::table_has(light_table, row.id))
+				icons[icon_count++] = EDITOR_WORLD_ICON_BULB;
+
+			if (ecs_t::table_has(camera_table, row.id))
+				icons[icon_count++] = EDITOR_WORLD_ICON_CAMERA;
+
+			bool has_constraint = false;
+
+			for (const ecs_component_table_t* table : constraint_tables)
+			{
+				if (!ecs_t::table_has(*table, row.id))
+					continue;
+
+				has_constraint = true;
+				break;
+			}
+
+			if (has_constraint)
+				icons[icon_count++] = EDITOR_WORLD_ICON_CONSTRAINT;
+
+			if (ecs_t::table_has(reflection_probe_table, row.id))
+				icons[icon_count++] = EDITOR_WORLD_ICON_PROBE;
+
+			if (icon_count == 0)
+				continue;
+
+			const f32 stride_px = EDITOR_WORLD_COMPONENT_ICON_SIZE_PX + EDITOR_WORLD_COMPONENT_ICON_GAP_PX;
+			const f32 start_x	= -static_cast<f32>(icon_count - 1) * stride_px * 0.5f;
+
+			for (u32 icon_index = 0; icon_index < icon_count; ++icon_index)
+			{
+				debug_draw.draw_texture_3d(
+					transform.abs_pos, icons[icon_index], {EDITOR_WORLD_COMPONENT_ICON_SIZE_PX, EDITOR_WORLD_COMPONENT_ICON_SIZE_PX}, color_t::white, row.id, debug_draw_depth_e::always_visible, {start_x + static_cast<f32>(icon_index) * stride_px, 0.0f});
+			}
 		}
 	}
 

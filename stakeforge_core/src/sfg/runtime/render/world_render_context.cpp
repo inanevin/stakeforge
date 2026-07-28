@@ -146,6 +146,13 @@ namespace sfg
 		particle_instance_buffer_desc.flags			  = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
 		particle_instance_buffer_desc.set_name("world_particle_instance_buffer");
 
+		resource_desc_t debug_texture_buffer_desc = {};
+		debug_texture_buffer_desc.size			  = static_cast<u32>(sizeof(world_debug_draw_texture_gpu_t) * config.debug_texture_max);
+		debug_texture_buffer_desc.structure_size  = static_cast<u32>(sizeof(world_debug_draw_texture_gpu_t));
+		debug_texture_buffer_desc.structure_count = config.debug_texture_max;
+		debug_texture_buffer_desc.flags			  = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
+		debug_texture_buffer_desc.set_name("world_debug_texture_buffer");
+
 		resource_desc_t bone_buffer_desc = {};
 		bone_buffer_desc.size			 = static_cast<u32>(sizeof(gpu_bone_t) * config.bone_max);
 		bone_buffer_desc.structure_size	 = static_cast<u32>(sizeof(gpu_bone_t));
@@ -281,6 +288,7 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].post_process_render_pass_data.is_null());
 			SFG_ASSERT(_pfd[i].entity_buffer.is_null());
 			SFG_ASSERT(_pfd[i].sprite_instance_buffer.is_null());
+			SFG_ASSERT(_pfd[i].debug_texture_buffer.is_null());
 			SFG_ASSERT(_pfd[i].bone_buffer.is_null());
 			SFG_ASSERT(_pfd[i].light_buffer.is_null());
 
@@ -320,6 +328,13 @@ namespace sfg
 			_pfd[i].particle_instance_buffer		   = backend.create_resource(particle_instance_buffer_desc);
 			_pfd[i].bone_buffer						   = backend.create_resource(bone_buffer_desc);
 			_pfd[i].light_buffer					   = backend.create_resource(light_buffer_desc);
+
+			if (config.debug_texture_max > 0)
+			{
+				_pfd[i].debug_texture_buffer = backend.create_resource(debug_texture_buffer_desc);
+				backend.map_resource(_pfd[i].debug_texture_buffer, _pfd[i].mapped_debug_texture_buffer);
+				_pfd[i].debug_texture_buffer_index = backend.get_resource_gpu_index(_pfd[i].debug_texture_buffer);
+			}
 
 			if (config.enable_ssao != 0)
 			{
@@ -404,6 +419,9 @@ namespace sfg
 		_shaders.debug_line						   = render_resources.get_shader_hw(sh->psos[0]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/debug_text.hlsl"_hs);
 		_shaders.debug_text						   = render_resources.get_shader_hw(sh->psos[0]);
+		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/debug_texture.hlsl"_hs);
+		_shaders.debug_texture					   = render_resources.get_shader_hw(sh->psos[0]);
+		_shaders.debug_texture_id				   = render_resources.get_shader_hw(sh->psos[1]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/clustered_light_culling.hlsl"_hs);
 		_shaders.clustered_light_culling		   = render_resources.get_shader_hw(sh->psos[0]);
 
@@ -496,6 +514,9 @@ namespace sfg
 				backend.destroy_resource(_pfd[i].debug_text_index_buffer);
 			}
 
+			if (_config.debug_texture_max > 0)
+				backend.destroy_resource(_pfd[i].debug_texture_buffer);
+
 			backend.destroy_command_buffer(_pfd[i].cmd_depth);
 			backend.destroy_command_buffer(_pfd[i].cmd_gbuffer);
 			backend.destroy_command_buffer(_pfd[i].cmd_lighting);
@@ -512,6 +533,7 @@ namespace sfg
 			_pfd[i].entity_buffer							  = {};
 			_pfd[i].sprite_instance_buffer					  = {};
 			_pfd[i].particle_instance_buffer				  = {};
+			_pfd[i].debug_texture_buffer					  = {};
 			_pfd[i].bone_buffer								  = {};
 			_pfd[i].light_buffer							  = {};
 			_pfd[i].debug_line_data							  = {};
@@ -528,6 +550,7 @@ namespace sfg
 			_pfd[i].mapped_entity_buffer					  = nullptr;
 			_pfd[i].mapped_sprite_instance_buffer			  = nullptr;
 			_pfd[i].mapped_particle_instance_buffer			  = nullptr;
+			_pfd[i].mapped_debug_texture_buffer				  = nullptr;
 			_pfd[i].mapped_bone_buffer						  = nullptr;
 			_pfd[i].mapped_light_buffer						  = nullptr;
 			_pfd[i].mapped_debug_line_data					  = nullptr;
@@ -544,6 +567,7 @@ namespace sfg
 			_pfd[i].entity_buffer_index						  = NULL_GPU_INDEX;
 			_pfd[i].sprite_instance_buffer_index			  = NULL_GPU_INDEX;
 			_pfd[i].particle_instance_buffer_index			  = NULL_GPU_INDEX;
+			_pfd[i].debug_texture_buffer_index				  = NULL_GPU_INDEX;
 			_pfd[i].bone_buffer_index						  = NULL_GPU_INDEX;
 			_pfd[i].light_buffer_index						  = NULL_GPU_INDEX;
 			_pfd[i].debug_line_data_index					  = NULL_GPU_INDEX;

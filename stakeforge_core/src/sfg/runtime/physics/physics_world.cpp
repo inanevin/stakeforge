@@ -1244,7 +1244,6 @@ namespace sfg
 
 		if (!sys)
 		{
-			SFG_ERR("can not destroy body as entity don't have one!");
 			return;
 		}
 

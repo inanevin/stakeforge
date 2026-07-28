@@ -85,6 +85,26 @@ namespace sfg
 	static_assert(sizeof(world_renderable_t) == 64);
 	static_assert(sizeof(world_draw_sprite_instance_gpu_t) == 40);
 
+	enum world_debug_draw_texture_flags_e : u32
+	{
+		world_debug_draw_texture_flag_none			= 0,
+		world_debug_draw_texture_flag_depth_tested	= 1 << 0,
+		world_debug_draw_texture_flag_linear_sample = 1 << 1,
+	};
+
+	struct world_debug_draw_texture_gpu_t
+	{
+		vec4f_t		color		  = vec4f_t::zero;
+		vec3f_t		position	  = vec3f_t::zero;
+		gpu_index_t texture_index = NULL_GPU_INDEX;
+		vec2f_t		size_px		  = vec2f_t::zero;
+		vec2f_t		screen_offset = vec2f_t::zero;
+		u32			entity_id	  = UINT32_MAX;
+		u32			flags		  = world_debug_draw_texture_flag_none;
+	};
+
+	static_assert(sizeof(world_debug_draw_texture_gpu_t) == 56);
+
 	struct world_particle_t
 	{
 		vec3f_t position		  = vec3f_t::zero;

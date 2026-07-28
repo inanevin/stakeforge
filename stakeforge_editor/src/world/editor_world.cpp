@@ -68,6 +68,7 @@ namespace sfg
 #define EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES			32768
 #define EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT		16384
 #define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT			24576
+#define EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT			8192
 #define EDITOR_MAIN_WORLD_LIGHT_MAX_COUNT				1024
 #define EDITOR_MAIN_WORLD_REFLECTION_PROBE_MAX_COUNT	256
 #define EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY			8000
@@ -90,6 +91,7 @@ namespace sfg
 							.text_budget_bytes		   = EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES,
 							.text_vertex_max_count	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
 							.text_index_max_count	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+							.texture_max_count		   = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
 						},
 					.render_resolution				   = render_resolution,
 					.render_entity_max_count		   = 1024 * 10,
@@ -120,6 +122,7 @@ namespace sfg
 					.triangle_index_max	  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
 					.text_vertex_max	  = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
 					.text_index_max		  = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+					.debug_texture_max	  = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
 					.shadow_view_max	  = ENGINE_SHADOW_VIEW_MAX,
 				},
 			.snapshot =
@@ -140,6 +143,7 @@ namespace sfg
 					.triangle_index_initial_capacity   = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
 					.text_vertex_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
 					.text_index_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+					.debug_texture_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
 				},
 			.render_prep =
 				{
@@ -170,6 +174,7 @@ namespace sfg
 							.text_budget_bytes		   = EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES,
 							.text_vertex_max_count	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
 							.text_index_max_count	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+							.texture_max_count		   = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
 						},
 					.particle_simulation =
 						{
@@ -206,6 +211,7 @@ namespace sfg
 					.triangle_index_max	  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
 					.text_vertex_max	  = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
 					.text_index_max		  = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+					.debug_texture_max	  = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
 					.shadow_view_max	  = 8,
 				},
 			.snapshot =
@@ -226,6 +232,7 @@ namespace sfg
 					.triangle_index_initial_capacity   = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
 					.text_vertex_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
 					.text_index_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+					.debug_texture_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
 				},
 			.render_prep =
 				{
@@ -699,8 +706,13 @@ namespace sfg
 
 		const span_t<const entity_id_t> selected = _edit_context.get_selected_entities();
 
-		if (_play_mode == editor_play_mode_e::none && selected.size != 0)
-			editor_world_util_t::draw_selection_gizmos(_world, selected, _render_resolution);
+		if (_play_mode == editor_play_mode_e::none)
+		{
+			editor_world_util_t::draw_component_icons(_world);
+
+			if (selected.size != 0)
+				editor_world_util_t::draw_selection_gizmos(_world, selected, _render_resolution);
+		}
 
 		if (_edit_context.is_skeletons_enabled())
 			editor_world_util_t::draw_skeletons(_world);

@@ -36,6 +36,7 @@ namespace sfg
 		sprite_lit_shader,
 		sprite_unlit_shader,
 		particle_shader,
+		debug_texture,
 		count,
 	};
 

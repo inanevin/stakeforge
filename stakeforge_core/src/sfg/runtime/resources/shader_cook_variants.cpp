@@ -603,6 +603,44 @@ namespace sfg
 		return true;
 	}
 
+	bool shader_cook_variants_t::cook_debug_texture_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
+	{
+		out_compiles.reserve(2);
+		out_psos.reserve(2);
+
+		if (!add_compile_variant(out_compiles, source, {}, include_paths, true))
+			return false;
+
+		if (!add_compile_variant(out_compiles, source, {"WRITE_ID"}, include_paths, true))
+			return false;
+
+		shader_desc_t color_desc						= {};
+		color_desc.topo									= topology::triangle_list;
+		color_desc.cull									= cull_mode::none;
+		color_desc.front								= front_face::ccw;
+		color_desc.fill									= fill_mode::solid;
+		color_desc.poly_mode							= polygon_mode::fill;
+		color_desc.samples								= 1;
+		color_desc.depth_stencil_desc.attachment_format = format_e::undefined;
+		color_desc.depth_stencil_desc.flags				= 0;
+		add_attachment(color_desc, format_e::r8g8b8a8_srgb, blend_attachments_t::get_alpha_blend());
+
+		shader_desc_t id_desc						 = {};
+		id_desc.topo								 = topology::triangle_list;
+		id_desc.cull								 = cull_mode::none;
+		id_desc.front								 = front_face::ccw;
+		id_desc.fill								 = fill_mode::solid;
+		id_desc.poly_mode							 = polygon_mode::fill;
+		id_desc.samples								 = 1;
+		id_desc.depth_stencil_desc.attachment_format = format_e::d32_sfloat;
+		id_desc.depth_stencil_desc.flags			 = 0;
+		add_attachment(id_desc, format_e::r32_uint, blend_attachments_t::get_none());
+
+		out_psos.push_back({.desc = color_desc, .variant_flags = 0, .compile_variant_index = 0});
+		out_psos.push_back({.desc = id_desc, .variant_flags = shader_variant_flags_id_write, .compile_variant_index = 1});
+		return true;
+	}
+
 	bool shader_cook_variants_t::cook_compute_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
 	{
 		out_compiles.push_back({});

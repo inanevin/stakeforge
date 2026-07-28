@@ -565,6 +565,29 @@ namespace sfg
 		// debug copy
 		const world_debug_draw_snapshot_t& debug_draw = snapshot.debug_draw;
 
+		if (!debug_draw.textures.empty())
+		{
+			SFG_ASSERT(debug_draw.textures.size() <= ctx.get_debug_texture_max());
+
+			world_debug_draw_texture_gpu_t* mapped_textures	 = reinterpret_cast<world_debug_draw_texture_gpu_t*>(ctx.get_mapped_debug_texture_buffer(frame_index));
+			render_resources_t&				render_resources = render_resources_t::get();
+
+			for (size_t i = 0; i < debug_draw.textures.size(); ++i)
+			{
+				const world_debug_draw_texture_t& texture = debug_draw.textures[i];
+
+				mapped_textures[i] = {
+					.color		   = texture.color,
+					.position	   = texture.position,
+					.texture_index = render_resources.get_texture_gpu_index(texture.texture, 0),
+					.size_px	   = texture.size_px,
+					.screen_offset = texture.screen_offset,
+					.entity_id	   = texture.entity_id,
+					.flags		   = texture.flags,
+				};
+			}
+		}
+
 		if (!debug_draw.line_indices.empty())
 		{
 			SFG_ASSERT(!debug_draw.line_vertices.empty());

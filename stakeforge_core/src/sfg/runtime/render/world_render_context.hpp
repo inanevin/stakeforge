@@ -168,6 +168,7 @@ namespace sfg
 		u32		  triangle_index_max   = 0;
 		u32		  text_vertex_max	   = 0;
 		u32		  text_index_max	   = 0;
+		u32		  debug_texture_max	   = 0;
 		u16		  shadow_view_max	   = 0;
 		u8		  enable_ssao		   = 1;
 		u8		  enable_bloom		   = 1;
@@ -291,6 +292,11 @@ namespace sfg
 		inline u32 get_particle_instance_max() const
 		{
 			return _config.particle_max == 0 ? 1 : _config.particle_max * (2 + WORLD_RENDER_REFLECTION_FACE_COUNT);
+		}
+
+		inline u32 get_debug_texture_max() const
+		{
+			return _config.debug_texture_max;
 		}
 
 		inline gfx_handle_t get_world_texture(u8 frame_index) const
@@ -568,6 +574,16 @@ namespace sfg
 			return _shaders.debug_text;
 		}
 
+		inline gfx_handle_t get_debug_texture_shader() const
+		{
+			return _shaders.debug_texture;
+		}
+
+		inline gfx_handle_t get_debug_texture_id_shader() const
+		{
+			return _shaders.debug_texture_id;
+		}
+
 		inline gfx_handle_t get_ssao_shader() const
 		{
 			return _shaders.ssao;
@@ -661,6 +677,16 @@ namespace sfg
 		inline gpu_index_t get_particle_instance_buffer_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].particle_instance_buffer_index;
+		}
+
+		inline u8* get_mapped_debug_texture_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_debug_texture_buffer;
+		}
+
+		inline gpu_index_t get_debug_texture_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].debug_texture_buffer_index;
 		}
 
 		inline u8* get_mapped_bone_buffer(u8 frame_index) const
@@ -804,6 +830,7 @@ namespace sfg
 			u8*			 mapped_entity_buffer										= nullptr;
 			u8*			 mapped_sprite_instance_buffer								= nullptr;
 			u8*			 mapped_particle_instance_buffer							= nullptr;
+			u8*			 mapped_debug_texture_buffer								= nullptr;
 			u8*			 mapped_light_buffer										= nullptr;
 			u8*			 mapped_ssao_render_pass_data								= nullptr;
 			u8*			 mapped_bloom_render_pass_data								= nullptr;
@@ -826,6 +853,7 @@ namespace sfg
 			gfx_handle_t entity_buffer												= {};
 			gfx_handle_t sprite_instance_buffer										= {};
 			gfx_handle_t particle_instance_buffer									= {};
+			gfx_handle_t debug_texture_buffer										= {};
 			gfx_handle_t bone_buffer												= {};
 			gfx_handle_t light_buffer												= {};
 			gfx_handle_t light_cluster_buffer										= {};
@@ -878,6 +906,7 @@ namespace sfg
 			gpu_index_t	 entity_buffer_index										= NULL_GPU_INDEX;
 			gpu_index_t	 sprite_instance_buffer_index								= NULL_GPU_INDEX;
 			gpu_index_t	 particle_instance_buffer_index								= NULL_GPU_INDEX;
+			gpu_index_t	 debug_texture_buffer_index									= NULL_GPU_INDEX;
 			gpu_index_t	 bone_buffer_index											= NULL_GPU_INDEX;
 			gpu_index_t	 light_buffer_index											= NULL_GPU_INDEX;
 			gpu_index_t	 light_cluster_buffer_index									= NULL_GPU_INDEX;
@@ -895,6 +924,8 @@ namespace sfg
 			gfx_handle_t post_combiner			 = {};
 			gfx_handle_t debug_line				 = {};
 			gfx_handle_t debug_text				 = {};
+			gfx_handle_t debug_texture			 = {};
+			gfx_handle_t debug_texture_id		 = {};
 			gfx_handle_t ssao					 = {};
 			gfx_handle_t ssao_upsample			 = {};
 			gfx_handle_t bloom_downsample		 = {};

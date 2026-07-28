@@ -37,6 +37,15 @@
             }
         },
         {
+            "name": "debug_texture",
+            "path": "common/shaders/world/debug_texture.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 27
+            }
+        },
+        {
             "name": "ssao",
             "path": "common/shaders/world/ssao.hlsl",
             "type": 7,

@@ -40,7 +40,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/font.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/texture.hpp>
 #include <sfg/runtime/render/world_debug_draw_snapshot.hpp>
+#include <sfg/runtime/render/world_draw.hpp>
 #include <sfg/runtime/ui/vg/vg_canvas.hpp>
 
 namespace sfg
@@ -65,6 +67,7 @@ namespace sfg
 		_triangle_vertices.reserve(config.triangle_vertex_max_count);
 		_triangle_indices.reserve(config.triangle_index_max_count);
 		_text_commands.reserve(config.text_command_max_count);
+		_texture_commands.reserve(config.texture_max_count);
 		_text_bytes.reserve(config.text_budget_bytes);
 
 		if (config.text_vertex_max_count > 0)
@@ -95,6 +98,8 @@ namespace sfg
 		_triangle_indices.shrink_to_fit();
 		_text_commands.resize(0);
 		_text_commands.shrink_to_fit();
+		_texture_commands.resize(0);
+		_texture_commands.shrink_to_fit();
 		_text_bytes.resize(0);
 		_text_bytes.shrink_to_fit();
 
@@ -104,10 +109,12 @@ namespace sfg
 			_text_canvas.reset();
 		}
 
-		_config					= {};
+		_config = {};
+
 		_dropped_line_count		= 0;
 		_dropped_triangle_count = 0;
 		_dropped_text_count		= 0;
+		_dropped_texture_count	= 0;
 	}
 
 	void world_debug_draw_t::begin_frame()
@@ -117,10 +124,13 @@ namespace sfg
 		_triangle_vertices.resize(0);
 		_triangle_indices.resize(0);
 		_text_commands.resize(0);
+		_texture_commands.resize(0);
 		_text_bytes.resize(0);
+
 		_dropped_line_count		= 0;
 		_dropped_triangle_count = 0;
 		_dropped_text_count		= 0;
+		_dropped_texture_count	= 0;
 	}
 
 	void world_debug_draw_t::draw_line(const vec3f_t& from, const vec3f_t& to, const color_t& color, f32 thickness_px, debug_draw_depth_e depth)
@@ -608,6 +618,28 @@ namespace sfg
 		});
 	}
 
+	void world_debug_draw_t::draw_texture_3d(const vec3f_t& position, resource_handle_t texture, const vec2f_t& size_px, const color_t& color, entity_id_t entity_id, debug_draw_depth_e depth, const vec2f_t& screen_offset, bool is_linear_sample)
+	{
+		SFG_ASSERT(texture != NULL_RESOURCE_HANDLE && size_px.x > 0.0f && size_px.y > 0.0f);
+
+		if (_texture_commands.size() >= _config.texture_max_count)
+		{
+			++_dropped_texture_count;
+			return;
+		}
+
+		_texture_commands.push_back({
+			.color			  = color.to_vector(),
+			.position		  = position,
+			.texture		  = texture,
+			.size_px		  = size_px,
+			.screen_offset	  = screen_offset,
+			.entity_id		  = entity_id,
+			.depth			  = depth,
+			.is_linear_sample = is_linear_sample,
+		});
+	}
+
 	void world_debug_draw_t::debug_draw_missing_resources(const world_t& world)
 	{
 		const resource_manager_t&	 resource_manager			 = resource_manager_t::get();
@@ -764,6 +796,38 @@ namespace sfg
 
 		snapshot.text_vertices.resize(0);
 		snapshot.text_indices.resize(0);
+		snapshot.textures.resize(0);
+
+		resource_manager_t& resource_manager = resource_manager_t::get();
+
+		for (const texture_command_t& command : _texture_commands)
+		{
+			const resource_entry_t* entry = resource_manager.find_entry(command.texture);
+
+			if (entry == nullptr || entry->type != resource_type_e::texture || entry->state != resource_state_e::ready)
+			{
+				++_dropped_texture_count;
+				continue;
+			}
+
+			const texture_internals_t* internals = resource_manager.find_internals<texture_internals_t>(command.texture);
+			SFG_ASSERT(internals != nullptr && !internals->texture.is_null());
+
+			u32 flags = world_debug_draw_texture_flag_none;
+			flags |= command.depth == debug_draw_depth_e::depth_tested ? world_debug_draw_texture_flag_depth_tested : 0;
+			flags |= command.is_linear_sample ? world_debug_draw_texture_flag_linear_sample : 0;
+
+			snapshot.textures.push_back({
+				.color		   = command.color,
+				.position	   = command.position,
+				.texture	   = internals->texture,
+				.size_px	   = command.size_px,
+				.screen_offset = command.screen_offset,
+				.entity_id	   = command.entity_id,
+				.flags		   = flags,
+			});
+		}
+
 		if (_text_commands.empty())
 			return;
 
@@ -781,7 +845,7 @@ namespace sfg
 			const resource_handle_t font_handle = command.font == NULL_RESOURCE_HANDLE ? _config.font : command.font;
 			SFG_ASSERT(font_handle != NULL_RESOURCE_HANDLE);
 
-			const font_runtime_t* font = resource_manager_t::get().find_runtime<font_runtime_t>(font_handle);
+			const font_runtime_t* font = resource_manager.find_runtime<font_runtime_t>(font_handle);
 			SFG_ASSERT(font != nullptr);
 
 			const ui::vg_text_paint_t paint = {
