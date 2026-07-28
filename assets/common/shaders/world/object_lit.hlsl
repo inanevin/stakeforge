@@ -48,12 +48,11 @@ SFG_MATERIAL_SAMPLER("normal")
 SFG_MATERIAL_SAMPLER("orm")
 SFG_MATERIAL_SAMPLER("emissive")
 SFG_MATERIAL_PARAM_VEC4("base_color_factor", sfg_color)
-SFG_MATERIAL_PARAM_VEC4("emissive_factor", sfg_color)
+SFG_MATERIAL_PARAM_VEC4("emissive_factor", sfg_color_hdr)
 SFG_MATERIAL_PARAM_F32("ao_multiplier", 1.0, 0.0, 1.0)
 SFG_MATERIAL_PARAM_F32("roughness_multiplier", 1.0, 0.0, 1.0)
 SFG_MATERIAL_PARAM_F32("metallic_multiplier", 1.0, 0.0, 1.0)
 SFG_MATERIAL_PARAM_F32("normal_strength", 1.0, 0.0, 2.0)
-SFG_MATERIAL_PARAM_F32("emissive_multiplier", 1.0, 0.0, 1000.0)
 SFG_MATERIAL_PARAM_F32("alpha_cutoff", 0.5, 0.0, 1.0)
 SFG_MATERIAL_PARAM_VEC4("albedo_tiling_offset", sfg_pack_uint2)
 SFG_MATERIAL_PARAM_VEC4("normal_tiling_offset", sfg_pack_uint2)
@@ -187,7 +186,6 @@ struct material_data
     float roughness_multiplier;
     float metallic_multiplier;
     float normal_strength;
-    float emissive_multiplier;
     float alpha_cutoff;
     uint2 albedo_tiling_offset;
     uint2 normal_tiling_offset;
@@ -243,7 +241,7 @@ material_surface sample_material_surface(vs_output IN, material_data mat_data)
     material_surface surface;
     surface.albedo = sample_albedo(IN, mat_data);
     surface.normal = normalize(mul(tangent_normal, tbn));
-    surface.emissive = tex_emissive.Sample(sampler_emissive, IN.uv * emissive_tiling + emissive_offset).rgb * mat_data.emissive_factor.rgb * mat_data.emissive_multiplier;
+    surface.emissive = tex_emissive.Sample(sampler_emissive, IN.uv * emissive_tiling + emissive_offset).rgb * mat_data.emissive_factor.rgb;
     surface.ambient_occlusion = saturate(orm.r * mat_data.ao_multiplier);
     surface.roughness = saturate(orm.g * mat_data.roughness_multiplier);
     surface.metallic = saturate(orm.b * mat_data.metallic_multiplier);

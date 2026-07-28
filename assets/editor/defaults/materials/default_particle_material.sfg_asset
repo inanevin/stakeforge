@@ -16,7 +16,7 @@
             {"name": "sprite", "sampler": 1009}
         ],
         "parameters": [
-            {"name": "tint", "type": "vec4", "hint": "color", "value": [1.0, 1.0, 1.0, 1.0]}
+            {"name": "tint", "type": "vec4", "hint": "color_hdr", "value": [1.0, 1.0, 1.0, 1.0]}
         ],
         "double_sided": true,
         "use_alpha_cutoff": false

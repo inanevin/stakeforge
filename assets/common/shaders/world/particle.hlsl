@@ -35,7 +35,7 @@
 
 SFG_MATERIAL_TEXTURE("sprite", sfg_sprite)
 SFG_MATERIAL_SAMPLER("sprite")
-SFG_MATERIAL_PARAM_VEC4("tint", sfg_color)
+SFG_MATERIAL_PARAM_VEC4("tint", sfg_color_hdr)
 
 struct particle_instance
 {

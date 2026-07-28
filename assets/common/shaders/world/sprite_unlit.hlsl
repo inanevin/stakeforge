@@ -31,7 +31,7 @@
 
 #include "sprite_common.hlsl"
 
-SFG_MATERIAL_PARAM_VEC4("tint", sfg_color)
+SFG_MATERIAL_PARAM_VEC4("tint", sfg_color_hdr)
 
 #ifdef USE_SELECTION
 

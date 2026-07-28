@@ -42,8 +42,7 @@ SFG_MATERIAL_TEXTURE("emissive", sfg_texture2d)
 SFG_MATERIAL_SAMPLER("albedo")
 SFG_MATERIAL_SAMPLER("emissive")
 SFG_MATERIAL_PARAM_VEC4("base_color_factor", sfg_color)
-SFG_MATERIAL_PARAM_VEC4("emissive_factor", sfg_color)
-SFG_MATERIAL_PARAM_F32("emissive_multiplier", 1.0, 0.0, 1000.0)
+SFG_MATERIAL_PARAM_VEC4("emissive_factor", sfg_color_hdr)
 SFG_MATERIAL_PARAM_F32("alpha_cutoff", 0.5, 0.0, 1.0)
 SFG_MATERIAL_PARAM_VEC4("albedo_tiling_offset", sfg_pack_uint2)
 SFG_MATERIAL_PARAM_VEC4("emissive_tiling_offset", sfg_pack_uint2)
@@ -120,7 +119,6 @@ struct material_data
 {
     float4 base_color_factor;
     float4 emissive_factor;
-    float emissive_multiplier;
     float alpha_cutoff;
     uint2 albedo_tiling_offset;
     uint2 emissive_tiling_offset;
@@ -143,7 +141,7 @@ float3 sample_emissive(vs_output IN, material_data mat_data)
     float2 tiling = unpack_half2x16(mat_data.emissive_tiling_offset.x);
     float2 offset = unpack_half2x16(mat_data.emissive_tiling_offset.y);
 
-    return tex_emissive.Sample(sampler_emissive, IN.uv * tiling + offset).rgb * mat_data.emissive_factor.rgb * mat_data.emissive_multiplier;
+    return tex_emissive.Sample(sampler_emissive, IN.uv * tiling + offset).rgb * mat_data.emissive_factor.rgb;
 }
 
 #ifdef USE_SELECTION

@@ -23,12 +23,11 @@
         ],
         "parameters": [
             {"name": "base_color_factor", "type": "vec4", "hint": "color", "value": [1.0, 1.0, 1.0, 0.5]},
-            {"name": "emissive_factor", "type": "vec4", "hint": "color", "value": [1.0, 1.0, 1.0, 1.0]},
+            {"name": "emissive_factor", "type": "vec4", "hint": "color_hdr", "value": [1.0, 1.0, 1.0, 1.0]},
             {"name": "ao_multiplier", "type": "f32", "hint": "none", "value": [1.0, 0.0, 0.0, 0.0]},
             {"name": "roughness_multiplier", "type": "f32", "hint": "none", "value": [1.0, 0.0, 0.0, 0.0]},
             {"name": "metallic_multiplier", "type": "f32", "hint": "none", "value": [1.0, 0.0, 0.0, 0.0]},
             {"name": "normal_strength", "type": "f32", "hint": "none", "value": [1.0, 0.0, 0.0, 0.0]},
-            {"name": "emissive_multiplier", "type": "f32", "hint": "none", "value": [1.0, 0.0, 0.0, 0.0]},
             {"name": "alpha_cutoff", "type": "f32", "hint": "none", "value": [0.5, 0.0, 0.0, 0.0]},
             {"name": "albedo_tiling_offset", "type": "vec4", "hint": "pack_uint2", "value": [1.0, 1.0, 0.0, 0.0]},
             {"name": "normal_tiling_offset", "type": "vec4", "hint": "pack_uint2", "value": [1.0, 1.0, 0.0, 0.0]},

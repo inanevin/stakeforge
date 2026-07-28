@@ -41,6 +41,7 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 	const float alpha = 1.0f - smoothstep(1.0f - edge, 1.0f + edge, radius);
 
 	const float hue = frac(atan2(-p.y, p.x) / 6.28318530718f);
-	const float3 rgb = hsv_to_rgb(float3(hue, saturate(radius), 1.0f));
+	float3 rgb = hsv_to_rgb(float3(hue, saturate(radius), 1.0f));
+	rgb = lerp(rgb / 12.92f, pow((rgb + 0.055f) / 1.055f, 2.4f), step(0.04045f, rgb));
 	return float4(rgb, alpha);
 }
