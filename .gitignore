@@ -14,6 +14,8 @@
 #Project Files
 [Gg]enerated_project_files
 _build
+docs
+stakeforge_managed/Stakeforge.ScriptHost/bin
 [Oo]bj
 *.DS_Store
 _stakeforge_cache
@@ -72,9 +74,7 @@ artifacts/
 *.vcxproj
 *.vcxproj.user
 *.vcxproj.filters
-CLAUDE.md
 AGENTS.md
-.claude/
 # Chutzpah Test files
 _Chutzpah*
 
