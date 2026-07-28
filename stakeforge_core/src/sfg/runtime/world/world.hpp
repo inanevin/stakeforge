@@ -158,6 +158,11 @@ namespace sfg
 			return _physics_world;
 		}
 
+		inline world_animation_controller_t& get_animation_controller()
+		{
+			return _animation_controller;
+		}
+
 		inline const world_animation_controller_t& get_animation_controller() const
 		{
 			return _animation_controller;

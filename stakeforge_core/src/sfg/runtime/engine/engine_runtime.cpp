@@ -15,6 +15,7 @@
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/engine/freetype_runtime.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/scripting/script_runtime.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
 
 namespace sfg
@@ -115,12 +116,19 @@ namespace sfg
 		if (!audio_engine_t::get().init(_resource_file_system, _audio_config))
 			return false;
 
+		if (!script_runtime_t::get().init())
+		{
+			audio_engine_t::get().uninit();
+			return false;
+		}
+
 		SFG_INFO("engine runtime initialized correctly.");
 		return true;
 	}
 
 	void engine_runtime_t::uninit()
 	{
+		script_runtime_t::get().uninit();
 		audio_engine_t::get().uninit();
 		_audio_config = {};
 	}

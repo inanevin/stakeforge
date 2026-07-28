@@ -1,0 +1,92 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
+#pragma once
+
+#include <sfg/common/size_definitions.hpp>
+namespace sfg
+{
+	struct script_api_animation_t;
+	struct script_api_audio_t;
+	struct script_api_physics_t;
+	struct script_api_platform_t;
+	struct script_api_render_t;
+	struct script_api_resource_t;
+	struct script_api_world_t;
+
+	typedef void (*script_host_log_fn)(const char* message);
+
+	struct script_host_native_api_t
+	{
+		u32							  size		= 0;
+		u32							  version	= 0;
+		script_host_log_fn			  log_info	= nullptr;
+		script_host_log_fn			  log_error = nullptr;
+		const script_api_platform_t*  platform	= nullptr;
+		const script_api_render_t*	  render	= nullptr;
+		const script_api_resource_t*  resource	= nullptr;
+		const script_api_world_t*	  world		= nullptr;
+		const script_api_audio_t*	  audio		= nullptr;
+		const script_api_physics_t*	  physics	= nullptr;
+		const script_api_animation_t* animation = nullptr;
+	};
+
+	typedef i32 (*script_host_shutdown_fn)();
+
+	class script_runtime_t final
+	{
+	public:
+		static script_runtime_t& get();
+
+		script_runtime_t()									 = default;
+		~script_runtime_t()									 = default;
+		script_runtime_t(const script_runtime_t&)			 = delete;
+		script_runtime_t& operator=(const script_runtime_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		bool init();
+		void uninit();
+
+		// -----------------------------------------------------------------------------
+		// queries
+		// -----------------------------------------------------------------------------
+
+		inline bool is_initialized() const
+		{
+			return _is_initialized;
+		}
+
+	private:
+		script_host_native_api_t _native_api	  = {};
+		void*					 _hostfxr_library = nullptr;
+		script_host_shutdown_fn	 _shutdown		  = nullptr;
+		bool					 _is_initialized  = false;
+	};
+}
