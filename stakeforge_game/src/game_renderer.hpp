@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class game_world_controller_t;
 	struct window_runtime_t;
 
 	struct game_renderer_config_t
@@ -51,10 +52,14 @@ namespace sfg
 		{
 			semaphore_data_t semaphore_frame	= {};
 			semaphore_data_t semaphore_transfer = {};
+			semaphore_data_t semaphore_world	= {};
 			gfx_handle_t	 cmd_gfx			= {};
 			gfx_handle_t	 cmd_gfx_prepare	= {};
 			gfx_handle_t	 cmd_gfx_transit	= {};
 			gfx_handle_t	 cmd_transfer		= {};
+			gfx_handle_t	 global_buffer		= {};
+			u8*				 mapped_global		= nullptr;
+			gpu_index_t		 global_index		= NULL_GPU_INDEX;
 		};
 
 	public:
@@ -67,7 +72,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		bool init(window_runtime_t& window, const game_renderer_config_t& config = {});
+		bool init(window_runtime_t& window, game_world_controller_t& world_controller, const game_renderer_config_t& config = {});
 		void uninit();
 		void start();
 		void end_render();
@@ -83,15 +88,18 @@ namespace sfg
 		void render();
 		void render_loop();
 
-		per_frame_data_t _pfd[BACK_BUFFER_COUNT] = {};
-		std::thread		 _render_thread;
-		gfx_handle_t	 _swapchain			   = {};
-		gfx_handle_t	 _blit_shader		   = {};
-		vec2u16_t		 _size				   = vec2u16_t::zero;
-		size_t			 _frame_budget_bytes   = 0;
-		u64				 _frame_counter		   = 0;
-		atomic_t<bool>	 _render_thread_active = false;
-		bool			 _is_fullscreen		   = false;
-		bool			 _minimized			   = false;
+		per_frame_data_t		 _pfd[BACK_BUFFER_COUNT] = {};
+		std::thread				 _render_thread;
+		game_world_controller_t* _world_controller	   = nullptr;
+		gfx_handle_t			 _swapchain			   = {};
+		gfx_handle_t			 _blit_shader		   = {};
+		vec2u16_t				 _size				   = vec2u16_t::zero;
+		size_t					 _frame_budget_bytes   = 0;
+		i64						 _previous_time_us	   = 0;
+		u64						 _frame_counter		   = 0;
+		f32						 _elapsed_time		   = 0.0f;
+		atomic_t<bool>			 _render_thread_active = false;
+		bool					 _is_fullscreen		   = false;
+		bool					 _minimized			   = false;
 	};
 }

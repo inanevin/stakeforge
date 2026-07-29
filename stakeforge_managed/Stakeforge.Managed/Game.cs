@@ -37,9 +37,9 @@ public static unsafe class Game
         return SetRenderResolution(resolution.Width, resolution.Height);
     }
 
-    public static bool LoadWorld(ulong world)
+    public static bool LoadWorld(ulong worldNameHash)
     {
-        return ManagedRuntime.GetApi()->Game->LoadWorld(world) != 0;
+        return ManagedRuntime.GetApi()->Game->LoadWorld(worldNameHash) != 0;
     }
 
     public static void Quit()

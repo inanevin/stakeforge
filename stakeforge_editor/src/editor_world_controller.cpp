@@ -44,6 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world.hpp"
 #include "world/editor_world_util.hpp"
 
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/data/istream.hpp>
@@ -564,12 +565,38 @@ namespace sfg
 		return load_main_world_now(asset_guid);
 	}
 
-	bool editor_world_controller_t::queue_game_world_load(sid_t asset_guid)
+	bool editor_world_controller_t::queue_game_world_load(sid_t world_name_hash)
 	{
-		if (asset_guid == 0 || asset_guid == NULL_SID || _main_world.is_null() || _pending_game_world_asset_guid != NULL_SID || _pending_game_quit)
+		if (world_name_hash == 0 || world_name_hash == NULL_SID || _main_world.is_null() || _pending_game_world_asset_guid != NULL_SID || _pending_game_quit)
 			return false;
 
 		if (!_worlds.get(_main_world)->get_world().is_playing())
+			return false;
+
+		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+		sid_t						  asset_guid	= NULL_SID;
+
+		for (const auto& [candidate_guid, asset] : asset_manager.get_assets())
+		{
+			if (asset.asset_type != editor_asset_type_e::world)
+				continue;
+
+			const editor_asset_node_t* node = asset_manager.find_asset_node(candidate_guid);
+			SFG_ASSERT(node != nullptr);
+
+			if (TO_SID(node->name) != world_name_hash)
+				continue;
+
+			if (asset_guid != NULL_SID)
+			{
+				SFG_ERR("multiple world assets have the requested name hash {0}", world_name_hash);
+				return false;
+			}
+
+			asset_guid = candidate_guid;
+		}
+
+		if (asset_guid == NULL_SID)
 			return false;
 
 		_pending_game_world_asset_guid = asset_guid;

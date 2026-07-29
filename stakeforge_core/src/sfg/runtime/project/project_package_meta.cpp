@@ -61,10 +61,14 @@ namespace sfg
 
 		stream << world_count;
 
-		for (sid_t world : worlds)
-			stream << world;
+		for (const world_meta_t& world : worlds)
+		{
+			stream << world.sid;
+			stream << world.name_hash;
+		}
 
-		stream << main_world;
+		stream << main_world.sid;
+		stream << main_world.name_hash;
 
 		return true;
 	}
@@ -122,10 +126,14 @@ namespace sfg
 
 		meta.worlds.resize(world_count);
 
-		for (sid_t& world : meta.worlds)
-			stream >> world;
+		for (world_meta_t& world : meta.worlds)
+		{
+			stream >> world.sid;
+			stream >> world.name_hash;
+		}
 
-		stream >> meta.main_world;
+		stream >> meta.main_world.sid;
+		stream >> meta.main_world.name_hash;
 
 		*this = std::move(meta);
 

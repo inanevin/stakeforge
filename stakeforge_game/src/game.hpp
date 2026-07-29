@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "game_renderer.hpp"
+#include "game_world_controller.hpp"
 
 #include <sfg/data/string.hpp>
 #include <sfg/platform/common_window.hpp>
@@ -75,18 +76,20 @@ namespace sfg
 		bool fail_init(const char* reason);
 		void cleanup();
 
-		game_config_t		   _config = {};
-		game_renderer_t		   _renderer;
-		project_package_meta_t _package_meta				= {};
-		window_runtime_t	   _window						= {};
-		string_t			   _init_failure_reason			= {};
-		u8					   _atlas_frame_slot			= 0;
-		bool				   _renderer_initialized		= false;
-		bool				   _window_initialized			= false;
-		bool				   _frame_allocator_initialized = false;
-		bool				   _runtime_initialized			= false;
-		bool				   _backend_initialized			= false;
-		bool				   _globals_initialized			= false;
-		bool				   _initialized					= false;
+		game_config_t			_config				 = {};
+		project_package_meta_t	_package_meta		 = {};
+		window_runtime_t		_window				 = {};
+		string_t				_init_failure_reason = {};
+		game_world_controller_t _world_controller;
+		game_renderer_t			_renderer;
+		u8						_atlas_frame_slot			  = 0;
+		bool					_renderer_initialized		  = false;
+		bool					_world_controller_initialized = false;
+		bool					_window_initialized			  = false;
+		bool					_frame_allocator_initialized  = false;
+		bool					_runtime_initialized		  = false;
+		bool					_backend_initialized		  = false;
+		bool					_globals_initialized		  = false;
+		bool					_initialized				  = false;
 	};
 }

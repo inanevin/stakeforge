@@ -88,7 +88,7 @@ namespace sfg
 		void				  install_default_world(editor_world_handle_t handle);
 		void				  load_dummy_world();
 		bool				  load_main_world(sid_t asset_guid);
-		bool				  queue_game_world_load(sid_t asset_guid);
+		bool				  queue_game_world_load(sid_t world_name_hash);
 		void				  queue_game_quit();
 		bool				  save_main_world();
 		void				  mark_world_dirty(editor_world_handle_t handle);

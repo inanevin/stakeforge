@@ -120,10 +120,13 @@ namespace sfg
 		_window.event_callback			 = &game_t::on_window_event;
 		_window.event_callback_user_data = this;
 
+		_world_controller.init(_window.size);
+		_world_controller_initialized = true;
+
 		game_renderer_config_t renderer_config = config.renderer;
 		renderer_config.is_fullscreen		   = _package_meta.is_fullscreen;
 
-		if (!_renderer.init(_window, renderer_config))
+		if (!_renderer.init(_window, _world_controller, renderer_config))
 			return fail_init("Failed to initialize the game renderer.");
 
 		_renderer_initialized = true;
@@ -159,6 +162,7 @@ namespace sfg
 				break;
 
 			resource_manager_t::get().flush();
+			_world_controller.tick();
 			engine_runtime_t::get().tick();
 			resource_manager_t::get().drain_atlases(_atlas_frame_slot);
 
@@ -290,6 +294,12 @@ namespace sfg
 		{
 			_renderer.uninit();
 			_renderer_initialized = false;
+		}
+
+		if (_world_controller_initialized)
+		{
+			_world_controller.uninit();
+			_world_controller_initialized = false;
 		}
 
 		if (_window_initialized)

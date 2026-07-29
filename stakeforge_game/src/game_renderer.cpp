@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "game_renderer.hpp"
+#include "game_world_controller.hpp"
 
 #include <sfg/common/hashing.hpp>
 #include <sfg/gfx/backend/backend.hpp>
@@ -36,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/frame_allocator.hpp>
+#include <sfg/memory/memory.hpp>
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
@@ -49,16 +51,21 @@ namespace sfg
 {
 #define GAME_BLIT_SHADER TO_SIDC("common/shaders/world/game_blit.hlsl")
 
-	bool game_renderer_t::init(window_runtime_t& window, const game_renderer_config_t& config)
+	namespace
+	{
+		struct game_global_buffer_data_t
+		{
+			f32 delta_time	 = 0.0f;
+			f32 elapsed_time = 0.0f;
+		};
+	}
+
+	bool game_renderer_t::init(window_runtime_t& window, game_world_controller_t& world_controller, const game_renderer_config_t& config)
 	{
 		SFG_ASSERT(config.frame_budget_bytes != 0);
 		SFG_ASSERT(window.window_handle != nullptr);
 		SFG_ASSERT(window.platform_handle != nullptr);
-
-		_frame_budget_bytes = config.frame_budget_bytes;
-		_size				= window.size;
-		_is_fullscreen		= config.is_fullscreen;
-		_minimized			= window.has_flag(window_runtime_flags_e::minimized);
+		SFG_ASSERT(world_controller.is_initialized());
 
 		render_resources_t&		  render_resources = render_resources_t::get();
 		const shader_internals_t* blit_shader	   = resource_manager_t::get().find_internals<shader_internals_t>(GAME_BLIT_SHADER);
@@ -71,6 +78,12 @@ namespace sfg
 		if (_blit_shader.is_null())
 			return false;
 
+		_frame_budget_bytes = config.frame_budget_bytes;
+		_world_controller	= &world_controller;
+		_size				= window.size;
+		_is_fullscreen		= config.is_fullscreen;
+		_minimized			= window.has_flag(window_runtime_flags_e::minimized);
+
 		gfx_backend& backend = gfx_backend::get();
 
 		for (u32 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
@@ -78,6 +91,7 @@ namespace sfg
 			per_frame_data_t& pfd	   = _pfd[frame_index];
 			pfd.semaphore_frame.sem	   = backend.create_semaphore();
 			pfd.semaphore_transfer.sem = backend.create_semaphore();
+			pfd.semaphore_world.sem	   = backend.create_semaphore();
 			pfd.cmd_gfx				   = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "game_gfx",
@@ -94,6 +108,14 @@ namespace sfg
 				.type		= command_type::transfer,
 				.debug_name = "game_xfer",
 			});
+
+			resource_desc_t global_buffer_desc = {};
+			global_buffer_desc.size			   = sizeof(game_global_buffer_data_t);
+			global_buffer_desc.flags		   = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+			global_buffer_desc.set_name("game_global");
+			pfd.global_buffer = backend.create_resource(global_buffer_desc);
+			backend.map_resource(pfd.global_buffer, pfd.mapped_global);
+			pfd.global_index = backend.get_resource_gpu_index(pfd.global_buffer);
 		}
 
 		bitmask_t<u8> flags = static_cast<u8>(swapchain_flags::sf_vsync_every_v_blank);
@@ -122,11 +144,15 @@ namespace sfg
 			backend.destroy_command_buffer(pfd.cmd_gfx_prepare);
 			backend.destroy_command_buffer(pfd.cmd_gfx_transit);
 			backend.destroy_command_buffer(pfd.cmd_transfer);
+			backend.destroy_resource(pfd.global_buffer);
 			backend.destroy_semaphore(pfd.semaphore_frame.sem);
 			backend.destroy_semaphore(pfd.semaphore_transfer.sem);
+			backend.destroy_semaphore(pfd.semaphore_world.sem);
 			pfd = {};
 		}
 
+		_world_controller	= nullptr;
+		_blit_shader		= {};
 		_frame_budget_bytes = 0;
 		_size				= vec2u16_t::zero;
 		_is_fullscreen		= false;
@@ -150,16 +176,21 @@ namespace sfg
 			backend.destroy_command_buffer(pfd.cmd_gfx_prepare);
 			backend.destroy_command_buffer(pfd.cmd_gfx_transit);
 			backend.destroy_command_buffer(pfd.cmd_transfer);
+			backend.destroy_resource(pfd.global_buffer);
 			backend.destroy_semaphore(pfd.semaphore_frame.sem);
 			backend.destroy_semaphore(pfd.semaphore_transfer.sem);
+			backend.destroy_semaphore(pfd.semaphore_world.sem);
 			pfd = {};
 		}
 
+		_world_controller	= nullptr;
 		_swapchain			= {};
 		_blit_shader		= {};
 		_size				= vec2u16_t::zero;
 		_frame_budget_bytes = 0;
+		_previous_time_us	= 0;
 		_frame_counter		= 0;
+		_elapsed_time		= 0.0f;
 		_is_fullscreen		= false;
 		_minimized			= false;
 	}
@@ -206,13 +237,16 @@ namespace sfg
 		_size	   = size;
 		_minimized = minimized;
 
+		const vec2u16_t render_size = minimized || size.x == 0 || size.y == 0 ? vec2u16_t{4, 4} : size;
+		_world_controller->resize(render_size);
+
 		bitmask_t<u8> flags = static_cast<u8>(swapchain_flags::sf_vsync_every_v_blank);
 
 		if (_is_fullscreen)
 			flags.set(static_cast<u8>(swapchain_flags::sf_is_full_screen));
 
 		gfx_backend::get().recreate_swapchain({
-			.size		 = minimized || size.x == 0 || size.y == 0 ? vec2u16_t{4, 4} : size,
+			.size		 = render_size,
 			.swapchain_t = _swapchain,
 			.scaling	 = dpi_scale == 0.0f ? 1.0f : dpi_scale,
 			.flags		 = flags,
@@ -237,12 +271,25 @@ namespace sfg
 
 		backend.wait_for_swapchain_latency(_swapchain);
 		backend.get_back_buffer_index(_swapchain);
+		_world_controller->acquire_render_world();
 
 		const u8		  frame_index = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
 		per_frame_data_t& pfd		  = _pfd[frame_index];
 
 		backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
 		render_resources.flush_material_parameter_updates(frame_index);
+
+		const i64 now		 = time_t::get_cpu_microseconds();
+		const i64 delta_us	 = _previous_time_us == 0 ? 0 : now - _previous_time_us;
+		_previous_time_us	 = now;
+		const f32 delta_time = time_t::micro_to_s(delta_us);
+		_elapsed_time += delta_time;
+
+		const game_global_buffer_data_t global_data{
+			.delta_time	  = delta_time,
+			.elapsed_time = _elapsed_time,
+		};
+		SFG_MEMCPY(pfd.mapped_global, &global_data, sizeof(game_global_buffer_data_t));
 
 		const gfx_handle_t queue_gfx	  = backend.get_queue_gfx();
 		const gfx_handle_t queue_transfer = backend.get_queue_transfer();
@@ -255,6 +302,9 @@ namespace sfg
 			.cmd_transit	= pfd.cmd_gfx_transit,
 			.semaphore		= &pfd.semaphore_transfer,
 		});
+
+		pfd.semaphore_world.value++;
+		const bool world_submitted = _world_controller->render_world(queue_gfx, pfd.semaphore_world.sem, pfd.semaphore_world.value, frame_index, pfd.global_index, render_globals_t::get_global_bind_layout());
 
 		backend.reset_command_buffer(pfd.cmd_gfx);
 
@@ -283,7 +333,7 @@ namespace sfg
 		backend.cmd_set_scissors(pfd.cmd_gfx, {.x = 0, .y = 0, .width = _size.x, .height = _size.y});
 		backend.cmd_bind_layout(pfd.cmd_gfx, {.layout = render_globals_t::get_global_bind_layout()});
 
-		const gpu_index_t source_texture = render_resources.get_texture_gpu_index(render_resources.get_black_texture(), 0);
+		const gpu_index_t source_texture = _world_controller->get_world_texture_index(frame_index);
 
 		backend.cmd_bind_constants(pfd.cmd_gfx, {.data = &source_texture, .offset = constant_rp0, .count = 1, .param_index = 0});
 		backend.cmd_bind_pipeline(pfd.cmd_gfx, {.pipeline = _blit_shader});
@@ -298,6 +348,10 @@ namespace sfg
 		};
 		backend.cmd_barrier(pfd.cmd_gfx, {.barriers = &barrier, .barrier_count = 1});
 		backend.close_command_buffer(pfd.cmd_gfx);
+
+		if (world_submitted)
+			backend.queue_wait(queue_gfx, &pfd.semaphore_world.sem, &pfd.semaphore_world.value, 1);
+
 		backend.submit_commands(queue_gfx, &pfd.cmd_gfx, 1);
 		backend.present(&_swapchain, 1);
 

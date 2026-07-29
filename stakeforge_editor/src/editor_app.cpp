@@ -106,9 +106,9 @@ namespace sfg
 		return 1;
 	}
 
-	u8 editor_app_t::load_script_game_world(sid_t world)
+	u8 editor_app_t::load_script_game_world(sid_t world_name_hash)
 	{
-		return editor_app_t::get().get_world_controller().queue_game_world_load(world) ? 1 : 0;
+		return editor_app_t::get().get_world_controller().queue_game_world_load(world_name_hash) ? 1 : 0;
 	}
 
 	void editor_app_t::quit_script_game()

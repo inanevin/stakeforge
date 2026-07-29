@@ -157,19 +157,46 @@ namespace sfg
 		// build package metadata from the cook options
 		*_package_meta					 = {};
 		_package_meta->project_settings	 = editor_project_t::get().settings.project_settings;
-		_package_meta->worlds			 = _cook_options->worlds;
-		_package_meta->main_world		 = _cook_options->main_world;
 		_package_meta->window_resolution = _cook_options->resolution;
 		_package_meta->window_style		 = _cook_options->is_borderless ? window_style_e::borderless : window_style_e::app_window;
 		_package_meta->is_fullscreen	 = _cook_options->is_fullscreen;
+		_package_meta->worlds.reserve(_cook_options->worlds.size());
 
-		// make sure every selected world exists
-		for (sid_t world : _package_meta->worlds)
+		// make sure every selected world exists and record its name hash
+		for (sid_t world : _cook_options->worlds)
 		{
-			if (editor_asset_manager_t::get().find_asset(world) != nullptr)
-				continue;
+			if (editor_asset_manager_t::get().find_asset(world) == nullptr)
+			{
+				_cook_failure_reason = string_t("World asset does not exist: ") + std::to_string(world);
+				return false;
+			}
 
-			_cook_failure_reason = string_t("World asset does not exist: ") + std::to_string(world);
+			const editor_asset_node_t* node = editor_asset_manager_t::get().find_asset_node(world);
+			SFG_ASSERT(node != nullptr);
+
+			const world_meta_t world_meta{
+				.sid	   = world,
+				.name_hash = TO_SID(node->name),
+			};
+
+			for (const world_meta_t& existing_world : _package_meta->worlds)
+			{
+				if (existing_world.name_hash != world_meta.name_hash)
+					continue;
+
+				_cook_failure_reason = string_t("World asset names must be unique: ") + node->name;
+				return false;
+			}
+
+			_package_meta->worlds.push_back(world_meta);
+
+			if (world == _cook_options->main_world)
+				_package_meta->main_world = world_meta;
+		}
+
+		if (_package_meta->main_world.sid == NULL_SID)
+		{
+			_cook_failure_reason = "Main world is not included in the project worlds.";
 			return false;
 		}
 
@@ -302,19 +329,19 @@ namespace sfg
 
 		vector_t<editor_asset_dependency_t> dependencies = {};
 
-		for (sid_t world : _package_meta->worlds)
+		for (const world_meta_t& world : _package_meta->worlds)
 		{
-			const editor_asset_t&	  asset		 = *editor_asset_manager_t::get().find_asset(world);
+			const editor_asset_t&	  asset		 = *editor_asset_manager_t::get().find_asset(world.sid);
 			const string_t&			  world_json = asset.embedded_source;
 			const resource_map_info_t resource_info{
 				.offset = resource_stream.get_size(),
 				.size	= world_json.size(),
 			};
-			const bool inserted = _package_meta->resource_map.emplace(world, resource_info).second;
+			const bool inserted = _package_meta->resource_map.emplace(world.sid, resource_info).second;
 
 			if (!inserted)
 			{
-				_cook_failure_reason = string_t("World is included more than once: ") + std::to_string(world);
+				_cook_failure_reason = string_t("World is included more than once: ") + std::to_string(world.sid);
 				return false;
 			}
 
@@ -324,7 +351,7 @@ namespace sfg
 
 			if (!editor_asset_dependencies_t::fetch_dependencies(asset, dependencies))
 			{
-				_cook_failure_reason = string_t("Failed to resolve world resources: ") + std::to_string(world);
+				_cook_failure_reason = string_t("Failed to resolve world resources: ") + std::to_string(world.sid);
 				return false;
 			}
 
