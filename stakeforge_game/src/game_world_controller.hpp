@@ -62,6 +62,7 @@ namespace sfg
 		bool load_world(sid_t world);
 		bool load_world_by_name_hash(sid_t name_hash);
 		bool queue_world_load_by_name_hash(sid_t name_hash);
+		bool queue_world_restart();
 		bool apply_pending_world_load();
 		bool acquire_render_world();
 		bool render_world(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
@@ -116,6 +117,7 @@ namespace sfg
 		atomic_t<u8>				   _snapshot_mailbox   = {};
 		i64							   _previous_time_us   = 0;
 		i64							   _accumulator_us	   = 0;
+		sid_t						   _current_world	   = NULL_SID;
 		sid_t						   _pending_world	   = NULL_SID;
 		f32							   _render_alpha	   = 0.0f;
 		u8							   _producer_slot	   = 0;

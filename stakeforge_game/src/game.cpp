@@ -157,6 +157,16 @@ namespace sfg
 		return s_instance->_world_controller.queue_world_load_by_name_hash(world_name_hash) ? 1 : 0;
 	}
 
+	u8 game_t::restart_script_game_world()
+	{
+		SFG_ASSERT(s_instance != nullptr);
+
+		if (!s_instance->_world_controller.is_initialized())
+			return 0;
+
+		return s_instance->_world_controller.queue_world_restart() ? 1 : 0;
+	}
+
 	void game_t::quit_script_game()
 	{
 		SFG_ASSERT(s_instance != nullptr);
@@ -242,7 +252,7 @@ namespace sfg
 
 		g_window_api_enabled = true;
 		set_script_api_platform_window_runtime(&_window);
-		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, load_script_game_world, quit_script_game);
+		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, load_script_game_world, restart_script_game_world, quit_script_game);
 		_script_api_bound = true;
 
 		if (!_world_controller.init(_window.size, _package_meta))
@@ -486,7 +496,7 @@ namespace sfg
 		{
 			reset_script_api_platform_cursor_state();
 			set_script_api_platform_window_runtime(nullptr);
-			set_script_api_game_callbacks(nullptr, nullptr, nullptr, nullptr);
+			set_script_api_game_callbacks(nullptr, nullptr, nullptr, nullptr, nullptr);
 			_script_api_bound = false;
 		}
 

@@ -89,6 +89,7 @@ namespace sfg
 		void				  load_dummy_world();
 		bool				  load_main_world(sid_t asset_guid);
 		bool				  queue_game_world_load(sid_t world_name_hash);
+		bool				  queue_game_world_restart();
 		void				  queue_game_quit();
 		bool				  save_main_world();
 		void				  mark_world_dirty(editor_world_handle_t handle);
@@ -187,6 +188,7 @@ namespace sfg
 		f32																	_render_alpha				   = 0.0f;
 		bool																_main_world_dirty			   = false;
 		bool																_play_main_world_dirty		   = false;
+		bool																_pending_game_world_restart	   = false;
 		bool																_pending_game_quit			   = false;
 
 		static inline editor_world_controller_t* s_instance = nullptr;

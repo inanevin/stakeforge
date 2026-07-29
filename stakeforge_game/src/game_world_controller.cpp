@@ -212,6 +212,7 @@ namespace sfg
 		_render_alpha	  = 0.0f;
 		_producer_slot	  = 0;
 		_consumer_slot	  = 0;
+		_current_world	  = NULL_SID;
 		_pending_world	  = NULL_SID;
 		_initialized	  = false;
 	}
@@ -332,6 +333,7 @@ namespace sfg
 		_pending_world = NULL_SID;
 
 		world_cooker_t::world_from_json(_main_world, world_json);
+		_current_world = world;
 		_main_world.update_world_transforms(false);
 		_main_world.begin_play();
 
@@ -380,6 +382,17 @@ namespace sfg
 		}
 
 		return false;
+	}
+
+	bool game_world_controller_t::queue_world_restart()
+	{
+		SFG_ASSERT(_initialized);
+
+		if (_pending_world != NULL_SID || _current_world == NULL_SID)
+			return false;
+
+		_pending_world = _current_world;
+		return true;
 	}
 
 	bool game_world_controller_t::apply_pending_world_load()

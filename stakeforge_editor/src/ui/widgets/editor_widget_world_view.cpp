@@ -286,10 +286,16 @@ namespace sfg
 			widget.request_world_resize(false);
 		}
 
-		const bool				hovered			  = widget._ui->get_input().get_hovered() == widget._world_view;
-		const vec2f_t			relative_position = hovered ? widget.calculate_relative_position(widget._ui->get_input().get_mouse_position()) : vec2f_t::zero;
-		const ui::layout_out_t& out				  = widget._ui->get_tree().out(widget._world_view);
-		editor_world_t* const	editor_world	  = editor_world_controller_t::get().get_editor_world(widget._edit_world);
+		const bool				 hovered		   = widget._ui->get_input().get_hovered() == widget._world_view;
+		const vec2f_t			 relative_position = hovered ? widget.calculate_relative_position(widget._ui->get_input().get_mouse_position()) : vec2f_t::zero;
+		const ui::layout_out_t&	 out			   = widget._ui->get_tree().out(widget._world_view);
+		editor_world_t* const	 editor_world	   = editor_world_controller_t::get().get_editor_world(widget._edit_world);
+		const editor_play_mode_e play_mode		   = editor_world->get_play_mode();
+		const bool				 full_play_mode	   = play_mode == editor_play_mode_e::play || play_mode == editor_play_mode_e::play_paused;
+		ui::layout_tree_t&		 tree			   = widget._ui->get_tree();
+
+		tree.set_visible(widget._world_axes, !full_play_mode);
+		tree.set_visible(widget._toolbars.get_root(), !full_play_mode && editor_world->get_edit_context().get_edit_type() != editor_world_edit_type_e::view_only);
 
 		if (out.size.x > 0.0f && out.size.y > 0.0f)
 		{
@@ -384,15 +390,21 @@ namespace sfg
 
 	void editor_widget_world_view_t::draw_world_axes(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
 	{
-		const editor_widget_world_view_t& widget	 = *static_cast<editor_widget_world_view_t*>(user_data);
-		const ui::layout_out_t&			  out		 = widget._ui->get_tree().out(id);
-		const editor_theme_t&			  theme		 = editor_theme_t::get();
-		const f32						  scale		 = ui::get_valid_scale(widget._ui->get_ui_scale());
-		const vec2f_t					  center	 = {out.pos.x + out.size.x * 0.5f, out.pos.y + out.size.y * 0.5f};
-		const f32						  length	 = theme.item_height * EDITOR_WORLD_VIEW_AXIS_LENGTH_SCALE * scale;
-		const u32						  draw_order = widget._ui->get_tree().draw_order_const(id);
+		const editor_widget_world_view_t& widget	   = *static_cast<editor_widget_world_view_t*>(user_data);
+		const editor_world_t* const		  editor_world = editor_world_controller_t::get().get_editor_world(widget._edit_world);
+		const editor_play_mode_e		  play_mode	   = editor_world->get_play_mode();
 
-		const quat_t  view_inverse = editor_world_controller_t::get().get_editor_world(widget._edit_world)->get_view_rotation().inverse();
+		if (play_mode == editor_play_mode_e::play || play_mode == editor_play_mode_e::play_paused)
+			return;
+
+		const ui::layout_out_t& out		   = widget._ui->get_tree().out(id);
+		const editor_theme_t&	theme	   = editor_theme_t::get();
+		const f32				scale	   = ui::get_valid_scale(widget._ui->get_ui_scale());
+		const vec2f_t			center	   = {out.pos.x + out.size.x * 0.5f, out.pos.y + out.size.y * 0.5f};
+		const f32				length	   = theme.item_height * EDITOR_WORLD_VIEW_AXIS_LENGTH_SCALE * scale;
+		const u32				draw_order = widget._ui->get_tree().draw_order_const(id);
+
+		const quat_t  view_inverse = editor_world->get_view_rotation().inverse();
 		const vec3f_t world_axes[] = {vec3f_t::right, vec3f_t::up, vec3f_t::forward};
 		const vec4f_t colors[]	   = {theme.color_accent0, theme.color_accent_green, theme.color_accent1};
 		const char	  labels[]	   = {'X', 'Y', 'Z'};

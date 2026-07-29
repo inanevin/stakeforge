@@ -187,9 +187,10 @@ namespace sfg
 		_pending_main_world_asset_guid = NULL_SID;
 		_pending_game_world_asset_guid = NULL_SID;
 		_main_world_name.resize(0);
-		_main_world_dirty	   = false;
-		_play_main_world_dirty = false;
-		_pending_game_quit	   = false;
+		_main_world_dirty			= false;
+		_play_main_world_dirty		= false;
+		_pending_game_world_restart = false;
+		_pending_game_quit			= false;
 	}
 
 	void editor_world_controller_t::stop_main_world_play_mode()
@@ -389,8 +390,23 @@ namespace sfg
 		if (_pending_game_quit)
 		{
 			_pending_game_quit			   = false;
+			_pending_game_world_restart	   = false;
 			_pending_game_world_asset_guid = NULL_SID;
 			stop_main_world_play_mode();
+		}
+		else if (_pending_game_world_restart)
+		{
+			_pending_game_world_restart = false;
+
+			editor_world_t&				 editor_world = *_worlds.get(_main_world);
+			editor_world_edit_context_t& context	  = editor_world.get_edit_context();
+
+			context.set_play_mode(editor_play_mode_e::none);
+			context.set_do_step(false);
+			update_main_world_play_mode(editor_play_mode_e::none);
+
+			context.set_play_mode(editor_play_mode_e::play);
+			update_main_world_play_mode(editor_play_mode_e::play);
 		}
 		else if (_pending_game_world_asset_guid != NULL_SID)
 		{
@@ -567,7 +583,7 @@ namespace sfg
 
 	bool editor_world_controller_t::queue_game_world_load(sid_t world_name_hash)
 	{
-		if (world_name_hash == 0 || world_name_hash == NULL_SID || _main_world.is_null() || _pending_game_world_asset_guid != NULL_SID || _pending_game_quit)
+		if (world_name_hash == 0 || world_name_hash == NULL_SID || _main_world.is_null() || _pending_game_world_asset_guid != NULL_SID || _pending_game_world_restart || _pending_game_quit)
 			return false;
 
 		if (!_worlds.get(_main_world)->get_world().is_playing())
@@ -603,12 +619,28 @@ namespace sfg
 		return true;
 	}
 
+	bool editor_world_controller_t::queue_game_world_restart()
+	{
+		if (_main_world.is_null() || _pending_game_world_asset_guid != NULL_SID || _pending_game_world_restart || _pending_game_quit)
+			return false;
+
+		const editor_world_t* const editor_world = _worlds.get(_main_world);
+		const editor_play_mode_e	play_mode	 = editor_world->get_edit_context().get_play_mode();
+
+		if (!editor_world->get_world().is_playing() || (play_mode != editor_play_mode_e::play && play_mode != editor_play_mode_e::play_paused))
+			return false;
+
+		_pending_game_world_restart = true;
+		return true;
+	}
+
 	void editor_world_controller_t::queue_game_quit()
 	{
 		if (_main_world.is_null() || !_worlds.get(_main_world)->get_world().is_playing())
 			return;
 
 		_pending_game_quit			   = true;
+		_pending_game_world_restart	   = false;
 		_pending_game_world_asset_guid = NULL_SID;
 	}
 

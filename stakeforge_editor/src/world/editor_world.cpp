@@ -477,7 +477,7 @@ namespace sfg
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
-		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control)
+		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
 			return;
 
 		++_next_pick_request_id;
@@ -647,6 +647,8 @@ namespace sfg
 			{
 				cancel_gizmo_action();
 				clear_gizmo_hover();
+				_pending_pick_request = {};
+				_pick_result.store(0, std::memory_order_relaxed);
 			}
 
 			save_play_snapshot();

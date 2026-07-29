@@ -42,6 +42,11 @@ public static unsafe class Game
         return ManagedRuntime.GetApi()->Game->LoadWorld(worldNameHash) != 0;
     }
 
+    public static bool RestartWorld()
+    {
+        return ManagedRuntime.GetApi()->Game->RestartWorld() != 0;
+    }
+
     public static void Quit()
     {
         ManagedRuntime.GetApi()->Game->Quit();
