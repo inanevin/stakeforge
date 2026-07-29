@@ -51,6 +51,71 @@ namespace sfg
 			});
 		}
 
+		void fetch_reflected_dependencies(const reflected_type_t& type, const nlohmann::json& object_json, vector_t<editor_asset_dependency_t>& out_dependencies)
+		{
+			const reflection_registry_t& registry = reflection_registry_t::get();
+
+			for (u32 field_index = type.fields.start; field_index < type.fields.end; ++field_index)
+			{
+				const reflected_field_t* field = registry.get_field(field_index);
+				SFG_ASSERT(field != nullptr);
+
+				if (field->value_type == reflected_value_type_e::u64)
+				{
+					const resource_type_e resource_type = resource_type_from_reflection_sub_type_id(field->sub_type_id);
+
+					if (resource_type == resource_type_e::invalid)
+						continue;
+
+					append_dependency(object_json.value<sid_t>(field->name, NULL_SID), resource_type, out_dependencies);
+					continue;
+				}
+
+				if (field->value_type == reflected_value_type_e::object)
+				{
+					const reflected_type_t* nested_type = registry.find_type(field->sub_type_id);
+					SFG_ASSERT(nested_type != nullptr);
+
+					const nlohmann::json nested_json = object_json.value<nlohmann::json>(field->name, nlohmann::json::object());
+
+					fetch_reflected_dependencies(*nested_type, nested_json, out_dependencies);
+					continue;
+				}
+
+				if (field->value_type != reflected_value_type_e::container)
+					continue;
+
+				const reflected_value_type_e element_value_type = field->container_ops.element_value_type;
+
+				if (element_value_type != reflected_value_type_e::u64 && element_value_type != reflected_value_type_e::object)
+					continue;
+
+				const nlohmann::json elements_json = object_json.value<nlohmann::json>(field->name, nlohmann::json::array());
+
+				if (!elements_json.is_array())
+					continue;
+
+				if (element_value_type == reflected_value_type_e::u64)
+				{
+					const resource_type_e resource_type = resource_type_from_reflection_sub_type_id(field->container_ops.element_sub_type_id);
+
+					if (resource_type == resource_type_e::invalid)
+						continue;
+
+					for (const nlohmann::json& element_json : elements_json)
+						append_dependency(element_json.get<sid_t>(), resource_type, out_dependencies);
+
+					continue;
+				}
+
+				const reflected_type_t* element_type = registry.find_type(field->container_ops.element_sub_type_id);
+				SFG_ASSERT(element_type != nullptr);
+
+				for (const nlohmann::json& element_json : elements_json)
+					fetch_reflected_dependencies(*element_type, element_json, out_dependencies);
+			}
+		}
+
 		void fetch_component_dependencies(const nlohmann::json& components_json, vector_t<editor_asset_dependency_t>& out_dependencies)
 		{
 			if (!components_json.is_array())
@@ -68,36 +133,7 @@ namespace sfg
 
 				const nlohmann::json component_data = component_json.value<nlohmann::json>("data", nlohmann::json::object());
 
-				for (u32 field_index = type->fields.start; field_index < type->fields.end; ++field_index)
-				{
-					const reflected_field_t* field = registry.get_field(field_index);
-					SFG_ASSERT(field != nullptr);
-
-					if (field->value_type == reflected_value_type_e::u64)
-					{
-						const resource_type_e resource_type = resource_type_from_reflection_sub_type_id(field->sub_type_id);
-
-						if (resource_type == resource_type_e::invalid)
-							continue;
-
-						append_dependency(component_data.value<sid_t>(field->name, NULL_SID), resource_type, out_dependencies);
-					}
-					else if (field->value_type == reflected_value_type_e::container && field->container_ops.element_value_type == reflected_value_type_e::u64)
-					{
-						const resource_type_e resource_type = resource_type_from_reflection_sub_type_id(field->container_ops.element_sub_type_id);
-
-						if (resource_type == resource_type_e::invalid)
-							continue;
-
-						const nlohmann::json resources_json = component_data.value<nlohmann::json>(field->name, nlohmann::json::array());
-
-						if (!resources_json.is_array())
-							continue;
-
-						for (const nlohmann::json& resource_json : resources_json)
-							append_dependency(resource_json.get<sid_t>(), resource_type, out_dependencies);
-					}
-				}
+				fetch_reflected_dependencies(*type, component_data, out_dependencies);
 			}
 		}
 
