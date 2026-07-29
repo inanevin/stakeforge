@@ -513,7 +513,15 @@ namespace sfg
 		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(asset_node.asset_id);
 		SFG_ASSERT(asset != nullptr);
 
-		if (asset->asset_type == editor_asset_type_e::world)
+		if (asset->asset_type == editor_asset_type_e::shader)
+		{
+			const editor_project_runtime_t& runtime		 = editor_project_t::get()._runtime;
+			const string_t					project_root = file_system_t::get_directory_of_file(runtime.path.c_str());
+			const string_t					source_path	 = editor_asset_path_t::get_source_full_path(runtime.assets_path.c_str(), *asset);
+
+			process::open_file_in_vscode(project_root.c_str(), source_path.c_str());
+		}
+		else if (asset->asset_type == editor_asset_type_e::world)
 			editor_world_controller_t::get().load_main_world(asset->guid);
 		else if (asset->asset_type == editor_asset_type_e::mesh)
 		{
