@@ -35,13 +35,13 @@ namespace sfg
 
 	typedef u8 (*script_api_game_get_render_resolution_fn)(vec2u16_t& out_resolution);
 	typedef u8 (*script_api_game_set_render_resolution_fn)(const vec2u16_t& resolution);
-	typedef u8 (*script_api_game_load_world_fn)(sid_t world);
+	typedef u8 (*script_api_game_load_world_fn)(sid_t world_name_hash);
 	typedef void (*script_api_game_quit_fn)();
 
 	void set_script_api_game_callbacks(script_api_game_get_render_resolution_fn get_resolution, script_api_game_set_render_resolution_fn set_resolution, script_api_game_load_world_fn load_world, script_api_game_quit_fn quit);
 	u8	 api_game_get_render_resolution(vec2u16_t* out_resolution);
 	u8	 api_game_set_render_resolution(u16 width, u16 height);
-	u8	 api_game_load_world(sid_t world);
+	u8	 api_game_load_world(sid_t world_name_hash);
 	void api_game_quit();
 
 	struct script_api_game_t

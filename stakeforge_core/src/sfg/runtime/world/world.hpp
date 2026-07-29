@@ -62,6 +62,7 @@ namespace sfg
 		void end_play();
 		void pause_audio();
 		void resume_audio();
+		void set_time_scale(f32 time_scale);
 		void clear_entities();
 		void tick_physics(f32 dt);
 		void tick_animation_prep(f32 dt);
@@ -216,6 +217,21 @@ namespace sfg
 			return _is_playing;
 		}
 
+		inline f32 get_time_scale() const
+		{
+			return _time_scale;
+		}
+
+		inline f32 get_elapsed_time() const
+		{
+			return _elapsed_time;
+		}
+
+		inline f32 get_real_elapsed_time() const
+		{
+			return _real_elapsed_time;
+		}
+
 	private:
 		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
@@ -259,7 +275,10 @@ namespace sfg
 		engine_components_t				  _engine_components			= {};
 		system_components_t				  _system_components			= {};
 		void*							  _world_script_instance		= nullptr;
+		f32								  _elapsed_time					= 0.0f;
+		f32								  _real_elapsed_time			= 0.0f;
 		u64								  _tick_count					= 0;
+		f32								  _time_scale					= 1.0f;
 		entity_id_t						  _entity_head					= 0;
 		entity_id_t						  _main_camera_entity			= NULL_ENTITY_ID;
 		u32								  _play_resource_count			= 0;

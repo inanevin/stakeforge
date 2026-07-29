@@ -937,11 +937,39 @@ namespace sfg
 		world->get_debug_draw().draw_texture_3d(*position, texture, *size_px, *color, entity, depth, *screen_offset, linear_sample != 0);
 	}
 
+	void api_world_set_time_scale(world_t* world, f32 time_scale)
+	{
+		SFG_ASSERT(world != nullptr);
+
+		world->set_time_scale(time_scale);
+	}
+
+	f32 api_world_get_time_scale(const world_t* world)
+	{
+		SFG_ASSERT(world != nullptr);
+
+		return world->get_time_scale();
+	}
+
+	f32 api_world_get_elapsed_time(const world_t* world)
+	{
+		SFG_ASSERT(world != nullptr);
+
+		return world->get_elapsed_time();
+	}
+
+	f32 api_world_get_real_elapsed_time(const world_t* world)
+	{
+		SFG_ASSERT(world != nullptr);
+
+		return world->get_real_elapsed_time();
+	}
+
 	const script_api_world_t& get_script_api_world()
 	{
 		static const script_api_world_t api{
 			.size							 = static_cast<u32>(sizeof(script_api_world_t)),
-			.version						 = 4,
+			.version						 = 5,
 			.create_entity					 = api_world_create_entity,
 			.destroy_entity					 = api_world_destroy_entity,
 			.duplicate_entity				 = api_world_duplicate_entity,
@@ -997,6 +1025,10 @@ namespace sfg
 			.debug_draw_text_2d				 = api_world_debug_draw_text_2d,
 			.debug_draw_text_3d				 = api_world_debug_draw_text_3d,
 			.debug_draw_texture_3d			 = api_world_debug_draw_texture_3d,
+			.set_time_scale					 = api_world_set_time_scale,
+			.get_time_scale					 = api_world_get_time_scale,
+			.get_elapsed_time				 = api_world_get_elapsed_time,
+			.get_real_elapsed_time			 = api_world_get_real_elapsed_time,
 		};
 
 		return api;

@@ -50,8 +50,10 @@ namespace sfg
 	{
 		SFG_ASSERT(!_is_playing);
 
-		_world	   = nullptr;
-		_is_paused = false;
+		_world				  = nullptr;
+		_time_scale			  = 1.0f;
+		_is_explicitly_paused = false;
+		_is_time_scale_paused = false;
 	}
 
 	void world_audio_controller_t::begin_play()
@@ -59,8 +61,10 @@ namespace sfg
 		SFG_ASSERT(_world != nullptr);
 		SFG_ASSERT(!_is_playing);
 
-		_is_playing = true;
-		_is_paused	= false;
+		_is_playing			  = true;
+		_is_explicitly_paused = false;
+		_is_time_scale_paused = _time_scale == 0.0f;
+
 		sync_sources(0.0f);
 		sync_listener(0.0f);
 	}
@@ -81,8 +85,9 @@ namespace sfg
 		for (const entity_id_t entity : entities)
 			destroy_voice(entity);
 
-		_is_playing = false;
-		_is_paused	= false;
+		_is_playing			  = false;
+		_is_explicitly_paused = false;
+		_is_time_scale_paused = false;
 	}
 
 	void world_audio_controller_t::destroy_entity(entity_id_t entity)
@@ -100,8 +105,27 @@ namespace sfg
 		if (!_is_playing)
 			return;
 
+		const bool was_paused = is_paused();
+
+		_is_time_scale_paused = _time_scale == 0.0f;
+
+		const bool resume_after_sync = was_paused && !is_paused();
+
+		if (!was_paused && is_paused())
+			pause_voices();
+
 		sync_sources(delta_time);
 		sync_listener(delta_time);
+
+		if (resume_after_sync)
+			resume_voices();
+	}
+
+	void world_audio_controller_t::set_time_scale(f32 time_scale)
+	{
+		SFG_ASSERT(time_scale >= 0.0f);
+
+		_time_scale = time_scale;
 	}
 
 	bool world_audio_controller_t::play(entity_id_t entity)
@@ -116,7 +140,7 @@ namespace sfg
 
 		system->play_requested = true;
 
-		if (_is_paused)
+		if (is_playback_paused())
 		{
 			system->resume_after_pause = true;
 			return true;
@@ -164,9 +188,32 @@ namespace sfg
 	{
 		SFG_ASSERT(_is_playing);
 
-		if (_is_paused)
+		if (_is_explicitly_paused)
 			return;
 
+		const bool was_paused = is_paused();
+
+		_is_explicitly_paused = true;
+
+		if (!was_paused)
+			pause_voices();
+	}
+
+	void world_audio_controller_t::resume_all()
+	{
+		SFG_ASSERT(_is_playing);
+
+		if (!_is_explicitly_paused)
+			return;
+
+		_is_explicitly_paused = false;
+
+		if (!is_paused())
+			resume_voices();
+	}
+
+	void world_audio_controller_t::pause_voices()
+	{
 		const ecs_component_table_t&	system_table = _world->get_component_table(type_id_t<component_system_audio_source_t>::value);
 		const ecs_component_table_ref_t refs[]		 = {
 			system_table.ref(),
@@ -175,7 +222,6 @@ namespace sfg
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 		{
 			component_system_audio_source_t& system = ecs_helpers_t::table_get_as<component_system_audio_source_t>(system_table, row.id);
-			system.resume_after_pause				= false;
 
 			if (audio_engine_t::get().is_voice_valid(system.voice) && audio_engine_t::get().is_voice_playing(system.voice))
 			{
@@ -183,17 +229,10 @@ namespace sfg
 				audio_engine_t::get().pause_voice(system.voice);
 			}
 		}
-
-		_is_paused = true;
 	}
 
-	void world_audio_controller_t::resume_all()
+	void world_audio_controller_t::resume_voices()
 	{
-		SFG_ASSERT(_is_playing);
-
-		if (!_is_paused)
-			return;
-
 		const ecs_component_table_t&	system_table = _world->get_component_table(type_id_t<component_system_audio_source_t>::value);
 		const ecs_component_table_ref_t refs[]		 = {
 			system_table.ref(),
@@ -208,8 +247,6 @@ namespace sfg
 
 			system.resume_after_pause = false;
 		}
-
-		_is_paused = false;
 	}
 
 	bool world_audio_controller_t::create_voice(entity_id_t entity, bool start)
@@ -235,7 +272,7 @@ namespace sfg
 			.direction		= transform.abs_rot * vec3f_t::forward,
 			.velocity		= vec3f_t::zero,
 			.volume			= source.volume,
-			.pitch			= source.pitch,
+			.pitch			= _time_scale > 0.0f ? source.pitch * _time_scale : source.pitch,
 			.min_distance	= source.min_distance,
 			.max_distance	= source.max_distance,
 			.rolloff		= source.rolloff,
@@ -256,12 +293,12 @@ namespace sfg
 		system.audio			  = source.audio;
 		system.bus				  = source.bus;
 		system.play_requested	  = start;
-		system.resume_after_pause = start && _is_paused;
+		system.resume_after_pause = start && is_playback_paused();
 
 		if (!audio_engine_t::get().is_voice_valid(system.voice))
 			return false;
 
-		if (start && !_is_paused)
+		if (start && !is_playback_paused())
 			return audio_engine_t::get().start_voice(system.voice);
 
 		return true;
@@ -362,7 +399,7 @@ namespace sfg
 				.direction		= transform.abs_rot * vec3f_t::forward,
 				.velocity		= velocity,
 				.volume			= source.volume,
-				.pitch			= source.pitch,
+				.pitch			= _time_scale > 0.0f ? source.pitch * _time_scale : source.pitch,
 				.min_distance	= source.min_distance,
 				.max_distance	= source.max_distance,
 				.rolloff		= source.rolloff,

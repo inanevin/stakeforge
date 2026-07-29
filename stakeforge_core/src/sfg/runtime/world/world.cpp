@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_debug_draw.hpp"
 
 #include <sfg/io/assert.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/physics/physics_world.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
@@ -128,7 +129,10 @@ namespace sfg
 		_play_resource_count		  = 0;
 		_active_component_query_count = 0;
 		_world_script_instance		  = nullptr;
+		_elapsed_time				  = 0.0f;
+		_real_elapsed_time			  = 0.0f;
 		_is_playing					  = false;
+		_time_scale					  = 1.0f;
 	}
 
 	void world_t::begin_play()
@@ -137,8 +141,11 @@ namespace sfg
 
 		_play_resource_count = static_cast<u32>(_used_resources.size());
 		_is_playing			 = true;
+		_elapsed_time		 = 0.0f;
+		_real_elapsed_time	 = 0.0f;
 
 		update_world_transforms(false);
+		_audio_controller.set_time_scale(_time_scale);
 		_audio_controller.begin_play();
 		_particle_simulation.begin_play();
 
@@ -170,6 +177,8 @@ namespace sfg
 		_used_resources.resize(_play_resource_count);
 		_play_resource_count = 0;
 		_is_playing			 = false;
+
+		set_time_scale(1.0f);
 	}
 
 	void world_t::pause_audio()
@@ -184,6 +193,13 @@ namespace sfg
 		SFG_ASSERT(_is_playing);
 
 		_audio_controller.resume_all();
+	}
+
+	void world_t::set_time_scale(f32 time_scale)
+	{
+		_time_scale = math::max(0.0f, time_scale);
+
+		_audio_controller.set_time_scale(_time_scale);
 	}
 
 	void world_t::clear_entities()
@@ -204,8 +220,12 @@ namespace sfg
 		_entity_free_list.resize(0);
 		_text_allocator.reset();
 		_tick_count			= 0;
+		_elapsed_time		= 0.0f;
+		_real_elapsed_time	= 0.0f;
+		_time_scale			= 1.0f;
 		_entity_head		= 0;
 		_main_camera_entity = NULL_ENTITY_ID;
+		_audio_controller.set_time_scale(_time_scale);
 	}
 
 	void world_t::tick_physics(f32 dt)
@@ -215,21 +235,27 @@ namespace sfg
 		if (!_physics_world.is_init())
 			return;
 
-		_physics_world.tick(dt);
+		const f32 scaled_dt = dt * _time_scale;
+
+		_physics_world.tick(scaled_dt);
 	}
 
 	void world_t::tick_animation_prep(f32 dt)
 	{
 		ZoneScoped;
 
-		_animation_controller.tick_prep(dt);
+		const f32 scaled_dt = dt * _time_scale;
+
+		_animation_controller.tick_prep(scaled_dt);
 	}
 
 	void world_t::tick_animation_logic(f32 dt)
 	{
 		ZoneScoped;
 
-		_animation_controller.tick_logic(dt);
+		const f32 scaled_dt = dt * _time_scale;
+
+		_animation_controller.tick_logic(scaled_dt);
 	}
 
 	void world_t::tick_logic(f32 dt)
@@ -238,14 +264,19 @@ namespace sfg
 
 		SFG_ASSERT(_is_playing);
 
-		if (_world_script_instance != nullptr)
-			script_runtime_t::get().tick_world_script(_world_script_instance, dt);
+		const f32 scaled_dt = dt * _time_scale;
 
-		_logic_helper.sync_destroyers(dt);
-		_audio_controller.tick(dt);
+		_elapsed_time += scaled_dt;
+		_real_elapsed_time += dt;
 
 		if (_world_script_instance != nullptr)
-			script_runtime_t::get().post_tick_world_script(_world_script_instance, dt);
+			script_runtime_t::get().tick_world_script(_world_script_instance, scaled_dt);
+
+		_logic_helper.sync_destroyers(scaled_dt);
+		_audio_controller.tick(scaled_dt);
+
+		if (_world_script_instance != nullptr)
+			script_runtime_t::get().post_tick_world_script(_world_script_instance, scaled_dt);
 	}
 
 	void world_t::tick_logic_post_physics(f32 dt)
@@ -257,6 +288,7 @@ namespace sfg
 		if (_world_script_instance == nullptr)
 			return;
 
+		const f32		  scaled_dt		 = dt * _time_scale;
 		script_runtime_t& script_runtime = script_runtime_t::get();
 
 		if (_physics_world.is_init())
@@ -267,7 +299,7 @@ namespace sfg
 				script_runtime.physics_contact_world_script(_world_script_instance, contact);
 		}
 
-		script_runtime.post_physics_tick_world_script(_world_script_instance, dt);
+		script_runtime.post_physics_tick_world_script(_world_script_instance, scaled_dt);
 	}
 
 	void world_t::tick_logic_post_animation(f32 dt)
@@ -276,8 +308,10 @@ namespace sfg
 
 		SFG_ASSERT(_is_playing);
 
+		const f32 scaled_dt = dt * _time_scale;
+
 		if (_world_script_instance != nullptr)
-			script_runtime_t::get().post_animation_tick_world_script(_world_script_instance, dt);
+			script_runtime_t::get().post_animation_tick_world_script(_world_script_instance, scaled_dt);
 	}
 
 	void world_t::begin_world_script_play()
@@ -370,7 +404,9 @@ namespace sfg
 
 		++_tick_count;
 
-		_particle_simulation.tick(dt);
+		const f32 scaled_dt = dt * _time_scale;
+
+		_particle_simulation.tick(scaled_dt);
 
 		_logic_helper.sync_sprite_renderers();
 		_logic_helper.sync_reflection_probes(_tick_count);

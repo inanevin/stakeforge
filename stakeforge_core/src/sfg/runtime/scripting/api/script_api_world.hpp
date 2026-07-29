@@ -133,6 +133,10 @@ namespace sfg
 	void		api_world_debug_draw_text_2d(world_t* world, const vec2f_t* position, const char* text, const color_t* color, f32 size_px, debug_draw_text_alignment_e alignment, resource_handle_t font);
 	void		api_world_debug_draw_text_3d(world_t* world, const vec3f_t* position, const char* text, const color_t* color, f32 size_px, debug_draw_depth_e depth, debug_draw_text_alignment_e alignment, const vec2f_t* screen_offset, resource_handle_t font);
 	void		api_world_debug_draw_texture_3d(world_t* world, const vec3f_t* position, resource_handle_t texture, const vec2f_t* size_px, const color_t* color, entity_id_t entity, debug_draw_depth_e depth, const vec2f_t* screen_offset, u8 linear_sample);
+	void		api_world_set_time_scale(world_t* world, f32 time_scale);
+	f32			api_world_get_time_scale(const world_t* world);
+	f32			api_world_get_elapsed_time(const world_t* world);
+	f32			api_world_get_real_elapsed_time(const world_t* world);
 
 	struct script_api_world_t
 	{
@@ -193,6 +197,10 @@ namespace sfg
 		decltype(&api_world_debug_draw_text_2d)				 debug_draw_text_2d				 = nullptr;
 		decltype(&api_world_debug_draw_text_3d)				 debug_draw_text_3d				 = nullptr;
 		decltype(&api_world_debug_draw_texture_3d)			 debug_draw_texture_3d			 = nullptr;
+		decltype(&api_world_set_time_scale)					 set_time_scale					 = nullptr;
+		decltype(&api_world_get_time_scale)					 get_time_scale					 = nullptr;
+		decltype(&api_world_get_elapsed_time)				 get_elapsed_time				 = nullptr;
+		decltype(&api_world_get_real_elapsed_time)			 get_real_elapsed_time			 = nullptr;
 	};
 
 	const script_api_world_t& get_script_api_world();

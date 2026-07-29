@@ -14,6 +14,38 @@ public readonly unsafe struct World : IEquatable<World>
 
     public bool IsValid => _native != 0;
 
+    public float TimeScale
+    {
+        get
+        {
+            NativeApi* api = ManagedRuntime.GetApi();
+            return api->World->GetTimeScale(GetNative());
+        }
+        set
+        {
+            NativeApi* api = ManagedRuntime.GetApi();
+            api->World->SetTimeScale(GetNative(), value);
+        }
+    }
+
+    public float ElapsedTime
+    {
+        get
+        {
+            NativeApi* api = ManagedRuntime.GetApi();
+            return api->World->GetElapsedTime(GetNative());
+        }
+    }
+
+    public float RealElapsedTime
+    {
+        get
+        {
+            NativeApi* api = ManagedRuntime.GetApi();
+            return api->World->GetRealElapsedTime(GetNative());
+        }
+    }
+
     public Entity CreateEntity(string? name = null)
     {
         NativeApi* api = ManagedRuntime.GetApi();

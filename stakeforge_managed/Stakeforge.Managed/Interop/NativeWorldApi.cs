@@ -62,4 +62,8 @@ internal unsafe struct NativeWorldApi
     internal delegate* unmanaged[Cdecl]<nint, Vector2*, byte*, Color*, float, DebugDrawTextAlignment, ulong, void> DebugDrawText2D;
     internal delegate* unmanaged[Cdecl]<nint, Vector3*, byte*, Color*, float, DebugDrawDepth, DebugDrawTextAlignment, Vector2*, ulong, void> DebugDrawText3D;
     internal delegate* unmanaged[Cdecl]<nint, Vector3*, ulong, Vector2*, Color*, uint, DebugDrawDepth, Vector2*, byte, void> DebugDrawTexture3D;
+    internal delegate* unmanaged[Cdecl]<nint, float, void> SetTimeScale;
+    internal delegate* unmanaged[Cdecl]<nint, float> GetTimeScale;
+    internal delegate* unmanaged[Cdecl]<nint, float> GetElapsedTime;
+    internal delegate* unmanaged[Cdecl]<nint, float> GetRealElapsedTime;
 }

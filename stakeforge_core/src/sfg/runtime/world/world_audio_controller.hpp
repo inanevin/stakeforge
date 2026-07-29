@@ -52,6 +52,7 @@ namespace sfg
 		void end_play();
 		void destroy_entity(entity_id_t entity);
 		void tick(f32 delta_time);
+		void set_time_scale(f32 time_scale);
 
 		// -----------------------------------------------------------------------------
 		// playback
@@ -64,14 +65,27 @@ namespace sfg
 		void resume_all();
 
 	private:
-		bool create_voice(entity_id_t entity, bool start);
-		void destroy_voice(entity_id_t entity);
-		void sync_sources(f32 delta_time);
-		void sync_listener(f32 delta_time);
+		bool		create_voice(entity_id_t entity, bool start);
+		void		destroy_voice(entity_id_t entity);
+		void		pause_voices();
+		void		resume_voices();
+		void		sync_sources(f32 delta_time);
+		void		sync_listener(f32 delta_time);
+		inline bool is_paused() const
+		{
+			return _is_explicitly_paused || _is_time_scale_paused;
+		}
+
+		inline bool is_playback_paused() const
+		{
+			return is_paused() || _time_scale == 0.0f;
+		}
 
 	private:
-		world_t* _world		 = nullptr;
-		bool	 _is_playing = false;
-		bool	 _is_paused	 = false;
+		world_t* _world				   = nullptr;
+		f32		 _time_scale		   = 1.0f;
+		bool	 _is_playing		   = false;
+		bool	 _is_explicitly_paused = false;
+		bool	 _is_time_scale_paused = false;
 	};
 }

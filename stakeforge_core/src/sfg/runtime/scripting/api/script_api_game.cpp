@@ -71,12 +71,12 @@ namespace sfg
 		return g_set_render_resolution(resolution);
 	}
 
-	u8 api_game_load_world(sid_t world)
+	u8 api_game_load_world(sid_t world_name_hash)
 	{
 		if (g_load_world == nullptr)
 			return 0;
 
-		return g_load_world(world);
+		return g_load_world(world_name_hash);
 	}
 
 	void api_game_quit()
@@ -91,7 +91,7 @@ namespace sfg
 	{
 		static const script_api_game_t api{
 			.size				   = static_cast<u32>(sizeof(script_api_game_t)),
-			.version			   = 2,
+			.version			   = 3,
 			.get_render_resolution = api_game_get_render_resolution,
 			.set_render_resolution = api_game_set_render_resolution,
 			.load_world			   = api_game_load_world,
