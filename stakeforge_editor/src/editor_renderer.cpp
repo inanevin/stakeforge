@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/engine/perf_metrics.hpp>
 #include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -228,6 +229,8 @@ namespace sfg
 	{
 		ZoneScoped;
 
+		const i64 render_thread_start_us = time_t::get_cpu_microseconds();
+
 		gfx_backend& backend = gfx_backend::get();
 
 		/* figure out swapchain list */
@@ -239,8 +242,8 @@ namespace sfg
 			vec2u16_t					  size;
 		};
 
-		frame_vector_t<rt_t>		 render_targets;
-		frame_vector_t<gfx_handle_t> present_list;
+		frame_vector_t<rt_t>		 render_targets = {};
+		frame_vector_t<gfx_handle_t> present_list	= {};
 		for (const surface_render_target_t& t : _render_targets)
 		{
 			if (t.minimized || !t.visible)
@@ -261,6 +264,7 @@ namespace sfg
 		if (render_targets.empty())
 		{
 			render_resources_t::get().drain_destroy_requests();
+			perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, 0);
 			return;
 		}
 
@@ -367,13 +371,19 @@ namespace sfg
 			backend.queue_wait(queue_gfx, &pfd.semaphore_world.sem, &pfd.semaphore_world.value, 1);
 
 		backend.submit_commands(queue_gfx, &cmd, 1);
+		const i64 present_start_us = time_t::get_cpu_microseconds();
+
 		backend.present(present_list.data(), static_cast<u8>(present_list.size()));
+		const i64 present_time_us = time_t::get_cpu_microseconds() - present_start_us;
+
 		pfd.semaphore_frame.value++;
 		backend.queue_signal(queue_gfx, &pfd.semaphore_frame.sem, &pfd.semaphore_frame.value, 1);
 
 		render_resources_t::get().drain_destroy_requests();
 
 		_frame_counter++;
+
+		perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, present_time_us);
 	}
 
 	void editor_renderer_t::ensure_render(editor_world_controller_t& world_controller)
