@@ -53,7 +53,8 @@ float4 PSMain(vs_output input) : SV_TARGET
 {
 	editor_world_render_data data = sfg_get_cbv<editor_world_render_data>(sfg_constant_rp0);
 	Texture2D source = sfg_get_texture<Texture2D>(sfg_constant_obj0);
-	float4 color = source.SampleLevel(smp_linear, input.uv, 0);
+	int2 pixel = int2(input.pos.xy);
+	float4 color = source.Load(int3(pixel, 0));
 	if (data.camera_grid.w > 0.0)
 	{
 		float2 ndc = float2(input.uv.x * 2.0 - 1.0, 1.0 - input.uv.y * 2.0);
@@ -66,7 +67,7 @@ float4 PSMain(vs_output input) : SV_TARGET
 			float4 plane_clip = mul(data.proj, float4(view_ray * ray_distance, 1.0));
 			float plane_depth = plane_clip.z / plane_clip.w;
 			Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(sfg_constant_obj2);
-			float scene_depth = depth_texture.Load(int3(uint2(input.pos.xy), 0));
+			float scene_depth = depth_texture.Load(int3(pixel, 0));
 			if (scene_depth <= 0.000001 || plane_depth > scene_depth + 0.000001)
 			{
 				float grid_scale = data.grid_params.x;
@@ -87,15 +88,34 @@ float4 PSMain(vs_output input) : SV_TARGET
 				float fade = (1.0 - smoothstep(fade_start, fade_end, ray_distance)) * smoothstep(0.015, 0.12, abs(world_ray.y));
 				float medium_alpha = lerp(data.grid_major_color.a, data.grid_minor_color.a, lod_blend);
 				float3 medium_color = lerp(data.grid_major_color.rgb, data.grid_minor_color.rgb, lod_blend);
-				color.rgb = lerp(color.rgb, data.grid_minor_color.rgb, fine_only * data.grid_minor_color.a * (1.0 - lod_blend) * fade);
-				color.rgb = lerp(color.rgb, medium_color, medium_only * medium_alpha * fade);
-				color.rgb = lerp(color.rgb, data.grid_major_color.rgb, coarse_line * data.grid_major_color.a * fade);
-
 				float2 absolute_position = data.camera_position.xz + relative_position;
 				float x_axis = saturate(1.0 - abs(absolute_position.y) / max(fwidth(absolute_position.y) * 1.5, 0.00001));
 				float z_axis = saturate(1.0 - abs(absolute_position.x) / max(fwidth(absolute_position.x) * 1.5, 0.00001));
-				color.rgb = lerp(color.rgb, data.grid_x_color.rgb, x_axis * data.grid_x_color.a * fade);
-				color.rgb = lerp(color.rgb, data.grid_z_color.rgb, z_axis * data.grid_z_color.a * fade);
+				float fine_alpha = fine_only * data.grid_minor_color.a * (1.0 - lod_blend) * fade;
+				float medium_line_alpha = medium_only * medium_alpha * fade;
+				float coarse_alpha = coarse_line * data.grid_major_color.a * fade;
+				float x_axis_alpha = x_axis * data.grid_x_color.a * fade;
+				float z_axis_alpha = z_axis * data.grid_z_color.a * fade;
+				float grid_alpha = max(max(max(fine_alpha, medium_line_alpha), max(coarse_alpha, x_axis_alpha)), z_axis_alpha);
+				if (grid_alpha > 0.0)
+				{
+					scene_depth = max(scene_depth, depth_texture.Load(int3(pixel + int2(-1, -1), 0)));
+					scene_depth = max(scene_depth, depth_texture.Load(int3(pixel + int2(0, -1), 0)));
+					scene_depth = max(scene_depth, depth_texture.Load(int3(pixel + int2(1, -1), 0)));
+					scene_depth = max(scene_depth, depth_texture.Load(int3(pixel + int2(-1, 0), 0)));
+					scene_depth = max(scene_depth, depth_texture.Load(int3(pixel + int2(1, 0), 0)));
+					scene_depth = max(scene_depth, depth_texture.Load(int3(pixel + int2(-1, 1), 0)));
+					scene_depth = max(scene_depth, depth_texture.Load(int3(pixel + int2(0, 1), 0)));
+					scene_depth = max(scene_depth, depth_texture.Load(int3(pixel + int2(1, 1), 0)));
+					if (scene_depth <= 0.000001 || plane_depth > scene_depth + 0.000001)
+					{
+						color.rgb = lerp(color.rgb, data.grid_minor_color.rgb, fine_alpha);
+						color.rgb = lerp(color.rgb, medium_color, medium_line_alpha);
+						color.rgb = lerp(color.rgb, data.grid_major_color.rgb, coarse_alpha);
+						color.rgb = lerp(color.rgb, data.grid_x_color.rgb, x_axis_alpha);
+						color.rgb = lerp(color.rgb, data.grid_z_color.rgb, z_axis_alpha);
+					}
+				}
 			}
 		}
 	}
