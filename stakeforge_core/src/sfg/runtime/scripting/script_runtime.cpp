@@ -149,30 +149,36 @@ namespace sfg
 		}
 
 		// load bridge assmbly functions
-		const load_assembly_and_get_function_pointer_fn load_managed_function			 = reinterpret_cast<load_assembly_and_get_function_pointer_fn>(load_assembly_delegate);
-		const char_t* const								managed_type					 = L"SFG.ScriptHost.NativeEntryPoints, Stakeforge.ScriptHost";
-		void*											initialize_function				 = nullptr;
-		void*											shutdown_function				 = nullptr;
-		void*											load_project_assembly_function	 = nullptr;
-		void*											unload_project_assembly_function = nullptr;
+		const load_assembly_and_get_function_pointer_fn fn_load_managed						= reinterpret_cast<load_assembly_and_get_function_pointer_fn>(load_assembly_delegate);
+		const char_t* const								managed_type						= L"SFG.ScriptHost.NativeEntryPoints, Stakeforge.ScriptHost";
+		void*											fn_init								= nullptr;
+		void*											fn_shtdown							= nullptr;
+		void*											fn_stage_project_assembly			= nullptr;
+		void*											fn_get_staged_project_schema		= nullptr;
+		void*											fn_activate_staged_project_assembly = nullptr;
+		void*											fn_discard_staged_project_assembly	= nullptr;
 
-		const i32 load_initialize_result		 = load_managed_function(assembly_path_wide.c_str(), managed_type, L"Initialize", UNMANAGEDCALLERSONLY_METHOD, nullptr, &initialize_function);
-		const i32 load_shutdown_result			 = load_managed_function(assembly_path_wide.c_str(), managed_type, L"Shutdown", UNMANAGEDCALLERSONLY_METHOD, nullptr, &shutdown_function);
-		const i32 load_project_assembly_result	 = load_managed_function(assembly_path_wide.c_str(), managed_type, L"LoadProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &load_project_assembly_function);
-		const i32 unload_project_assembly_result = load_managed_function(assembly_path_wide.c_str(), managed_type, L"UnloadProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &unload_project_assembly_function);
+		const i32 res_load_init					= fn_load_managed(assembly_path_wide.c_str(), managed_type, L"Initialize", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_init);
+		const i32 res_load_shutdown				= fn_load_managed(assembly_path_wide.c_str(), managed_type, L"Shutdown", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_shtdown);
+		const i32 res_stage_project_assembly	= fn_load_managed(assembly_path_wide.c_str(), managed_type, L"StageProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_stage_project_assembly);
+		const i32 res_get_staged_project_schema = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"GetStagedProjectSchema", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_get_staged_project_schema);
+		const i32 res_activate_staged_schema	= fn_load_managed(assembly_path_wide.c_str(), managed_type, L"ActivateStagedProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_activate_staged_project_assembly);
+		const i32 res_discard_staged_schema		= fn_load_managed(assembly_path_wide.c_str(), managed_type, L"DiscardStagedProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_discard_staged_project_assembly);
 
-		if (load_initialize_result != 0 || initialize_function == nullptr || load_shutdown_result != 0 || shutdown_function == nullptr || load_project_assembly_result != 0 || load_project_assembly_function == nullptr || unload_project_assembly_result != 0 ||
-			unload_project_assembly_function == nullptr)
+		if (res_load_init != 0 || fn_init == nullptr || res_load_shutdown != 0 || fn_shtdown == nullptr || res_stage_project_assembly != 0 || fn_stage_project_assembly == nullptr || res_get_staged_project_schema != 0 ||
+			fn_get_staged_project_schema == nullptr || res_activate_staged_schema != 0 || fn_activate_staged_project_assembly == nullptr || res_discard_staged_schema != 0 || fn_discard_staged_project_assembly == nullptr)
 		{
-			SFG_ERR("could not load managed entry points, errors: {0}, {1}, {2}, {3}", load_initialize_result, load_shutdown_result, load_project_assembly_result, unload_project_assembly_result);
+			SFG_ERR("could not load managed entry points, errors: {0}, {1}, {2}, {3}, {4}, {5}", res_load_init, res_load_shutdown, res_stage_project_assembly, res_get_staged_project_schema, res_activate_staged_schema, res_discard_staged_schema);
 			unload_hostfxr(hostfxr_library);
 			return false;
 		}
 
-		const script_host_initialize_fn				 initialize				 = reinterpret_cast<script_host_initialize_fn>(initialize_function);
-		const script_host_shutdown_fn				 shutdown				 = reinterpret_cast<script_host_shutdown_fn>(shutdown_function);
-		const script_host_load_project_assembly_fn	 load_project_assembly	 = reinterpret_cast<script_host_load_project_assembly_fn>(load_project_assembly_function);
-		const script_host_unload_project_assembly_fn unload_project_assembly = reinterpret_cast<script_host_unload_project_assembly_fn>(unload_project_assembly_function);
+		const script_host_initialize_fn						  initialize					   = reinterpret_cast<script_host_initialize_fn>(fn_init);
+		const script_host_shutdown_fn						  shutdown						   = reinterpret_cast<script_host_shutdown_fn>(fn_shtdown);
+		const script_host_stage_project_assembly_fn			  stage_project_assembly		   = reinterpret_cast<script_host_stage_project_assembly_fn>(fn_stage_project_assembly);
+		const script_host_get_staged_project_schema_fn		  get_staged_project_schema		   = reinterpret_cast<script_host_get_staged_project_schema_fn>(fn_get_staged_project_schema);
+		const script_host_activate_staged_project_assembly_fn activate_staged_project_assembly = reinterpret_cast<script_host_activate_staged_project_assembly_fn>(fn_activate_staged_project_assembly);
+		const script_host_discard_staged_project_assembly_fn  discard_staged_project_assembly  = reinterpret_cast<script_host_discard_staged_project_assembly_fn>(fn_discard_staged_project_assembly);
 
 		_native_api = {
 			.size	   = static_cast<u32>(sizeof(script_host_native_api_t)),
@@ -188,20 +194,23 @@ namespace sfg
 			.animation = &get_script_api_animation(),
 		};
 
-		const i32 managed_initialize_result = initialize(&_native_api);
+		const i32 res_managed_initialize = initialize(&_native_api);
 
-		if (managed_initialize_result != 0)
+		if (res_managed_initialize != 0)
 		{
-			SFG_ERR("managed scripting host initialization failed, error: {0}", managed_initialize_result);
+			SFG_ERR("managed scripting host initialization failed, error: {0}", res_managed_initialize);
 			unload_hostfxr(hostfxr_library);
 			return false;
 		}
 
-		_hostfxr_library		 = hostfxr_library;
-		_shutdown				 = shutdown;
-		_load_project_assembly	 = load_project_assembly;
-		_unload_project_assembly = unload_project_assembly;
-		_is_initialized			 = true;
+		_hostfxr_library				   = hostfxr_library;
+		_shutdown						   = shutdown;
+		_fn_stage_project_assembly		   = stage_project_assembly;
+		_fn_get_staged_project_schema	   = get_staged_project_schema;
+		_fn_activate_staged_project_schema = activate_staged_project_assembly;
+		_fn_discard_staged_project_schema  = discard_staged_project_assembly;
+
+		reflection_registry_t::get().reserve_script_capacity();
 
 		return true;
 #else
@@ -212,7 +221,6 @@ namespace sfg
 
 	void script_runtime_t::uninit()
 	{
-		SFG_ASSERT(_is_initialized);
 
 #ifdef SFG_PLATFORM_WINDOWS
 		const i32 shutdown_result = _shutdown();
@@ -223,53 +231,102 @@ namespace sfg
 		unload_hostfxr(static_cast<HMODULE>(_hostfxr_library));
 #endif
 
-		_native_api					= {};
-		_hostfxr_library			= nullptr;
-		_shutdown					= nullptr;
-		_load_project_assembly		= nullptr;
-		_unload_project_assembly	= nullptr;
-		_is_initialized				= false;
-		_is_project_assembly_loaded = false;
+		reflection_registry_t::get().remove_script_types();
+
+		_component_schema				   = {};
+		_staged_component_schema		   = {};
+		_native_api						   = {};
+		_hostfxr_library				   = nullptr;
+		_shutdown						   = nullptr;
+		_fn_stage_project_assembly		   = nullptr;
+		_fn_get_staged_project_schema	   = nullptr;
+		_fn_activate_staged_project_schema = nullptr;
+		_fn_discard_staged_project_schema  = nullptr;
+		_is_project_assembly_loaded		   = false;
+		_is_project_assembly_staged		   = false;
 	}
 
-	bool script_runtime_t::load_project_assembly(const char* assembly_path)
+	bool script_runtime_t::stage_project_assembly(const char* assembly_path)
 	{
-		SFG_ASSERT(_is_initialized);
+		SFG_ASSERT(!_is_project_assembly_staged);
 
-		const i32 result = _load_project_assembly(assembly_path);
+		const i32 stage_result = _fn_stage_project_assembly(assembly_path);
 
-		if (result != 0)
+		if (stage_result != 0)
 		{
-			SFG_ERR("managed C# project assembly loading failed, error: {0}", result);
+			SFG_ERR("managed C# project assembly staging failed, error: {0}", stage_result);
 			return false;
 		}
 
+		const i32 schema_size = _fn_get_staged_project_schema(nullptr, 0);
+
+		if (schema_size <= 1)
+		{
+			SFG_ERR("managed C# project assembly returned an invalid component schema size: {0}", schema_size);
+			_fn_discard_staged_project_schema();
+			return false;
+		}
+
+		string_t  schema_json(static_cast<size_t>(schema_size), '\0');
+		const i32 schema_result = _fn_get_staged_project_schema(schema_json.data(), static_cast<u32>(schema_json.size()));
+
+		if (schema_result != schema_size)
+		{
+			SFG_ERR("managed C# project assembly schema transfer failed, error: {0}", schema_result);
+			_fn_discard_staged_project_schema();
+			return false;
+		}
+
+		script_component_schema_t candidate_schema = {};
+
+		if (!candidate_schema.parse(schema_json.c_str()))
+		{
+			_fn_discard_staged_project_schema();
+			return false;
+		}
+
+		if (!reflection_registry_t::get().is_script_capacity_valid(candidate_schema.get_components().size(), candidate_schema.get_field_count()))
+		{
+			SFG_ERR("managed component schema exceeds the script reflection capacity.");
+			_fn_discard_staged_project_schema();
+			return false;
+		}
+
+		_staged_component_schema	= std::move(candidate_schema);
+		_is_project_assembly_staged = true;
+		return true;
+	}
+
+	bool script_runtime_t::activate_staged_project_assembly()
+	{
+		SFG_ASSERT(_is_project_assembly_staged);
+
+		const i32 result = _fn_activate_staged_project_schema();
+
+		if (result != 0)
+		{
+			SFG_ERR("managed C# project assembly activation failed, error: {0}", result);
+			return false;
+		}
+
+		_component_schema			= std::move(_staged_component_schema);
+		_staged_component_schema	= {};
+		_is_project_assembly_staged = false;
 		_is_project_assembly_loaded = true;
 		return true;
 	}
 
-	bool script_runtime_t::reload_project_assembly(const char* assembly_path)
+	void script_runtime_t::discard_staged_project_assembly()
 	{
-		SFG_ASSERT(_is_initialized);
-		SFG_ASSERT(_is_project_assembly_loaded);
+		SFG_ASSERT(_is_project_assembly_staged);
 
-		return load_project_assembly(assembly_path);
-	}
-
-	bool script_runtime_t::unload_project_assembly()
-	{
-		SFG_ASSERT(_is_initialized);
-		SFG_ASSERT(_is_project_assembly_loaded);
-
-		const i32 result = _unload_project_assembly();
+		const i32 result = _fn_discard_staged_project_schema();
 
 		if (result != 0)
-		{
-			SFG_ERR("managed C# project assembly unloading failed, error: {0}", result);
-			return false;
-		}
+			SFG_ERR("managed C# project assembly discard failed, error: {0}", result);
 
-		_is_project_assembly_loaded = false;
-		return true;
+		_staged_component_schema	= {};
+		_is_project_assembly_staged = false;
 	}
+
 }

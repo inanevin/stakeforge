@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_writer.hpp"
 #include "editor_directories.hpp"
 
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
@@ -417,6 +418,19 @@ namespace sfg
 
 		string_t contents = file_system_t::read_file_as_string(template_path.c_str());
 		string_util::replace_all(contents, "#SCRIPT_NAME#", desc.name);
+
+		if (desc.script_template == editor_script_template_e::component)
+		{
+			sid_t component_guid = NULL_SID;
+
+			do
+			{
+				component_guid = hashing_t::generate_guid64();
+			} while (component_guid == NULL_SID);
+
+			const string_t component_id = std::to_string(component_guid).c_str();
+			string_util::replace_all(contents, "#COMPONENT_ID#", component_id.c_str());
+		}
 
 		if (!serializer_t::write_to_file(contents, script_path.c_str()))
 			return false;

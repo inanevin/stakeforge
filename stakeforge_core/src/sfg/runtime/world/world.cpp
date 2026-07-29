@@ -36,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/resources/world_cook_entity_header.hpp>
+#include <sfg/runtime/scripting/script_component_schema.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
@@ -73,13 +74,7 @@ namespace sfg
 			add_component_table(ecs_helpers_t::make_component_desc(type.type_id, is_tag_component ? 0 : type.size, is_tag_component ? 1 : type.alignment, is_tag_component ? ecs_component_type_flags_tag : ecs_component_type_flags_none, type.name));
 		}
 
-		_engine_components.hierarchy_table = &get_component_table(type_id_t<component_hierarchy_t>::value);
-		_engine_components.guid_table	   = &get_component_table(type_id_t<component_guid_t>::value);
-		_engine_components.transform_table = &get_component_table(type_id_t<component_transform_t>::value);
-		_engine_components.name_table	   = &get_component_table(type_id_t<component_name_t>::value);
-		_engine_components.alive_table	   = &get_component_table(type_id_t<component_alive_t>::value);
-		_engine_components.prefab_table	   = &get_component_table(type_id_t<component_prefab_reference_t>::value);
-		_system_components.transform_table = &get_component_table(type_id_t<component_system_transform_t>::value);
+		refresh_component_table_cache();
 
 		_logic_helper.init(*this);
 
@@ -98,6 +93,7 @@ namespace sfg
 	void world_t::uninit()
 	{
 		SFG_ASSERT(!_is_playing);
+		SFG_ASSERT(_active_component_query_count == 0);
 
 		_particle_simulation.uninit();
 
@@ -122,13 +118,14 @@ namespace sfg
 		_text_allocations.resize(0);
 		_text_allocation_free_list.resize(0);
 		_text_allocator.uninit();
-		_engine_components	 = {};
-		_system_components	 = {};
-		_tick_count			 = 0;
-		_entity_head		 = 0;
-		_main_camera_entity	 = NULL_ENTITY_ID;
-		_play_resource_count = 0;
-		_is_playing			 = false;
+		_engine_components			  = {};
+		_system_components			  = {};
+		_tick_count					  = 0;
+		_entity_head				  = 0;
+		_main_camera_entity			  = NULL_ENTITY_ID;
+		_play_resource_count		  = 0;
+		_active_component_query_count = 0;
+		_is_playing					  = false;
 	}
 
 	void world_t::begin_play()
@@ -829,10 +826,120 @@ namespace sfg
 	ecs_component_table_t& world_t::add_component_table(const ecs_component_type_desc_t& desc)
 	{
 		SFG_ASSERT(find_component_table(desc.type_id) == nullptr);
+		SFG_ASSERT(!is_component_query_active());
 
 		ecs_component_table_t& table = _component_tables.emplace_back();
 		ecs_t::table_init(table, desc);
 		return table;
+	}
+
+	void world_t::apply_script_component_schema(const script_component_schema_t& current_schema, const script_component_schema_t& candidate_schema, const script_component_schema_delta_t& delta)
+	{
+		SFG_ASSERT(!is_component_query_active());
+
+		_component_tables.reserve(_component_tables.size() + delta.added.size());
+
+		for (sid_t type_id : delta.removed)
+		{
+			const auto table_it = std::find_if(_component_tables.begin(), _component_tables.end(), [type_id](const ecs_component_table_t& table) { return table.component_type_id == type_id; });
+			SFG_ASSERT(table_it != _component_tables.end());
+
+			ecs_t::table_uninit(*table_it);
+			_component_tables.erase(table_it);
+		}
+
+		for (sid_t type_id : delta.layout_changed)
+		{
+			const script_component_desc_t* current_component   = current_schema.find_component(type_id);
+			const script_component_desc_t* candidate_component = candidate_schema.find_component(type_id);
+			ecs_component_table_t*		   current_table	   = find_component_table(type_id);
+
+			SFG_ASSERT(current_component != nullptr);
+			SFG_ASSERT(candidate_component != nullptr);
+			SFG_ASSERT(current_table != nullptr);
+
+			ecs_component_table_t	candidate_table = {};
+			const reflected_type_t* reflected_type	= reflection_registry_t::get().find_type(type_id);
+			SFG_ASSERT(reflected_type != nullptr);
+
+			const ecs_component_type_desc_t type_desc = ecs_helpers_t::make_component_desc(candidate_component->type_id, candidate_component->size, candidate_component->alignment, ecs_component_type_flags_none, reflected_type->name);
+			ecs_t::table_init(candidate_table, type_desc);
+
+			const ecs_component_table_ref_t table_refs[] = {
+				current_table->ref(),
+			};
+
+			// replace data
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				void* candidate_data = ecs_t::table_add(candidate_table, row.id);
+
+				SFG_MEMSET(candidate_data, 0, candidate_component->size);
+
+				for (const script_component_field_desc_t& candidate_field : candidate_component->fields)
+				{
+					const script_component_field_desc_t* current_field = current_component->find_field(candidate_field.field_id);
+
+					if (current_field == nullptr || current_field->value_type != candidate_field.value_type || current_field->sub_type_id != candidate_field.sub_type_id || current_field->size != candidate_field.size)
+						continue;
+
+					const u8* current_field_data   = static_cast<const u8*>(row.components[0]) + current_field->offset;
+					u8*		  candidate_field_data = static_cast<u8*>(candidate_data) + candidate_field.offset;
+
+					SFG_MEMCPY(candidate_field_data, current_field_data, candidate_field.size);
+				}
+			}
+
+			ecs_t::table_uninit(*current_table);
+			*current_table = candidate_table;
+		}
+
+		for (sid_t type_id : delta.added)
+		{
+			const script_component_desc_t* component	  = candidate_schema.find_component(type_id);
+			const reflected_type_t*		   reflected_type = reflection_registry_t::get().find_type(type_id);
+
+			SFG_ASSERT(component != nullptr);
+			SFG_ASSERT(reflected_type != nullptr);
+
+			add_component_table(ecs_helpers_t::make_component_desc(component->type_id, component->size, component->alignment, ecs_component_type_flags_none, reflected_type->name));
+		}
+
+		for (const script_component_desc_t& component : candidate_schema.get_components())
+		{
+			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component.type_id);
+			ecs_component_table_t*	table		   = find_component_table(component.type_id);
+
+			SFG_ASSERT(reflected_type != nullptr);
+			SFG_ASSERT(table != nullptr);
+
+			table->type_desc = ecs_helpers_t::make_component_desc(component.type_id, component.size, component.alignment, ecs_component_type_flags_none, reflected_type->name);
+		}
+
+		refresh_component_table_cache();
+	}
+
+	void world_t::begin_component_query()
+	{
+		_active_component_query_count++;
+	}
+
+	void world_t::end_component_query()
+	{
+		SFG_ASSERT(_active_component_query_count != 0);
+
+		_active_component_query_count--;
+	}
+
+	void world_t::refresh_component_table_cache()
+	{
+		_engine_components.hierarchy_table = &get_component_table(type_id_t<component_hierarchy_t>::value);
+		_engine_components.guid_table	   = &get_component_table(type_id_t<component_guid_t>::value);
+		_engine_components.transform_table = &get_component_table(type_id_t<component_transform_t>::value);
+		_engine_components.name_table	   = &get_component_table(type_id_t<component_name_t>::value);
+		_engine_components.alive_table	   = &get_component_table(type_id_t<component_alive_t>::value);
+		_engine_components.prefab_table	   = &get_component_table(type_id_t<component_prefab_reference_t>::value);
+		_system_components.transform_table = &get_component_table(type_id_t<component_system_transform_t>::value);
 	}
 
 	const ecs_component_table_t* world_t::find_component_table(sid_t type_id) const

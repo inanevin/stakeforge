@@ -57,6 +57,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/physics/physics_world.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
+#include <sfg/runtime/scripting/script_component_schema.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -201,6 +202,24 @@ namespace sfg
 			return;
 
 		update_main_world_play_mode(editor_play_mode_e::none);
+	}
+
+	void editor_world_controller_t::apply_script_component_schema(const script_component_schema_t& current_schema, const script_component_schema_t& candidate_schema, const script_component_schema_delta_t& delta)
+	{
+		stop_main_world_play_mode();
+		editor_app_t::get().stop_render();
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
+		// TODO:
+		// need to eventually stop clearing, but fix in place with component deltas :/
+		if (!delta.removed.empty() || !delta.layout_changed.empty())
+			editor_command_system_t::get().clear();
+
+		for (editor_world_t* editor_world : _worlds)
+			editor_world->get_world().apply_script_component_schema(current_schema, candidate_schema, delta);
+
+		if ((!delta.removed.empty() || !delta.layout_changed.empty()) && !_main_world.is_null())
+			set_main_world_dirty(true);
 	}
 
 	void editor_world_controller_t::resize_world(editor_world_handle_t handle, vec2u16_t render_resolution)

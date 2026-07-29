@@ -44,38 +44,36 @@ namespace sfg
 
 	ecs_query_range_t::iterator_t::iterator_t(span_t<const ecs_component_table_ref_t> in_table_refs)
 	{
-		init(in_table_refs);
-		if (!advance())
-			done = true;
+		ecs_t::inner_join_init(cursor, in_table_refs);
+		ecs_t::inner_join_next(cursor);
 	}
 
 	ecs_query_range_t::iterator_t ecs_query_range_t::iterator_t::make_end()
 	{
-		iterator_t it;
-		it.done = true;
+		iterator_t it  = {};
+		it.cursor.done = true;
 		return it;
 	}
 
 	const ecs_query_row_t& ecs_query_range_t::iterator_t::operator*() const
 	{
-		return current;
+		return cursor.current;
 	}
 
 	const ecs_query_row_t* ecs_query_range_t::iterator_t::operator->() const
 	{
-		return &current;
+		return &cursor.current;
 	}
 
 	ecs_query_range_t::iterator_t& ecs_query_range_t::iterator_t::operator++()
 	{
-		if (!advance())
-			done = true;
+		ecs_t::inner_join_next(cursor);
 		return *this;
 	}
 
 	bool ecs_query_range_t::iterator_t::operator==(const iterator_t& other) const
 	{
-		return done == other.done;
+		return cursor.done == other.cursor.done;
 	}
 
 	bool ecs_query_range_t::iterator_t::operator!=(const iterator_t& other) const
@@ -83,127 +81,145 @@ namespace sfg
 		return !(*this == other);
 	}
 
-	void ecs_query_range_t::iterator_t::init(span_t<const ecs_component_table_ref_t> in_table_refs)
+	void ecs_t::inner_join_init(ecs_query_cursor_t& cursor, span_t<const ecs_component_table_ref_t> tables)
 	{
-		table_refs	= in_table_refs;
-		table_count = static_cast<u32>(table_refs.size);
+		cursor			   = {};
+		cursor.table_count = static_cast<u32>(tables.size);
 
-		done		 = true;
-		pending_bits = 0;
-		entity_index = 0;
-		table_index	 = 0;
-		same_count	 = 0;
-		if (table_count == 0 || table_count > ECS_INNER_JOIN_MAX_TABLES)
+		if (cursor.table_count == 0 || cursor.table_count > ECS_INNER_JOIN_MAX_TABLES)
 			return;
 
-		required_count = 0;
-		for (u32 i = 0; i < table_count; ++i)
+		for (u32 i = 0; i < cursor.table_count; ++i)
 		{
-			if (table_refs.data[i].table == nullptr)
+			cursor.table_refs[i] = tables.data[i];
+
+			if (cursor.table_refs[i].table == nullptr)
 				return;
 
-			const bool optional = (table_refs.data[i].flags & ecs_component_table_flags_optional) != 0;
-			const bool excluded = (table_refs.data[i].flags & ecs_component_table_flags_excluded) != 0;
-			is_required[i]		= !optional && !excluded;
-			if (is_required[i])
-				required_count++;
+			const bool optional	  = (cursor.table_refs[i].flags & ecs_component_table_flags_optional) != 0;
+			const bool excluded	  = (cursor.table_refs[i].flags & ecs_component_table_flags_excluded) != 0;
+			cursor.is_required[i] = !optional && !excluded;
+
+			if (cursor.is_required[i])
+				cursor.required_count++;
 		}
 
-		if (required_count == 0)
+		if (cursor.required_count == 0)
 			return;
 
-		current.component_count = table_count;
-		for (u32 i = 0; i < table_count; ++i)
-			current.component_type_ids[i] = table_refs.data[i].table->component_type_id;
-		done = false;
+		cursor.current.component_count = cursor.table_count;
+
+		for (u32 i = 0; i < cursor.table_count; ++i)
+			cursor.current.component_type_ids[i] = cursor.table_refs[i].table->component_type_id;
+
+		cursor.done = false;
 	}
 
-	bool ecs_query_range_t::iterator_t::advance()
+	bool ecs_t::inner_join_next(ecs_query_cursor_t& cursor)
 	{
-		if (done)
+		if (cursor.done)
 			return false;
 
-		current.component_count = table_count;
+		cursor.current.component_count = cursor.table_count;
 
 		while (true)
 		{
-			if (pending_bits != 0)
+			if (cursor.pending_bits != 0)
 			{
-				const u32 bit = ecs_t::countr_zero(pending_bits);
-				pending_bits &= pending_bits - 1;
-				current.id = entity_index + bit;
+				const u32 bit = countr_zero(cursor.pending_bits);
+				cursor.pending_bits &= cursor.pending_bits - 1;
+				cursor.current.id					   = cursor.entity_index + bit;
+				cursor.current.component_presence_mask = 0;
 
-				for (u32 i = 0; i < table_count; ++i)
+				for (u32 i = 0; i < cursor.table_count; ++i)
 				{
-					const bool		  excluded = (table_refs.data[i].flags & ecs_component_table_flags_excluded) != 0;
-					const ecs_node_t* l1_node  = l1_nodes[i];
+					const bool		  excluded = (cursor.table_refs[i].flags & ecs_component_table_flags_excluded) != 0;
+					const ecs_node_t* l1_node  = cursor.l1_nodes[i];
 
 					if (excluded || l1_node == nullptr)
 					{
-						current.components[i] = nullptr;
+						cursor.current.components[i] = nullptr;
 						continue;
 					}
 
 					const u64 bitmask = 1ull << bit;
-					if (table_refs.data[i].table->component_struct_stride == 0 || (l1_node->mask & bitmask) == 0)
+
+					if ((l1_node->mask & bitmask) == 0)
 					{
-						current.components[i] = nullptr;
+						cursor.current.components[i] = nullptr;
 						continue;
 					}
 
-					const u32 prefix	  = ecs_t::popcount(l1_node->mask & (bitmask - 1ull));
-					current.components[i] = ecs_t::offset(l1_node->child, prefix * table_refs.data[i].table->component_struct_stride);
+					cursor.current.component_presence_mask |= 1u << i;
+
+					if (cursor.table_refs[i].table->component_struct_stride == 0)
+					{
+						cursor.current.components[i] = nullptr;
+						continue;
+					}
+
+					const u32 prefix			 = popcount(l1_node->mask & (bitmask - 1ull));
+					cursor.current.components[i] = offset(l1_node->child, prefix * cursor.table_refs[i].table->component_struct_stride);
 				}
 
-				if (pending_bits == 0)
+				if (cursor.pending_bits == 0)
 				{
-					entity_index += ECS_L1_SPAN;
-					same_count = 0;
+					cursor.entity_index += ECS_L1_SPAN;
+					cursor.same_count = 0;
 				}
+
 				return true;
 			}
 
-			if (entity_index >= ECS_MAX_ENTITIES)
-				return false;
-
-			for (u32 k = 0; k < table_count; ++k)
+			if (cursor.entity_index >= ECS_MAX_ENTITIES)
 			{
-				if (is_required[table_index])
-					break;
-				table_index = (table_index + 1) % table_count;
+				cursor.done = true;
+				return false;
 			}
 
-			const entity_id_t prev = entity_index;
-			if (!ecs_t::advance_table_entity_index(*table_refs.data[table_index].table, entity_index))
+			for (u32 k = 0; k < cursor.table_count; ++k)
+			{
+				if (cursor.is_required[cursor.table_index])
+					break;
+
+				cursor.table_index = (cursor.table_index + 1) % cursor.table_count;
+			}
+
+			const entity_id_t previous_entity = cursor.entity_index;
+
+			if (!advance_table_entity_index(*cursor.table_refs[cursor.table_index].table, cursor.entity_index))
+			{
+				cursor.done = true;
 				return false;
+			}
 
-			if (prev == entity_index)
-				same_count++;
+			if (previous_entity == cursor.entity_index)
+				cursor.same_count++;
 			else
-				same_count = 1;
+				cursor.same_count = 1;
 
-			table_index = (table_index + 1) % table_count;
+			cursor.table_index = (cursor.table_index + 1) % cursor.table_count;
 
-			if (same_count < required_count)
+			if (cursor.same_count < cursor.required_count)
 				continue;
 
 			u32 l0	= 0;
 			u32 l1	= 0;
 			u32 bit = 0;
-			ecs_t::table_calculate_indices(entity_index, l0, l1, bit);
+			table_calculate_indices(cursor.entity_index, l0, l1, bit);
 
 			u64 include_mask = ~0ull;
 			u64 exclude_mask = 0ull;
 
-			for (u32 i = 0; i < table_count; ++i)
+			for (u32 i = 0; i < cursor.table_count; ++i)
 			{
-				const ecs_node_t* l0_node = table_refs.data[i].table->l0_nodes + l0;
+				const ecs_node_t* l0_node = cursor.table_refs[i].table->l0_nodes + l0;
 				const ecs_node_t* l1_node = l0_node->child == nullptr ? nullptr : reinterpret_cast<const ecs_node_t*>(l0_node->child) + l1;
 
-				l1_nodes[i] = l1_node;
+				cursor.l1_nodes[i] = l1_node;
 
-				const bool optional = (table_refs.data[i].flags & ecs_component_table_flags_optional) != 0;
-				const bool excluded = (table_refs.data[i].flags & ecs_component_table_flags_excluded) != 0;
+				const bool optional = (cursor.table_refs[i].flags & ecs_component_table_flags_optional) != 0;
+				const bool excluded = (cursor.table_refs[i].flags & ecs_component_table_flags_excluded) != 0;
 				const bool required = !optional && !excluded;
 
 				if (required)
@@ -224,12 +240,12 @@ namespace sfg
 				}
 			}
 
-			pending_bits = include_mask & ~exclude_mask;
+			cursor.pending_bits = include_mask & ~exclude_mask;
 
-			if (pending_bits == 0)
+			if (cursor.pending_bits == 0)
 			{
-				entity_index += ECS_L1_SPAN;
-				same_count = 0;
+				cursor.entity_index += ECS_L1_SPAN;
+				cursor.same_count = 0;
 				continue;
 			}
 		}

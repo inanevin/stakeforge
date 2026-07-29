@@ -137,12 +137,12 @@ namespace sfg
 
 		u32 entity_count = 0;
 		in_stream >> entity_count;
-		frame_vector_t<read_entity_t> read_entities;
+		frame_vector_t<read_entity_t> read_entities = {};
 		read_entities.reserve(entity_count);
 
 		for (u32 i = 0; i < entity_count; ++i)
 		{
-			world_cook_entity_header_t header;
+			world_cook_entity_header_t header = {};
 			in_stream >> header;
 
 			entity_id_t entity = NULL_ENTITY_ID;
@@ -186,8 +186,8 @@ namespace sfg
 			void* component = ecs_t::table_add(*component_table, target_it->entity);
 			if (component != nullptr)
 			{
-				reflected_type->default_init_fn(component);
-				istream_t component_stream;
+				reflection_registry_t::get().initialize_type(component_type_id, component);
+				istream_t component_stream = {};
 				component_stream.open(in_stream.get_data_current(), component_size);
 				const bool deserialized = reflection_registry_t::get().type_from_stream(component_type_id, component, nullptr, component_stream);
 				SFG_ASSERT(deserialized);
@@ -302,7 +302,7 @@ namespace sfg
 
 		const ecs_component_table_t& guid_table = *world.find_component_table(type_id_t<component_guid_t>::value);
 
-		frame_vector_t<read_entity_t> read_entities;
+		frame_vector_t<read_entity_t> read_entities = {};
 		read_entities.reserve(entities_json.size());
 
 		for (const nlohmann::json& entity_json : entities_json)
@@ -362,7 +362,7 @@ namespace sfg
 				void* component = ecs_t::table_add(*component_table, target_it->entity);
 				if (component != nullptr)
 				{
-					reflected_type->default_init_fn(component);
+					reflection_registry_t::get().initialize_type(component_type_id, component);
 					const bool deserialized = reflection_registry_t::get().type_from_json(component_type_id, component, nullptr, component_data);
 					SFG_ASSERT(deserialized);
 				}
@@ -389,7 +389,7 @@ namespace sfg
 
 		const ecs_component_table_t& guid_table = *world.find_component_table(type_id_t<component_guid_t>::value);
 
-		frame_vector_t<read_entity_t> read_entities;
+		frame_vector_t<read_entity_t> read_entities = {};
 		read_entities.reserve(entities_json.size());
 
 		for (const nlohmann::json& entity_json : entities_json)
@@ -439,7 +439,7 @@ namespace sfg
 				void* component = ecs_t::table_add(*component_table, target_it->entity);
 				if (component != nullptr)
 				{
-					reflected_type->default_init_fn(component);
+					reflection_registry_t::get().initialize_type(component_type_id, component);
 					const bool deserialized = reflection_registry_t::get().type_from_json(component_type_id, component, nullptr, component_data);
 					SFG_ASSERT(deserialized);
 					fix_entity_guid_references(component, fields, read_entities);

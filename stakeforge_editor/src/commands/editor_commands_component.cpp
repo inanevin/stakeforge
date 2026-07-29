@@ -68,8 +68,7 @@ namespace sfg
 			if (table.type_desc.size == 0)
 				return;
 
-			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(table.type_desc.type_id);
-			reflected_type->default_init_fn(component);
+			reflection_registry_t::get().initialize_type(table.type_desc.type_id, component);
 		}
 
 		void add_empty_component(ecs_component_table_t& table, entity_id_t entity)

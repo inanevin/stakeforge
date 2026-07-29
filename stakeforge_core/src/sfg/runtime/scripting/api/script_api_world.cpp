@@ -37,11 +37,26 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 
+#include <new>
+
 namespace sfg
 {
+	struct script_world_query_state_t
+	{
+		world_t*		   world  = nullptr;
+		ecs_query_cursor_t cursor = {};
+		bool			   active = false;
+	};
+
+	static_assert(sizeof(script_world_query_state_t) <= sizeof(script_world_query_t));
+	static_assert(alignof(script_world_query_state_t) <= alignof(script_world_query_t));
+
 	entity_id_t api_world_create_entity(world_t* world, const char* name)
 	{
 		SFG_ASSERT(world != nullptr);
+
+		if (world->is_component_query_active())
+			return NULL_ENTITY_ID;
 
 		return world->create_entity(name);
 	}
@@ -50,7 +65,7 @@ namespace sfg
 	{
 		SFG_ASSERT(world != nullptr);
 
-		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
+		if (world->is_component_query_active() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
 		world->destroy_entity_tree(entity);
@@ -61,7 +76,7 @@ namespace sfg
 	{
 		SFG_ASSERT(world != nullptr);
 
-		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
+		if (world->is_component_query_active() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return NULL_ENTITY_ID;
 
 		ostream_t output{};
@@ -432,7 +447,7 @@ namespace sfg
 	{
 		SFG_ASSERT(world != nullptr);
 
-		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
+		if (world->is_component_query_active() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
 		ecs_component_table_t* table = world->find_component_table(component_type);
@@ -479,7 +494,7 @@ namespace sfg
 	{
 		SFG_ASSERT(world != nullptr);
 
-		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
+		if (world->is_component_query_active() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
 		ecs_component_table_t* table = world->find_component_table(component_type);
@@ -545,7 +560,7 @@ namespace sfg
 	{
 		SFG_ASSERT(world != nullptr);
 
-		if (tag == 0 || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
+		if (world->is_component_query_active() || tag == 0 || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
 		ecs_component_table_t&	 tags_table	 = world->get_component_table(type_id_t<component_entity_tags_t>::value);
@@ -571,11 +586,126 @@ namespace sfg
 		return 1;
 	}
 
+	u8 api_world_query_begin(world_t* world, const script_world_query_component_t* components, u32 component_count, script_world_query_t* out_query)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(components != nullptr || component_count == 0);
+		SFG_ASSERT(out_query != nullptr);
+
+		*out_query = {};
+
+		if (component_count == 0 || component_count > SCRIPT_WORLD_QUERY_MAX_COMPONENTS)
+			return 0;
+
+		ecs_component_table_ref_t table_refs[SCRIPT_WORLD_QUERY_MAX_COMPONENTS] = {};
+		u32						  table_count									= 0;
+		u32						  required_count								= 0;
+		bool					  missing_required								= false;
+
+		for (u32 component_index = 0; component_index < component_count; ++component_index)
+		{
+			const script_world_query_component_t& component = components[component_index];
+
+			// verify flags
+			if (component.type_id == 0 || (component.flags != script_world_query_component_required && component.flags != script_world_query_component_optional && component.flags != script_world_query_component_excluded))
+				return 0;
+
+			// verify prev
+			for (u32 previous_index = 0; previous_index < component_index; ++previous_index)
+			{
+				if (components[previous_index].type_id == component.type_id)
+					return 0;
+			}
+
+			const bool required = component.flags == script_world_query_component_required;
+
+			if (required)
+				required_count++;
+
+			const ecs_component_table_t* table = world->find_component_table(component.type_id);
+
+			if (table == nullptr)
+			{
+				missing_required |= required;
+				continue;
+			}
+
+			if (table->type_desc.size != component.size)
+				return 0;
+
+			table_refs[table_count] = {
+				.table = table,
+				.flags = component.flags,
+			};
+			table_count++;
+		}
+
+		if (required_count == 0)
+			return 0;
+
+		script_world_query_state_t* state = new (out_query->storage) script_world_query_state_t{};
+		state->world					  = world;
+
+		if (missing_required)
+			return 1;
+
+		ecs_t::inner_join_init(state->cursor, {.data = table_refs, .size = table_count});
+		world->begin_component_query();
+		state->active = true;
+		return 1;
+	}
+
+	u8 api_world_query_next(script_world_query_t* query, script_world_query_row_t* out_row)
+	{
+		SFG_ASSERT(query != nullptr);
+		SFG_ASSERT(out_row != nullptr);
+
+		*out_row = {};
+
+		script_world_query_state_t* state = reinterpret_cast<script_world_query_state_t*>(query->storage);
+
+		if (!state->active)
+			return 0;
+
+		if (!ecs_t::inner_join_next(state->cursor))
+		{
+			state->world->end_component_query();
+			state->active = false;
+			return 0;
+		}
+
+		const ecs_query_row_t& row		 = state->cursor.current;
+		out_row->entity					 = row.id;
+		out_row->component_count		 = row.component_count;
+		out_row->component_presence_mask = row.component_presence_mask;
+
+		for (u32 component_index = 0; component_index < row.component_count; ++component_index)
+		{
+			out_row->components[component_index]		 = row.components[component_index];
+			out_row->component_type_ids[component_index] = row.component_type_ids[component_index];
+		}
+
+		return 1;
+	}
+
+	void api_world_query_end(script_world_query_t* query)
+	{
+		SFG_ASSERT(query != nullptr);
+
+		script_world_query_state_t* state = reinterpret_cast<script_world_query_state_t*>(query->storage);
+
+		if (!state->active)
+			return;
+
+		state->world->end_component_query();
+		state->active = false;
+	}
+
 	const script_api_world_t& get_script_api_world()
 	{
 		static const script_api_world_t api{
 			.size							 = static_cast<u32>(sizeof(script_api_world_t)),
-			.version						 = 1,
+			.version						 = 2,
 			.create_entity					 = api_world_create_entity,
 			.destroy_entity					 = api_world_destroy_entity,
 			.duplicate_entity				 = api_world_duplicate_entity,
@@ -608,6 +738,9 @@ namespace sfg
 			.get_entity_with_tag			 = api_world_get_entity_with_tag,
 			.get_all_entities_with_tag		 = api_world_get_all_entities_with_tag,
 			.set_entity_tag					 = api_world_set_entity_tag,
+			.query_begin					 = api_world_query_begin,
+			.query_next						 = api_world_query_next,
+			.query_end						 = api_world_query_end,
 		};
 
 		return api;

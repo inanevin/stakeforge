@@ -39,4 +39,7 @@ internal unsafe struct NativeWorldApi
     internal delegate* unmanaged[Cdecl]<nint, ulong, uint> GetEntityWithTag;
     internal delegate* unmanaged[Cdecl]<nint, ulong, Entity*, uint, uint> GetAllEntitiesWithTag;
     internal delegate* unmanaged[Cdecl]<nint, uint, ulong, byte, byte> SetEntityTag;
+    internal delegate* unmanaged[Cdecl]<nint, NativeWorldQueryComponent*, uint, NativeWorldQuery*, byte> QueryBegin;
+    internal delegate* unmanaged[Cdecl]<NativeWorldQuery*, NativeWorldQueryRow*, byte> QueryNext;
+    internal delegate* unmanaged[Cdecl]<NativeWorldQuery*, void> QueryEnd;
 }

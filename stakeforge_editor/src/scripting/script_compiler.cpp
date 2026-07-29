@@ -48,6 +48,7 @@ namespace sfg
 
 	script_compile_result_t script_compiler_t::compile(const char* project_path)
 	{
+		// stage to Build, accept towards Library/Scripts
 		script_compile_result_t result			  = {};
 		const string_t			project_name	  = file_system_t::get_filename_from_path(project_path);
 		const string_t			project_directory = file_system_t::get_directory_of_file(project_path);

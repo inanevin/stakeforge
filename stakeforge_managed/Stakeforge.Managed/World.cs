@@ -291,6 +291,45 @@ public readonly unsafe struct World : IEquatable<World>
         }
     }
 
+    public WorldQuery Query<T>() where T : unmanaged
+    {
+        return new WorldQuery(GetNative()).Require<T>();
+    }
+
+    public WorldQuery Query<T1, T2>()
+        where T1 : unmanaged
+        where T2 : unmanaged
+    {
+        return new WorldQuery(GetNative()).Require<T1>().Require<T2>();
+    }
+
+    public WorldQuery Query<T1, T2, T3>()
+        where T1 : unmanaged
+        where T2 : unmanaged
+        where T3 : unmanaged
+    {
+        return new WorldQuery(GetNative()).Require<T1>().Require<T2>().Require<T3>();
+    }
+
+    public WorldQuery Query<T1, T2, T3, T4>()
+        where T1 : unmanaged
+        where T2 : unmanaged
+        where T3 : unmanaged
+        where T4 : unmanaged
+    {
+        return new WorldQuery(GetNative()).Require<T1>().Require<T2>().Require<T3>().Require<T4>();
+    }
+
+     public WorldQuery Query<T1, T2, T3, T4, T5>()
+        where T1 : unmanaged
+        where T2 : unmanaged
+        where T3 : unmanaged
+        where T4 : unmanaged
+        where T5 : unmanaged
+    {
+        return new WorldQuery(GetNative()).Require<T1>().Require<T2>().Require<T3>().Require<T4>().Require<T5>();
+    }
+
     public Entity GetEntityWithTag(ulong tag)
     {
         NativeApi* api = ManagedRuntime.GetApi();

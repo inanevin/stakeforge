@@ -61,7 +61,7 @@ public struct PhysicsHit
 {
     public Vector3 Position;
     public Vector3 Normal;
-    public ResourceHandle PhysicalMaterial;
+    public PhysicalMaterialHandle PhysicalMaterial;
     public Entity Entity;
     public float Distance;
     public float Fraction;

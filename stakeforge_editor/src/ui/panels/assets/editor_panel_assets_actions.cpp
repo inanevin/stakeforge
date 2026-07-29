@@ -45,6 +45,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
 #include "editor_settings.hpp"
+#include "scripting/editor_script_manager.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
@@ -474,7 +475,7 @@ namespace sfg
 		refresh_folder_rows();
 
 		if (scripts_changed)
-			editor_project_t::get().compile_scripts();
+			editor_script_manager_t::get().compile_scripts();
 	}
 
 	void editor_panel_assets_t::duplicate_asset()
@@ -798,7 +799,7 @@ namespace sfg
 				asset_manager.notify_changed();
 
 			refresh_folder_rows();
-			editor_project_t::get().compile_scripts();
+			editor_script_manager_t::get().compile_scripts();
 			return true;
 		}
 
@@ -1171,7 +1172,7 @@ namespace sfg
 		refresh_folder_rows();
 
 		if (is_script_file)
-			editor_project_t::get().compile_scripts();
+			editor_script_manager_t::get().compile_scripts();
 	}
 
 }

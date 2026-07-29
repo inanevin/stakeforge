@@ -106,5 +106,6 @@ namespace sfg
 		sid_t		component_type_ids[ECS_INNER_JOIN_MAX_TABLES] = {};
 		entity_id_t id											  = NULL_ENTITY_ID;
 		u32			component_count								  = 0;
+		u32			component_presence_mask						  = 0;
 	};
 }

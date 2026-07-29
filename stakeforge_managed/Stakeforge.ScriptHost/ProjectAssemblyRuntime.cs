@@ -51,10 +51,13 @@ internal sealed class ProjectAssemblyLoadContext : AssemblyLoadContext
 
 internal static class ProjectAssemblyRuntime
 {
-    private static ProjectAssemblyLoadContext? _context;
-    private static Assembly? _assembly;
+    private static ProjectAssemblyLoadContext? _activeContext;
+    private static Assembly? _activeAssembly;
+    private static ProjectAssemblyLoadContext? _stagedContext;
+    private static Assembly? _stagedAssembly;
+    private static string? _stagedSchema;
 
-    internal static void Load(string assemblyPath)
+    internal static void Stage(string assemblyPath)
     {
         ProjectAssemblyLoadContext candidateContext = new(assemblyPath);
 
@@ -77,19 +80,13 @@ internal static class ProjectAssemblyRuntime
                 }
             }
 
-            Type[] discoveredTypes = candidateAssembly.GetTypes();
+            string candidateSchema = ProjectAssemblySchema.Discover(candidateAssembly);
+            DiscardStaged();
 
-            foreach (Type type in discoveredTypes)
-            {
-                ManagedRuntime.LogInfo($"discovered C# type: {type.FullName ?? type.Name}");
-            }
-
-            ProjectAssemblyLoadContext? previousContext = _context;
-            ManagedRuntime.LogInfo($"loaded C# project assembly: {assemblyPath}");
-            previousContext?.Unload();
-
-            _context = candidateContext;
-            _assembly = candidateAssembly;
+            _stagedContext = candidateContext;
+            _stagedAssembly = candidateAssembly;
+            _stagedSchema = candidateSchema;
+            ManagedRuntime.LogInfo($"staged C# project assembly: {assemblyPath}");
         }
         catch
         {
@@ -98,12 +95,46 @@ internal static class ProjectAssemblyRuntime
         }
     }
 
+    internal static string GetStagedSchema()
+    {
+        return _stagedSchema ?? throw new InvalidOperationException("No C# project assembly is staged.");
+    }
+
+    internal static void ActivateStaged()
+    {
+        if (_stagedContext is null || _stagedAssembly is null)
+        {
+            throw new InvalidOperationException("No C# project assembly is staged.");
+        }
+
+        ProjectAssemblyLoadContext? previousContext = _activeContext;
+        _activeContext = _stagedContext;
+        _activeAssembly = _stagedAssembly;
+        _stagedContext = null;
+        _stagedAssembly = null;
+        _stagedSchema = null;
+        previousContext?.Unload();
+
+        ManagedRuntime.LogInfo("activated the staged C# project assembly.");
+    }
+
+    internal static void DiscardStaged()
+    {
+        ProjectAssemblyLoadContext? context = _stagedContext;
+        _stagedContext = null;
+        _stagedAssembly = null;
+        _stagedSchema = null;
+        context?.Unload();
+    }
+
     internal static void Unload()
     {
-        ProjectAssemblyLoadContext? context = _context;
+        DiscardStaged();
+
+        ProjectAssemblyLoadContext? context = _activeContext;
         context?.Unload();
 
-        _assembly = null;
-        _context = null;
+        _activeAssembly = null;
+        _activeContext = null;
     }
 }

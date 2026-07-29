@@ -130,11 +130,10 @@ namespace sfg
 
 		bool apply_component_streams(editor_command_system_t& system, editor_command_component_edit_payload_t& payload, chunk_handle32_t streams_handle)
 		{
-			world_t&				world		   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
-			ecs_component_table_t&	table		   = world.get_component_table(payload.component_type);
-			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(table.type_desc.type_id);
-			const entity_id_t*		entities	   = system.get_aux_data().get<entity_id_t>(payload.entities);
-			chunk_handle32_t*		streams		   = system.get_aux_data().get<chunk_handle32_t>(streams_handle);
+			world_t&			   world	= editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			ecs_component_table_t& table	= world.get_component_table(payload.component_type);
+			const entity_id_t*	   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			chunk_handle32_t*	   streams	= system.get_aux_data().get<chunk_handle32_t>(streams_handle);
 
 			for (u32 i = 0; i < payload.count; ++i)
 			{
@@ -146,7 +145,7 @@ namespace sfg
 
 				void* component = ecs_t::table_get(table, entities[i]);
 				if (table.type_desc.size != 0)
-					reflected_type->default_init_fn(component);
+					reflection_registry_t::get().initialize_type(table.type_desc.type_id, component);
 
 				istream_t stream(streams[i] ? system.get_aux_data().get<u8>(streams[i]) : nullptr, streams[i].size);
 				if (!reflection_registry_t::get().type_from_stream(table.type_desc.type_id, component, nullptr, stream))

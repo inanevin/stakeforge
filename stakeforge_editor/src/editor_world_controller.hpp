@@ -52,6 +52,8 @@ namespace sfg
 	struct editor_asset_deletion_listener_tag_t;
 	struct editor_command_listener_tag_t;
 	struct editor_command_t;
+	class script_component_schema_t;
+	struct script_component_schema_delta_t;
 
 	class editor_world_controller_t final
 	{
@@ -88,6 +90,7 @@ namespace sfg
 		bool				  load_main_world(sid_t asset_guid);
 		bool				  save_main_world();
 		void				  mark_world_dirty(editor_world_handle_t handle);
+		void				  apply_script_component_schema(const script_component_schema_t& current_schema, const script_component_schema_t& candidate_schema, const script_component_schema_delta_t& delta);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -130,6 +133,11 @@ namespace sfg
 		static inline editor_world_controller_t& get()
 		{
 			return *s_instance;
+		}
+
+		static inline bool is_initialized()
+		{
+			return s_instance != nullptr;
 		}
 
 	private:

@@ -25,13 +25,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 #include "editor_project.hpp"
-#include "scripting/script_compiler.hpp"
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
-#include <sfg/runtime/scripting/script_runtime.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -126,29 +124,6 @@ namespace sfg
 		return serializer_t::write_to_file(contents, _runtime.script_project_path.c_str());
 	}
 
-	bool editor_project_t::compile_scripts()
-	{
-		const script_compile_result_t compile_result = script_compiler_t::compile(_runtime.script_project_path.c_str());
-
-		if (!compile_result.success)
-		{
-			SFG_ERR("could not compile the C# script project. Exit code: {0}\n{1}", compile_result.exit_code, compile_result.diagnostics);
-			return false;
-		}
-
-		const string_t	  script_assembly_path = _runtime.script_library_path + _runtime.name + ".dll";
-		script_runtime_t& script_runtime	   = script_runtime_t::get();
-		const bool		  loaded			   = script_runtime.is_project_assembly_loaded() ? script_runtime.reload_project_assembly(script_assembly_path.c_str()) : script_runtime.load_project_assembly(script_assembly_path.c_str());
-
-		if (!loaded)
-		{
-			SFG_ERR("could not activate the compiled C# project assembly.");
-			return false;
-		}
-
-		return true;
-	}
-
 	void editor_project_t::refresh_runtime(const char* path)
 	{
 		_runtime = {};
@@ -186,12 +161,7 @@ namespace sfg
 			file_system_t::create_directory(_runtime.cook_path.c_str());
 
 		if (!ensure_script_project())
-		{
 			SFG_ERR("could not ensure the C# script project.");
-			return;
-		}
-
-		compile_scripts();
 	}
 
 }

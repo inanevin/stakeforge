@@ -35,6 +35,43 @@ namespace sfg
 	struct vec3f_t;
 	class world_t;
 
+	static inline constexpr u32 SCRIPT_WORLD_QUERY_MAX_COMPONENTS	 = ECS_INNER_JOIN_MAX_TABLES;
+	static inline constexpr u32 SCRIPT_WORLD_QUERY_STORAGE_U64_COUNT = 96;
+
+	enum script_world_query_component_flags_e : u8
+	{
+		script_world_query_component_required = 0,
+		script_world_query_component_excluded = ecs_component_table_flags_excluded,
+		script_world_query_component_optional = ecs_component_table_flags_optional,
+	};
+
+	struct script_world_query_component_t
+	{
+		sid_t type_id	  = 0;
+		u32	  size		  = 0;
+		u8	  flags		  = script_world_query_component_required;
+		u8	  reserved[3] = {};
+	};
+
+	struct script_world_query_t
+	{
+		u64 storage[SCRIPT_WORLD_QUERY_STORAGE_U64_COUNT] = {};
+	};
+
+	struct script_world_query_row_t
+	{
+		void*		components[SCRIPT_WORLD_QUERY_MAX_COMPONENTS]		  = {};
+		sid_t		component_type_ids[SCRIPT_WORLD_QUERY_MAX_COMPONENTS] = {};
+		entity_id_t entity												  = NULL_ENTITY_ID;
+		u32			component_count										  = 0;
+		u32			component_presence_mask								  = 0;
+		u32			reserved											  = 0;
+	};
+
+	static_assert(sizeof(script_world_query_component_t) == 16);
+	static_assert(sizeof(script_world_query_t) == 768);
+	static_assert(sizeof(script_world_query_row_t) == 272);
+
 	entity_id_t api_world_create_entity(world_t* world, const char* name);
 	u8			api_world_destroy_entity(world_t* world, entity_id_t entity);
 	entity_id_t api_world_duplicate_entity(world_t* world, entity_id_t entity);
@@ -67,6 +104,9 @@ namespace sfg
 	entity_id_t api_world_get_entity_with_tag(const world_t* world, u64 tag);
 	u32			api_world_get_all_entities_with_tag(const world_t* world, u64 tag, entity_id_t* out_entities, u32 capacity);
 	u8			api_world_set_entity_tag(world_t* world, entity_id_t entity, u64 tag, u8 enabled);
+	u8			api_world_query_begin(world_t* world, const script_world_query_component_t* components, u32 component_count, script_world_query_t* out_query);
+	u8			api_world_query_next(script_world_query_t* query, script_world_query_row_t* out_row);
+	void		api_world_query_end(script_world_query_t* query);
 
 	struct script_api_world_t
 	{
@@ -104,6 +144,9 @@ namespace sfg
 		decltype(&api_world_get_entity_with_tag)			 get_entity_with_tag			 = nullptr;
 		decltype(&api_world_get_all_entities_with_tag)		 get_all_entities_with_tag		 = nullptr;
 		decltype(&api_world_set_entity_tag)					 set_entity_tag					 = nullptr;
+		decltype(&api_world_query_begin)					 query_begin					 = nullptr;
+		decltype(&api_world_query_next)						 query_next						 = nullptr;
+		decltype(&api_world_query_end)						 query_end						 = nullptr;
 	};
 
 	const script_api_world_t& get_script_api_world();

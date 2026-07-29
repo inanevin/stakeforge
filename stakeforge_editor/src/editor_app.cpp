@@ -33,6 +33,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project_cooker.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface_controller.hpp"
+#include "scripting/editor_script_manager.hpp"
+#include "scripting/script_file_watcher.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/widgets/editor_splash_screen.hpp"
@@ -261,11 +263,13 @@ namespace sfg
 	bool editor_app_t::init_normal_mode()
 	{
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
+
 		SFG_ASSERT(surfaces.is_empty());
 
 		editor_asset_manager_util_t::ensure_default_meshes();
 
 		const surface_handle_t payload_surface = surfaces.create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
+
 		if (payload_surface.is_null())
 			return false;
 
@@ -280,10 +284,12 @@ namespace sfg
 
 		_asset_manager.initialize_cooked_resource_tracking();
 		_asset_manager.initialize_source_file_tracking();
+		script_file_watcher_t::get().init();
 
 		editor_asset_thumbnail_manager_t::get().load_all_ready();
 
 		const auto cleanup = [this]() {
+			script_file_watcher_t::get().uninit();
 			editor_surface_controller_t::get().destroy_all_surfaces();
 			editor_thumbnail_render_service_t::get().uninit();
 			editor_asset_thumbnail_manager_t::get().uninit();
@@ -292,22 +298,26 @@ namespace sfg
 		};
 
 		const editor_layout_t& layout = editor_settings_t::get().layout;
+
 		if (layout.windows.empty())
 		{
 			const editor_layout_window_t window = {};
 			const vec2u16_t				 size	= (window.size.x == 0 || window.size.y == 0) ? vec2u16_t{1920, 1080} : window.size;
 			const surface_handle_t		 handle = surfaces.create_surface(window.pos, size, editor_surface_type_e::primary);
+
 			if (handle.is_null())
 			{
 				cleanup();
 				return false;
 			}
+
 			process::set_window_maximized(surfaces.get_surface(handle).runtime->window_handle, window.maximized);
 			editor_layout_t::load_surface_default_layout(surfaces.get_surface(handle));
 		}
 		else
 		{
 			const editor_layout_window_t* primary_window = nullptr;
+
 			for (const editor_layout_window_t& window : layout.windows)
 			{
 				if (window.is_primary)
@@ -321,11 +331,13 @@ namespace sfg
 
 			const vec2u16_t		   primary_size	  = (primary_window->size.x == 0 || primary_window->size.y == 0) ? vec2u16_t{1920, 1080} : primary_window->size;
 			const surface_handle_t primary_handle = surfaces.create_surface(primary_window->pos, primary_size, editor_surface_type_e::primary);
+
 			if (primary_handle.is_null())
 			{
 				cleanup();
 				return false;
 			}
+
 			process::set_window_maximized(surfaces.get_surface(primary_handle).runtime->window_handle, primary_window->maximized);
 			surfaces.load_surface_dock_layout(surfaces.get_surface(primary_handle), primary_window->dock_layout);
 			surfaces.load_primary_main_toolbar(surfaces.get_surface(primary_handle), primary_window->main_toolbar);
@@ -337,31 +349,39 @@ namespace sfg
 
 				const vec2u16_t		   secondary_size	= (window.size.x == 0 || window.size.y == 0) ? vec2u16_t{1920, 1080} : window.size;
 				const surface_handle_t secondary_handle = surfaces.create_surface(window.pos, secondary_size, editor_surface_type_e::secondary);
+
 				if (secondary_handle.is_null())
 				{
 					cleanup();
 					return false;
 				}
+
 				process::set_window_maximized(surfaces.get_surface(secondary_handle).runtime->window_handle, window.maximized);
 				surfaces.load_surface_dock_layout(surfaces.get_surface(secondary_handle), window.dock_layout);
 			}
 		}
 
 		editor_project_t& proj = editor_project_t::get();
+
 		surfaces.get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());
 
-		if (proj.settings.last_world_guid == NULL_SID || !_world_controller.load_main_world(proj.settings.last_world_guid))
-			_world_controller.load_dummy_world();
+		_world_controller.load_dummy_world();
+		_normal_world_load_pending = proj.settings.last_world_guid != NULL_SID;
 
 		set_script_api_platform_window_runtime(surfaces.get_main_surface().runtime.get());
 		set_script_api_render_resolution_callbacks(get_script_render_resolution, set_script_render_resolution);
+
+		editor_script_manager_t::get().init();
 		editor_project_cooker_t::get().init();
+		editor_script_manager_t::get().compile_scripts();
 
 		return true;
 	}
 
 	void editor_app_t::uninit_normal_mode()
 	{
+		script_file_watcher_t::get().uninit();
+		editor_script_manager_t::get().uninit();
 		editor_project_cooker_t::get().uninit();
 
 		_asset_manager.flush_asset_cook_jobs();
@@ -369,6 +389,8 @@ namespace sfg
 		editor_asset_thumbnail_manager_t::get().uninit();
 		_world_controller.uninit();
 		_command_system.uninit();
+
+		_normal_world_load_pending = false;
 	}
 
 	void editor_app_t::switch_mode(editor_app_mode_e mode)
@@ -467,6 +489,7 @@ namespace sfg
 
 			frame_allocator_tls_t::reset();
 			const editor_app_mode_e pending_mode = _pending_mode.exchange(editor_app_mode_e::none, std::memory_order_acquire);
+
 			if (pending_mode != editor_app_mode_e::none)
 			{
 				switch_mode(pending_mode);
@@ -481,7 +504,20 @@ namespace sfg
 
 			if (_mode == editor_app_mode_e::normal)
 			{
+				editor_script_manager_t& script_manager = editor_script_manager_t::get();
+
+				script_manager.tick();
+
+				if (_normal_world_load_pending && script_manager.is_initial_activation_completed())
+				{
+					_normal_world_load_pending = false;
+
+					if (!_world_controller.load_main_world(project.settings.last_world_guid))
+						_world_controller.load_dummy_world();
+				}
+
 				_asset_manager.tick();
+				script_file_watcher_t::get().tick();
 				editor_project_cooker_t::get().tick();
 
 				if (!_asset_manager.is_import_in_progress())
@@ -491,6 +527,7 @@ namespace sfg
 			if (_mode == editor_app_mode_e::normal)
 			{
 				const project_settings_t& settings = engine_runtime_t::get().get_project_settings();
+
 				_world_controller.tick(settings.world_tick_rate, settings.world_physics_rate, settings.max_sim_steps);
 			}
 
@@ -502,6 +539,7 @@ namespace sfg
 						continue;
 
 					surface.splash->update_progress(_splash_progress.load(std::memory_order_acquire));
+
 					if (_splash_progress_text_dirty.exchange(false, std::memory_order_acq_rel))
 					{
 						LOCK_GUARD(_splash_progress_text_mutex);

@@ -24,6 +24,8 @@ namespace sfg
 	struct world_init_config_t;
 	struct component_hierarchy_t;
 	struct prefab_internals_t;
+	class script_component_schema_t;
+	struct script_component_schema_delta_t;
 
 	struct prefab_spawn_params_t
 	{
@@ -123,6 +125,8 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		ecs_component_table_t&				   add_component_table(const ecs_component_type_desc_t& desc);
+		void								   apply_script_component_schema(const script_component_schema_t& current_schema, const script_component_schema_t& candidate_schema, const script_component_schema_delta_t& delta);
+		void								   refresh_component_table_cache();
 		const ecs_component_table_t*		   find_component_table(sid_t type_id) const;
 		ecs_component_table_t*				   find_component_table(sid_t type_id);
 		const ecs_component_table_t&		   get_component_table(sid_t type_id) const;
@@ -132,7 +136,13 @@ namespace sfg
 		const char*							   get_text(u32 text_index) const;
 		u32									   allocate_text(const char* text);
 		void								   release_text(u32 text_index);
+		void								   begin_component_query();
+		void								   end_component_query();
 		bool								   is_alive(entity_id_t id) const;
+		inline bool							   is_component_query_active() const
+		{
+			return _active_component_query_count != 0;
+		}
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -225,20 +235,21 @@ namespace sfg
 		vector_t<u32>					  _text_allocation_free_list;
 		vector_t<entity_id_t>			  _entity_free_list;
 		vector_t<world_resource_t>		  _used_resources;
-		world_debug_draw_t				  _debug_draw			= {};
-		physics_world_t					  _physics_world		= {};
-		world_animation_controller_t	  _animation_controller = {};
-		world_audio_controller_t		  _audio_controller		= {};
-		world_logic_helper_t			  _logic_helper			= {};
-		world_particle_simulation_t		  _particle_simulation	= {};
-		text_allocator_t				  _text_allocator		= {};
-		engine_components_t				  _engine_components	= {};
-		system_components_t				  _system_components	= {};
-		u64								  _tick_count			= 0;
-		entity_id_t						  _entity_head			= 0;
-		entity_id_t						  _main_camera_entity	= NULL_ENTITY_ID;
-		u32								  _play_resource_count	= 0;
-		bool							  _is_playing			= false;
+		world_debug_draw_t				  _debug_draw					= {};
+		physics_world_t					  _physics_world				= {};
+		world_animation_controller_t	  _animation_controller			= {};
+		world_audio_controller_t		  _audio_controller				= {};
+		world_logic_helper_t			  _logic_helper					= {};
+		world_particle_simulation_t		  _particle_simulation			= {};
+		text_allocator_t				  _text_allocator				= {};
+		engine_components_t				  _engine_components			= {};
+		system_components_t				  _system_components			= {};
+		u64								  _tick_count					= 0;
+		entity_id_t						  _entity_head					= 0;
+		entity_id_t						  _main_camera_entity			= NULL_ENTITY_ID;
+		u32								  _play_resource_count			= 0;
+		u32								  _active_component_query_count = 0;
+		bool							  _is_playing					= false;
 	};
 
 }

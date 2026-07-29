@@ -45,6 +45,21 @@ namespace sfg
 		u32			table_count									  = 0;
 	};
 
+	struct ecs_query_cursor_t
+	{
+		ecs_component_table_ref_t table_refs[ECS_INNER_JOIN_MAX_TABLES]	 = {};
+		const ecs_node_t*		  l1_nodes[ECS_INNER_JOIN_MAX_TABLES]	 = {};
+		ecs_query_row_t			  current								 = {};
+		entity_id_t				  entity_index							 = 0;
+		u64						  pending_bits							 = 0;
+		u32						  table_count							 = 0;
+		u32						  table_index							 = 0;
+		u32						  same_count							 = 0;
+		bool					  is_required[ECS_INNER_JOIN_MAX_TABLES] = {};
+		u32						  required_count						 = 0;
+		bool					  done									 = true;
+	};
+
 	struct ecs_query_range_t
 	{
 		ecs_component_table_ref_t table_refs[ECS_INNER_JOIN_MAX_TABLES] = {};
@@ -55,17 +70,7 @@ namespace sfg
 
 		struct iterator_t
 		{
-			span_t<const ecs_component_table_ref_t> table_refs							   = {};
-			const ecs_node_t*						l1_nodes[ECS_INNER_JOIN_MAX_TABLES]	   = {};
-			ecs_query_row_t							current								   = {};
-			entity_id_t								entity_index						   = 0;
-			u64										pending_bits						   = 0;
-			u32										table_count							   = 0;
-			u32										table_index							   = 0;
-			u32										same_count							   = 0;
-			bool									is_required[ECS_INNER_JOIN_MAX_TABLES] = {};
-			u32										required_count						   = 0;
-			bool									done								   = true;
+			ecs_query_cursor_t cursor = {};
 
 			iterator_t() = default;
 			iterator_t(span_t<const ecs_component_table_ref_t> in_table_refs);
@@ -77,9 +82,6 @@ namespace sfg
 			iterator_t&			   operator++();
 			bool				   operator==(const iterator_t& other) const;
 			bool				   operator!=(const iterator_t& other) const;
-
-			void init(span_t<const ecs_component_table_ref_t> in_table_refs);
-			bool advance();
 		};
 
 		iterator_t begin();
@@ -156,6 +158,8 @@ namespace sfg
 		static void					   inner_join(span_t<const ecs_component_table_ref_t> table_refs, inner_join_fn fn);
 		static ecs_query_range_t	   inner_join(span_t<const ecs_component_table_ref_t> tables);
 		static ecs_query_chunk_range_t inner_join_chunks(span_t<const ecs_component_table_ref_t> tables);
+		static void					   inner_join_init(ecs_query_cursor_t& cursor, span_t<const ecs_component_table_ref_t> tables);
+		static bool					   inner_join_next(ecs_query_cursor_t& cursor);
 
 	private:
 		static void		   table_calculate_indices(entity_id_t id, u32& l0_out, u32& l1_out, u32& bit_out);

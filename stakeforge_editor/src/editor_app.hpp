@@ -144,5 +144,6 @@ namespace sfg
 		editor_app_mode_e			_mode						= editor_app_mode_e::none;
 		u8							_atlas_upload_frame_slot	= 0;
 		bool						_debug_mode					= false;
+		bool						_normal_world_load_pending	= false;
 	};
 }

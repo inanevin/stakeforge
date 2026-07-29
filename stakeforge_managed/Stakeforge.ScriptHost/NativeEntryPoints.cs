@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using SFG;
 
 namespace SFG.ScriptHost;
@@ -50,7 +51,7 @@ public static unsafe class NativeEntryPoints
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    public static int LoadProjectAssembly(byte* assemblyPath)
+    public static int StageProjectAssembly(byte* assemblyPath)
     {
         try
         {
@@ -62,7 +63,7 @@ public static unsafe class NativeEntryPoints
                 return -1;
             }
 
-            ProjectAssemblyRuntime.Load(path);
+            ProjectAssemblyRuntime.Stage(path);
             return 0;
         }
         catch (Exception exception)
@@ -73,11 +74,36 @@ public static unsafe class NativeEntryPoints
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    public static int UnloadProjectAssembly()
+    public static int GetStagedProjectSchema(byte* buffer, uint capacity)
     {
         try
         {
-            ProjectAssemblyRuntime.Unload();
+            string schema = ProjectAssemblyRuntime.GetStagedSchema();
+            int requiredSize = Encoding.UTF8.GetByteCount(schema) + 1;
+
+            if (buffer == null || capacity < requiredSize)
+            {
+                return requiredSize;
+            }
+
+            Span<byte> output = new(buffer, requiredSize);
+            int bytesWritten = Encoding.UTF8.GetBytes(schema, output);
+            output[bytesWritten] = 0;
+            return requiredSize;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int ActivateStagedProjectAssembly()
+    {
+        try
+        {
+            ProjectAssemblyRuntime.ActivateStaged();
             return 0;
         }
         catch (Exception exception)
@@ -86,4 +112,20 @@ public static unsafe class NativeEntryPoints
             return -2;
         }
     }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int DiscardStagedProjectAssembly()
+    {
+        try
+        {
+            ProjectAssemblyRuntime.DiscardStaged();
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
 }

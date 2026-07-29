@@ -23,6 +23,7 @@ internal static unsafe class ManagedRuntime
 {
     private const uint ApiVersion = 3;
     private const uint CategoryApiVersion = 1;
+    private const uint WorldApiVersion = 2;
 
     private static NativeApi* _api;
 
@@ -31,7 +32,24 @@ internal static unsafe class ManagedRuntime
         NativeApi* api = (NativeApi*)apiAddress;
 
         if (sizeof(Entity) != 4 ||
+            sizeof(EntityGuid) != 8 ||
             sizeof(ResourceHandle) != 8 ||
+            sizeof(AudioHandle) != 8 ||
+            sizeof(FontHandle) != 8 ||
+            sizeof(MeshHandle) != 8 ||
+            sizeof(SkeletonHandle) != 8 ||
+            sizeof(AnimationHandle) != 8 ||
+            sizeof(MaterialHandle) != 8 ||
+            sizeof(ShaderHandle) != 8 ||
+            sizeof(TextureHandle) != 8 ||
+            sizeof(TextureSamplerHandle) != 8 ||
+            sizeof(PhysicalMaterialHandle) != 8 ||
+            sizeof(PrefabHandle) != 8 ||
+            sizeof(AnimationGraphHandle) != 8 ||
+            sizeof(CubemapHandle) != 8 ||
+            sizeof(PhysicsCollisionMeshHandle) != 8 ||
+            sizeof(SpriteHandle) != 8 ||
+            sizeof(CurveHandle) != 8 ||
             sizeof(RenderResolution) != 4 ||
             sizeof(Vector2) != 8 ||
             sizeof(Vector3) != 12 ||
@@ -48,6 +66,9 @@ internal static unsafe class ManagedRuntime
             sizeof(PhysicsQueryResult) != 8 ||
             sizeof(PhysicsBodyState) != 56 ||
             sizeof(CharacterMoverState) != 48 ||
+            sizeof(NativeWorldQueryComponent) != 16 ||
+            sizeof(NativeWorldQuery) != 768 ||
+            sizeof(NativeWorldQueryRow) != 272 ||
             Hash.StringId("move_speed") != 10935991027489123434UL ||
             Hash.StringId("\u00E9") != 11062259058118930795UL ||
             Hash.Fnv1A64("Stakeforge") != 3213806815071520380UL ||
@@ -67,7 +88,7 @@ internal static unsafe class ManagedRuntime
             api->Resource->Version != CategoryApiVersion ||
             api->World == null ||
             api->World->Size < sizeof(NativeWorldApi) ||
-            api->World->Version != CategoryApiVersion ||
+            api->World->Version != WorldApiVersion ||
             api->Audio == null ||
             api->Audio->Size < sizeof(NativeAudioApi) ||
             api->Audio->Version != CategoryApiVersion ||

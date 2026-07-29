@@ -27,6 +27,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include "script_component_schema.hpp"
+
 #include <sfg/common/size_definitions.hpp>
 namespace sfg
 {
@@ -56,8 +58,10 @@ namespace sfg
 	};
 
 	typedef i32 (*script_host_shutdown_fn)();
-	typedef i32 (*script_host_load_project_assembly_fn)(const char* assembly_path);
-	typedef i32 (*script_host_unload_project_assembly_fn)();
+	typedef i32 (*script_host_stage_project_assembly_fn)(const char* assembly_path);
+	typedef i32 (*script_host_get_staged_project_schema_fn)(char* buffer, u32 capacity);
+	typedef i32 (*script_host_activate_staged_project_assembly_fn)();
+	typedef i32 (*script_host_discard_staged_project_assembly_fn)();
 
 	class script_runtime_t final
 	{
@@ -75,9 +79,9 @@ namespace sfg
 
 		bool init();
 		void uninit();
-		bool load_project_assembly(const char* assembly_path);
-		bool reload_project_assembly(const char* assembly_path);
-		bool unload_project_assembly();
+		bool stage_project_assembly(const char* assembly_path);
+		bool activate_staged_project_assembly();
+		void discard_staged_project_assembly();
 
 		// -----------------------------------------------------------------------------
 		// queries
@@ -93,13 +97,33 @@ namespace sfg
 			return _is_project_assembly_loaded;
 		}
 
+		inline bool is_project_assembly_staged() const
+		{
+			return _is_project_assembly_staged;
+		}
+
+		inline const script_component_schema_t& get_component_schema() const
+		{
+			return _component_schema;
+		}
+
+		inline const script_component_schema_t& get_staged_component_schema() const
+		{
+			return _staged_component_schema;
+		}
+
 	private:
-		script_host_native_api_t			   _native_api				   = {};
-		void*								   _hostfxr_library			   = nullptr;
-		script_host_shutdown_fn				   _shutdown				   = nullptr;
-		script_host_load_project_assembly_fn   _load_project_assembly	   = nullptr;
-		script_host_unload_project_assembly_fn _unload_project_assembly	   = nullptr;
-		bool								   _is_initialized			   = false;
-		bool								   _is_project_assembly_loaded = false;
+		script_component_schema_t						_component_schema				   = {};
+		script_component_schema_t						_staged_component_schema		   = {};
+		script_host_native_api_t						_native_api						   = {};
+		void*											_hostfxr_library				   = nullptr;
+		script_host_shutdown_fn							_shutdown						   = nullptr;
+		script_host_stage_project_assembly_fn			_fn_stage_project_assembly		   = nullptr;
+		script_host_get_staged_project_schema_fn		_fn_get_staged_project_schema	   = nullptr;
+		script_host_activate_staged_project_assembly_fn _fn_activate_staged_project_schema = nullptr;
+		script_host_discard_staged_project_assembly_fn	_fn_discard_staged_project_schema  = nullptr;
+		bool											_is_initialized					   = false;
+		bool											_is_project_assembly_loaded		   = false;
+		bool											_is_project_assembly_staged		   = false;
 	};
 }

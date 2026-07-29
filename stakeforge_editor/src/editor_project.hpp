@@ -76,7 +76,6 @@ namespace sfg
 		bool					save(const char* path);
 		bool					try_load(const char* path);
 		bool					ensure_script_project();
-		bool					compile_scripts();
 		void					refresh_runtime(const char* path);
 		static editor_project_t make_default_project(const char* path);
 	};

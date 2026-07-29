@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
+#include <sfg/memory/memory.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 #include <algorithm>
@@ -580,14 +581,78 @@ namespace sfg
 	{
 		_types.reserve(512);
 		_fields.reserve(1024);
+
 		_text_allocator.init(64 * 1024);
+		_script_text_allocator.init(SCRIPT_TEXT_CAPACITY);
 	}
 
 	void reflection_registry_t::uninit()
 	{
 		_types.clear();
 		_fields.clear();
+
+		_script_text_allocator.uninit();
 		_text_allocator.uninit();
+
+		_script_type_begin	   = 0;
+		_script_field_begin	   = 0;
+		_script_capacity_ready = false;
+	}
+
+	void reflection_registry_t::initialize_type(sid_t type_id, void* obj) const
+	{
+		const reflected_type_t* type = find_type(type_id);
+		SFG_ASSERT(type != nullptr);
+
+		if (type->default_init_fn != nullptr)
+		{
+			type->default_init_fn(obj);
+			return;
+		}
+
+		SFG_ASSERT(type->owner == reflection_owner_e::game_scripts);
+		SFG_MEMSET(obj, 0, type->size);
+
+		for (u32 field_index = type->fields.start; field_index < type->fields.end; ++field_index)
+		{
+			const reflected_field_t& field = _fields[field_index];
+
+			if (field.value_type != reflected_value_type_e::u64 || field.sub_type_id == 0)
+				continue;
+
+			SFG_ASSERT(field.size == sizeof(u64));
+			*reinterpret_cast<u64*>(static_cast<u8*>(obj) + field.offset) = NULL_SID;
+		}
+	}
+
+	void reflection_registry_t::reserve_script_capacity()
+	{
+		SFG_ASSERT(!_script_capacity_ready);
+
+		_script_type_begin	= _types.size();
+		_script_field_begin = _fields.size();
+		_types.reserve(_script_type_begin + SCRIPT_TYPE_CAPACITY);
+		_fields.reserve(_script_field_begin + SCRIPT_FIELD_CAPACITY);
+		_script_capacity_ready = true;
+	}
+
+	bool reflection_registry_t::is_script_capacity_valid(size_t type_count, size_t field_count) const
+	{
+		SFG_ASSERT(_script_capacity_ready);
+
+		return type_count <= SCRIPT_TYPE_CAPACITY && field_count <= SCRIPT_FIELD_CAPACITY;
+	}
+
+	void reflection_registry_t::remove_script_types()
+	{
+		SFG_ASSERT(_script_capacity_ready);
+
+		for (size_t type_index = _script_type_begin; type_index < _types.size(); ++type_index)
+			SFG_ASSERT(_types[type_index].owner == reflection_owner_e::game_scripts);
+
+		_types.resize(_script_type_begin);
+		_fields.resize(_script_field_begin);
+		_script_text_allocator.reset();
 	}
 
 	void reflection_registry_t::type_field_to_stream(sid_t type_id, sid_t field_id, void* obj, void* user_data, ostream_t& out_stream)
@@ -843,6 +908,8 @@ namespace sfg
 		SFG_ASSERT(descriptor.name != nullptr);
 		SFG_ASSERT(descriptor.type_id != 0);
 		SFG_ASSERT(descriptor.size != 0);
+		SFG_ASSERT(!_script_capacity_ready || descriptor.owner == reflection_owner_e::game_scripts);
+		SFG_ASSERT(descriptor.owner != reflection_owner_e::game_scripts || is_script_capacity_valid(_types.size() - _script_type_begin + 1, _fields.size() - _script_field_begin + descriptor.fields.size()));
 
 		const reflected_type_t* existing_type = find_type(descriptor.type_id);
 		if (existing_type != nullptr)
@@ -851,24 +918,26 @@ namespace sfg
 			return;
 		}
 
-		reflected_type_t type = {};
+		reflected_type_t  type			 = {};
+		text_allocator_t& text_allocator = descriptor.owner == reflection_owner_e::game_scripts ? _script_text_allocator : _text_allocator;
 
-		type.name = _text_allocator.allocate(descriptor.name);
+		type.name = text_allocator.allocate(descriptor.name);
 
 		if (descriptor.tooltip != nullptr)
-			type.tooltip = _text_allocator.allocate(descriptor.tooltip);
+			type.tooltip = text_allocator.allocate(descriptor.tooltip);
 
 		if (descriptor.display_name != nullptr)
-			type.display_name = _text_allocator.allocate(descriptor.display_name);
+			type.display_name = text_allocator.allocate(descriptor.display_name);
 
 		if (descriptor.category != nullptr)
-			type.category = _text_allocator.allocate(descriptor.category);
+			type.category = text_allocator.allocate(descriptor.category);
 
 		type.type_id	  = descriptor.type_id;
 		type.size		  = descriptor.size;
 		type.alignment	  = descriptor.alignment;
 		type.flags		  = descriptor.flags;
 		type.bitmask_opts = descriptor.bitmask_opts;
+		type.owner		  = descriptor.owner;
 
 		if (descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 		{
@@ -881,7 +950,7 @@ namespace sfg
 		if (descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_component) || descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_system_component) ||
 			descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_tag_component))
 		{
-			SFG_ASSERT(descriptor.default_init_fn != nullptr);
+			SFG_ASSERT(descriptor.default_init_fn != nullptr || descriptor.owner == reflection_owner_e::game_scripts);
 		}
 
 		for (const reflected_field_descriptor_t& field_desc : descriptor.fields)
@@ -901,14 +970,14 @@ namespace sfg
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::bitmask || descriptor.bitmask_opts.get_option_fn != nullptr);
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::bitmask || descriptor.bitmask_opts.build_title_fn != nullptr);
 
-			field.name			   = _text_allocator.allocate(field_desc.name);
-			field.field_identifier = TO_SID(field.name);
+			field.name			   = text_allocator.allocate(field_desc.name);
+			field.field_identifier = field_desc.field_identifier == 0 ? TO_SID(field.name) : field_desc.field_identifier;
 
 			if (field_desc.tooltip != nullptr)
-				field.tooltip = _text_allocator.allocate(field_desc.tooltip);
+				field.tooltip = text_allocator.allocate(field_desc.tooltip);
 
 			if (field_desc.display_name != nullptr)
-				field.display_name = _text_allocator.allocate(field_desc.display_name);
+				field.display_name = text_allocator.allocate(field_desc.display_name);
 
 			field.value_type  = field_desc.type;
 			field.sub_type_id = field_desc.sub_type_id;
