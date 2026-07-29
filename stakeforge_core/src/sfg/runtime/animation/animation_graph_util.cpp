@@ -87,14 +87,16 @@ namespace sfg
 		SFG_MEMCPY(destination_bones, source_bones, sizeof(animation_graph_bone_t) * source_pose.bone_count);
 	}
 
-	void animation_graph_util_t::advance_asm_state_time(animation_graph_asm_state_t& state, f32 delta_time)
+	void animation_graph_util_t::advance_asm_state_phase(animation_graph_asm_state_t& state, f32 delta_time, f32 duration)
 	{
-		state._current_time += delta_time;
+		if (duration <= 0.0f)
+		{
+			state._current_phase = 0.0f;
+			return;
+		}
 
-		if (state._duration > 0.0f)
-			state._current_time = state.loop ? math::fmodf(state._current_time, state._duration) : math::min(state._current_time, state._duration);
-		else
-			state._current_time = 0.0f;
+		state._current_phase += delta_time / duration;
+		state._current_phase = state.loop ? math::fmodf(state._current_phase, 1.0f) : math::min(state._current_phase, 1.0f);
 	}
 
 	void animation_graph_util_t::finalize_bones(const skeleton_runtime_t& skeleton, const chunk_allocator_t& skeleton_memory, chunk_handle32_t bones_handle, chunk_handle32_t inverse_binds_handle, chunk_allocator_t& bone_memory)

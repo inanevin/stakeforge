@@ -261,6 +261,30 @@ namespace sfg
 		change_selection(_config.context->get_selected_sub_node_id());
 	}
 
+	void editor_animation_graph_grid_t::refresh_node_titles()
+	{
+		const animation_graph_def_t& graph = _config.context->get_graph();
+
+		if (_config.context->get_display_mode() == editor_animation_graph_display_mode_e::display_nodes)
+		{
+			SFG_ASSERT(_nodes.size() == graph.nodes.size());
+
+			for (size_t node_index = 0; node_index < _nodes.size(); ++node_index)
+				_nodes[node_index]->update_title(graph.nodes[node_index].name.c_str());
+
+			return;
+		}
+
+		const u32  display_node_id = _config.context->get_display_node_id();
+		const auto node_it		   = std::find_if(graph.nodes.begin(), graph.nodes.end(), [display_node_id](const animation_graph_node_def_t& node) { return node.id == display_node_id; });
+
+		SFG_ASSERT(node_it != graph.nodes.end());
+		SFG_ASSERT(_nodes.size() == node_it->asm_node.states.size());
+
+		for (size_t state_index = 0; state_index < _nodes.size(); ++state_index)
+			_nodes[state_index]->update_title(node_it->asm_node.states[state_index].name.c_str());
+	}
+
 	void editor_animation_graph_grid_t::change_selection(u32 node_id)
 	{
 		for (editor_animation_graph_widget_node_t* node : _nodes)

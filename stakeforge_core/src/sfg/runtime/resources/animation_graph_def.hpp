@@ -55,6 +55,7 @@ namespace sfg
 		resource_handle_t clip			 = NULL_RESOURCE_HANDLE;
 		vec2f_t			  blend_value_2d = vec2f_t::zero;
 		f32				  blend_value	 = 0.0f;
+		f32				  playback_speed = 1.0f;
 	};
 
 	struct animation_graph_asm_state_def_t

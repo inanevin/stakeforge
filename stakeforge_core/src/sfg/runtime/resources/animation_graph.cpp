@@ -27,14 +27,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "animation_graph.hpp"
 #include "animation_graph_def.hpp"
-#include "animation.hpp"
 #include "resource_file_system.hpp"
 #include "resource_manager.hpp"
 
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
-#include <sfg/math/math.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
@@ -219,16 +217,13 @@ namespace sfg
 							for (u32 clip_index = 0; clip_index < destination_state.clip_count; ++clip_index)
 							{
 								const animation_graph_clip_def_t& source_clip = source_state.clips[clip_index];
-								const animation_runtime_t*		  animation	  = ctx.resource_manager.find_runtime<animation_runtime_t>(source_clip.clip);
 
 								clips[clip_index] = {
 									.clip			= source_clip.clip,
 									.blend_value_2d = source_clip.blend_value_2d,
 									.blend_value	= source_clip.blend_value,
+									.playback_speed = source_clip.playback_speed,
 								};
-
-								if (animation != nullptr && animation->duration > destination_state.duration)
-									destination_state.duration = math::max(destination_state.duration, animation->duration);
 							}
 						}
 					}

@@ -130,6 +130,7 @@ namespace sfg
 			f32		blend_value = 0.0f;
 			vec2f_t blend_value_2d;
 		};
+		f32 playback_speed = 1.0f;
 	};
 
 	struct animation_graph_asm_state_t
@@ -137,8 +138,7 @@ namespace sfg
 		chunk_handle32_t				 clips			 = {};
 		chunk_handle32_t				 blend_parameter = {};
 		u32								 clip_count		 = 0;
-		f32								 _duration		 = 0.0f;
-		f32								 _current_time	 = 0.0f;
+		f32								 _current_phase	 = 0.0f;
 		animation_graph_asm_state_type_e state_type		 = animation_graph_asm_state_type_e::no_blend;
 		bool							 loop			 = false;
 	};

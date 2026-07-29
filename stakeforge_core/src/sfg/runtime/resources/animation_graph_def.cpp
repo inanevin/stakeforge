@@ -104,6 +104,7 @@ namespace sfg
 					{.name = "clip", .display_name = "Clip", .sub_type_id = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION, .offset = offsetof(animation_graph_clip_def_t, clip), .size = sizeof(resource_handle_t), .type = reflected_value_type_e::u64},
 					{.name = "blend_value", .display_name = "Blend Value 1D", .offset = offsetof(animation_graph_clip_def_t, blend_value), .size = sizeof(f32), .type = reflected_value_type_e::f32},
 					{.name = "blend_value_2d", .display_name = "Blend Value 2D", .sub_type_id = type_id_t<vec2f_t>::value, .offset = offsetof(animation_graph_clip_def_t, blend_value_2d), .size = sizeof(vec2f_t), .type = reflected_value_type_e::object},
+					{.name = "playback_speed", .display_name = "Playback Speed", .offset = offsetof(animation_graph_clip_def_t, playback_speed), .size = sizeof(f32), .type = reflected_value_type_e::f32},
 				},
 			.type_id   = type_id_t<animation_graph_clip_def_t>::value,
 			.size	   = sizeof(animation_graph_clip_def_t),

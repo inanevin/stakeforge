@@ -174,7 +174,6 @@ namespace sfg
 
 						destination_state			 = {};
 						destination_state.clip_count = source_state.clip_count;
-						destination_state._duration	 = source_state.duration;
 						destination_state.state_type = source_state.state_type;
 						destination_state.loop		 = source_state.loop;
 
@@ -199,7 +198,10 @@ namespace sfg
 
 						for (u32 clip_index = 0; clip_index < destination_state.clip_count; ++clip_index)
 						{
-							destination_clips[clip_index] = {.clip = source_clips[clip_index].clip};
+							destination_clips[clip_index] = {
+								.clip			= source_clips[clip_index].clip,
+								.playback_speed = source_clips[clip_index].playback_speed,
+							};
 
 							if (source_state.state_type == animation_graph_asm_state_type_e::blend_2d)
 								destination_clips[clip_index].blend_value_2d = source_clips[clip_index].blend_value_2d;
@@ -474,7 +476,7 @@ namespace sfg
 					animation_graph_asm_state_t* state = _asm_states.get<animation_graph_asm_state_t>(node._current_state);
 					if (state)
 					{
-						if (math::almost_equal(state->_current_time, state->_duration))
+						if (math::almost_equal(state->_current_phase, 1.0f))
 						{
 							node._current_transition = {
 								.head = node.transitions.head + static_cast<u32>(sizeof(animation_graph_asm_transition_t)) * i,
@@ -562,19 +564,14 @@ namespace sfg
 			}
 		}
 
-		// process current state time
 		animation_graph_asm_state_t& current_state = *_asm_states.get<animation_graph_asm_state_t>(node._current_state);
-		animation_graph_util_t::advance_asm_state_time(current_state, delta_time);
 
 		// no transition, process & write to current pose.
 		if (transition_target_node == nullptr)
 		{
-			process_asm_state(current_state, mask_handle, current_state._current_time, pose_bones);
+			process_asm_state(current_state, mask_handle, delta_time, pose_bones);
 			return;
 		}
-
-		// we have transition, we will be sampling from target node, bump time.
-		animation_graph_util_t::advance_asm_state_time(*transition_target_node, delta_time);
 
 		// copy the current pose to target before we process.
 		frame_vector_t<animation_graph_bone_t> transition_target_bones(pose_bones.size);
@@ -586,10 +583,10 @@ namespace sfg
 		SFG_MEMCPY(transition_target_pose.data, pose_bones.data, sizeof(animation_graph_bone_t) * pose_bones.size);
 
 		// process current state normally, we write to current pose.
-		process_asm_state(current_state, mask_handle, current_state._current_time, pose_bones);
+		process_asm_state(current_state, mask_handle, delta_time, pose_bones);
 
 		// process transition state, we write to temporary transition pose.
-		process_asm_state(*transition_target_node, mask_handle, transition_target_node->_current_time, transition_target_pose);
+		process_asm_state(*transition_target_node, mask_handle, delta_time, transition_target_pose);
 
 		// blend the transition target into current pose
 		for (size_t bone_index = 0; bone_index < pose_bones.size; ++bone_index)
@@ -711,7 +708,7 @@ namespace sfg
 	{
 	}
 
-	void animation_graph_storage_t::process_asm_state(animation_graph_asm_state_t& state, chunk_handle32_t mask_handle, f32 sample_time, span_t<animation_graph_bone_t> pose_bones)
+	void animation_graph_storage_t::process_asm_state(animation_graph_asm_state_t& state, chunk_handle32_t mask_handle, f32 delta_time, span_t<animation_graph_bone_t> pose_bones)
 	{
 		if (state.clip_count == 0)
 		{
@@ -719,13 +716,26 @@ namespace sfg
 			return;
 		}
 
-		const animation_graph_mask_t* mask	= mask_handle ? _masks.get<animation_graph_mask_t>(mask_handle) : nullptr;
-		const animation_graph_clip_t* clips = _clips.get<animation_graph_clip_t>(state.clips);
+		const animation_graph_mask_t* mask			   = mask_handle ? _masks.get<animation_graph_mask_t>(mask_handle) : nullptr;
+		const animation_graph_clip_t* clips			   = _clips.get<animation_graph_clip_t>(state.clips);
+		resource_manager_t&			  resource_manager = resource_manager_t::get();
 
 		// 0d, directly write anim data into pose.
 		if (state.state_type == animation_graph_asm_state_type_e::no_blend)
 		{
-			sample_clip(clips[0].clip, sample_time, mask, pose_bones);
+			const animation_runtime_t* animation = resource_manager.find_runtime<animation_runtime_t>(clips[0].clip);
+
+			if (animation == nullptr)
+			{
+				SFG_WARN("animation clip is not loaded: {0}", clips[0].clip);
+				return;
+			}
+
+			animation_graph_util_t::advance_asm_state_phase(state, delta_time, animation->duration / clips[0].playback_speed);
+
+			const f32 sample_time = state._current_phase * animation->duration;
+
+			sample_clip(*animation, sample_time, mask, pose_bones);
 			return;
 		}
 
@@ -819,6 +829,32 @@ namespace sfg
 		}
 		}
 
+		frame_vector_t<const animation_runtime_t*> animations(state.clip_count, nullptr);
+		f32										   weighted_duration = 0.0f;
+		f32										   loaded_weight	 = 0.0f;
+
+		for (u32 i = 0; i < state.clip_count; ++i)
+		{
+			if (blend_weights[i] <= 0.0f)
+				continue;
+
+			const animation_runtime_t* animation = resource_manager.find_runtime<animation_runtime_t>(clips[i].clip);
+
+			if (animation == nullptr)
+			{
+				SFG_WARN("animation clip is not loaded: {0}", clips[i].clip);
+				continue;
+			}
+
+			animations[i] = animation;
+			weighted_duration += animation->duration / clips[i].playback_speed * blend_weights[i];
+			loaded_weight += blend_weights[i];
+		}
+
+		const f32 duration = loaded_weight > 0.0f ? weighted_duration / loaded_weight : 0.0f;
+
+		animation_graph_util_t::advance_asm_state_phase(state, delta_time, duration);
+
 		frame_vector_t<animation_graph_bone_t> base_bones(pose_bones.data, pose_bones.data + pose_bones.size);
 		frame_vector_t<animation_graph_bone_t> sampled_bones(pose_bones.size);
 		const span_t<animation_graph_bone_t>   sampled_pose{
@@ -829,12 +865,17 @@ namespace sfg
 
 		for (u32 i = 0; i < state.clip_count; ++i)
 		{
-			if (blend_weights[i] <= 0.0f)
+			const animation_runtime_t* animation = animations[i];
+
+			if (animation == nullptr)
 				continue;
 
 			// copy base to sampled, sample_clip overrides whatever bone was written.
 			SFG_MEMCPY(sampled_pose.data, base_bones.data(), sizeof(animation_graph_bone_t) * base_bones.size());
-			sample_clip(clips[i].clip, sample_time, mask, sampled_pose);
+
+			const f32 sample_time = state._current_phase * animation->duration;
+
+			sample_clip(*animation, sample_time, mask, sampled_pose);
 
 			if (accumulated_weight == 0.0f)
 			{
@@ -871,18 +912,10 @@ namespace sfg
 		}
 	}
 
-	void animation_graph_storage_t::sample_clip(resource_handle_t clip, f32 sample_time, const animation_graph_mask_t* mask, span_t<animation_graph_bone_t> pose_bones)
+	void animation_graph_storage_t::sample_clip(const animation_runtime_t& animation, f32 sample_time, const animation_graph_mask_t* mask, span_t<animation_graph_bone_t> pose_bones)
 	{
-		resource_manager_t&		   resource_manager = resource_manager_t::get();
-		const animation_runtime_t* animation		= resource_manager.find_runtime<animation_runtime_t>(clip);
-
-		if (animation == nullptr)
-		{
-			SFG_WARN("animation clip is not loaded: {0}", clip);
-			return;
-		}
-
 		const u64* bitmasks = mask != nullptr ? mask->bitmasks : nullptr;
-		animation_sampler_t::sample_animation(animation, sample_time, bitmasks, pose_bones);
+
+		animation_sampler_t::sample_animation(&animation, sample_time, bitmasks, pose_bones);
 	}
 }

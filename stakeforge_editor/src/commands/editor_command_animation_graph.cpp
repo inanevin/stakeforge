@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 #include "editor_command_system.hpp"
 #include "ui/panels/animation_graph/editor_animation_graph_context.hpp"
+#include "ui/panels/animation_graph/editor_animation_graph_grid.hpp"
 
 #include <sfg/common/type_id.hpp>
 #include <sfg/data/istream.hpp>
@@ -315,7 +316,12 @@ namespace sfg
 		context._edit_previous_stream = {};
 
 		if (payload.graph_changed)
+		{
+			if (!notify)
+				context._grid->refresh_node_titles();
+
 			save_and_cook_animation_graph_async(context);
+		}
 
 		return true;
 	}

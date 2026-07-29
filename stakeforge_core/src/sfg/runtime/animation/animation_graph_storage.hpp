@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct animation_runtime_t;
 	struct animation_graph_runtime_t;
 	struct skeleton_runtime_t;
 
@@ -83,8 +84,8 @@ namespace sfg
 		void process_node_asm(animation_graph_node_asm_t& node, chunk_handle32_t mask_handle, span_t<animation_graph_bone_t> pose_bones, f32 delta_time);
 		void process_node_bone_control(animation_graph_node_bone_control_t& node, const mat4x3_t& entity_transform, span_t<animation_graph_bone_t> pose_bones, f32 delta_time);
 		void process_node_ik(animation_graph_node_ik_t& node, span_t<animation_graph_bone_t> pose_bones, f32 delta_time);
-		void process_asm_state(animation_graph_asm_state_t& state, chunk_handle32_t mask_handle, f32 sample_time, span_t<animation_graph_bone_t> pose_bones);
-		void sample_clip(resource_handle_t clip, f32 sample_time, const animation_graph_mask_t* mask, span_t<animation_graph_bone_t> pose_bones);
+		void process_asm_state(animation_graph_asm_state_t& state, chunk_handle32_t mask_handle, f32 delta_time, span_t<animation_graph_bone_t> pose_bones);
+		void sample_clip(const animation_runtime_t& animation, f32 sample_time, const animation_graph_mask_t* mask, span_t<animation_graph_bone_t> pose_bones);
 
 	private:
 		chunk_allocator32_t _nodes			 = {};

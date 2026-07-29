@@ -38,6 +38,7 @@ namespace sfg
 		resource_handle_t clip			 = NULL_RESOURCE_HANDLE;
 		vec2f_t			  blend_value_2d = vec2f_t::zero;
 		f32				  blend_value	 = 0.0f;
+		f32				  playback_speed = 1.0f;
 	};
 
 	struct animation_graph_resource_state_t
@@ -45,7 +46,6 @@ namespace sfg
 		chunk_handle32_t				 clips				   = {};
 		u32								 clip_count			   = 0;
 		u32								 blend_parameter_index = UINT32_MAX;
-		f32								 duration			   = 0.0f;
 		animation_graph_asm_state_type_e state_type			   = animation_graph_asm_state_type_e::no_blend;
 		bool							 loop				   = false;
 	};
@@ -110,7 +110,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('A', 'G', 'R', 'F');
-		static constexpr u32 WIRE_VERSION = 3;
+		static constexpr u32 WIRE_VERSION = 4;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);

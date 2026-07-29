@@ -81,6 +81,12 @@ namespace sfg
 			{
 				for (const animation_graph_clip_def_t& clip : state.clips)
 				{
+					if (clip.playback_speed <= 0.0f)
+					{
+						SFG_ERR("animation graph clip playback speed must be greater than zero");
+						return false;
+					}
+
 					if (clip.clip == NULL_RESOURCE_HANDLE)
 						continue;
 

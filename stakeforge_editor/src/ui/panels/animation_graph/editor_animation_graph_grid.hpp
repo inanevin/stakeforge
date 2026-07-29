@@ -76,6 +76,7 @@ namespace sfg
 
 		void set_mode(editor_animation_graph_display_mode_e mode);
 		void refresh_nodes();
+		void refresh_node_titles();
 		void change_selection(u32 node_id);
 
 		// -----------------------------------------------------------------------------
