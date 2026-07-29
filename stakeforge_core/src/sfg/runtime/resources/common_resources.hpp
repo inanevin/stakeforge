@@ -10,6 +10,12 @@
 
 namespace sfg
 {
+#define DEFAULT_MESH_CUBE_GUID	   1015
+#define DEFAULT_MESH_SPHERE_GUID   1016
+#define DEFAULT_MESH_CYLINDER_GUID 1017
+#define DEFAULT_MESH_CAPSULE_GUID  1018
+#define DEFAULT_MESH_PLANE_GUID	   1047
+
 	class resource_manager_t;
 	class istream_t;
 	class ostream_t;

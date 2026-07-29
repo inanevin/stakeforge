@@ -455,65 +455,6 @@ namespace sfg
 		return read_entities[0].entity;
 	}
 
-	void world_cooker_t::refresh_prefab_instances(world_t& world, resource_handle_t handle, entity_id_t skip)
-	{
-		/*
-		resource_manager_t& rm = resource_manager_t::get();
-
-		const ecs_component_table_ref_t tables[] = {
-			_engine_components.alive_table->ref(),
-			_engine_components.prefab_table->ref(),
-		};
-
-		struct destroy_data
-		{
-			entity_id_t id	   = NULL_ENTITY_ID;
-			entity_id_t parent = NULL_ENTITY_ID;
-			vec3f_t		pos	   = vec3f_t::zero;
-			quat_t		rot	   = quat_t::identity;
-			vec3f_t		scale  = vec3f_t::zero;
-		};
-
-		frame_vector_t<destroy_data> to_destroy;
-
-		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = tables, .size = std::size(tables)}))
-		{
-			const component_prefab_reference_t& ref = ecs_helpers_t::row_get<component_prefab_reference_t>(row, 1);
-			if (!ref.is_root)
-				continue;
-
-			if (ref.prefab != handle)
-				continue;
-
-			if (row.id == skip)
-				continue;
-
-			const component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, row.id);
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, row.id);
-
-			to_destroy.push_back({
-				.id		= row.id,
-				.parent = hierarchy.parent,
-				.pos	= transform.pos,
-				.rot	= transform.rot,
-				.scale	= transform.scale,
-			});
-		}
-
-		for (const destroy_data& data : to_destroy)
-		{
-			destroy_entity_tree(data.id);
-			spawn_prefab(handle,
-						 {
-							 .parent	  = data.parent,
-							 .local_pos	  = data.pos,
-							 .local_rot	  = data.rot,
-							 .local_scale = data.scale,
-						 });
-		}
-		*/
-	}
-
 	void world_cooker_t::make_prefab_chain(world_t& world, entity_id_t entity, resource_handle_t prefab_handle)
 	{
 		SFG_ASSERT(world.is_alive(entity));

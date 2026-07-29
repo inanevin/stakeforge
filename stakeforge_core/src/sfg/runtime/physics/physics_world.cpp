@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "physics_runtime.hpp"
 #include "physics_world_util.hpp"
 
+#include <sfg/data/hash_map.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
@@ -147,15 +148,12 @@ namespace sfg
 
 		struct raw_contact_event_t
 		{
-			JPH::RVec3			   position		  = JPH::RVec3::sZero();
-			JPH::Vec3			   normal		  = JPH::Vec3::sZero();
-			u32					   body_id_a	  = UINT32_MAX;
-			u32					   body_id_b	  = UINT32_MAX;
-			f32					   penetration	  = 0.0f;
-			u32					   sub_shape_id_a = 0;
-			u32					   sub_shape_id_b = 0;
-			physics_contact_type_e type			  = physics_contact_type_e::begin;
-			bool				   is_sensor	  = false;
+			JPH::RVec3			   position	   = JPH::RVec3::sZero();
+			JPH::Vec3			   normal	   = JPH::Vec3::sZero();
+			JPH::SubShapeIDPair	   pair		   = {};
+			f32					   penetration = 0.0f;
+			physics_contact_type_e type		   = physics_contact_type_e::begin;
+			bool				   is_sensor   = false;
 		};
 
 		class contact_listener_t final : public JPH::ContactListener
@@ -176,11 +174,8 @@ namespace sfg
 			void OnContactRemoved(const JPH::SubShapeIDPair& pair) override
 			{
 				raw_contact_event_t event{
-					.body_id_a		= pair.GetBody1ID().GetIndexAndSequenceNumber(),
-					.body_id_b		= pair.GetBody2ID().GetIndexAndSequenceNumber(),
-					.sub_shape_id_a = pair.GetSubShapeID1().GetValue(),
-					.sub_shape_id_b = pair.GetSubShapeID2().GetValue(),
-					.type			= physics_contact_type_e::end,
+					.pair = pair,
+					.type = physics_contact_type_e::end,
 				};
 
 				impl->_raw_contact_events.enqueue(event);
@@ -191,15 +186,12 @@ namespace sfg
 			{
 				const JPH::RVec3	position = manifold.mRelativeContactPointsOn1.empty() ? manifold.mBaseOffset : manifold.GetWorldSpaceContactPointOn1(0);
 				raw_contact_event_t event{
-					.position		= position,
-					.normal			= manifold.mWorldSpaceNormal,
-					.body_id_a		= body_a.GetID().GetIndexAndSequenceNumber(),
-					.body_id_b		= body_b.GetID().GetIndexAndSequenceNumber(),
-					.penetration	= manifold.mPenetrationDepth,
-					.sub_shape_id_a = manifold.mSubShapeID1.GetValue(),
-					.sub_shape_id_b = manifold.mSubShapeID2.GetValue(),
-					.type			= type,
-					.is_sensor		= settings.mIsSensor,
+					.position	 = position,
+					.normal		 = manifold.mWorldSpaceNormal,
+					.pair		 = JPH::SubShapeIDPair(body_a.GetID(), manifold.mSubShapeID1, body_b.GetID(), manifold.mSubShapeID2),
+					.penetration = manifold.mPenetrationDepth,
+					.type		 = type,
+					.is_sensor	 = settings.mIsSensor,
 				};
 
 				impl->_raw_contact_events.enqueue(event);
@@ -272,6 +264,7 @@ namespace sfg
 		moodycamel::ConcurrentQueue<raw_contact_event_t> _raw_contact_events;
 		vector_t<body_lookup_t>							 _body_lookup;
 		vector_t<physics_contact_event_t>				 _contact_events;
+		hash_map_t<JPH::SubShapeIDPair, bool>			 _contact_sensors;
 		vector_t<entity_id_t>							 _sync_entities;
 		f32												 _accumulator = 0.0f;
 
@@ -295,6 +288,7 @@ namespace sfg
 
 			_body_lookup.resize(_config.max_bodies);
 			_contact_events.reserve(_config.contact_event_reserve);
+			_contact_sensors.reserve(_config.contact_event_reserve);
 			_sync_entities.reserve(_config.body_reserve + _config.character_reserve);
 		}
 
@@ -311,6 +305,7 @@ namespace sfg
 
 			_body_lookup.resize(0);
 			_contact_events.resize(0);
+			_contact_sensors.clear();
 			_sync_entities.resize(0);
 
 			_accumulator = 0.0f;
@@ -351,6 +346,7 @@ namespace sfg
 
 			ecs_t::table_clear(system_physics_table);
 			_contact_events.resize(0);
+			_contact_sensors.clear();
 			_sync_entities.resize(0);
 			std::fill(_body_lookup.begin(), _body_lookup.end(), body_lookup_t{});
 			_accumulator = 0.0f;
@@ -937,8 +933,23 @@ namespace sfg
 
 			while (_raw_contact_events.try_dequeue(raw))
 			{
-				const JPH::BodyID body_id_a(raw.body_id_a);
-				const JPH::BodyID body_id_b(raw.body_id_b);
+				const JPH::BodyID&		   body_id_a = raw.pair.GetBody1ID();
+				const JPH::BodyID&		   body_id_b = raw.pair.GetBody2ID();
+				const JPH::SubShapeIDPair& pair		 = raw.pair;
+
+				if (raw.type == physics_contact_type_e::end)
+				{
+					const auto sensor = _contact_sensors.find(pair);
+
+					if (sensor != _contact_sensors.end())
+					{
+						raw.is_sensor = sensor->second;
+						_contact_sensors.erase(sensor);
+					}
+				}
+				else
+					_contact_sensors.insert_or_assign(pair, raw.is_sensor);
+
 				const entity_id_t entity_a = resolve_body_entity(body_id_a);
 				const entity_id_t entity_b = resolve_body_entity(body_id_b);
 
@@ -954,11 +965,11 @@ namespace sfg
 					.normal			= physics_world_util_t::from_jolt(raw.normal),
 					.entity_a		= entity_a,
 					.entity_b		= entity_b,
-					.sub_shape_a	= raw.sub_shape_id_a,
-					.sub_shape_b	= raw.sub_shape_id_b,
+					.sub_shape_a	= raw.pair.GetSubShapeID1().GetValue(),
+					.sub_shape_b	= raw.pair.GetSubShapeID2().GetValue(),
 					.penetration	= raw.penetration,
-					.sub_shape_id_a = raw.sub_shape_id_a,
-					.sub_shape_id_b = raw.sub_shape_id_b,
+					.sub_shape_id_a = raw.pair.GetSubShapeID1().GetValue(),
+					.sub_shape_id_b = raw.pair.GetSubShapeID2().GetValue(),
 					.type			= raw.type,
 					.is_sensor		= raw.is_sensor,
 				});

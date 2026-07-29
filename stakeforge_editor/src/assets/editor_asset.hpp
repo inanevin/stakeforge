@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/vec4f.hpp>
+#include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
@@ -48,11 +49,6 @@ namespace sfg
 #define DEFAULT_QWANTANI_DUSK_CUBEMAP_ASSET_GUID	  1012
 #define DEFAULT_LINEAR_SAMPLER_REPEAT_ASSET_GUID	  1013
 #define DEFAULT_NEAREST_SAMPLER_REPEAT_ASSET_GUID	  1014
-#define DEFAULT_MESH_CUBE_GUID						  1015
-#define DEFAULT_MESH_SPHERE_GUID					  1016
-#define DEFAULT_MESH_CYLINDER_GUID					  1017
-#define DEFAULT_MESH_CAPSULE_GUID					  1018
-#define DEFAULT_MESH_PLANE_GUID						  1047
 #define DEFAULT_ANISOTROPIC_SAMPLER_REPEAT_ASSET_GUID 1019
 #define GIZMO_MESH_TRANSLATION						  1020
 #define GIZMO_MESH_ROTATION							  1021

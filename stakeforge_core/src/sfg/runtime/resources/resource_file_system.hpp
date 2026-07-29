@@ -59,8 +59,10 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
+		bool open(const char* path, u64 offset = 0, u64 size = 0);
 		void close();
 		bool read(void* destination, size_t size, size_t& out_read);
+		bool read_exact(void* destination, size_t size);
 		bool seek(i64 offset, resource_seek_origin_e origin);
 
 		// -----------------------------------------------------------------------------

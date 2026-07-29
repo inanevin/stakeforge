@@ -42,6 +42,36 @@ namespace sfg
 		close();
 	}
 
+	bool resource_stream_t::open(const char* path, u64 offset, u64 size)
+	{
+		SFG_ASSERT(path != nullptr);
+		SFG_ASSERT(_stream == nullptr);
+
+		const u64 file_size = file_system_t::get_file_size(path);
+
+		if (offset > file_size || (size != 0 && size > file_size - offset))
+		{
+			SFG_ERR("resource stream range is outside the file: {0}", path);
+			return false;
+		}
+
+		std::ifstream* stream = new std::ifstream(path, std::ios::binary);
+
+		if (!stream->is_open())
+		{
+			SFG_ERR("failed to open resource stream: {0}", path);
+			delete stream;
+			return false;
+		}
+
+		_stream		 = stream;
+		_base_offset = offset;
+		_size		 = size == 0 ? file_size - offset : size;
+		_cursor		 = 0;
+
+		return true;
+	}
+
 	void resource_stream_t::close()
 	{
 		if (_stream == nullptr)
@@ -83,6 +113,13 @@ namespace sfg
 
 		_cursor += read_size;
 		return true;
+	}
+
+	bool resource_stream_t::read_exact(void* destination, size_t size)
+	{
+		size_t read_size = 0;
+
+		return read(destination, size, read_size) && read_size == size;
 	}
 
 	bool resource_stream_t::seek(i64 offset, resource_seek_origin_e origin)
@@ -198,21 +235,7 @@ namespace sfg
 		if (!resolve_resource_range(hash, offset, size, path, range_offset, range_size))
 			return false;
 
-		std::ifstream* stream = new std::ifstream(path.c_str(), std::ios::binary);
-
-		if (!stream->is_open())
-		{
-			SFG_ERR("failed to open resource stream: {0}", path.c_str());
-			delete stream;
-			return false;
-		}
-
-		out._stream		 = stream;
-		out._base_offset = range_offset;
-		out._size		 = range_size;
-		out._cursor		 = 0;
-
-		return true;
+		return out.open(path.c_str(), range_offset, range_size);
 	}
 
 	bool resource_file_system_t::resolve_resource_range(u64 hash, size_t offset, size_t size, string_t& out_path, u64& out_offset, u64& out_size) const

@@ -123,7 +123,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/paint/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/serialize/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/app/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/sfg_api.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/stakeforge_api.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/util/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/miniaudio/*.c
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/*.cpp
@@ -189,8 +188,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/cuda/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/cuda/algorithm/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/taskflow/utility/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/sfg_api.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/stakeforge_api.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/stakeforge_api_common.hpp
 )
 
 if(WIN32)

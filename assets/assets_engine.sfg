@@ -109,6 +109,15 @@
             }
         },
         {
+            "name": "game_blit",
+            "path": "common/shaders/world/game_blit.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 11
+            }
+        },
+        {
             "name": "debug_font",
             "path": "engine/resource_pack/IBMPlexMono-Regular.ttf",
             "type": 2,

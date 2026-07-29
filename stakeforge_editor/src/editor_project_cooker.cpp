@@ -145,6 +145,7 @@ namespace sfg
 
 	bool editor_project_cooker_t::cook_project_worker(const char* target_path)
 	{
+		// load the engine resources that always ship
 		resource_manifest_t engine_manifest = {};
 
 		if (!engine_manifest.load_from_file(editor_directories_t::get_engine_manifest().c_str()))
@@ -153,6 +154,7 @@ namespace sfg
 			return false;
 		}
 
+		// build package metadata from the cook options
 		*_package_meta					 = {};
 		_package_meta->project_settings	 = editor_project_t::get().settings.project_settings;
 		_package_meta->worlds			 = _cook_options->worlds;
@@ -161,7 +163,7 @@ namespace sfg
 		_package_meta->window_style		 = _cook_options->is_borderless ? window_style_e::borderless : window_style_e::app_window;
 		_package_meta->is_fullscreen	 = _cook_options->is_fullscreen;
 
-		// verify worlds
+		// make sure every selected world exists
 		for (sid_t world : _package_meta->worlds)
 		{
 			if (editor_asset_manager_t::get().find_asset(world) != nullptr)
@@ -171,13 +173,13 @@ namespace sfg
 			return false;
 		}
 
-		// header
+		// start the resource stream
 		ostream_t resource_stream = {};
 		resource_stream << project_package_meta_t::RESOURCE_STREAM_WIRE_MAGIC;
 		resource_stream << project_package_meta_t::RESOURCE_STREAM_WIRE_VERSION;
 		resource_stream << static_cast<u32>(PROJECT_COOK_PRIMITIVE_COUNT);
 
-		// write every default primitive
+		// generate the built-in primitives
 		ostream_t primitive_stream = {};
 
 		if (!editor_mesh_generator_t::generate_cube({.size = vec3f_t::one}, primitive_stream))
@@ -186,6 +188,8 @@ namespace sfg
 			return false;
 		}
 
+		resource_stream << static_cast<sid_t>(DEFAULT_MESH_CUBE_GUID);
+		resource_stream << static_cast<u64>(primitive_stream.get_size());
 		resource_stream.write_raw(primitive_stream.get_raw(), primitive_stream.get_size());
 
 		if (!editor_mesh_generator_t::generate_sphere({}, primitive_stream))
@@ -194,6 +198,8 @@ namespace sfg
 			return false;
 		}
 
+		resource_stream << static_cast<sid_t>(DEFAULT_MESH_SPHERE_GUID);
+		resource_stream << static_cast<u64>(primitive_stream.get_size());
 		resource_stream.write_raw(primitive_stream.get_raw(), primitive_stream.get_size());
 
 		if (!editor_mesh_generator_t::generate_cylinder({}, primitive_stream))
@@ -202,6 +208,8 @@ namespace sfg
 			return false;
 		}
 
+		resource_stream << static_cast<sid_t>(DEFAULT_MESH_CYLINDER_GUID);
+		resource_stream << static_cast<u64>(primitive_stream.get_size());
 		resource_stream.write_raw(primitive_stream.get_raw(), primitive_stream.get_size());
 
 		if (!editor_mesh_generator_t::generate_capsule({}, primitive_stream))
@@ -210,6 +218,8 @@ namespace sfg
 			return false;
 		}
 
+		resource_stream << static_cast<sid_t>(DEFAULT_MESH_CAPSULE_GUID);
+		resource_stream << static_cast<u64>(primitive_stream.get_size());
 		resource_stream.write_raw(primitive_stream.get_raw(), primitive_stream.get_size());
 
 		if (!editor_mesh_generator_t::generate_plane({.size = vec2f_t::one}, primitive_stream))
@@ -218,8 +228,11 @@ namespace sfg
 			return false;
 		}
 
+		resource_stream << static_cast<sid_t>(DEFAULT_MESH_PLANE_GUID);
+		resource_stream << static_cast<u64>(primitive_stream.get_size());
 		resource_stream.write_raw(primitive_stream.get_raw(), primitive_stream.get_size());
 
+		// track unique resources and their expected types
 		vector_t<editor_asset_dependency_t> project_resources = {};
 		hash_map_t<sid_t, resource_type_e>	resource_types	  = {};
 		resource_types.reserve(editor_asset_manager_t::get().get_assets().size() + engine_manifest.resources.size() + _package_meta->worlds.size() + _cook_options->extra_resources.size() + PROJECT_COOK_PRIMITIVE_COUNT);
@@ -229,6 +242,7 @@ namespace sfg
 		resource_types.emplace(DEFAULT_MESH_CAPSULE_GUID, resource_type_e::mesh);
 		resource_types.emplace(DEFAULT_MESH_PLANE_GUID, resource_type_e::mesh);
 
+		// write every engine manifest resource
 		resource_stream << static_cast<u32>(engine_manifest.resources.size());
 
 		for (const resource_manifest_entry_t& entry : engine_manifest.resources)
@@ -257,6 +271,7 @@ namespace sfg
 			resource_types.emplace(sid, entry.type);
 		}
 
+		// add project resources without duplicates
 		const auto add_project_resource = [&](const editor_asset_dependency_t& dependency) -> bool {
 			if (dependency.sid == NULL_SID)
 				return true;
@@ -282,6 +297,7 @@ namespace sfg
 			return true;
 		};
 
+		// write worlds and collect their direct resources
 		resource_stream << static_cast<u32>(_package_meta->worlds.size());
 
 		vector_t<editor_asset_dependency_t> dependencies = {};
@@ -319,6 +335,7 @@ namespace sfg
 			}
 		}
 
+		// add resources selected explicitly by the user
 		for (resource_handle_t extra_resource : _cook_options->extra_resources)
 		{
 			const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(extra_resource);
@@ -338,6 +355,7 @@ namespace sfg
 				return false;
 		}
 
+		// expand the full transitive dependency set
 		for (size_t resource_index = 0; resource_index < project_resources.size(); ++resource_index)
 		{
 			const editor_asset_dependency_t resource = project_resources[resource_index];
@@ -370,6 +388,7 @@ namespace sfg
 			}
 		}
 
+		// write project resources and record their locations
 		resource_stream << static_cast<u32>(project_resources.size());
 
 		for (const editor_asset_dependency_t& resource : project_resources)
@@ -398,6 +417,7 @@ namespace sfg
 			resource_stream.write_raw(cached_file.get_raw(), cached_file.get_size());
 		}
 
+		// serialize the finished package metadata
 		ostream_t meta_stream = {};
 
 		if (!_package_meta->serialize(meta_stream))
@@ -407,6 +427,7 @@ namespace sfg
 			return false;
 		}
 
+		// save both package files atomically
 		const string_t resource_target_path = editor_project_t::get()._runtime.cook_path + project_package_meta_t::RESOURCE_FILE_NAME;
 
 		if (!serializer_t::save_to_file_atomic(resource_target_path.c_str(), resource_stream))
