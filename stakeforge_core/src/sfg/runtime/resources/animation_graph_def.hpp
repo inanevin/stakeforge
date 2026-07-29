@@ -72,14 +72,17 @@ namespace sfg
 
 	struct animation_graph_asm_transition_def_t
 	{
-		sid_t								  parameter_id	= NULL_SID;
-		f32									  compare_value = 0.0f;
-		f32									  duration		= 0.0f;
-		u32									  id			= ANIMATION_GRAPH_DEF_NULL_ID;
-		u32									  from_state_id = ANIMATION_GRAPH_DEF_NULL_ID;
-		u32									  to_state_id	= ANIMATION_GRAPH_DEF_NULL_ID;
-		animation_graph_asm_transition_type_e type			= animation_graph_asm_transition_type_e::equals;
-		bool								  is_blended	= true;
+		sid_t								  parameter_id	   = NULL_SID;
+		f32									  compare_value	   = 0.0f;
+		f32									  duration		   = 0.0f;
+		u32									  id			   = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32									  from_state_id	   = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32									  to_state_id	   = ANIMATION_GRAPH_DEF_NULL_ID;
+		u32									  priority		   = 0;
+		animation_graph_asm_transition_type_e type			   = animation_graph_asm_transition_type_e::equals;
+		bool								  is_blended	   = true;
+		bool								  is_interruptible = true;
+		bool								  restart_target   = true;
 	};
 
 	struct animation_graph_node_asm_def_t

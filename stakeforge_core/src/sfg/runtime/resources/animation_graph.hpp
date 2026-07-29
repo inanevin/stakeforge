@@ -57,8 +57,11 @@ namespace sfg
 		u32									  parameter_index  = UINT32_MAX;
 		f32									  compare_value	   = 0.0f;
 		f32									  duration		   = 0.0f;
+		u32									  priority		   = 0;
 		animation_graph_asm_transition_type_e type			   = animation_graph_asm_transition_type_e::equals;
 		bool								  is_blended	   = true;
+		bool								  is_interruptible = true;
+		bool								  restart_target   = true;
 	};
 
 	struct animation_graph_resource_asm_t
@@ -110,7 +113,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('A', 'G', 'R', 'F');
-		static constexpr u32 WIRE_VERSION = 4;
+		static constexpr u32 WIRE_VERSION = 5;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);

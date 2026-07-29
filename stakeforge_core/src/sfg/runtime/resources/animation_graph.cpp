@@ -241,10 +241,13 @@ namespace sfg
 						animation_graph_resource_transition_t&		destination_transition = transitions[transition_index];
 
 						destination_transition = {
-							.compare_value = source_transition.compare_value,
-							.duration	   = source_transition.duration,
-							.type		   = source_transition.type,
-							.is_blended	   = source_transition.is_blended,
+							.compare_value	  = source_transition.compare_value,
+							.duration		  = source_transition.duration,
+							.priority		  = source_transition.priority,
+							.type			  = source_transition.type,
+							.is_blended		  = source_transition.is_blended,
+							.is_interruptible = source_transition.is_interruptible,
+							.restart_target	  = source_transition.restart_target,
 						};
 
 						for (u32 state_index = 0; state_index < destination_asm.state_count; ++state_index)

@@ -275,14 +275,15 @@ namespace sfg
 					system_skinned_mesh_renderer.final_bones_calculated = true;
 				}
 
+				bool is_culled = false;
+
 				if (animation_graph.is_culled && main_camera_transform != nullptr)
 				{
 					const vec3f_t camera_to_entity = (system_transform.abs_pos - main_camera_transform->abs_pos).normalized();
 					const f32	  camera_dot	   = vec3f_t::dot(main_camera_transform->abs_rot.get_forward(), camera_to_entity);
 					const f32	  cull_dot_limit   = math::cos(math::degrees_to_radians(animation_graph.cull_angle_limit));
 
-					if (camera_dot < cull_dot_limit)
-						continue;
+					is_culled = camera_dot < cull_dot_limit;
 				}
 
 				u32 effective_tick_rate = animation_graph.tick_rate;
@@ -314,6 +315,12 @@ namespace sfg
 
 				system_animation_graph.accumulated_delta_time = 0.0f;
 				system_animation_graph.tick_frame_count		  = 0;
+
+				if (is_culled)
+				{
+					_animation_graph_storage.advance_graph(system_animation_graph.nodes, system_animation_graph.node_count, graph_delta_time);
+					continue;
+				}
 
 				const span_t<animation_bone_t> bones{
 					.data = _bone_memory.get<animation_bone_t>(system_skinned_mesh_renderer.bones_handle),
