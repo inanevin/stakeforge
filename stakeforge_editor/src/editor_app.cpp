@@ -48,6 +48,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/platform/process.hpp>
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
+#include <sfg/runtime/engine/perf_metrics.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/scripting/api/script_api_platform.hpp>
@@ -485,6 +486,8 @@ namespace sfg
 
 		while (tick)
 		{
+			const i64 main_thread_start_us = time_t::get_cpu_microseconds();
+
 			editor_project_t& project = editor_project_t::get();
 
 			frame_allocator_tls_t::reset();
@@ -572,6 +575,8 @@ namespace sfg
 			}
 
 			_renderer.ensure_render(_world_controller);
+
+			perf_metrics_t::update_main_thread(time_t::get_cpu_microseconds() - main_thread_start_us);
 			FrameMarkNamed("main");
 		}
 	}

@@ -77,6 +77,7 @@ namespace sfg
 		};
 
 		void save_project_settings();
+		void refresh_perf_metrics();
 
 		static void on_transform_control_toggled(bool toggled, void* user_data);
 		static void on_settings_pressed(bool toggled, void* user_data);
@@ -89,11 +90,14 @@ namespace sfg
 		static void on_skeletons_toggled(bool toggled, void* user_data);
 		static void on_physics_debug_toggled(bool toggled, void* user_data);
 		static void on_shoot_rays_toggled(bool toggled, void* user_data);
+		static void on_perf_metrics_toggled(bool toggled, void* user_data);
+		static void on_perf_metrics_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
 		editor_popup_world_view_settings_t _settings_popup;
 		editor_icon_button_t			   _transform_buttons[3];
 		editor_icon_button_t			   _settings_button;
+		editor_icon_button_t			   _perf_metrics_button;
 		editor_icon_button_t			   _locality_button;
 		editor_icon_button_t			   _snapping_button;
 		editor_icon_button_t			   _grid_button;
@@ -102,20 +106,23 @@ namespace sfg
 		editor_icon_button_t			   _physics_debug_button;
 		editor_icon_button_t			   _shoot_rays_button;
 		transform_button_data_t			   _transform_button_data[3];
-		ui::ui_context*					   _ui				= nullptr;
-		editor_world_handle_t			   _edit_world		= {};
-		ui::widget_id_t					   _root			= NULL_WIDGET;
-		ui::widget_id_t					   _left_column		= NULL_WIDGET;
-		ui::widget_id_t					   _right_column	= NULL_WIDGET;
-		ui::widget_id_t					   _top_left_row	= NULL_WIDGET;
-		ui::widget_id_t					   _top_right_row	= NULL_WIDGET;
-		ui::widget_id_t					   _global_frame	= NULL_WIDGET;
-		ui::widget_id_t					   _controls_frame	= NULL_WIDGET;
-		ui::widget_id_t					   _view_frame		= NULL_WIDGET;
-		ui::widget_id_t					   _physics_frame	= NULL_WIDGET;
-		ui::widget_id_t					   _global_spacer	= NULL_WIDGET;
-		ui::widget_id_t					   _controls_spacer = NULL_WIDGET;
-		ui::widget_id_t					   _view_spacer		= NULL_WIDGET;
-		editor_world_edit_type_e		   _edit_type		= editor_world_edit_type_e::full_control;
+		ui::ui_context*					   _ui					   = nullptr;
+		editor_world_handle_t			   _edit_world			   = {};
+		ui::widget_id_t					   _root				   = NULL_WIDGET;
+		ui::widget_id_t					   _left_column			   = NULL_WIDGET;
+		ui::widget_id_t					   _right_column		   = NULL_WIDGET;
+		ui::widget_id_t					   _top_left_row		   = NULL_WIDGET;
+		ui::widget_id_t					   _top_right_row		   = NULL_WIDGET;
+		ui::widget_id_t					   _global_frame		   = NULL_WIDGET;
+		ui::widget_id_t					   _controls_frame		   = NULL_WIDGET;
+		ui::widget_id_t					   _view_frame			   = NULL_WIDGET;
+		ui::widget_id_t					   _physics_frame		   = NULL_WIDGET;
+		ui::widget_id_t					   _perf_metrics_frame	   = NULL_WIDGET;
+		ui::widget_id_t					   _perf_metrics_labels[5] = {};
+		ui::widget_id_t					   _global_spacer		   = NULL_WIDGET;
+		ui::widget_id_t					   _controls_spacer		   = NULL_WIDGET;
+		ui::widget_id_t					   _view_spacer			   = NULL_WIDGET;
+		editor_world_edit_type_e		   _edit_type			   = editor_world_edit_type_e::full_control;
+		u8								   _perf_metrics_ticks	   = 0;
 	};
 }
