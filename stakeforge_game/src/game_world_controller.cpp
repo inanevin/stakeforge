@@ -326,7 +326,7 @@ namespace sfg
 			_main_world.end_play();
 
 		_main_world.clear_used_resources();
-		_main_world.clear_entities();
+		_main_world.reset_world_state();
 		_pending_world = NULL_SID;
 
 		world_cooker_t::world_from_json(_main_world, world_json);

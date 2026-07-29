@@ -48,6 +48,7 @@ namespace sfg
 
 		void init(world_t& world);
 		void uninit();
+		void clear();
 		void begin_play();
 		void end_play();
 		void destroy_entity(entity_id_t entity);

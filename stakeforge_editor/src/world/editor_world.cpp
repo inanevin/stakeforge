@@ -616,7 +616,7 @@ namespace sfg
 
 		// reset
 		uninstall_camera();
-		_world.clear_entities();
+		_world.reset_world_state();
 		world_cooker_t::world_from_json(_world, snapshot);
 
 		// cam

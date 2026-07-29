@@ -61,6 +61,7 @@ namespace sfg
 
 		void init(u32 storage_memory);
 		void uninit();
+		void reset();
 
 		// -----------------------------------------------------------------------------
 		// impl

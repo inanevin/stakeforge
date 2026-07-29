@@ -63,7 +63,7 @@ namespace sfg
 		void pause_audio();
 		void resume_audio();
 		void set_time_scale(f32 time_scale);
-		void clear_entities();
+		void reset_world_state();
 		void tick_physics(f32 dt);
 		void tick_animation_prep(f32 dt);
 		void tick_animation_logic(f32 dt);

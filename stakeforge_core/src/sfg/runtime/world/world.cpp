@@ -202,7 +202,7 @@ namespace sfg
 		_audio_controller.set_time_scale(_time_scale);
 	}
 
-	void world_t::clear_entities()
+	void world_t::reset_world_state()
 	{
 		SFG_ASSERT(!_is_playing);
 
@@ -210,6 +210,8 @@ namespace sfg
 			_physics_world.clear();
 
 		_particle_simulation.clear();
+		_animation_controller.clear();
+		_audio_controller.clear();
 
 		_debug_draw.begin_frame();
 		for (ecs_component_table_t& table : _component_tables)
@@ -487,6 +489,7 @@ namespace sfg
 		SFG_ASSERT(is_alive(id));
 
 		_particle_simulation.destroy_entity(id);
+		_animation_controller.destroy_entity(id);
 		_audio_controller.destroy_entity(id);
 
 		component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);

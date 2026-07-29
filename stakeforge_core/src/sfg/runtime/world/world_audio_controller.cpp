@@ -56,6 +56,21 @@ namespace sfg
 		_is_time_scale_paused = false;
 	}
 
+	void world_audio_controller_t::clear()
+	{
+		ecs_component_table_t&			system_table = _world->get_component_table(type_id_t<component_system_audio_source_t>::value);
+		frame_vector_t<entity_id_t>		entities	 = {};
+		const ecs_component_table_ref_t refs[]		 = {
+			system_table.ref(),
+		};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+			entities.push_back(row.id);
+
+		for (const entity_id_t entity : entities)
+			destroy_voice(entity);
+	}
+
 	void world_audio_controller_t::begin_play()
 	{
 		SFG_ASSERT(_world != nullptr);
@@ -73,17 +88,7 @@ namespace sfg
 	{
 		SFG_ASSERT(_is_playing);
 
-		ecs_component_table_t&			system_table = _world->get_component_table(type_id_t<component_system_audio_source_t>::value);
-		frame_vector_t<entity_id_t>		entities	 = {};
-		const ecs_component_table_ref_t refs[]		 = {
-			system_table.ref(),
-		};
-
-		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
-			entities.push_back(row.id);
-
-		for (const entity_id_t entity : entities)
-			destroy_voice(entity);
+		clear();
 
 		_is_playing			  = false;
 		_is_explicitly_paused = false;

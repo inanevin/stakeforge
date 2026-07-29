@@ -65,6 +65,28 @@ namespace sfg
 		_world = nullptr;
 	}
 
+	void world_animation_controller_t::clear()
+	{
+		_animation_graph_storage.reset();
+		_bone_memory.reset();
+	}
+
+	void world_animation_controller_t::destroy_entity(entity_id_t entity)
+	{
+		const ecs_component_table_t& system_skinned_mesh_renderer_table = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
+		const ecs_component_table_t& system_animation_player_table		= _world->get_component_table(type_id_t<component_system_animation_player_t>::value);
+		const ecs_component_table_t& system_animation_graph_table		= _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+
+		if (ecs_t::table_has(system_skinned_mesh_renderer_table, entity))
+			destroy_skinned_renderer(entity);
+
+		if (ecs_t::table_has(system_animation_player_table, entity))
+			destroy_animation_player(entity);
+
+		if (ecs_t::table_has(system_animation_graph_table, entity))
+			destroy_animation_graph(entity);
+	}
+
 	void world_animation_controller_t::on_reload(resource_manager_t& resource_manager, sid_t resource_id, resource_type_e resource_type, void* user_data)
 	{
 		if (resource_type != resource_type_e::animation_graph)

@@ -89,6 +89,19 @@ namespace sfg
 		_nodes.uninit();
 	}
 
+	void animation_graph_storage_t::reset()
+	{
+		_aux.reset();
+		_pose_bones.reset();
+		_poses.reset();
+		_asm_transitions.reset();
+		_asm_states.reset();
+		_clips.reset();
+		_masks.reset();
+		_params.reset();
+		_nodes.reset();
+	}
+
 	animation_graph_storage_instance_t animation_graph_storage_t::create_graph(const animation_graph_runtime_t& graph, const chunk_allocator_t& resource_memory, const skeleton_runtime_t& skeleton)
 	{
 		animation_graph_storage_instance_t instance{

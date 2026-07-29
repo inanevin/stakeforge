@@ -59,11 +59,13 @@ namespace sfg
 
 		void init(world_t& world, u32 bone_max_count, u32 animation_graph_budget_bytes);
 		void uninit();
+		void clear();
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
+		void destroy_entity(entity_id_t entity);
 		void tick_prep(f32 delta_time);
 		void tick_logic(f32 delta_time);
 		bool set_graph_parameter_f32(entity_id_t entity, sid_t parameter_hash, f32 value);
