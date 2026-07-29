@@ -35,6 +35,7 @@ TestOutput
 /*.json
 /*.log
 /*.txt
+!/CMakeLists.txt
 /*.hdr
 /*.png
 /*.exr
