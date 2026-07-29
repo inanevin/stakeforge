@@ -282,8 +282,9 @@ namespace sfg
 			.fields = {.data = &input_text_field, .size = 1},
 			.type	= editor_input_field_field_type_e::string,
 		};
-		input_config.callbacks.edit_submitted = on_input_submitted;
-		input_config.callbacks.user_data	  = this;
+		input_config.callbacks.user_data = this;
+		input_config.return_pressed		 = on_input_submitted;
+		input_config.escape_pressed		 = on_input_cancelled;
 		_input.init(ui, _foreground, input_config);
 		s_controllers[s_controller_count++] = this;
 		set_visible(false);
@@ -496,24 +497,31 @@ namespace sfg
 
 	void editor_popup_controller_t::close_popup(bool notify_input)
 	{
+		close_popup_internal(notify_input ? input_close_reason_e::submitted : input_close_reason_e::silent);
+	}
+
+	void editor_popup_controller_t::close_popup_internal(input_close_reason_e input_close_reason)
+	{
 		if (_ui == nullptr || !_visible)
 			return;
 
 		if (!can_mutate_ui_topology())
 		{
-			_pending_close_notify_input = notify_input;
+			_pending_input_close_reason = input_close_reason;
 			defer_request(pending_request_e::close);
 			return;
 		}
 
-		const bool							   notify_input_closed	  = notify_input && _mode == popup_mode_e::input && _input_desc.closed != nullptr;
-		const editor_popup_input_closed_fn	   input_closed			  = _input_desc.closed;
-		void*								   input_closed_user_data = _input_desc.user_data;
-		const frame_string_t<char>			   input_value			  = _input_text.c_str();
-		editor_popup_closed_fn				   popup_closed			  = nullptr;
-		void*								   popup_closed_user_data = nullptr;
-		const editor_custom_popup_uninstall_fn custom_uninstall		  = _mode == popup_mode_e::custom ? _custom_desc.uninstall : nullptr;
-		void*								   custom_user_data		  = _custom_desc.user_data;
+		const bool							   notify_input_submitted	= input_close_reason == input_close_reason_e::submitted && _mode == popup_mode_e::input && _input_desc.submitted != nullptr;
+		const bool							   notify_input_cancelled	= input_close_reason == input_close_reason_e::cancelled && _mode == popup_mode_e::input && _input_desc.cancelled != nullptr;
+		const editor_popup_input_submitted_fn  input_submitted			= _input_desc.submitted;
+		const editor_popup_closed_fn		   input_cancelled			= _input_desc.cancelled;
+		void*								   input_callback_user_data = _input_desc.user_data;
+		const frame_string_t<char>			   input_value				= _input_text.c_str();
+		editor_popup_closed_fn				   popup_closed				= nullptr;
+		void*								   popup_closed_user_data	= nullptr;
+		const editor_custom_popup_uninstall_fn custom_uninstall			= _mode == popup_mode_e::custom ? _custom_desc.uninstall : nullptr;
+		void*								   custom_user_data			= _custom_desc.user_data;
 
 		switch (_mode)
 		{
@@ -553,8 +561,11 @@ namespace sfg
 		_asset_items.resize(0);
 		_asset_filtered_items.resize(0);
 
-		if (notify_input_closed)
-			input_closed(input_value.c_str(), input_closed_user_data);
+		if (notify_input_submitted)
+			input_submitted(input_value.c_str(), input_callback_user_data);
+
+		if (notify_input_cancelled)
+			input_cancelled(input_callback_user_data);
 
 		if (popup_closed != nullptr)
 			popup_closed(popup_closed_user_data);
@@ -1006,8 +1017,8 @@ namespace sfg
 		switch (request)
 		{
 		case pending_request_e::close:
-			close_popup(_pending_close_notify_input);
-			_pending_close_notify_input = false;
+			close_popup_internal(_pending_input_close_reason);
+			_pending_input_close_reason = input_close_reason_e::silent;
 			return;
 		case pending_request_e::items:
 			request_popup(_pending_desc);
@@ -1132,12 +1143,17 @@ namespace sfg
 	void editor_popup_controller_t::on_popup_outside(ui::input_router_t&, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
 	{
 		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
-		popup.close_popup(true);
+		popup.close_popup_internal(input_close_reason_e::cancelled);
 	}
 
 	void editor_popup_controller_t::on_input_submitted(void* user_data)
 	{
-		static_cast<editor_popup_controller_t*>(user_data)->close_popup(true);
+		static_cast<editor_popup_controller_t*>(user_data)->close_popup_internal(input_close_reason_e::submitted);
+	}
+
+	void editor_popup_controller_t::on_input_cancelled(void* user_data)
+	{
+		static_cast<editor_popup_controller_t*>(user_data)->close_popup_internal(input_close_reason_e::cancelled);
 	}
 
 	void editor_popup_controller_t::on_asset_search_changed(void* user_data)

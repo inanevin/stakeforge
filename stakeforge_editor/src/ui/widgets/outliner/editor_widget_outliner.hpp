@@ -168,7 +168,8 @@ namespace sfg
 		static void on_empty_action_menu_command(u16 command, void* user_data);
 		static void on_entity_action_menu_command(u16 command, void* user_data);
 		static void on_folder_action_menu_command(u16 command, void* user_data);
-		static void on_folder_rename_popup_closed(const char* value, void* user_data);
+		static void on_folder_rename_popup_submitted(const char* value, void* user_data);
+		static void on_folder_rename_popup_cancelled(void* user_data);
 		static void on_folder_color_wheel_popup_install(ui::ui_context& ui, ui::widget_id_t parent, void* user_data);
 		static void on_folder_color_wheel_popup_uninstall(ui::ui_context& ui, void* user_data);
 		static void on_folder_color_wheel_edit_begin(void* user_data);

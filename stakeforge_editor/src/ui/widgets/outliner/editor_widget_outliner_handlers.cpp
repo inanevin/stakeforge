@@ -162,7 +162,7 @@ namespace sfg
 			panel.delete_folder(panel._action_menu_folder);
 	}
 
-	void editor_widget_outliner_t::on_folder_rename_popup_closed(const char* value, void* user_data)
+	void editor_widget_outliner_t::on_folder_rename_popup_submitted(const char* value, void* user_data)
 	{
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
 		if (!panel._edit_folder.is_null())
@@ -171,6 +171,11 @@ namespace sfg
 			panel.refresh_entities();
 		}
 		panel._edit_folder = {};
+	}
+
+	void editor_widget_outliner_t::on_folder_rename_popup_cancelled(void* user_data)
+	{
+		static_cast<editor_widget_outliner_t*>(user_data)->_edit_folder = {};
 	}
 
 	void editor_widget_outliner_t::on_folder_color_wheel_edit_begin(void*)

@@ -60,13 +60,15 @@ namespace sfg
 
 	struct editor_input_field_config_t
 	{
-		editor_input_field_field_t field	   = {};
-		editor_widget_callbacks_t  callbacks   = {};
-		const char*				   placeholder = nullptr;
-		f32						   increment   = 0.1f;
-		f32						   min_value   = 0.0f;
-		f32						   max_value   = 1.0f;
-		bool					   is_integer  = false;
+		editor_input_field_field_t field		  = {};
+		editor_widget_callbacks_t  callbacks	  = {};
+		const char*				   placeholder	  = nullptr;
+		editor_widget_callback_fn  return_pressed = nullptr;
+		editor_widget_callback_fn  escape_pressed = nullptr;
+		f32						   increment	  = 0.1f;
+		f32						   min_value	  = 0.0f;
+		f32						   max_value	  = 1.0f;
+		bool					   is_integer	  = false;
 	};
 
 	class editor_input_field_t final

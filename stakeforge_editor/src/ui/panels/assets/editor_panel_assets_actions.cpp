@@ -586,7 +586,7 @@ namespace sfg
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 
 		editor_input_popup_desc_t desc = {};
-		desc.closed					   = on_create_folder_popup_closed;
+		desc.submitted				   = on_create_folder_popup_submitted;
 		desc.user_data				   = this;
 		desc.text					   = "folder";
 		desc.placeholder			   = "Folder Name";
@@ -705,7 +705,8 @@ namespace sfg
 		}
 
 		editor_input_popup_desc_t desc = {};
-		desc.closed					   = on_create_asset_popup_closed;
+		desc.submitted				   = on_create_asset_popup_submitted;
+		desc.cancelled				   = on_create_asset_popup_cancelled;
 		desc.user_data				   = this;
 		desc.text					   = text;
 		desc.placeholder			   = command >= assets_action_menu_create_csharp_component && command <= assets_action_menu_create_csharp_class ? "Class Name" : "Asset Name";
@@ -1025,7 +1026,7 @@ namespace sfg
 		const f32				scale	= ui::get_valid_scale(_ui->get_ui_scale());
 
 		editor_input_popup_desc_t desc = {};
-		desc.closed					   = on_rename_popup_closed;
+		desc.submitted				   = on_rename_popup_submitted;
 		desc.user_data				   = this;
 		desc.text					   = tree.value(_selected_folder_node).name.c_str();
 		desc.pos					   = row_out.pos;
@@ -1094,7 +1095,7 @@ namespace sfg
 		const f32				scale	 = ui::get_valid_scale(_ui->get_ui_scale());
 
 		editor_input_popup_desc_t desc = {};
-		desc.closed					   = on_asset_rename_popup_closed;
+		desc.submitted				   = on_asset_rename_popup_submitted;
 		desc.user_data				   = this;
 		const bool	   is_file		   = asset_node.type == editor_asset_node_type_e::file || asset_node.type == editor_asset_node_type_e::script_file;
 		const string_t file_name_stem  = is_file ? file_system_t::remove_extensions_from_path(asset_node.name) : "";

@@ -51,7 +51,7 @@ namespace sfg
 	using editor_popup_item_pressed_fn	   = void (*)(u16 id, void* user_data);
 	using editor_popup_asset_pressed_fn	   = void (*)(sid_t guid, void* user_data);
 	using editor_popup_entity_pressed_fn   = void (*)(entity_guid_t guid, void* user_data);
-	using editor_popup_input_closed_fn	   = void (*)(const char* value, void* user_data);
+	using editor_popup_input_submitted_fn  = void (*)(const char* value, void* user_data);
 	using editor_popup_closed_fn		   = void (*)(void* user_data);
 	using editor_custom_popup_install_fn   = void (*)(ui::ui_context& ui, ui::widget_id_t parent, void* user_data);
 	using editor_custom_popup_uninstall_fn = void (*)(ui::ui_context& ui, void* user_data);
@@ -77,12 +77,13 @@ namespace sfg
 
 	struct editor_input_popup_desc_t
 	{
-		editor_popup_input_closed_fn closed		 = nullptr;
-		void*						 user_data	 = nullptr;
-		const char*					 text		 = nullptr;
-		const char*					 placeholder = nullptr;
-		vec2f_t						 pos		 = {};
-		f32							 width		 = 0.0f;
+		editor_popup_input_submitted_fn submitted	= nullptr;
+		editor_popup_closed_fn			cancelled	= nullptr;
+		void*							user_data	= nullptr;
+		const char*						text		= nullptr;
+		const char*						placeholder = nullptr;
+		vec2f_t							pos			= {};
+		f32								width		= 0.0f;
 	};
 
 	struct editor_asset_popup_desc_t
@@ -163,6 +164,13 @@ namespace sfg
 			custom,
 		};
 
+		enum class input_close_reason_e : u8
+		{
+			silent,
+			submitted,
+			cancelled,
+		};
+
 		enum class pending_request_e : u8
 		{
 			none,
@@ -211,6 +219,7 @@ namespace sfg
 		u32	  find_asset_row(ui::widget_id_t id) const;
 		void  activate_row(u32 row);
 		void  activate_asset_row(u32 row);
+		void  close_popup_internal(input_close_reason_e input_close_reason);
 
 		static void on_row_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_row_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
@@ -218,6 +227,7 @@ namespace sfg
 		static void on_asset_row_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_popup_outside(ui::input_router_t& router, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_input_submitted(void* user_data);
+		static void on_input_cancelled(void* user_data);
 		static void on_asset_search_changed(void* user_data);
 		static void on_list_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
@@ -257,9 +267,9 @@ namespace sfg
 		editor_popup_item_desc_t	 _pending_items[MAX_ITEMS]	   = {};
 		popup_mode_e				 _mode						   = popup_mode_e::none;
 		pending_request_e			 _pending_request			   = pending_request_e::none;
+		input_close_reason_e		 _pending_input_close_reason   = input_close_reason_e::silent;
 		u32							 _list_scroll_target		   = 0;
 		u8							 _list_scroll_pending_frames   = 0;
-		bool						 _pending_close_notify_input   = false;
 		bool						 _visible					   = false;
 	};
 }

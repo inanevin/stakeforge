@@ -341,12 +341,12 @@ namespace sfg
 		}
 	}
 
-	void editor_panel_assets_t::on_create_folder_popup_closed(const char* value, void* user_data)
+	void editor_panel_assets_t::on_create_folder_popup_submitted(const char* value, void* user_data)
 	{
 		static_cast<editor_panel_assets_t*>(user_data)->create_folder(value);
 	}
 
-	void editor_panel_assets_t::on_create_asset_popup_closed(const char* value, void* user_data)
+	void editor_panel_assets_t::on_create_asset_popup_submitted(const char* value, void* user_data)
 	{
 		editor_panel_assets_t& panel	  = *static_cast<editor_panel_assets_t*>(user_data);
 		const u16			   command	  = panel._create_asset_popup_command;
@@ -354,12 +354,17 @@ namespace sfg
 		panel.create_asset_item(command, value);
 	}
 
-	void editor_panel_assets_t::on_rename_popup_closed(const char* value, void* user_data)
+	void editor_panel_assets_t::on_create_asset_popup_cancelled(void* user_data)
+	{
+		static_cast<editor_panel_assets_t*>(user_data)->_create_asset_popup_command = 0;
+	}
+
+	void editor_panel_assets_t::on_rename_popup_submitted(const char* value, void* user_data)
 	{
 		static_cast<editor_panel_assets_t*>(user_data)->rename_folder(value);
 	}
 
-	void editor_panel_assets_t::on_asset_rename_popup_closed(const char* value, void* user_data)
+	void editor_panel_assets_t::on_asset_rename_popup_submitted(const char* value, void* user_data)
 	{
 		static_cast<editor_panel_assets_t*>(user_data)->rename_asset_item(value);
 	}

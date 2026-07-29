@@ -891,6 +891,15 @@ namespace sfg
 		{
 			field.commit_number_text();
 			field.submit_edit();
+
+			if (field._config.return_pressed != nullptr)
+				field._config.return_pressed(field._config.callbacks.user_data);
+			return;
+		}
+		if (ev.key == static_cast<u16>(input_code::key_escape))
+		{
+			if (field._config.escape_pressed != nullptr)
+				field._config.escape_pressed(field._config.callbacks.user_data);
 			return;
 		}
 

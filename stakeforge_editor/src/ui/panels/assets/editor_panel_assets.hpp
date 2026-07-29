@@ -260,12 +260,13 @@ namespace sfg
 		static void on_action_menu_command(u16 command, void* user_data);
 		static void on_asset_action_menu_command(u16 command, void* user_data);
 		static void on_action_menu_closed(void* user_data);
-		static void on_create_folder_popup_closed(const char* value, void* user_data);
-		static void on_create_asset_popup_closed(const char* value, void* user_data);
+		static void on_create_folder_popup_submitted(const char* value, void* user_data);
+		static void on_create_asset_popup_submitted(const char* value, void* user_data);
+		static void on_create_asset_popup_cancelled(void* user_data);
 		static void on_assets_override_accepted(void* user_data);
 		static void on_assets_override_cancelled(void* user_data);
-		static void on_rename_popup_closed(const char* value, void* user_data);
-		static void on_asset_rename_popup_closed(const char* value, void* user_data);
+		static void on_rename_popup_submitted(const char* value, void* user_data);
+		static void on_asset_rename_popup_submitted(const char* value, void* user_data);
 		static void on_cook_options_imported(void* user_data);
 		static void on_cook_options_cancelled(void* user_data);
 		static void on_cook_options_error_acknowledged(void* user_data);

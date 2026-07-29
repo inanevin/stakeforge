@@ -355,7 +355,8 @@ namespace sfg
 
 		_edit_folder = folder;
 		popup->request_input_popup({
-			.closed		 = on_folder_rename_popup_closed,
+			.submitted	 = on_folder_rename_popup_submitted,
+			.cancelled	 = on_folder_rename_popup_cancelled,
 			.user_data	 = this,
 			.text		 = metadata.get_folder(folder).name,
 			.placeholder = "Folder",
