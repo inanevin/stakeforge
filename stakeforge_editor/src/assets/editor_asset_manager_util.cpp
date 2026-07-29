@@ -222,6 +222,9 @@ namespace sfg
 				if (assets.find(dependency.sid) != assets.end())
 					continue;
 
+				if (dependency.sid >= DEFAULT_MESH_CUBE_GUID && dependency.sid <= DEFAULT_MESH_PLANE_GUID)
+					continue;
+
 				if (asset.status == editor_asset_status_e::ok)
 					asset.status = editor_asset_status_e::missing_dependency;
 				SFG_WARN("asset {0}, {1}, {2} has missing dependency {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, dependency.sid);
