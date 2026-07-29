@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_creator.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
+#include "scripting/editor_script_manager.hpp"
 #include <sfg/data/string_util.hpp>
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
@@ -231,23 +232,37 @@ namespace sfg
 			if (!panel._selected_folder_hashes.empty())
 			{
 				const bool make_favourite = std::find(panel._favourite_folder_hashes.begin(), panel._favourite_folder_hashes.end(), panel._selected_folder_hashes.front()) == panel._favourite_folder_hashes.end();
+
 				for (u64 hash : panel._selected_folder_hashes)
 				{
 					auto it = std::find(panel._favourite_folder_hashes.begin(), panel._favourite_folder_hashes.end(), hash);
+
 					if (make_favourite && it == panel._favourite_folder_hashes.end())
 						panel._favourite_folder_hashes.push_back(hash);
 					else if (!make_favourite && it != panel._favourite_folder_hashes.end())
 						panel._favourite_folder_hashes.erase(it);
 				}
+
 				panel.refresh_folder_rows();
 			}
 			return;
 		case assets_action_menu_open_directory: {
 			const string_t folder_path = panel.get_action_menu_target_folder_path();
+
 			if (!folder_path.empty())
 				process::open_directory(folder_path.c_str());
 			return;
 		}
+		case assets_action_menu_open_csharp_project: {
+			const editor_project_runtime_t& runtime		 = editor_project_t::get()._runtime;
+			const string_t					project_root = file_system_t::get_directory_of_file(runtime.path.c_str());
+
+			process::open_file_in_vscode(project_root.c_str(), runtime.script_project_path.c_str());
+			return;
+		}
+		case assets_action_menu_recompile_csharp_project:
+			editor_script_manager_t::get().compile_scripts();
+			return;
 		default:
 			return;
 		}
@@ -256,6 +271,7 @@ namespace sfg
 	void editor_panel_assets_t::on_asset_action_menu_command(u16 command, void* user_data)
 	{
 		editor_panel_assets_t& panel = *static_cast<editor_panel_assets_t*>(user_data);
+
 		switch (command)
 		{
 		case assets_item_action_menu_rename:
@@ -272,14 +288,17 @@ namespace sfg
 			return;
 		case assets_item_action_menu_open_directory: {
 			const editor_asset_tree_t& tree = editor_asset_manager_t::get().get_asset_tree();
+
 			if (panel._selected_asset_node.is_null() || !tree.is_valid(panel._selected_asset_node))
 				return;
 
 			const editor_asset_node_t& asset_node = tree.value(panel._selected_asset_node);
+
 			if (asset_node.full_path.empty())
 				return;
 
 			const string_t directory = file_system_t::get_directory_of_file(asset_node.full_path.c_str());
+
 			if (!directory.empty())
 				process::open_directory(directory.c_str());
 			return;
@@ -289,23 +308,33 @@ namespace sfg
 			{
 				const sid_t first_guid	   = panel.get_asset_guid(panel._selected_asset_nodes.front());
 				const bool	make_favourite = !panel.is_asset_favourite(first_guid);
+
 				for (editor_asset_node_handle_t node : panel._selected_asset_nodes)
 				{
 					const sid_t guid = panel.get_asset_guid(node);
+
 					if (guid == NULL_SID)
 						continue;
+
 					auto it = std::find(panel._favourite_asset_guids.begin(), panel._favourite_asset_guids.end(), guid);
+
 					if (make_favourite && it == panel._favourite_asset_guids.end())
 						panel._favourite_asset_guids.push_back(guid);
 					else if (!make_favourite && it != panel._favourite_asset_guids.end())
 						panel._favourite_asset_guids.erase(it);
 				}
+
 				if (panel._asset_favourites_only)
 					panel.refresh_asset_grid(true);
+
 				panel.refresh_asset_favourite_icons();
 			}
 			return;
 		}
+		case assets_action_menu_open_csharp_project:
+		case assets_action_menu_recompile_csharp_project:
+			on_action_menu_command(command, user_data);
+			return;
 		default:
 			return;
 		}

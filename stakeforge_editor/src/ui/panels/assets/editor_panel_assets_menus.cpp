@@ -93,6 +93,8 @@ namespace sfg
 			{.text = "Rename", .shortcut = "F2", .command = assets_action_menu_rename},
 			{.text = "Toggle Favourite", .icon = ICON_STAR, .command = assets_action_menu_toggle_favourite, .has_icon_color = true},
 			{.text = "Open In OS", .command = assets_action_menu_open_directory},
+			{.text = "Open C# Project", .command = assets_action_menu_open_csharp_project},
+			{.text = "Recompile C# Project", .command = assets_action_menu_recompile_csharp_project},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ITEM_ACTION_MENU_ROWS[] = {
@@ -102,6 +104,8 @@ namespace sfg
 			{.text = "Delete", .shortcut = "DEL", .command = assets_item_action_menu_delete},
 			{.text = "Show in OS", .command = assets_item_action_menu_open_directory},
 			{.text = "Toggle Favourite", .icon = ICON_STAR, .command = assets_item_action_menu_toggle_favourite, .has_icon_color = true},
+			{.text = "Open C# Project", .command = assets_action_menu_open_csharp_project},
+			{.text = "Recompile C# Project", .command = assets_action_menu_recompile_csharp_project},
 		};
 	}
 

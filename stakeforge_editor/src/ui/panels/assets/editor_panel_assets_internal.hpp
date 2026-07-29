@@ -86,5 +86,7 @@ namespace sfg
 		assets_action_menu_create_csharp_component			 = 39,
 		assets_action_menu_create_csharp_world_script		 = 40,
 		assets_action_menu_create_csharp_class				 = 41,
+		assets_action_menu_open_csharp_project				 = 42,
+		assets_action_menu_recompile_csharp_project			 = 43,
 	};
 }
