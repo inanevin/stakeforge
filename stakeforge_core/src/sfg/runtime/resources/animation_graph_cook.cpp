@@ -79,6 +79,27 @@ namespace sfg
 
 			for (const animation_graph_asm_state_def_t& state : node.asm_node.states)
 			{
+				if (state.state_type == animation_graph_asm_state_type_e::blend_2d)
+				{
+					if (state.clips.size() > UINT16_MAX)
+					{
+						SFG_ERR("2D animation blend state has too many clips: {0}", state.name);
+						return false;
+					}
+
+					for (u32 clip_index = 0; clip_index < state.clips.size(); ++clip_index)
+					{
+						for (u32 other_clip_index = clip_index + 1; other_clip_index < state.clips.size(); ++other_clip_index)
+						{
+							if (state.clips[clip_index].blend_value_2d.equals(state.clips[other_clip_index].blend_value_2d))
+							{
+								SFG_ERR("2D animation blend state has duplicate clip positions: {0}", state.name);
+								return false;
+							}
+						}
+					}
+				}
+
 				for (const animation_graph_clip_def_t& clip : state.clips)
 				{
 					if (clip.playback_speed <= 0.0f)

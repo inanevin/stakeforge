@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
+#include <sfg/math/triangulation_2d.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/animation.hpp>
 #include <sfg/runtime/resources/animation_graph.hpp>
@@ -172,10 +173,11 @@ namespace sfg
 						const animation_graph_resource_state_t& source_state	  = source_states[state_index];
 						animation_graph_asm_state_t&			destination_state = destination_states[state_index];
 
-						destination_state			 = {};
-						destination_state.clip_count = source_state.clip_count;
-						destination_state.state_type = source_state.state_type;
-						destination_state.loop		 = source_state.loop;
+						destination_state					   = {};
+						destination_state.clip_count		   = source_state.clip_count;
+						destination_state.blend_triangle_count = source_state.blend_triangle_count;
+						destination_state.state_type		   = source_state.state_type;
+						destination_state.loop				   = source_state.loop;
 
 						if (source_state.blend_parameter_index != UINT32_MAX)
 						{
@@ -207,6 +209,16 @@ namespace sfg
 								destination_clips[clip_index].blend_value_2d = source_clips[clip_index].blend_value_2d;
 							else
 								destination_clips[clip_index].blend_value = source_clips[clip_index].blend_value;
+						}
+
+						if (destination_state.blend_triangle_count != 0)
+						{
+							destination_state.blend_triangles = _aux.allocate_bytes(sizeof(animation_graph_blend_triangle_t) * destination_state.blend_triangle_count, alignof(animation_graph_blend_triangle_t));
+
+							const animation_graph_blend_triangle_t* source_triangles	  = resource_memory.get<animation_graph_blend_triangle_t>(source_state.blend_triangles);
+							animation_graph_blend_triangle_t*		destination_triangles = _aux.get<animation_graph_blend_triangle_t>(destination_state.blend_triangles);
+
+							SFG_MEMCPY(destination_triangles, source_triangles, sizeof(animation_graph_blend_triangle_t) * destination_state.blend_triangle_count);
 						}
 					}
 
@@ -339,6 +351,9 @@ namespace sfg
 						{
 							if (states[state_index].clip_count != 0)
 								_clips.free(states[state_index].clips);
+
+							if (states[state_index].blend_triangle_count != 0)
+								_aux.free(states[state_index].blend_triangles);
 						}
 
 						_asm_states.free(node.node_asm.states);
@@ -834,38 +849,104 @@ namespace sfg
 				return false;
 			}
 
-			const f32 epsilon_sq   = MATH_EPS * MATH_EPS;
-			f32		  total_weight = 0.0f;
-			u32		  exact_index  = UINT32_MAX;
-
-			for (u32 i = 0; i < state.clip_count; ++i)
+			if (state.clip_count == 1)
 			{
-				const vec2f_t offset	  = clips[i].blend_value_2d - parameter.vec2_value;
-				const f32	  distance_sq = offset.magnitude_sqr();
+				blend_weights[0] = 1.0f;
+				return true;
+			}
 
-				if (distance_sq <= epsilon_sq)
+			if (state.blend_triangle_count == 0)
+			{
+				vec2f_t bounds_min = clips[0].blend_value_2d;
+				vec2f_t bounds_max = clips[0].blend_value_2d;
+
+				for (u32 clip_index = 1; clip_index < state.clip_count; ++clip_index)
 				{
-					exact_index = i;
-					break;
+					bounds_min = vec2f_t::min(bounds_min, clips[clip_index].blend_value_2d);
+					bounds_max = vec2f_t::max(bounds_max, clips[clip_index].blend_value_2d);
 				}
 
-				blend_weights[i] = 1.0f / distance_sq;
-				total_weight += blend_weights[i];
+				const vec2f_t bounds_size	  = bounds_max - bounds_min;
+				const bool	  use_x			  = bounds_size.x >= bounds_size.y;
+				const f32	  parameter_value = use_x ? parameter.vec2_value.x : parameter.vec2_value.y;
+				u32			  lower_index	  = UINT32_MAX;
+				u32			  upper_index	  = UINT32_MAX;
+
+				for (u32 clip_index = 0; clip_index < state.clip_count; ++clip_index)
+				{
+					const f32 clip_value = use_x ? clips[clip_index].blend_value_2d.x : clips[clip_index].blend_value_2d.y;
+
+					if (clip_value <= parameter_value && (lower_index == UINT32_MAX || clip_value > (use_x ? clips[lower_index].blend_value_2d.x : clips[lower_index].blend_value_2d.y)))
+						lower_index = clip_index;
+
+					if (clip_value >= parameter_value && (upper_index == UINT32_MAX || clip_value < (use_x ? clips[upper_index].blend_value_2d.x : clips[upper_index].blend_value_2d.y)))
+						upper_index = clip_index;
+				}
+
+				if (lower_index == UINT32_MAX)
+					blend_weights[upper_index] = 1.0f;
+				else if (upper_index == UINT32_MAX || lower_index == upper_index)
+					blend_weights[lower_index] = 1.0f;
+				else
+				{
+					const f32 lower_value = use_x ? clips[lower_index].blend_value_2d.x : clips[lower_index].blend_value_2d.y;
+					const f32 upper_value = use_x ? clips[upper_index].blend_value_2d.x : clips[upper_index].blend_value_2d.y;
+					const f32 blend		  = (parameter_value - lower_value) / (upper_value - lower_value);
+
+					blend_weights[lower_index] = 1.0f - blend;
+					blend_weights[upper_index] = blend;
+				}
+
+				return true;
 			}
 
-			if (exact_index != UINT32_MAX)
+			const animation_graph_blend_triangle_t* triangles			   = _aux.get<animation_graph_blend_triangle_t>(state.blend_triangles);
+			u32										closest_triangle_index = UINT32_MAX;
+			vec3f_t									closest_weights		   = vec3f_t::zero;
+			f32										closest_distance	   = MATH_INF_F;
+
+			for (u32 triangle_index = 0; triangle_index < state.blend_triangle_count; ++triangle_index)
 			{
-				for (u32 i = 0; i < state.clip_count; ++i)
-					blend_weights[i] = 0.0f;
+				const animation_graph_blend_triangle_t& triangle = triangles[triangle_index];
+				const vec2f_t&							a		 = clips[triangle.clip_indices[0]].blend_value_2d;
+				const vec2f_t&							b		 = clips[triangle.clip_indices[1]].blend_value_2d;
+				const vec2f_t&							c		 = clips[triangle.clip_indices[2]].blend_value_2d;
+				vec3f_t									weights	 = vec3f_t::zero;
+				const bool								valid	 = math::triangle_barycentric_2d(parameter.vec2_value, a, b, c, weights);
+				SFG_ASSERT(valid);
 
-				blend_weights[exact_index] = 1.0f;
-			}
-			else
-			{
-				for (u32 i = 0; i < state.clip_count; ++i)
-					blend_weights[i] /= total_weight;
+				if (weights.x >= -MATH_EPS && weights.y >= -MATH_EPS && weights.z >= -MATH_EPS)
+				{
+					weights.x = math::max(weights.x, 0.0f);
+					weights.y = math::max(weights.y, 0.0f);
+					weights.z = math::max(weights.z, 0.0f);
+
+					const f32 total_weight = weights.x + weights.y + weights.z;
+
+					blend_weights[triangle.clip_indices[0]] = weights.x / total_weight;
+					blend_weights[triangle.clip_indices[1]] = weights.y / total_weight;
+					blend_weights[triangle.clip_indices[2]] = weights.z / total_weight;
+					return true;
+				}
+
+				const vec3f_t edge_weights	= math::closest_triangle_barycentric_2d(parameter.vec2_value, a, b, c);
+				const vec2f_t closest_point = a * edge_weights.x + b * edge_weights.y + c * edge_weights.z;
+				const f32	  distance		= (closest_point - parameter.vec2_value).magnitude_sqr();
+
+				if (distance >= closest_distance)
+					continue;
+
+				closest_triangle_index = triangle_index;
+				closest_weights		   = edge_weights;
+				closest_distance	   = distance;
 			}
 
+			SFG_ASSERT(closest_triangle_index != UINT32_MAX);
+
+			const animation_graph_blend_triangle_t& closest_triangle = triangles[closest_triangle_index];
+			blend_weights[closest_triangle.clip_indices[0]]			 = closest_weights.x;
+			blend_weights[closest_triangle.clip_indices[1]]			 = closest_weights.y;
+			blend_weights[closest_triangle.clip_indices[2]]			 = closest_weights.z;
 			return true;
 		}
 		}

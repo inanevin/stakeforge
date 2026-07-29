@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/math/triangulation_2d.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
@@ -225,6 +226,40 @@ namespace sfg
 									.playback_speed = source_clip.playback_speed,
 								};
 							}
+
+							if (destination_state.state_type == animation_graph_asm_state_type_e::blend_2d)
+							{
+								vector_t<vec2f_t> blend_points = {};
+								blend_points.reserve(destination_state.clip_count);
+
+								for (const animation_graph_clip_def_t& source_clip : source_state.clips)
+									blend_points.push_back(source_clip.blend_value_2d);
+
+								vector_t<triangle_indices_t> blend_triangles = {};
+								const bool					 triangulated	 = math::triangulate_2d({.data = blend_points.data(), .size = blend_points.size()}, blend_triangles);
+								SFG_ASSERT(triangulated);
+
+								destination_state.blend_triangle_count = static_cast<u32>(blend_triangles.size());
+
+								if (destination_state.blend_triangle_count != 0)
+								{
+									destination_state.blend_triangles = mem.allocate_bytes(sizeof(animation_graph_blend_triangle_t) * destination_state.blend_triangle_count, alignof(animation_graph_blend_triangle_t));
+
+									animation_graph_blend_triangle_t* destination_triangles = mem.get<animation_graph_blend_triangle_t>(destination_state.blend_triangles);
+
+									for (u32 triangle_index = 0; triangle_index < destination_state.blend_triangle_count; ++triangle_index)
+									{
+										destination_triangles[triangle_index] = {
+											.clip_indices =
+												{
+													static_cast<u16>(blend_triangles[triangle_index].indices[0]),
+													static_cast<u16>(blend_triangles[triangle_index].indices[1]),
+													static_cast<u16>(blend_triangles[triangle_index].indices[2]),
+												},
+										};
+									}
+								}
+							}
 						}
 					}
 				}
@@ -333,6 +368,9 @@ namespace sfg
 						{
 							if (states[state_index].clip_count != 0)
 								mem.free(states[state_index].clips);
+
+							if (states[state_index].blend_triangle_count != 0)
+								mem.free(states[state_index].blend_triangles);
 						}
 
 						mem.free(node.asm_node.states);
