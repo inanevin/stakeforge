@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
+#include <sfg/runtime/scripting/engine_component_binding_generator.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -83,6 +84,11 @@ namespace sfg
 		if (!file_system_t::ensure_directory(_runtime.script_library_path.c_str()))
 			return false;
 
+		const string_t engine_component_bindings_path = _runtime.csharp_intermediate_path + "EngineComponents.g.cs";
+
+		if (!engine_component_binding_generator_t::generate(engine_component_bindings_path.c_str()))
+			return false;
+
 		string_t managed_assembly_path = file_system_t::get_running_directory() + "managed/Stakeforge.Managed.dll";
 		file_system_t::fix_path(managed_assembly_path);
 		string_util::replace_all(managed_assembly_path, "&", "&amp;");
@@ -102,6 +108,7 @@ namespace sfg
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="EngineComponents.g.cs" />
     <Compile Include="../../assets/**/*.cs" Exclude="../../assets/_cache/**;../../assets/_sfg_assets/**;../../assets/_game_assets/**" />
     <Reference Include="Stakeforge.Managed">
       <HintPath>)";

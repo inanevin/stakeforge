@@ -241,7 +241,7 @@ public readonly unsafe struct World : IEquatable<World>
 
         fixed (T* componentPointer = &component)
         {
-            return api->World->GetComponent(GetNative(), entity.Id, componentType.Id, componentPointer, (uint)sizeof(T)) != 0;
+            return api->World->GetComponent(GetNative(), entity.Id, componentType.Id, componentPointer, ComponentType<T>.NativeSize) != 0;
         }
     }
 
@@ -261,7 +261,7 @@ public readonly unsafe struct World : IEquatable<World>
 
         fixed (T* componentPointer = &component)
         {
-            return api->World->AddComponent(GetNative(), entity.Id, componentType.Id, componentPointer, (uint)sizeof(T)) != 0;
+            return api->World->AddComponent(GetNative(), entity.Id, componentType.Id, componentPointer, ComponentType<T>.NativeSize) != 0;
         }
     }
 
@@ -271,7 +271,7 @@ public readonly unsafe struct World : IEquatable<World>
 
         fixed (T* componentPointer = &component)
         {
-            return api->World->SetComponent(GetNative(), entity.Id, componentType.Id, componentPointer, (uint)sizeof(T)) != 0;
+            return api->World->SetComponent(GetNative(), entity.Id, componentType.Id, componentPointer, ComponentType<T>.NativeSize) != 0;
         }
     }
 
@@ -350,6 +350,35 @@ public readonly unsafe struct World : IEquatable<World>
     {
         NativeApi* api = ManagedRuntime.GetApi();
         return api->World->SetEntityTag(GetNative(), entity.Id, tag, enabled ? (byte)1 : (byte)0) != 0;
+    }
+
+    public bool HideEntity(Entity entity)
+    {
+        NativeApi* api = ManagedRuntime.GetApi();
+        return api->World->HideEntity(GetNative(), entity.Id) != 0;
+    }
+
+    public bool ShowEntity(Entity entity)
+    {
+        NativeApi* api = ManagedRuntime.GetApi();
+        return api->World->ShowEntity(GetNative(), entity.Id) != 0;
+    }
+
+    public Entity FindEntityByGuid(EntityGuid guid)
+    {
+        NativeApi* api = ManagedRuntime.GetApi();
+        return new Entity(api->World->FindEntityByGuid(GetNative(), guid.Id));
+    }
+
+    public Entity SpawnPrefab(PrefabHandle prefab)
+    {
+        return SpawnPrefab(prefab, Entity.Invalid, Vector3.Zero, Quaternion.Identity, Vector3.One);
+    }
+
+    public Entity SpawnPrefab(PrefabHandle prefab, Entity parent, Vector3 localPosition, Quaternion localRotation, Vector3 localScale)
+    {
+        NativeApi* api = ManagedRuntime.GetApi();
+        return new Entity(api->World->SpawnPrefab(GetNative(), prefab.Id, parent.Id, &localPosition, &localRotation, &localScale));
     }
 
     public bool Equals(World other)

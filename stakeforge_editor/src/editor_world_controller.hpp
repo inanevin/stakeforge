@@ -88,6 +88,7 @@ namespace sfg
 		void				  install_default_world(editor_world_handle_t handle);
 		void				  load_dummy_world();
 		bool				  load_main_world(sid_t asset_guid);
+		bool				  queue_game_world_load(sid_t asset_guid);
 		bool				  save_main_world();
 		void				  mark_world_dirty(editor_world_handle_t handle);
 		void				  prepare_script_assembly_reload(bool component_layout_changed);
@@ -174,6 +175,7 @@ namespace sfg
 		vector_t<acquired_render_world_t>									_render_worlds;
 		sid_t																_main_world_asset_guid		   = NULL_SID;
 		sid_t																_pending_main_world_asset_guid = NULL_SID;
+		sid_t																_pending_game_world_asset_guid = NULL_SID;
 		i64																	_previous_time_us			   = 0;
 		i64																	_accumulator_us				   = 0;
 		editor_world_handle_t												_main_world					   = {};

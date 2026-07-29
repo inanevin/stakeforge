@@ -120,8 +120,9 @@ namespace sfg
 		bool		init_normal_mode();
 		void		uninit_normal_mode();
 		static void on_project_assets_progress(void* user_data, f32 progress, const char* progress_text);
-		static u8	get_script_render_resolution(vec2u16_t& out_resolution);
-		static u8	set_script_render_resolution(const vec2u16_t& resolution);
+		static u8	get_script_game_render_resolution(vec2u16_t& out_resolution);
+		static u8	set_script_game_render_resolution(const vec2u16_t& resolution);
+		static u8	load_script_game_world(sid_t world);
 
 	private:
 		editor_app_config_t			_config = {};

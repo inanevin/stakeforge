@@ -59,7 +59,7 @@ internal sealed class ProjectAssemblySchema
         {
             ComponentAttribute? attribute = type.GetCustomAttribute<ComponentAttribute>();
 
-            if (attribute is null)
+            if (attribute is null || attribute.IsEngineComponent)
             {
                 continue;
             }

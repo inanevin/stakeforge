@@ -27,26 +27,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-
 namespace sfg
 {
-	struct vec2u16_t;
-
-	typedef u8 (*script_api_render_get_render_resolution_fn)(vec2u16_t& out_resolution);
-	typedef u8 (*script_api_render_set_render_resolution_fn)(const vec2u16_t& resolution);
-
-	void set_script_api_render_resolution_callbacks(script_api_render_get_render_resolution_fn get_resolution, script_api_render_set_render_resolution_fn set_resolution);
-	u8	 api_render_get_render_resolution(vec2u16_t* out_resolution);
-	u8	 api_render_set_render_resolution(u16 width, u16 height);
-
-	struct script_api_render_t
+	class engine_component_binding_generator_t final
 	{
-		u32											size				  = 0;
-		u32											version				  = 0;
-		decltype(&api_render_get_render_resolution) get_render_resolution = nullptr;
-		decltype(&api_render_set_render_resolution) set_render_resolution = nullptr;
-	};
+	public:
+		engine_component_binding_generator_t()														 = delete;
+		~engine_component_binding_generator_t()														 = delete;
+		engine_component_binding_generator_t(const engine_component_binding_generator_t&)			 = delete;
+		engine_component_binding_generator_t& operator=(const engine_component_binding_generator_t&) = delete;
 
-	const script_api_render_t& get_script_api_render();
+		static bool generate(const char* output_path);
+	};
 }

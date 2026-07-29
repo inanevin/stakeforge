@@ -586,6 +586,73 @@ namespace sfg
 		return 1;
 	}
 
+	u8 api_world_hide_entity(world_t* world, entity_id_t entity)
+	{
+		SFG_ASSERT(world != nullptr);
+
+		if (world->is_component_query_active() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
+			return 0;
+
+		ecs_component_table_t& disabled_table = world->get_component_table(type_id_t<component_disabled_t>::value);
+
+		if (!ecs_t::table_has(disabled_table, entity))
+			ecs_t::table_add(disabled_table, entity);
+
+		return 1;
+	}
+
+	u8 api_world_show_entity(world_t* world, entity_id_t entity)
+	{
+		SFG_ASSERT(world != nullptr);
+
+		if (world->is_component_query_active() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
+			return 0;
+
+		ecs_component_table_t& disabled_table = world->get_component_table(type_id_t<component_disabled_t>::value);
+
+		if (ecs_t::table_has(disabled_table, entity))
+			ecs_t::table_remove(disabled_table, entity);
+
+		return 1;
+	}
+
+	entity_id_t api_world_find_entity_by_guid(const world_t* world, entity_guid_t guid)
+	{
+		SFG_ASSERT(world != nullptr);
+
+		if (guid == NULL_ENTITY_GUID)
+			return NULL_ENTITY_ID;
+
+		return world->find_by_guid(guid);
+	}
+
+	entity_id_t api_world_spawn_prefab(world_t* world, resource_handle_t prefab, entity_id_t parent, const vec3f_t* local_position, const quat_t* local_rotation, const vec3f_t* local_scale)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(local_position != nullptr);
+		SFG_ASSERT(local_rotation != nullptr);
+		SFG_ASSERT(local_scale != nullptr);
+
+		if (world->is_component_query_active() || prefab == NULL_RESOURCE_HANDLE || (parent != NULL_ENTITY_ID && (parent >= ECS_MAX_ENTITIES || !world->is_alive(parent))))
+			return NULL_ENTITY_ID;
+
+		const entity_id_t root = world_cooker_t::spawn_prefab(*world, prefab, {});
+
+		if (root == NULL_ENTITY_ID)
+			return NULL_ENTITY_ID;
+
+		world_cooker_t::make_prefab_chain(*world, root, prefab);
+
+		if (parent != NULL_ENTITY_ID)
+			world->attach_to(root, parent);
+
+		world->set_entity_pos_local(root, *local_position);
+		world->set_entity_rot_local(root, *local_rotation);
+		world->set_entity_scale_local(root, *local_scale);
+		world->mark_entity_teleported(root);
+		return root;
+	}
+
 	u8 api_world_query_begin(world_t* world, const script_world_query_component_t* components, u32 component_count, script_world_query_t* out_query)
 	{
 		SFG_ASSERT(world != nullptr);
@@ -705,7 +772,7 @@ namespace sfg
 	{
 		static const script_api_world_t api{
 			.size							 = static_cast<u32>(sizeof(script_api_world_t)),
-			.version						 = 2,
+			.version						 = 3,
 			.create_entity					 = api_world_create_entity,
 			.destroy_entity					 = api_world_destroy_entity,
 			.duplicate_entity				 = api_world_duplicate_entity,
@@ -738,6 +805,10 @@ namespace sfg
 			.get_entity_with_tag			 = api_world_get_entity_with_tag,
 			.get_all_entities_with_tag		 = api_world_get_all_entities_with_tag,
 			.set_entity_tag					 = api_world_set_entity_tag,
+			.hide_entity					 = api_world_hide_entity,
+			.show_entity					 = api_world_show_entity,
+			.find_entity_by_guid			 = api_world_find_entity_by_guid,
+			.spawn_prefab					 = api_world_spawn_prefab,
 			.query_begin					 = api_world_query_begin,
 			.query_next						 = api_world_query_next,
 			.query_end						 = api_world_query_end,

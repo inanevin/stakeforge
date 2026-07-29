@@ -25,7 +25,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#include "script_api_render.hpp"
+#include "script_api_game.hpp"
 
 #include <sfg/gfx/util/render_util.hpp>
 #include <sfg/io/assert.hpp>
@@ -35,17 +35,19 @@ namespace sfg
 {
 	namespace
 	{
-		script_api_render_get_render_resolution_fn g_get_render_resolution = nullptr;
-		script_api_render_set_render_resolution_fn g_set_render_resolution = nullptr;
+		script_api_game_get_render_resolution_fn g_get_render_resolution = nullptr;
+		script_api_game_set_render_resolution_fn g_set_render_resolution = nullptr;
+		script_api_game_load_world_fn			 g_load_world			 = nullptr;
 	}
 
-	void set_script_api_render_resolution_callbacks(script_api_render_get_render_resolution_fn get_resolution, script_api_render_set_render_resolution_fn set_resolution)
+	void set_script_api_game_callbacks(script_api_game_get_render_resolution_fn get_resolution, script_api_game_set_render_resolution_fn set_resolution, script_api_game_load_world_fn load_world)
 	{
 		g_get_render_resolution = get_resolution;
 		g_set_render_resolution = set_resolution;
+		g_load_world			= load_world;
 	}
 
-	u8 api_render_get_render_resolution(vec2u16_t* out_resolution)
+	u8 api_game_get_render_resolution(vec2u16_t* out_resolution)
 	{
 		SFG_ASSERT(out_resolution != nullptr);
 
@@ -57,7 +59,7 @@ namespace sfg
 		return g_get_render_resolution(*out_resolution);
 	}
 
-	u8 api_render_set_render_resolution(u16 width, u16 height)
+	u8 api_game_set_render_resolution(u16 width, u16 height)
 	{
 		if (g_set_render_resolution == nullptr)
 			return 0;
@@ -67,13 +69,22 @@ namespace sfg
 		return g_set_render_resolution(resolution);
 	}
 
-	const script_api_render_t& get_script_api_render()
+	u8 api_game_load_world(sid_t world)
 	{
-		static const script_api_render_t api{
-			.size				   = static_cast<u32>(sizeof(script_api_render_t)),
+		if (g_load_world == nullptr)
+			return 0;
+
+		return g_load_world(world);
+	}
+
+	const script_api_game_t& get_script_api_game()
+	{
+		static const script_api_game_t api{
+			.size				   = static_cast<u32>(sizeof(script_api_game_t)),
 			.version			   = 1,
-			.get_render_resolution = api_render_get_render_resolution,
-			.set_render_resolution = api_render_set_render_resolution,
+			.get_render_resolution = api_game_get_render_resolution,
+			.set_render_resolution = api_game_set_render_resolution,
+			.load_world			   = api_game_load_world,
 		};
 
 		return api;

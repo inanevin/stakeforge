@@ -11,7 +11,7 @@ internal unsafe struct NativeApi
     internal delegate* unmanaged[Cdecl]<byte*, void> LogInfo;
     internal delegate* unmanaged[Cdecl]<byte*, void> LogError;
     internal NativePlatformApi* Platform;
-    internal NativeRenderApi* Render;
+    internal NativeGameApi* Game;
     internal NativeResourceApi* Resource;
     internal NativeWorldApi* World;
     internal NativeAudioApi* Audio;
@@ -25,9 +25,9 @@ internal unsafe struct NativeApi
 
 internal static unsafe class ManagedRuntime
 {
-    private const uint ApiVersion = 4;
+    private const uint ApiVersion = 5;
     private const uint CategoryApiVersion = 1;
-    private const uint WorldApiVersion = 2;
+    private const uint WorldApiVersion = 3;
 
     private static NativeApi* _api;
 
@@ -70,6 +70,7 @@ internal static unsafe class ManagedRuntime
             sizeof(PhysicsQueryResult) != 8 ||
             sizeof(PhysicsBodyState) != 56 ||
             sizeof(CharacterMoverState) != 48 ||
+            sizeof(PhysicsContactEvent) != 56 ||
             sizeof(NativeWorldQueryComponent) != 16 ||
             sizeof(NativeWorldQuery) != 768 ||
             sizeof(NativeWorldQueryRow) != 272 ||
@@ -84,9 +85,9 @@ internal static unsafe class ManagedRuntime
             api->Platform == null ||
             api->Platform->Size < sizeof(NativePlatformApi) ||
             api->Platform->Version != CategoryApiVersion ||
-            api->Render == null ||
-            api->Render->Size < sizeof(NativeRenderApi) ||
-            api->Render->Version != CategoryApiVersion ||
+            api->Game == null ||
+            api->Game->Size < sizeof(NativeGameApi) ||
+            api->Game->Version != CategoryApiVersion ||
             api->Resource == null ||
             api->Resource->Size < sizeof(NativeResourceApi) ||
             api->Resource->Version != CategoryApiVersion ||

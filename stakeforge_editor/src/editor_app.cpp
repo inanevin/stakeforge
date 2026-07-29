@@ -50,8 +50,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/engine/perf_metrics.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
+#include <sfg/runtime/scripting/api/script_api_game.hpp>
 #include <sfg/runtime/scripting/api/script_api_platform.hpp>
-#include <sfg/runtime/scripting/api/script_api_render.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
 #include <tracy/Tracy.hpp>
 
@@ -80,7 +80,7 @@ namespace sfg
 			app.request_switch_mode(editor_app_mode_e::normal);
 	}
 
-	u8 editor_app_t::get_script_render_resolution(vec2u16_t& out_resolution)
+	u8 editor_app_t::get_script_game_render_resolution(vec2u16_t& out_resolution)
 	{
 		out_resolution = vec2u16_t::zero;
 
@@ -94,7 +94,7 @@ namespace sfg
 		return 1;
 	}
 
-	u8 editor_app_t::set_script_render_resolution(const vec2u16_t& resolution)
+	u8 editor_app_t::set_script_game_render_resolution(const vec2u16_t& resolution)
 	{
 		editor_world_controller_t&	world_controller = editor_app_t::get().get_world_controller();
 		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
@@ -106,6 +106,11 @@ namespace sfg
 		return 1;
 	}
 
+	u8 editor_app_t::load_script_game_world(sid_t world)
+	{
+		return editor_app_t::get().get_world_controller().queue_game_world_load(world) ? 1 : 0;
+	}
+
 	bool editor_app_t::init(const editor_app_config_t& config)
 	{
 		SFG_ASSERT(config.main_frame_budget_bytes != 0);
@@ -113,6 +118,8 @@ namespace sfg
 		SFG_ASSERT(config.editor_work_executor_thread_count != 0);
 
 		_config = config;
+
+		g_window_api_enabled = false;
 
 		engine_runtime_t& runtime = engine_runtime_t::get();
 
@@ -229,7 +236,7 @@ namespace sfg
 		engine_runtime_t& runtime = engine_runtime_t::get();
 
 		set_script_api_platform_window_runtime(nullptr);
-		set_script_api_render_resolution_callbacks(nullptr, nullptr);
+		set_script_api_game_callbacks(nullptr, nullptr, nullptr);
 
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
 		SFG_ASSERT(surfaces.is_empty());
@@ -367,7 +374,7 @@ namespace sfg
 		_normal_world_load_pending = proj.settings.last_world_guid != NULL_SID;
 
 		set_script_api_platform_window_runtime(surfaces.get_main_surface().runtime.get());
-		set_script_api_render_resolution_callbacks(get_script_render_resolution, set_script_render_resolution);
+		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, load_script_game_world);
 
 		editor_script_manager_t::get().init();
 		_asset_manager.initialize_script_file_tracking();
@@ -402,7 +409,7 @@ namespace sfg
 		if (_mode == editor_app_mode_e::normal)
 		{
 			set_script_api_platform_window_runtime(nullptr);
-			set_script_api_render_resolution_callbacks(nullptr, nullptr);
+			set_script_api_game_callbacks(nullptr, nullptr, nullptr);
 		}
 
 		surfaces.destroy_all_surfaces();

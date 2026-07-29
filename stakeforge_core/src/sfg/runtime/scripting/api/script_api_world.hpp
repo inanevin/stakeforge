@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
@@ -104,6 +105,10 @@ namespace sfg
 	entity_id_t api_world_get_entity_with_tag(const world_t* world, u64 tag);
 	u32			api_world_get_all_entities_with_tag(const world_t* world, u64 tag, entity_id_t* out_entities, u32 capacity);
 	u8			api_world_set_entity_tag(world_t* world, entity_id_t entity, u64 tag, u8 enabled);
+	u8			api_world_hide_entity(world_t* world, entity_id_t entity);
+	u8			api_world_show_entity(world_t* world, entity_id_t entity);
+	entity_id_t api_world_find_entity_by_guid(const world_t* world, entity_guid_t guid);
+	entity_id_t api_world_spawn_prefab(world_t* world, resource_handle_t prefab, entity_id_t parent, const vec3f_t* local_position, const quat_t* local_rotation, const vec3f_t* local_scale);
 	u8			api_world_query_begin(world_t* world, const script_world_query_component_t* components, u32 component_count, script_world_query_t* out_query);
 	u8			api_world_query_next(script_world_query_t* query, script_world_query_row_t* out_row);
 	void		api_world_query_end(script_world_query_t* query);
@@ -144,6 +149,10 @@ namespace sfg
 		decltype(&api_world_get_entity_with_tag)			 get_entity_with_tag			 = nullptr;
 		decltype(&api_world_get_all_entities_with_tag)		 get_all_entities_with_tag		 = nullptr;
 		decltype(&api_world_set_entity_tag)					 set_entity_tag					 = nullptr;
+		decltype(&api_world_hide_entity)					 hide_entity					 = nullptr;
+		decltype(&api_world_show_entity)					 show_entity					 = nullptr;
+		decltype(&api_world_find_entity_by_guid)			 find_entity_by_guid			 = nullptr;
+		decltype(&api_world_spawn_prefab)					 spawn_prefab					 = nullptr;
 		decltype(&api_world_query_begin)					 query_begin					 = nullptr;
 		decltype(&api_world_query_next)						 query_next						 = nullptr;
 		decltype(&api_world_query_end)						 query_end						 = nullptr;

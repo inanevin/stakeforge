@@ -247,4 +247,79 @@ public static unsafe class NativeEntryPoints
         }
     }
 
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int KeyEventWorldScript(nint instance, ushort key, ushort scanCode, byte action)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.KeyEventWorldScript(instance, key, scanCode, (InputAction)action);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int MouseButtonEventWorldScript(nint instance, byte button, byte action, float positionX, float positionY)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.MouseButtonEventWorldScript(instance, (MouseButton)button, (InputAction)action, positionX, positionY);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int MouseMoveEventWorldScript(nint instance, float positionX, float positionY, float deltaX, float deltaY)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.MouseMoveEventWorldScript(instance, positionX, positionY, deltaX, deltaY);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int MouseWheelEventWorldScript(nint instance, float positionX, float positionY, float delta)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.MouseWheelEventWorldScript(instance, positionX, positionY, delta);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int PhysicsContactWorldScript(nint instance, PhysicsContactEvent* contact, byte contactType, byte isSensor)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.PhysicsContactWorldScript(instance, contact, contactType, isSensor);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
 }

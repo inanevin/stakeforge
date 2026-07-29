@@ -278,7 +278,9 @@ namespace sfg
 			return;
 		}
 
-		editor_world_controller_t& world_controller = app.get_world_controller();
+		editor_world_controller_t&	world_controller  = app.get_world_controller();
+		const editor_world_handle_t main_world_handle = world_controller.get_main_world_handle();
+		editor_world_t* const		game_world		  = main_world_handle.is_null() ? nullptr : world_controller.get_editor_world(main_world_handle);
 
 		switch (ev.type)
 		{
@@ -290,6 +292,29 @@ namespace sfg
 
 			const bool modal_active = surfaces.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
+
+			if (!modal_active && !popup_active && game_world != nullptr && game_world->get_world().is_playing())
+			{
+				if (ev.type == window_event_type_e::delta)
+					game_world->get_world().mouse_move_event(static_cast<f32>(runtime.mouse_position.x), static_cast<f32>(runtime.mouse_position.y), static_cast<f32>(ev.value.x), static_cast<f32>(ev.value.y));
+				else
+				{
+					u8 button = UINT8_MAX;
+
+					if (ev.button == static_cast<u16>(input_code::mouse_0))
+						button = 0;
+					else if (ev.button == static_cast<u16>(input_code::mouse_1))
+						button = 1;
+					else if (ev.button == static_cast<u16>(input_code::mouse_2))
+						button = 2;
+					else if (ev.button == static_cast<u16>(input_code::mouse_3))
+						button = 3;
+					else if (ev.button == static_cast<u16>(input_code::mouse_4))
+						button = 4;
+
+					game_world->get_world().mouse_button_event(button, static_cast<u8>(ev.sub_type), static_cast<f32>(runtime.mouse_position.x), static_cast<f32>(runtime.mouse_position.y));
+				}
+			}
 
 			if (modal_active || popup_active)
 				editor_widget_world_view_t::reset_camera_input(runtime);
@@ -310,13 +335,16 @@ namespace sfg
 
 			const bool modal_active = surfaces.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
+			const f32  delta		= ev.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(ev.value.y) / EDITOR_RAW_WHEEL_DELTA : static_cast<f32>(ev.value.y);
+
+			if (!modal_active && !popup_active && game_world != nullptr && game_world->get_world().is_playing())
+				game_world->get_world().mouse_wheel_event(static_cast<f32>(runtime.mouse_position.x), static_cast<f32>(runtime.mouse_position.y), delta);
 
 			if (modal_active || popup_active)
 				editor_widget_world_view_t::reset_camera_input(runtime);
 			else if (editor_widget_world_view_t::on_window_event(runtime, ev))
 				return;
 
-			const f32 delta = ev.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(ev.value.y) / EDITOR_RAW_WHEEL_DELTA : static_cast<f32>(ev.value.y);
 			ui.on_wheel(delta);
 			break;
 		}
@@ -326,6 +354,9 @@ namespace sfg
 
 			const bool modal_active = surfaces.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
+
+			if (!modal_active && !popup_active && game_world != nullptr && game_world->get_world().is_playing())
+				game_world->get_world().key_event(ev.button, static_cast<u16>(ev.value.x), static_cast<u8>(ev.sub_type));
 
 			if (modal_active || popup_active)
 				editor_widget_world_view_t::reset_camera_input(runtime);

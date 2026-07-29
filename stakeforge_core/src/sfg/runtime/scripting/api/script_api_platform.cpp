@@ -32,6 +32,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	bool g_window_api_enabled = true;
+
 	namespace
 	{
 		window_runtime_t* g_window_runtime = nullptr;
@@ -75,7 +77,7 @@ namespace sfg
 
 	void api_platform_set_window_size(u16 width, u16 height)
 	{
-		if (g_window_runtime == nullptr)
+		if (!g_window_api_enabled || g_window_runtime == nullptr)
 			return;
 
 		process::set_window_size(g_window_runtime->window_handle, {width, height}, g_window_runtime->style);
@@ -83,7 +85,7 @@ namespace sfg
 
 	void api_platform_set_window_style(window_style_e style)
 	{
-		if (g_window_runtime == nullptr)
+		if (!g_window_api_enabled || g_window_runtime == nullptr)
 			return;
 
 		process::set_window_style(g_window_runtime->window_handle, g_window_runtime->size, style);

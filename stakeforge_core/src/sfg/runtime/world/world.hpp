@@ -72,6 +72,10 @@ namespace sfg
 		void tick_post(f32 dt);
 		void begin_world_script_play();
 		void end_world_script_play();
+		void key_event(u16 key, u16 scan_code, u8 action);
+		void mouse_button_event(u8 button, u8 action, f32 position_x, f32 position_y);
+		void mouse_move_event(f32 position_x, f32 position_y, f32 delta_x, f32 delta_y);
+		void mouse_wheel_event(f32 position_x, f32 position_y, f32 delta);
 
 		// -----------------------------------------------------------------------------
 		// entity

@@ -22,39 +22,34 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
-#include "vector.hpp"
-#include "string.hpp"
 #include <sfg/common/size_definitions.hpp>
-#include <cctype>
 
 namespace sfg
 {
-	namespace string_util
-	{
-		string_t					 remove_all_except_first(const string_t& str, const string_t& delimiter);
-		int							 append_float(f32 value, char* target_bufffer, u32 max_chars, u32 decimals, bool null_term);
-		void						 replace_all(string_t& str, const string_t& to_replace, const string_t& replacement);
-		void						 to_upper(string_t& str);
-		void						 to_lower(string_t& str);
-		string_t					 to_pascal_case(const char* str);
-		template <class STRING> void to_lower(STRING& input)
-		{
-			for (char& c : input)
-				c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-		}
-		void		   remove_whitespace(string_t& str);
-		wstring_t	   to_wstr(const string_t& string_t);
-		void		   split(vector_t<string_t>& out, const string_t& str, const string_t& split);
-		char*		   wchar_to_char(const wchar_t* wch);
-		const wchar_t* char_to_wchar(const char* ch);
-		bool		   to_float(const string_t& str, f32& out_f, u32& out_decimals, char seperator = '.');
-		bool		   to_int(const string_t& str, int& out_i);
-		bool		   to_big_uint(const string_t& str, u64& out_i);
-		bool		   to_bool(const string_t& str, bool& out_b);
-	}
+	struct vec2u16_t;
 
+	typedef u8 (*script_api_game_get_render_resolution_fn)(vec2u16_t& out_resolution);
+	typedef u8 (*script_api_game_set_render_resolution_fn)(const vec2u16_t& resolution);
+	typedef u8 (*script_api_game_load_world_fn)(sid_t world);
+
+	void set_script_api_game_callbacks(script_api_game_get_render_resolution_fn get_resolution, script_api_game_set_render_resolution_fn set_resolution, script_api_game_load_world_fn load_world);
+	u8	 api_game_get_render_resolution(vec2u16_t* out_resolution);
+	u8	 api_game_set_render_resolution(u16 width, u16 height);
+	u8	 api_game_load_world(sid_t world);
+
+	struct script_api_game_t
+	{
+		u32										  size					= 0;
+		u32										  version				= 0;
+		decltype(&api_game_get_render_resolution) get_render_resolution = nullptr;
+		decltype(&api_game_set_render_resolution) set_render_resolution = nullptr;
+		decltype(&api_game_load_world)			  load_world			= nullptr;
+	};
+
+	const script_api_game_t& get_script_api_game();
 }

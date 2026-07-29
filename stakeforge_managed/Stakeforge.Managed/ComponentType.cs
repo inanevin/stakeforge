@@ -6,6 +6,7 @@ public readonly struct ComponentType<T> where T : unmanaged
 {
     public static ComponentType<T> Invalid { get; } = new(ulong.MaxValue);
     public static ComponentType<T> Value { get; } = new(GetTypeId());
+    public static uint NativeSize { get; } = GetNativeSize();
 
     public ulong Id { get; }
 
@@ -27,5 +28,18 @@ public readonly struct ComponentType<T> where T : unmanaged
         }
 
         return attribute.Id != 0 ? attribute.Id : Hash.StringId(type.FullName ?? type.Name);
+    }
+
+    private static uint GetNativeSize()
+    {
+        Type type = typeof(T);
+        ComponentAttribute? attribute = Attribute.GetCustomAttribute(type, typeof(ComponentAttribute)) as ComponentAttribute;
+
+        if (attribute is null || attribute.NativeSize == uint.MaxValue)
+        {
+            return (uint)System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
+        }
+
+        return attribute.NativeSize;
     }
 }

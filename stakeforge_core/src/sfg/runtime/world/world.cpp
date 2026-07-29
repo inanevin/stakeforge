@@ -254,8 +254,20 @@ namespace sfg
 
 		SFG_ASSERT(_is_playing);
 
-		if (_world_script_instance != nullptr)
-			script_runtime_t::get().post_physics_tick_world_script(_world_script_instance, dt);
+		if (_world_script_instance == nullptr)
+			return;
+
+		script_runtime_t& script_runtime = script_runtime_t::get();
+
+		if (_physics_world.is_init())
+		{
+			const span_t<const physics_contact_event_t> contact_events = _physics_world.get_contact_events();
+
+			for (const physics_contact_event_t& contact : contact_events)
+				script_runtime.physics_contact_world_script(_world_script_instance, contact);
+		}
+
+		script_runtime.post_physics_tick_world_script(_world_script_instance, dt);
 	}
 
 	void world_t::tick_logic_post_animation(f32 dt)
@@ -318,6 +330,38 @@ namespace sfg
 		script_runtime.end_play_world_script(_world_script_instance);
 		script_runtime.destroy_world_script(_world_script_instance);
 		_world_script_instance = nullptr;
+	}
+
+	void world_t::key_event(u16 key, u16 scan_code, u8 action)
+	{
+		SFG_ASSERT(_is_playing);
+
+		if (_world_script_instance != nullptr)
+			script_runtime_t::get().key_event_world_script(_world_script_instance, key, scan_code, action);
+	}
+
+	void world_t::mouse_button_event(u8 button, u8 action, f32 position_x, f32 position_y)
+	{
+		SFG_ASSERT(_is_playing);
+
+		if (_world_script_instance != nullptr)
+			script_runtime_t::get().mouse_button_event_world_script(_world_script_instance, button, action, position_x, position_y);
+	}
+
+	void world_t::mouse_move_event(f32 position_x, f32 position_y, f32 delta_x, f32 delta_y)
+	{
+		SFG_ASSERT(_is_playing);
+
+		if (_world_script_instance != nullptr)
+			script_runtime_t::get().mouse_move_event_world_script(_world_script_instance, position_x, position_y, delta_x, delta_y);
+	}
+
+	void world_t::mouse_wheel_event(f32 position_x, f32 position_y, f32 delta)
+	{
+		SFG_ASSERT(_is_playing);
+
+		if (_world_script_instance != nullptr)
+			script_runtime_t::get().mouse_wheel_event_world_script(_world_script_instance, position_x, position_y, delta);
 	}
 
 	void world_t::tick_post(f32 dt)

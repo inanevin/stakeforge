@@ -184,6 +184,7 @@ namespace sfg
 		_main_world					   = {};
 		_main_world_asset_guid		   = NULL_SID;
 		_pending_main_world_asset_guid = NULL_SID;
+		_pending_game_world_asset_guid = NULL_SID;
 		_main_world_name.resize(0);
 		_main_world_dirty	   = false;
 		_play_main_world_dirty = false;
@@ -382,6 +383,21 @@ namespace sfg
 
 			editor_world->produce_snapshot();
 		}
+
+		if (_pending_game_world_asset_guid != NULL_SID)
+		{
+			const sid_t asset_guid = _pending_game_world_asset_guid;
+
+			_pending_game_world_asset_guid = NULL_SID;
+
+			if (load_main_world_now(asset_guid))
+			{
+				editor_world_t* const loaded_world = _worlds.get(_main_world);
+
+				loaded_world->get_edit_context().set_play_mode(editor_play_mode_e::play);
+				update_main_world_play_mode(editor_play_mode_e::play);
+			}
+		}
 	}
 
 	void editor_world_controller_t::update_main_world_play_mode(editor_play_mode_e mode)
@@ -539,6 +555,18 @@ namespace sfg
 		}
 
 		return load_main_world_now(asset_guid);
+	}
+
+	bool editor_world_controller_t::queue_game_world_load(sid_t asset_guid)
+	{
+		if (asset_guid == 0 || asset_guid == NULL_SID || _main_world.is_null() || _pending_game_world_asset_guid != NULL_SID)
+			return false;
+
+		if (!_worlds.get(_main_world)->get_world().is_playing())
+			return false;
+
+		_pending_game_world_asset_guid = asset_guid;
+		return true;
 	}
 
 	void editor_world_controller_t::load_dummy_world()

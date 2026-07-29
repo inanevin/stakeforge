@@ -30,7 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <charconv>
 #include <codecvt>
 
-
 #ifdef SFG_COMPILER_MSVC
 #pragma warning(push)
 #pragma warning(disable : 4996)
@@ -233,6 +232,32 @@ namespace sfg
 		{
 			for (char& c : input)
 				c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+		}
+
+		string_t to_pascal_case(const char* str)
+		{
+			SFG_ASSERT(str != nullptr);
+
+			string_t result		= {};
+			bool	 capitalize = true;
+
+			result.reserve(std::strlen(str));
+
+			for (const char* current = str; *current != '\0'; ++current)
+			{
+				const unsigned char character = static_cast<unsigned char>(*current);
+
+				if (!std::isalnum(character))
+				{
+					capitalize = true;
+					continue;
+				}
+
+				result.push_back(capitalize ? static_cast<char>(std::toupper(character)) : static_cast<char>(character));
+				capitalize = false;
+			}
+
+			return result;
 		}
 
 		void remove_whitespace(string_t& str)

@@ -34,6 +34,8 @@ namespace sfg
 	struct window_runtime_t;
 	enum class window_style_e : u8;
 
+	extern bool g_window_api_enabled;
+
 	void set_script_api_platform_window_runtime(window_runtime_t* window);
 	void reset_script_api_platform_cursor_state();
 	void api_platform_set_cursor_visible(u8 visible);

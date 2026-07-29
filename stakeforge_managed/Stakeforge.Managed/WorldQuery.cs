@@ -68,7 +68,7 @@ public unsafe struct WorldQuery
         _components[_componentCount] = new NativeWorldQueryComponent
         {
             TypeId = componentType.Id,
-            Size = (uint)sizeof(T),
+            Size = ComponentType<T>.NativeSize,
             Flags = flags,
         };
         _componentCount++;
