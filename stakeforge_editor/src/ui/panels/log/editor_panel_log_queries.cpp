@@ -35,10 +35,13 @@ namespace sfg
 {
 	bool editor_panel_log_t::is_log_row_visible(const log_row_t& row) const
 	{
-		frame_string_t<char> lower_case_raw;
+		frame_string_t<char> lower_case_raw = {};
 		lower_case_raw.assign(row.raw_text.c_str(), row.raw_text.size());
 		string_util::to_lower(lower_case_raw);
-		return (_log_filter_flags & row.flag) != 0 && lower_case_raw.find(_search_text_lower.c_str()) != frame_string_t<char>::npos;
+
+		const bool source_visible = _source_filter == log_source_filter_e::all || (_source_filter == log_source_filter_e::engine && row.source == log_source_e::engine) || (_source_filter == log_source_filter_e::game && row.source == log_source_e::game);
+
+		return source_visible && (_log_filter_flags & row.flag) != 0 && lower_case_raw.find(_search_text_lower.c_str()) != frame_string_t<char>::npos;
 	}
 
 	bool editor_panel_log_t::is_scrolled_to_end() const

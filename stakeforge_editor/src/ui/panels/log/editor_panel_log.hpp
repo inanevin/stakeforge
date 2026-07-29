@@ -38,14 +38,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	enum class log_level;
+	enum class log_source_e : u8;
 }
 
 namespace sfg
 {
-	enum class log_source_type_e : u8
+	enum class log_source_filter_e : u8
 	{
 		all,
-		editor,
+		engine,
 		game,
 	};
 
@@ -81,20 +82,22 @@ namespace sfg
 
 		struct log_record_t
 		{
-			string_t  text;
-			log_level level;
-			u64		  sequence = 0;
+			string_t	 text;
+			u64			 sequence = 0;
+			log_level	 level	  = {};
+			log_source_e source	  = {};
 		};
 
 		struct log_row_t
 		{
 			string_t		raw_text;
-			u64				hash  = 0;
-			ui::widget_id_t root  = NULL_WIDGET;
-			ui::widget_id_t icon  = NULL_WIDGET;
-			ui::widget_id_t text  = NULL_WIDGET;
-			u32				count = 1;
-			u8				flag  = 0;
+			u64				hash   = 0;
+			ui::widget_id_t root   = NULL_WIDGET;
+			ui::widget_id_t icon   = NULL_WIDGET;
+			ui::widget_id_t text   = NULL_WIDGET;
+			u32				count  = 1;
+			log_source_e	source = {};
+			u8				flag   = 0;
 		};
 
 		struct log_filter_button_data_t
@@ -108,7 +111,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void		drain_pending_logs();
-		void		add_log_row(log_level level, const char* text);
+		void		add_log_row(log_source_e source, log_level level, const char* text);
 		void		update_log_row_text(log_row_t& row);
 		void		move_log_row_to_bottom(size_t index);
 		void		collapse_existing_rows();
@@ -141,7 +144,7 @@ namespace sfg
 		static void on_collapse_pressed(bool toggled, void* user_data);
 		static void on_clear_pressed(bool toggled, void* user_data);
 		static void on_search_changed(void* user_data);
-		static void on_log(log_level level, const char* msg, void* user_data);
+		static void on_log(log_source_e source, log_level level, const char* msg, void* user_data);
 		static void on_log_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
@@ -161,7 +164,7 @@ namespace sfg
 		ui::widget_id_t			 _body					= NULL_WIDGET;
 		u64						 _next_log_sequence		= 0;
 		u32						 _storage_generation	= 0;
-		log_source_type_e		 _source_type			= log_source_type_e::all;
+		log_source_filter_e		 _source_filter			= log_source_filter_e::all;
 		u8						 _log_filter_flags		= log_level_filter_all;
 		bool					 _clear_logs_pending	= false;
 		bool					 _collapse_rows_pending = false;

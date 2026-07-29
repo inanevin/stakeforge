@@ -29,10 +29,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void editor_panel_log_t::on_log(log_level level, const char* msg, void*)
+	void editor_panel_log_t::on_log(log_source_e source, log_level level, const char* msg, void*)
 	{
 		LOCK_GUARD(_log_storage_mtx);
-		_pending_logs.push_back({.text = msg, .level = level});
+		_pending_logs.push_back({
+			.text	  = msg,
+			.sequence = 0,
+			.level	  = level,
+			.source	  = source,
+		});
 	}
 
 	void editor_panel_log_t::on_log_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
@@ -42,7 +47,7 @@ namespace sfg
 
 	void editor_panel_log_t::drain_pending_logs()
 	{
-		_drained_logs.clear();
+		_drained_logs.resize(0);
 		bool clear_rows = false;
 		{
 			LOCK_GUARD(_log_storage_mtx);
@@ -69,7 +74,7 @@ namespace sfg
 		const bool was_at_end = is_scrolled_to_end();
 		for (const log_record_t& record : _drained_logs)
 		{
-			add_log_row(record.level, record.text.c_str());
+			add_log_row(record.source, record.level, record.text.c_str());
 			_next_log_sequence = record.sequence + 1;
 		}
 

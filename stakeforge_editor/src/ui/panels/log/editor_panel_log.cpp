@@ -210,7 +210,7 @@ namespace sfg
 	void editor_panel_log_t::serialize(nlohmann::json& j) const
 	{
 		j					  = nlohmann::json::object();
-		j["source_type"]	  = log_source_type_to_string(_source_type);
+		j["source_type"]	  = log_source_filter_to_string(_source_filter);
 		j["log_filter_flags"] = static_cast<u32>(_log_filter_flags);
 		j["is_collapsed"]	  = _is_collapsed;
 	}
@@ -218,7 +218,7 @@ namespace sfg
 	void editor_panel_log_t::deserialize(const nlohmann::json& j)
 	{
 		const string_t source_type = j.value<string_t>("source_type", "all");
-		_source_type			   = log_source_type_from_string(source_type.c_str());
+		_source_filter			   = log_source_filter_from_string(source_type.c_str());
 		_log_filter_flags		   = static_cast<u8>(j.value<u32>("log_filter_flags", static_cast<u32>(log_level_filter_all)));
 		_is_collapsed			   = j.value("is_collapsed", false);
 	}
@@ -235,7 +235,7 @@ namespace sfg
 
 	u16 editor_panel_log_t::get_selected_source(void* user_data)
 	{
-		return static_cast<u16>(static_cast<editor_panel_log_t*>(user_data)->_source_type);
+		return static_cast<u16>(static_cast<editor_panel_log_t*>(user_data)->_source_filter);
 	}
 
 }

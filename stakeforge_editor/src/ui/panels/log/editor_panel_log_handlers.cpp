@@ -33,7 +33,9 @@ namespace sfg
 {
 	void editor_panel_log_t::on_source_pressed(u16 value, void* user_data)
 	{
-		static_cast<editor_panel_log_t*>(user_data)->_source_type = static_cast<log_source_type_e>(value);
+		editor_panel_log_t& panel = *static_cast<editor_panel_log_t*>(user_data);
+		panel._source_filter	  = static_cast<log_source_filter_e>(value);
+		panel.refresh_log_filter_visibility();
 	}
 
 	void editor_panel_log_t::on_filter_pressed(bool toggled, void* user_data)

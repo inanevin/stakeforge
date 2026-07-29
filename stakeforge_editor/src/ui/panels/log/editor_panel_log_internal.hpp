@@ -39,33 +39,37 @@ namespace sfg
 #define EDITOR_LOG_PANEL_LISTENER_ID	  0x0E100001u
 
 	static inline const editor_dropdown_item_t LOG_SOURCE_ITEMS[] = {
-		{.text = "All", .value = static_cast<u16>(log_source_type_e::all)},
-		{.text = "Editor", .value = static_cast<u16>(log_source_type_e::editor)},
-		{.text = "Game", .value = static_cast<u16>(log_source_type_e::game)},
+		{.text = "All", .value = static_cast<u16>(log_source_filter_e::all)},
+		{.text = "Engine", .value = static_cast<u16>(log_source_filter_e::engine)},
+		{.text = "Game", .value = static_cast<u16>(log_source_filter_e::game)},
 	};
 
-	inline const char* log_source_type_to_string(log_source_type_e type)
+	inline const char* log_source_filter_to_string(log_source_filter_e filter)
 	{
-		switch (type)
+		switch (filter)
 		{
-		case log_source_type_e::all:
+		case log_source_filter_e::all:
 			return "all";
-		case log_source_type_e::editor:
-			return "editor";
-		case log_source_type_e::game:
+		case log_source_filter_e::engine:
+			return "engine";
+		case log_source_filter_e::game:
 			return "game";
 		}
+
 		return "all";
 	}
 
-	inline log_source_type_e log_source_type_from_string(const char* value)
+	inline log_source_filter_e log_source_filter_from_string(const char* value)
 	{
 		const sid_t id = TO_SID(value);
-		if (id == TO_SID("editor"))
-			return log_source_type_e::editor;
+
+		if (id == TO_SID("engine") || id == TO_SID("editor"))
+			return log_source_filter_e::engine;
+
 		if (id == TO_SID("game"))
-			return log_source_type_e::game;
-		return log_source_type_e::all;
+			return log_source_filter_e::game;
+
+		return log_source_filter_e::all;
 	}
 
 	inline u8 log_level_to_filter_flag(log_level level)

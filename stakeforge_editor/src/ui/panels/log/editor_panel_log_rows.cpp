@@ -35,14 +35,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	void editor_panel_log_t::add_log_row(log_level level, const char* text)
+	void editor_panel_log_t::add_log_row(log_source_e source, log_level level, const char* text)
 	{
 		ui::ui_context&		  ui	= *_ui;
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
 
-		const u64 hash = hashing_t::hash_u64(text);
+		const u64 text_hash = hashing_t::hash_u64(text);
+		const u64 hash		= hashing_t::hash_u64_combine(text_hash, level, source);
+
 		if (_is_collapsed)
 		{
 			for (size_t i = 0; i < _rows.size(); ++i)
@@ -63,6 +65,7 @@ namespace sfg
 		log_row_t row = {};
 		row.raw_text  = text;
 		row.hash	  = hash;
+		row.source	  = source;
 		row.flag	  = log_level_to_filter_flag(level);
 
 		row.root = ui.allocate_widget();

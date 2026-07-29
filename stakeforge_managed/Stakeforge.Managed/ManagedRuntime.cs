@@ -17,11 +17,15 @@ internal unsafe struct NativeApi
     internal NativeAudioApi* Audio;
     internal NativePhysicsApi* Physics;
     internal NativeAnimationApi* Animation;
+    internal delegate* unmanaged[Cdecl]<byte*, void> GameLogInfo;
+    internal delegate* unmanaged[Cdecl]<byte*, void> GameLogError;
+    internal delegate* unmanaged[Cdecl]<byte*, void> GameLogWarn;
+    internal delegate* unmanaged[Cdecl]<byte*, void> GameLogTrace;
 }
 
 internal static unsafe class ManagedRuntime
 {
-    private const uint ApiVersion = 3;
+    private const uint ApiVersion = 4;
     private const uint CategoryApiVersion = 1;
     private const uint WorldApiVersion = 2;
 
@@ -97,7 +101,11 @@ internal static unsafe class ManagedRuntime
             api->Physics->Version != CategoryApiVersion ||
             api->Animation == null ||
             api->Animation->Size < sizeof(NativeAnimationApi) ||
-            api->Animation->Version != CategoryApiVersion)
+            api->Animation->Version != CategoryApiVersion ||
+            api->GameLogInfo == null ||
+            api->GameLogError == null ||
+            api->GameLogWarn == null ||
+            api->GameLogTrace == null)
         {
             return -1;
         }
@@ -125,6 +133,26 @@ internal static unsafe class ManagedRuntime
     internal static void LogInfo(string message)
     {
         Log(GetApi()->LogInfo, message);
+    }
+
+    internal static void LogGameInfo(string message)
+    {
+        Log(GetApi()->GameLogInfo, message);
+    }
+
+    internal static void LogGameError(string message)
+    {
+        Log(GetApi()->GameLogError, message);
+    }
+
+    internal static void LogGameWarn(string message)
+    {
+        Log(GetApi()->GameLogWarn, message);
+    }
+
+    internal static void LogGameTrace(string message)
+    {
+        Log(GetApi()->GameLogTrace, message);
     }
 
     internal static void TryLogError(void* apiAddress, string message)

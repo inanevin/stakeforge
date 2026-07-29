@@ -54,6 +54,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #endif
 
+#include <sfg/common/size_definitions.hpp>
 #include <sfg/data/mutex.hpp>
 #include <sfg/memory/malloc_allocator_stl.hpp>
 #include <sfg/data/vector.hpp>
