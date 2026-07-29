@@ -29,28 +29,132 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/data/istream.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/input/input_mappings.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/memory/frame_allocator.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/platform/time.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
+#include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/scripting/api/script_api_game.hpp>
+#include <sfg/runtime/scripting/api/script_api_platform.hpp>
+#include <sfg/runtime/scripting/script_runtime.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <tracy/Tracy.hpp>
 
 namespace sfg
 {
+#define GAME_RAW_WHEEL_DELTA 120.0f
+
 	void game_t::on_window_event(void* window_handle, const window_event_t& event, void* user_data)
 	{
 		game_t& game = *static_cast<game_t*>(user_data);
 
-		if (event.type != window_event_type_e::resize)
+		if (event.type == window_event_type_e::resize)
+		{
+			if (game._renderer_initialized)
+				game._renderer.resize(game._window.size, game._window.monitor_info.dpi_scale, game._window.has_flag(window_runtime_flags_e::minimized));
+
+			return;
+		}
+
+		if (!game._world_controller_initialized || !game._world_controller.get_main_world().is_playing())
 			return;
 
-		game._renderer.resize(game._window.size, game._window.monitor_info.dpi_scale, game._window.has_flag(window_runtime_flags_e::minimized));
+		world_t& world = game._world_controller.get_main_world();
+
+		switch (event.type)
+		{
+		case window_event_type_e::key:
+			if (game._window.has_flag(window_runtime_flags_e::has_focus))
+				world.key_event(event.button, static_cast<u16>(event.value.x), static_cast<u8>(event.sub_type));
+			break;
+		case window_event_type_e::mouse: {
+			u8 button = UINT8_MAX;
+
+			if (event.button == static_cast<u16>(input_code::mouse_0))
+				button = 0;
+			else if (event.button == static_cast<u16>(input_code::mouse_1))
+				button = 1;
+			else if (event.button == static_cast<u16>(input_code::mouse_2))
+				button = 2;
+			else if (event.button == static_cast<u16>(input_code::mouse_3))
+				button = 3;
+			else if (event.button == static_cast<u16>(input_code::mouse_4))
+				button = 4;
+
+			world.mouse_button_event(button, static_cast<u8>(event.sub_type), static_cast<f32>(game._window.mouse_position.x), static_cast<f32>(game._window.mouse_position.y));
+			break;
+		}
+		case window_event_type_e::delta:
+			world.mouse_move_event(static_cast<f32>(game._window.mouse_position.x), static_cast<f32>(game._window.mouse_position.y), static_cast<f32>(event.value.x), static_cast<f32>(event.value.y));
+			break;
+		case window_event_type_e::wheel: {
+			const f32 delta = event.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(event.value.y) / GAME_RAW_WHEEL_DELTA : static_cast<f32>(event.value.y);
+
+			world.mouse_wheel_event(static_cast<f32>(game._window.mouse_position.x), static_cast<f32>(game._window.mouse_position.y), delta);
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
+	u8 game_t::get_script_game_render_resolution(vec2u16_t& out_resolution)
+	{
+		SFG_ASSERT(s_instance != nullptr);
+
+		if (!s_instance->_world_controller.is_initialized())
+			return 0;
+
+		out_resolution = s_instance->_world_controller.get_render_resolution();
+		return 1;
+	}
+
+	u8 game_t::set_script_game_render_resolution(const vec2u16_t& resolution)
+	{
+		SFG_ASSERT(s_instance != nullptr);
+
+		if (!s_instance->_world_controller.is_initialized())
+			return 0;
+
+		if (s_instance->_world_controller.get_render_resolution() == resolution)
+			return 1;
+
+		const bool restart_render = SFG_IS_RENDER_RUNNING();
+
+		if (restart_render)
+			s_instance->_renderer.end_render();
+
+		s_instance->_world_controller.resize(resolution);
+
+		if (restart_render)
+			s_instance->_renderer.start();
+
+		return 1;
+	}
+
+	u8 game_t::load_script_game_world(sid_t world_name_hash)
+	{
+		SFG_ASSERT(s_instance != nullptr);
+
+		if (!s_instance->_world_controller.is_initialized())
+			return 0;
+
+		return s_instance->_world_controller.queue_world_load_by_name_hash(world_name_hash) ? 1 : 0;
+	}
+
+	void game_t::quit_script_game()
+	{
+		SFG_ASSERT(s_instance != nullptr);
+
+		s_instance->_window.set_flag(window_runtime_flags_e::close_requested);
 	}
 
 	bool game_t::init(const game_config_t& config)
@@ -58,17 +162,23 @@ namespace sfg
 		SFG_ASSERT(config.main_frame_budget_bytes != 0);
 		SFG_ASSERT(config.renderer.frame_budget_bytes != 0);
 		SFG_ASSERT(!_initialized);
+		SFG_ASSERT(s_instance == nullptr);
 
-		_config = config;
+		s_instance = this;
+		_config	   = config;
 		_init_failure_reason.resize(0);
+		_package_directory = file_system_t::get_running_directory();
 
-		if (!file_system_t::exists(project_package_meta_t::RESOURCE_FILE_NAME))
+		const string_t resource_path = _package_directory + project_package_meta_t::RESOURCE_FILE_NAME;
+		const string_t meta_path	 = _package_directory + project_package_meta_t::FILE_NAME;
+
+		if (!file_system_t::exists(resource_path.c_str()))
 			return fail_init("resources.sfg_bin is missing.");
 
-		if (!file_system_t::exists(project_package_meta_t::FILE_NAME))
+		if (!file_system_t::exists(meta_path.c_str()))
 			return fail_init("project_meta.sfg_bin is missing.");
 
-		istream_t meta_stream = serializer_t::load_from_file(project_package_meta_t::FILE_NAME);
+		istream_t meta_stream = serializer_t::load_from_file(meta_path.c_str());
 
 		if (meta_stream.empty())
 			return fail_init("Failed to read project_meta.sfg_bin.");
@@ -91,6 +201,9 @@ namespace sfg
 
 		_runtime_initialized = true;
 		runtime.update_project_settings(_package_meta.project_settings);
+
+		if (!load_project_scripts())
+			return false;
 
 		frame_allocator_tls_t::init(config.main_frame_budget_bytes);
 		_frame_allocator_initialized = true;
@@ -120,7 +233,14 @@ namespace sfg
 		_window.event_callback			 = &game_t::on_window_event;
 		_window.event_callback_user_data = this;
 
-		_world_controller.init(_window.size);
+		g_window_api_enabled = true;
+		set_script_api_platform_window_runtime(&_window);
+		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, load_script_game_world, quit_script_game);
+		_script_api_bound = true;
+
+		if (!_world_controller.init(_window.size, _package_meta))
+			return fail_init("Failed to load the main world.");
+
 		_world_controller_initialized = true;
 
 		game_renderer_config_t renderer_config = config.renderer;
@@ -163,6 +283,10 @@ namespace sfg
 
 			resource_manager_t::get().flush();
 			_world_controller.tick();
+
+			if (!apply_pending_world_load())
+				SFG_ERR("failed to load the requested game world.");
+
 			engine_runtime_t::get().tick();
 			resource_manager_t::get().drain_atlases(_atlas_frame_slot);
 
@@ -178,8 +302,9 @@ namespace sfg
 	bool game_t::load_package_resources()
 	{
 		resource_stream_t resource_stream = {};
+		const string_t	  resource_path	  = _package_directory + project_package_meta_t::RESOURCE_FILE_NAME;
 
-		if (!resource_stream.open(project_package_meta_t::RESOURCE_FILE_NAME))
+		if (!resource_stream.open(resource_path.c_str()))
 			return fail_init("Failed to open resources.sfg_bin.");
 
 		u8 stream_header_data[sizeof(u32) * 3] = {};
@@ -270,7 +395,7 @@ namespace sfg
 			SFG_ASSERT(seeked);
 		}
 
-		engine_runtime_t::get().get_resource_file_system().set_mode_filepack(project_package_meta_t::RESOURCE_FILE_NAME, _package_meta.resource_map);
+		engine_runtime_t::get().get_resource_file_system().set_mode_filepack(resource_path.c_str(), _package_meta.resource_map);
 
 		for (const resource_dependency_t& resource : engine_resources)
 		{
@@ -279,6 +404,48 @@ namespace sfg
 		}
 
 		return true;
+	}
+
+	bool game_t::load_project_scripts()
+	{
+		if (_package_meta.script_assembly_name.empty())
+			return fail_init("The packaged C# project assembly name is missing.");
+
+		const string_t assembly_path = _package_directory + "scripts/" + _package_meta.script_assembly_name;
+
+		if (!file_system_t::exists(assembly_path.c_str()))
+			return fail_init("The packaged C# project assembly is missing.");
+
+		script_runtime_t& script_runtime = script_runtime_t::get();
+
+		if (!script_runtime.stage_project_assembly(assembly_path.c_str()))
+			return fail_init("Failed to stage the packaged C# project assembly.");
+
+		if (!script_runtime.activate_staged_project_assembly())
+		{
+			script_runtime.discard_staged_project_assembly();
+			return fail_init("Failed to activate the packaged C# project assembly.");
+		}
+
+		reflection_registry_t::get().remove_script_types();
+		script_runtime.get_component_schema().register_reflection_types();
+		return true;
+	}
+
+	bool game_t::apply_pending_world_load()
+	{
+		if (!_world_controller.has_pending_world_load())
+			return true;
+
+		_renderer.end_render();
+
+		const bool loaded = _world_controller.apply_pending_world_load();
+
+		resource_manager_t::get().flush();
+		render_resources_t::get().drain_requests();
+		_renderer.start();
+
+		return loaded;
 	}
 
 	bool game_t::fail_init(const char* reason)
@@ -300,6 +467,14 @@ namespace sfg
 		{
 			_world_controller.uninit();
 			_world_controller_initialized = false;
+		}
+
+		if (_script_api_bound)
+		{
+			reset_script_api_platform_cursor_state();
+			set_script_api_platform_window_runtime(nullptr);
+			set_script_api_game_callbacks(nullptr, nullptr, nullptr, nullptr);
+			_script_api_bound = false;
 		}
 
 		if (_window_initialized)
@@ -335,9 +510,11 @@ namespace sfg
 			_frame_allocator_initialized = false;
 		}
 
-		_package_meta	  = {};
-		_config			  = {};
+		_package_meta = {};
+		_config		  = {};
+		_package_directory.resize(0);
 		_atlas_frame_slot = 0;
 		_initialized	  = false;
+		s_instance		  = nullptr;
 	}
 }

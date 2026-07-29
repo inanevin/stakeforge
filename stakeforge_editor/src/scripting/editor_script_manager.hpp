@@ -32,8 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/data/atomic.hpp>
 
-#include <thread>
-
 namespace sfg
 {
 	class editor_script_manager_t final
@@ -74,6 +72,16 @@ namespace sfg
 			return _initial_activation_completed;
 		}
 
+		inline bool is_compile_idle() const
+		{
+			return _compile_state.load(std::memory_order_acquire) == compile_state_e::idle;
+		}
+
+		inline bool is_active_assembly_current() const
+		{
+			return _active_assembly_current;
+		}
+
 	private:
 		enum class compile_state_e : u8
 		{
@@ -88,12 +96,12 @@ namespace sfg
 
 	private:
 		script_compile_result_t		_compile_result				  = {};
-		std::thread					_compile_thread				  = {};
 		editor_modal_progress_bar_t _progress_modal				  = {};
 		atomic_t<compile_state_e>	_compile_state				  = compile_state_e::idle;
 		bool						_initialized				  = false;
 		bool						_compile_requested			  = false;
 		bool						_modal_open					  = false;
 		bool						_initial_activation_completed = false;
+		bool						_active_assembly_current	  = false;
 	};
 }

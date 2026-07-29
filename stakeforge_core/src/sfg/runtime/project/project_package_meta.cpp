@@ -45,6 +45,7 @@ namespace sfg
 		stream << is_fullscreen;
 		stream << window_resolution.x;
 		stream << window_resolution.y;
+		stream << script_assembly_name;
 
 		const u32 resource_count = static_cast<u32>(resource_map.size());
 
@@ -93,6 +94,7 @@ namespace sfg
 		stream >> meta.is_fullscreen;
 		stream >> meta.window_resolution.x;
 		stream >> meta.window_resolution.y;
+		stream >> meta.script_assembly_name;
 
 		u32 resource_count = 0;
 

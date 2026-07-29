@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project_cook_options.hpp"
 #include "editor_settings.hpp"
 #include "editor_surface_controller.hpp"
+#include "scripting/editor_script_manager.hpp"
 #include "ui/editor_modal_progress_bar.hpp"
 #include "ui/editor_modal_project_cooker.hpp"
 
@@ -44,6 +45,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/runtime/project/project_package_meta.hpp>
 #include <sfg/runtime/resources/resource_manifest.hpp>
@@ -124,6 +126,26 @@ namespace sfg
 			return;
 		}
 
+		const editor_script_manager_t& script_manager = editor_script_manager_t::get();
+
+		if (!script_manager.is_initial_activation_completed())
+		{
+			modal.request_modal("Cook Project", "C# scripts have not compiled and activated successfully.", buttons, static_cast<u16>(std::size(buttons)), editor_modal_severity_e::error);
+			return;
+		}
+
+		if (!script_manager.is_compile_idle())
+		{
+			modal.request_modal("Cook Project", "Wait for C# script compilation to finish.", buttons, static_cast<u16>(std::size(buttons)), editor_modal_severity_e::error);
+			return;
+		}
+
+		if (!script_manager.is_active_assembly_current())
+		{
+			modal.request_modal("Cook Project", "The active C# assembly does not match the published script files. Compile the scripts successfully before cooking.", buttons, static_cast<u16>(std::size(buttons)), editor_modal_severity_e::error);
+			return;
+		}
+
 		editor_app_t::get().get_editor_work_executor().wait_for_all();
 
 		*_cook_options = options;
@@ -155,19 +177,28 @@ namespace sfg
 		}
 
 		// build package metadata from the cook options
-		*_package_meta					 = {};
-		_package_meta->project_settings	 = editor_project_t::get().settings.project_settings;
-		_package_meta->window_resolution = _cook_options->resolution;
-		_package_meta->window_style		 = _cook_options->is_borderless ? window_style_e::borderless : window_style_e::app_window;
-		_package_meta->is_fullscreen	 = _cook_options->is_fullscreen;
+		*_package_meta						= {};
+		_package_meta->project_settings		= editor_project_t::get().settings.project_settings;
+		_package_meta->window_resolution	= _cook_options->resolution;
+		_package_meta->window_style			= _cook_options->is_borderless ? window_style_e::borderless : window_style_e::app_window;
+		_package_meta->is_fullscreen		= _cook_options->is_fullscreen;
+		_package_meta->script_assembly_name = editor_project_t::get()._runtime.name + ".dll";
 		_package_meta->worlds.reserve(_cook_options->worlds.size());
 
 		// make sure every selected world exists and record its name hash
 		for (sid_t world : _cook_options->worlds)
 		{
-			if (editor_asset_manager_t::get().find_asset(world) == nullptr)
+			const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(world);
+
+			if (asset == nullptr)
 			{
 				_cook_failure_reason = string_t("World asset does not exist: ") + std::to_string(world);
+				return false;
+			}
+
+			if (asset->asset_type != editor_asset_type_e::world)
+			{
+				_cook_failure_reason = string_t("Selected project world is not a world asset: ") + std::to_string(world);
 				return false;
 			}
 
@@ -467,6 +498,90 @@ namespace sfg
 		{
 			_cook_failure_reason = "Failed to write project package metadata.";
 			return false;
+		}
+
+		if (!publish_game_files())
+			return false;
+
+		return true;
+	}
+
+	bool editor_project_cooker_t::publish_game_files()
+	{
+		const editor_project_runtime_t& project_runtime = editor_project_t::get()._runtime;
+		const string_t					running_path	= file_system_t::get_running_directory();
+		const string_t					managed_path	= project_runtime.cook_path + "managed/";
+		const string_t					scripts_path	= project_runtime.cook_path + "scripts/";
+
+		if (!file_system_t::ensure_directory(managed_path.c_str()) || !file_system_t::ensure_directory(scripts_path.c_str()))
+		{
+			_cook_failure_reason = "Failed to create the packaged managed directories.";
+			return false;
+		}
+
+		struct file_copy_t
+		{
+			const char* source_name = nullptr;
+			const char* target_name = nullptr;
+		};
+
+		const file_copy_t runtime_files[] = {
+			{.source_name = "stakeforge_game.exe", .target_name = nullptr},
+			{.source_name = "nethost.dll", .target_name = "nethost.dll"},
+			{.source_name = "dxcompiler.dll", .target_name = "dxcompiler.dll"},
+			{.source_name = "dxil.dll", .target_name = "dxil.dll"},
+			{.source_name = "WinPixEventRuntime.dll", .target_name = "WinPixEventRuntime.dll"},
+		};
+
+		for (const file_copy_t& file : runtime_files)
+		{
+			const string_t source_path = running_path + file.source_name;
+			const string_t target_name = file.target_name == nullptr ? project_runtime.name + ".exe" : string_t(file.target_name);
+			const string_t target_path = project_runtime.cook_path + target_name;
+
+			if (!file_system_t::copy_file(source_path.c_str(), target_path.c_str()))
+			{
+				_cook_failure_reason = string_t("Failed to publish game runtime file: ") + file.source_name;
+				return false;
+			}
+		}
+
+		const char* managed_files[] = {
+			"Stakeforge.ScriptHost.dll",
+			"Stakeforge.ScriptHost.deps.json",
+			"Stakeforge.ScriptHost.runtimeconfig.json",
+			"Stakeforge.Managed.dll",
+		};
+
+		for (const char* file : managed_files)
+		{
+			const string_t source_path = running_path + "managed/" + file;
+			const string_t target_path = managed_path + file;
+
+			if (!file_system_t::copy_file(source_path.c_str(), target_path.c_str()))
+			{
+				_cook_failure_reason = string_t("Failed to publish managed runtime file: ") + file;
+				return false;
+			}
+		}
+
+		const char* script_extensions[] = {
+			".dll",
+			".deps.json",
+			".pdb",
+		};
+
+		for (const char* extension : script_extensions)
+		{
+			const string_t file_name   = project_runtime.name + extension;
+			const string_t source_path = project_runtime.script_library_path + file_name;
+			const string_t target_path = scripts_path + file_name;
+
+			if (!file_system_t::copy_file(source_path.c_str(), target_path.c_str()))
+			{
+				_cook_failure_reason = string_t("Failed to publish C# project file: ") + file_name;
+				return false;
+			}
 		}
 
 		return true;

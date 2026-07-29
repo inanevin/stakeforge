@@ -27,15 +27,20 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "game_world_controller.hpp"
 
+#include <sfg/data/ostream.hpp>
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/platform/time.hpp>
+#include <sfg/runtime/project/project_package_meta.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/project/project_settings.hpp>
 #include <sfg/runtime/render/world_rendering.hpp>
+#include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 #include <tracy/Tracy.hpp>
 
 namespace sfg
@@ -60,7 +65,7 @@ namespace sfg
 #define GAME_WORLD_PARTICLE_MAX_COUNT			   8192
 #define GAME_WORLD_BONE_MAX_COUNT				   4096
 
-	void game_world_controller_t::init(vec2u16_t render_resolution)
+	bool game_world_controller_t::init(vec2u16_t render_resolution, const project_package_meta_t& package_meta)
 	{
 		SFG_ASSERT(!_initialized);
 
@@ -145,6 +150,7 @@ namespace sfg
 		_main_world.init(world_config);
 		_render_context.init(render_context_config);
 		_render_prep_data.reserve(render_prep_config);
+		_package_meta = &package_meta;
 
 		for (u32 slot_index = 0; slot_index < GAME_WORLD_SNAPSHOT_SLOT_COUNT; ++slot_index)
 		{
@@ -166,10 +172,15 @@ namespace sfg
 		_last_fixed_step_us.store(_previous_time_us, std::memory_order_relaxed);
 		_fixed_step_us.store(0, std::memory_order_relaxed);
 
-		_main_world.begin_play();
 		_initialized = true;
 
-		produce_snapshot();
+		if (!load_world(package_meta.main_world.sid))
+		{
+			uninit();
+			return false;
+		}
+
+		return true;
 	}
 
 	void game_world_controller_t::uninit()
@@ -177,7 +188,9 @@ namespace sfg
 		SFG_ASSERT(_initialized);
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		_main_world.end_play();
+		if (_main_world.is_playing())
+			_main_world.end_play();
+
 		_render_context.uninit();
 		_main_world.unload_all_used_resources();
 		_main_world.uninit();
@@ -186,6 +199,7 @@ namespace sfg
 			_snapshot_slots[slot_index] = {};
 
 		_render_prep_data = {};
+		_package_meta	  = nullptr;
 		_render_snapshot  = nullptr;
 		_snapshot_mailbox.store(0, std::memory_order_relaxed);
 		_last_fixed_step_us.store(0, std::memory_order_relaxed);
@@ -195,6 +209,7 @@ namespace sfg
 		_render_alpha	  = 0.0f;
 		_producer_slot	  = 0;
 		_consumer_slot	  = 0;
+		_pending_world	  = NULL_SID;
 		_initialized	  = false;
 	}
 
@@ -269,12 +284,112 @@ namespace sfg
 
 	bool game_world_controller_t::load_world(sid_t world)
 	{
-		return false;
+		SFG_ASSERT(_initialized);
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
+		bool world_exists = false;
+
+		for (const world_meta_t& world_meta : _package_meta->worlds)
+		{
+			if (world_meta.sid != world)
+				continue;
+
+			world_exists = true;
+			break;
+		}
+
+		if (!world_exists)
+		{
+			SFG_ERR("requested world is not included in the project package: {0}", world);
+			return false;
+		}
+
+		ostream_t world_source = {};
+
+		if (!engine_runtime_t::get().get_resource_file_system().read_resource(world, 0, 0, world_source))
+		{
+			SFG_ERR("failed to read the packaged world: {0}", world);
+			return false;
+		}
+
+		const char* const	 world_source_begin = reinterpret_cast<const char*>(world_source.get_raw());
+		const char* const	 world_source_end	= world_source_begin + world_source.get_size();
+		const nlohmann::json world_json			= nlohmann::json::parse(world_source_begin, world_source_end, nullptr, false);
+
+		if (!world_json.is_object() || !world_json.value<nlohmann::json>("root_entities", nlohmann::json::array()).is_array())
+		{
+			SFG_ERR("packaged world JSON is invalid: {0}", world);
+			return false;
+		}
+
+		if (_main_world.is_playing())
+			_main_world.end_play();
+
+		_main_world.clear_used_resources();
+		_main_world.clear_entities();
+		_pending_world = NULL_SID;
+
+		world_cooker_t::world_from_json(_main_world, world_json);
+		_main_world.update_world_transforms(false);
+		_main_world.begin_play();
+
+		_previous_time_us = time_t::get_cpu_microseconds();
+		_accumulator_us	  = 0;
+		_render_alpha	  = 0.0f;
+		_producer_slot	  = 0;
+		_consumer_slot	  = 1;
+		_render_snapshot  = nullptr;
+		_snapshot_mailbox.store(2, std::memory_order_relaxed);
+		_last_fixed_step_us.store(_previous_time_us, std::memory_order_relaxed);
+		_fixed_step_us.store(0, std::memory_order_relaxed);
+
+		produce_snapshot();
+		return true;
 	}
 
 	bool game_world_controller_t::load_world_by_name_hash(sid_t name_hash)
 	{
+		SFG_ASSERT(_initialized);
+
+		for (const world_meta_t& world : _package_meta->worlds)
+		{
+			if (world.name_hash == name_hash)
+				return load_world(world.sid);
+		}
+
+		SFG_ERR("requested world name is not included in the project package: {0}", name_hash);
 		return false;
+	}
+
+	bool game_world_controller_t::queue_world_load_by_name_hash(sid_t name_hash)
+	{
+		SFG_ASSERT(_initialized);
+
+		if (_pending_world != NULL_SID)
+			return false;
+
+		for (const world_meta_t& world : _package_meta->worlds)
+		{
+			if (world.name_hash != name_hash)
+				continue;
+
+			_pending_world = world.sid;
+			return true;
+		}
+
+		return false;
+	}
+
+	bool game_world_controller_t::apply_pending_world_load()
+	{
+		SFG_ASSERT(_initialized);
+		SFG_ASSERT(_pending_world != NULL_SID);
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
+		const sid_t pending_world = _pending_world;
+		_pending_world			  = NULL_SID;
+
+		return load_world(pending_world);
 	}
 
 	bool game_world_controller_t::acquire_render_world()

@@ -36,6 +36,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	struct project_package_meta_t;
+
 	class game_world_controller_t final
 	{
 	public:
@@ -48,7 +50,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(vec2u16_t render_resolution);
+		bool init(vec2u16_t render_resolution, const project_package_meta_t& package_meta);
 		void uninit();
 
 		// -----------------------------------------------------------------------------
@@ -59,6 +61,8 @@ namespace sfg
 		void resize(vec2u16_t render_resolution);
 		bool load_world(sid_t world);
 		bool load_world_by_name_hash(sid_t name_hash);
+		bool queue_world_load_by_name_hash(sid_t name_hash);
+		bool apply_pending_world_load();
 		bool acquire_render_world();
 		bool render_world(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 
@@ -81,6 +85,16 @@ namespace sfg
 			return _render_context.get_world_texture_index(frame_index);
 		}
 
+		inline vec2u16_t get_render_resolution() const
+		{
+			return _render_context.get_size();
+		}
+
+		inline bool has_pending_world_load() const
+		{
+			return _pending_world != NULL_SID;
+		}
+
 		inline bool is_initialized() const
 		{
 			return _initialized;
@@ -95,12 +109,14 @@ namespace sfg
 		world_render_prep_data_t	   _render_prep_data   = {};
 		world_render_context_t		   _render_context	   = {};
 		world_t						   _main_world		   = {};
+		const project_package_meta_t*  _package_meta	   = nullptr;
 		const world_render_snapshot_t* _render_snapshot	   = nullptr;
 		atomic_t<i64>				   _last_fixed_step_us = 0;
 		atomic_t<i64>				   _fixed_step_us	   = 0;
 		atomic_t<u8>				   _snapshot_mailbox   = {};
 		i64							   _previous_time_us   = 0;
 		i64							   _accumulator_us	   = 0;
+		sid_t						   _pending_world	   = NULL_SID;
 		f32							   _render_alpha	   = 0.0f;
 		u8							   _producer_slot	   = 0;
 		u8							   _consumer_slot	   = 0;

@@ -71,15 +71,24 @@ namespace sfg
 
 	private:
 		static void on_window_event(void* window_handle, const window_event_t& event, void* user_data);
+		static u8	get_script_game_render_resolution(vec2u16_t& out_resolution);
+		static u8	set_script_game_render_resolution(const vec2u16_t& resolution);
+		static u8	load_script_game_world(sid_t world_name_hash);
+		static void quit_script_game();
 
 		bool load_package_resources();
+		bool load_project_scripts();
+		bool apply_pending_world_load();
 		bool fail_init(const char* reason);
 		void cleanup();
+
+		static inline game_t* s_instance = nullptr;
 
 		game_config_t			_config				 = {};
 		project_package_meta_t	_package_meta		 = {};
 		window_runtime_t		_window				 = {};
 		string_t				_init_failure_reason = {};
+		string_t				_package_directory	 = {};
 		game_world_controller_t _world_controller;
 		game_renderer_t			_renderer;
 		u8						_atlas_frame_slot			  = 0;
@@ -90,6 +99,7 @@ namespace sfg
 		bool					_runtime_initialized		  = false;
 		bool					_backend_initialized		  = false;
 		bool					_globals_initialized		  = false;
+		bool					_script_api_bound			  = false;
 		bool					_initialized				  = false;
 	};
 }

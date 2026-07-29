@@ -919,6 +919,7 @@ namespace sfg
 	void world_t::unload_all_used_resources()
 	{
 		resource_manager_t& rm = resource_manager_t::get();
+
 		for (auto it = _used_resources.rbegin(); it != _used_resources.rend(); ++it)
 		{
 			if (!it->loaded)
@@ -927,6 +928,14 @@ namespace sfg
 			rm.unload_resource(it->handle, false);
 			it->loaded = false;
 		}
+	}
+
+	void world_t::clear_used_resources()
+	{
+		SFG_ASSERT(!_is_playing);
+
+		unload_all_used_resources();
+		_used_resources.resize(0);
 	}
 
 	void world_t::update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation)

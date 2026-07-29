@@ -78,6 +78,7 @@ namespace sfg
 		};
 
 		bool cook_project_worker(const char* target_path);
+		bool publish_game_files();
 
 	private:
 		string_t								_cook_failure_reason = {};

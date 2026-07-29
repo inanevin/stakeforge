@@ -103,6 +103,7 @@ namespace sfg
 		void									 scan_for_resources(entity_id_t entity, bool omit_children = false);
 		void									 load_all_used_resources();
 		void									 unload_all_used_resources();
+		void									 clear_used_resources();
 		inline const vector_t<world_resource_t>& get_used_resources() const
 		{
 			return _used_resources;

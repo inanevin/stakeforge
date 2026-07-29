@@ -26,6 +26,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "editor_script_manager.hpp"
+#include "editor_app.hpp"
 #include "editor_project.hpp"
 #include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
@@ -35,6 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/scripting/script_runtime.hpp>
+#include <sfg/vendor/taskflow/taskflow.hpp>
 
 namespace sfg
 {
@@ -48,14 +50,15 @@ namespace sfg
 		_compile_requested			  = false;
 		_modal_open					  = false;
 		_initial_activation_completed = false;
+		_active_assembly_current	  = false;
 	}
 
 	void editor_script_manager_t::uninit()
 	{
 		SFG_ASSERT(_initialized);
 
-		if (_compile_thread.joinable())
-			_compile_thread.join();
+		if (_compile_state.load(std::memory_order_acquire) == compile_state_e::compiling)
+			editor_app_t::get().get_editor_work_executor().wait_for_all();
 
 		script_runtime_t& script_runtime = script_runtime_t::get();
 
@@ -68,6 +71,7 @@ namespace sfg
 		_compile_requested			  = false;
 		_modal_open					  = false;
 		_initial_activation_completed = false;
+		_active_assembly_current	  = false;
 	}
 
 	void editor_script_manager_t::tick()
@@ -76,11 +80,19 @@ namespace sfg
 
 		const compile_state_e compile_state = _compile_state.load(std::memory_order_acquire);
 
-		if (compile_state == compile_state_e::idle || compile_state == compile_state_e::compiling)
-			return;
+		if (compile_state == compile_state_e::idle)
+		{
+			if (_compile_requested)
+			{
+				_compile_requested = false;
+				start_compile();
+			}
 
-		SFG_ASSERT(_compile_thread.joinable());
-		_compile_thread.join();
+			return;
+		}
+
+		if (compile_state == compile_state_e::compiling)
+			return;
 
 		if (_compile_requested)
 		{
@@ -128,6 +140,7 @@ namespace sfg
 		if (succeeded)
 		{
 			_initial_activation_completed = true;
+			_active_assembly_current	  = true;
 			return;
 		}
 
@@ -159,9 +172,9 @@ namespace sfg
 	void editor_script_manager_t::start_compile()
 	{
 		SFG_ASSERT(_compile_state.load(std::memory_order_relaxed) == compile_state_e::idle);
-		SFG_ASSERT(!_compile_thread.joinable());
 
-		_compile_result = {};
+		_compile_result			 = {};
+		_active_assembly_current = false;
 		_progress_modal.set_progress(0.1f);
 
 		editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
@@ -178,7 +191,7 @@ namespace sfg
 		const string_t project_path = editor_project_t::get()._runtime.script_project_path;
 
 		_compile_state.store(compile_state_e::compiling, std::memory_order_relaxed);
-		_compile_thread = std::thread([this, project_path]() {
+		editor_app_t::get().get_editor_work_executor().silent_async([this, project_path]() {
 			script_compile_result_t result = script_compiler_t::compile(project_path.c_str());
 			const compile_state_e	state  = result.success ? compile_state_e::succeeded : compile_state_e::failed;
 
