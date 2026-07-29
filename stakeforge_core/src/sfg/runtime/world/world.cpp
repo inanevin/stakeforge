@@ -925,9 +925,78 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(entity));
 
-		bool	   added = false;
-		const auto scan	 = [&](const auto& self, entity_id_t current) -> void {
-			reflection_registry_t& registry = reflection_registry_t::get();
+		reflection_registry_t& registry = reflection_registry_t::get();
+		bool				   added	= false;
+
+		const auto scan_reflected_object = [&](const auto& self, const reflected_type_t& type, u8* object) -> void {
+			for (u32 i = type.fields.start; i < type.fields.end; ++i)
+			{
+				const reflected_field_t* field = registry.get_field(i);
+				SFG_ASSERT(field != nullptr);
+
+				u8* field_ptr = object + field->offset;
+
+				if (field->value_type == reflected_value_type_e::u64)
+				{
+					const resource_type_e resource_type = resource_type_from_reflection_sub_type_id(field->sub_type_id);
+
+					if (resource_type == resource_type_e::invalid)
+						continue;
+
+					const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(field_ptr);
+
+					if (handle != NULL_RESOURCE_HANDLE)
+						added = add_resource(resource_type, handle) || added;
+
+					continue;
+				}
+
+				if (field->value_type == reflected_value_type_e::object)
+				{
+					const reflected_type_t* object_type = registry.find_type(field->sub_type_id);
+					SFG_ASSERT(object_type != nullptr);
+
+					self(self, *object_type, field_ptr);
+					continue;
+				}
+
+				if (field->value_type != reflected_value_type_e::container)
+					continue;
+
+				const reflected_value_type_e element_value_type = field->container_ops.element_value_type;
+
+				if (element_value_type != reflected_value_type_e::u64 && element_value_type != reflected_value_type_e::object)
+					continue;
+
+				const u32 element_count = static_cast<u32>(field->container_ops.get_element_size_fn(field_ptr));
+
+				if (element_value_type == reflected_value_type_e::u64)
+				{
+					const resource_type_e resource_type = resource_type_from_reflection_sub_type_id(field->container_ops.element_sub_type_id);
+
+					if (resource_type == resource_type_e::invalid)
+						continue;
+
+					for (u32 j = 0; j < element_count; ++j)
+					{
+						const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(field->container_ops.get_element_ptr_fn(field_ptr, j));
+
+						if (handle != NULL_RESOURCE_HANDLE)
+							added = add_resource(resource_type, handle) || added;
+					}
+
+					continue;
+				}
+
+				const reflected_type_t* element_type = registry.find_type(field->container_ops.element_sub_type_id);
+				SFG_ASSERT(element_type != nullptr);
+
+				for (u32 j = 0; j < element_count; ++j)
+					self(self, *element_type, field->container_ops.get_element_ptr_fn(field_ptr, j));
+			}
+		};
+
+		const auto scan = [&](const auto& self, entity_id_t current) -> void {
 			for (ecs_component_table_t& component_table : _component_tables)
 			{
 				if (!ecs_t::table_has(component_table, current))
@@ -940,38 +1009,7 @@ namespace sfg
 				void* component = ecs_t::table_get(component_table, current);
 				SFG_ASSERT(component != nullptr);
 
-				for (u32 i = type->fields.start; i < type->fields.end; ++i)
-				{
-					const reflected_field_t* field = registry.get_field(i);
-					SFG_ASSERT(field != nullptr);
-
-					const bool is_resource_container = field->value_type == reflected_value_type_e::container && field->container_ops.element_value_type == reflected_value_type_e::u64;
-
-					if (field->value_type != reflected_value_type_e::u64 && !is_resource_container)
-						continue;
-
-					const resource_type_e resource_type = is_resource_container ? resource_type_from_reflection_sub_type_id(field->container_ops.element_sub_type_id) : resource_type_from_reflection_sub_type_id(field->sub_type_id);
-					if (resource_type == resource_type_e::invalid)
-						continue;
-
-					const u8* ptr = static_cast<const u8*>(component) + field->offset;
-					if (is_resource_container)
-					{
-						const u32 max = field->container_ops.get_element_size_fn((void*)ptr);
-						for (u32 j = 0; j < max; j++)
-						{
-							const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(field->container_ops.get_element_ptr_fn((void*)ptr, j));
-							if (handle != NULL_RESOURCE_HANDLE)
-								added = add_resource(resource_type, handle) || added;
-						}
-					}
-					else
-					{
-						const resource_handle_t handle = *reinterpret_cast<const resource_handle_t*>(ptr);
-						if (handle != NULL_RESOURCE_HANDLE)
-							added = add_resource(resource_type, handle) || added;
-					}
-				}
+				scan_reflected_object(scan_reflected_object, *type, static_cast<u8*>(component));
 			}
 
 			if (omit_children)
@@ -986,6 +1024,7 @@ namespace sfg
 				child = next_child;
 			}
 		};
+
 		scan(scan, entity);
 
 		if (added)
