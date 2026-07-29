@@ -90,6 +90,8 @@ namespace sfg
 		bool				  load_main_world(sid_t asset_guid);
 		bool				  save_main_world();
 		void				  mark_world_dirty(editor_world_handle_t handle);
+		void				  prepare_script_assembly_reload(bool component_layout_changed);
+		void				  complete_script_assembly_reload();
 		void				  apply_script_component_schema(const script_component_schema_t& current_schema, const script_component_schema_t& candidate_schema, const script_component_schema_delta_t& delta);
 
 		// -----------------------------------------------------------------------------

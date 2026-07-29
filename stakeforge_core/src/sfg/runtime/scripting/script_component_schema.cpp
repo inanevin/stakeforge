@@ -217,7 +217,38 @@ namespace sfg
 			components.push_back(std::move(component));
 		}
 
-		_components = std::move(components);
+		const vector_t<nlohmann::json>		 world_script_jsons = document.value<vector_t<nlohmann::json>>("world_scripts", {});
+		vector_t<script_world_script_desc_t> world_scripts		= {};
+		world_scripts.reserve(world_script_jsons.size());
+
+		for (const nlohmann::json& world_script_json : world_script_jsons)
+		{
+			script_world_script_desc_t world_script = {
+				.name	   = world_script_json.value<string_t>("name", ""),
+				.full_name = world_script_json.value<string_t>("full_name", ""),
+				.type_id   = world_script_json.value<sid_t>("id", 0),
+			};
+
+			if (world_script.name.empty() || world_script.full_name.empty() || world_script.type_id == 0 || world_script.type_id == NULL_SID)
+			{
+				SFG_ERR("managed component schema contains an invalid world script descriptor.");
+				return false;
+			}
+
+			const auto duplicate = std::find_if(world_scripts.begin(), world_scripts.end(), [&](const script_world_script_desc_t& other) { return other.type_id == world_script.type_id; });
+
+			if (duplicate != world_scripts.end())
+			{
+				SFG_ERR("managed component schema contains duplicate world script id {0}.", world_script.type_id);
+				return false;
+			}
+
+			world_scripts.push_back(std::move(world_script));
+		}
+
+		_components	   = std::move(components);
+		_world_scripts = std::move(world_scripts);
+
 		return true;
 	}
 
@@ -247,7 +278,7 @@ namespace sfg
 			registry.register_type({
 				.name		  = component.full_name.c_str(),
 				.display_name = component.name.c_str(),
-				.category	  = "Scripts",
+				.category	  = "Scripting",
 				.fields		  = std::move(fields),
 				.type_id	  = component.type_id,
 				.size		  = component.size,
@@ -296,6 +327,13 @@ namespace sfg
 		const auto it = std::find_if(_components.begin(), _components.end(), [type_id](const script_component_desc_t& component) { return component.type_id == type_id; });
 
 		return it == _components.end() ? nullptr : &*it;
+	}
+
+	const script_world_script_desc_t* script_component_schema_t::find_world_script(sid_t type_id) const
+	{
+		const auto it = std::find_if(_world_scripts.begin(), _world_scripts.end(), [type_id](const script_world_script_desc_t& world_script) { return world_script.type_id == type_id; });
+
+		return it == _world_scripts.end() ? nullptr : &*it;
 	}
 
 	size_t script_component_schema_t::get_field_count() const

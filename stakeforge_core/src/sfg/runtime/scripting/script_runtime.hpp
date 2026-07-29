@@ -44,17 +44,21 @@ namespace sfg
 
 	struct script_host_native_api_t
 	{
-		u32							  size		= 0;
-		u32							  version	= 0;
-		script_host_log_fn			  log_info	= nullptr;
-		script_host_log_fn			  log_error = nullptr;
-		const script_api_platform_t*  platform	= nullptr;
-		const script_api_render_t*	  render	= nullptr;
-		const script_api_resource_t*  resource	= nullptr;
-		const script_api_world_t*	  world		= nullptr;
-		const script_api_audio_t*	  audio		= nullptr;
-		const script_api_physics_t*	  physics	= nullptr;
-		const script_api_animation_t* animation = nullptr;
+		u32							  size			 = 0;
+		u32							  version		 = 0;
+		script_host_log_fn			  log_info		 = nullptr;
+		script_host_log_fn			  log_error		 = nullptr;
+		const script_api_platform_t*  platform		 = nullptr;
+		const script_api_render_t*	  render		 = nullptr;
+		const script_api_resource_t*  resource		 = nullptr;
+		const script_api_world_t*	  world			 = nullptr;
+		const script_api_audio_t*	  audio			 = nullptr;
+		const script_api_physics_t*	  physics		 = nullptr;
+		const script_api_animation_t* animation		 = nullptr;
+		script_host_log_fn			  game_log_info	 = nullptr;
+		script_host_log_fn			  game_log_error = nullptr;
+		script_host_log_fn			  game_log_warn	 = nullptr;
+		script_host_log_fn			  game_log_trace = nullptr;
 	};
 
 	typedef i32 (*script_host_shutdown_fn)();
@@ -62,6 +66,9 @@ namespace sfg
 	typedef i32 (*script_host_get_staged_project_schema_fn)(char* buffer, u32 capacity);
 	typedef i32 (*script_host_activate_staged_project_assembly_fn)();
 	typedef i32 (*script_host_discard_staged_project_assembly_fn)();
+	typedef void* (*script_host_create_world_script_fn)(sid_t type_id, void* world);
+	typedef i32 (*script_host_world_script_lifecycle_fn)(void* instance);
+	typedef i32 (*script_host_world_script_tick_fn)(void* instance, f32 delta_time);
 
 	class script_runtime_t final
 	{
@@ -82,6 +89,19 @@ namespace sfg
 		bool stage_project_assembly(const char* assembly_path);
 		bool activate_staged_project_assembly();
 		void discard_staged_project_assembly();
+
+		// -----------------------------------------------------------------------------
+		// world script
+		// -----------------------------------------------------------------------------
+
+		void* create_world_script(sid_t type_id, void* world);
+		void  destroy_world_script(void* instance);
+		bool  begin_play_world_script(void* instance);
+		bool  end_play_world_script(void* instance);
+		bool  tick_world_script(void* instance, f32 delta_time);
+		bool  post_tick_world_script(void* instance, f32 delta_time);
+		bool  post_physics_tick_world_script(void* instance, f32 delta_time);
+		bool  post_animation_tick_world_script(void* instance, f32 delta_time);
 
 		// -----------------------------------------------------------------------------
 		// queries
@@ -113,17 +133,25 @@ namespace sfg
 		}
 
 	private:
-		script_component_schema_t						_component_schema				   = {};
-		script_component_schema_t						_staged_component_schema		   = {};
-		script_host_native_api_t						_native_api						   = {};
-		void*											_hostfxr_library				   = nullptr;
-		script_host_shutdown_fn							_shutdown						   = nullptr;
-		script_host_stage_project_assembly_fn			_fn_stage_project_assembly		   = nullptr;
-		script_host_get_staged_project_schema_fn		_fn_get_staged_project_schema	   = nullptr;
-		script_host_activate_staged_project_assembly_fn _fn_activate_staged_project_schema = nullptr;
-		script_host_discard_staged_project_assembly_fn	_fn_discard_staged_project_schema  = nullptr;
-		bool											_is_initialized					   = false;
-		bool											_is_project_assembly_loaded		   = false;
-		bool											_is_project_assembly_staged		   = false;
+		script_component_schema_t						_component_schema					 = {};
+		script_component_schema_t						_staged_component_schema			 = {};
+		script_host_native_api_t						_native_api							 = {};
+		void*											_hostfxr_library					 = nullptr;
+		script_host_shutdown_fn							_shutdown							 = nullptr;
+		script_host_stage_project_assembly_fn			_fn_stage_project_assembly			 = nullptr;
+		script_host_get_staged_project_schema_fn		_fn_get_staged_project_schema		 = nullptr;
+		script_host_activate_staged_project_assembly_fn _fn_activate_staged_project_schema	 = nullptr;
+		script_host_discard_staged_project_assembly_fn	_fn_discard_staged_project_schema	 = nullptr;
+		script_host_create_world_script_fn				_fn_create_world_script				 = nullptr;
+		script_host_world_script_lifecycle_fn			_fn_destroy_world_script			 = nullptr;
+		script_host_world_script_lifecycle_fn			_fn_begin_play_world_script			 = nullptr;
+		script_host_world_script_lifecycle_fn			_fn_end_play_world_script			 = nullptr;
+		script_host_world_script_tick_fn				_fn_tick_world_script				 = nullptr;
+		script_host_world_script_tick_fn				_fn_post_tick_world_script			 = nullptr;
+		script_host_world_script_tick_fn				_fn_post_physics_tick_world_script	 = nullptr;
+		script_host_world_script_tick_fn				_fn_post_animation_tick_world_script = nullptr;
+		bool											_is_initialized						 = false;
+		bool											_is_project_assembly_loaded			 = false;
+		bool											_is_project_assembly_staged			 = false;
 	};
 }

@@ -128,4 +128,123 @@ public static unsafe class NativeEntryPoints
         }
     }
 
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static nint CreateWorldScript(ulong typeId, nint nativeWorld)
+    {
+        try
+        {
+            return ProjectAssemblyRuntime.CreateWorldScript(typeId, nativeWorld);
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return 0;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int DestroyWorldScript(nint instance)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.DestroyWorldScript(instance);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int BeginPlayWorldScript(nint instance)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.BeginPlayWorldScript(instance);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int EndPlayWorldScript(nint instance)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.EndPlayWorldScript(instance);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int TickWorldScript(nint instance, float deltaTime)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.TickWorldScript(instance, deltaTime);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int PostTickWorldScript(nint instance, float deltaTime)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.PostTickWorldScript(instance, deltaTime);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int PostPhysicsTickWorldScript(nint instance, float deltaTime)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.PostPhysicsTickWorldScript(instance, deltaTime);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int PostAnimationTickWorldScript(nint instance, float deltaTime)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.PostAnimationTickWorldScript(instance, deltaTime);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
 }

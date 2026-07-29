@@ -162,6 +162,24 @@ namespace sfg
 			});
 		}
 
+		void register_component_world_script_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name			 = "component_world_script",
+				.display_name	 = "World Script",
+				.category		 = "Scripting",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_world_script_t*>(ptr), component_world_script_t{}); },
+				.fields =
+					{
+						{.name = "script_type_id", .display_name = "Script", .sub_type_id = REFLECTION_SUB_TYPE_IDENTIFIER_WORLD_SCRIPT, .offset = offsetof(component_world_script_t, script_type_id), .size = sizeof(sid_t), .type = reflected_value_type_e::u64},
+					},
+				.type_id   = type_id_t<component_world_script_t>::value,
+				.size	   = sizeof(component_world_script_t),
+				.alignment = alignof(component_world_script_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
 		void register_component_mesh_renderer_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -3315,6 +3333,7 @@ namespace sfg
 		register_component_guid_reflection(registry);
 		register_component_transform_reflection(registry);
 		register_component_name_reflection(registry);
+		register_component_world_script_reflection(registry);
 		register_component_mesh_renderer_reflection(registry);
 		register_component_sprite_renderer_reflection(registry);
 		register_particle_reflection(registry);

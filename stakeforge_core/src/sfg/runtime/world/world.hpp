@@ -67,7 +67,11 @@ namespace sfg
 		void tick_animation_prep(f32 dt);
 		void tick_animation_logic(f32 dt);
 		void tick_logic(f32 dt);
+		void tick_logic_post_physics(f32 dt);
+		void tick_logic_post_animation(f32 dt);
 		void tick_post(f32 dt);
+		void begin_world_script_play();
+		void end_world_script_play();
 
 		// -----------------------------------------------------------------------------
 		// entity
@@ -203,6 +207,11 @@ namespace sfg
 			return _main_camera_entity;
 		}
 
+		inline bool is_playing() const
+		{
+			return _is_playing;
+		}
+
 	private:
 		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
@@ -216,12 +225,13 @@ namespace sfg
 
 		struct engine_components_t
 		{
-			ecs_component_table_t* hierarchy_table = nullptr;
-			ecs_component_table_t* guid_table	   = nullptr;
-			ecs_component_table_t* transform_table = nullptr;
-			ecs_component_table_t* name_table	   = nullptr;
-			ecs_component_table_t* alive_table	   = nullptr;
-			ecs_component_table_t* prefab_table	   = nullptr;
+			ecs_component_table_t* hierarchy_table	  = nullptr;
+			ecs_component_table_t* guid_table		  = nullptr;
+			ecs_component_table_t* transform_table	  = nullptr;
+			ecs_component_table_t* name_table		  = nullptr;
+			ecs_component_table_t* alive_table		  = nullptr;
+			ecs_component_table_t* prefab_table		  = nullptr;
+			ecs_component_table_t* world_script_table = nullptr;
 		};
 
 		struct system_components_t
@@ -244,6 +254,7 @@ namespace sfg
 		text_allocator_t				  _text_allocator				= {};
 		engine_components_t				  _engine_components			= {};
 		system_components_t				  _system_components			= {};
+		void*							  _world_script_instance		= nullptr;
 		u64								  _tick_count					= 0;
 		entity_id_t						  _entity_head					= 0;
 		entity_id_t						  _main_camera_entity			= NULL_ENTITY_ID;

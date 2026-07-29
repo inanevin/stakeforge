@@ -59,6 +59,13 @@ namespace sfg
 		bool								 is_reflection_equal(const script_component_desc_t& other) const;
 	};
 
+	struct script_world_script_desc_t
+	{
+		string_t name	   = {};
+		string_t full_name = {};
+		sid_t	 type_id   = 0;
+	};
+
 	struct script_component_schema_delta_t
 	{
 		vector_t<sid_t> added			   = {};
@@ -84,16 +91,23 @@ namespace sfg
 		// queries
 		// -----------------------------------------------------------------------------
 
-		const script_component_desc_t* find_component(sid_t type_id) const;
+		const script_component_desc_t*	  find_component(sid_t type_id) const;
+		const script_world_script_desc_t* find_world_script(sid_t type_id) const;
 
 		inline const vector_t<script_component_desc_t>& get_components() const
 		{
 			return _components;
 		}
 
+		inline const vector_t<script_world_script_desc_t>& get_world_scripts() const
+		{
+			return _world_scripts;
+		}
+
 		size_t get_field_count() const;
 
 	private:
-		vector_t<script_component_desc_t> _components = {};
+		vector_t<script_component_desc_t>	 _components	= {};
+		vector_t<script_world_script_desc_t> _world_scripts = {};
 	};
 }

@@ -50,12 +50,12 @@ namespace sfg
 #endif
 	}
 
-	void log_t::log_impl(log_level level, const char* msg)
+	void log_t::log_impl(log_source_e source, log_level level, const char* msg)
 	{
-		log_impl(level, nullptr, msg);
+		log_impl(source, level, nullptr, msg);
 	}
 
-	void log_t::log_impl(log_level level, const char* func, const char* msg)
+	void log_t::log_impl(log_source_e source, log_level level, const char* func, const char* msg)
 	{
 		LOCK_GUARD(_mtx);
 
@@ -71,7 +71,7 @@ namespace sfg
 #endif
 
 #ifdef SFG_PLATFORM_WINDOWS
-		HANDLE hConsole;
+		HANDLE hConsole		= nullptr;
 		DWORD  console_mode = 0;
 		int	   color_t		= 15;
 
@@ -101,7 +101,7 @@ namespace sfg
 #endif
 
 		for (const listener_t& l : _listeners)
-			l.f(level, msg, l.user_data);
+			l.f(source, level, msg, l.user_data);
 	}
 
 	void log_t::add_listener(unsigned int id, callback_function f, void* user_data)

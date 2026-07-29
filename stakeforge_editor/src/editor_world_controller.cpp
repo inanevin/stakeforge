@@ -206,7 +206,6 @@ namespace sfg
 
 	void editor_world_controller_t::apply_script_component_schema(const script_component_schema_t& current_schema, const script_component_schema_t& candidate_schema, const script_component_schema_delta_t& delta)
 	{
-		stop_main_world_play_mode();
 		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
@@ -220,6 +219,31 @@ namespace sfg
 
 		if ((!delta.removed.empty() || !delta.layout_changed.empty()) && !_main_world.is_null())
 			set_main_world_dirty(true);
+	}
+
+	void editor_world_controller_t::prepare_script_assembly_reload(bool component_layout_changed)
+	{
+		if (component_layout_changed)
+			stop_main_world_play_mode();
+
+		for (editor_world_t* editor_world : _worlds)
+		{
+			world_t& world = editor_world->get_world();
+
+			if (world.is_playing())
+				world.end_world_script_play();
+		}
+	}
+
+	void editor_world_controller_t::complete_script_assembly_reload()
+	{
+		for (editor_world_t* editor_world : _worlds)
+		{
+			world_t& world = editor_world->get_world();
+
+			if (world.is_playing())
+				world.begin_world_script_play();
+		}
 	}
 
 	void editor_world_controller_t::resize_world(editor_world_handle_t handle, vec2u16_t render_resolution)
@@ -431,9 +455,11 @@ namespace sfg
 			world.tick_logic(dt_seconds);
 			world.update_world_transforms();
 			world.tick_physics(dt_seconds);
+			world.tick_logic_post_physics(dt_seconds);
 
 			world.tick_animation_prep(dt_seconds);
 			world.tick_animation_logic(dt_seconds);
+			world.tick_logic_post_animation(dt_seconds);
 
 			break;
 		case editor_play_mode_e::play_physics:
@@ -447,9 +473,11 @@ namespace sfg
 				world.tick_logic(dt_seconds);
 				world.update_world_transforms();
 				world.tick_physics(dt_seconds);
+				world.tick_logic_post_physics(dt_seconds);
 
 				world.tick_animation_prep(dt_seconds);
 				world.tick_animation_logic(dt_seconds);
+				world.tick_logic_post_animation(dt_seconds);
 			}
 
 			break;

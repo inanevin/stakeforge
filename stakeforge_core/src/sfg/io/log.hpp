@@ -28,21 +28,29 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifdef SFG_DEBUG
 
-#define SFG_ERR(...)   sfg::log_t::instance().log_msg_func(sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
-#define SFG_WARN(...)  sfg::log_t::instance().log_msg_func(sfg::log_level::warning, __FUNCTION__, __VA_ARGS__)
-#define SFG_INFO(...)  sfg::log_t::instance().log_msg_func(sfg::log_level::info, __FUNCTION__, __VA_ARGS__)
-#define SFG_TRACE(...) sfg::log_t::instance().log_msg(sfg::log_level::trace, __VA_ARGS__)
-#define SFG_FATAL(...) sfg::log_t::instance().log_msg_func(sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
-#define SFG_PROG(...)  sfg::log_t::instance().log_msg(sfg::log_level::progress, __VA_ARGS__)
+#define SFG_ERR(...)		sfg::log_t::instance().log_msg_func(sfg::log_source_e::engine, sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
+#define SFG_WARN(...)		sfg::log_t::instance().log_msg_func(sfg::log_source_e::engine, sfg::log_level::warning, __FUNCTION__, __VA_ARGS__)
+#define SFG_INFO(...)		sfg::log_t::instance().log_msg_func(sfg::log_source_e::engine, sfg::log_level::info, __FUNCTION__, __VA_ARGS__)
+#define SFG_TRACE(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::trace, __VA_ARGS__)
+#define SFG_FATAL(...)		sfg::log_t::instance().log_msg_func(sfg::log_source_e::engine, sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
+#define SFG_PROG(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::progress, __VA_ARGS__)
+#define SFG_GAME_ERR(...)	sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::error, __VA_ARGS__)
+#define SFG_GAME_WARN(...)	sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::warning, __VA_ARGS__)
+#define SFG_GAME_INFO(...)	sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::info, __VA_ARGS__)
+#define SFG_GAME_TRACE(...) sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::trace, __VA_ARGS__)
 
 #else
 
-#define SFG_ERR(...)   sfg::log_t::instance().log_msg(sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
-#define SFG_WARN(...)  sfg::log_t::instance().log_msg(sfg::log_level::warning, __FUNCTION__, __VA_ARGS__)
-#define SFG_INFO(...)  sfg::log_t::instance().log_msg_func(sfg::log_level::info, __FUNCTION__, __VA_ARGS__)
-#define SFG_TRACE(...) sfg::log_t::instance().log_msg(sfg::log_level::trace, __VA_ARGS__)
-#define SFG_FATAL(...) sfg::log_t::instance().log_msg(sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
-#define SFG_PROG(...)  sfg::log_t::instance().log_msg(sfg::log_level::progress, __VA_ARGS__)
+#define SFG_ERR(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
+#define SFG_WARN(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::warning, __FUNCTION__, __VA_ARGS__)
+#define SFG_INFO(...)		sfg::log_t::instance().log_msg_func(sfg::log_source_e::engine, sfg::log_level::info, __FUNCTION__, __VA_ARGS__)
+#define SFG_TRACE(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::trace, __VA_ARGS__)
+#define SFG_FATAL(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
+#define SFG_PROG(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::progress, __VA_ARGS__)
+#define SFG_GAME_ERR(...)	sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::error, __VA_ARGS__)
+#define SFG_GAME_WARN(...)	sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::warning, __VA_ARGS__)
+#define SFG_GAME_INFO(...)	sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::info, __VA_ARGS__)
+#define SFG_GAME_TRACE(...) sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::trace, __VA_ARGS__)
 
 #endif
 
@@ -54,6 +62,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	enum class log_source_e : u8
+	{
+		engine,
+		game,
+	};
+
 	enum class log_level
 	{
 		info,
@@ -66,7 +80,7 @@ namespace sfg
 	class log_t
 	{
 	public:
-		typedef void (*callback_function)(log_level lvl, const char* msg, void* user_data);
+		typedef void (*callback_function)(log_source_e source, log_level lvl, const char* msg, void* user_data);
 
 		static log_t& instance()
 		{
@@ -131,14 +145,14 @@ namespace sfg
 			return result.str();
 		}
 
-		template <typename... Args> void log_msg(log_level level, const Args&... args)
+		template <typename... Args> void log_msg(log_source_e source, log_level level, const Args&... args)
 		{
-			log_impl(level, format_str(args...).c_str());
+			log_impl(source, level, format_str(args...).c_str());
 		}
 
-		template <typename... Args> void log_msg_func(log_level level, const char* func, const Args&... args)
+		template <typename... Args> void log_msg_func(log_source_e source, log_level level, const char* func, const Args&... args)
 		{
-			log_impl(level, func, format_str(args...).c_str());
+			log_impl(source, level, func, format_str(args...).c_str());
 		}
 
 		void add_listener(unsigned int id, callback_function f, void* user_data);
@@ -154,8 +168,8 @@ namespace sfg
 
 	private:
 		const char* get_level(log_level lvl);
-		void		log_impl(log_level level, const char* msg);
-		void		log_impl(log_level level, const char* func, const char* msg);
+		void		log_impl(log_source_e source, log_level level, const char* msg);
+		void		log_impl(log_source_e source, log_level level, const char* func, const char* msg);
 
 	private:
 		template <typename T> using vector_malloc = std::vector<T, malloc_allocator_stl_t<T>>;

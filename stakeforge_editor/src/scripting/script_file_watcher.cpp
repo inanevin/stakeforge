@@ -36,7 +36,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define SCRIPT_FILE_WATCH_SCAN_TICKS   100
+#define SCRIPT_FILE_WATCH_SCAN_TICKS   6
 #define SCRIPT_FILE_WATCH_STABLE_SCANS 2
 
 	script_file_watcher_t& script_file_watcher_t::get()

@@ -192,14 +192,22 @@ namespace sfg
 
 	bool editor_script_manager_t::activate_staged_scripts()
 	{
-		script_runtime_t&					  script_runtime   = script_runtime_t::get();
-		const script_component_schema_t		  current_schema   = script_runtime.get_component_schema();
-		const script_component_schema_t&	  candidate_schema = script_runtime.get_staged_component_schema();
-		const script_component_schema_delta_t delta			   = current_schema.compare(candidate_schema);
+		script_runtime_t&					  script_runtime		   = script_runtime_t::get();
+		const script_component_schema_t		  current_schema		   = script_runtime.get_component_schema();
+		const script_component_schema_t&	  candidate_schema		   = script_runtime.get_staged_component_schema();
+		const script_component_schema_delta_t delta					   = current_schema.compare(candidate_schema);
+		const bool							  component_layout_changed = !delta.added.empty() || !delta.removed.empty() || !delta.layout_changed.empty();
+
+		if (editor_world_controller_t::is_initialized())
+			editor_world_controller_t::get().prepare_script_assembly_reload(component_layout_changed);
 
 		if (!script_runtime.activate_staged_project_assembly())
 		{
 			script_runtime.discard_staged_project_assembly();
+
+			if (editor_world_controller_t::is_initialized())
+				editor_world_controller_t::get().complete_script_assembly_reload();
+
 			SFG_ERR("could not activate the compiled C# project assembly.");
 			return false;
 		}
@@ -211,7 +219,10 @@ namespace sfg
 		active_schema.register_reflection_types();
 
 		if (editor_world_controller_t::is_initialized())
+		{
 			editor_world_controller_t::get().apply_script_component_schema(current_schema, active_schema, delta);
+			editor_world_controller_t::get().complete_script_assembly_reload();
+		}
 
 		if (!editor_surface_controller_t::get().is_empty())
 		{

@@ -81,6 +81,15 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_name_t);
 
+	struct component_world_script_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_world_script";
+
+		sid_t script_type_id = NULL_SID;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_world_script_t);
+
 	struct component_mesh_renderer_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_mesh_renderer";

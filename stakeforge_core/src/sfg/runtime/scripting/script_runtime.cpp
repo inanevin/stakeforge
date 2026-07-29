@@ -59,6 +59,26 @@ namespace sfg
 			SFG_ERR("{0}", message);
 		}
 
+		void script_host_game_log_info(const char* message)
+		{
+			SFG_GAME_INFO("{0}", message);
+		}
+
+		void script_host_game_log_error(const char* message)
+		{
+			SFG_GAME_ERR("{0}", message);
+		}
+
+		void script_host_game_log_warn(const char* message)
+		{
+			SFG_GAME_WARN("{0}", message);
+		}
+
+		void script_host_game_log_trace(const char* message)
+		{
+			SFG_GAME_TRACE("{0}", message);
+		}
+
 #ifdef SFG_PLATFORM_WINDOWS
 		void unload_hostfxr(HMODULE hostfxr_library)
 		{
@@ -157,18 +177,37 @@ namespace sfg
 		void*											fn_get_staged_project_schema		= nullptr;
 		void*											fn_activate_staged_project_assembly = nullptr;
 		void*											fn_discard_staged_project_assembly	= nullptr;
+		void*											fn_create_world_script				= nullptr;
+		void*											fn_destroy_world_script				= nullptr;
+		void*											fn_begin_play_world_script			= nullptr;
+		void*											fn_end_play_world_script			= nullptr;
+		void*											fn_tick_world_script				= nullptr;
+		void*											fn_post_tick_world_script			= nullptr;
+		void*											fn_post_physics_tick_world_script	= nullptr;
+		void*											fn_post_animation_tick_world_script = nullptr;
 
-		const i32 res_load_init					= fn_load_managed(assembly_path_wide.c_str(), managed_type, L"Initialize", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_init);
-		const i32 res_load_shutdown				= fn_load_managed(assembly_path_wide.c_str(), managed_type, L"Shutdown", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_shtdown);
-		const i32 res_stage_project_assembly	= fn_load_managed(assembly_path_wide.c_str(), managed_type, L"StageProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_stage_project_assembly);
-		const i32 res_get_staged_project_schema = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"GetStagedProjectSchema", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_get_staged_project_schema);
-		const i32 res_activate_staged_schema	= fn_load_managed(assembly_path_wide.c_str(), managed_type, L"ActivateStagedProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_activate_staged_project_assembly);
-		const i32 res_discard_staged_schema		= fn_load_managed(assembly_path_wide.c_str(), managed_type, L"DiscardStagedProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_discard_staged_project_assembly);
+		const i32 res_load_init					  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"Initialize", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_init);
+		const i32 res_load_shutdown				  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"Shutdown", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_shtdown);
+		const i32 res_stage_project_assembly	  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"StageProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_stage_project_assembly);
+		const i32 res_get_staged_project_schema	  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"GetStagedProjectSchema", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_get_staged_project_schema);
+		const i32 res_activate_staged_schema	  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"ActivateStagedProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_activate_staged_project_assembly);
+		const i32 res_discard_staged_schema		  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"DiscardStagedProjectAssembly", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_discard_staged_project_assembly);
+		const i32 res_create_world_script		  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"CreateWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_create_world_script);
+		const i32 res_destroy_world_script		  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"DestroyWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_destroy_world_script);
+		const i32 res_begin_play_world_script	  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"BeginPlayWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_begin_play_world_script);
+		const i32 res_end_play_world_script		  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"EndPlayWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_end_play_world_script);
+		const i32 res_tick_world_script			  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"TickWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_tick_world_script);
+		const i32 res_post_tick_world_script	  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"PostTickWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_post_tick_world_script);
+		const i32 res_post_physics_world_script	  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"PostPhysicsTickWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_post_physics_tick_world_script);
+		const i32 res_post_animation_world_script = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"PostAnimationTickWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_post_animation_tick_world_script);
 
 		if (res_load_init != 0 || fn_init == nullptr || res_load_shutdown != 0 || fn_shtdown == nullptr || res_stage_project_assembly != 0 || fn_stage_project_assembly == nullptr || res_get_staged_project_schema != 0 ||
-			fn_get_staged_project_schema == nullptr || res_activate_staged_schema != 0 || fn_activate_staged_project_assembly == nullptr || res_discard_staged_schema != 0 || fn_discard_staged_project_assembly == nullptr)
+			fn_get_staged_project_schema == nullptr || res_activate_staged_schema != 0 || fn_activate_staged_project_assembly == nullptr || res_discard_staged_schema != 0 || fn_discard_staged_project_assembly == nullptr || res_create_world_script != 0 ||
+			fn_create_world_script == nullptr || res_destroy_world_script != 0 || fn_destroy_world_script == nullptr || res_begin_play_world_script != 0 || fn_begin_play_world_script == nullptr || res_end_play_world_script != 0 ||
+			fn_end_play_world_script == nullptr || res_tick_world_script != 0 || fn_tick_world_script == nullptr || res_post_tick_world_script != 0 || fn_post_tick_world_script == nullptr || res_post_physics_world_script != 0 ||
+			fn_post_physics_tick_world_script == nullptr || res_post_animation_world_script != 0 || fn_post_animation_tick_world_script == nullptr)
 		{
-			SFG_ERR("could not load managed entry points, errors: {0}, {1}, {2}, {3}, {4}, {5}", res_load_init, res_load_shutdown, res_stage_project_assembly, res_get_staged_project_schema, res_activate_staged_schema, res_discard_staged_schema);
+			SFG_ERR("could not load one or more managed scripting entry points.");
 			unload_hostfxr(hostfxr_library);
 			return false;
 		}
@@ -179,19 +218,31 @@ namespace sfg
 		const script_host_get_staged_project_schema_fn		  get_staged_project_schema		   = reinterpret_cast<script_host_get_staged_project_schema_fn>(fn_get_staged_project_schema);
 		const script_host_activate_staged_project_assembly_fn activate_staged_project_assembly = reinterpret_cast<script_host_activate_staged_project_assembly_fn>(fn_activate_staged_project_assembly);
 		const script_host_discard_staged_project_assembly_fn  discard_staged_project_assembly  = reinterpret_cast<script_host_discard_staged_project_assembly_fn>(fn_discard_staged_project_assembly);
+		const script_host_create_world_script_fn			  create_world_script			   = reinterpret_cast<script_host_create_world_script_fn>(fn_create_world_script);
+		const script_host_world_script_lifecycle_fn			  destroy_world_script			   = reinterpret_cast<script_host_world_script_lifecycle_fn>(fn_destroy_world_script);
+		const script_host_world_script_lifecycle_fn			  begin_play_world_script		   = reinterpret_cast<script_host_world_script_lifecycle_fn>(fn_begin_play_world_script);
+		const script_host_world_script_lifecycle_fn			  end_play_world_script			   = reinterpret_cast<script_host_world_script_lifecycle_fn>(fn_end_play_world_script);
+		const script_host_world_script_tick_fn				  tick_world_script				   = reinterpret_cast<script_host_world_script_tick_fn>(fn_tick_world_script);
+		const script_host_world_script_tick_fn				  post_tick_world_script		   = reinterpret_cast<script_host_world_script_tick_fn>(fn_post_tick_world_script);
+		const script_host_world_script_tick_fn				  post_physics_tick_world_script   = reinterpret_cast<script_host_world_script_tick_fn>(fn_post_physics_tick_world_script);
+		const script_host_world_script_tick_fn				  post_animation_tick_world_script = reinterpret_cast<script_host_world_script_tick_fn>(fn_post_animation_tick_world_script);
 
 		_native_api = {
-			.size	   = static_cast<u32>(sizeof(script_host_native_api_t)),
-			.version   = 3,
-			.log_info  = script_host_log_info,
-			.log_error = script_host_log_error,
-			.platform  = &get_script_api_platform(),
-			.render	   = &get_script_api_render(),
-			.resource  = &get_script_api_resource(),
-			.world	   = &get_script_api_world(),
-			.audio	   = &get_script_api_audio(),
-			.physics   = &get_script_api_physics(),
-			.animation = &get_script_api_animation(),
+			.size			= static_cast<u32>(sizeof(script_host_native_api_t)),
+			.version		= 4,
+			.log_info		= script_host_log_info,
+			.log_error		= script_host_log_error,
+			.platform		= &get_script_api_platform(),
+			.render			= &get_script_api_render(),
+			.resource		= &get_script_api_resource(),
+			.world			= &get_script_api_world(),
+			.audio			= &get_script_api_audio(),
+			.physics		= &get_script_api_physics(),
+			.animation		= &get_script_api_animation(),
+			.game_log_info	= script_host_game_log_info,
+			.game_log_error = script_host_game_log_error,
+			.game_log_warn	= script_host_game_log_warn,
+			.game_log_trace = script_host_game_log_trace,
 		};
 
 		const i32 res_managed_initialize = initialize(&_native_api);
@@ -203,12 +254,21 @@ namespace sfg
 			return false;
 		}
 
-		_hostfxr_library				   = hostfxr_library;
-		_shutdown						   = shutdown;
-		_fn_stage_project_assembly		   = stage_project_assembly;
-		_fn_get_staged_project_schema	   = get_staged_project_schema;
-		_fn_activate_staged_project_schema = activate_staged_project_assembly;
-		_fn_discard_staged_project_schema  = discard_staged_project_assembly;
+		_hostfxr_library					 = hostfxr_library;
+		_shutdown							 = shutdown;
+		_fn_stage_project_assembly			 = stage_project_assembly;
+		_fn_get_staged_project_schema		 = get_staged_project_schema;
+		_fn_activate_staged_project_schema	 = activate_staged_project_assembly;
+		_fn_discard_staged_project_schema	 = discard_staged_project_assembly;
+		_fn_create_world_script				 = create_world_script;
+		_fn_destroy_world_script			 = destroy_world_script;
+		_fn_begin_play_world_script			 = begin_play_world_script;
+		_fn_end_play_world_script			 = end_play_world_script;
+		_fn_tick_world_script				 = tick_world_script;
+		_fn_post_tick_world_script			 = post_tick_world_script;
+		_fn_post_physics_tick_world_script	 = post_physics_tick_world_script;
+		_fn_post_animation_tick_world_script = post_animation_tick_world_script;
+		_is_initialized						 = true;
 
 		reflection_registry_t::get().reserve_script_capacity();
 
@@ -233,17 +293,26 @@ namespace sfg
 
 		reflection_registry_t::get().remove_script_types();
 
-		_component_schema				   = {};
-		_staged_component_schema		   = {};
-		_native_api						   = {};
-		_hostfxr_library				   = nullptr;
-		_shutdown						   = nullptr;
-		_fn_stage_project_assembly		   = nullptr;
-		_fn_get_staged_project_schema	   = nullptr;
-		_fn_activate_staged_project_schema = nullptr;
-		_fn_discard_staged_project_schema  = nullptr;
-		_is_project_assembly_loaded		   = false;
-		_is_project_assembly_staged		   = false;
+		_component_schema					 = {};
+		_staged_component_schema			 = {};
+		_native_api							 = {};
+		_hostfxr_library					 = nullptr;
+		_shutdown							 = nullptr;
+		_fn_stage_project_assembly			 = nullptr;
+		_fn_get_staged_project_schema		 = nullptr;
+		_fn_activate_staged_project_schema	 = nullptr;
+		_fn_discard_staged_project_schema	 = nullptr;
+		_fn_create_world_script				 = nullptr;
+		_fn_destroy_world_script			 = nullptr;
+		_fn_begin_play_world_script			 = nullptr;
+		_fn_end_play_world_script			 = nullptr;
+		_fn_tick_world_script				 = nullptr;
+		_fn_post_tick_world_script			 = nullptr;
+		_fn_post_physics_tick_world_script	 = nullptr;
+		_fn_post_animation_tick_world_script = nullptr;
+		_is_initialized						 = false;
+		_is_project_assembly_loaded			 = false;
+		_is_project_assembly_staged			 = false;
 	}
 
 	bool script_runtime_t::stage_project_assembly(const char* assembly_path)
@@ -327,6 +396,65 @@ namespace sfg
 
 		_staged_component_schema	= {};
 		_is_project_assembly_staged = false;
+	}
+
+	void* script_runtime_t::create_world_script(sid_t type_id, void* world)
+	{
+		SFG_ASSERT(_is_project_assembly_loaded);
+
+		return _fn_create_world_script(type_id, world);
+	}
+
+	void script_runtime_t::destroy_world_script(void* instance)
+	{
+		SFG_ASSERT(instance != nullptr);
+
+		const i32 result = _fn_destroy_world_script(instance);
+
+		if (result != 0)
+			SFG_ERR("managed C# world script destruction failed, error: {0}", result);
+	}
+
+	bool script_runtime_t::begin_play_world_script(void* instance)
+	{
+		SFG_ASSERT(instance != nullptr);
+
+		return _fn_begin_play_world_script(instance) == 0;
+	}
+
+	bool script_runtime_t::end_play_world_script(void* instance)
+	{
+		SFG_ASSERT(instance != nullptr);
+
+		return _fn_end_play_world_script(instance) == 0;
+	}
+
+	bool script_runtime_t::tick_world_script(void* instance, f32 delta_time)
+	{
+		SFG_ASSERT(instance != nullptr);
+
+		return _fn_tick_world_script(instance, delta_time) == 0;
+	}
+
+	bool script_runtime_t::post_tick_world_script(void* instance, f32 delta_time)
+	{
+		SFG_ASSERT(instance != nullptr);
+
+		return _fn_post_tick_world_script(instance, delta_time) == 0;
+	}
+
+	bool script_runtime_t::post_physics_tick_world_script(void* instance, f32 delta_time)
+	{
+		SFG_ASSERT(instance != nullptr);
+
+		return _fn_post_physics_tick_world_script(instance, delta_time) == 0;
+	}
+
+	bool script_runtime_t::post_animation_tick_world_script(void* instance, f32 delta_time)
+	{
+		SFG_ASSERT(instance != nullptr);
+
+		return _fn_post_animation_tick_world_script(instance, delta_time) == 0;
 	}
 
 }
