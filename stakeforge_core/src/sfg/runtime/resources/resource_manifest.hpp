@@ -21,6 +21,8 @@ namespace sfg
 	struct resource_manifest_t
 	{
 		vector_t<resource_manifest_entry_t> resources;
+
+		bool load_from_file(const char* path);
 	};
 
 	SFG_DEFINE_TYPE_ID(resource_manifest_entry_t);

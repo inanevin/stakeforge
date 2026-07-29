@@ -34,6 +34,10 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define MODAL_FRAME_WIDTH_X				0.4f
+#define MODAL_TITLE_TEXT_CAPACITY		256u
+#define MODAL_DESCRIPTION_TEXT_CAPACITY 4096u
+
 	namespace
 	{
 		constexpr u32 MODAL_FG_DRAW_ORDER = 60000u;
@@ -107,11 +111,13 @@ namespace sfg
 		window_in.pos_value		   = {0.5f, 0.5f};
 		window_in.anchor_x		   = ui::anchor_e::center;
 		window_in.anchor_y		   = ui::anchor_e::center;
-		window_in.size_mode_x	   = ui::axis_mode_e::max_children;
+		window_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		window_in.size_mode_y	   = ui::axis_mode_e::sum_children;
+		window_in.size_value.x	   = MODAL_FRAME_WIDTH_X;
 		window_in.flow			   = ui::flow_e::column;
 		window_in.child_spacing	   = theme.margin_vertical * 2.0f;
 		window_in.child_margins	   = {theme.margin_vertical * 4.0f, theme.margin_horizontal * 3.0f, theme.margin_vertical * 3.0f, theme.margin_horizontal * 3.0f};
+		window_in.child_clip_mode  = ui::clip_mode_e::cpu_rect;
 
 		editor_widgets_frames_t::make_frame_modal(ui, _window);
 
@@ -219,16 +225,21 @@ namespace sfg
 
 		_button_count	 = button_count;
 		_buttons_visible = show_buttons;
+
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 			_buttons[i] = i < button_count ? buttons[i] : editor_modal_button_desc_t{};
 
-		_ui->set_widget_text(_title, title);
-		_ui->set_widget_text(_description, description);
+		const size_t title_len		  = strlen(title);
+		const u32	 stored_title_len = title_len > MODAL_TITLE_TEXT_CAPACITY ? MODAL_TITLE_TEXT_CAPACITY : static_cast<u32>(title_len);
+
+		_ui->set_widget_text(_title, title, stored_title_len);
+		set_body_text(description);
 		_ui->get_paint().def(_title).text.color = get_title_color(severity);
 
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
 			const bool visible = show_buttons && i < button_count;
+
 			if (visible)
 				_button_widgets[i]->set_text(buttons[i].text);
 			else
@@ -237,10 +248,12 @@ namespace sfg
 
 		if (content != nullptr && content->init != nullptr)
 		{
-			_content						= *content;
-			_content_active					= true;
-			ui::layout_tree_t& tree			= _ui->get_tree();
-			ui::layout_in_t&   window_in	= tree.in(_window);
+			_content		= *content;
+			_content_active = true;
+
+			ui::layout_tree_t& tree		 = _ui->get_tree();
+			ui::layout_in_t&   window_in = tree.in(_window);
+
 			window_in.size_mode_x			= _content.frame_width_x > 0.0f ? ui::axis_mode_e::parent_relative : ui::axis_mode_e::max_children;
 			window_in.size_value.x			= _content.frame_width_x;
 			tree.in(_container).size_mode_x = _content.fill_x ? ui::axis_mode_e::parent_relative : ui::axis_mode_e::max_children;
@@ -252,7 +265,11 @@ namespace sfg
 
 	void editor_modal_controller_t::set_body_text(const char* text)
 	{
-		_ui->set_widget_text(_description, text != nullptr ? text : "");
+		const char*	 description_text		= text != nullptr ? text : "";
+		const size_t description_len		= strlen(description_text);
+		const u32	 stored_description_len = description_len > MODAL_DESCRIPTION_TEXT_CAPACITY ? MODAL_DESCRIPTION_TEXT_CAPACITY : static_cast<u32>(description_len);
+
+		_ui->set_widget_text(_description, description_text, stored_description_len);
 	}
 
 	void editor_modal_controller_t::close_modal()
@@ -301,15 +318,19 @@ namespace sfg
 	{
 		if (!_content_active)
 			return;
+
 		if (_content.uninit != nullptr)
 			_content.uninit(_content.user_data);
+
 		_content		= {};
 		_content_active = false;
+
 		if (_ui != nullptr && _container != NULL_WIDGET)
 		{
-			ui::layout_tree_t& tree			= _ui->get_tree();
-			tree.in(_window).size_mode_x	= ui::axis_mode_e::max_children;
-			tree.in(_window).size_value.x	= 0.0f;
+			ui::layout_tree_t& tree = _ui->get_tree();
+
+			tree.in(_window).size_mode_x	= ui::axis_mode_e::parent_relative;
+			tree.in(_window).size_value.x	= MODAL_FRAME_WIDTH_X;
 			tree.in(_container).size_mode_x = ui::axis_mode_e::max_children;
 		}
 	}

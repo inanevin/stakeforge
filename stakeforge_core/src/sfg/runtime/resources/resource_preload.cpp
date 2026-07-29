@@ -274,39 +274,10 @@ namespace sfg
 			return true;
 		}
 
-		const string_t		 json_text = file_system_t::read_file_as_string(params.manifest_path.c_str());
-		const nlohmann::json doc	   = nlohmann::json::parse(json_text, nullptr, false);
+		resource_manifest_t manifest = {};
 
-		if (doc.is_discarded())
-		{
-			SFG_ERR("failed to parse manifest at {0}", params.manifest_path.c_str());
+		if (!manifest.load_from_file(params.manifest_path.c_str()))
 			return false;
-		}
-
-		resource_manifest_t	 manifest  = {};
-		const nlohmann::json resources = doc.value("resources", nlohmann::json::array());
-
-		if (!resources.is_array())
-		{
-			SFG_ERR("invalid manifest resources at {0}", params.manifest_path.c_str());
-			return false;
-		}
-
-		manifest.resources.reserve(resources.size());
-
-		for (const nlohmann::json& item : resources)
-		{
-			resource_manifest_entry_t entry = {};
-			entry.config					= nlohmann::json::object();
-
-			if (!reflection_registry_t::get().type_from_json(type_id_t<resource_manifest_entry_t>::value, &entry, nullptr, item))
-			{
-				SFG_ERR("invalid manifest entry at {0}", params.manifest_path.c_str());
-				return false;
-			}
-
-			manifest.resources.push_back(std::move(entry));
-		}
 
 		file_system_t::ensure_directory(_cache_dir.c_str());
 

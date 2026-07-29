@@ -29,10 +29,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/runtime/resources/resource_type.hpp>
 
 namespace sfg
 {
 	struct editor_asset_t;
+
+	struct editor_asset_dependency_t
+	{
+		sid_t			sid	 = NULL_SID;
+		resource_type_e type = resource_type_e::invalid;
+	};
 
 	class editor_asset_dependencies_t final
 	{
@@ -42,6 +49,6 @@ namespace sfg
 		editor_asset_dependencies_t(const editor_asset_dependencies_t&)			   = delete;
 		editor_asset_dependencies_t& operator=(const editor_asset_dependencies_t&) = delete;
 
-		static void fetch_dependencies(const editor_asset_t& asset, vector_t<sid_t>& out_dependencies);
+		static bool fetch_dependencies(const editor_asset_t& asset, vector_t<editor_asset_dependency_t>& out_dependencies);
 	};
 }

@@ -42,18 +42,20 @@ namespace sfg
 
 	struct project_package_meta_t
 	{
-		static inline constexpr const char* FILE_NAME	 = "project_meta.sfg_bin";
-		static inline constexpr u32			WIRE_MAGIC	 = make_resource_wire_magic('P', 'M', 'E', 'T');
-		static inline constexpr u32			WIRE_VERSION = 3;
+		static inline constexpr const char* FILE_NAME					 = "project_meta.sfg_bin";
+		static inline constexpr const char* RESOURCE_FILE_NAME			 = "resources.sfg_bin";
+		static inline constexpr u32			WIRE_MAGIC					 = make_resource_wire_magic('P', 'M', 'E', 'T');
+		static inline constexpr u32			WIRE_VERSION				 = 6;
+		static inline constexpr u32			RESOURCE_STREAM_WIRE_MAGIC	 = make_resource_wire_magic('R', 'S', 'T', 'R');
+		static inline constexpr u32			RESOURCE_STREAM_WIRE_VERSION = 3;
 
-		hash_map_t<sid_t, resource_map_info_t> resource_map		   = {};
-		project_settings_t					   project_settings	   = {};
-		vector_t<sid_t>						   preloaded_resources = {};
-		sid_t								   main_world		   = NULL_SID;
-		sid_t								   debug_font		   = NULL_SID;
-		vec2u16_t							   window_resolution   = {1920, 1080};
-		window_style_e						   window_style		   = window_style_e::app_window;
-		bool								   is_fullscreen	   = false;
+		hash_map_t<sid_t, resource_map_info_t> resource_map		 = {};
+		project_settings_t					   project_settings	 = {};
+		vector_t<sid_t>						   worlds			 = {};
+		sid_t								   main_world		 = NULL_SID;
+		vec2u16_t							   window_resolution = {1920, 1080};
+		window_style_e						   window_style		 = window_style_e::app_window;
+		bool								   is_fullscreen	 = false;
 
 		bool serialize(ostream_t& stream) const;
 		bool deserialize(istream_t& stream);

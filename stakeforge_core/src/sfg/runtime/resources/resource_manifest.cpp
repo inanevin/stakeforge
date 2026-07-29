@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
+#include <sfg/io/file_system.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
@@ -40,6 +42,52 @@ namespace sfg
 		{
 			*static_cast<nlohmann::json*>(obj) = in_json;
 		}
+	}
+
+	bool resource_manifest_t::load_from_file(const char* path)
+	{
+		if (!file_system_t::exists(path))
+		{
+			SFG_ERR("resource manifest does not exist at {0}", path);
+			return false;
+		}
+
+		const string_t		 json_text = file_system_t::read_file_as_string(path);
+		const nlohmann::json doc	   = nlohmann::json::parse(json_text, nullptr, false);
+
+		if (doc.is_discarded())
+		{
+			SFG_ERR("failed to parse resource manifest at {0}", path);
+			return false;
+		}
+
+		const nlohmann::json manifest_resources = doc.value("resources", nlohmann::json::array());
+
+		if (!manifest_resources.is_array())
+		{
+			SFG_ERR("invalid resource manifest resources at {0}", path);
+			return false;
+		}
+
+		vector_t<resource_manifest_entry_t> loaded_resources = {};
+		loaded_resources.reserve(manifest_resources.size());
+
+		for (const nlohmann::json& item : manifest_resources)
+		{
+			resource_manifest_entry_t entry = {};
+			entry.config					= nlohmann::json::object();
+
+			if (!reflection_registry_t::get().type_from_json(type_id_t<resource_manifest_entry_t>::value, &entry, nullptr, item))
+			{
+				SFG_ERR("invalid resource manifest entry at {0}", path);
+				return false;
+			}
+
+			loaded_resources.push_back(std::move(entry));
+		}
+
+		resources = std::move(loaded_resources);
+		return true;
 	}
 
 	resource_manifest_entry_reflection_t::resource_manifest_entry_reflection_t()

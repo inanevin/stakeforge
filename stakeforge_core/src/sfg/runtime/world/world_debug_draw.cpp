@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "system_components.hpp"
 #include "world.hpp"
 
+#include <sfg/common/hashing.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/math/aabb.hpp>
 #include <sfg/math/color.hpp>
@@ -49,6 +50,7 @@ namespace sfg
 {
 #define DEBUG_DRAW_MISSING_RESOURCE_TEXT_SIZE_PX		 32.0f
 #define DEBUG_DRAW_MISSING_RESOURCE_TEXT_LINE_SPACING_PX 36.0f
+#define WORLD_DEBUG_DRAW_FONT							 TO_SIDC("engine/resource_pack/IBMPlexMono-Regular.ttf")
 
 	world_debug_draw_t::world_debug_draw_t()  = default;
 	world_debug_draw_t::~world_debug_draw_t() = default;
@@ -843,7 +845,7 @@ namespace sfg
 				continue;
 			}
 
-			const resource_handle_t font_handle = command.font == NULL_RESOURCE_HANDLE ? _config.font : command.font;
+			const resource_handle_t font_handle = command.font == NULL_RESOURCE_HANDLE ? WORLD_DEBUG_DRAW_FONT : command.font;
 			SFG_ASSERT(font_handle != NULL_RESOURCE_HANDLE);
 
 			const font_runtime_t* font = resource_manager.find_runtime<font_runtime_t>(font_handle);

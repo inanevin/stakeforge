@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/atomic.hpp>
+#include <sfg/data/string.hpp>
 #include <sfg/data/unique.hpp>
 
 namespace sfg
@@ -79,11 +80,11 @@ namespace sfg
 		bool cook_project_worker(const char* target_path);
 
 	private:
+		string_t								_cook_failure_reason = {};
 		unique_t<editor_project_cook_options_t> _cook_options;
 		unique_t<project_package_meta_t>		_package_meta;
 		unique_t<editor_modal_project_cooker_t> _options_modal;
 		unique_t<editor_modal_progress_bar_t>	_progress_modal;
-		atomic_t<cook_state_e>					_cook_state	 = cook_state_e::idle;
-		bool									_initialized = false;
+		atomic_t<cook_state_e>					_cook_state = cook_state_e::idle;
 	};
 }

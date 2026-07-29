@@ -262,10 +262,7 @@ namespace sfg
 		SFG_ASSERT(init_config.snapshot.light_initial_capacity <= init_config.render_context.light_max);
 		SFG_ASSERT(init_config.snapshot.reflection_probe_initial_capacity <= init_config.render_context.reflection_probe_max);
 
-		world_init_config_t world_config = init_config.world;
-		world_config.debug_draw.font	 = editor_theme_t::get().font_default;
-
-		_world.init(world_config);
+		_world.init(init_config.world);
 		_edit_context.init(edit_type);
 		_edit_context.set_world(handle);
 		_input_controller.init(*this, handle);

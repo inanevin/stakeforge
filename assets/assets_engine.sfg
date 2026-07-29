@@ -107,6 +107,14 @@
                 "schema": "sfg.schema.shader",
                 "type": 23
             }
+        },
+        {
+            "name": "debug_font",
+            "path": "engine/resource_pack/IBMPlexMono-Regular.ttf",
+            "type": 2,
+            "config": {
+                "schema": "sfg.schema.font"
+            }
         }
     ]
 }

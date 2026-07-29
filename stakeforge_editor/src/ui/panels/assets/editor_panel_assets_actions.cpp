@@ -504,7 +504,9 @@ namespace sfg
 
 		if (asset_node.type == editor_asset_node_type_e::script_file)
 		{
-			process::open_file(asset_node.full_path.c_str());
+			const string_t project_root = file_system_t::get_directory_of_file(editor_project_t::get()._runtime.path.c_str());
+
+			process::open_file_in_vscode(project_root.c_str(), asset_node.full_path.c_str());
 			return;
 		}
 

@@ -28,21 +28,19 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/runtime/resources/resource_handle.hpp>
 
 namespace sfg
 {
 	struct world_debug_draw_config_t
 	{
-		resource_handle_t font						= NULL_RESOURCE_HANDLE;
-		u32				  line_vertex_max_count		= 0;
-		u32				  line_index_max_count		= 0;
-		u32				  triangle_vertex_max_count = 0;
-		u32				  triangle_index_max_count	= 0;
-		u32				  text_command_max_count	= 0;
-		u32				  text_budget_bytes			= 0;
-		u32				  text_vertex_max_count		= 0;
-		u32				  text_index_max_count		= 0;
-		u32				  texture_max_count			= 0;
+		u32 line_vertex_max_count	  = 0;
+		u32 line_index_max_count	  = 0;
+		u32 triangle_vertex_max_count = 0;
+		u32 triangle_index_max_count  = 0;
+		u32 text_command_max_count	  = 0;
+		u32 text_budget_bytes		  = 0;
+		u32 text_vertex_max_count	  = 0;
+		u32 text_index_max_count	  = 0;
+		u32 texture_max_count		  = 0;
 	};
 }

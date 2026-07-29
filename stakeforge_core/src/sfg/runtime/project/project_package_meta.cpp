@@ -57,15 +57,14 @@ namespace sfg
 			stream << static_cast<u64>(resource_info.size);
 		}
 
+		const u32 world_count = static_cast<u32>(worlds.size());
+
+		stream << world_count;
+
+		for (sid_t world : worlds)
+			stream << world;
+
 		stream << main_world;
-		stream << debug_font;
-
-		const u32 preload_count = static_cast<u32>(preloaded_resources.size());
-
-		stream << preload_count;
-
-		for (sid_t resource_id : preloaded_resources)
-			stream << resource_id;
 
 		return true;
 	}
@@ -117,17 +116,16 @@ namespace sfg
 				return false;
 		}
 
+		u32 world_count = 0;
+
+		stream >> world_count;
+
+		meta.worlds.resize(world_count);
+
+		for (sid_t& world : meta.worlds)
+			stream >> world;
+
 		stream >> meta.main_world;
-		stream >> meta.debug_font;
-
-		u32 preload_count = 0;
-
-		stream >> preload_count;
-
-		meta.preloaded_resources.resize(preload_count);
-
-		for (sid_t& resource_id : meta.preloaded_resources)
-			stream >> resource_id;
 
 		*this = std::move(meta);
 

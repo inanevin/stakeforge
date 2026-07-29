@@ -1,0 +1,43 @@
+{
+    "bool_value": true,
+    "enum32_value": 2,
+    "enum8_value": 2,
+    "f32_value": 12.5,
+    "i16_value": -1234,
+    "i32_value": -1234567,
+    "i64_value": -12345678901234,
+    "i8_value": -88,
+    "inplace_vector2_value": [
+        -7,
+        31
+    ],
+    "nested_value": {
+        "bool_value": true,
+        "enum32_value": 1,
+        "enum8_value": 1,
+        "f32_value": -2.25,
+        "i32_value": -5150,
+        "inplace_vector2_value": [
+            9,
+            12
+        ],
+        "string_value": "nested reflection object",
+        "u16_value": 4096,
+        "u8_value": 77,
+        "vector_value": [
+            -3,
+            5,
+            8
+        ]
+    },
+    "string_value": "reflection registry v2",
+    "u16_value": 65000,
+    "u32_value": 123456789,
+    "u64_value": 1234605616436508552,
+    "u8_value": 222,
+    "vector_value": [
+        17,
+        29,
+        41
+    ]
+}
