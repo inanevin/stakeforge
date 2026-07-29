@@ -265,10 +265,7 @@ namespace sfg
 			_main_world.update_world_transforms(false);
 
 		_main_world.draw_world_script_debug();
-
-#ifdef SFG_DEBUG
 		_main_world.get_debug_draw().debug_draw_missing_resources(_main_world);
-#endif
 
 		produce_snapshot();
 	}

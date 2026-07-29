@@ -146,6 +146,14 @@ namespace sfg
 			return;
 		}
 
+		editor_world_controller_t& world_controller = editor_app_t::get().get_world_controller();
+
+		if (!world_controller.get_main_world_handle().is_null() && !world_controller.save_main_world())
+		{
+			modal.request_modal("Cook Project", "The main world could not be saved.", buttons, static_cast<u16>(std::size(buttons)), editor_modal_severity_e::error);
+			return;
+		}
+
 		editor_app_t::get().get_editor_work_executor().wait_for_all();
 
 		*_cook_options = options;
@@ -167,6 +175,13 @@ namespace sfg
 
 	bool editor_project_cooker_t::cook_project_worker(const char* target_path)
 	{
+		if (!file_system_t::ensure_directory(editor_project_t::get()._runtime.cook_path.c_str()))
+		{
+			_cook_failure_reason = "Failed to create the cooked project directory.";
+			SFG_ERR("failed to create the cooked project directory.");
+			return false;
+		}
+
 		// load the engine resources that always ship
 		resource_manifest_t engine_manifest = {};
 
@@ -249,6 +264,7 @@ namespace sfg
 		resource_stream << static_cast<sid_t>(DEFAULT_MESH_CUBE_GUID);
 		resource_stream << static_cast<u64>(primitive_stream.get_size());
 		resource_stream.write_raw(primitive_stream.get_raw(), primitive_stream.get_size());
+		SFG_TRACE("writing cooked resource \"Cube\" ({0}, {1} bytes).", DEFAULT_MESH_CUBE_GUID, primitive_stream.get_size());
 
 		if (!editor_mesh_generator_t::generate_sphere({}, primitive_stream))
 		{
@@ -259,6 +275,7 @@ namespace sfg
 		resource_stream << static_cast<sid_t>(DEFAULT_MESH_SPHERE_GUID);
 		resource_stream << static_cast<u64>(primitive_stream.get_size());
 		resource_stream.write_raw(primitive_stream.get_raw(), primitive_stream.get_size());
+		SFG_TRACE("writing cooked resource \"Sphere\" ({0}, {1} bytes).", DEFAULT_MESH_SPHERE_GUID, primitive_stream.get_size());
 
 		if (!editor_mesh_generator_t::generate_cylinder({}, primitive_stream))
 		{
@@ -269,6 +286,7 @@ namespace sfg
 		resource_stream << static_cast<sid_t>(DEFAULT_MESH_CYLINDER_GUID);
 		resource_stream << static_cast<u64>(primitive_stream.get_size());
 		resource_stream.write_raw(primitive_stream.get_raw(), primitive_stream.get_size());
+		SFG_TRACE("writing cooked resource \"Cylinder\" ({0}, {1} bytes).", DEFAULT_MESH_CYLINDER_GUID, primitive_stream.get_size());
 
 		if (!editor_mesh_generator_t::generate_capsule({}, primitive_stream))
 		{
@@ -279,6 +297,7 @@ namespace sfg
 		resource_stream << static_cast<sid_t>(DEFAULT_MESH_CAPSULE_GUID);
 		resource_stream << static_cast<u64>(primitive_stream.get_size());
 		resource_stream.write_raw(primitive_stream.get_raw(), primitive_stream.get_size());
+		SFG_TRACE("writing cooked resource \"Capsule\" ({0}, {1} bytes).", DEFAULT_MESH_CAPSULE_GUID, primitive_stream.get_size());
 
 		if (!editor_mesh_generator_t::generate_plane({.size = vec2f_t::one}, primitive_stream))
 		{
@@ -289,6 +308,7 @@ namespace sfg
 		resource_stream << static_cast<sid_t>(DEFAULT_MESH_PLANE_GUID);
 		resource_stream << static_cast<u64>(primitive_stream.get_size());
 		resource_stream.write_raw(primitive_stream.get_raw(), primitive_stream.get_size());
+		SFG_TRACE("writing cooked resource \"Plane\" ({0}, {1} bytes).", DEFAULT_MESH_PLANE_GUID, primitive_stream.get_size());
 
 		// track unique resources and their expected types
 		vector_t<editor_asset_dependency_t> project_resources = {};
@@ -325,6 +345,7 @@ namespace sfg
 			resource_stream << entry.type;
 			resource_stream << static_cast<u64>(cached_file.get_size());
 			resource_stream.write_raw(cached_file.get_raw(), cached_file.get_size());
+			SFG_TRACE("writing cooked resource \"{0}\" ({1}, {2} bytes).", entry.name, sid, cached_file.get_size());
 
 			resource_types.emplace(sid, entry.type);
 		}
@@ -376,7 +397,11 @@ namespace sfg
 				return false;
 			}
 
+			const editor_asset_node_t* node = editor_asset_manager_t::get().find_asset_node(world.sid);
+			SFG_ASSERT(node != nullptr);
+
 			resource_stream.write_raw(reinterpret_cast<const u8*>(world_json.data()), world_json.size());
+			SFG_TRACE("writing cooked resource \"{0}\" ({1}, {2} bytes).", node->name, world.sid, world_json.size());
 
 			dependencies.resize(0);
 
@@ -472,7 +497,11 @@ namespace sfg
 				return false;
 			}
 
+			const editor_asset_node_t* node = editor_asset_manager_t::get().find_asset_node(resource.sid);
+			SFG_ASSERT(node != nullptr);
+
 			resource_stream.write_raw(cached_file.get_raw(), cached_file.get_size());
+			SFG_TRACE("writing cooked resource \"{0}\" ({1}, {2} bytes).", node->name, resource.sid, cached_file.get_size());
 		}
 
 		// serialize the finished package metadata

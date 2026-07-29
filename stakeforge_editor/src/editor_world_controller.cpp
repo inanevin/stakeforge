@@ -379,11 +379,9 @@ namespace sfg
 			editor_world->get_world().draw_world_script_debug();
 			editor_world->draw_debug();
 
-#ifdef SFG_DEBUG
 			world_t& world = editor_world->get_world();
 
 			world.get_debug_draw().debug_draw_missing_resources(world);
-#endif
 
 			editor_world->produce_snapshot();
 		}
