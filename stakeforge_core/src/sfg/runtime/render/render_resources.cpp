@@ -11,6 +11,9 @@
 
 namespace sfg
 {
+#define TEXTURE_REGION_UPLOAD_PITCH_ALIGNMENT	  256u
+#define TEXTURE_REGION_UPLOAD_PLACEMENT_ALIGNMENT 512u
+
 	render_resources_t& render_resources_t::get()
 	{
 		static render_resources_t instance;
@@ -19,8 +22,23 @@ namespace sfg
 
 	void render_resources_t::init(const render_resources_config_t& config)
 	{
+		SFG_ASSERT(config.texture_region_upload_staging_budget_bytes != 0);
+
 		get_texture_upload_queue().init(config.texture_upload_initial_capacity);
+		_pending_texture_region_data_uploads.reserve(config.texture_upload_initial_capacity);
 		_pending_material_parameter_updates.reserve(config.pending_material_update_initial_capacity);
+		_texture_region_upload_staging_capacity = (config.texture_region_upload_staging_budget_bytes + TEXTURE_REGION_UPLOAD_PLACEMENT_ALIGNMENT - 1u) & ~(TEXTURE_REGION_UPLOAD_PLACEMENT_ALIGNMENT - 1u);
+
+		gfx_backend& backend = gfx_backend::get();
+
+		for (u8 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
+		{
+			resource_desc_t staging_desc = {};
+			staging_desc.size			 = _texture_region_upload_staging_capacity;
+			staging_desc.flags			 = resource_flags::rf_cpu_visible;
+			staging_desc.set_name("texture_region_upload_staging");
+			_texture_region_upload_staging[frame_index] = backend.create_resource(staging_desc);
+		}
 
 		if (config.resource_initial_capacity != 0)
 			_resources.reserve(config.resource_initial_capacity);
@@ -50,6 +68,11 @@ namespace sfg
 	{
 		drain_requests();
 
+		for (request_t& request : _pending_texture_region_data_uploads)
+			SFG_FREE(request.data);
+
+		_pending_texture_region_data_uploads.resize(0);
+
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_sampler, .render_handle = _default_linear_sampler});
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_texture, .render_handle = _invalid_texture});
 		_deferred_destroys.push_back({.kind = request_kind_e::destroy_resource, .render_handle = _invalid_texture_staging});
@@ -73,6 +96,16 @@ namespace sfg
 		_brdf_lut_staging		 = {};
 
 		get_texture_upload_queue().uninit();
+
+		gfx_backend& backend = gfx_backend::get();
+
+		for (u8 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
+		{
+			backend.destroy_resource(_texture_region_upload_staging[frame_index]);
+			_texture_region_upload_staging[frame_index] = {};
+		}
+
+		_texture_region_upload_staging_capacity = 0;
 
 		release_retired_resources(true);
 		release_retired_textures(true);
@@ -197,6 +230,36 @@ namespace sfg
 			.src_offset	   = desc.src_offset,
 			.src_row_pitch = desc.src_row_pitch,
 			.target_states = desc.target_states,
+			.dst_x		   = desc.dst_x,
+			.dst_y		   = desc.dst_y,
+			.width		   = desc.width,
+			.height		   = desc.height,
+			.bpp		   = desc.bpp,
+			.dst_mip	   = desc.dst_mip,
+		});
+	}
+
+	void render_resources_t::enqueue_texture_region_data_upload(const render_texture_region_data_upload_desc_t& desc)
+	{
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
+		SFG_ASSERT(desc.data != nullptr);
+		SFG_ASSERT(!desc.dst_texture.is_null());
+		SFG_ASSERT(desc.width > 0 && desc.height > 0);
+		SFG_ASSERT(desc.bpp > 0);
+		SFG_ASSERT(desc.src_row_pitch >= static_cast<u32>(desc.width) * desc.bpp);
+		SFG_ASSERT(desc.data_size == desc.src_row_pitch * static_cast<u32>(desc.height));
+
+		u8* data = static_cast<u8*>(SFG_MALLOC(desc.data_size));
+		SFG_ASSERT(data != nullptr);
+		SFG_MEMCPY(data, desc.data, desc.data_size);
+
+		_request_q.enqueue({
+			.kind		   = request_kind_e::texture_region_data_upload,
+			.dst_texture   = desc.dst_texture,
+			.data		   = data,
+			.src_row_pitch = desc.src_row_pitch,
+			.target_states = desc.target_states,
+			.data_size	   = desc.data_size,
 			.dst_x		   = desc.dst_x,
 			.dst_y		   = desc.dst_y,
 			.width		   = desc.width,
@@ -384,6 +447,10 @@ namespace sfg
 				_texture_upload_queue.add_region(desc);
 				break;
 			}
+			case request_kind_e::texture_region_data_upload: {
+				_pending_texture_region_data_uploads.push_back(std::move(req));
+				break;
+			}
 			case request_kind_e::replace_texture: {
 				const render_thread_resource_t& old_resource = get_render_thread_resource_entry(_rt_textures, req.texture);
 				const gfx_handle_t				old_texture	 = old_resource.hw_handle;
@@ -431,6 +498,63 @@ namespace sfg
 			}
 			}
 		}
+	}
+
+	void render_resources_t::flush_texture_region_data_uploads(u8 frame_index)
+	{
+		ZoneScoped;
+
+		SFG_ASSERT(is_render_access_thread());
+		SFG_ASSERT(frame_index < BACK_BUFFER_COUNT);
+
+		if (_pending_texture_region_data_uploads.empty())
+			return;
+
+		gfx_backend& backend = gfx_backend::get();
+		u8*			 mapped	 = nullptr;
+		u32			 cursor	 = 0;
+
+		backend.map_resource(_texture_region_upload_staging[frame_index], mapped);
+
+		for (request_t& request : _pending_texture_region_data_uploads)
+		{
+			const u32 source_row_size = static_cast<u32>(request.width) * request.bpp;
+			const u32 row_pitch		  = (source_row_size + TEXTURE_REGION_UPLOAD_PITCH_ALIGNMENT - 1u) & ~(TEXTURE_REGION_UPLOAD_PITCH_ALIGNMENT - 1u);
+			const u32 offset		  = (cursor + TEXTURE_REGION_UPLOAD_PLACEMENT_ALIGNMENT - 1u) & ~(TEXTURE_REGION_UPLOAD_PLACEMENT_ALIGNMENT - 1u);
+			const u32 size			  = row_pitch * static_cast<u32>(request.height);
+
+			SFG_ASSERT(offset + size <= _texture_region_upload_staging_capacity);
+
+			SFG_MEMSET(mapped + offset, 0, size);
+
+			for (u16 row = 0; row < request.height; ++row)
+			{
+				const u8* source = request.data + static_cast<size_t>(row) * request.src_row_pitch;
+				u8*		  target = mapped + offset + static_cast<size_t>(row) * row_pitch;
+				SFG_MEMCPY(target, source, source_row_size);
+			}
+
+			_texture_upload_queue.add_region({
+				.dst_texture   = get_render_thread_resource_entry(_rt_textures, request.dst_texture).hw_handle,
+				.src_buffer	   = _texture_region_upload_staging[frame_index],
+				.src_offset	   = offset,
+				.src_row_pitch = row_pitch,
+				.dst_x		   = request.dst_x,
+				.dst_y		   = request.dst_y,
+				.width		   = request.width,
+				.height		   = request.height,
+				.bpp		   = request.bpp,
+				.dst_mip	   = request.dst_mip,
+				.target_states = request.target_states,
+			});
+
+			SFG_FREE(request.data);
+			request.data = nullptr;
+			cursor		 = offset + size;
+		}
+
+		backend.unmap_resource(_texture_region_upload_staging[frame_index]);
+		_pending_texture_region_data_uploads.resize(0);
 	}
 
 	void render_resources_t::flush_material_parameter_updates(u8 frame_index)

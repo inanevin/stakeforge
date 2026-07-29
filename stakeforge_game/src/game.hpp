@@ -92,7 +92,6 @@ namespace sfg
 		string_t				_package_directory	 = {};
 		game_world_controller_t _world_controller;
 		game_renderer_t			_renderer;
-		u8						_atlas_frame_slot			  = 0;
 		bool					_renderer_initialized		  = false;
 		bool					_world_controller_initialized = false;
 		bool					_window_initialized			  = false;

@@ -444,6 +444,7 @@ namespace sfg
 
 		render_resources_t& render_resources = render_resources_t::get();
 		render_resources.drain_requests();
+		render_resources.flush_texture_region_data_uploads(0);
 		render_resources.flush_material_parameter_updates(0);
 
 		texture_queue_t& texture_queue = render_resources.get_texture_upload_queue();

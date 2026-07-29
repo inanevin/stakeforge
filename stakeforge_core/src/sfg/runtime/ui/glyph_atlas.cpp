@@ -20,8 +20,6 @@ namespace sfg::ui
 		constexpr u32 ATLAS_BPP			   = 4;
 		constexpr i32 SHELF_PADDING_X	   = 1;
 		constexpr i32 SHELF_PADDING_Y	   = 1;
-		constexpr u32 PITCH_ALIGNMENT	   = 256;
-		constexpr u32 PLACEMENT_ALIGNMENT  = 512;
 		constexpr i32 GLYPH_UPLOAD_PADDING = 1;
 
 		inline u64 make_glyph_key(u64 face_id, u32 codepoint, u32 px_size, glyph_raster_mode_e mode)
@@ -32,11 +30,6 @@ namespace sfg::ui
 		inline u64 make_size_key(u64 face_id, u32 px_size)
 		{
 			return face_id ^ (static_cast<u64>(px_size) * 0x94D049BB133111EBull);
-		}
-
-		inline u32 align_up(u32 v, u32 a)
-		{
-			return (v + a - 1u) & ~(a - 1u);
 		}
 
 		inline f32 from_26dot6(FT_Pos v)
@@ -76,22 +69,9 @@ namespace sfg::ui
 		tdesc.set_name("ui_glyph_atlas");
 		_texture = render_resources.enqueue_create_texture(tdesc);
 
-		const u32 staging_bytes = align_up(cfg.staging_budget_bytes, PLACEMENT_ALIGNMENT);
-		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
-		{
-			resource_desc_t sdesc = {};
-			sdesc.size			  = staging_bytes;
-			sdesc.flags			  = resource_flags::rf_cpu_visible;
-			sdesc.set_name("ui_glyph_staging");
-			_staging[i].buffer	 = render_resources.enqueue_create_resource(sdesc);
-			_staging[i].capacity = staging_bytes;
-		}
-
 		_entries.reserve(cfg.glyph_initial_capacity);
 		_metrics.reserve(cfg.size_metric_initial_capacity);
 		_shelves.reserve(cfg.shelf_initial_capacity);
-		_pending.reserve(cfg.pending_upload_initial_capacity);
-		_transitioned = false;
 	}
 
 	void glyph_atlas_t::uninit()
@@ -101,26 +81,12 @@ namespace sfg::ui
 
 		render_resources_t& render_resources = render_resources_t::get();
 
-		for (pending_upload_t& p : _pending)
-		{
-			SFG_FREE(p.rgba);
-		}
-		_pending.resize(0);
-
-		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
-		{
-			if (!_staging[i].buffer.is_null())
-				render_resources.enqueue_destroy_resource(_staging[i].buffer);
-			_staging[i] = {};
-		}
-
 		if (!_texture.is_null())
 			render_resources.enqueue_destroy_texture(_texture);
-		_texture	  = {};
-		_width		  = 0;
-		_height		  = 0;
-		_frame		  = 0;
-		_transitioned = false;
+		_texture = {};
+		_width	 = 0;
+		_height	 = 0;
+		_frame	 = 0;
 		_entries.clear();
 		_metrics.clear();
 		_shelves.clear();
@@ -406,74 +372,23 @@ namespace sfg::ui
 		entry.uv_w	  = static_cast<f32>(dst_w_pixels) / static_cast<f32>(_width);
 		entry.uv_h	  = static_cast<f32>(dst_h_pixels) / static_cast<f32>(_height);
 
-		pending_upload_t up;
-		up.atlas_x = ax;
-		up.atlas_y = ay;
-		up.width   = static_cast<i16>(upload_w);
-		up.height  = static_cast<i16>(upload_h);
-		up.rgba	   = rgba;
-		_pending.push_back(up);
+		render_resources_t::get().enqueue_texture_region_data_upload({
+			.data		   = rgba,
+			.dst_texture   = _texture,
+			.data_size	   = upload_bytes,
+			.src_row_pitch = static_cast<u32>(upload_w) * ATLAS_BPP,
+			.target_states = resource_state_ps_resource,
+			.dst_x		   = static_cast<u16>(ax),
+			.dst_y		   = static_cast<u16>(ay),
+			.width		   = static_cast<u16>(upload_w),
+			.height		   = static_cast<u16>(upload_h),
+			.bpp		   = ATLAS_BPP,
+			.dst_mip	   = 0,
+		});
+
+		SFG_FREE(rgba);
 
 		_entries[key] = entry;
 		return &_entries[key];
-	}
-
-	void glyph_atlas_t::drain_uploads(u8 frame_slot)
-	{
-		SFG_ASSERT(SFG_IS_MAIN_THREAD() || !SFG_IS_RENDER_RUNNING());
-		if (_pending.empty())
-			return;
-
-		SFG_ASSERT(frame_slot < BACK_BUFFER_COUNT);
-		staging_slot_t& slot = _staging[frame_slot];
-		SFG_ASSERT(!slot.buffer.is_null());
-
-		u32 cursor = 0;
-		for (pending_upload_t& p : _pending)
-		{
-			const u32 row_pitch		= align_up(static_cast<u32>(p.width) * ATLAS_BPP, PITCH_ALIGNMENT);
-			const u32 needed		= row_pitch * static_cast<u32>(p.height);
-			const u32 placed_offset = align_up(cursor, PLACEMENT_ALIGNMENT);
-
-			SFG_ASSERT(placed_offset + needed <= slot.capacity);
-
-			u8* upload = static_cast<u8*>(SFG_MALLOC(needed));
-			SFG_ASSERT(upload != nullptr);
-			SFG_MEMSET(upload, 0, needed);
-			for (i32 y = 0; y < p.height; ++y)
-			{
-				const u8* src_row = p.rgba + static_cast<size_t>(y) * static_cast<size_t>(p.width) * ATLAS_BPP;
-				u8*		  dst_row = upload + static_cast<size_t>(y) * static_cast<size_t>(row_pitch);
-				SFG_MEMCPY(dst_row, src_row, static_cast<size_t>(p.width) * ATLAS_BPP);
-			}
-
-			render_resources_t::get().enqueue_data_upload({
-				.data		= upload,
-				.resource	= slot.buffer,
-				.dst_offset = placed_offset,
-				.data_size	= needed,
-			});
-			SFG_FREE(upload);
-
-			render_texture_region_upload_desc_t desc = {};
-			desc.dst_texture						 = _texture;
-			desc.src_buffer							 = slot.buffer;
-			desc.src_offset							 = placed_offset;
-			desc.src_row_pitch						 = row_pitch;
-			desc.dst_x								 = static_cast<u16>(p.atlas_x);
-			desc.dst_y								 = static_cast<u16>(p.atlas_y);
-			desc.width								 = static_cast<u16>(p.width);
-			desc.height								 = static_cast<u16>(p.height);
-			desc.bpp								 = ATLAS_BPP;
-			desc.dst_mip							 = 0;
-			desc.target_states						 = resource_state_ps_resource;
-			render_resources_t::get().enqueue_texture_region_upload(desc);
-
-			SFG_FREE(p.rgba);
-			cursor = placed_offset + needed;
-		}
-
-		_transitioned = true;
-		_pending.resize(0);
 	}
 }

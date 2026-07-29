@@ -578,10 +578,6 @@ namespace sfg
 			engine_runtime_t::get().tick();
 			surfaces.tick_surfaces(dt);
 
-			resource_manager_t::get().drain_atlases(_atlas_upload_frame_slot);
-
-			_atlas_upload_frame_slot = static_cast<u8>((_atlas_upload_frame_slot + 1) % BACK_BUFFER_COUNT);
-
 			if (surfaces.is_empty())
 			{
 				tick = false;

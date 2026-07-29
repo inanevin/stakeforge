@@ -134,6 +134,12 @@ namespace sfg
 
 		header_data.open(header_stream.get_raw(), header_stream.get_size());
 		header.deserialize(header_data);
+		if (header.type != type)
+		{
+			SFG_ERR("deserialized resource type does not match the requested resource type :( header: {0} res: {1}, hash: {2}", resource_type_to_string(header.type), resource_type_to_string(type), hash);
+			return resource_state_e::failed;
+		}
+
 		SFG_ASSERT(header.type == type);
 
 		const char*		   debug_name	  = header.debug_name;
@@ -599,13 +605,6 @@ namespace sfg
 			return nullptr;
 
 		return &it->second;
-	}
-
-	void resource_manager_t::drain_atlases(u8 frame_slot)
-	{
-		SFG_ASSERT(is_main_thread());
-
-		_glyph_atlas.drain_uploads(frame_slot);
 	}
 
 	void resource_manager_t::unload_dependencies(resource_entry_t& entry)

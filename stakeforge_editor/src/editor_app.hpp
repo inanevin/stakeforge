@@ -145,7 +145,6 @@ namespace sfg
 		atomic_t<bool>				_splash_progress_text_dirty = false;
 		atomic_t<editor_app_mode_e> _pending_mode				= editor_app_mode_e::none;
 		editor_app_mode_e			_mode						= editor_app_mode_e::none;
-		u8							_atlas_upload_frame_slot	= 0;
 		bool						_debug_mode					= false;
 		bool						_normal_world_load_pending	= false;
 	};

@@ -311,9 +311,6 @@ namespace sfg
 				SFG_ERR("failed to load the requested game world.");
 
 			engine_runtime_t::get().tick();
-			resource_manager_t::get().drain_atlases(_atlas_frame_slot);
-
-			_atlas_frame_slot = static_cast<u8>((_atlas_frame_slot + 1) % BACK_BUFFER_COUNT);
 
 			FrameMarkNamed("main");
 			time_t::yield_thread();
@@ -536,8 +533,7 @@ namespace sfg
 		_package_meta = {};
 		_config		  = {};
 		_package_directory.resize(0);
-		_atlas_frame_slot = 0;
-		_initialized	  = false;
-		s_instance		  = nullptr;
+		_initialized = false;
+		s_instance	 = nullptr;
 	}
 }

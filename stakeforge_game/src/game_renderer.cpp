@@ -277,6 +277,7 @@ namespace sfg
 		per_frame_data_t& pfd		  = _pfd[frame_index];
 
 		backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
+		render_resources.flush_texture_region_data_uploads(frame_index);
 		render_resources.flush_material_parameter_updates(frame_index);
 
 		const i64 now		 = time_t::get_cpu_microseconds();

@@ -41,13 +41,11 @@ namespace sfg::ui
 
 	struct glyph_atlas_config_t
 	{
-		u32 width							= 4096;
-		u32 height							= 4096;
-		u32 staging_budget_bytes			= 4u << 20; // 4 MB per back buffer slot
-		u32 glyph_initial_capacity			= 1024;
-		u32 size_metric_initial_capacity	= 64;
-		u32 shelf_initial_capacity			= 64;
-		u32 pending_upload_initial_capacity = 256;
+		u32 width						 = 4096;
+		u32 height						 = 4096;
+		u32 glyph_initial_capacity		 = 1024;
+		u32 size_metric_initial_capacity = 64;
+		u32 shelf_initial_capacity		 = 64;
 	};
 
 	class glyph_atlas_t final
@@ -66,7 +64,6 @@ namespace sfg::ui
 		f32					 get_kern_advance(const font_runtime_t* font, u32 prev_cp, u32 next_cp, u32 px_size) const;
 
 		void tick(u32 frame_index);
-		void drain_uploads(u8 frame_slot);
 
 		render_resource_handle_t get_texture() const;
 		u32						 get_width() const;
@@ -81,33 +78,15 @@ namespace sfg::ui
 			i32 x_cursor = 0;
 		};
 
-		struct pending_upload_t
-		{
-			i16 atlas_x = 0;
-			i16 atlas_y = 0;
-			i16 width	= 0;
-			i16 height	= 0;
-			u8* rgba	= nullptr;
-		};
-
-		struct staging_slot_t
-		{
-			render_resource_handle_t buffer	  = {};
-			u32						 capacity = 0;
-		};
-
 		bool allocate_slot(i32 w, i32 h, i16& out_x, i16& out_y);
 
 	private:
 		hash_map_t<u64, glyph_entry_t>	_entries;
 		hash_map_t<u64, size_metrics_t> _metrics;
 		vector_t<shelf_t>				_shelves;
-		vector_t<pending_upload_t>		_pending;
-		staging_slot_t					_staging[BACK_BUFFER_COUNT] = {};
-		render_resource_handle_t		_texture					= {};
-		u32								_width						= 0;
-		u32								_height						= 0;
-		u32								_frame						= 0;
-		bool							_transitioned				= false;
+		render_resource_handle_t		_texture = {};
+		u32								_width	 = 0;
+		u32								_height	 = 0;
+		u32								_frame	 = 0;
 	};
 }

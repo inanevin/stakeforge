@@ -19,12 +19,13 @@ namespace sfg
 
 	struct render_resources_config_t
 	{
-		u32 texture_upload_initial_capacity			 = 32;
-		u32 pending_material_update_initial_capacity = 64;
-		u32 resource_initial_capacity				 = 0;
-		u32 texture_initial_capacity				 = 0;
-		u32 sampler_initial_capacity				 = 0;
-		u32 shader_initial_capacity					 = 0;
+		u32 texture_region_upload_staging_budget_bytes = 4u << 20;
+		u32 texture_upload_initial_capacity			   = 32;
+		u32 pending_material_update_initial_capacity   = 64;
+		u32 resource_initial_capacity				   = 0;
+		u32 texture_initial_capacity				   = 0;
+		u32 sampler_initial_capacity				   = 0;
+		u32 shader_initial_capacity					   = 0;
 	};
 
 	struct render_texture_upload_desc_t
@@ -42,6 +43,21 @@ namespace sfg
 		u64						 src_offset	   = 0;
 		render_resource_handle_t dst_texture   = {};
 		render_resource_handle_t src_buffer	   = {};
+		u32						 src_row_pitch = 0;
+		u32						 target_states = 0;
+		u16						 dst_x		   = 0;
+		u16						 dst_y		   = 0;
+		u16						 width		   = 0;
+		u16						 height		   = 0;
+		u8						 bpp		   = 0;
+		u8						 dst_mip	   = 0;
+	};
+
+	struct render_texture_region_data_upload_desc_t
+	{
+		const void*				 data		   = nullptr;
+		render_resource_handle_t dst_texture   = {};
+		u32						 data_size	   = 0;
 		u32						 src_row_pitch = 0;
 		u32						 target_states = 0;
 		u16						 dst_x		   = 0;
@@ -116,6 +132,7 @@ namespace sfg
 
 		void enqueue_texture_upload(const render_texture_upload_desc_t& desc);
 		void enqueue_texture_region_upload(const render_texture_region_upload_desc_t& desc);
+		void enqueue_texture_region_data_upload(const render_texture_region_data_upload_desc_t& desc);
 		void enqueue_replace_texture(const render_texture_replace_desc_t& desc);
 		void enqueue_data_upload(const render_data_upload_desc_t& desc);
 		void enqueue_material_parameter_update(const render_material_parameter_update_desc_t& desc);
@@ -125,6 +142,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void drain_requests();
+		void flush_texture_region_data_uploads(u8 frame_index);
 		void flush_material_parameter_updates(u8 frame_index);
 		void drain_destroy_requests();
 		void release_retired_resources(bool force = false);
@@ -185,6 +203,7 @@ namespace sfg
 			create_shader,
 			texture_upload,
 			texture_region_upload,
+			texture_region_data_upload,
 			replace_texture,
 			data_upload,
 			destroy_resource,
@@ -281,16 +300,19 @@ namespace sfg
 		moodycamel::ReaderWriterQueue<material_parameter_update_t> _material_parameter_update_q;
 		texture_queue_t											   _texture_upload_queue = {};
 		vector_t<request_t>										   _deferred_destroys;
+		vector_t<request_t>										   _pending_texture_region_data_uploads;
 		vector_t<material_parameter_update_t>					   _pending_material_parameter_updates;
-		render_resource_handle_t								   _default_linear_sampler	= {};
-		render_resource_handle_t								   _invalid_texture			= {};
-		render_resource_handle_t								   _invalid_texture_staging = {};
-		render_resource_handle_t								   _white_texture			= {};
-		render_resource_handle_t								   _white_texture_staging	= {};
-		render_resource_handle_t								   _black_texture			= {};
-		render_resource_handle_t								   _black_texture_staging	= {};
-		render_resource_handle_t								   _brdf_lut				= {};
-		render_resource_handle_t								   _brdf_lut_staging		= {};
+		gfx_handle_t											   _texture_region_upload_staging[BACK_BUFFER_COUNT] = {};
+		u32														   _texture_region_upload_staging_capacity			 = 0;
+		render_resource_handle_t								   _default_linear_sampler							 = {};
+		render_resource_handle_t								   _invalid_texture									 = {};
+		render_resource_handle_t								   _invalid_texture_staging							 = {};
+		render_resource_handle_t								   _white_texture									 = {};
+		render_resource_handle_t								   _white_texture_staging							 = {};
+		render_resource_handle_t								   _black_texture									 = {};
+		render_resource_handle_t								   _black_texture_staging							 = {};
+		render_resource_handle_t								   _brdf_lut										 = {};
+		render_resource_handle_t								   _brdf_lut_staging								 = {};
 
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _resources;
 		dynamic_gen_pool_t<render_resource_t, u32, render_resource_tag_t> _textures;

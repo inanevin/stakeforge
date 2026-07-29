@@ -67,7 +67,6 @@ namespace sfg
 		void							  update_material_sampler(resource_handle_t material, sid_t sampler_name, resource_handle_t sampler);
 		void							  flush_material_updates();
 		const resource_entry_t*			  find_entry(u64 hash) const;
-		void							  drain_atlases(u8 frame_slot);
 
 		// -----------------------------------------------------------------------------
 		// queries

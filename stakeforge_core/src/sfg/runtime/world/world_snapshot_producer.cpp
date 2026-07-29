@@ -277,18 +277,26 @@ namespace sfg
 				!disabled_table.ref(),
 			};
 
-			i8			min_prio		= 127;
-			entity_id_t min_prio_entity = NULL_ENTITY_ID;
+			i8			min_prio				= 127;
+			i8			min_post_process_prio	= 127;
+			entity_id_t min_prio_entity			= NULL_ENTITY_ID;
+			entity_id_t min_post_process_entity = NULL_ENTITY_ID;
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
 				const component_system_transform_t& transform = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
 				const component_camera_t&			cam		  = ecs_helpers_t::row_get<component_camera_t>(row, 2);
 
-				if (cam.priority < min_prio)
+				if (min_prio_entity == NULL_ENTITY_ID || cam.priority < min_prio)
 				{
 					min_prio		= cam.priority;
 					min_prio_entity = row.id;
+				}
+
+				if (cam.priority != -1 && (min_post_process_entity == NULL_ENTITY_ID || cam.priority < min_post_process_prio))
+				{
+					min_post_process_prio	= cam.priority;
+					min_post_process_entity = row.id;
 				}
 			}
 
@@ -298,7 +306,9 @@ namespace sfg
 				component_system_transform_t& trans = ecs_helpers_t::table_get_as<component_system_transform_t>(transform_table, min_prio_entity);
 				snapshot.main_view					= {.pos = trans.abs_pos, .rot = trans.abs_rot, .prev_pos = trans.prev_abs_pos, .prev_rot = trans.prev_abs_rot, .near_plane = cam.near_plane, .far_plane = cam.far_plane, .fov_degrees = cam.fov_degrees};
 
-				const component_post_process_t* post_process = ecs_helpers_t::table_find_as_const<component_post_process_t>(post_process_table, min_prio_entity);
+				const entity_id_t				post_process_entity = min_prio == -1 ? min_post_process_entity : min_prio_entity;
+				const component_post_process_t* post_process		= post_process_entity == NULL_ENTITY_ID ? nullptr : ecs_helpers_t::table_find_as_const<component_post_process_t>(post_process_table, post_process_entity);
+
 				if (post_process != nullptr)
 				{
 					snapshot.post_process = {

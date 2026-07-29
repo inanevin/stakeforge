@@ -292,6 +292,7 @@ namespace sfg
 		backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
 		render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
 
+		render_resources_t::get().flush_texture_region_data_uploads(_frame_index);
 		render_resources_t::get().flush_material_parameter_updates(_frame_index);
 
 		const global_buffer_data_t global_data = {.delta_time = delta_time, .elapsed_time = elapsed_time};
