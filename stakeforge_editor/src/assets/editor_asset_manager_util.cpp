@@ -222,6 +222,7 @@ namespace sfg
 				if (assets.find(dependency.sid) != assets.end())
 					continue;
 
+				// meh dont like this.
 				if (dependency.sid >= DEFAULT_MESH_CUBE_GUID && dependency.sid <= DEFAULT_MESH_PLANE_GUID)
 					continue;
 

@@ -404,6 +404,7 @@ namespace sfg
 		const ecs_component_table_t& light_table			= world.get_component_table(type_id_t<component_light_t>::value);
 		const ecs_component_table_t& reflection_probe_table = world.get_component_table(type_id_t<component_reflection_probe_t>::value);
 		const ecs_component_table_t& physical_table			= world.get_component_table(type_id_t<component_physical_t>::value);
+		const ecs_component_table_t& character_mover_table	= world.get_component_table(type_id_t<component_character_mover_t>::value);
 		const ecs_component_table_t& compound_shape_table	= world.get_component_table(type_id_t<component_compound_shape_t>::value);
 		const ecs_component_table_t& particle_emitter_table = world.get_component_table(type_id_t<component_particle_emitter_t>::value);
 		frame_vector_t<entity_id_t>	 compound_parents		= {};
@@ -461,6 +462,15 @@ namespace sfg
 
 				if (physical->shape == physics_shape_type_e::compound && std::find(compound_parents.begin(), compound_parents.end(), entity) == compound_parents.end())
 					compound_parents.push_back(entity);
+			}
+
+			const component_character_mover_t* character_mover = ecs_helpers_t::table_find_as_const<component_character_mover_t>(character_mover_table, entity);
+
+			if (character_mover != nullptr)
+			{
+				const vec3f_t shape_position = transform.abs_pos + transform.abs_rot * character_mover->shape_offset;
+
+				debug_draw.draw_capsule(shape_position, math::max(character_mover->radius, 0.001f), math::max(character_mover->half_height, 0.001f), transform.abs_rot.get_up(), collider_color, 2.0f, debug_draw_depth_e::always_visible);
 			}
 
 			draw_constraint_gizmos(world, entity, transform, debug_draw);
