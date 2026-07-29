@@ -57,6 +57,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/physics/physics_world.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
+#include <sfg/runtime/scripting/api/script_api_platform.hpp>
 #include <sfg/runtime/scripting/script_component_schema.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
@@ -396,7 +397,6 @@ namespace sfg
 
 		const bool entering_play = previous_mode == editor_play_mode_e::none;
 		const bool exiting_play	 = mode == editor_play_mode_e::none;
-		const bool entering_full = entering_play && mode == editor_play_mode_e::play;
 		const bool exiting_full	 = exiting_play && (previous_mode == editor_play_mode_e::play || previous_mode == editor_play_mode_e::play_paused);
 
 		if (entering_play)
@@ -404,10 +404,8 @@ namespace sfg
 
 		editor_world.update_play_mode(mode);
 
-		if (entering_full)
-			editor_surface_controller_t::get().set_play_cursor_locked(true);
-		else if (exiting_full)
-			editor_surface_controller_t::get().set_play_cursor_locked(false);
+		if (exiting_full)
+			reset_script_api_platform_cursor_state();
 
 		if (!exiting_play)
 			return;

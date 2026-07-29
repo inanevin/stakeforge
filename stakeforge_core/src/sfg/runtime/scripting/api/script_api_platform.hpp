@@ -35,6 +35,7 @@ namespace sfg
 	enum class window_style_e : u8;
 
 	void set_script_api_platform_window_runtime(window_runtime_t* window);
+	void reset_script_api_platform_cursor_state();
 	void api_platform_set_cursor_visible(u8 visible);
 	void api_platform_lock_cursor(u8 locked);
 	void api_platform_set_window_size(u16 width, u16 height);

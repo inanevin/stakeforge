@@ -189,38 +189,6 @@ namespace sfg
 		release_cursor();
 	}
 
-	void editor_surface_controller_t::set_play_cursor_locked(bool locked)
-	{
-		if (!locked)
-		{
-			if (_cursor_capture == editor_cursor_capture_e::play)
-				release_cursor();
-			return;
-		}
-
-		for (editor_surface_t& surface : _surfaces)
-			editor_widget_world_view_t::reset_camera_input(*surface.runtime);
-
-		SFG_ASSERT(_cursor_capture == editor_cursor_capture_e::none);
-
-		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
-		{
-			const surface_handle_t handle  = *it;
-			editor_surface_t&	   surface = _surfaces.get(handle);
-			editor_panel_t* const  panel   = find_panel_in_surface(surface, editor_panel_type_e::world, 0);
-
-			if (panel == nullptr)
-				continue;
-
-			editor_panel_world_t* const world_panel = static_cast<editor_panel_world_t*>(panel);
-			process::set_cursor_position(surface.runtime->window_handle, world_panel->get_world_view().get_center());
-			capture_cursor(handle, editor_cursor_capture_e::play);
-			return;
-		}
-
-		SFG_ASSERT(false);
-	}
-
 	void editor_surface_controller_t::capture_cursor(surface_handle_t surface_handle, editor_cursor_capture_e capture)
 	{
 		SFG_ASSERT(_cursor_capture == editor_cursor_capture_e::none);
@@ -229,7 +197,7 @@ namespace sfg
 		editor_surface_t& surface = _surfaces.get(surface_handle);
 
 		process::set_cursor_confinement(surface.runtime->window_handle, window_cursor_confinement_e::pointer);
-		process::set_cursor_visible(false);
+		process::set_cursor_visible(surface.runtime->window_handle, false);
 		_cursor_capture_surface = surface_handle;
 		_cursor_capture			= capture;
 	}
@@ -241,7 +209,7 @@ namespace sfg
 		editor_surface_t& surface = _surfaces.get(_cursor_capture_surface);
 
 		process::set_cursor_confinement(surface.runtime->window_handle, window_cursor_confinement_e::none);
-		process::set_cursor_visible(true);
+		process::set_cursor_visible(surface.runtime->window_handle, true);
 		_cursor_capture_surface = {};
 		_cursor_capture			= editor_cursor_capture_e::none;
 	}
@@ -265,15 +233,6 @@ namespace sfg
 		const surface_handle_t		 surface_handle = surfaces.get_surface_handle_by_runtime(runtime);
 		editor_surface_t&			 surface		= surfaces.get_surface(surface_handle);
 		ui::ui_context&				 ui				= *surface.ui;
-
-		if (ev.type == window_event_type_e::key && ev.sub_type == window_event_sub_type_e::press && ev.button == static_cast<u16>(input_code::key_escape) && surfaces._cursor_capture == editor_cursor_capture_e::play)
-		{
-			surfaces.set_play_cursor_locked(false);
-			return;
-		}
-
-		if (ev.type == window_event_type_e::focus && ev.sub_type == window_event_sub_type_e::release && surfaces._cursor_capture == editor_cursor_capture_e::play && surfaces._cursor_capture_surface == surface_handle)
-			surfaces.set_play_cursor_locked(false);
 
 		if (surface.type == editor_surface_type_e::splash || surface.type == editor_surface_type_e::project_creator)
 		{
@@ -605,12 +564,7 @@ namespace sfg
 		editor_surface_t& surface = _surfaces.get(handle);
 
 		if (handle == _cursor_capture_surface)
-		{
-			if (_cursor_capture == editor_cursor_capture_e::play)
-				set_play_cursor_locked(false);
-			else
-				editor_widget_world_view_t::reset_camera_input(*surface.runtime);
-		}
+			editor_widget_world_view_t::reset_camera_input(*surface.runtime);
 
 		if (surface.type == editor_surface_type_e::primary)
 		{

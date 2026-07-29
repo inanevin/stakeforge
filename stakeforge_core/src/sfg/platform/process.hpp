@@ -78,6 +78,7 @@ namespace sfg
 
 		static void						open_url(const char* url);
 		static void						open_file(const char* path);
+		static void						open_file_in_vscode(const char* workspace_path, const char* path);
 		static bool						open_directory(const char* dir);
 		static void						message_box(const char* title, const char* msg);
 		static void						select_files(const char* title, const char* extension, vector_t<string_t>& out_files);
@@ -118,9 +119,6 @@ namespace sfg
 		static void bring_to_front(void* window);
 		static void set_cursor_confinement(void* window_handle, window_cursor_confinement_e conf);
 		static void set_cursor_state(window_cursor_state_e state);
-		static void set_cursor_visible(bool visible);
-
-	private:
-		static int s_prev_clip[4];
+		static void set_cursor_visible(void* window_handle, bool visible);
 	};
 }

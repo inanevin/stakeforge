@@ -81,7 +81,6 @@ namespace sfg
 		void			 set_text_subpixel_enabled();
 		void			 begin_editor_camera_cursor_capture(window_runtime_t& runtime);
 		void			 end_editor_camera_cursor_capture(window_runtime_t& runtime);
-		void			 set_play_cursor_locked(bool locked);
 		editor_panel_t*	 find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {}, sid_t sub_item_id = 0);
 		editor_panel_t*	 find_panel_on_surface(editor_panel_type_e type, surface_handle_t surface_handle, sid_t sub_item_id = 0);
 		editor_panel_t*	 create_panel_instance(editor_panel_type_e type, surface_handle_t surface_handle = {}, bool prefer_existing_type_dock = true, sid_t sub_item_id = 0);
@@ -138,7 +137,6 @@ namespace sfg
 		{
 			none,
 			editor_camera,
-			play,
 		};
 
 	private:

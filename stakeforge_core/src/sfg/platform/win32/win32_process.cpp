@@ -114,6 +114,48 @@ namespace
 		::SetCursor(::LoadCursor(nullptr, cursor_id_from_state(g_cursor_state)));
 	}
 
+	void apply_cursor_confinement(HWND hwnd, sfg::window_cursor_confinement_e confinement)
+	{
+		if (confinement == sfg::window_cursor_confinement_e::none)
+		{
+			ClipCursor(nullptr);
+			return;
+		}
+
+		if (confinement == sfg::window_cursor_confinement_e::window)
+		{
+			RECT clip_rect{};
+			GetWindowRect(hwnd, &clip_rect);
+			ClipCursor(&clip_rect);
+			return;
+		}
+
+		POINT cursor_pos{};
+		GetCursorPos(&cursor_pos);
+		const RECT clip_rect = {
+			cursor_pos.x,
+			cursor_pos.y,
+			cursor_pos.x,
+			cursor_pos.y,
+		};
+		ClipCursor(&clip_rect);
+	}
+
+	void apply_cursor_visibility(bool visible)
+	{
+		static i32 cursor_count = 0;
+
+		if (visible)
+		{
+			while (cursor_count < 0)
+				cursor_count = ShowCursor(TRUE);
+			return;
+		}
+
+		while (cursor_count >= 0)
+			cursor_count = ShowCursor(FALSE);
+	}
+
 	int enumerate_monitors(HMONITOR monitor, HDC, LPRECT, LPARAM l_param)
 	{
 		sfg::vector_t<sfg::monitor_info_t>* infos = reinterpret_cast<sfg::vector_t<sfg::monitor_info_t>*>(l_param);
@@ -423,20 +465,24 @@ namespace
 			return 0;
 		case WM_KILLFOCUS:
 			runtime->set_flag(sfg::window_runtime_flags_e::has_focus, false);
+			apply_cursor_confinement(hwnd, sfg::window_cursor_confinement_e::none);
+			apply_cursor_visibility(true);
 			push_event(*runtime,
 					   {
-						   .value = sfg::vec2i16_t(0, 0),
-						   .type  = sfg::window_event_type_e::focus,
+						   .type	 = sfg::window_event_type_e::focus,
+						   .sub_type = sfg::window_event_sub_type_e::release,
 					   });
 			return 0;
 		case WM_SETFOCUS:
 			runtime->set_flag(sfg::window_runtime_flags_e::has_focus);
 			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
 				register_raw_input_target(hwnd);
+			apply_cursor_confinement(hwnd, runtime->cursor_confinement);
+			apply_cursor_visibility(runtime->cursor_visible);
 			push_event(*runtime,
 					   {
-						   .value = sfg::vec2i16_t(1, 0),
-						   .type  = sfg::window_event_type_e::focus,
+						   .type	 = sfg::window_event_type_e::focus,
+						   .sub_type = sfg::window_event_sub_type_e::press,
 					   });
 			return 0;
 		case WM_MOVE: {
@@ -764,8 +810,6 @@ namespace
 
 namespace sfg
 {
-	int process::s_prev_clip[4] = {};
-
 	void process::init()
 	{
 		SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
@@ -778,13 +822,6 @@ namespace sfg
 		}
 
 		const HRESULT res = CoInitialize(nullptr);
-
-		RECT old_clip{};
-		GetClipCursor(&old_clip);
-		s_prev_clip[0] = old_clip.left;
-		s_prev_clip[1] = old_clip.top;
-		s_prev_clip[2] = old_clip.right;
-		s_prev_clip[3] = old_clip.bottom;
 	}
 
 	void process::uninit()
@@ -857,6 +894,33 @@ namespace sfg
 
 		CloseHandle(process_info.hThread);
 		CloseHandle(process_info.hProcess);
+	}
+
+	void process::open_file_in_vscode(const char* workspace_path, const char* path)
+	{
+		const wstring_t workspace_path_wide = string_util::to_wstr(workspace_path);
+		const wstring_t path_wide			= string_util::to_wstr(path);
+		wstring_t		parameters			= L"--reuse-window \"";
+		parameters += workspace_path_wide;
+		parameters += L"\" --goto \"";
+		parameters += path_wide;
+		parameters += L"\"";
+
+		SHELLEXECUTEINFOW execute_info = {
+			.cbSize		  = sizeof(SHELLEXECUTEINFOW),
+			.lpVerb		  = L"open",
+			.lpFile		  = L"Code.exe",
+			.lpParameters = parameters.c_str(),
+			.lpDirectory  = workspace_path_wide.c_str(),
+			.nShow		  = SW_SHOWNORMAL,
+		};
+
+		if (!ShellExecuteExW(&execute_info))
+		{
+			const DWORD error = GetLastError();
+
+			SFG_ERR("could not open file in Visual Studio Code: {0}", error);
+		}
 	}
 
 	bool process::open_directory(const char* dir)
@@ -1611,42 +1675,16 @@ namespace sfg
 		HWND hwnd = static_cast<HWND>(window_handle);
 		SFG_ASSERT(hwnd != nullptr);
 
-		if (conf == sfg::window_cursor_confinement_e::none)
-		{
-			const RECT rect = {
-				s_prev_clip[0],
-				s_prev_clip[1],
-				s_prev_clip[2],
-				s_prev_clip[3],
-			};
-			ClipCursor(&rect);
+		window_runtime_t* const runtime = reinterpret_cast<window_runtime_t*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+		SFG_ASSERT(runtime != nullptr);
+
+		if (runtime->cursor_confinement == conf)
 			return;
-		}
 
-		RECT old_clip{};
-		GetClipCursor(&old_clip);
-		s_prev_clip[0] = old_clip.left;
-		s_prev_clip[1] = old_clip.top;
-		s_prev_clip[2] = old_clip.right;
-		s_prev_clip[3] = old_clip.bottom;
+		runtime->cursor_confinement = conf;
 
-		if (conf == sfg::window_cursor_confinement_e::window)
-		{
-			RECT clip_rect{};
-			GetWindowRect(hwnd, &clip_rect);
-			ClipCursor(&clip_rect);
-			return;
-		}
-
-		POINT cursor_pos{};
-		GetCursorPos(&cursor_pos);
-		const RECT clip_rect = {
-			cursor_pos.x,
-			cursor_pos.y,
-			cursor_pos.x,
-			cursor_pos.y,
-		};
-		ClipCursor(&clip_rect);
+		if (runtime->has_flag(window_runtime_flags_e::has_focus))
+			apply_cursor_confinement(hwnd, conf);
 	}
 
 	void process::set_cursor_state(window_cursor_state_e state)
@@ -1655,19 +1693,21 @@ namespace sfg
 		apply_cursor_state();
 	}
 
-	void process::set_cursor_visible(bool visible)
+	void process::set_cursor_visible(void* window_handle, bool visible)
 	{
-		static i32 cursor_count = 0;
+		HWND hwnd = static_cast<HWND>(window_handle);
+		SFG_ASSERT(hwnd != nullptr);
 
-		if (visible)
-		{
-			while (cursor_count < 0)
-				cursor_count = ShowCursor(TRUE);
+		window_runtime_t* const runtime = reinterpret_cast<window_runtime_t*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+		SFG_ASSERT(runtime != nullptr);
+
+		if (runtime->cursor_visible == visible)
 			return;
-		}
 
-		while (cursor_count >= 0)
-			cursor_count = ShowCursor(FALSE);
+		runtime->cursor_visible = visible;
+
+		if (runtime->has_flag(window_runtime_flags_e::has_focus))
+			apply_cursor_visibility(visible);
 	}
 
 	process_execute_result_t process::execute(const char* command_line)
