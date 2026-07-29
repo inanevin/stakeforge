@@ -574,8 +574,8 @@ namespace sfg::ui
 			dst.vertex_offset			= vtx_offset;
 			dst.index_offset			= idx_offset;
 
-			SFG_MEMCPY(slot.vertices + vtx_offset, src.vertex_start, src.vertex_count * sizeof(vg_vertex_t));
-			SFG_MEMCPY(slot.indices + idx_offset, src.index_start, src.index_count * sizeof(vg_index_t));
+			_canvas.copy_draw_buffer_vertices(src, slot.vertices + vtx_offset);
+			_canvas.copy_draw_buffer_indices(src, slot.indices + idx_offset);
 
 			vtx_offset += src.vertex_count;
 			idx_offset += src.index_count;
@@ -628,15 +628,24 @@ namespace sfg::ui
 
 	void ui_context::set_widget_text(widget_id_t id, const char* text)
 	{
+		set_widget_text(id, text, static_cast<u32>(strlen(text)));
+	}
+
+	void ui_context::set_widget_text(widget_id_t id, const char* text, u32 len)
+	{
 		auto& e = _widget_texts[id];
+
 		if (e.ptr != nullptr)
 			_text_pool.deallocate(e.ptr);
-		const u32 len = static_cast<u32>(strlen(text));
-		e.ptr		  = _text_pool.allocate(text, len);
+
+		e.ptr = _text_pool.allocate(len);
 		SFG_ASSERT(e.ptr != nullptr);
+
+		SFG_MEMCPY(const_cast<char*>(e.ptr), text, len);
 		e.len = len;
 
 		paint_def_t& pd = _paint.def(id);
+
 		if (pd.kind == paint_kind_e::text)
 		{
 			pd.text_data = e.ptr;

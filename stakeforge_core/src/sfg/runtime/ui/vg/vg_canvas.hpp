@@ -41,16 +41,16 @@ namespace sfg::ui
 
 	struct vg_draw_buffer_t
 	{
-		vg_vertex_t*		vertex_start	= nullptr;
-		vg_index_t*			index_start		= nullptr;
-		ui_render_state_t	state			= {};
-		ui_resolved_state_t resolved		= {};
-		vec4f_t				clip			= {0, 0, 0, 0};
-		u32					draw_order		= 0;
-		u32					vertex_count	= 0;
-		u32					index_count		= 0;
-		u32					vertex_capacity = 0;
-		u32					index_capacity	= 0;
+		ui_render_state_t	state			  = {};
+		ui_resolved_state_t resolved		  = {};
+		vec4f_t				clip			  = {0, 0, 0, 0};
+		u32					draw_order		  = 0;
+		u32					vertex_count	  = 0;
+		u32					index_count		  = 0;
+		u32					vertex_span_first = UINT32_MAX;
+		u32					vertex_span_last  = UINT32_MAX;
+		u32					index_span_first  = UINT32_MAX;
+		u32					index_span_last	  = UINT32_MAX;
 	};
 
 	struct vg_draw_buffer_final_t
@@ -79,6 +79,7 @@ namespace sfg::ui
 		u64 vertex_pool_budget_bytes	   = 1u << 21;
 		u64 index_pool_budget_bytes		   = 1u << 21;
 		u32 buffer_count				   = 16;
+		u32 geometry_span_count			   = 4096;
 		u32 text_cache_vertex_budget_bytes = 1u << 22;
 		u32 text_cache_index_budget_bytes  = 1u << 22;
 		u32 clip_stack_initial_capacity	   = 64;
@@ -136,16 +137,19 @@ namespace sfg::ui
 		// emit
 		// -----------------------------------------------------------------------------
 
-		vg_draw_buffer_t* get_draw_buffer(u32 draw_order, const ui_render_state_t& state);
+		vg_draw_buffer_t* get_draw_buffer(u32 draw_order, const ui_render_state_t& state, u32 vertex_count = 0);
 
-		static void emit_path_solid(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max);
-		static void emit_path_grad(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color_a, const vec4f_t& color_b, vg_gradient_e dir, const vec2f_t& min, const vec2f_t& max);
-		static void emit_central_solid(vg_draw_buffer_t* db, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max);
-		static void emit_central_grad(vg_draw_buffer_t* db, const vec4f_t& color_a, const vec4f_t& color_b, const vec2f_t& min, const vec2f_t& max);
-		static void emit_path_alpha(vg_draw_buffer_t* db, span_t<const vec2f_t> path, u32 source_vtx_base, f32 alpha, const vec2f_t& min, const vec2f_t& max);
-		static void emit_quad_indices(vg_draw_buffer_t* db, u32 base);
-		static void emit_fan_indices(vg_draw_buffer_t* db, u32 ring_base, u32 center_idx, u32 ring_size);
-		static void emit_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size);
+		void emit_path_solid(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max);
+		void emit_path_grad(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color_a, const vec4f_t& color_b, vg_gradient_e dir, const vec2f_t& min, const vec2f_t& max);
+		void emit_central_solid(vg_draw_buffer_t* db, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max);
+		void emit_central_grad(vg_draw_buffer_t* db, const vec4f_t& color_a, const vec4f_t& color_b, const vec2f_t& min, const vec2f_t& max);
+		void emit_path_alpha(vg_draw_buffer_t* db, span_t<const vec2f_t> path, u32 source_vtx_base, f32 alpha, const vec2f_t& min, const vec2f_t& max);
+		void emit_quad_indices(vg_draw_buffer_t* db, u32 base);
+		void emit_fan_indices(vg_draw_buffer_t* db, u32 ring_base, u32 center_idx, u32 ring_size);
+		void emit_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size);
+
+		void copy_draw_buffer_vertices(const vg_draw_buffer_t& draw_buffer, vg_vertex_t* vertices) const;
+		void copy_draw_buffer_indices(const vg_draw_buffer_t& draw_buffer, vg_index_t* indices) const;
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -156,14 +160,28 @@ namespace sfg::ui
 			return _draw_buffers;
 		}
 
-	private:
-		bool		has_cpu_clip() const;
-		vec4f_t		intersect_clip(const vec4f_t& a, const vec4f_t& b) const;
-		bool		clip_rect_to_cpu(vec2f_t& min, vec2f_t& max) const;
-		bool		clip_line_to_cpu(vec2f_t& p0, vec2f_t& p1, f32 thickness) const;
-		static void emit_open_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size);
+		const vg_vertex_t& get_draw_buffer_vertex(const vg_draw_buffer_t& draw_buffer, u32 index) const;
+		const vg_index_t&  get_draw_buffer_index(const vg_draw_buffer_t& draw_buffer, u32 index) const;
 
 	private:
+		bool			   has_cpu_clip() const;
+		vec4f_t			   intersect_clip(const vec4f_t& a, const vec4f_t& b) const;
+		bool			   clip_rect_to_cpu(vec2f_t& min, vec2f_t& max) const;
+		bool			   clip_line_to_cpu(vec2f_t& p0, vec2f_t& p1, f32 thickness) const;
+		vg_vertex_t*	   take_vertices(vg_draw_buffer_t* draw_buffer, u32 count);
+		vg_index_t*		   take_indices(vg_draw_buffer_t* draw_buffer, u32 count);
+		const vg_vertex_t* get_contiguous_vertices(const vg_draw_buffer_t& draw_buffer, u32 offset, u32 count) const;
+		void			   emit_open_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size);
+
+	private:
+		struct buffer_span_t
+		{
+			u32 offset		   = 0;
+			u32 count		   = 0;
+			u32 logical_offset = 0;
+			u32 next		   = UINT32_MAX;
+		};
+
 		struct text_cache_entry_t
 		{
 			u64 hash	  = 0;
@@ -185,14 +203,18 @@ namespace sfg::ui
 		vector_t<vec2f_t>			 _path0;
 		vector_t<vec2f_t>			 _path1;
 		vector_t<vec2f_t>			 _path2;
+		vector_t<buffer_span_t>		 _vertex_spans;
+		vector_t<buffer_span_t>		 _index_spans;
 		vg_vertex_t*				 _vertex_pool				 = nullptr;
 		vg_index_t*					 _index_pool				 = nullptr;
 		vg_vertex_t*				 _text_cache_vertex_buffer	 = nullptr;
 		vg_index_t*					 _text_cache_index_buffer	 = nullptr;
-		u32							 _vertex_capacity_per_buffer = 0;
-		u32							 _index_capacity_per_buffer	 = 0;
+		u32							 _vertex_capacity			 = 0;
+		u32							 _vertex_count				 = 0;
+		u32							 _index_capacity			 = 0;
+		u32							 _index_count				 = 0;
 		u32							 _buffer_count				 = 0;
-		u32							 _buffer_counter			 = 0;
+		u32							 _geometry_span_count		 = 0;
 		u32							 _text_cache_vertex_capacity = 0;
 		u32							 _text_cache_vertex_count	 = 0;
 		u32							 _text_cache_index_capacity	 = 0;

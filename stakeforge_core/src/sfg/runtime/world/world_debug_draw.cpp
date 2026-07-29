@@ -77,6 +77,7 @@ namespace sfg
 				.vertex_pool_budget_bytes		= config.text_vertex_max_count * sizeof(ui::vg_vertex_t),
 				.index_pool_budget_bytes		= config.text_index_max_count * sizeof(ui::vg_index_t),
 				.buffer_count					= 1,
+				.geometry_span_count			= 1,
 				.text_cache_vertex_budget_bytes = config.text_vertex_max_count * sizeof(ui::vg_vertex_t),
 				.text_cache_index_budget_bytes	= config.text_index_max_count * sizeof(ui::vg_index_t),
 				.clip_stack_initial_capacity	= 1,
@@ -863,7 +864,7 @@ namespace sfg
 			const f32			  horizontal   = static_cast<f32>(alignment % 3) * 0.5f;
 			const f32			  vertical	   = static_cast<f32>(alignment / 3) * 0.5f;
 			const vec2f_t		  offset	   = command.screen_offset - vec2f_t(size.x * horizontal, size.y * vertical);
-			ui::vg_draw_buffer_t* draw_buffer  = _text_canvas->get_draw_buffer(0, state);
+			ui::vg_draw_buffer_t* draw_buffer  = _text_canvas->get_draw_buffer(0, state, command.text_length * 4);
 			const u32			  vertex_start = draw_buffer->vertex_count;
 			const u32			  index_start  = draw_buffer->index_count;
 
@@ -877,7 +878,7 @@ namespace sfg
 			snapshot.text_vertices.resize(snapshot.text_vertices.size() + vertex_count);
 			for (u32 i = 0; i < vertex_count; ++i)
 			{
-				const ui::vg_vertex_t& source			= draw_buffer->vertex_start[vertex_start + i];
+				const ui::vg_vertex_t& source			= _text_canvas->get_draw_buffer_vertex(*draw_buffer, vertex_start + i);
 				snapshot.text_vertices[base_vertex + i] = {
 					.color	= source.color,
 					.anchor = command.anchor,
@@ -890,7 +891,7 @@ namespace sfg
 			snapshot.text_indices.resize(snapshot.text_indices.size() + index_count);
 			const size_t index_output_start = snapshot.text_indices.size() - index_count;
 			for (u32 i = 0; i < index_count; ++i)
-				snapshot.text_indices[index_output_start + i] = base_vertex + static_cast<primitive_index>(draw_buffer->index_start[index_start + i] - vertex_start);
+				snapshot.text_indices[index_output_start + i] = base_vertex + static_cast<primitive_index>(_text_canvas->get_draw_buffer_index(*draw_buffer, index_start + i) - vertex_start);
 		}
 
 		_text_canvas->frame_end();

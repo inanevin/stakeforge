@@ -128,6 +128,7 @@ namespace sfg::ui
 		// -----------------------------------------------------------------------------
 
 		void		set_widget_text(widget_id_t id, const char* text);
+		void		set_widget_text(widget_id_t id, const char* text, u32 len);
 		void		clear_widget_text(widget_id_t id);
 		const char* widget_text(widget_id_t id) const;
 		u32			widget_text_len(widget_id_t id) const;
