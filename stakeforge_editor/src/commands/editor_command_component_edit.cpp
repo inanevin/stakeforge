@@ -154,6 +154,8 @@ namespace sfg
 					return false;
 				}
 			}
+
+			editor_world_controller_t::get().mark_world_dirty(payload.world);
 			return true;
 		}
 
@@ -231,6 +233,7 @@ namespace sfg
 			free_component_edit_payload(command_system, payload);
 			return false;
 		}
+		editor_world_controller_t::get().mark_world_dirty(payload.world);
 
 		world_t& scan_world = editor_world_controller_t::get().get_editor_world(world)->get_world();
 		scan_resources(scan_world, entities);
