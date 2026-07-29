@@ -127,6 +127,42 @@
             }
         },
         {
+            "name": "canvas_ui_default",
+            "path": "engine/resource_pack/shaders/canvas_ui_default.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 28
+            }
+        },
+        {
+            "name": "canvas_ui_texture",
+            "path": "engine/resource_pack/shaders/canvas_ui_texture.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 28
+            }
+        },
+        {
+            "name": "canvas_ui_text_grayscale",
+            "path": "engine/resource_pack/shaders/canvas_ui_text_grayscale.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 28
+            }
+        },
+        {
+            "name": "canvas_ui_sdf",
+            "path": "engine/resource_pack/shaders/canvas_ui_sdf.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 28
+            }
+        },
+        {
             "name": "debug_font",
             "path": "engine/resource_pack/IBMPlexMono-Regular.ttf",
             "type": 2,
