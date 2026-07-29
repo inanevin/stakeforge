@@ -375,6 +375,8 @@ namespace sfg
 				editor_world->update_world_transforms(false);
 
 			editor_world->invoke_tick_callback(frame_delta_seconds);
+
+			editor_world->get_world().draw_world_script_debug();
 			editor_world->draw_debug();
 
 #ifdef SFG_DEBUG

@@ -248,6 +248,21 @@ public static unsafe class NativeEntryPoints
     }
 
     [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int DrawDebugWorldScript(nint instance)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.DrawDebugWorldScript(instance);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static int KeyEventWorldScript(nint instance, ushort key, ushort scanCode, byte action)
     {
         try

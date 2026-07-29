@@ -232,6 +232,12 @@ internal static class ProjectAssemblyRuntime
         instance.Script.PostAnimationTick(instance.World, deltaTime);
     }
 
+    internal static void DrawDebugWorldScript(nint instanceHandle)
+    {
+        WorldScriptInstance instance = GetWorldScriptInstance(instanceHandle);
+        instance.Script.DrawDebug(instance.World);
+    }
+
     internal static void KeyEventWorldScript(nint instanceHandle, ushort key, ushort scanCode, InputAction action)
     {
         WorldScriptInstance instance = GetWorldScriptInstance(instanceHandle);

@@ -70,6 +70,7 @@ namespace sfg
 		void tick_logic(f32 dt);
 		void tick_logic_post_physics(f32 dt);
 		void tick_logic_post_animation(f32 dt);
+		void draw_world_script_debug();
 		void tick_post(f32 dt);
 		void begin_world_script_play();
 		void end_world_script_play();

@@ -23,6 +23,10 @@ public sealed class #SCRIPT_NAME# : SFG.WorldScript
     {
     }
 
+    public override void DrawDebug(World world)
+    {
+    }
+
     public override void OnKeyEvent(World world, KeyEvent inputEvent)
     {
     }

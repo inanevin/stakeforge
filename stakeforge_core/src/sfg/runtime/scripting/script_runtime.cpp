@@ -186,6 +186,7 @@ namespace sfg
 		void*											fn_post_tick_world_script			= nullptr;
 		void*											fn_post_physics_tick_world_script	= nullptr;
 		void*											fn_post_animation_tick_world_script = nullptr;
+		void*											fn_draw_debug_world_script			= nullptr;
 		void*											fn_key_event_world_script			= nullptr;
 		void*											fn_mouse_button_event_world_script	= nullptr;
 		void*											fn_mouse_move_event_world_script	= nullptr;
@@ -206,6 +207,7 @@ namespace sfg
 		const i32 res_post_tick_world_script	   = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"PostTickWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_post_tick_world_script);
 		const i32 res_post_physics_world_script	   = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"PostPhysicsTickWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_post_physics_tick_world_script);
 		const i32 res_post_animation_world_script  = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"PostAnimationTickWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_post_animation_tick_world_script);
+		const i32 res_draw_debug_world_script	   = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"DrawDebugWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_draw_debug_world_script);
 		const i32 res_key_event_world_script	   = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"KeyEventWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_key_event_world_script);
 		const i32 res_mouse_button_world_script	   = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"MouseButtonEventWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_mouse_button_event_world_script);
 		const i32 res_mouse_move_world_script	   = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"MouseMoveEventWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_mouse_move_event_world_script);
@@ -216,9 +218,9 @@ namespace sfg
 			fn_get_staged_project_schema == nullptr || res_activate_staged_schema != 0 || fn_activate_staged_project_assembly == nullptr || res_discard_staged_schema != 0 || fn_discard_staged_project_assembly == nullptr || res_create_world_script != 0 ||
 			fn_create_world_script == nullptr || res_destroy_world_script != 0 || fn_destroy_world_script == nullptr || res_begin_play_world_script != 0 || fn_begin_play_world_script == nullptr || res_end_play_world_script != 0 ||
 			fn_end_play_world_script == nullptr || res_tick_world_script != 0 || fn_tick_world_script == nullptr || res_post_tick_world_script != 0 || fn_post_tick_world_script == nullptr || res_post_physics_world_script != 0 ||
-			fn_post_physics_tick_world_script == nullptr || res_post_animation_world_script != 0 || fn_post_animation_tick_world_script == nullptr || res_key_event_world_script != 0 || fn_key_event_world_script == nullptr ||
-			res_mouse_button_world_script != 0 || fn_mouse_button_event_world_script == nullptr || res_mouse_move_world_script != 0 || fn_mouse_move_event_world_script == nullptr || res_mouse_wheel_world_script != 0 ||
-			fn_mouse_wheel_event_world_script == nullptr || res_physics_contact_world_script != 0 || fn_physics_contact_world_script == nullptr)
+			fn_post_physics_tick_world_script == nullptr || res_post_animation_world_script != 0 || fn_post_animation_tick_world_script == nullptr || res_draw_debug_world_script != 0 || fn_draw_debug_world_script == nullptr ||
+			res_key_event_world_script != 0 || fn_key_event_world_script == nullptr || res_mouse_button_world_script != 0 || fn_mouse_button_event_world_script == nullptr || res_mouse_move_world_script != 0 || fn_mouse_move_event_world_script == nullptr ||
+			res_mouse_wheel_world_script != 0 || fn_mouse_wheel_event_world_script == nullptr || res_physics_contact_world_script != 0 || fn_physics_contact_world_script == nullptr)
 		{
 			SFG_ERR("could not load one or more managed scripting entry points.");
 			unload_hostfxr(hostfxr_library);
@@ -239,6 +241,7 @@ namespace sfg
 		const script_host_world_script_tick_fn				  post_tick_world_script		   = reinterpret_cast<script_host_world_script_tick_fn>(fn_post_tick_world_script);
 		const script_host_world_script_tick_fn				  post_physics_tick_world_script   = reinterpret_cast<script_host_world_script_tick_fn>(fn_post_physics_tick_world_script);
 		const script_host_world_script_tick_fn				  post_animation_tick_world_script = reinterpret_cast<script_host_world_script_tick_fn>(fn_post_animation_tick_world_script);
+		const script_host_world_script_lifecycle_fn			  draw_debug_world_script		   = reinterpret_cast<script_host_world_script_lifecycle_fn>(fn_draw_debug_world_script);
 		const script_host_world_script_key_event_fn			  key_event_world_script		   = reinterpret_cast<script_host_world_script_key_event_fn>(fn_key_event_world_script);
 		const script_host_world_script_mouse_button_event_fn  mouse_button_event_world_script  = reinterpret_cast<script_host_world_script_mouse_button_event_fn>(fn_mouse_button_event_world_script);
 		const script_host_world_script_mouse_move_event_fn	  mouse_move_event_world_script	   = reinterpret_cast<script_host_world_script_mouse_move_event_fn>(fn_mouse_move_event_world_script);
@@ -286,6 +289,7 @@ namespace sfg
 		_fn_post_tick_world_script			 = post_tick_world_script;
 		_fn_post_physics_tick_world_script	 = post_physics_tick_world_script;
 		_fn_post_animation_tick_world_script = post_animation_tick_world_script;
+		_fn_draw_debug_world_script			 = draw_debug_world_script;
 		_fn_key_event_world_script			 = key_event_world_script;
 		_fn_mouse_button_event_world_script	 = mouse_button_event_world_script;
 		_fn_mouse_move_event_world_script	 = mouse_move_event_world_script;
@@ -333,6 +337,7 @@ namespace sfg
 		_fn_post_tick_world_script			 = nullptr;
 		_fn_post_physics_tick_world_script	 = nullptr;
 		_fn_post_animation_tick_world_script = nullptr;
+		_fn_draw_debug_world_script			 = nullptr;
 		_fn_key_event_world_script			 = nullptr;
 		_fn_mouse_button_event_world_script	 = nullptr;
 		_fn_mouse_move_event_world_script	 = nullptr;
@@ -483,6 +488,13 @@ namespace sfg
 		SFG_ASSERT(instance != nullptr);
 
 		return _fn_post_animation_tick_world_script(instance, delta_time) == 0;
+	}
+
+	bool script_runtime_t::draw_debug_world_script(void* instance)
+	{
+		SFG_ASSERT(instance != nullptr);
+
+		return _fn_draw_debug_world_script(instance) == 0;
 	}
 
 	bool script_runtime_t::key_event_world_script(void* instance, u16 key, u16 scan_code, u8 action)

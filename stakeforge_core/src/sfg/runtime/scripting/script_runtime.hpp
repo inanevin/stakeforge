@@ -108,6 +108,7 @@ namespace sfg
 		bool  post_tick_world_script(void* instance, f32 delta_time);
 		bool  post_physics_tick_world_script(void* instance, f32 delta_time);
 		bool  post_animation_tick_world_script(void* instance, f32 delta_time);
+		bool  draw_debug_world_script(void* instance);
 		bool  key_event_world_script(void* instance, u16 key, u16 scan_code, u8 action);
 		bool  mouse_button_event_world_script(void* instance, u8 button, u8 action, f32 position_x, f32 position_y);
 		bool  mouse_move_event_world_script(void* instance, f32 position_x, f32 position_y, f32 delta_x, f32 delta_y);
@@ -161,6 +162,7 @@ namespace sfg
 		script_host_world_script_tick_fn				_fn_post_tick_world_script			 = nullptr;
 		script_host_world_script_tick_fn				_fn_post_physics_tick_world_script	 = nullptr;
 		script_host_world_script_tick_fn				_fn_post_animation_tick_world_script = nullptr;
+		script_host_world_script_lifecycle_fn			_fn_draw_debug_world_script			 = nullptr;
 		script_host_world_script_key_event_fn			_fn_key_event_world_script			 = nullptr;
 		script_host_world_script_mouse_button_event_fn	_fn_mouse_button_event_world_script	 = nullptr;
 		script_host_world_script_mouse_move_event_fn	_fn_mouse_move_event_world_script	 = nullptr;

@@ -316,6 +316,14 @@ namespace sfg
 			script_runtime_t::get().post_animation_tick_world_script(_world_script_instance, scaled_dt);
 	}
 
+	void world_t::draw_world_script_debug()
+	{
+		ZoneScoped;
+
+		if (_world_script_instance != nullptr)
+			script_runtime_t::get().draw_debug_world_script(_world_script_instance);
+	}
+
 	void world_t::begin_world_script_play()
 	{
 		SFG_ASSERT(_is_playing);

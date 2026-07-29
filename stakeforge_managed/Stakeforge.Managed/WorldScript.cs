@@ -22,6 +22,10 @@ public abstract class WorldScript
     {
     }
 
+    public virtual void DrawDebug(World world)
+    {
+    }
+
     public virtual void EndPlay(World world)
     {
     }
