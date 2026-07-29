@@ -1462,10 +1462,17 @@ namespace sfg
 		out_state.ground_velocity					= physics_world_util_t::from_jolt(jolt_character.GetGroundVelocity());
 		out_state.is_grounded						= jolt_character.GetGroundState() == JPH::CharacterVirtual::EGroundState::OnGround;
 
-		const u32		  ground_sub_shape_id = jolt_character.GetGroundSubShapeID().GetValue();
-		const JPH::BodyID ground_body_id	  = jolt_character.GetGroundBodyID();
-		out_state.ground_entity				  = _impl->resolve_body_entity(ground_body_id);
-		out_state.ground_sub_shape_id		  = ground_sub_shape_id;
+		const JPH::BodyID ground_body_id = jolt_character.GetGroundBodyID();
+
+		if (ground_body_id.IsInvalid())
+		{
+			out_state.ground_entity		  = NULL_ENTITY_ID;
+			out_state.ground_sub_shape_id = 0;
+			return true;
+		}
+
+		out_state.ground_entity		  = _impl->resolve_body_entity(ground_body_id);
+		out_state.ground_sub_shape_id = jolt_character.GetGroundSubShapeID().GetValue();
 		return true;
 	}
 

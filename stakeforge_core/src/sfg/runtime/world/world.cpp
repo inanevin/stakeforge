@@ -832,6 +832,8 @@ namespace sfg
 		auto it = std::find_if(_used_resources.begin(), _used_resources.end(), [handle](const world_resource_t& r) -> bool { return r.handle == handle; });
 		if (it != _used_resources.end())
 			return false;
+		if (handle == 0)
+			return false;
 		_used_resources.push_back({.handle = handle, .type = type});
 		return true;
 	}
