@@ -272,6 +272,7 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].cmd_clustered_lighting.is_null());
 			SFG_ASSERT(_pfd[i].lighting_texture.is_null());
 			SFG_ASSERT(_pfd[i].post_process_texture.is_null());
+			SFG_ASSERT(_pfd[i].tonemap_texture.is_null());
 			SFG_ASSERT(_pfd[i].depth_texture.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_albedo.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_normal.is_null());
@@ -415,6 +416,8 @@ namespace sfg
 		_shaders.lighting						   = render_resources.get_shader_hw(sh->psos[0]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/post_combiner.hlsl"_hs);
 		_shaders.post_combiner					   = render_resources.get_shader_hw(sh->psos[0]);
+		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/fxaa.hlsl"_hs);
+		_shaders.fxaa							   = render_resources.get_shader_hw(sh->psos[0]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/debug_line.hlsl"_hs);
 		_shaders.debug_line						   = render_resources.get_shader_hw(sh->psos[0]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/debug_text.hlsl"_hs);
@@ -679,6 +682,9 @@ namespace sfg
 		post_process_desc.texture_format = format_e::r8g8b8a8_srgb;
 		post_process_desc.set_name("world_post_process");
 
+		texture_desc_t tonemap_desc = post_process_desc;
+		tonemap_desc.set_name("world_tonemap");
+
 		texture_desc_t depth_desc		= {};
 		depth_desc.texture_format		= format_e::r32_sfloat;
 		depth_desc.depth_stencil_format = format_e::d32_sfloat;
@@ -789,6 +795,7 @@ namespace sfg
 		{
 			SFG_ASSERT(_pfd[i].lighting_texture.is_null());
 			SFG_ASSERT(_pfd[i].post_process_texture.is_null());
+			SFG_ASSERT(_pfd[i].tonemap_texture.is_null());
 			SFG_ASSERT(_pfd[i].depth_texture.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_albedo.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_normal.is_null());
@@ -801,6 +808,7 @@ namespace sfg
 
 			_pfd[i].lighting_texture	 = backend.create_texture(lighting_desc);
 			_pfd[i].post_process_texture = backend.create_texture(post_process_desc);
+			_pfd[i].tonemap_texture		 = backend.create_texture(tonemap_desc);
 			_pfd[i].depth_texture		 = backend.create_texture(depth_desc);
 			_pfd[i].gbuffer_albedo		 = backend.create_texture(gbuffer_albedo_desc);
 			_pfd[i].gbuffer_normal		 = backend.create_texture(gbuffer_normal_desc);
@@ -816,6 +824,7 @@ namespace sfg
 
 			_pfd[i].lighting_texture_index	   = backend.get_texture_gpu_index(_pfd[i].lighting_texture, 0);
 			_pfd[i].post_process_texture_index = backend.get_texture_gpu_index(_pfd[i].post_process_texture, 0);
+			_pfd[i].tonemap_texture_index	   = backend.get_texture_gpu_index(_pfd[i].tonemap_texture, 0);
 			_pfd[i].depth_texture_index		   = backend.get_texture_gpu_index(_pfd[i].depth_texture, 2);
 			_pfd[i].gbuffer_albedo_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_albedo, 1);
 			_pfd[i].gbuffer_normal_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_normal, 1);
@@ -855,6 +864,7 @@ namespace sfg
 		{
 			SFG_ASSERT(!_pfd[i].lighting_texture.is_null());
 			SFG_ASSERT(!_pfd[i].post_process_texture.is_null());
+			SFG_ASSERT(!_pfd[i].tonemap_texture.is_null());
 			SFG_ASSERT(!_pfd[i].depth_texture.is_null());
 			SFG_ASSERT(!_pfd[i].gbuffer_albedo.is_null());
 			SFG_ASSERT(!_pfd[i].gbuffer_normal.is_null());
@@ -865,6 +875,7 @@ namespace sfg
 
 			backend.destroy_texture(_pfd[i].lighting_texture);
 			backend.destroy_texture(_pfd[i].post_process_texture);
+			backend.destroy_texture(_pfd[i].tonemap_texture);
 			backend.destroy_texture(_pfd[i].depth_texture);
 			backend.destroy_texture(_pfd[i].gbuffer_albedo);
 			backend.destroy_texture(_pfd[i].gbuffer_normal);
@@ -883,6 +894,7 @@ namespace sfg
 			}
 			_pfd[i].lighting_texture	 = {};
 			_pfd[i].post_process_texture = {};
+			_pfd[i].tonemap_texture		 = {};
 			_pfd[i].depth_texture		 = {};
 			_pfd[i].gbuffer_albedo		 = {};
 			_pfd[i].gbuffer_normal		 = {};
@@ -901,6 +913,7 @@ namespace sfg
 			}
 			_pfd[i].lighting_texture_index	   = NULL_GPU_INDEX;
 			_pfd[i].post_process_texture_index = NULL_GPU_INDEX;
+			_pfd[i].tonemap_texture_index	   = NULL_GPU_INDEX;
 			_pfd[i].depth_texture_index		   = NULL_GPU_INDEX;
 			_pfd[i].gbuffer_albedo_index	   = NULL_GPU_INDEX;
 			_pfd[i].gbuffer_normal_index	   = NULL_GPU_INDEX;

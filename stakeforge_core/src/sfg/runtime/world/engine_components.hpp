@@ -353,11 +353,22 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(post_process_bloom_t);
 
+	struct post_process_fxaa_t
+	{
+		f32 fixed_threshold	   = 0.0833f;
+		f32 relative_threshold = 0.166f;
+		f32 subpixel_blending  = 0.75f;
+		u8	enabled			   = 1;
+	};
+
+	SFG_DEFINE_TYPE_ID(post_process_fxaa_t);
+
 	struct component_post_process_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_post_process";
 
 		post_process_ssao_t	 ssao				  = {};
+		post_process_fxaa_t	 fxaa				  = {};
 		post_process_bloom_t bloom				  = {};
 		f32					 exposure_ev		  = 0.0f;
 		f32					 saturation			  = 1.0f;

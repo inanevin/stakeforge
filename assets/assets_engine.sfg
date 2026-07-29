@@ -19,6 +19,15 @@
             }
         },
         {
+            "name": "fxaa",
+            "path": "common/shaders/world/fxaa.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 11
+            }
+        },
+        {
             "name": "debug_line",
             "path": "common/shaders/world/debug_line.hlsl",
             "type": 7,

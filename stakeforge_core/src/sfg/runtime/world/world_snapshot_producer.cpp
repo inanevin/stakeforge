@@ -286,6 +286,13 @@ namespace sfg
 								.step_count				  = post_process->ssao.step_count,
 								.enabled				  = post_process->ssao.enabled,
 							},
+						.fxaa =
+							{
+								.fixed_threshold	= post_process->fxaa.fixed_threshold,
+								.relative_threshold = post_process->fxaa.relative_threshold,
+								.subpixel_blending	= post_process->fxaa.subpixel_blending,
+								.enabled			= post_process->fxaa.enabled,
+							},
 						.bloom =
 							{
 								.strength	   = post_process->bloom.strength,

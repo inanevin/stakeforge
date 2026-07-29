@@ -98,9 +98,18 @@ namespace sfg
 		u8	enabled		  = 0;
 	};
 
+	struct world_render_fxaa_t
+	{
+		f32 fixed_threshold	   = 0.0833f;
+		f32 relative_threshold = 0.166f;
+		f32 subpixel_blending  = 0.75f;
+		u8	enabled			   = 0;
+	};
+
 	struct world_render_post_process_t
 	{
 		world_render_ssao_t	 ssao				  = {};
+		world_render_fxaa_t	 fxaa				  = {};
 		world_render_bloom_t bloom				  = {};
 		f32					 exposure_ev		  = 0.0f;
 		f32					 saturation			  = 1.0f;

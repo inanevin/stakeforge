@@ -115,7 +115,11 @@ namespace sfg
 	{
 		vec4f_t params0 = vec4f_t::zero;
 		vec4f_t params1 = vec4f_t::zero;
+		vec4f_t params2 = vec4f_t::zero;
+		vec4f_t params3 = vec4f_t::zero;
 	};
+
+	static_assert(sizeof(render_pass_data_post_process_gpu_t) == 64);
 
 	struct render_pass_data_ssao_gpu_t
 	{
@@ -319,6 +323,11 @@ namespace sfg
 			return _pfd[frame_index].post_process_texture;
 		}
 
+		inline gfx_handle_t get_tonemap_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].tonemap_texture;
+		}
+
 		inline gfx_handle_t get_gbuffer_albedo_texture(u8 frame_index) const
 		{
 			return _pfd[frame_index].gbuffer_albedo;
@@ -392,6 +401,11 @@ namespace sfg
 		inline gpu_index_t get_post_process_texture_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].post_process_texture_index;
+		}
+
+		inline gpu_index_t get_tonemap_texture_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].tonemap_texture_index;
 		}
 
 		inline gpu_index_t get_view_render_pass_data_index(u8 frame_index) const
@@ -562,6 +576,11 @@ namespace sfg
 		inline gfx_handle_t get_post_combiner_shader() const
 		{
 			return _shaders.post_combiner;
+		}
+
+		inline gfx_handle_t get_fxaa_shader() const
+		{
+			return _shaders.fxaa;
 		}
 
 		inline gfx_handle_t get_debug_line_shader() const
@@ -866,6 +885,7 @@ namespace sfg
 			gfx_handle_t debug_text_index_buffer									= {};
 			gfx_handle_t lighting_texture											= {};
 			gfx_handle_t post_process_texture										= {};
+			gfx_handle_t tonemap_texture											= {};
 			gfx_handle_t depth_texture												= {};
 			gfx_handle_t gbuffer_albedo												= {};
 			gfx_handle_t gbuffer_normal												= {};
@@ -883,6 +903,7 @@ namespace sfg
 			mutable u64	 clustered_lighting_semaphore_value							= 0;
 			gpu_index_t	 lighting_texture_index										= NULL_GPU_INDEX;
 			gpu_index_t	 post_process_texture_index									= NULL_GPU_INDEX;
+			gpu_index_t	 tonemap_texture_index										= NULL_GPU_INDEX;
 			gpu_index_t	 depth_texture_index										= NULL_GPU_INDEX;
 			gpu_index_t	 gbuffer_albedo_index										= NULL_GPU_INDEX;
 			gpu_index_t	 gbuffer_normal_index										= NULL_GPU_INDEX;
@@ -922,6 +943,7 @@ namespace sfg
 		{
 			gfx_handle_t lighting				 = {};
 			gfx_handle_t post_combiner			 = {};
+			gfx_handle_t fxaa					 = {};
 			gfx_handle_t debug_line				 = {};
 			gfx_handle_t debug_text				 = {};
 			gfx_handle_t debug_texture			 = {};

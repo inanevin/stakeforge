@@ -1491,16 +1491,23 @@ namespace sfg
 	{
 		gfx_backend& backend = gfx_backend::get();
 
+		const vec2u16_t							  size							= ctx.get_size();
 		const render_pass_data_post_process_gpu_t post_process_render_pass_data = {
 			.params0 = vec4f_t(snapshot.post_process.bloom.strength, snapshot.post_process.exposure_ev, snapshot.post_process.saturation, snapshot.post_process.reinhard_white_point),
 			.params1 = vec4f_t(snapshot.post_process.temperature, snapshot.post_process.tint, static_cast<f32>(snapshot.post_process.tonemap_mode), 0.0f),
+			.params2 = vec4f_t(1.0f / static_cast<f32>(size.x), 1.0f / static_cast<f32>(size.y), snapshot.post_process.fxaa.fixed_threshold, snapshot.post_process.fxaa.relative_threshold),
+			.params3 = vec4f_t(snapshot.post_process.fxaa.subpixel_blending, 0.0f, 0.0f, 0.0f),
 		};
+
 		SFG_MEMCPY(ctx.get_mapped_post_process_render_pass_data(frame_index), &post_process_render_pass_data, sizeof(render_pass_data_post_process_gpu_t));
 
-		const gfx_handle_t cmd				= ctx.get_command_buffer_post(frame_index);
-		const gfx_handle_t lighting_texture = ctx.get_lighting_texture(frame_index);
-		const gfx_handle_t world_texture	= ctx.get_world_texture(frame_index);
-		const bool		   bloom_active		= ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
+		const gfx_handle_t cmd				   = ctx.get_command_buffer_post(frame_index);
+		const gfx_handle_t lighting_texture	   = ctx.get_lighting_texture(frame_index);
+		const gfx_handle_t world_texture	   = ctx.get_world_texture(frame_index);
+		const gfx_handle_t tonemap_texture	   = ctx.get_tonemap_texture(frame_index);
+		const bool		   bloom_active		   = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
+		const bool		   fxaa_active		   = snapshot.post_process.fxaa.enabled != 0;
+		const gfx_handle_t post_process_target = fxaa_active ? tonemap_texture : world_texture;
 
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
@@ -1531,7 +1538,7 @@ namespace sfg
 		begin_barriers[begin_count++] = {
 			.from_states = resource_state_ps_resource,
 			.to_states	 = resource_state_render_target,
-			.texture_t	 = world_texture,
+			.texture_t	 = post_process_target,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 
@@ -1539,7 +1546,7 @@ namespace sfg
 
 		const render_pass_color_attachment_t color_attachment = {
 			.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
-			.texture	 = world_texture,
+			.texture	 = post_process_target,
 			.load_op	 = load_op::clear,
 			.store_op	 = store_op::store,
 			.view_index	 = 1,
@@ -1548,7 +1555,6 @@ namespace sfg
 		BEGIN_DEBUG_EVENT((&backend), cmd, "world_post_process");
 		backend.cmd_begin_render_pass(cmd, {.color_attachments = &color_attachment, .color_attachment_count = 1});
 
-		const vec2u16_t size = ctx.get_size();
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
@@ -1556,9 +1562,51 @@ namespace sfg
 		const render_resources_t& render_resources = render_resources_t::get();
 		const gpu_index_t		  bloom_index	   = bloom_active ? ctx.get_bloom_upsample_index(frame_index, 0) : render_resources.get_texture_gpu_index(render_resources.get_black_texture(), 0);
 		gpu_index_t				  rp_constants[3]  = {ctx.get_post_process_render_pass_data_index(frame_index), ctx.get_lighting_texture_index(frame_index), bloom_index};
+
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_post_combiner_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
+
+		if (fxaa_active)
+		{
+			backend.cmd_end_render_pass(cmd, {});
+
+			const barrier_t fxaa_barriers[2] = {
+				{
+					.from_states = resource_state_render_target,
+					.to_states	 = resource_state_ps_resource,
+					.texture_t	 = tonemap_texture,
+					.flags		 = barrier_flags::baf_is_texture,
+				},
+				{
+					.from_states = resource_state_ps_resource,
+					.to_states	 = resource_state_render_target,
+					.texture_t	 = world_texture,
+					.flags		 = barrier_flags::baf_is_texture,
+				},
+			};
+
+			backend.cmd_barrier(cmd, {.barriers = fxaa_barriers, .barrier_count = 2});
+
+			const render_pass_color_attachment_t fxaa_attachment = {
+				.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
+				.texture	 = world_texture,
+				.load_op	 = load_op::clear,
+				.store_op	 = store_op::store,
+				.view_index	 = 1,
+			};
+
+			backend.cmd_begin_render_pass(cmd, {.color_attachments = &fxaa_attachment, .color_attachment_count = 1});
+
+			const gpu_index_t fxaa_constants[2] = {
+				ctx.get_post_process_render_pass_data_index(frame_index),
+				ctx.get_tonemap_texture_index(frame_index),
+			};
+
+			backend.cmd_bind_constants(cmd, {.data = fxaa_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_fxaa_shader()});
+			backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
+		}
 
 		// debug draws
 		const world_debug_draw_snapshot_t& debug_draw = snapshot.debug_draw;
