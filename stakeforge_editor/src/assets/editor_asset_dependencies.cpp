@@ -167,6 +167,20 @@ namespace sfg
 
 			fetch_entity_group_dependencies(embedded_source, out_dependencies);
 			break;
+		case editor_asset_type_e::world: {
+			if (!embedded_source.is_object())
+				return false;
+
+			const nlohmann::json root_entities_json = embedded_source.value<nlohmann::json>("root_entities", nlohmann::json::array());
+
+			if (!root_entities_json.is_array())
+				return false;
+
+			for (const nlohmann::json& root_entity_json : root_entities_json)
+				fetch_entity_group_dependencies(root_entity_json, out_dependencies);
+
+			break;
+		}
 		default:
 			break;
 		}
