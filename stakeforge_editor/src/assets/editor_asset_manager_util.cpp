@@ -214,16 +214,17 @@ namespace sfg
 				}
 			}
 
-			vector_t<sid_t> dependencies;
+			vector_t<editor_asset_dependency_t> dependencies = {};
 			editor_asset_dependencies_t::fetch_dependencies(asset, dependencies);
-			for (const sid_t dependency : dependencies)
+
+			for (const editor_asset_dependency_t& dependency : dependencies)
 			{
-				if (assets.find(dependency) != assets.end())
+				if (assets.find(dependency.sid) != assets.end())
 					continue;
 
 				if (asset.status == editor_asset_status_e::ok)
 					asset.status = editor_asset_status_e::missing_dependency;
-				SFG_WARN("asset {0}, {1}, {2} has missing dependency {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, dependency);
+				SFG_WARN("asset {0}, {1}, {2} has missing dependency {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, dependency.sid);
 			}
 		}
 	}

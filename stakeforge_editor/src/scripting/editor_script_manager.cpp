@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project.hpp"
 #include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
-#include "script_file_watcher.hpp"
 #include "ui/panels/editor_panel_inspector.hpp"
 
 #include <sfg/io/assert.hpp>
@@ -147,8 +146,6 @@ namespace sfg
 	void editor_script_manager_t::compile_scripts()
 	{
 		SFG_ASSERT(_initialized);
-
-		script_file_watcher_t::get().accept_current_state();
 
 		if (_compile_state.load(std::memory_order_acquire) != compile_state_e::idle)
 		{

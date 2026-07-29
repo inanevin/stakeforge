@@ -34,7 +34,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_settings.hpp"
 #include "editor_surface_controller.hpp"
 #include "scripting/editor_script_manager.hpp"
-#include "scripting/script_file_watcher.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/widgets/editor_splash_screen.hpp"
@@ -285,12 +284,10 @@ namespace sfg
 
 		_asset_manager.initialize_cooked_resource_tracking();
 		_asset_manager.initialize_source_file_tracking();
-		script_file_watcher_t::get().init();
 
 		editor_asset_thumbnail_manager_t::get().load_all_ready();
 
 		const auto cleanup = [this]() {
-			script_file_watcher_t::get().uninit();
 			editor_surface_controller_t::get().destroy_all_surfaces();
 			editor_thumbnail_render_service_t::get().uninit();
 			editor_asset_thumbnail_manager_t::get().uninit();
@@ -373,6 +370,7 @@ namespace sfg
 		set_script_api_render_resolution_callbacks(get_script_render_resolution, set_script_render_resolution);
 
 		editor_script_manager_t::get().init();
+		_asset_manager.initialize_script_file_tracking();
 		editor_project_cooker_t::get().init();
 		editor_script_manager_t::get().compile_scripts();
 
@@ -381,7 +379,7 @@ namespace sfg
 
 	void editor_app_t::uninit_normal_mode()
 	{
-		script_file_watcher_t::get().uninit();
+		_asset_manager.uninitialize_script_file_tracking();
 		editor_script_manager_t::get().uninit();
 		editor_project_cooker_t::get().uninit();
 
@@ -520,7 +518,6 @@ namespace sfg
 				}
 
 				_asset_manager.tick();
-				script_file_watcher_t::get().tick();
 				editor_project_cooker_t::get().tick();
 
 				if (!_asset_manager.is_import_in_progress())

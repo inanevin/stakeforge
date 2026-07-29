@@ -45,7 +45,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
 #include "editor_settings.hpp"
-#include "scripting/editor_script_manager.hpp"
 #include <sfg/common/hashing.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
@@ -439,8 +438,6 @@ namespace sfg
 		if (_selected_asset_nodes.empty())
 			return;
 
-		bool scripts_changed = false;
-
 		for (editor_asset_node_handle_t node : _selected_asset_nodes)
 		{
 			if (node.is_null() || !tree.is_valid(node))
@@ -462,20 +459,12 @@ namespace sfg
 					_favourite_asset_guids.erase(it);
 			}
 			else if (asset_node.type == editor_asset_node_type_e::file || asset_node.type == editor_asset_node_type_e::script_file)
-			{
-				const bool is_script_file = asset_node.type == editor_asset_node_type_e::script_file;
-
-				if (asset_manager.delete_node_subtree(node) && is_script_file)
-					scripts_changed = true;
-			}
+				asset_manager.delete_node_subtree(node);
 		}
 
 		clear_asset_grid_selection();
 
 		refresh_folder_rows();
-
-		if (scripts_changed)
-			editor_script_manager_t::get().compile_scripts();
 	}
 
 	void editor_panel_assets_t::duplicate_asset()
@@ -799,7 +788,6 @@ namespace sfg
 				asset_manager.notify_changed();
 
 			refresh_folder_rows();
-			editor_script_manager_t::get().compile_scripts();
 			return true;
 		}
 
@@ -1170,9 +1158,6 @@ namespace sfg
 		asset_manager.update_node_path(_selected_asset_node, new_path.c_str());
 		_selected_asset_node = {};
 		refresh_folder_rows();
-
-		if (is_script_file)
-			editor_script_manager_t::get().compile_scripts();
 	}
 
 }

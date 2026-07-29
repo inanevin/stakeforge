@@ -478,15 +478,16 @@ namespace sfg
 		surface.ui->init({
 			.canvas =
 				{
-					.vertex_pool_budget_bytes = 1 << 25,
-					.index_pool_budget_bytes  = 1 << 25,
+					.vertex_pool_budget_bytes = 2 << 20,
+					.index_pool_budget_bytes  = 1 << 20,
 					.buffer_count			  = 64,
+					.geometry_span_count	  = 16384,
 				},
 			.user_ui_scale			   = 1.0f,
 			.dpi_scale				   = surface.runtime->monitor_info.dpi_scale,
 			.max_widgets			   = 10000,
 			.text_pool_budget_bytes	   = 1024 * 1024,
-			.snapshot_vertex_max_bytes = 1 << 20,
+			.snapshot_vertex_max_bytes = 2 << 20,
 			.snapshot_index_max_bytes  = 1 << 20,
 		});
 

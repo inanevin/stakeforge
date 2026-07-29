@@ -78,6 +78,8 @@ namespace sfg
 		void flush_asset_cook_jobs();
 		void initialize_cooked_resource_tracking();
 		void initialize_source_file_tracking();
+		void initialize_script_file_tracking();
+		void uninitialize_script_file_tracking();
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -188,6 +190,13 @@ namespace sfg
 			u64				pending_last_modified  = 0;
 		};
 
+		struct script_file_tracking_state_t
+		{
+			string_t full_path				= {};
+			u64		 accepted_last_modified = 0;
+			u64		 pending_last_modified	= 0;
+		};
+
 		friend class editor_asset_manager_util_t;
 
 		static void				   on_import_progress(void* user_data, f32 progress, const char* text, bool is_completed, span_t<const string_t> imported_asset_paths);
@@ -203,6 +212,9 @@ namespace sfg
 		void					   process_changed_source_files();
 		void					   untrack_source_asset(sid_t asset_id);
 		void					   update_moved_source_paths(const char* old_path, const char* new_path, bool directory);
+		void					   track_script_file(const char* path);
+		void					   scan_script_files();
+		bool					   update_moved_script_paths(const char* old_path, const char* new_path, bool directory);
 		void					   notify_asset_deletion(span_t<const sid_t> asset_ids);
 		editor_asset_node_handle_t find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const;
 		editor_asset_node_handle_t get_or_create_child_folder(editor_asset_node_handle_t parent, const string_t& name);
@@ -220,6 +232,7 @@ namespace sfg
 		hash_map_t<sid_t, asset_cook_state_t>													_asset_cook_states;
 		hash_map_t<sid_t, cooked_resource_tracking_state_t>										_cooked_resource_tracking_states;
 		hash_map_t<sid_t, source_file_tracking_state_t>											_source_file_to_tracking;
+		hash_map_t<sid_t, script_file_tracking_state_t>											_script_file_tracking_states;
 		hash_map_t<sid_t, sid_t>																_asset_to_source_tracking;
 		vector_t<sid_t>																			_changed_cooked_resources;
 		vector_t<sid_t>																			_changed_source_assets;
@@ -237,6 +250,8 @@ namespace sfg
 		bool																					_import_in_progress			  = false;
 		bool																					_cooked_file_track_inited	  = false;
 		bool																					_source_file_track_inited	  = false;
+		bool																					_script_file_track_inited	  = false;
+		bool																					_script_compile_requested	  = false;
 
 		static inline editor_asset_manager_t* s_instance = nullptr;
 	};

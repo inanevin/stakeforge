@@ -58,6 +58,7 @@ namespace sfg
 		bool			   world_view_aabb_enabled			= false;
 		bool			   world_view_skeleton_enabled		= false;
 		bool			   world_view_physics_debug_enabled = false;
+		bool			   world_view_perf_metrics_enabled	= false;
 
 		bool operator==(const editor_project_settings_data_t&) const = default;
 	};
