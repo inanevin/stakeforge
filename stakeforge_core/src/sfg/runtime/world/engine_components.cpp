@@ -180,6 +180,92 @@ namespace sfg
 			});
 		}
 
+		void register_component_canvas_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name		  = "canvas_render_stage",
+				.display_name = "Canvas Render Stage",
+				.fields =
+					{
+						{.name = "before_post_process", .display_name = "Before Post Process"},
+						{.name = "after_post_process", .display_name = "After Post Process"},
+					},
+				.type_id   = type_id_t<canvas_render_stage_e>::value,
+				.size	   = sizeof(canvas_render_stage_e),
+				.alignment = alignof(canvas_render_stage_e),
+				.flags	   = reflected_type_flag_enum,
+			});
+
+			registry.register_type({
+				.name			 = "component_canvas",
+				.display_name	 = "Canvas",
+				.category		 = "UI",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_canvas_t*>(ptr), component_canvas_t{}); },
+				.fields =
+					{
+						{.name		   = "default_font",
+						 .display_name = "Default Font",
+						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_FONT,
+						 .offset	   = offsetof(component_canvas_t, default_font),
+						 .size		   = sizeof(resource_handle_t),
+						 .type		   = reflected_value_type_e::u64},
+						{.name = "ui_scale", .display_name = "UI Scale", .offset = offsetof(component_canvas_t, ui_scale), .size = sizeof(f32), .flags = reflected_field_flag_clamped, .min_clamp = 0.1f, .max_clamp = 8.0f, .type = reflected_value_type_e::f32},
+						{.name = "sort_order", .display_name = "Sort Order", .offset = offsetof(component_canvas_t, sort_order), .size = sizeof(i32), .type = reflected_value_type_e::i32},
+						{.name		   = "render_stage",
+						 .display_name = "Render Stage",
+						 .sub_type_id  = type_id_t<canvas_render_stage_e>::value,
+						 .offset	   = offsetof(component_canvas_t, render_stage),
+						 .size		   = sizeof(canvas_render_stage_e),
+						 .type		   = reflected_value_type_e::u8},
+						{.name = "input_enabled", .display_name = "Input Enabled", .offset = offsetof(component_canvas_t, input_enabled), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
+						{.name		   = "max_widgets",
+						 .display_name = "Max Widgets",
+						 .offset	   = offsetof(component_canvas_t, max_widgets),
+						 .size		   = sizeof(u16),
+						 .flags		   = reflected_field_flag_clamped,
+						 .min_clamp	   = 8.0f,
+						 .max_clamp	   = 65534.0f,
+						 .type		   = reflected_value_type_e::u16},
+						{.name		   = "draw_buffer_count",
+						 .display_name = "Draw Buffer Count",
+						 .offset	   = offsetof(component_canvas_t, draw_buffer_count),
+						 .size		   = sizeof(u16),
+						 .flags		   = reflected_field_flag_clamped,
+						 .min_clamp	   = 1.0f,
+						 .max_clamp	   = 65535.0f,
+						 .type		   = reflected_value_type_e::u16},
+						{.name		   = "text_pool_budget_bytes",
+						 .display_name = "Text Pool Budget",
+						 .offset	   = offsetof(component_canvas_t, text_pool_budget_bytes),
+						 .size		   = sizeof(u32),
+						 .flags		   = reflected_field_flag_clamped,
+						 .min_clamp	   = 1024.0f,
+						 .max_clamp	   = 16777216.0f,
+						 .type		   = reflected_value_type_e::u32},
+						{.name		   = "vertex_pool_budget_bytes",
+						 .display_name = "Vertex Pool Budget",
+						 .offset	   = offsetof(component_canvas_t, vertex_pool_budget_bytes),
+						 .size		   = sizeof(u32),
+						 .flags		   = reflected_field_flag_clamped,
+						 .min_clamp	   = 4096.0f,
+						 .max_clamp	   = 67108864.0f,
+						 .type		   = reflected_value_type_e::u32},
+						{.name		   = "index_pool_budget_bytes",
+						 .display_name = "Index Pool Budget",
+						 .offset	   = offsetof(component_canvas_t, index_pool_budget_bytes),
+						 .size		   = sizeof(u32),
+						 .flags		   = reflected_field_flag_clamped,
+						 .min_clamp	   = 4096.0f,
+						 .max_clamp	   = 67108864.0f,
+						 .type		   = reflected_value_type_e::u32},
+					},
+				.type_id   = type_id_t<component_canvas_t>::value,
+				.size	   = sizeof(component_canvas_t),
+				.alignment = alignof(component_canvas_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
 		void register_component_mesh_renderer_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -1653,6 +1739,26 @@ namespace sfg
 			});
 
 			registry.register_type({
+				.name			 = "post_process_effect_t",
+				.display_name	 = "Post Process Effect",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<post_process_effect_t*>(ptr), post_process_effect_t{}); },
+				.fields =
+					{
+						{.name		   = "material",
+						 .display_name = "Material",
+						 .tooltip	   = "Post-process material evaluated at this position in the chain.",
+						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MATERIAL,
+						 .offset	   = offsetof(post_process_effect_t, material),
+						 .size		   = sizeof(resource_handle_t),
+						 .type		   = reflected_value_type_e::u64},
+						{.name = "enabled", .display_name = "Enabled", .tooltip = "Enables this post-process effect.", .offset = offsetof(post_process_effect_t, enabled), .size = sizeof(u8), .type = reflected_value_type_e::boolean},
+					},
+				.type_id   = type_id_t<post_process_effect_t>::value,
+				.size	   = sizeof(post_process_effect_t),
+				.alignment = alignof(post_process_effect_t),
+			});
+
+			registry.register_type({
 				.name			 = "component_post_process",
 				.display_name	 = "Post Process",
 				.category		 = "Graphics",
@@ -1681,6 +1787,20 @@ namespace sfg
 						 .offset	   = offsetof(component_post_process_t, fxaa),
 						 .size		   = sizeof(post_process_fxaa_t),
 						 .type		   = reflected_value_type_e::object},
+						{.container_ops = reflection_container_ops_t::inplace_vector_ops<post_process_effect_t, 8>(reflected_value_type_e::object, type_id_t<post_process_effect_t>::value),
+						 .name			= "before_tonemap",
+						 .display_name	= "Before Tone Map",
+						 .tooltip		= "Ordered full-resolution HDR material effects evaluated before bloom composition, color adjustment, and tone mapping.",
+						 .offset		= offsetof(component_post_process_t, before_tonemap),
+						 .size			= sizeof(inplace_vector_t<post_process_effect_t, 8>),
+						 .type			= reflected_value_type_e::container},
+						{.container_ops = reflection_container_ops_t::inplace_vector_ops<post_process_effect_t, 8>(reflected_value_type_e::object, type_id_t<post_process_effect_t>::value),
+						 .name			= "after_tonemap",
+						 .display_name	= "After Tone Map",
+						 .tooltip		= "Ordered full-resolution display-color material effects evaluated after tone mapping and before FXAA.",
+						 .offset		= offsetof(component_post_process_t, after_tonemap),
+						 .size			= sizeof(inplace_vector_t<post_process_effect_t, 8>),
+						 .type			= reflected_value_type_e::container},
 						{.name		   = "exposure_ev",
 						 .display_name = "Exposure",
 						 .tooltip	   = "Exposure adjustment in EV stops; each increase of one doubles HDR brightness before tone mapping.",
@@ -3384,6 +3504,7 @@ namespace sfg
 		register_component_transform_reflection(registry);
 		register_component_name_reflection(registry);
 		register_component_world_script_reflection(registry);
+		register_component_canvas_reflection(registry);
 		register_component_mesh_renderer_reflection(registry);
 		register_component_sprite_renderer_reflection(registry);
 		register_particle_reflection(registry);

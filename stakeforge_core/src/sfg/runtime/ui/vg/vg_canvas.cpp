@@ -417,14 +417,14 @@ namespace sfg::ui
 
 	namespace
 	{
-		render_resource_handle_t resolve_shader(resource_handle_t handle)
+		render_resource_handle_t resolve_shader(resource_handle_t handle, u32 pipeline_variant_flags)
 		{
 			if (handle == 0)
 				return {};
 			const shader_internals_t* internals = resource_manager_t::get().find_internals<shader_internals_t>(handle);
 			if (internals == nullptr)
 				return {};
-			return internals->find_pso(0);
+			return internals->find_pso(pipeline_variant_flags);
 		}
 
 		render_resource_handle_t resolve_texture(resource_handle_t handle, ui_resource_type_e type)
@@ -444,12 +444,12 @@ namespace sfg::ui
 
 	}
 
-	void vg_canvas_t::resolve()
+	void vg_canvas_t::resolve(u32 pipeline_variant_flags)
 	{
 		for (vg_draw_buffer_t& db : _draw_buffers)
 		{
 			SFG_ASSERT(db.state.pipeline != NULL_RESOURCE_HANDLE);
-			db.resolved.pipeline = resolve_shader(db.state.pipeline);
+			db.resolved.pipeline = resolve_shader(db.state.pipeline, pipeline_variant_flags);
 			SFG_ASSERT(!db.resolved.pipeline.is_null());
 
 			for (u8 i = 0; i < 4; ++i)

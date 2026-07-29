@@ -286,10 +286,17 @@ namespace sfg
 			widget.request_world_resize(false);
 		}
 
-		const bool	  hovered			= widget._ui->get_input().get_hovered() == widget._world_view;
-		const vec2f_t relative_position = hovered ? widget.calculate_relative_position(widget._ui->get_input().get_mouse_position()) : vec2f_t::zero;
+		const bool				hovered			  = widget._ui->get_input().get_hovered() == widget._world_view;
+		const vec2f_t			relative_position = hovered ? widget.calculate_relative_position(widget._ui->get_input().get_mouse_position()) : vec2f_t::zero;
+		const ui::layout_out_t& out				  = widget._ui->get_tree().out(widget._world_view);
+		editor_world_t* const	editor_world	  = editor_world_controller_t::get().get_editor_world(widget._edit_world);
 
-		editor_world_controller_t::get().get_editor_world(widget._edit_world)->get_input_controller().tick(relative_position, hovered);
+		if (out.size.x > 0.0f && out.size.y > 0.0f)
+		{
+			editor_world->get_world().get_canvas_controller().set_viewport({out.pos.x, out.pos.y, out.size.x, out.size.y}, editor_world->get_render_context().get_size(), widget._ui->get_dpi_scale());
+		}
+
+		editor_world->get_input_controller().tick(relative_position, hovered);
 		widget.refresh_world_texture();
 	}
 

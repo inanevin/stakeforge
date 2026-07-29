@@ -62,6 +62,7 @@ namespace sfg
 			{.text = "Sprite Lit Material", .command = assets_action_menu_create_sprite_lit_material},
 			{.text = "Sprite Unlit Material", .command = assets_action_menu_create_sprite_unlit_material},
 			{.text = "Particle Material", .command = assets_action_menu_create_particle_material},
+			{.text = "Post Process Material", .command = assets_action_menu_create_post_process_material},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GAMEPLAY_ROWS[] = {

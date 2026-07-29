@@ -34,12 +34,14 @@ namespace sfg
 {
 	struct script_api_animation_t;
 	struct script_api_audio_t;
+	struct script_api_canvas_t;
 	struct script_api_physics_t;
 	struct script_api_platform_t;
 	struct script_api_game_t;
 	struct script_api_resource_t;
 	struct script_api_world_t;
 	struct physics_contact_event_t;
+	struct canvas_event_t;
 
 	typedef void (*script_host_log_fn)(const char* message);
 
@@ -56,6 +58,7 @@ namespace sfg
 		const script_api_audio_t*	  audio			 = nullptr;
 		const script_api_physics_t*	  physics		 = nullptr;
 		const script_api_animation_t* animation		 = nullptr;
+		const script_api_canvas_t*	  canvas		 = nullptr;
 		script_host_log_fn			  game_log_info	 = nullptr;
 		script_host_log_fn			  game_log_error = nullptr;
 		script_host_log_fn			  game_log_warn	 = nullptr;
@@ -75,6 +78,7 @@ namespace sfg
 	typedef i32 (*script_host_world_script_mouse_move_event_fn)(void* instance, f32 position_x, f32 position_y, f32 delta_x, f32 delta_y);
 	typedef i32 (*script_host_world_script_mouse_wheel_event_fn)(void* instance, f32 position_x, f32 position_y, f32 delta);
 	typedef i32 (*script_host_world_script_physics_contact_fn)(void* instance, const physics_contact_event_t* contact, u8 contact_type, u8 is_sensor);
+	typedef i32 (*script_host_world_script_canvas_event_fn)(void* instance, const canvas_event_t* event);
 
 	class script_runtime_t final
 	{
@@ -114,6 +118,7 @@ namespace sfg
 		bool  mouse_move_event_world_script(void* instance, f32 position_x, f32 position_y, f32 delta_x, f32 delta_y);
 		bool  mouse_wheel_event_world_script(void* instance, f32 position_x, f32 position_y, f32 delta);
 		bool  physics_contact_world_script(void* instance, const physics_contact_event_t& contact);
+		bool  canvas_event_world_script(void* instance, const canvas_event_t& event);
 
 		// -----------------------------------------------------------------------------
 		// queries
@@ -168,6 +173,7 @@ namespace sfg
 		script_host_world_script_mouse_move_event_fn	_fn_mouse_move_event_world_script	 = nullptr;
 		script_host_world_script_mouse_wheel_event_fn	_fn_mouse_wheel_event_world_script	 = nullptr;
 		script_host_world_script_physics_contact_fn		_fn_physics_contact_world_script	 = nullptr;
+		script_host_world_script_canvas_event_fn		_fn_canvas_event_world_script		 = nullptr;
 		bool											_is_initialized						 = false;
 		bool											_is_project_assembly_loaded			 = false;
 		bool											_is_project_assembly_staged			 = false;

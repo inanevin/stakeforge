@@ -149,6 +149,15 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_system_audio_source_t);
 
+	struct component_system_canvas_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_canvas";
+
+		u32 runtime_index = UINT32_MAX;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_canvas_t);
+
 	struct component_system_physics_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_physics";

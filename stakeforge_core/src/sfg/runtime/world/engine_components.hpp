@@ -90,6 +90,32 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_world_script_t);
 
+	enum class canvas_render_stage_e : u8
+	{
+		before_post_process,
+		after_post_process,
+	};
+
+	SFG_DEFINE_TYPE_ID(canvas_render_stage_e);
+
+	struct component_canvas_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_canvas";
+
+		resource_handle_t	  default_font			   = TO_SIDC("engine/resource_pack/IBMPlexMono-Regular.ttf");
+		u32					  text_pool_budget_bytes   = 16 * 1024;
+		u32					  vertex_pool_budget_bytes = 128 * 1024;
+		u32					  index_pool_budget_bytes  = 64 * 1024;
+		i32					  sort_order			   = 0;
+		f32					  ui_scale				   = 1.0f;
+		u16					  max_widgets			   = 256;
+		u16					  draw_buffer_count		   = 32;
+		canvas_render_stage_e render_stage			   = canvas_render_stage_e::after_post_process;
+		bool				  input_enabled			   = true;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_canvas_t);
+
 	struct component_mesh_renderer_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_mesh_renderer";
@@ -363,19 +389,29 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(post_process_fxaa_t);
 
+	struct post_process_effect_t
+	{
+		resource_handle_t material = NULL_RESOURCE_HANDLE;
+		u8				  enabled  = 1;
+	};
+
+	SFG_DEFINE_TYPE_ID(post_process_effect_t);
+
 	struct component_post_process_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_post_process";
 
-		post_process_ssao_t	 ssao				  = {};
-		post_process_fxaa_t	 fxaa				  = {};
-		post_process_bloom_t bloom				  = {};
-		f32					 exposure_ev		  = 0.0f;
-		f32					 saturation			  = 1.0f;
-		f32					 temperature		  = 0.0f;
-		f32					 tint				  = 0.0f;
-		f32					 reinhard_white_point = 6.0f;
-		tonemap_mode_e		 tonemap_mode		  = tonemap_mode_e::reinhard;
+		inplace_vector_t<post_process_effect_t, 8> before_tonemap		= {};
+		inplace_vector_t<post_process_effect_t, 8> after_tonemap		= {};
+		post_process_ssao_t						   ssao					= {};
+		post_process_fxaa_t						   fxaa					= {};
+		post_process_bloom_t					   bloom				= {};
+		f32										   exposure_ev			= 0.0f;
+		f32										   saturation			= 1.0f;
+		f32										   temperature			= 0.0f;
+		f32										   tint					= 0.0f;
+		f32										   reinhard_white_point = 6.0f;
+		tonemap_mode_e							   tonemap_mode			= tonemap_mode_e::reinhard;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_post_process_t);

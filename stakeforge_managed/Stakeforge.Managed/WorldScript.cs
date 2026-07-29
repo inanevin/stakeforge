@@ -46,6 +46,10 @@ public abstract class WorldScript
     {
     }
 
+    public virtual void OnCanvasEvent(World world, CanvasEvent canvasEvent)
+    {
+    }
+
     public virtual void OnCollisionEnter(World world, PhysicsContactEvent contact)
     {
     }

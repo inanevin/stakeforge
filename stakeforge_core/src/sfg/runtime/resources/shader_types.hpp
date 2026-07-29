@@ -37,6 +37,7 @@ namespace sfg
 		sprite_unlit_shader,
 		particle_shader,
 		debug_texture,
+		canvas_ui_shader,
 		count,
 	};
 
@@ -53,6 +54,8 @@ namespace sfg
 		shader_variant_flags_particle_alpha				  = 1 << 8,
 		shader_variant_flags_particle_premultiplied_alpha = 1 << 9,
 		shader_variant_flags_particle_additive			  = 1 << 10,
+		shader_variant_flags_post_process_hdr			  = 1 << 11,
+		shader_variant_flags_post_process_ldr			  = 1 << 12,
 	};
 
 	SFG_DEFINE_TYPE_ID(shader_type_e);

@@ -31,6 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/platform/common_window.hpp>
 #include <sfg/runtime/physics/physics_world.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/prefab.hpp>
@@ -84,6 +85,8 @@ namespace sfg
 
 		_audio_controller.init(*this);
 
+		_canvas_controller.init(*this);
+
 		_particle_simulation.init(*this, config.particle_simulation);
 
 		if (config.physics_enabled)
@@ -99,6 +102,8 @@ namespace sfg
 		SFG_ASSERT(_world_script_instance == nullptr);
 
 		_particle_simulation.uninit();
+
+		_canvas_controller.uninit();
 
 		_audio_controller.uninit();
 
@@ -133,6 +138,9 @@ namespace sfg
 		_real_elapsed_time			  = 0.0f;
 		_is_playing					  = false;
 		_time_scale					  = 1.0f;
+
+		for (key_state_t& state : _key_states)
+			state = {};
 	}
 
 	void world_t::begin_play()
@@ -148,6 +156,7 @@ namespace sfg
 		_audio_controller.set_time_scale(_time_scale);
 		_audio_controller.begin_play();
 		_particle_simulation.begin_play();
+		_canvas_controller.sync_create_destroy_canvases();
 
 		if (_physics_world.is_init())
 			_physics_world.sync_body_create_destroy();
@@ -159,7 +168,9 @@ namespace sfg
 	{
 		SFG_ASSERT(_is_playing);
 
+		flush_pressed_keys();
 		end_world_script_play();
+		_canvas_controller.clear_widgets();
 
 		_audio_controller.end_play();
 		_particle_simulation.end_play();
@@ -212,6 +223,7 @@ namespace sfg
 		_particle_simulation.clear();
 		_animation_controller.clear();
 		_audio_controller.clear();
+		_canvas_controller.clear();
 
 		_debug_draw.begin_frame();
 		for (ecs_component_table_t& table : _component_tables)
@@ -228,6 +240,9 @@ namespace sfg
 		_entity_head		= 0;
 		_main_camera_entity = NULL_ENTITY_ID;
 		_audio_controller.set_time_scale(_time_scale);
+
+		for (key_state_t& state : _key_states)
+			state = {};
 	}
 
 	void world_t::tick_physics(f32 dt)
@@ -380,15 +395,36 @@ namespace sfg
 	{
 		SFG_ASSERT(_is_playing);
 
+		const bool consumed = _canvas_controller.key_event(key, scan_code, action);
+
+		if (consumed)
+			return;
+
+		update_key_state(key, scan_code, action);
+
 		if (_world_script_instance != nullptr)
 			script_runtime_t::get().key_event_world_script(_world_script_instance, key, scan_code, action);
+	}
+
+	void world_t::focus_event(bool focused)
+	{
+		SFG_ASSERT(_is_playing);
+
+		if (!focused)
+			flush_pressed_keys();
 	}
 
 	void world_t::mouse_button_event(u8 button, u8 action, f32 position_x, f32 position_y)
 	{
 		SFG_ASSERT(_is_playing);
 
-		if (_world_script_instance != nullptr)
+		const bool had_canvas_focus = _canvas_controller.is_keyboard_focus_active();
+		const bool consumed			= _canvas_controller.mouse_button_event(button, action, {position_x, position_y});
+
+		if (!had_canvas_focus && _canvas_controller.is_keyboard_focus_active())
+			flush_pressed_keys();
+
+		if (!consumed && _world_script_instance != nullptr)
 			script_runtime_t::get().mouse_button_event_world_script(_world_script_instance, button, action, position_x, position_y);
 	}
 
@@ -396,7 +432,9 @@ namespace sfg
 	{
 		SFG_ASSERT(_is_playing);
 
-		if (_world_script_instance != nullptr)
+		const bool consumed = _canvas_controller.mouse_move_event({position_x, position_y});
+
+		if (!consumed && _world_script_instance != nullptr)
 			script_runtime_t::get().mouse_move_event_world_script(_world_script_instance, position_x, position_y, delta_x, delta_y);
 	}
 
@@ -404,8 +442,42 @@ namespace sfg
 	{
 		SFG_ASSERT(_is_playing);
 
-		if (_world_script_instance != nullptr)
+		const bool consumed = _canvas_controller.mouse_wheel_event({position_x, position_y}, delta);
+
+		if (!consumed && _world_script_instance != nullptr)
 			script_runtime_t::get().mouse_wheel_event_world_script(_world_script_instance, position_x, position_y, delta);
+	}
+
+	void world_t::flush_pressed_keys()
+	{
+		for (u16 key = 0; key < std::size(_key_states); ++key)
+		{
+			key_state_t& state = _key_states[key];
+
+			if (!state.pressed)
+				continue;
+
+			state.pressed = false;
+
+			if (_world_script_instance != nullptr)
+				script_runtime_t::get().key_event_world_script(_world_script_instance, key, state.scan_code, static_cast<u8>(window_event_sub_type_e::release));
+		}
+	}
+
+	void world_t::update_key_state(u16 key, u16 scan_code, u8 action)
+	{
+		if (key >= std::size(_key_states))
+			return;
+
+		key_state_t& state = _key_states[key];
+
+		if (action == static_cast<u8>(window_event_sub_type_e::press))
+		{
+			state.scan_code = scan_code;
+			state.pressed	= true;
+		}
+		else if (action == static_cast<u8>(window_event_sub_type_e::release))
+			state.pressed = false;
 	}
 
 	void world_t::tick_post(f32 dt)
@@ -417,6 +489,8 @@ namespace sfg
 		const f32 scaled_dt = dt * _time_scale;
 
 		_particle_simulation.tick(scaled_dt);
+		_canvas_controller.tick(dt);
+		_canvas_controller.dispatch_events(_world_script_instance);
 
 		_logic_helper.sync_sprite_renderers();
 		_logic_helper.sync_reflection_probes(_tick_count);
@@ -499,6 +573,7 @@ namespace sfg
 		_particle_simulation.destroy_entity(id);
 		_animation_controller.destroy_entity(id);
 		_audio_controller.destroy_entity(id);
+		_canvas_controller.destroy_entity(id);
 
 		component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
 		SFG_ASSERT(hierarchy.first_child == NULL_ENTITY_ID);

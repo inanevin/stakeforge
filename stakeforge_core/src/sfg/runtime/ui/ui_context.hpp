@@ -66,6 +66,8 @@ namespace sfg::ui
 		u32				   text_pool_budget_bytes	 = 64 * 1024;
 		u32				   snapshot_vertex_max_bytes = 1u << 20;
 		u32				   snapshot_index_max_bytes	 = 1u << 20;
+		u32				   pipeline_variant_flags	 = 0;
+		bool			   render_snapshots_enabled	 = true;
 	};
 
 	struct widget_text_ref_t
@@ -260,16 +262,18 @@ namespace sfg::ui
 		hash_map_t<widget_id_t, widget_text_ref_t> _widget_debug_names;
 		text_allocator_t						   _text_pool;
 		widget_text_ref_t						   _debug_hover_text;
-		atomic_t<u8>							   _snapshot_mailbox = {};
-		u8										   _producer_slot	 = 0;
-		u8										   _consumer_slot	 = 0;
-		f32										   _user_ui_scale	 = 1.0f;
-		f32										   _ui_scale		 = 1.0f;
-		f32										   _dpi_scale		 = 1.0f;
-		resource_handle_t						   _debug_font		 = NULL_RESOURCE_HANDLE;
-		ui_phase_e								   _phase			 = ui_phase_e::idle;
-		bool									   _debug_draw		 = false;
-		bool									   _post_solve		 = false;
+		atomic_t<u8>							   _snapshot_mailbox		 = {};
+		u8										   _producer_slot			 = 0;
+		u8										   _consumer_slot			 = 0;
+		f32										   _user_ui_scale			 = 1.0f;
+		f32										   _ui_scale				 = 1.0f;
+		f32										   _dpi_scale				 = 1.0f;
+		resource_handle_t						   _debug_font				 = NULL_RESOURCE_HANDLE;
+		ui_phase_e								   _phase					 = ui_phase_e::idle;
+		u32										   _pipeline_variant_flags	 = 0;
+		bool									   _debug_draw				 = false;
+		bool									   _post_solve				 = false;
+		bool									   _render_snapshots_enabled = true;
 		fixed_vector_t<pre_layout_tick_def_t>	   _pre_layout_tick_defs;
 		fixed_vector_t<post_layout_tick_def_t>	   _post_layout_tick_defs;
 	};

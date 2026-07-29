@@ -192,6 +192,11 @@ namespace sfg
 				 .source_template_relative = COMMON_SHADERS "world/particle.hlsl",
 				 .guid					   = DEFAULT_PARTICLE_SHADER_ASSET_GUID,
 				 .shader_type			   = shader_type_e::particle_shader},
+				{.asset_name			   = "default_shader_post_process_vignette",
+				 .source_base_name		   = "default_shader_post_process_vignette",
+				 .source_template_relative = COMMON_SHADERS "world/post_process_vignette.hlsl",
+				 .guid					   = DEFAULT_POST_PROCESS_SHADER_ASSET_GUID,
+				 .shader_type			   = shader_type_e::post_process_shader},
 			};
 
 			for (const default_shader_asset_desc_t& desc : default_shader_assets)
@@ -378,6 +383,11 @@ namespace sfg
 				 .guid				  = DEFAULT_PARTICLE_MATERIAL_ASSET_GUID,
 				 .asset_type		  = editor_asset_type_e::material,
 				 .sub_type			  = static_cast<u8>(editor_material_type_e::particle)},
+				{.asset_name		  = "default_post_process_material",
+				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_post_process_material.sfg_asset",
+				 .guid				  = DEFAULT_POST_PROCESS_MATERIAL_ASSET_GUID,
+				 .asset_type		  = editor_asset_type_e::material,
+				 .sub_type			  = static_cast<u8>(editor_material_type_e::post_process)},
 				{.asset_name		  = "default_material_skybox_cube",
 				 .asset_relative_path = EDITOR_DEFAULT_MATERIALS "default_material_skybox_cube.sfg_asset",
 				 .guid				  = DEFAULT_CUBE_SKYBOX_MATERIAL_ASSET_GUID,

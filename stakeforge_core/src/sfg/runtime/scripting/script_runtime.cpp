@@ -34,6 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/physics/physics_types.hpp>
 #include <sfg/runtime/scripting/api/script_api_animation.hpp>
 #include <sfg/runtime/scripting/api/script_api_audio.hpp>
+#include <sfg/runtime/scripting/api/script_api_canvas.hpp>
 #include <sfg/runtime/scripting/api/script_api_game.hpp>
 #include <sfg/runtime/scripting/api/script_api_physics.hpp>
 #include <sfg/runtime/scripting/api/script_api_platform.hpp>
@@ -192,6 +193,7 @@ namespace sfg
 		void*											fn_mouse_move_event_world_script	= nullptr;
 		void*											fn_mouse_wheel_event_world_script	= nullptr;
 		void*											fn_physics_contact_world_script		= nullptr;
+		void*											fn_canvas_event_world_script		= nullptr;
 
 		const i32 res_load_init					   = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"Initialize", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_init);
 		const i32 res_load_shutdown				   = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"Shutdown", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_shtdown);
@@ -213,6 +215,7 @@ namespace sfg
 		const i32 res_mouse_move_world_script	   = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"MouseMoveEventWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_mouse_move_event_world_script);
 		const i32 res_mouse_wheel_world_script	   = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"MouseWheelEventWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_mouse_wheel_event_world_script);
 		const i32 res_physics_contact_world_script = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"PhysicsContactWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_physics_contact_world_script);
+		const i32 res_canvas_event_world_script	   = fn_load_managed(assembly_path_wide.c_str(), managed_type, L"CanvasEventWorldScript", UNMANAGEDCALLERSONLY_METHOD, nullptr, &fn_canvas_event_world_script);
 
 		if (res_load_init != 0 || fn_init == nullptr || res_load_shutdown != 0 || fn_shtdown == nullptr || res_stage_project_assembly != 0 || fn_stage_project_assembly == nullptr || res_get_staged_project_schema != 0 ||
 			fn_get_staged_project_schema == nullptr || res_activate_staged_schema != 0 || fn_activate_staged_project_assembly == nullptr || res_discard_staged_schema != 0 || fn_discard_staged_project_assembly == nullptr || res_create_world_script != 0 ||
@@ -220,7 +223,8 @@ namespace sfg
 			fn_end_play_world_script == nullptr || res_tick_world_script != 0 || fn_tick_world_script == nullptr || res_post_tick_world_script != 0 || fn_post_tick_world_script == nullptr || res_post_physics_world_script != 0 ||
 			fn_post_physics_tick_world_script == nullptr || res_post_animation_world_script != 0 || fn_post_animation_tick_world_script == nullptr || res_draw_debug_world_script != 0 || fn_draw_debug_world_script == nullptr ||
 			res_key_event_world_script != 0 || fn_key_event_world_script == nullptr || res_mouse_button_world_script != 0 || fn_mouse_button_event_world_script == nullptr || res_mouse_move_world_script != 0 || fn_mouse_move_event_world_script == nullptr ||
-			res_mouse_wheel_world_script != 0 || fn_mouse_wheel_event_world_script == nullptr || res_physics_contact_world_script != 0 || fn_physics_contact_world_script == nullptr)
+			res_mouse_wheel_world_script != 0 || fn_mouse_wheel_event_world_script == nullptr || res_physics_contact_world_script != 0 || fn_physics_contact_world_script == nullptr || res_canvas_event_world_script != 0 ||
+			fn_canvas_event_world_script == nullptr)
 		{
 			SFG_ERR("could not load one or more managed scripting entry points.");
 			unload_hostfxr(hostfxr_library);
@@ -247,10 +251,11 @@ namespace sfg
 		const script_host_world_script_mouse_move_event_fn	  mouse_move_event_world_script	   = reinterpret_cast<script_host_world_script_mouse_move_event_fn>(fn_mouse_move_event_world_script);
 		const script_host_world_script_mouse_wheel_event_fn	  mouse_wheel_event_world_script   = reinterpret_cast<script_host_world_script_mouse_wheel_event_fn>(fn_mouse_wheel_event_world_script);
 		const script_host_world_script_physics_contact_fn	  physics_contact_world_script	   = reinterpret_cast<script_host_world_script_physics_contact_fn>(fn_physics_contact_world_script);
+		const script_host_world_script_canvas_event_fn		  canvas_event_world_script		   = reinterpret_cast<script_host_world_script_canvas_event_fn>(fn_canvas_event_world_script);
 
 		_native_api = {
 			.size			= static_cast<u32>(sizeof(script_host_native_api_t)),
-			.version		= 5,
+			.version		= 6,
 			.log_info		= script_host_log_info,
 			.log_error		= script_host_log_error,
 			.platform		= &get_script_api_platform(),
@@ -260,6 +265,7 @@ namespace sfg
 			.audio			= &get_script_api_audio(),
 			.physics		= &get_script_api_physics(),
 			.animation		= &get_script_api_animation(),
+			.canvas			= &get_script_api_canvas(),
 			.game_log_info	= script_host_game_log_info,
 			.game_log_error = script_host_game_log_error,
 			.game_log_warn	= script_host_game_log_warn,
@@ -295,6 +301,7 @@ namespace sfg
 		_fn_mouse_move_event_world_script	 = mouse_move_event_world_script;
 		_fn_mouse_wheel_event_world_script	 = mouse_wheel_event_world_script;
 		_fn_physics_contact_world_script	 = physics_contact_world_script;
+		_fn_canvas_event_world_script		 = canvas_event_world_script;
 		_is_initialized						 = true;
 
 		reflection_registry_t::get().reserve_script_capacity();
@@ -343,6 +350,7 @@ namespace sfg
 		_fn_mouse_move_event_world_script	 = nullptr;
 		_fn_mouse_wheel_event_world_script	 = nullptr;
 		_fn_physics_contact_world_script	 = nullptr;
+		_fn_canvas_event_world_script		 = nullptr;
 		_is_initialized						 = false;
 		_is_project_assembly_loaded			 = false;
 		_is_project_assembly_staged			 = false;
@@ -530,6 +538,13 @@ namespace sfg
 		SFG_ASSERT(instance != nullptr);
 
 		return _fn_physics_contact_world_script(instance, &contact, static_cast<u8>(contact.type), contact.is_sensor ? 1 : 0) == 0;
+	}
+
+	bool script_runtime_t::canvas_event_world_script(void* instance, const canvas_event_t& event)
+	{
+		SFG_ASSERT(instance != nullptr);
+
+		return _fn_canvas_event_world_script(instance, &event) == 0;
 	}
 
 }

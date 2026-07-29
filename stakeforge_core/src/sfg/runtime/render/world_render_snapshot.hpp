@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world_draw.hpp"
 #include "world_debug_draw_snapshot.hpp"
+#include "world_canvas_render_snapshot.hpp"
 #include "world_render_bone.hpp"
 #include "world_render_entity.hpp"
 #include "world_render_light.hpp"
@@ -38,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world_render_material.hpp"
 #include "world_render_view.hpp"
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/frustum.hpp>
@@ -106,17 +108,24 @@ namespace sfg
 		u8	enabled			   = 0;
 	};
 
+	struct world_render_post_process_effect_t
+	{
+		u32 material_index = UINT32_MAX;
+	};
+
 	struct world_render_post_process_t
 	{
-		world_render_ssao_t	 ssao				  = {};
-		world_render_fxaa_t	 fxaa				  = {};
-		world_render_bloom_t bloom				  = {};
-		f32					 exposure_ev		  = 0.0f;
-		f32					 saturation			  = 1.0f;
-		f32					 temperature		  = 0.0f;
-		f32					 tint				  = 0.0f;
-		f32					 reinhard_white_point = 6.0f;
-		u32					 tonemap_mode		  = 1;
+		inplace_vector_t<world_render_post_process_effect_t, 8> before_tonemap		 = {};
+		inplace_vector_t<world_render_post_process_effect_t, 8> after_tonemap		 = {};
+		world_render_ssao_t										ssao				 = {};
+		world_render_fxaa_t										fxaa				 = {};
+		world_render_bloom_t									bloom				 = {};
+		f32														exposure_ev			 = 0.0f;
+		f32														saturation			 = 1.0f;
+		f32														temperature			 = 0.0f;
+		f32														tint				 = 0.0f;
+		f32														reinhard_white_point = 6.0f;
+		u32														tonemap_mode		 = 1;
 	};
 
 	struct world_render_queue_range_t
@@ -291,23 +300,26 @@ namespace sfg
 
 	struct world_render_snapshot_initial_capacity_config_t
 	{
-		size_t material_initial_capacity		 = 0;
-		size_t entity_initial_capacity			 = 0;
-		size_t renderable_initial_capacity		 = 0;
-		size_t draw_initial_capacity			 = 0;
-		size_t sprite_initial_capacity			 = 0;
-		size_t particle_draw_initial_capacity	 = 0;
-		size_t particle_initial_capacity		 = 0;
-		size_t bone_initial_capacity			 = 0;
-		size_t light_initial_capacity			 = 0;
-		size_t reflection_probe_initial_capacity = 0;
-		size_t line_vertex_initial_capacity		 = 0;
-		size_t line_index_initial_capacity		 = 0;
-		size_t triangle_vertex_initial_capacity	 = 0;
-		size_t triangle_index_initial_capacity	 = 0;
-		size_t text_vertex_initial_capacity		 = 0;
-		size_t text_index_initial_capacity		 = 0;
-		size_t debug_texture_initial_capacity	 = 0;
+		size_t material_initial_capacity		   = 0;
+		size_t entity_initial_capacity			   = 0;
+		size_t renderable_initial_capacity		   = 0;
+		size_t draw_initial_capacity			   = 0;
+		size_t sprite_initial_capacity			   = 0;
+		size_t particle_draw_initial_capacity	   = 0;
+		size_t particle_initial_capacity		   = 0;
+		size_t bone_initial_capacity			   = 0;
+		size_t light_initial_capacity			   = 0;
+		size_t reflection_probe_initial_capacity   = 0;
+		size_t line_vertex_initial_capacity		   = 0;
+		size_t line_index_initial_capacity		   = 0;
+		size_t triangle_vertex_initial_capacity	   = 0;
+		size_t triangle_index_initial_capacity	   = 0;
+		size_t text_vertex_initial_capacity		   = 0;
+		size_t text_index_initial_capacity		   = 0;
+		size_t debug_texture_initial_capacity	   = 0;
+		size_t canvas_draw_buffer_initial_capacity = 0;
+		size_t canvas_vertex_initial_capacity	   = 0;
+		size_t canvas_index_initial_capacity	   = 0;
 	};
 
 	struct world_render_snapshot_t
@@ -319,6 +331,7 @@ namespace sfg
 		world_render_fog_t						  fog				= {};
 		world_render_post_process_t				  post_process		= {};
 		world_debug_draw_snapshot_t				  debug_draw		= {};
+		world_canvas_render_snapshot_t			  canvas			= {};
 		vector_t<world_render_material_t>		  materials			= {};
 		vector_t<world_render_entity_t>			  entities			= {};
 		vector_t<world_render_bone_t>			  bones				= {};
@@ -350,6 +363,12 @@ namespace sfg
 			debug_draw.text_vertices.reserve(config.text_vertex_initial_capacity);
 			debug_draw.text_indices.reserve(config.text_index_initial_capacity);
 			debug_draw.textures.reserve(config.debug_texture_initial_capacity);
+			canvas.before_post_process.draw_buffers.reserve(config.canvas_draw_buffer_initial_capacity);
+			canvas.before_post_process.vertices.reserve(config.canvas_vertex_initial_capacity);
+			canvas.before_post_process.indices.reserve(config.canvas_index_initial_capacity);
+			canvas.after_post_process.draw_buffers.reserve(config.canvas_draw_buffer_initial_capacity);
+			canvas.after_post_process.vertices.reserve(config.canvas_vertex_initial_capacity);
+			canvas.after_post_process.indices.reserve(config.canvas_index_initial_capacity);
 		}
 	};
 }

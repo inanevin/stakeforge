@@ -82,6 +82,8 @@ namespace sfg
 				return EDITOR_TEMPLATE_MATERIALS "material_sprite_unlit.sfg_asset";
 			case editor_material_type_e::particle:
 				return EDITOR_TEMPLATE_MATERIALS "material_particle.sfg_asset";
+			case editor_material_type_e::post_process:
+				return EDITOR_TEMPLATE_MATERIALS "material_post_process.sfg_asset";
 			default:
 				return EDITOR_TEMPLATE_MATERIALS "material_opaque.sfg_asset";
 			}
@@ -94,7 +96,7 @@ namespace sfg
 			case shader_type_e::object_shader:
 				return object_shader_template == editor_object_shader_template_e::unlit ? COMMON_SHADERS "world/object_unlit.hlsl" : COMMON_SHADERS "world/object_lit.hlsl";
 			case shader_type_e::post_process_shader:
-				return COMMON_SHADERS "world/post_combiner.hlsl";
+				return COMMON_SHADERS "world/post_process_vignette.hlsl";
 			case shader_type_e::ui_shader:
 				return EDITOR_SHADERS "editor_ui_default.hlsl";
 			case shader_type_e::ui_text_shader:

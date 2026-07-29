@@ -205,11 +205,21 @@ namespace sfg
 			return;
 		}
 
+		const bool is_post_process = asset->sub_type == static_cast<u8>(editor_material_type_e::post_process);
+
 		thumbnail_world.display_entity = world.create_entity("thumbnail_material");
 
 		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), thumbnail_world.display_entity);
 		mesh_renderer.mesh						 = DEFAULT_MESH_SPHERE_GUID;
-		mesh_renderer.materials.push_back(asset_guid);
+		mesh_renderer.materials.push_back(is_post_process ? DEFAULT_OPAQUE_MATERIAL_ASSET_GUID : asset_guid);
+
+		if (is_post_process)
+		{
+			component_post_process_t& post_process = ecs_helpers_t::table_get_as<component_post_process_t>(world.get_component_table(type_id_t<component_post_process_t>::value), thumbnail_world.camera_entity);
+			post_process.after_tonemap.push_back({.material = asset_guid});
+
+			world.scan_for_resources(thumbnail_world.camera_entity, true);
+		}
 
 		world.scan_for_resources(thumbnail_world.display_entity, true);
 		world.set_entity_pos_local(thumbnail_world.camera_entity, vec3f_t(0, 0, 1.5f));

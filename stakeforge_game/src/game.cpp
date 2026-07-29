@@ -68,6 +68,10 @@ namespace sfg
 			return;
 
 		world_t& world = game._world_controller.get_main_world();
+		if (!game._window.has_flag(window_runtime_flags_e::minimized))
+		{
+			world.get_canvas_controller().set_viewport({0.0f, 0.0f, static_cast<f32>(game._window.size.x), static_cast<f32>(game._window.size.y)}, game._world_controller.get_render_resolution(), game._window.monitor_info.dpi_scale);
+		}
 
 		switch (event.type)
 		{
@@ -101,6 +105,9 @@ namespace sfg
 			world.mouse_wheel_event(static_cast<f32>(game._window.mouse_position.x), static_cast<f32>(game._window.mouse_position.y), delta);
 			break;
 		}
+		case window_event_type_e::focus:
+			world.focus_event(event.sub_type == window_event_sub_type_e::press);
+			break;
 		default:
 			break;
 		}
@@ -282,6 +289,12 @@ namespace sfg
 				break;
 
 			resource_manager_t::get().flush();
+
+			if (_world_controller.get_main_world().is_playing() && !_window.has_flag(window_runtime_flags_e::minimized))
+			{
+				_world_controller.get_main_world().get_canvas_controller().set_viewport({0.0f, 0.0f, static_cast<f32>(_window.size.x), static_cast<f32>(_window.size.y)}, _world_controller.get_render_resolution(), _window.monitor_info.dpi_scale);
+			}
+
 			_world_controller.tick();
 
 			if (!apply_pending_world_load())

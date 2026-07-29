@@ -41,10 +41,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/resources/vertex.hpp>
+#include <sfg/runtime/ui/ui_renderer.hpp>
 #include <random>
 
 namespace sfg
 {
+	world_render_context_t::world_render_context_t() = default;
+
+	world_render_context_t::~world_render_context_t() = default;
+
 	world_render_context_t::world_render_context_t(world_render_context_t&& other) noexcept
 	{
 		*this = static_cast<world_render_context_t&&>(other);
@@ -68,6 +73,12 @@ namespace sfg
 		other._ssao_noise_staging		= {};
 		_ssao_noise_texture_index		= other._ssao_noise_texture_index;
 		other._ssao_noise_texture_index = NULL_GPU_INDEX;
+		_post_process_hdr_scratch		= other._post_process_hdr_scratch;
+		other._post_process_hdr_scratch = 0;
+		_post_process_ldr_scratch		= other._post_process_ldr_scratch;
+		other._post_process_ldr_scratch = 0;
+		_canvas_before_renderer			= std::move(other._canvas_before_renderer);
+		_canvas_after_renderer			= std::move(other._canvas_after_renderer);
 
 		_shadow_context		= static_cast<world_render_shadow_context_t&&>(other._shadow_context);
 		_reflection_context = static_cast<world_render_reflection_context_t&&>(other._reflection_context);
@@ -272,7 +283,8 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].cmd_clustered_lighting.is_null());
 			SFG_ASSERT(_pfd[i].lighting_texture.is_null());
 			SFG_ASSERT(_pfd[i].post_process_texture.is_null());
-			SFG_ASSERT(_pfd[i].tonemap_texture.is_null());
+			SFG_ASSERT(_pfd[i].post_process_hdr_scratch.is_null());
+			SFG_ASSERT(_pfd[i].post_process_ldr_scratch.is_null());
 			SFG_ASSERT(_pfd[i].depth_texture.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_albedo.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_normal.is_null());
@@ -444,12 +456,28 @@ namespace sfg
 			_shaders.bloom_upsample	  = render_resources.get_shader_hw(sh->psos[0]);
 		}
 
+		_canvas_before_renderer = make_unique<ui::ui_renderer_t>();
+		_canvas_before_renderer->init({
+			.vertex_buffer_max_bytes = config.canvas_vertex_max_bytes,
+			.index_buffer_max_bytes	 = config.canvas_index_max_bytes,
+		});
+		_canvas_after_renderer = make_unique<ui::ui_renderer_t>();
+		_canvas_after_renderer->init({
+			.vertex_buffer_max_bytes = config.canvas_vertex_max_bytes,
+			.index_buffer_max_bytes	 = config.canvas_index_max_bytes,
+		});
+
 		create_texture(_config.size);
 	}
 
 	void world_render_context_t::uninit()
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
+		_canvas_before_renderer->uninit();
+		_canvas_before_renderer.reset();
+		_canvas_after_renderer->uninit();
+		_canvas_after_renderer.reset();
 
 		destroy_texture();
 		_shadow_context.uninit();
@@ -587,8 +615,10 @@ namespace sfg
 			_ssao_noise_texture_index = NULL_GPU_INDEX;
 		}
 
-		_shaders = {};
-		_config	 = {};
+		_shaders				  = {};
+		_config					  = {};
+		_post_process_hdr_scratch = 0;
+		_post_process_ldr_scratch = 0;
 	}
 
 	void world_render_context_t::resize(vec2u16_t size)
@@ -666,6 +696,55 @@ namespace sfg
 		create_light_cluster_buffers(frame_index, grown_capacity);
 	}
 
+	void world_render_context_t::ensure_post_process_scratch(bool hdr, bool ldr)
+	{
+		const bool create_hdr = hdr && _post_process_hdr_scratch == 0;
+		const bool create_ldr = ldr && _post_process_ldr_scratch == 0;
+
+		if (!create_hdr && !create_ldr)
+			return;
+
+		create_post_process_scratch(_config.size, create_hdr, create_ldr);
+		_post_process_hdr_scratch |= create_hdr ? 1 : 0;
+		_post_process_ldr_scratch |= create_ldr ? 1 : 0;
+	}
+
+	void world_render_context_t::create_post_process_scratch(vec2u16_t size, bool hdr, bool ldr)
+	{
+		texture_desc_t hdr_desc = {};
+		hdr_desc.texture_format = format_e::r16g16b16a16_sfloat;
+		hdr_desc.initial_states = resource_state_ps_resource;
+		hdr_desc.size			= size;
+		hdr_desc.flags			= texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
+		hdr_desc.view_count		= 2;
+		hdr_desc.views[0]		= {.type = view_type::sampled};
+		hdr_desc.views[1]		= {.type = view_type::render_target};
+		hdr_desc.set_name("world_post_process_hdr_scratch");
+
+		texture_desc_t ldr_desc = hdr_desc;
+		ldr_desc.texture_format = format_e::r8g8b8a8_srgb;
+		ldr_desc.set_name("world_post_process_ldr_scratch");
+
+		gfx_backend& backend = gfx_backend::get();
+
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
+		{
+			if (hdr)
+			{
+				SFG_ASSERT(_pfd[i].post_process_hdr_scratch.is_null());
+				_pfd[i].post_process_hdr_scratch	   = backend.create_texture(hdr_desc);
+				_pfd[i].post_process_hdr_scratch_index = backend.get_texture_gpu_index(_pfd[i].post_process_hdr_scratch, 0);
+			}
+
+			if (ldr)
+			{
+				SFG_ASSERT(_pfd[i].post_process_ldr_scratch.is_null());
+				_pfd[i].post_process_ldr_scratch	   = backend.create_texture(ldr_desc);
+				_pfd[i].post_process_ldr_scratch_index = backend.get_texture_gpu_index(_pfd[i].post_process_ldr_scratch, 0);
+			}
+		}
+	}
+
 	void world_render_context_t::create_texture(vec2u16_t size)
 	{
 		texture_desc_t lighting_desc = {};
@@ -681,9 +760,6 @@ namespace sfg
 		texture_desc_t post_process_desc = lighting_desc;
 		post_process_desc.texture_format = format_e::r8g8b8a8_srgb;
 		post_process_desc.set_name("world_post_process");
-
-		texture_desc_t tonemap_desc = post_process_desc;
-		tonemap_desc.set_name("world_tonemap");
 
 		texture_desc_t depth_desc		= {};
 		depth_desc.texture_format		= format_e::r32_sfloat;
@@ -795,7 +871,8 @@ namespace sfg
 		{
 			SFG_ASSERT(_pfd[i].lighting_texture.is_null());
 			SFG_ASSERT(_pfd[i].post_process_texture.is_null());
-			SFG_ASSERT(_pfd[i].tonemap_texture.is_null());
+			SFG_ASSERT(_pfd[i].post_process_hdr_scratch.is_null());
+			SFG_ASSERT(_pfd[i].post_process_ldr_scratch.is_null());
 			SFG_ASSERT(_pfd[i].depth_texture.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_albedo.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_normal.is_null());
@@ -808,7 +885,6 @@ namespace sfg
 
 			_pfd[i].lighting_texture	 = backend.create_texture(lighting_desc);
 			_pfd[i].post_process_texture = backend.create_texture(post_process_desc);
-			_pfd[i].tonemap_texture		 = backend.create_texture(tonemap_desc);
 			_pfd[i].depth_texture		 = backend.create_texture(depth_desc);
 			_pfd[i].gbuffer_albedo		 = backend.create_texture(gbuffer_albedo_desc);
 			_pfd[i].gbuffer_normal		 = backend.create_texture(gbuffer_normal_desc);
@@ -824,7 +900,6 @@ namespace sfg
 
 			_pfd[i].lighting_texture_index	   = backend.get_texture_gpu_index(_pfd[i].lighting_texture, 0);
 			_pfd[i].post_process_texture_index = backend.get_texture_gpu_index(_pfd[i].post_process_texture, 0);
-			_pfd[i].tonemap_texture_index	   = backend.get_texture_gpu_index(_pfd[i].tonemap_texture, 0);
 			_pfd[i].depth_texture_index		   = backend.get_texture_gpu_index(_pfd[i].depth_texture, 2);
 			_pfd[i].gbuffer_albedo_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_albedo, 1);
 			_pfd[i].gbuffer_normal_index	   = backend.get_texture_gpu_index(_pfd[i].gbuffer_normal, 1);
@@ -854,6 +929,7 @@ namespace sfg
 			}
 		}
 
+		create_post_process_scratch(size, _post_process_hdr_scratch != 0, _post_process_ldr_scratch != 0);
 		_config.size = size;
 	}
 
@@ -864,7 +940,6 @@ namespace sfg
 		{
 			SFG_ASSERT(!_pfd[i].lighting_texture.is_null());
 			SFG_ASSERT(!_pfd[i].post_process_texture.is_null());
-			SFG_ASSERT(!_pfd[i].tonemap_texture.is_null());
 			SFG_ASSERT(!_pfd[i].depth_texture.is_null());
 			SFG_ASSERT(!_pfd[i].gbuffer_albedo.is_null());
 			SFG_ASSERT(!_pfd[i].gbuffer_normal.is_null());
@@ -875,7 +950,6 @@ namespace sfg
 
 			backend.destroy_texture(_pfd[i].lighting_texture);
 			backend.destroy_texture(_pfd[i].post_process_texture);
-			backend.destroy_texture(_pfd[i].tonemap_texture);
 			backend.destroy_texture(_pfd[i].depth_texture);
 			backend.destroy_texture(_pfd[i].gbuffer_albedo);
 			backend.destroy_texture(_pfd[i].gbuffer_normal);
@@ -892,18 +966,32 @@ namespace sfg
 				backend.destroy_texture(_pfd[i].bloom_downsample);
 				backend.destroy_texture(_pfd[i].bloom_upsample);
 			}
-			_pfd[i].lighting_texture	 = {};
-			_pfd[i].post_process_texture = {};
-			_pfd[i].tonemap_texture		 = {};
-			_pfd[i].depth_texture		 = {};
-			_pfd[i].gbuffer_albedo		 = {};
-			_pfd[i].gbuffer_normal		 = {};
-			_pfd[i].gbuffer_orm			 = {};
-			_pfd[i].gbuffer_emissive	 = {};
-			_pfd[i].ao_texture			 = {};
-			_pfd[i].ao_half_texture		 = {};
-			_pfd[i].bloom_downsample	 = {};
-			_pfd[i].bloom_upsample		 = {};
+
+			if (_post_process_hdr_scratch != 0)
+			{
+				SFG_ASSERT(!_pfd[i].post_process_hdr_scratch.is_null());
+				backend.destroy_texture(_pfd[i].post_process_hdr_scratch);
+			}
+
+			if (_post_process_ldr_scratch != 0)
+			{
+				SFG_ASSERT(!_pfd[i].post_process_ldr_scratch.is_null());
+				backend.destroy_texture(_pfd[i].post_process_ldr_scratch);
+			}
+
+			_pfd[i].lighting_texture		 = {};
+			_pfd[i].post_process_texture	 = {};
+			_pfd[i].post_process_hdr_scratch = {};
+			_pfd[i].post_process_ldr_scratch = {};
+			_pfd[i].depth_texture			 = {};
+			_pfd[i].gbuffer_albedo			 = {};
+			_pfd[i].gbuffer_normal			 = {};
+			_pfd[i].gbuffer_orm				 = {};
+			_pfd[i].gbuffer_emissive		 = {};
+			_pfd[i].ao_texture				 = {};
+			_pfd[i].ao_half_texture			 = {};
+			_pfd[i].bloom_downsample		 = {};
+			_pfd[i].bloom_upsample			 = {};
 			for (u8 level = 0; level < WORLD_RENDER_BLOOM_LEVEL_COUNT; ++level)
 			{
 				_pfd[i].bloom_downsample_index[level]	  = NULL_GPU_INDEX;
@@ -911,18 +999,19 @@ namespace sfg
 				_pfd[i].bloom_upsample_index[level]		  = NULL_GPU_INDEX;
 				_pfd[i].bloom_upsample_uav_index[level]	  = NULL_GPU_INDEX;
 			}
-			_pfd[i].lighting_texture_index	   = NULL_GPU_INDEX;
-			_pfd[i].post_process_texture_index = NULL_GPU_INDEX;
-			_pfd[i].tonemap_texture_index	   = NULL_GPU_INDEX;
-			_pfd[i].depth_texture_index		   = NULL_GPU_INDEX;
-			_pfd[i].gbuffer_albedo_index	   = NULL_GPU_INDEX;
-			_pfd[i].gbuffer_normal_index	   = NULL_GPU_INDEX;
-			_pfd[i].gbuffer_orm_index		   = NULL_GPU_INDEX;
-			_pfd[i].gbuffer_emissive_index	   = NULL_GPU_INDEX;
-			_pfd[i].ao_texture_index		   = NULL_GPU_INDEX;
-			_pfd[i].ao_texture_uav_index	   = NULL_GPU_INDEX;
-			_pfd[i].ao_half_texture_index	   = NULL_GPU_INDEX;
-			_pfd[i].ao_half_texture_uav_index  = NULL_GPU_INDEX;
+			_pfd[i].lighting_texture_index		   = NULL_GPU_INDEX;
+			_pfd[i].post_process_texture_index	   = NULL_GPU_INDEX;
+			_pfd[i].post_process_hdr_scratch_index = NULL_GPU_INDEX;
+			_pfd[i].post_process_ldr_scratch_index = NULL_GPU_INDEX;
+			_pfd[i].depth_texture_index			   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_albedo_index		   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_normal_index		   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_orm_index			   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_emissive_index		   = NULL_GPU_INDEX;
+			_pfd[i].ao_texture_index			   = NULL_GPU_INDEX;
+			_pfd[i].ao_texture_uav_index		   = NULL_GPU_INDEX;
+			_pfd[i].ao_half_texture_index		   = NULL_GPU_INDEX;
+			_pfd[i].ao_half_texture_uav_index	   = NULL_GPU_INDEX;
 		}
 		_config.size = vec2u16_t::zero;
 	}

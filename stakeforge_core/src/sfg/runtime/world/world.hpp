@@ -12,6 +12,7 @@
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/world/world_animation_controller.hpp>
 #include <sfg/runtime/world/world_audio_controller.hpp>
+#include <sfg/runtime/world/world_canvas_controller.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/runtime/world/world_logic_helper.hpp>
 #include <sfg/runtime/world/world_particle_simulation.hpp>
@@ -75,6 +76,7 @@ namespace sfg
 		void begin_world_script_play();
 		void end_world_script_play();
 		void key_event(u16 key, u16 scan_code, u8 action);
+		void focus_event(bool focused);
 		void mouse_button_event(u8 button, u8 action, f32 position_x, f32 position_y);
 		void mouse_move_event(f32 position_x, f32 position_y, f32 delta_x, f32 delta_y);
 		void mouse_wheel_event(f32 position_x, f32 position_y, f32 delta);
@@ -199,6 +201,16 @@ namespace sfg
 			return _audio_controller;
 		}
 
+		inline world_canvas_controller_t& get_canvas_controller()
+		{
+			return _canvas_controller;
+		}
+
+		inline const world_canvas_controller_t& get_canvas_controller() const
+		{
+			return _canvas_controller;
+		}
+
 		inline world_particle_simulation_t& get_particle_simulation()
 		{
 			return _particle_simulation;
@@ -235,6 +247,8 @@ namespace sfg
 		}
 
 	private:
+		void	 flush_pressed_keys();
+		void	 update_key_state(u16 key, u16 scan_code, u8 action);
 		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
 		mat4x3_t calculate_parent_transform_direct(entity_id_t id);
@@ -261,6 +275,12 @@ namespace sfg
 			ecs_component_table_t* transform_table = nullptr;
 		};
 
+		struct key_state_t
+		{
+			u16	 scan_code = 0;
+			bool pressed   = false;
+		};
+
 	private:
 		vector_t<ecs_component_table_t>	  _component_tables;
 		vector_t<world_text_allocation_t> _text_allocations;
@@ -271,12 +291,14 @@ namespace sfg
 		physics_world_t					  _physics_world				= {};
 		world_animation_controller_t	  _animation_controller			= {};
 		world_audio_controller_t		  _audio_controller				= {};
+		world_canvas_controller_t		  _canvas_controller			= {};
 		world_logic_helper_t			  _logic_helper					= {};
 		world_particle_simulation_t		  _particle_simulation			= {};
 		text_allocator_t				  _text_allocator				= {};
 		engine_components_t				  _engine_components			= {};
 		system_components_t				  _system_components			= {};
 		void*							  _world_script_instance		= nullptr;
+		key_state_t						  _key_states[256]				= {};
 		f32								  _elapsed_time					= 0.0f;
 		f32								  _real_elapsed_time			= 0.0f;
 		u64								  _tick_count					= 0;

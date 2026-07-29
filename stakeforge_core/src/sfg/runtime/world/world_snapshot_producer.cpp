@@ -169,6 +169,32 @@ namespace sfg
 			}
 		}
 
+		void push_post_process_effects(frame_hash_map_t<resource_handle_t, u32>& material_guid_to_index, world_render_snapshot_t& snapshot, const inplace_vector_t<post_process_effect_t, 8>& effects, inplace_vector_t<world_render_post_process_effect_t, 8>& out)
+		{
+			resource_manager_t& rm = resource_manager_t::get();
+
+			for (const post_process_effect_t& effect : effects)
+			{
+				if (effect.enabled == 0 || effect.material == NULL_RESOURCE_HANDLE)
+					continue;
+
+				const material_runtime_t* material_runtime = rm.find_runtime<material_runtime_t>(effect.material);
+
+				if (material_runtime == nullptr)
+					continue;
+
+				const shader_runtime_t* shader_runtime = rm.find_runtime<shader_runtime_t>(material_runtime->shader_guid);
+
+				if (shader_runtime == nullptr || shader_runtime->type != shader_type_e::post_process_shader)
+					continue;
+
+				const u32 material_index = push_material_from_guid(material_guid_to_index, snapshot, effect.material);
+
+				if (material_index != UINT32_MAX)
+					out.push_back({.material_index = material_index});
+			}
+		}
+
 		u32 push_render_object(frame_hash_map_t<entity_id_t, u32>& entity_to_render_id, world_render_snapshot_t& snapshot, entity_id_t id, const ecs_component_table_t& transform_table)
 		{
 			auto it = entity_to_render_id.find(id);
@@ -217,6 +243,7 @@ namespace sfg
 		snapshot.post_process = {};
 
 		world.get_debug_draw().write_snapshot(snapshot.debug_draw);
+		world.get_canvas_controller().write_render_snapshot(snapshot.canvas);
 
 		const ecs_component_table_t& transform_table					= world.get_component_table(type_id_t<component_system_transform_t>::value);
 		const ecs_component_table_t& alive_table						= world.get_component_table(type_id_t<component_alive_t>::value);
@@ -306,6 +333,9 @@ namespace sfg
 						.reinhard_white_point = post_process->reinhard_white_point,
 						.tonemap_mode		  = static_cast<u32>(post_process->tonemap_mode),
 					};
+
+					push_post_process_effects(material_guid_to_index, snapshot, post_process->before_tonemap, snapshot.post_process.before_tonemap);
+					push_post_process_effects(material_guid_to_index, snapshot, post_process->after_tonemap, snapshot.post_process.after_tonemap);
 				}
 			}
 		}

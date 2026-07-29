@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/unique.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/mat4x4.hpp>
 #include <sfg/math/vec2f.hpp>
@@ -40,6 +41,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 #define WORLD_RENDER_BLOOM_LEVEL_COUNT 5
+
+	namespace ui
+	{
+		class ui_renderer_t;
+	}
 
 	enum render_pass_view_flags_e : u32
 	{
@@ -159,30 +165,32 @@ namespace sfg
 
 	struct world_render_context_config_t
 	{
-		vec2u16_t size				   = vec2u16_t::zero;
-		u32		  entity_max		   = 0;
-		u32		  sprite_max		   = 0;
-		u32		  particle_max		   = 0;
-		u32		  bone_max			   = 0;
-		u32		  light_max			   = 0;
-		u32		  reflection_probe_max = 0;
-		u32		  line_vertex_max	   = 0;
-		u32		  line_index_max	   = 0;
-		u32		  triangle_vertex_max  = 0;
-		u32		  triangle_index_max   = 0;
-		u32		  text_vertex_max	   = 0;
-		u32		  text_index_max	   = 0;
-		u32		  debug_texture_max	   = 0;
-		u16		  shadow_view_max	   = 0;
-		u8		  enable_ssao		   = 1;
-		u8		  enable_bloom		   = 1;
+		vec2u16_t size					  = vec2u16_t::zero;
+		u32		  entity_max			  = 0;
+		u32		  sprite_max			  = 0;
+		u32		  particle_max			  = 0;
+		u32		  bone_max				  = 0;
+		u32		  light_max				  = 0;
+		u32		  reflection_probe_max	  = 0;
+		u32		  line_vertex_max		  = 0;
+		u32		  line_index_max		  = 0;
+		u32		  triangle_vertex_max	  = 0;
+		u32		  triangle_index_max	  = 0;
+		u32		  text_vertex_max		  = 0;
+		u32		  text_index_max		  = 0;
+		u32		  debug_texture_max		  = 0;
+		u32		  canvas_vertex_max_bytes = 1u << 20;
+		u32		  canvas_index_max_bytes  = 1u << 20;
+		u16		  shadow_view_max		  = 0;
+		u8		  enable_ssao			  = 1;
+		u8		  enable_bloom			  = 1;
 	};
 
 	class world_render_context_t final
 	{
 	public:
-		world_render_context_t()										 = default;
-		~world_render_context_t()										 = default;
+		world_render_context_t();
+		~world_render_context_t();
 		world_render_context_t(const world_render_context_t&)			 = delete;
 		world_render_context_t& operator=(const world_render_context_t&) = delete;
 		world_render_context_t(world_render_context_t&& other) noexcept;
@@ -199,6 +207,7 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 		void ensure_light_cluster_capacity(u8 frame_index, u32 cluster_count);
+		void ensure_post_process_scratch(bool hdr, bool ldr);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -226,6 +235,16 @@ namespace sfg
 		inline gfx_handle_t get_command_buffer_forward(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_forward;
+		}
+
+		inline ui::ui_renderer_t& get_canvas_before_renderer() const
+		{
+			return *_canvas_before_renderer;
+		}
+
+		inline ui::ui_renderer_t& get_canvas_after_renderer() const
+		{
+			return *_canvas_after_renderer;
 		}
 
 		inline gfx_handle_t get_command_buffer_post(u8 frame_index) const
@@ -323,9 +342,14 @@ namespace sfg
 			return _pfd[frame_index].post_process_texture;
 		}
 
-		inline gfx_handle_t get_tonemap_texture(u8 frame_index) const
+		inline gfx_handle_t get_post_process_hdr_scratch(u8 frame_index) const
 		{
-			return _pfd[frame_index].tonemap_texture;
+			return _pfd[frame_index].post_process_hdr_scratch;
+		}
+
+		inline gfx_handle_t get_post_process_ldr_scratch(u8 frame_index) const
+		{
+			return _pfd[frame_index].post_process_ldr_scratch;
 		}
 
 		inline gfx_handle_t get_gbuffer_albedo_texture(u8 frame_index) const
@@ -403,9 +427,14 @@ namespace sfg
 			return _pfd[frame_index].post_process_texture_index;
 		}
 
-		inline gpu_index_t get_tonemap_texture_index(u8 frame_index) const
+		inline gpu_index_t get_post_process_hdr_scratch_index(u8 frame_index) const
 		{
-			return _pfd[frame_index].tonemap_texture_index;
+			return _pfd[frame_index].post_process_hdr_scratch_index;
+		}
+
+		inline gpu_index_t get_post_process_ldr_scratch_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].post_process_ldr_scratch_index;
 		}
 
 		inline gpu_index_t get_view_render_pass_data_index(u8 frame_index) const
@@ -826,6 +855,7 @@ namespace sfg
 	private:
 		void create_texture(vec2u16_t size);
 		void destroy_texture();
+		void create_post_process_scratch(vec2u16_t size, bool hdr, bool ldr);
 		void create_light_cluster_buffers(u8 frame_index, u32 cluster_count);
 		void destroy_light_cluster_buffers(u8 frame_index);
 
@@ -885,7 +915,8 @@ namespace sfg
 			gfx_handle_t debug_text_index_buffer									= {};
 			gfx_handle_t lighting_texture											= {};
 			gfx_handle_t post_process_texture										= {};
-			gfx_handle_t tonemap_texture											= {};
+			gfx_handle_t post_process_hdr_scratch									= {};
+			gfx_handle_t post_process_ldr_scratch									= {};
 			gfx_handle_t depth_texture												= {};
 			gfx_handle_t gbuffer_albedo												= {};
 			gfx_handle_t gbuffer_normal												= {};
@@ -903,7 +934,8 @@ namespace sfg
 			mutable u64	 clustered_lighting_semaphore_value							= 0;
 			gpu_index_t	 lighting_texture_index										= NULL_GPU_INDEX;
 			gpu_index_t	 post_process_texture_index									= NULL_GPU_INDEX;
-			gpu_index_t	 tonemap_texture_index										= NULL_GPU_INDEX;
+			gpu_index_t	 post_process_hdr_scratch_index								= NULL_GPU_INDEX;
+			gpu_index_t	 post_process_ldr_scratch_index								= NULL_GPU_INDEX;
 			gpu_index_t	 depth_texture_index										= NULL_GPU_INDEX;
 			gpu_index_t	 gbuffer_albedo_index										= NULL_GPU_INDEX;
 			gpu_index_t	 gbuffer_normal_index										= NULL_GPU_INDEX;
@@ -964,5 +996,9 @@ namespace sfg
 		gfx_handle_t					  _ssao_noise_texture		= {};
 		gfx_handle_t					  _ssao_noise_staging		= {};
 		gpu_index_t						  _ssao_noise_texture_index = NULL_GPU_INDEX;
+		unique_t<ui::ui_renderer_t>		  _canvas_before_renderer	= {};
+		unique_t<ui::ui_renderer_t>		  _canvas_after_renderer	= {};
+		u8								  _post_process_hdr_scratch = 0;
+		u8								  _post_process_ldr_scratch = 0;
 	};
 }

@@ -388,6 +388,9 @@ namespace sfg
 			break;
 		}
 		case window_event_type_e::focus:
+			if (game_world != nullptr && game_world->get_world().is_playing())
+				game_world->get_world().focus_event(ev.sub_type == window_event_sub_type_e::press);
+
 			editor_widget_world_view_t::on_window_event(runtime, ev);
 			break;
 		default:

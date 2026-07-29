@@ -316,6 +316,12 @@ internal static class ProjectAssemblyRuntime
         }
     }
 
+    internal static unsafe void CanvasEventWorldScript(nint instanceHandle, CanvasEvent* canvasEvent)
+    {
+        WorldScriptInstance instance = GetWorldScriptInstance(instanceHandle);
+        instance.Script.OnCanvasEvent(instance.World, *canvasEvent);
+    }
+
     private static WorldScriptInstance GetWorldScriptInstance(nint instanceHandle)
     {
         GCHandle handle = GCHandle.FromIntPtr(instanceHandle);

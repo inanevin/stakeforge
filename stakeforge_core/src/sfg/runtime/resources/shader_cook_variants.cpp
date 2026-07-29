@@ -414,7 +414,30 @@ namespace sfg
 
 	bool shader_cook_variants_t::cook_post_process_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
 	{
-		return cook_shader_with_blend(source, include_paths, blend_attachments_t::get_none(), 0, false, out_compiles, out_psos);
+		out_compiles.push_back({});
+
+		if (!add_compile_variant_vs_ps(out_compiles.back(), source, {}, include_paths))
+			return false;
+
+		shader_desc_t hdr_desc						  = {};
+		hdr_desc.topo								  = topology::triangle_list;
+		hdr_desc.cull								  = cull_mode::none;
+		hdr_desc.front								  = front_face::ccw;
+		hdr_desc.fill								  = fill_mode::solid;
+		hdr_desc.poly_mode							  = polygon_mode::fill;
+		hdr_desc.samples							  = 1;
+		hdr_desc.depth_stencil_desc.attachment_format = format_e::undefined;
+		hdr_desc.depth_stencil_desc.flags			  = 0;
+		add_attachment(hdr_desc, format_e::r16g16b16a16_sfloat, blend_attachments_t::get_none());
+
+		out_psos.push_back({.desc = hdr_desc, .variant_flags = shader_variant_flags_post_process_hdr, .compile_variant_index = 0});
+
+		shader_desc_t ldr_desc	  = hdr_desc;
+		ldr_desc.attachment_count = 0;
+		add_attachment(ldr_desc, format_e::r8g8b8a8_srgb, blend_attachments_t::get_none());
+
+		out_psos.push_back({.desc = ldr_desc, .variant_flags = shader_variant_flags_post_process_ldr, .compile_variant_index = 0});
+		return true;
 	}
 
 	bool shader_cook_variants_t::cook_ui_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
@@ -425,6 +448,34 @@ namespace sfg
 	bool shader_cook_variants_t::cook_ui_text_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
 	{
 		return cook_editor_ui_with_blend(source, include_paths, blend_attachments_t::get_alpha_blend(), out_compiles, out_psos);
+	}
+
+	bool shader_cook_variants_t::cook_canvas_ui_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
+	{
+		out_compiles.push_back({});
+
+		if (!add_compile_variant_vs_ps(out_compiles.back(), source, {}, include_paths))
+			return false;
+
+		shader_desc_t desc						  = {};
+		desc.topo								  = topology::triangle_list;
+		desc.cull								  = cull_mode::back;
+		desc.front								  = front_face::cw;
+		desc.fill								  = fill_mode::solid;
+		desc.poly_mode							  = polygon_mode::fill;
+		desc.samples							  = 1;
+		desc.depth_stencil_desc.attachment_format = format_e::undefined;
+		desc.depth_stencil_desc.flags			  = 0;
+
+		vertex_inputs_t::get_editor_ui(desc);
+		add_attachment(desc, format_e::r8g8b8a8_srgb, blend_attachments_t::get_alpha_blend());
+		out_psos.push_back({.desc = desc, .variant_flags = shader_variant_flags_post_process_ldr, .compile_variant_index = 0});
+
+		desc.attachment_count = 0;
+		desc.attachments[0]	  = {};
+		add_attachment(desc, format_e::r16g16b16a16_sfloat, blend_attachments_t::get_alpha_blend());
+		out_psos.push_back({.desc = desc, .variant_flags = shader_variant_flags_post_process_hdr, .compile_variant_index = 0});
+		return true;
 	}
 
 	bool shader_cook_variants_t::cook_skybox_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)

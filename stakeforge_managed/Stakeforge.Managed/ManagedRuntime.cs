@@ -17,6 +17,7 @@ internal unsafe struct NativeApi
     internal NativeAudioApi* Audio;
     internal NativePhysicsApi* Physics;
     internal NativeAnimationApi* Animation;
+    internal NativeCanvasApi* Canvas;
     internal delegate* unmanaged[Cdecl]<byte*, void> GameLogInfo;
     internal delegate* unmanaged[Cdecl]<byte*, void> GameLogError;
     internal delegate* unmanaged[Cdecl]<byte*, void> GameLogWarn;
@@ -25,7 +26,7 @@ internal unsafe struct NativeApi
 
 internal static unsafe class ManagedRuntime
 {
-    private const uint ApiVersion = 5;
+    private const uint ApiVersion = 6;
     private const uint CategoryApiVersion = 1;
     private const uint GameApiVersion = 3;
     private const uint WorldApiVersion = 5;
@@ -76,6 +77,11 @@ internal static unsafe class ManagedRuntime
             sizeof(NativeWorldQueryComponent) != 16 ||
             sizeof(NativeWorldQuery) != 768 ||
             sizeof(NativeWorldQueryRow) != 272 ||
+            sizeof(CanvasLayout) != 56 ||
+            sizeof(CanvasFrameStyle) != 64 ||
+            sizeof(CanvasTextStyle) != 32 ||
+            sizeof(CanvasWidget) != 8 ||
+            sizeof(CanvasEvent) != 36 ||
             Hash.StringId("move_speed") != 10935991027489123434UL ||
             Hash.StringId("\u00E9") != 11062259058118930795UL ||
             Hash.Fnv1A64("Stakeforge") != 3213806815071520380UL ||
@@ -105,6 +111,9 @@ internal static unsafe class ManagedRuntime
             api->Animation == null ||
             api->Animation->Size < sizeof(NativeAnimationApi) ||
             api->Animation->Version != CategoryApiVersion ||
+            api->Canvas == null ||
+            api->Canvas->Size < sizeof(NativeCanvasApi) ||
+            api->Canvas->Version != CategoryApiVersion ||
             api->GameLogInfo == null ||
             api->GameLogError == null ||
             api->GameLogWarn == null ||

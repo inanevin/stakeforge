@@ -54,14 +54,19 @@ namespace sfg::ui
 
 	void ui_context::init(const ui_config_t& cfg)
 	{
-		SFG_ASSERT(cfg.snapshot_vertex_max_bytes != 0);
-		SFG_ASSERT(cfg.snapshot_index_max_bytes != 0);
-		SFG_ASSERT(cfg.snapshot_vertex_max_bytes <= cfg.canvas.vertex_pool_budget_bytes);
-		SFG_ASSERT(cfg.snapshot_index_max_bytes <= cfg.canvas.index_pool_budget_bytes);
+		if (cfg.render_snapshots_enabled)
+		{
+			SFG_ASSERT(cfg.snapshot_vertex_max_bytes != 0);
+			SFG_ASSERT(cfg.snapshot_index_max_bytes != 0);
+			SFG_ASSERT(cfg.snapshot_vertex_max_bytes <= cfg.canvas.vertex_pool_budget_bytes);
+			SFG_ASSERT(cfg.snapshot_index_max_bytes <= cfg.canvas.index_pool_budget_bytes);
+		}
 
-		_user_ui_scale = get_valid_scale(cfg.user_ui_scale);
-		_dpi_scale	   = get_valid_scale(cfg.dpi_scale);
-		_ui_scale	   = _dpi_scale * _user_ui_scale;
+		_user_ui_scale			  = get_valid_scale(cfg.user_ui_scale);
+		_dpi_scale				  = get_valid_scale(cfg.dpi_scale);
+		_ui_scale				  = _dpi_scale * _user_ui_scale;
+		_pipeline_variant_flags	  = cfg.pipeline_variant_flags;
+		_render_snapshots_enabled = cfg.render_snapshots_enabled;
 
 		_tree.init(cfg.max_widgets);
 		_paint.init(cfg.max_widgets);
@@ -78,15 +83,18 @@ namespace sfg::ui
 		_debug_hover_text.ptr = _text_pool.allocate(DEBUG_HOVER_TEXT_CAPACITY);
 		_debug_hover_text.len = 0;
 
-		const u32 snap_vtx_cap = cfg.snapshot_vertex_max_bytes / static_cast<u32>(sizeof(vg_vertex_t));
-		const u32 snap_idx_cap = cfg.snapshot_index_max_bytes / static_cast<u32>(sizeof(vg_index_t));
+		if (_render_snapshots_enabled)
+		{
+			const u32 snap_vtx_cap = cfg.snapshot_vertex_max_bytes / static_cast<u32>(sizeof(vg_vertex_t));
+			const u32 snap_idx_cap = cfg.snapshot_index_max_bytes / static_cast<u32>(sizeof(vg_index_t));
 
-		for (snapshot_slot_t& slot : _snapshot_slots)
-			allocate_snapshot_slot(slot, cfg.canvas.buffer_count, snap_vtx_cap, snap_idx_cap);
+			for (snapshot_slot_t& slot : _snapshot_slots)
+				allocate_snapshot_slot(slot, cfg.canvas.buffer_count, snap_vtx_cap, snap_idx_cap);
 
-		_producer_slot = 0;
-		_consumer_slot = 1;
-		_snapshot_mailbox.store(2, std::memory_order_relaxed);
+			_producer_slot = 0;
+			_consumer_slot = 1;
+			_snapshot_mailbox.store(2, std::memory_order_relaxed);
+		}
 		set_phase(ui_phase_e::idle);
 	}
 
@@ -112,7 +120,9 @@ namespace sfg::ui
 		_input.uninit();
 		_paint.uninit();
 		_tree.uninit();
-		_debug_font = NULL_RESOURCE_HANDLE;
+		_debug_font				  = NULL_RESOURCE_HANDLE;
+		_pipeline_variant_flags	  = 0;
+		_render_snapshots_enabled = true;
 	}
 
 	void ui_context::allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_buffer_capacity, u32 vertex_capacity, u32 index_capacity)
@@ -181,7 +191,7 @@ namespace sfg::ui
 			draw_debug_hovered_widget();
 		_canvas.frame_end();
 
-		_canvas.resolve();
+		_canvas.resolve(_pipeline_variant_flags);
 		set_phase(ui_phase_e::idle);
 	}
 
@@ -548,6 +558,7 @@ namespace sfg::ui
 		ZoneScoped;
 
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
+		SFG_ASSERT(_render_snapshots_enabled);
 		snapshot_slot_t& slot = _snapshot_slots[_producer_slot];
 
 		const vector_t<vg_draw_buffer_t>& src_dbs = _canvas.get_draw_buffers();
@@ -593,6 +604,7 @@ namespace sfg::ui
 	const vg_draw_snapshot_t* ui_context::acquire_render_snapshot()
 	{
 		SFG_ASSERT(SFG_IS_RENDER_THREAD());
+		SFG_ASSERT(_render_snapshots_enabled);
 
 		u8 cur = _snapshot_mailbox.load(std::memory_order_acquire);
 		while (cur & SNAPSHOT_FRESH_FLAG)

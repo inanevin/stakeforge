@@ -687,6 +687,9 @@ namespace sfg
 		case assets_action_menu_create_particle_material:
 			text = "particle_material";
 			break;
+		case assets_action_menu_create_post_process_material:
+			text = "post_process_material";
+			break;
 		case assets_action_menu_create_physical_material:
 			text = "physical_material";
 			break;
@@ -902,6 +905,10 @@ namespace sfg
 		case assets_action_menu_create_particle_material:
 			out_desc.asset_type = editor_asset_type_e::material;
 			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::particle);
+			return true;
+		case assets_action_menu_create_post_process_material:
+			out_desc.asset_type = editor_asset_type_e::material;
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::post_process);
 			return true;
 		case assets_action_menu_create_physical_material:
 			out_desc.asset_type = editor_asset_type_e::physical_material;

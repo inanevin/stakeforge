@@ -337,4 +337,19 @@ public static unsafe class NativeEntryPoints
         }
     }
 
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static int CanvasEventWorldScript(nint instance, CanvasEvent* canvasEvent)
+    {
+        try
+        {
+            ProjectAssemblyRuntime.CanvasEventWorldScript(instance, canvasEvent);
+            return 0;
+        }
+        catch (Exception exception)
+        {
+            ManagedRuntime.TryLogError(exception);
+            return -2;
+        }
+    }
+
 }

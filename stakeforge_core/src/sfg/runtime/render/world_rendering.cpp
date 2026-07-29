@@ -44,6 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
+#include <sfg/runtime/ui/ui_renderer.hpp>
 #include <tracy/Tracy.hpp>
 
 namespace sfg
@@ -98,6 +99,71 @@ namespace sfg
 				constants.push_back(render_resources_t::get().get_sampler_gpu_index(mat.material_samplers[i]));
 
 			backend.cmd_bind_constants(cmd, {.data = constants.data(), .offset = constant_mat0, .count = static_cast<u8>(constants.size()), .param_index = 0});
+		}
+
+		void draw_post_process_material(gfx_backend&							  backend,
+										gfx_handle_t							  cmd,
+										const world_render_context_t&			  ctx,
+										const world_render_snapshot_t&			  snapshot,
+										const world_render_post_process_effect_t& effect,
+										gfx_handle_t							  source_texture,
+										gpu_index_t								  source_index,
+										u32										  source_states,
+										gfx_handle_t							  target_texture,
+										u32										  shader_flags,
+										u8										  frame_index,
+										u32&									  bound_material_index)
+		{
+			const world_render_material_t& material		 = snapshot.materials[effect.material_index];
+			const render_resource_handle_t shader_handle = material.find_pso(shader_flags);
+
+			SFG_ASSERT(!shader_handle.is_null());
+
+			barrier_t barriers[2]	= {};
+			u16		  barrier_count = 0;
+
+			if (source_states != resource_state_ps_resource)
+			{
+				barriers[barrier_count++] = {
+					.from_states = source_states,
+					.to_states	 = resource_state_ps_resource,
+					.texture_t	 = source_texture,
+					.flags		 = barrier_flags::baf_is_texture,
+				};
+			}
+
+			barriers[barrier_count++] = {
+				.from_states = resource_state_ps_resource,
+				.to_states	 = resource_state_render_target,
+				.texture_t	 = target_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+
+			backend.cmd_barrier(cmd, {.barriers = barriers, .barrier_count = barrier_count});
+
+			const render_pass_color_attachment_t color_attachment = {
+				.texture	= target_texture,
+				.load_op	= load_op::dont_care,
+				.store_op	= store_op::store,
+				.view_index = 1,
+			};
+
+			backend.cmd_begin_render_pass(cmd, {.color_attachments = &color_attachment, .color_attachment_count = 1});
+
+			const gpu_index_t rp_constants[6] = {
+				ctx.get_view_render_pass_data_index(frame_index),
+				source_index,
+				ctx.get_gbuffer_albedo_index(frame_index),
+				ctx.get_gbuffer_normal_index(frame_index),
+				ctx.get_gbuffer_orm_index(frame_index),
+				ctx.get_gbuffer_emissive_index(frame_index),
+			};
+
+			backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 6, .param_index = 0});
+			bind_material(backend, cmd, bound_material_index, effect.material_index, material, frame_index);
+			backend.cmd_bind_pipeline(cmd, {.pipeline = render_resources_t::get().get_shader_hw(shader_handle)});
+			backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
+			backend.cmd_end_render_pass(cmd, {});
 		}
 
 		void draw_skybox(gfx_backend& backend, gfx_handle_t cmd, const world_render_snapshot_t& snapshot, u8 frame_index)
@@ -377,6 +443,7 @@ namespace sfg
 		for (const world_render_clustered_lighting_view_t& view : clustered_lighting_views)
 			light_cluster_count += view.cluster_count_x * view.cluster_count_y * view.cluster_count_z;
 		ctx.ensure_light_cluster_capacity(frame_index, light_cluster_count);
+		ctx.ensure_post_process_scratch(!snapshot.post_process.before_tonemap.empty(), snapshot.post_process.fxaa.enabled != 0 || !snapshot.post_process.after_tonemap.empty());
 
 		world_rendering_util_t::prep_debug_buffer(ctx, snapshot, frame_index);
 		world_rendering_util_t::prep_render_queues(ctx, snapshot, prep_data, interpolation_alpha, frame_index);
@@ -1348,6 +1415,9 @@ namespace sfg
 		const world_render_prep_view_t& prep_view = prep_data.views[0];
 		draw_world_draws(backend, cmd, ctx, snapshot, prep_data.get_transparent_queue(prep_view), world_pass_flags_forward, 0, frame_index);
 
+		const ui::vg_draw_snapshot_t canvas_snapshot = snapshot.canvas.before_post_process.get_snapshot();
+		ctx.get_canvas_before_renderer().render(cmd, &canvas_snapshot, frame_index, size);
+
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
 
@@ -1501,87 +1571,154 @@ namespace sfg
 
 		SFG_MEMCPY(ctx.get_mapped_post_process_render_pass_data(frame_index), &post_process_render_pass_data, sizeof(render_pass_data_post_process_gpu_t));
 
-		const gfx_handle_t cmd				   = ctx.get_command_buffer_post(frame_index);
-		const gfx_handle_t lighting_texture	   = ctx.get_lighting_texture(frame_index);
-		const gfx_handle_t world_texture	   = ctx.get_world_texture(frame_index);
-		const gfx_handle_t tonemap_texture	   = ctx.get_tonemap_texture(frame_index);
-		const bool		   bloom_active		   = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
-		const bool		   fxaa_active		   = snapshot.post_process.fxaa.enabled != 0;
-		const gfx_handle_t post_process_target = fxaa_active ? tonemap_texture : world_texture;
+		const gfx_handle_t cmd					   = ctx.get_command_buffer_post(frame_index);
+		const gfx_handle_t lighting_texture		   = ctx.get_lighting_texture(frame_index);
+		const gfx_handle_t world_texture		   = ctx.get_world_texture(frame_index);
+		const bool		   bloom_active			   = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
+		const bool		   fxaa_active			   = snapshot.post_process.fxaa.enabled != 0;
+		const u32		   ldr_tail_count		   = static_cast<u32>(snapshot.post_process.after_tonemap.size()) + (fxaa_active ? 1u : 0u);
+		const bool		   tonemap_target_is_world = (ldr_tail_count & 1u) == 0;
+		const gfx_handle_t ldr_scratch			   = ldr_tail_count == 0 ? gfx_handle_t{} : ctx.get_post_process_ldr_scratch(frame_index);
+		const gpu_index_t  ldr_scratch_index	   = ldr_tail_count == 0 ? NULL_GPU_INDEX : ctx.get_post_process_ldr_scratch_index(frame_index);
 
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
 		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
 
-		barrier_t begin_barriers[3] = {};
-		u16		  begin_count		= 0;
-
-		if (bloom_active)
-		{
-			begin_barriers[begin_count++] = {
-				.from_states = resource_state_non_ps_resource,
-				.to_states	 = resource_state_ps_resource,
-				.texture_t	 = lighting_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-
-			begin_barriers[begin_count++] = {
-				.from_states	= resource_state_non_ps_resource,
-				.to_states		= resource_state_ps_resource,
-				.texture_t		= ctx.get_bloom_upsample_texture(frame_index),
-				.flags			= barrier_flags::baf_is_texture,
-				.base_mip_level = 0,
-				.mip_count		= 1,
-			};
-		}
-
-		begin_barriers[begin_count++] = {
-			.from_states = resource_state_ps_resource,
-			.to_states	 = resource_state_render_target,
-			.texture_t	 = post_process_target,
-			.flags		 = barrier_flags::baf_is_texture,
-		};
-
-		backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = begin_count});
-
-		const render_pass_color_attachment_t color_attachment = {
-			.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
-			.texture	 = post_process_target,
-			.load_op	 = load_op::clear,
-			.store_op	 = store_op::store,
-			.view_index	 = 1,
-		};
-
-		BEGIN_DEBUG_EVENT((&backend), cmd, "world_post_process");
-		backend.cmd_begin_render_pass(cmd, {.color_attachments = &color_attachment, .color_attachment_count = 1});
-
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
-		// post combiner blit.
+		BEGIN_DEBUG_EVENT((&backend), cmd, "world_post_process");
+
+		if (bloom_active)
+		{
+			const barrier_t bloom_barriers[2] = {
+				{
+					.from_states = resource_state_non_ps_resource,
+					.to_states	 = resource_state_ps_resource,
+					.texture_t	 = lighting_texture,
+					.flags		 = barrier_flags::baf_is_texture,
+				},
+				{
+					.from_states	= resource_state_non_ps_resource,
+					.to_states		= resource_state_ps_resource,
+					.texture_t		= ctx.get_bloom_upsample_texture(frame_index),
+					.flags			= barrier_flags::baf_is_texture,
+					.base_mip_level = 0,
+					.mip_count		= 1,
+				},
+			};
+
+			backend.cmd_barrier(cmd, {.barriers = bloom_barriers, .barrier_count = 2});
+		}
+
+		gfx_handle_t hdr_source_texture		= lighting_texture;
+		gpu_index_t	 hdr_source_index		= ctx.get_lighting_texture_index(frame_index);
+		u32			 hdr_source_states		= resource_state_ps_resource;
+		bool		 hdr_source_is_lighting = true;
+		u32			 bound_material_index	= UINT32_MAX;
+
+		// start with lighting result as source and hdr scratch as target
+		for (const world_render_post_process_effect_t& effect : snapshot.post_process.before_tonemap)
+		{
+			const gfx_handle_t target_texture = hdr_source_is_lighting ? ctx.get_post_process_hdr_scratch(frame_index) : lighting_texture;
+			const gpu_index_t  target_index	  = hdr_source_is_lighting ? ctx.get_post_process_hdr_scratch_index(frame_index) : ctx.get_lighting_texture_index(frame_index);
+
+			draw_post_process_material(backend, cmd, ctx, snapshot, effect, hdr_source_texture, hdr_source_index, hdr_source_states, target_texture, shader_variant_flags_post_process_hdr, frame_index, bound_material_index);
+
+			// alternate between scratch and lighting, building up the effect.
+			hdr_source_texture	   = target_texture;
+			hdr_source_index	   = target_index;
+			hdr_source_states	   = resource_state_render_target;
+			hdr_source_is_lighting = !hdr_source_is_lighting;
+		}
+
 		const render_resources_t& render_resources = render_resources_t::get();
 		const gpu_index_t		  bloom_index	   = bloom_active ? ctx.get_bloom_upsample_index(frame_index, 0) : render_resources.get_texture_gpu_index(render_resources.get_black_texture(), 0);
-		gpu_index_t				  rp_constants[3]  = {ctx.get_post_process_render_pass_data_index(frame_index), ctx.get_lighting_texture_index(frame_index), bloom_index};
+		const gfx_handle_t		  tonemap_target   = tonemap_target_is_world ? world_texture : ldr_scratch;
+		const gpu_index_t		  tonemap_index	   = tonemap_target_is_world ? ctx.get_world_texture_index(frame_index) : ldr_scratch_index;
 
-		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
+		barrier_t tonemap_barriers[2]	= {};
+		u16		  tonemap_barrier_count = 0;
+
+		if (hdr_source_states != resource_state_ps_resource)
+		{
+			tonemap_barriers[tonemap_barrier_count++] = {
+				.from_states = hdr_source_states,
+				.to_states	 = resource_state_ps_resource,
+				.texture_t	 = hdr_source_texture,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+		}
+
+		tonemap_barriers[tonemap_barrier_count++] = {
+			.from_states = resource_state_ps_resource,
+			.to_states	 = resource_state_render_target,
+			.texture_t	 = tonemap_target,
+			.flags		 = barrier_flags::baf_is_texture,
+		};
+
+		backend.cmd_barrier(cmd, {.barriers = tonemap_barriers, .barrier_count = tonemap_barrier_count});
+
+		const render_pass_color_attachment_t tonemap_attachment = {
+			.texture	= tonemap_target,
+			.load_op	= load_op::dont_care,
+			.store_op	= store_op::store,
+			.view_index = 1,
+		};
+
+		backend.cmd_begin_render_pass(cmd, {.color_attachments = &tonemap_attachment, .color_attachment_count = 1});
+
+		const gpu_index_t tonemap_constants[3] = {
+			ctx.get_post_process_render_pass_data_index(frame_index),
+			hdr_source_index,
+			bloom_index,
+		};
+
+		// engine post combine.
+		backend.cmd_bind_constants(cmd, {.data = tonemap_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_post_combiner_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
+		backend.cmd_end_render_pass(cmd, {});
+
+		// same deal as hdr, alternative between ldr scratch and "final" texture
+		gfx_handle_t ldr_source_texture	 = tonemap_target;
+		gpu_index_t	 ldr_source_index	 = tonemap_index;
+		bool		 ldr_source_is_world = tonemap_target_is_world;
+
+		for (const world_render_post_process_effect_t& effect : snapshot.post_process.after_tonemap)
+		{
+			const gfx_handle_t target_texture = ldr_source_is_world ? ldr_scratch : world_texture;
+			const gpu_index_t  target_index	  = ldr_source_is_world ? ldr_scratch_index : ctx.get_world_texture_index(frame_index);
+
+			draw_post_process_material(backend, cmd, ctx, snapshot, effect, ldr_source_texture, ldr_source_index, resource_state_render_target, target_texture, shader_variant_flags_post_process_ldr, frame_index, bound_material_index);
+
+			ldr_source_texture	= target_texture;
+			ldr_source_index	= target_index;
+			ldr_source_is_world = !ldr_source_is_world;
+		}
 
 		if (fxaa_active)
 		{
-			backend.cmd_end_render_pass(cmd, {});
+			const gfx_handle_t target_texture = ldr_source_is_world ? ldr_scratch : world_texture;
+			const gpu_index_t  target_index	  = ldr_source_is_world ? ldr_scratch_index : ctx.get_world_texture_index(frame_index);
+
+			const gpu_index_t fxaa_constants[2] = {
+				ctx.get_post_process_render_pass_data_index(frame_index),
+				ldr_source_index,
+			};
 
 			const barrier_t fxaa_barriers[2] = {
 				{
 					.from_states = resource_state_render_target,
 					.to_states	 = resource_state_ps_resource,
-					.texture_t	 = tonemap_texture,
+					.texture_t	 = ldr_source_texture,
 					.flags		 = barrier_flags::baf_is_texture,
 				},
 				{
 					.from_states = resource_state_ps_resource,
 					.to_states	 = resource_state_render_target,
-					.texture_t	 = world_texture,
+					.texture_t	 = target_texture,
 					.flags		 = barrier_flags::baf_is_texture,
 				},
 			};
@@ -1589,27 +1726,50 @@ namespace sfg
 			backend.cmd_barrier(cmd, {.barriers = fxaa_barriers, .barrier_count = 2});
 
 			const render_pass_color_attachment_t fxaa_attachment = {
-				.clear_color = vec4f_t(0.0f, 0.0f, 0.0f, 1.0f),
-				.texture	 = world_texture,
-				.load_op	 = load_op::clear,
-				.store_op	 = store_op::store,
-				.view_index	 = 1,
+				.texture	= target_texture,
+				.load_op	= load_op::dont_care,
+				.store_op	= store_op::store,
+				.view_index = 1,
 			};
 
 			backend.cmd_begin_render_pass(cmd, {.color_attachments = &fxaa_attachment, .color_attachment_count = 1});
-
-			const gpu_index_t fxaa_constants[2] = {
-				ctx.get_post_process_render_pass_data_index(frame_index),
-				ctx.get_tonemap_texture_index(frame_index),
-			};
-
 			backend.cmd_bind_constants(cmd, {.data = fxaa_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_fxaa_shader()});
 			backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
+			backend.cmd_end_render_pass(cmd, {});
+
+			ldr_source_texture	= target_texture;
+			ldr_source_index	= target_index;
+			ldr_source_is_world = !ldr_source_is_world;
 		}
 
-		// debug draws
-		const world_debug_draw_snapshot_t& debug_draw = snapshot.debug_draw;
+		SFG_ASSERT(ldr_source_is_world);
+
+		const ui::vg_draw_snapshot_t	   canvas_snapshot	= snapshot.canvas.after_post_process.get_snapshot();
+		const world_debug_draw_snapshot_t& debug_draw		= snapshot.debug_draw;
+		const bool						   has_canvas_draws = canvas_snapshot.draw_buffer_count != 0;
+		const bool						   has_debug_draws	= !debug_draw.textures.empty() || !debug_draw.line_indices.empty() || !debug_draw.text_indices.empty();
+		const bool						   has_overlays		= has_canvas_draws || has_debug_draws;
+
+		if (has_overlays)
+		{
+			const render_pass_color_attachment_t overlay_attachment = {
+				.texture	= world_texture,
+				.load_op	= load_op::load,
+				.store_op	= store_op::store,
+				.view_index = 1,
+			};
+
+			backend.cmd_begin_render_pass(cmd, {.color_attachments = &overlay_attachment, .color_attachment_count = 1});
+		}
+
+		if (has_canvas_draws)
+		{
+			ctx.get_canvas_after_renderer().render(cmd, &canvas_snapshot, frame_index, size);
+
+			backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
+			backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
+		}
 
 		if (!debug_draw.textures.empty())
 		{
@@ -1670,7 +1830,9 @@ namespace sfg
 											   });
 		}
 
-		backend.cmd_end_render_pass(cmd, {});
+		if (has_overlays)
+			backend.cmd_end_render_pass(cmd, {});
+
 		END_DEBUG_EVENT((&backend), cmd);
 
 		barrier_t end_barriers[2] = {

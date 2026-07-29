@@ -518,6 +518,13 @@ namespace sfg
 				return false;
 			}
 			break;
+		case shader_type_e::canvas_ui_shader:
+			if (!shader_cook_variants_t::cook_canvas_ui_shader(compile_source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook canvas UI shader variants: {0}", full_path);
+				return false;
+			}
+			break;
 		case shader_type_e::skybox_shader:
 			if (!shader_cook_variants_t::cook_skybox_shader(compile_source, include_paths, compiles, psos))
 			{

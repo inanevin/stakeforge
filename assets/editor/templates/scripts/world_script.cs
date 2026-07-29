@@ -43,6 +43,10 @@ public sealed class #SCRIPT_NAME# : SFG.WorldScript
     {
     }
 
+    public override void OnCanvasEvent(World world, CanvasEvent canvasEvent)
+    {
+    }
+
     public override void OnCollisionEnter(World world, PhysicsContactEvent contact)
     {
     }
