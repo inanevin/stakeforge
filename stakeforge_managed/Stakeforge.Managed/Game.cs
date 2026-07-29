@@ -41,4 +41,9 @@ public static unsafe class Game
     {
         return ManagedRuntime.GetApi()->Game->LoadWorld(world) != 0;
     }
+
+    public static void Quit()
+    {
+        ManagedRuntime.GetApi()->Game->Quit();
+    }
 }

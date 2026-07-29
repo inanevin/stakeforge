@@ -123,6 +123,7 @@ namespace sfg
 		static u8	get_script_game_render_resolution(vec2u16_t& out_resolution);
 		static u8	set_script_game_render_resolution(const vec2u16_t& resolution);
 		static u8	load_script_game_world(sid_t world);
+		static void quit_script_game();
 
 	private:
 		editor_app_config_t			_config = {};

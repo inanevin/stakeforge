@@ -27,7 +27,8 @@ internal static unsafe class ManagedRuntime
 {
     private const uint ApiVersion = 5;
     private const uint CategoryApiVersion = 1;
-    private const uint WorldApiVersion = 3;
+    private const uint GameApiVersion = 2;
+    private const uint WorldApiVersion = 4;
 
     private static NativeApi* _api;
 
@@ -58,6 +59,7 @@ internal static unsafe class ManagedRuntime
             sizeof(Vector2) != 8 ||
             sizeof(Vector3) != 12 ||
             sizeof(Vector4) != 16 ||
+            sizeof(Color) != 16 ||
             sizeof(Quaternion) != 16 ||
             sizeof(Matrix3x3) != 36 ||
             sizeof(Matrix4x3) != 48 ||
@@ -87,7 +89,7 @@ internal static unsafe class ManagedRuntime
             api->Platform->Version != CategoryApiVersion ||
             api->Game == null ||
             api->Game->Size < sizeof(NativeGameApi) ||
-            api->Game->Version != CategoryApiVersion ||
+            api->Game->Version != GameApiVersion ||
             api->Resource == null ||
             api->Resource->Size < sizeof(NativeResourceApi) ||
             api->Resource->Version != CategoryApiVersion ||

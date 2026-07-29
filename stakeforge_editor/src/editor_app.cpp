@@ -111,6 +111,11 @@ namespace sfg
 		return editor_app_t::get().get_world_controller().queue_game_world_load(world) ? 1 : 0;
 	}
 
+	void editor_app_t::quit_script_game()
+	{
+		editor_app_t::get().get_world_controller().queue_game_quit();
+	}
+
 	bool editor_app_t::init(const editor_app_config_t& config)
 	{
 		SFG_ASSERT(config.main_frame_budget_bytes != 0);
@@ -236,7 +241,7 @@ namespace sfg
 		engine_runtime_t& runtime = engine_runtime_t::get();
 
 		set_script_api_platform_window_runtime(nullptr);
-		set_script_api_game_callbacks(nullptr, nullptr, nullptr);
+		set_script_api_game_callbacks(nullptr, nullptr, nullptr, nullptr);
 
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
 		SFG_ASSERT(surfaces.is_empty());
@@ -374,7 +379,7 @@ namespace sfg
 		_normal_world_load_pending = proj.settings.last_world_guid != NULL_SID;
 
 		set_script_api_platform_window_runtime(surfaces.get_main_surface().runtime.get());
-		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, load_script_game_world);
+		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, load_script_game_world, quit_script_game);
 
 		editor_script_manager_t::get().init();
 		_asset_manager.initialize_script_file_tracking();
@@ -409,7 +414,7 @@ namespace sfg
 		if (_mode == editor_app_mode_e::normal)
 		{
 			set_script_api_platform_window_runtime(nullptr);
-			set_script_api_game_callbacks(nullptr, nullptr, nullptr);
+			set_script_api_game_callbacks(nullptr, nullptr, nullptr, nullptr);
 		}
 
 		surfaces.destroy_all_surfaces();

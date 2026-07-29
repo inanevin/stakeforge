@@ -32,9 +32,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class color_t;
+	class mat4x3_t;
 	class quat_t;
+	struct vec2f_t;
 	struct vec3f_t;
 	class world_t;
+	enum class debug_draw_depth_e : u8;
+	enum class debug_draw_text_alignment_e : u8;
 
 	static inline constexpr u32 SCRIPT_WORLD_QUERY_MAX_COMPONENTS	 = ECS_INNER_JOIN_MAX_TABLES;
 	static inline constexpr u32 SCRIPT_WORLD_QUERY_STORAGE_U64_COUNT = 96;
@@ -112,6 +117,22 @@ namespace sfg
 	u8			api_world_query_begin(world_t* world, const script_world_query_component_t* components, u32 component_count, script_world_query_t* out_query);
 	u8			api_world_query_next(script_world_query_t* query, script_world_query_row_t* out_row);
 	void		api_world_query_end(script_world_query_t* query);
+	void		api_world_debug_draw_line(world_t* world, const vec3f_t* from, const vec3f_t* to, const color_t* color, f32 thickness_px, debug_draw_depth_e depth);
+	void		api_world_debug_draw_arrow(world_t* world, const vec3f_t* from, const vec3f_t* to, const color_t* color, f32 head_length, f32 head_radius, f32 thickness_px, debug_draw_depth_e depth);
+	void		api_world_debug_draw_triangle(world_t* world, const vec3f_t* p0, const vec3f_t* p1, const vec3f_t* p2, const color_t* color);
+	void		api_world_debug_draw_polyline(world_t* world, const vec3f_t* points, u32 point_count, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u8 closed);
+	void		api_world_debug_draw_aabb(world_t* world, const vec3f_t* bounds_min, const vec3f_t* bounds_max, const color_t* color, f32 thickness_px, debug_draw_depth_e depth);
+	void		api_world_debug_draw_box(world_t* world, const mat4x3_t* transform, const vec3f_t* half_extents, const color_t* color, f32 thickness_px, debug_draw_depth_e depth);
+	void		api_world_debug_draw_rectangle(world_t* world, const vec3f_t* center, const vec3f_t* right, const vec3f_t* up, const vec2f_t* size, const color_t* color, f32 thickness_px, debug_draw_depth_e depth);
+	void		api_world_debug_draw_arc(world_t* world, const vec3f_t* center, const vec3f_t* normal, const vec3f_t* start_direction, f32 radius, f32 angle_radians, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
+	void		api_world_debug_draw_circle(world_t* world, const vec3f_t* center, f32 radius, const vec3f_t* normal, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
+	void		api_world_debug_draw_sphere(world_t* world, const vec3f_t* center, f32 radius, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
+	void		api_world_debug_draw_capsule(world_t* world, const vec3f_t* center, f32 radius, f32 half_height, const vec3f_t* direction, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
+	void		api_world_debug_draw_cylinder(world_t* world, const vec3f_t* center, f32 radius, f32 half_height, const vec3f_t* direction, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
+	void		api_world_debug_draw_cone(world_t* world, const vec3f_t* origin, const vec3f_t* direction, f32 length, f32 half_angle_radians, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
+	void		api_world_debug_draw_text_2d(world_t* world, const vec2f_t* position, const char* text, const color_t* color, f32 size_px, debug_draw_text_alignment_e alignment, resource_handle_t font);
+	void		api_world_debug_draw_text_3d(world_t* world, const vec3f_t* position, const char* text, const color_t* color, f32 size_px, debug_draw_depth_e depth, debug_draw_text_alignment_e alignment, const vec2f_t* screen_offset, resource_handle_t font);
+	void		api_world_debug_draw_texture_3d(world_t* world, const vec3f_t* position, resource_handle_t texture, const vec2f_t* size_px, const color_t* color, entity_id_t entity, debug_draw_depth_e depth, const vec2f_t* screen_offset, u8 linear_sample);
 
 	struct script_api_world_t
 	{
@@ -156,6 +177,22 @@ namespace sfg
 		decltype(&api_world_query_begin)					 query_begin					 = nullptr;
 		decltype(&api_world_query_next)						 query_next						 = nullptr;
 		decltype(&api_world_query_end)						 query_end						 = nullptr;
+		decltype(&api_world_debug_draw_line)				 debug_draw_line				 = nullptr;
+		decltype(&api_world_debug_draw_arrow)				 debug_draw_arrow				 = nullptr;
+		decltype(&api_world_debug_draw_triangle)			 debug_draw_triangle			 = nullptr;
+		decltype(&api_world_debug_draw_polyline)			 debug_draw_polyline			 = nullptr;
+		decltype(&api_world_debug_draw_aabb)				 debug_draw_aabb				 = nullptr;
+		decltype(&api_world_debug_draw_box)					 debug_draw_box					 = nullptr;
+		decltype(&api_world_debug_draw_rectangle)			 debug_draw_rectangle			 = nullptr;
+		decltype(&api_world_debug_draw_arc)					 debug_draw_arc					 = nullptr;
+		decltype(&api_world_debug_draw_circle)				 debug_draw_circle				 = nullptr;
+		decltype(&api_world_debug_draw_sphere)				 debug_draw_sphere				 = nullptr;
+		decltype(&api_world_debug_draw_capsule)				 debug_draw_capsule				 = nullptr;
+		decltype(&api_world_debug_draw_cylinder)			 debug_draw_cylinder			 = nullptr;
+		decltype(&api_world_debug_draw_cone)				 debug_draw_cone				 = nullptr;
+		decltype(&api_world_debug_draw_text_2d)				 debug_draw_text_2d				 = nullptr;
+		decltype(&api_world_debug_draw_text_3d)				 debug_draw_text_3d				 = nullptr;
+		decltype(&api_world_debug_draw_texture_3d)			 debug_draw_texture_3d			 = nullptr;
 	};
 
 	const script_api_world_t& get_script_api_world();

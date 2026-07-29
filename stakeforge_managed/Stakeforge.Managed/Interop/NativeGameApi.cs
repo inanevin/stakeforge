@@ -10,4 +10,5 @@ internal unsafe struct NativeGameApi
     internal delegate* unmanaged[Cdecl]<RenderResolution*, byte> GetRenderResolution;
     internal delegate* unmanaged[Cdecl]<ushort, ushort, byte> SetRenderResolution;
     internal delegate* unmanaged[Cdecl]<ulong, byte> LoadWorld;
+    internal delegate* unmanaged[Cdecl]<void> Quit;
 }

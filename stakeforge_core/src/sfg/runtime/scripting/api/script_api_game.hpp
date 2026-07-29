@@ -36,11 +36,13 @@ namespace sfg
 	typedef u8 (*script_api_game_get_render_resolution_fn)(vec2u16_t& out_resolution);
 	typedef u8 (*script_api_game_set_render_resolution_fn)(const vec2u16_t& resolution);
 	typedef u8 (*script_api_game_load_world_fn)(sid_t world);
+	typedef void (*script_api_game_quit_fn)();
 
-	void set_script_api_game_callbacks(script_api_game_get_render_resolution_fn get_resolution, script_api_game_set_render_resolution_fn set_resolution, script_api_game_load_world_fn load_world);
+	void set_script_api_game_callbacks(script_api_game_get_render_resolution_fn get_resolution, script_api_game_set_render_resolution_fn set_resolution, script_api_game_load_world_fn load_world, script_api_game_quit_fn quit);
 	u8	 api_game_get_render_resolution(vec2u16_t* out_resolution);
 	u8	 api_game_set_render_resolution(u16 width, u16 height);
 	u8	 api_game_load_world(sid_t world);
+	void api_game_quit();
 
 	struct script_api_game_t
 	{
@@ -49,6 +51,7 @@ namespace sfg
 		decltype(&api_game_get_render_resolution) get_render_resolution = nullptr;
 		decltype(&api_game_set_render_resolution) set_render_resolution = nullptr;
 		decltype(&api_game_load_world)			  load_world			= nullptr;
+		decltype(&api_game_quit)				  quit					= nullptr;
 	};
 
 	const script_api_game_t& get_script_api_game();

@@ -46,4 +46,20 @@ internal unsafe struct NativeWorldApi
     internal delegate* unmanaged[Cdecl]<nint, NativeWorldQueryComponent*, uint, NativeWorldQuery*, byte> QueryBegin;
     internal delegate* unmanaged[Cdecl]<NativeWorldQuery*, NativeWorldQueryRow*, byte> QueryNext;
     internal delegate* unmanaged[Cdecl]<NativeWorldQuery*, void> QueryEnd;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, Vector3*, Color*, float, DebugDrawDepth, void> DebugDrawLine;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, Vector3*, Color*, float, float, float, DebugDrawDepth, void> DebugDrawArrow;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, Vector3*, Vector3*, Color*, void> DebugDrawTriangle;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, uint, Color*, float, DebugDrawDepth, byte, void> DebugDrawPolyline;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, Vector3*, Color*, float, DebugDrawDepth, void> DebugDrawAabb;
+    internal delegate* unmanaged[Cdecl]<nint, Matrix4x3*, Vector3*, Color*, float, DebugDrawDepth, void> DebugDrawBox;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, Vector3*, Vector3*, Vector2*, Color*, float, DebugDrawDepth, void> DebugDrawRectangle;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, Vector3*, Vector3*, float, float, Color*, float, DebugDrawDepth, uint, void> DebugDrawArc;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, float, Vector3*, Color*, float, DebugDrawDepth, uint, void> DebugDrawCircle;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, float, Color*, float, DebugDrawDepth, uint, void> DebugDrawSphere;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, float, float, Vector3*, Color*, float, DebugDrawDepth, uint, void> DebugDrawCapsule;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, float, float, Vector3*, Color*, float, DebugDrawDepth, uint, void> DebugDrawCylinder;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, Vector3*, float, float, Color*, float, DebugDrawDepth, uint, void> DebugDrawCone;
+    internal delegate* unmanaged[Cdecl]<nint, Vector2*, byte*, Color*, float, DebugDrawTextAlignment, ulong, void> DebugDrawText2D;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, byte*, Color*, float, DebugDrawDepth, DebugDrawTextAlignment, Vector2*, ulong, void> DebugDrawText3D;
+    internal delegate* unmanaged[Cdecl]<nint, Vector3*, ulong, Vector2*, Color*, uint, DebugDrawDepth, Vector2*, byte, void> DebugDrawTexture3D;
 }

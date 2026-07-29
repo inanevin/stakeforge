@@ -30,12 +30,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/math/aabb.hpp>
+#include <sfg/math/color.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/runtime/world/world_debug_draw.hpp>
 
 #include <new>
 
@@ -768,11 +771,177 @@ namespace sfg
 		state->active = false;
 	}
 
+	void api_world_debug_draw_line(world_t* world, const vec3f_t* from, const vec3f_t* to, const color_t* color, f32 thickness_px, debug_draw_depth_e depth)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(from != nullptr);
+		SFG_ASSERT(to != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_line(*from, *to, *color, thickness_px, depth);
+	}
+
+	void api_world_debug_draw_arrow(world_t* world, const vec3f_t* from, const vec3f_t* to, const color_t* color, f32 head_length, f32 head_radius, f32 thickness_px, debug_draw_depth_e depth)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(from != nullptr);
+		SFG_ASSERT(to != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_arrow(*from, *to, *color, head_length, head_radius, thickness_px, depth);
+	}
+
+	void api_world_debug_draw_triangle(world_t* world, const vec3f_t* p0, const vec3f_t* p1, const vec3f_t* p2, const color_t* color)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(p0 != nullptr);
+		SFG_ASSERT(p1 != nullptr);
+		SFG_ASSERT(p2 != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_triangle(*p0, *p1, *p2, *color);
+	}
+
+	void api_world_debug_draw_polyline(world_t* world, const vec3f_t* points, u32 point_count, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u8 closed)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(points != nullptr || point_count == 0);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_polyline({.data = points, .size = point_count}, *color, thickness_px, depth, closed != 0);
+	}
+
+	void api_world_debug_draw_aabb(world_t* world, const vec3f_t* bounds_min, const vec3f_t* bounds_max, const color_t* color, f32 thickness_px, debug_draw_depth_e depth)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(bounds_min != nullptr);
+		SFG_ASSERT(bounds_max != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		const aabb_t bounds(*bounds_min, *bounds_max);
+
+		world->get_debug_draw().draw_aabb(bounds, *color, thickness_px, depth);
+	}
+
+	void api_world_debug_draw_box(world_t* world, const mat4x3_t* transform, const vec3f_t* half_extents, const color_t* color, f32 thickness_px, debug_draw_depth_e depth)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(transform != nullptr);
+		SFG_ASSERT(half_extents != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_box(*transform, *half_extents, *color, thickness_px, depth);
+	}
+
+	void api_world_debug_draw_rectangle(world_t* world, const vec3f_t* center, const vec3f_t* right, const vec3f_t* up, const vec2f_t* size, const color_t* color, f32 thickness_px, debug_draw_depth_e depth)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(center != nullptr);
+		SFG_ASSERT(right != nullptr);
+		SFG_ASSERT(up != nullptr);
+		SFG_ASSERT(size != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_rectangle(*center, *right, *up, *size, *color, thickness_px, depth);
+	}
+
+	void api_world_debug_draw_arc(world_t* world, const vec3f_t* center, const vec3f_t* normal, const vec3f_t* start_direction, f32 radius, f32 angle_radians, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(center != nullptr);
+		SFG_ASSERT(normal != nullptr);
+		SFG_ASSERT(start_direction != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_arc(*center, *normal, *start_direction, radius, angle_radians, *color, thickness_px, depth, segments);
+	}
+
+	void api_world_debug_draw_circle(world_t* world, const vec3f_t* center, f32 radius, const vec3f_t* normal, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(center != nullptr);
+		SFG_ASSERT(normal != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_circle(*center, radius, *normal, *color, thickness_px, depth, segments);
+	}
+
+	void api_world_debug_draw_sphere(world_t* world, const vec3f_t* center, f32 radius, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(center != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_sphere(*center, radius, *color, thickness_px, depth, segments);
+	}
+
+	void api_world_debug_draw_capsule(world_t* world, const vec3f_t* center, f32 radius, f32 half_height, const vec3f_t* direction, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(center != nullptr);
+		SFG_ASSERT(direction != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_capsule(*center, radius, half_height, *direction, *color, thickness_px, depth, segments);
+	}
+
+	void api_world_debug_draw_cylinder(world_t* world, const vec3f_t* center, f32 radius, f32 half_height, const vec3f_t* direction, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(center != nullptr);
+		SFG_ASSERT(direction != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_cylinder(*center, radius, half_height, *direction, *color, thickness_px, depth, segments);
+	}
+
+	void api_world_debug_draw_cone(world_t* world, const vec3f_t* origin, const vec3f_t* direction, f32 length, f32 half_angle_radians, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(origin != nullptr);
+		SFG_ASSERT(direction != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_cone(*origin, *direction, length, half_angle_radians, *color, thickness_px, depth, segments);
+	}
+
+	void api_world_debug_draw_text_2d(world_t* world, const vec2f_t* position, const char* text, const color_t* color, f32 size_px, debug_draw_text_alignment_e alignment, resource_handle_t font)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(position != nullptr);
+		SFG_ASSERT(text != nullptr);
+		SFG_ASSERT(color != nullptr);
+
+		world->get_debug_draw().draw_text_2d(*position, text, *color, size_px, alignment, font);
+	}
+
+	void api_world_debug_draw_text_3d(world_t* world, const vec3f_t* position, const char* text, const color_t* color, f32 size_px, debug_draw_depth_e depth, debug_draw_text_alignment_e alignment, const vec2f_t* screen_offset, resource_handle_t font)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(position != nullptr);
+		SFG_ASSERT(text != nullptr);
+		SFG_ASSERT(color != nullptr);
+		SFG_ASSERT(screen_offset != nullptr);
+
+		world->get_debug_draw().draw_text_3d(*position, text, *color, size_px, depth, alignment, *screen_offset, font);
+	}
+
+	void api_world_debug_draw_texture_3d(world_t* world, const vec3f_t* position, resource_handle_t texture, const vec2f_t* size_px, const color_t* color, entity_id_t entity, debug_draw_depth_e depth, const vec2f_t* screen_offset, u8 linear_sample)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(position != nullptr);
+		SFG_ASSERT(size_px != nullptr);
+		SFG_ASSERT(color != nullptr);
+		SFG_ASSERT(screen_offset != nullptr);
+
+		world->get_debug_draw().draw_texture_3d(*position, texture, *size_px, *color, entity, depth, *screen_offset, linear_sample != 0);
+	}
+
 	const script_api_world_t& get_script_api_world()
 	{
 		static const script_api_world_t api{
 			.size							 = static_cast<u32>(sizeof(script_api_world_t)),
-			.version						 = 3,
+			.version						 = 4,
 			.create_entity					 = api_world_create_entity,
 			.destroy_entity					 = api_world_destroy_entity,
 			.duplicate_entity				 = api_world_duplicate_entity,
@@ -812,6 +981,22 @@ namespace sfg
 			.query_begin					 = api_world_query_begin,
 			.query_next						 = api_world_query_next,
 			.query_end						 = api_world_query_end,
+			.debug_draw_line				 = api_world_debug_draw_line,
+			.debug_draw_arrow				 = api_world_debug_draw_arrow,
+			.debug_draw_triangle			 = api_world_debug_draw_triangle,
+			.debug_draw_polyline			 = api_world_debug_draw_polyline,
+			.debug_draw_aabb				 = api_world_debug_draw_aabb,
+			.debug_draw_box					 = api_world_debug_draw_box,
+			.debug_draw_rectangle			 = api_world_debug_draw_rectangle,
+			.debug_draw_arc					 = api_world_debug_draw_arc,
+			.debug_draw_circle				 = api_world_debug_draw_circle,
+			.debug_draw_sphere				 = api_world_debug_draw_sphere,
+			.debug_draw_capsule				 = api_world_debug_draw_capsule,
+			.debug_draw_cylinder			 = api_world_debug_draw_cylinder,
+			.debug_draw_cone				 = api_world_debug_draw_cone,
+			.debug_draw_text_2d				 = api_world_debug_draw_text_2d,
+			.debug_draw_text_3d				 = api_world_debug_draw_text_3d,
+			.debug_draw_texture_3d			 = api_world_debug_draw_texture_3d,
 		};
 
 		return api;

@@ -38,13 +38,15 @@ namespace sfg
 		script_api_game_get_render_resolution_fn g_get_render_resolution = nullptr;
 		script_api_game_set_render_resolution_fn g_set_render_resolution = nullptr;
 		script_api_game_load_world_fn			 g_load_world			 = nullptr;
+		script_api_game_quit_fn					 g_quit					 = nullptr;
 	}
 
-	void set_script_api_game_callbacks(script_api_game_get_render_resolution_fn get_resolution, script_api_game_set_render_resolution_fn set_resolution, script_api_game_load_world_fn load_world)
+	void set_script_api_game_callbacks(script_api_game_get_render_resolution_fn get_resolution, script_api_game_set_render_resolution_fn set_resolution, script_api_game_load_world_fn load_world, script_api_game_quit_fn quit)
 	{
 		g_get_render_resolution = get_resolution;
 		g_set_render_resolution = set_resolution;
 		g_load_world			= load_world;
+		g_quit					= quit;
 	}
 
 	u8 api_game_get_render_resolution(vec2u16_t* out_resolution)
@@ -77,14 +79,23 @@ namespace sfg
 		return g_load_world(world);
 	}
 
+	void api_game_quit()
+	{
+		if (g_quit == nullptr)
+			return;
+
+		g_quit();
+	}
+
 	const script_api_game_t& get_script_api_game()
 	{
 		static const script_api_game_t api{
 			.size				   = static_cast<u32>(sizeof(script_api_game_t)),
-			.version			   = 1,
+			.version			   = 2,
 			.get_render_resolution = api_game_get_render_resolution,
 			.set_render_resolution = api_game_set_render_resolution,
 			.load_world			   = api_game_load_world,
+			.quit				   = api_game_quit,
 		};
 
 		return api;

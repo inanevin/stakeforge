@@ -179,6 +179,8 @@ namespace sfg
 					out_type = "Matrix4x3";
 				else if (field.sub_type_id == "mat4x4_t"_hs)
 					out_type = "Matrix4x4";
+				else if (field.sub_type_id == "color_t"_hs)
+					out_type = "Color";
 				else
 				{
 					const reflected_type_t* sub_type = registry.find_type(field.sub_type_id);
@@ -332,7 +334,7 @@ namespace sfg
 						generated_enums.push_back(sub_type);
 				}
 				else if (field->value_type == reflected_value_type_e::object && field->sub_type_id != "vec2f_t"_hs && field->sub_type_id != "vec3f_t"_hs && field->sub_type_id != "vec4f_t"_hs && field->sub_type_id != "quat_t"_hs &&
-						 field->sub_type_id != "mat4x3_t"_hs && field->sub_type_id != "mat4x4_t"_hs)
+						 field->sub_type_id != "mat4x3_t"_hs && field->sub_type_id != "mat4x4_t"_hs && field->sub_type_id != "color_t"_hs)
 				{
 					if (std::find(generated_types.begin(), generated_types.end(), sub_type) == generated_types.end())
 						generated_types.push_back(sub_type);

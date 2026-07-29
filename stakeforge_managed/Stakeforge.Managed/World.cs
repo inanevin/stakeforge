@@ -381,6 +381,120 @@ public readonly unsafe struct World : IEquatable<World>
         return new Entity(api->World->SpawnPrefab(GetNative(), prefab.Id, parent.Id, &localPosition, &localRotation, &localScale));
     }
 
+    public void DebugDrawLine(Vector3 from, Vector3 to, Color color, float thicknessPixels = 2.0f, DebugDrawDepth depth = DebugDrawDepth.DepthTested)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawLine(GetNative(), &from, &to, &color, thicknessPixels, depth);
+    }
+
+    public void DebugDrawArrow(Vector3 from, Vector3 to, Color color, float headLength = 0.15f, float headRadius = 0.06f, float thicknessPixels = 2.0f, DebugDrawDepth depth = DebugDrawDepth.DepthTested)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawArrow(GetNative(), &from, &to, &color, headLength, headRadius, thicknessPixels, depth);
+    }
+
+    public void DebugDrawTriangle(Vector3 point0, Vector3 point1, Vector3 point2, Color color)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawTriangle(GetNative(), &point0, &point1, &point2, &color);
+    }
+
+    public void DebugDrawPolyline(ReadOnlySpan<Vector3> points, Color color, float thicknessPixels = 2.0f, DebugDrawDepth depth = DebugDrawDepth.DepthTested, bool closed = false)
+    {
+        fixed (Vector3* pointsPointer = points)
+        {
+            ManagedRuntime.GetApi()->World->DebugDrawPolyline(GetNative(), pointsPointer, (uint)points.Length, &color, thicknessPixels, depth, closed ? (byte)1 : (byte)0);
+        }
+    }
+
+    public void DebugDrawAabb(Vector3 boundsMin, Vector3 boundsMax, Color color, float thicknessPixels = 2.0f, DebugDrawDepth depth = DebugDrawDepth.DepthTested)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawAabb(GetNative(), &boundsMin, &boundsMax, &color, thicknessPixels, depth);
+    }
+
+    public void DebugDrawBox(Matrix4x3 transform, Vector3 halfExtents, Color color, float thicknessPixels = 2.0f, DebugDrawDepth depth = DebugDrawDepth.DepthTested)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawBox(GetNative(), &transform, &halfExtents, &color, thicknessPixels, depth);
+    }
+
+    public void DebugDrawRectangle(Vector3 center, Vector3 right, Vector3 up, Vector2 size, Color color, float thicknessPixels = 2.0f, DebugDrawDepth depth = DebugDrawDepth.DepthTested)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawRectangle(GetNative(), &center, &right, &up, &size, &color, thicknessPixels, depth);
+    }
+
+    public void DebugDrawArc(Vector3 center, Vector3 normal, Vector3 startDirection, float radius, float angleRadians, Color color, float thicknessPixels = 2.0f, DebugDrawDepth depth = DebugDrawDepth.DepthTested, uint segments = 16)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawArc(GetNative(), &center, &normal, &startDirection, radius, angleRadians, &color, thicknessPixels, depth, segments);
+    }
+
+    public void DebugDrawCircle(Vector3 center, float radius, Vector3 normal, Color color, float thicknessPixels = 2.0f, DebugDrawDepth depth = DebugDrawDepth.DepthTested, uint segments = 32)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawCircle(GetNative(), &center, radius, &normal, &color, thicknessPixels, depth, segments);
+    }
+
+    public void DebugDrawSphere(Vector3 center, float radius, Color color, float thicknessPixels = 2.0f, DebugDrawDepth depth = DebugDrawDepth.DepthTested, uint segments = 32)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawSphere(GetNative(), &center, radius, &color, thicknessPixels, depth, segments);
+    }
+
+    public void DebugDrawCapsule(Vector3 center, float radius, float halfHeight, Vector3 direction, Color color, float thicknessPixels = 2.0f, DebugDrawDepth depth = DebugDrawDepth.DepthTested, uint segments = 32)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawCapsule(GetNative(), &center, radius, halfHeight, &direction, &color, thicknessPixels, depth, segments);
+    }
+
+    public void DebugDrawCylinder(Vector3 center, float radius, float halfHeight, Vector3 direction, Color color, float thicknessPixels = 2.0f, DebugDrawDepth depth = DebugDrawDepth.DepthTested, uint segments = 32)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawCylinder(GetNative(), &center, radius, halfHeight, &direction, &color, thicknessPixels, depth, segments);
+    }
+
+    public void DebugDrawCone(Vector3 origin, Vector3 direction, float length, float halfAngleRadians, Color color, float thicknessPixels = 2.0f, DebugDrawDepth depth = DebugDrawDepth.DepthTested, uint segments = 24)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawCone(GetNative(), &origin, &direction, length, halfAngleRadians, &color, thicknessPixels, depth, segments);
+    }
+
+    public void DebugDrawText2D(Vector2 position, string text, Color color, float sizePixels = 14.0f, DebugDrawTextAlignment alignment = DebugDrawTextAlignment.TopLeft)
+    {
+        DebugDrawText2D(position, text, color, FontHandle.Invalid, sizePixels, alignment);
+    }
+
+    public void DebugDrawText2D(Vector2 position, string text, Color color, FontHandle font, float sizePixels = 14.0f, DebugDrawTextAlignment alignment = DebugDrawTextAlignment.TopLeft)
+    {
+        int byteCount = Encoding.UTF8.GetByteCount(text);
+        Span<byte> utf8Text = byteCount + 1 <= 256 ? stackalloc byte[byteCount + 1] : new byte[byteCount + 1];
+        Encoding.UTF8.GetBytes(text, utf8Text);
+        utf8Text[byteCount] = 0;
+
+        fixed (byte* textPointer = utf8Text)
+        {
+            ManagedRuntime.GetApi()->World->DebugDrawText2D(GetNative(), &position, textPointer, &color, sizePixels, alignment, font.Id);
+        }
+    }
+
+    public void DebugDrawText3D(Vector3 position, string text, Color color, float sizePixels = 14.0f, DebugDrawDepth depth = DebugDrawDepth.AlwaysVisible, DebugDrawTextAlignment alignment = DebugDrawTextAlignment.Center, Vector2 screenOffset = default)
+    {
+        DebugDrawText3D(position, text, color, FontHandle.Invalid, sizePixels, depth, alignment, screenOffset);
+    }
+
+    public void DebugDrawText3D(Vector3 position, string text, Color color, FontHandle font, float sizePixels = 14.0f, DebugDrawDepth depth = DebugDrawDepth.AlwaysVisible, DebugDrawTextAlignment alignment = DebugDrawTextAlignment.Center, Vector2 screenOffset = default)
+    {
+        int byteCount = Encoding.UTF8.GetByteCount(text);
+        Span<byte> utf8Text = byteCount + 1 <= 256 ? stackalloc byte[byteCount + 1] : new byte[byteCount + 1];
+        Encoding.UTF8.GetBytes(text, utf8Text);
+        utf8Text[byteCount] = 0;
+
+        fixed (byte* textPointer = utf8Text)
+        {
+            ManagedRuntime.GetApi()->World->DebugDrawText3D(GetNative(), &position, textPointer, &color, sizePixels, depth, alignment, &screenOffset, font.Id);
+        }
+    }
+
+    public void DebugDrawTexture3D(Vector3 position, TextureHandle texture, Vector2 sizePixels, Color color, DebugDrawDepth depth = DebugDrawDepth.AlwaysVisible, Vector2 screenOffset = default, bool linearSample = true)
+    {
+        DebugDrawTexture3D(position, texture, sizePixels, color, Entity.Invalid, depth, screenOffset, linearSample);
+    }
+
+    public void DebugDrawTexture3D(Vector3 position, TextureHandle texture, Vector2 sizePixels, Color color, Entity entity, DebugDrawDepth depth = DebugDrawDepth.AlwaysVisible, Vector2 screenOffset = default, bool linearSample = true)
+    {
+        ManagedRuntime.GetApi()->World->DebugDrawTexture3D(GetNative(), &position, texture.Id, &sizePixels, &color, entity.Id, depth, &screenOffset, linearSample ? (byte)1 : (byte)0);
+    }
+
     public bool Equals(World other)
     {
         return _native == other._native;
