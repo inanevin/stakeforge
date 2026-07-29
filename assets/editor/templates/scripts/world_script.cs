@@ -10,6 +10,18 @@ public sealed class #SCRIPT_NAME# : WorldScript
     {
     }
 
+    public override void PostTick(World world, float deltaTime)
+    {
+    }
+
+    public override void PostPhysicsTick(World world, float deltaTime)
+    {
+    }
+
+    public override void PostAnimationTick(World world, float deltaTime)
+    {
+    }
+
     public override void EndPlay(World world)
     {
     }

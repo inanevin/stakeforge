@@ -41,10 +41,10 @@ namespace sfg
 		s_main_thread_fps.store(time_us == 0 ? 0.0f : 1000000.0f / static_cast<f32>(time_us), std::memory_order_relaxed);
 	}
 
-	void perf_metrics_t::update_render_thread(i64 time_us, i64 present_time_us)
+	void perf_metrics_t::update_render_thread(i64 time_us, i64 wait_time_us)
 	{
 		s_render_thread_time_us.store(time_us, std::memory_order_relaxed);
-		s_render_thread_work_time_us.store(time_us - present_time_us, std::memory_order_relaxed);
+		s_render_thread_work_time_us.store(time_us - wait_time_us, std::memory_order_relaxed);
 		s_render_thread_fps.store(time_us == 0 ? 0.0f : 1000000.0f / static_cast<f32>(time_us), std::memory_order_relaxed);
 	}
 }

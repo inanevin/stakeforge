@@ -30,6 +30,13 @@ internal sealed class ProjectComponentSchema
     public required List<ProjectComponentFieldSchema> Fields { get; init; }
 }
 
+internal sealed class ProjectWorldScriptSchema
+{
+    public required string Name { get; init; }
+    public required string FullName { get; init; }
+    public required ulong Id { get; init; }
+}
+
 internal sealed class ProjectAssemblySchema
 {
     private static readonly MethodInfo SizeOfMethod = typeof(ProjectAssemblySchema).GetMethod(nameof(SizeOf), BindingFlags.NonPublic | BindingFlags.Static)!;
@@ -39,11 +46,14 @@ internal sealed class ProjectAssemblySchema
     };
 
     public required List<ProjectComponentSchema> Components { get; init; }
+    public required List<ProjectWorldScriptSchema> WorldScripts { get; init; }
 
-    internal static string Discover(Assembly assembly)
+    internal static string Discover(Assembly assembly, out Dictionary<ulong, Type> worldScriptTypes)
     {
         List<ProjectComponentSchema> components = [];
         HashSet<ulong> componentIds = [];
+        List<ProjectWorldScriptSchema> worldScripts = [];
+        worldScriptTypes = [];
 
         foreach (Type type in assembly.GetTypes().OrderBy(type => type.FullName, StringComparer.Ordinal))
         {
@@ -65,9 +75,40 @@ internal sealed class ProjectAssemblySchema
             ManagedRuntime.LogInfo($"discovered C# component: {component.FullName} ({component.Id}).");
         }
 
+        foreach (Type type in assembly.GetTypes().OrderBy(type => type.FullName, StringComparer.Ordinal))
+        {
+            if (!type.IsSubclassOf(typeof(WorldScript)) || type.IsAbstract)
+            {
+                continue;
+            }
+
+            if (!type.IsClass || type.IsGenericTypeDefinition || type.GetConstructor(Type.EmptyTypes) is null)
+            {
+                throw new InvalidOperationException($"C# world script {type.FullName} must be a concrete, non-generic class with a public parameterless constructor.");
+            }
+
+            string fullName = type.FullName ?? type.Name;
+            ulong typeId = Hash.StringId(fullName);
+
+            if (typeId == 0 || typeId == ulong.MaxValue || !worldScriptTypes.TryAdd(typeId, type))
+            {
+                throw new InvalidOperationException($"C# world script {fullName} has an invalid or duplicate type id.");
+            }
+
+            worldScripts.Add(new ProjectWorldScriptSchema
+            {
+                Name = type.Name,
+                FullName = fullName,
+                Id = typeId,
+            });
+
+            ManagedRuntime.LogInfo($"discovered C# world script: {fullName} ({typeId}).");
+        }
+
         return JsonSerializer.Serialize(new ProjectAssemblySchema
         {
             Components = components,
+            WorldScripts = worldScripts,
         }, JsonOptions);
     }
 

@@ -230,6 +230,7 @@ namespace sfg
 		ZoneScoped;
 
 		const i64 render_thread_start_us = time_t::get_cpu_microseconds();
+		i64		  render_thread_wait_us	 = 0;
 
 		gfx_backend& backend = gfx_backend::get();
 
@@ -248,7 +249,11 @@ namespace sfg
 		{
 			if (t.minimized || !t.visible)
 				continue;
+
+			const i64 wait_start_us = time_t::get_cpu_microseconds();
 			backend.wait_for_swapchain_latency(t.swapchain);
+			render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
+
 			backend.get_back_buffer_index(t.swapchain);
 			render_targets.push_back({t.swapchain, t.ui_renderer.get(), t.ui != nullptr ? t.ui->acquire_render_snapshot() : nullptr, t.size});
 			present_list.push_back(t.swapchain);
@@ -264,7 +269,7 @@ namespace sfg
 		if (render_targets.empty())
 		{
 			render_resources_t::get().drain_destroy_requests();
-			perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, 0);
+			perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, render_thread_wait_us);
 			return;
 		}
 
@@ -283,7 +288,10 @@ namespace sfg
 		_frame_index		  = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
 		per_frame_data_t& pfd = _pfd[_frame_index];
 
+		const i64 wait_start_us = time_t::get_cpu_microseconds();
 		backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
+		render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
+
 		render_resources_t::get().flush_material_parameter_updates(_frame_index);
 
 		const global_buffer_data_t global_data = {.delta_time = delta_time, .elapsed_time = elapsed_time};
@@ -371,10 +379,7 @@ namespace sfg
 			backend.queue_wait(queue_gfx, &pfd.semaphore_world.sem, &pfd.semaphore_world.value, 1);
 
 		backend.submit_commands(queue_gfx, &cmd, 1);
-		const i64 present_start_us = time_t::get_cpu_microseconds();
-
 		backend.present(present_list.data(), static_cast<u8>(present_list.size()));
-		const i64 present_time_us = time_t::get_cpu_microseconds() - present_start_us;
 
 		pfd.semaphore_frame.value++;
 		backend.queue_signal(queue_gfx, &pfd.semaphore_frame.sem, &pfd.semaphore_frame.value, 1);
@@ -383,7 +388,7 @@ namespace sfg
 
 		_frame_counter++;
 
-		perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, present_time_us);
+		perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, render_thread_wait_us);
 	}
 
 	void editor_renderer_t::ensure_render(editor_world_controller_t& world_controller)

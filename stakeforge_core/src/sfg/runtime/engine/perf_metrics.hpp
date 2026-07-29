@@ -36,7 +36,7 @@ namespace sfg
 	{
 	public:
 		static void update_main_thread(i64 time_us);
-		static void update_render_thread(i64 time_us, i64 present_time_us);
+		static void update_render_thread(i64 time_us, i64 wait_time_us);
 
 		static inline i64 get_main_thread_time_us()
 		{
