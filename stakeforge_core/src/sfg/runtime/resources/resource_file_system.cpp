@@ -216,7 +216,7 @@ namespace sfg
 			}
 
 			const resource_map_info_t& info		 = it->second;
-			const size_t			   read_size = size == 0 ? info.size : size;
+			const size_t			   read_size = size == 0 ? (info.size - offset) : size;
 			return read_file_range(_file_pack_path.c_str(), info.offset + offset, read_size, out);
 		}
 
