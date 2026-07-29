@@ -1,0 +1,931 @@
+{
+    "asset_type": "world",
+    "cook_options": {},
+    "embedded_source": {
+        "editor_camera": {
+            "move_speed": 12.0,
+            "pitch_degrees": -14.4000825881958,
+            "position": {
+                "x": -2.1229476928710938,
+                "y": 3.930452823638916,
+                "z": 6.595815658569336
+            },
+            "rotation": {
+                "w": -0.9853398203849792,
+                "x": 0.12447813898324966,
+                "y": 0.11574434489011765,
+                "z": 0.01462200190871954
+            },
+            "yaw_degrees": -373.39910888671875
+        },
+        "folders": [],
+        "root_entities": [
+            {
+                "components": [
+                    {
+                        "data": {
+                            "area_size": {
+                                "x": 1.0,
+                                "y": 1.0
+                            },
+                            "cast_shadows": true,
+                            "color": {
+                                "w": 1.0,
+                                "x": 1.0,
+                                "y": 1.0,
+                                "z": 1.0
+                            },
+                            "inner_cone_degrees": 30.0,
+                            "intensity": 2.4000020027160645,
+                            "outer_cone_degrees": 45.0,
+                            "range": 10.0,
+                            "shadow_bias": 0.0010000000474974513,
+                            "shadow_cascade_count": 4,
+                            "shadow_near_plane": 0.10000000149011612,
+                            "shadow_normal_bias": 0.009999999776482582,
+                            "shadow_resolution": 1024,
+                            "two_sided": false,
+                            "type": 0
+                        },
+                        "entity": 14396524690146837862,
+                        "type": 6144564901835356278
+                    },
+                    {
+                        "data": {
+                            "ambient_color": {
+                                "w": 1.0,
+                                "x": 1.0,
+                                "y": 1.0,
+                                "z": 1.0
+                            },
+                            "debug_cluster_heatmap": false,
+                            "intensity": 1.0,
+                            "skybox_material": 1028
+                        },
+                        "entity": 14396524690146837862,
+                        "type": 8724712900218136519
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 14396524690146837862,
+                        "local_pos": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "local_rot": [
+                            -0.2756374776363373,
+                            0.0,
+                            0.0,
+                            0.9612616896629333
+                        ],
+                        "local_scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "name": "environment",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "data": {
+                            "materials": [
+                                1048
+                            ],
+                            "mesh": 1047
+                        },
+                        "entity": 650432785361113948,
+                        "type": 146804687333956351
+                    },
+                    {
+                        "data": {
+                            "allow_sleep": true,
+                            "angular_damping": 0.05000000074505806,
+                            "collision_layer": 0,
+                            "collision_mesh": 18446744073709551615,
+                            "gravity_factor": 1.0,
+                            "half_extent": {
+                                "x": 0.5,
+                                "y": 0.10000000149011612,
+                                "z": 0.5
+                            },
+                            "half_height": 0.5,
+                            "is_sensor": false,
+                            "linear_damping": 0.05000000074505806,
+                            "local_position": {
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "local_rotation": {
+                                "w": 1.0,
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "mass": 1.0,
+                            "motion_quality_continuous": false,
+                            "motion_type": 0,
+                            "physical_material": 18446744073709551615,
+                            "radius": 0.5,
+                            "shape": 0
+                        },
+                        "entity": 650432785361113948,
+                        "type": 7287311941718555053
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 650432785361113948,
+                        "local_pos": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            50.0,
+                            1.0,
+                            50.0
+                        ],
+                        "name": "Floor",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [],
+                "local_entities": [
+                    {
+                        "guid": 1033650034593534885,
+                        "local_pos": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "name": "Entity",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "data": {
+                            "tags": 1
+                        },
+                        "entity": 14984113810835696629,
+                        "type": 10698735027733924255
+                    },
+                    {
+                        "data": {
+                            "collision_layer": 0,
+                            "enhanced_internal_edge_removal": false,
+                            "half_height": 0.8999999761581421,
+                            "mass": 70.0,
+                            "max_slope_degrees": 50.0,
+                            "max_strength": 100.0,
+                            "min_step_forward": 0.019999999552965164,
+                            "padding": 0.019999999552965164,
+                            "penetration_recovery_speed": 1.0,
+                            "predictive_contact_distance": 0.10000000149011612,
+                            "radius": 0.4000000059604645,
+                            "shape_offset": {
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "step_down": 0.5,
+                            "step_forward_test": 0.15000000596046448,
+                            "step_up": 0.4000000059604645
+                        },
+                        "entity": 14984113810835696629,
+                        "type": 10548633496069166783
+                    },
+                    {
+                        "data": {
+                            "materials": [
+                                17319873476502044566,
+                                5360658257779609611
+                            ],
+                            "mesh": 14840878848709142033,
+                            "skeleton": 3170846357421345537
+                        },
+                        "entity": 15745983773091720959,
+                        "type": 17882609131993180780
+                    },
+                    {
+                        "data": {
+                            "animation_graph": 2155066463745136419,
+                            "cull_angle_limit": 100.0,
+                            "is_culled": false,
+                            "max_throttle_tick_rate": 30,
+                            "speed": 1.0,
+                            "throttle_begin_distance": 20.0,
+                            "throttle_full_distance": 100.0,
+                            "throttling_enabled": false,
+                            "tick_rate": 1
+                        },
+                        "entity": 15745983773091720959,
+                        "type": 3202371599716449419
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 14984113810835696629,
+                        "local_pos": [
+                            0.0,
+                            1.7146741151809692,
+                            -0.765781044960022
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "name": "Player",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    },
+                    {
+                        "guid": 15745983773091720959,
+                        "local_pos": [
+                            0.0,
+                            -1.25,
+                            0.0
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            1.2999999523162842,
+                            1.2999999523162842,
+                            1.2999999523162842
+                        ],
+                        "name": "Visuals",
+                        "parent_guid": 14984113810835696629,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "data": {
+                            "script_type_id": 8364970167699149327
+                        },
+                        "entity": 10752993706792769278,
+                        "type": 7756474127823202258
+                    },
+                    {
+                        "data": {
+                            "CanvasEntity": 16636058531523229301,
+                            "CastRadius": 4.0,
+                            "CrateImpulse": 2.0,
+                            "CratePrefab": 10759720565375796104,
+                            "JumpSpeed": 5.0,
+                            "MoveSpeed": 4.0,
+                            "SamplerA": 1009,
+                            "SamplerB": 1011,
+                            "TestMaterial": 8670553799616717449,
+                            "TextureA": 17363291138167837728,
+                            "TextureB": 9196711287224636523
+                        },
+                        "entity": 10752993706792769278,
+                        "type": 6740644036173207099
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 10752993706792769278,
+                        "local_pos": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "name": "TestDirector",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "data": {
+                            "far_plane": 1000.0,
+                            "fov_degrees": 60.0,
+                            "near_plane": 0.10000000149011612,
+                            "priority": 0
+                        },
+                        "entity": 5873380665512961863,
+                        "type": 4991999786683747135
+                    },
+                    {
+                        "data": {
+                            "after_tonemap": [],
+                            "before_tonemap": [],
+                            "bloom": {
+                                "enabled": true,
+                                "filter_radius": 0.004999999888241291,
+                                "strength": 0.02500000037252903
+                            },
+                            "exposure_ev": 0.0,
+                            "fxaa": {
+                                "enabled": true,
+                                "fixed_threshold": 0.08330000191926956,
+                                "relative_threshold": 0.16599999368190765,
+                                "subpixel_blending": 0.75
+                            },
+                            "reinhard_white_point": 6.0,
+                            "saturation": 1.0,
+                            "ssao": {
+                                "bias": 0.03999999910593033,
+                                "direction_count": 8,
+                                "enabled": true,
+                                "intensity": 1.25,
+                                "power": 1.25,
+                                "radius_world": 0.75,
+                                "random_rotation_strength": 1.5,
+                                "step_count": 6
+                            },
+                            "temperature": 0.0,
+                            "tint": 0.0,
+                            "tonemap_mode": 1
+                        },
+                        "entity": 5873380665512961863,
+                        "type": 11791706342445121648
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 5873380665512961863,
+                        "local_pos": [
+                            0.0,
+                            2.2690656185150146,
+                            3.2326555252075195
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "name": "MainCamera",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "data": {
+                            "materials": [
+                                9778385513976204170
+                            ],
+                            "mesh": 1015
+                        },
+                        "entity": 8671747943084733663,
+                        "type": 146804687333956351
+                    },
+                    {
+                        "data": {
+                            "tags": 2
+                        },
+                        "entity": 8671747943084733663,
+                        "type": 10698735027733924255
+                    },
+                    {
+                        "data": {
+                            "allow_sleep": true,
+                            "angular_damping": 0.05000000074505806,
+                            "collision_layer": 0,
+                            "collision_mesh": 18446744073709551615,
+                            "gravity_factor": 1.0,
+                            "half_extent": {
+                                "x": 0.5,
+                                "y": 0.5,
+                                "z": 0.5
+                            },
+                            "half_height": 0.5,
+                            "is_sensor": true,
+                            "linear_damping": 0.05000000074505806,
+                            "local_position": {
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "local_rotation": {
+                                "w": 1.0,
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "mass": 1.0,
+                            "motion_quality_continuous": false,
+                            "motion_type": 0,
+                            "physical_material": 18446744073709551615,
+                            "radius": 0.5,
+                            "shape": 0
+                        },
+                        "entity": 8671747943084733663,
+                        "type": 7287311941718555053
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 8671747943084733663,
+                        "local_pos": [
+                            0.0,
+                            1.074559211730957,
+                            -8.170130729675293
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            2.0304384231567383,
+                            2.0304384231567383,
+                            2.0304384231567383
+                        ],
+                        "name": "TriggerZone",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "data": {
+                            "materials": [
+                                8670553799616717449
+                            ],
+                            "mesh": 1016
+                        },
+                        "entity": 17734132782003053440,
+                        "type": 146804687333956351
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 17734132782003053440,
+                        "local_pos": [
+                            3.72623872756958,
+                            2.0878546237945557,
+                            -6.978237152099609
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "name": "MaterialTarget",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "data": {
+                            "materials": [
+                                9715752097844541620
+                            ],
+                            "mesh": 1016
+                        },
+                        "entity": 16362596334530208709,
+                        "type": 146804687333956351
+                    },
+                    {
+                        "data": {
+                            "tags": 4
+                        },
+                        "entity": 16362596334530208709,
+                        "type": 10698735027733924255
+                    },
+                    {
+                        "data": {
+                            "allow_sleep": true,
+                            "angular_damping": 0.05000000074505806,
+                            "collision_layer": 0,
+                            "collision_mesh": 18446744073709551615,
+                            "gravity_factor": 1.0,
+                            "half_extent": {
+                                "x": 0.5,
+                                "y": 0.5,
+                                "z": 0.5
+                            },
+                            "half_height": 0.5,
+                            "is_sensor": false,
+                            "linear_damping": 0.05000000074505806,
+                            "local_position": {
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "local_rotation": {
+                                "w": 1.0,
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "mass": 1.0,
+                            "motion_quality_continuous": false,
+                            "motion_type": 2,
+                            "physical_material": 18446744073709551615,
+                            "radius": 0.5,
+                            "shape": 1
+                        },
+                        "entity": 16362596334530208709,
+                        "type": 7287311941718555053
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 16362596334530208709,
+                        "local_pos": [
+                            -5.910065174102783,
+                            1.568062663078308,
+                            -8.943185806274414
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            0.8024159073829651,
+                            0.8024159073829651,
+                            0.8024159073829651
+                        ],
+                        "name": "CastTarget",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "data": {
+                            "materials": [
+                                9715752097844541620
+                            ],
+                            "mesh": 1016
+                        },
+                        "entity": 9571858213706530412,
+                        "type": 146804687333956351
+                    },
+                    {
+                        "data": {
+                            "tags": 4
+                        },
+                        "entity": 9571858213706530412,
+                        "type": 10698735027733924255
+                    },
+                    {
+                        "data": {
+                            "allow_sleep": true,
+                            "angular_damping": 0.05000000074505806,
+                            "collision_layer": 0,
+                            "collision_mesh": 18446744073709551615,
+                            "gravity_factor": 1.0,
+                            "half_extent": {
+                                "x": 0.5,
+                                "y": 0.5,
+                                "z": 0.5
+                            },
+                            "half_height": 0.5,
+                            "is_sensor": false,
+                            "linear_damping": 0.05000000074505806,
+                            "local_position": {
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "local_rotation": {
+                                "w": 1.0,
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "mass": 1.0,
+                            "motion_quality_continuous": false,
+                            "motion_type": 2,
+                            "physical_material": 18446744073709551615,
+                            "radius": 0.5,
+                            "shape": 1
+                        },
+                        "entity": 9571858213706530412,
+                        "type": 7287311941718555053
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 9571858213706530412,
+                        "local_pos": [
+                            -5.435614109039307,
+                            1.2162874937057495,
+                            -7.996257781982422
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            0.8024159073829651,
+                            0.8024159073829651,
+                            0.8024159073829651
+                        ],
+                        "name": "CastTarget",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "data": {
+                            "materials": [
+                                9715752097844541620
+                            ],
+                            "mesh": 1016
+                        },
+                        "entity": 3537619810958514240,
+                        "type": 146804687333956351
+                    },
+                    {
+                        "data": {
+                            "tags": 4
+                        },
+                        "entity": 3537619810958514240,
+                        "type": 10698735027733924255
+                    },
+                    {
+                        "data": {
+                            "allow_sleep": true,
+                            "angular_damping": 0.05000000074505806,
+                            "collision_layer": 0,
+                            "collision_mesh": 18446744073709551615,
+                            "gravity_factor": 1.0,
+                            "half_extent": {
+                                "x": 0.5,
+                                "y": 0.5,
+                                "z": 0.5
+                            },
+                            "half_height": 0.5,
+                            "is_sensor": false,
+                            "linear_damping": 0.05000000074505806,
+                            "local_position": {
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "local_rotation": {
+                                "w": 1.0,
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "mass": 1.0,
+                            "motion_quality_continuous": false,
+                            "motion_type": 2,
+                            "physical_material": 18446744073709551615,
+                            "radius": 0.5,
+                            "shape": 1
+                        },
+                        "entity": 3537619810958514240,
+                        "type": 7287311941718555053
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 3537619810958514240,
+                        "local_pos": [
+                            -6.567935943603516,
+                            1.2162872552871704,
+                            -9.895702362060547
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            0.8024159073829651,
+                            0.8024159073829651,
+                            0.8024159073829651
+                        ],
+                        "name": "CastTarget",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "data": {
+                            "materials": [
+                                1031
+                            ],
+                            "mesh": 1015
+                        },
+                        "entity": 10268835462802592877,
+                        "type": 146804687333956351
+                    },
+                    {
+                        "data": {
+                            "allow_sleep": true,
+                            "angular_damping": 0.05000000074505806,
+                            "collision_layer": 0,
+                            "collision_mesh": 18446744073709551615,
+                            "gravity_factor": 1.0,
+                            "half_extent": {
+                                "x": 0.5,
+                                "y": 0.5,
+                                "z": 0.5
+                            },
+                            "half_height": 0.5,
+                            "is_sensor": false,
+                            "linear_damping": 0.05000000074505806,
+                            "local_position": {
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "local_rotation": {
+                                "w": 1.0,
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            },
+                            "mass": 1.0,
+                            "motion_quality_continuous": false,
+                            "motion_type": 2,
+                            "physical_material": 18446744073709551615,
+                            "radius": 0.5,
+                            "shape": 0
+                        },
+                        "entity": 10268835462802592877,
+                        "type": 7287311941718555053
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 10268835462802592877,
+                        "local_pos": [
+                            -4.743271827697754,
+                            1.856201171875,
+                            -2.632575035095215
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "name": "TestCrate",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "data": {
+                            "default_font": 12157459895505672693,
+                            "draw_buffer_count": 32,
+                            "index_pool_budget_bytes": 65536,
+                            "input_enabled": true,
+                            "max_widgets": 256,
+                            "render_stage": 1,
+                            "sort_order": 0,
+                            "text_pool_budget_bytes": 16384,
+                            "ui_scale": 1.0,
+                            "vertex_pool_budget_bytes": 131072
+                        },
+                        "entity": 16636058531523229301,
+                        "type": 2686149622238361244
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 16636058531523229301,
+                        "local_pos": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "name": "Canvas",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            }
+        ]
+    },
+    "guid": 13991058972890426152,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 0,
+    "thumbnail_guid": 4049672864535572872,
+    "version": 0
+}

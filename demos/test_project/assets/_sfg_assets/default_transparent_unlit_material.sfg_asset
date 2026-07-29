@@ -1,0 +1,96 @@
+{
+    "asset_type": "material",
+    "cook_options": {},
+    "embedded_source": {
+        "blend_mode": "alpha",
+        "double_sided": false,
+        "parameters": [
+            {
+                "hint": "color",
+                "name": "base_color_factor",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    0.5
+                ]
+            },
+            {
+                "hint": "color_hdr",
+                "name": "emissive_factor",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "alpha_cutoff",
+                "type": "f32",
+                "value": [
+                    0.5,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "albedo_tiling_offset",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "emissive_tiling_offset",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        ],
+        "samplers": [
+            {
+                "name": "albedo",
+                "sampler": 1009
+            },
+            {
+                "name": "emissive",
+                "sampler": 1009
+            }
+        ],
+        "schema": "sfg.schema.material",
+        "shader": 1030,
+        "textures": [
+            {
+                "name": "albedo",
+                "texture": 1002
+            },
+            {
+                "name": "emissive",
+                "texture": 1005
+            }
+        ],
+        "use_alpha_cutoff": false,
+        "write_reflections": true,
+        "write_shadows": false
+    },
+    "guid": 1034,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 4,
+    "thumbnail_guid": 4184770327060069999,
+    "version": 0
+}

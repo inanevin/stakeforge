@@ -1,0 +1,22 @@
+{
+    "asset_type": "texture",
+    "cook_options": {
+        "force_4_channels": false,
+        "generate_mipmaps": true,
+        "is_linear": false,
+        "ktx2_compression": 0,
+        "payload_type": 0,
+        "size": {
+            "x": 1024,
+            "y": 1024
+        },
+        "use_streaming": true
+    },
+    "embedded_source": null,
+    "guid": 8788495125467423958,
+    "source_relative": "models/cesium/CesiumMan.png",
+    "source_type": "file_blob",
+    "sub_type": 0,
+    "thumbnail_guid": 5913520766880499438,
+    "version": 0
+}

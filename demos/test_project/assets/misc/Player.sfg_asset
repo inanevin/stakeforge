@@ -1,0 +1,121 @@
+{
+    "asset_type": "prefab",
+    "cook_options": {},
+    "embedded_source": {
+        "components": [
+            {
+                "data": {
+                    "tags": 1
+                },
+                "entity": 14984113810835696629,
+                "type": 10698735027733924255
+            },
+            {
+                "data": {
+                    "collision_layer": 0,
+                    "enhanced_internal_edge_removal": false,
+                    "half_height": 0.8999999761581421,
+                    "mass": 70.0,
+                    "max_slope_degrees": 50.0,
+                    "max_strength": 100.0,
+                    "min_step_forward": 0.019999999552965164,
+                    "padding": 0.019999999552965164,
+                    "penetration_recovery_speed": 1.0,
+                    "predictive_contact_distance": 0.10000000149011612,
+                    "radius": 0.4000000059604645,
+                    "shape_offset": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "step_down": 0.5,
+                    "step_forward_test": 0.15000000596046448,
+                    "step_up": 0.4000000059604645
+                },
+                "entity": 14984113810835696629,
+                "type": 10548633496069166783
+            },
+            {
+                "data": {
+                    "materials": [
+                        17319873476502044566,
+                        5360658257779609611
+                    ],
+                    "mesh": 14840878848709142033,
+                    "skeleton": 3170846357421345537
+                },
+                "entity": 15745983773091720959,
+                "type": 17882609131993180780
+            },
+            {
+                "data": {
+                    "animation_graph": 2155066463745136419,
+                    "cull_angle_limit": 100.0,
+                    "is_culled": false,
+                    "max_throttle_tick_rate": 30,
+                    "speed": 1.0,
+                    "throttle_begin_distance": 20.0,
+                    "throttle_full_distance": 100.0,
+                    "throttling_enabled": false,
+                    "tick_rate": 1
+                },
+                "entity": 15745983773091720959,
+                "type": 3202371599716449419
+            }
+        ],
+        "local_entities": [
+            {
+                "guid": 14984113810835696629,
+                "local_pos": [
+                    0.0,
+                    1.2435224056243896,
+                    -0.765781044960022
+                ],
+                "local_rot": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "local_scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "name": "Player",
+                "parent_guid": 18446744073709551615,
+                "prefab": 18446744073709551615,
+                "prefab_entity_guids": []
+            },
+            {
+                "guid": 15745983773091720959,
+                "local_pos": [
+                    0.0,
+                    -1.25,
+                    0.0
+                ],
+                "local_rot": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "local_scale": [
+                    1.2999999523162842,
+                    1.2999999523162842,
+                    1.2999999523162842
+                ],
+                "name": "Visuals",
+                "parent_guid": 14984113810835696629,
+                "prefab": 18446744073709551615,
+                "prefab_entity_guids": []
+            }
+        ]
+    },
+    "guid": 15845975454175756106,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 0,
+    "thumbnail_guid": 16907302956358989302,
+    "version": 0
+}

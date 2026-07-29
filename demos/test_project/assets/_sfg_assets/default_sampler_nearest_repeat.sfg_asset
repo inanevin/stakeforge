@@ -1,0 +1,26 @@
+{
+    "asset_type": "texture_sampler",
+    "cook_options": {},
+    "embedded_source": {
+        "address_u": 0,
+        "address_v": 0,
+        "address_w": 0,
+        "anisotropy": 0,
+        "border": 0,
+        "compare": 1,
+        "lod_bias": 0.0,
+        "mag_filter": 1,
+        "max_lod": 16.0,
+        "min_filter": 1,
+        "min_lod": 0.0,
+        "mip_filter": 1,
+        "schema": "sfg.schema.texture_sampler",
+        "use_compare": false
+    },
+    "guid": 1014,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 4,
+    "thumbnail_guid": 14659297316829571108,
+    "version": 0
+}

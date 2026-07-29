@@ -1,4 +1,0 @@
-{
-    "source": "assets/_defaults/shaders/particle_billboard.hlsl",
-    "variant_style": "particle_additive"
-}

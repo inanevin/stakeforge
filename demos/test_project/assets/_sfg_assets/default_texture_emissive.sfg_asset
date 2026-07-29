@@ -1,0 +1,15 @@
+{
+    "asset_type": "texture",
+    "cook_options": {
+        "generate_mipmaps": false,
+        "is_linear": false,
+        "payload_type": 2
+    },
+    "embedded_source": null,
+    "guid": 1005,
+    "source_relative": "_sfg_assets/default_texture_emissive.png",
+    "source_type": "file",
+    "sub_type": 0,
+    "thumbnail_guid": 13042123988081087383,
+    "version": 0
+}

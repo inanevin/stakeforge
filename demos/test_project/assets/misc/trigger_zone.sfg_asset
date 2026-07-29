@@ -1,0 +1,97 @@
+{
+    "asset_type": "material",
+    "cook_options": {},
+    "embedded_source": {
+        "blend_mode": "opaque",
+        "double_sided": false,
+        "parameters": [
+            {
+                "hint": "color",
+                "name": "base_color_factor",
+                "type": "vec4",
+                "value": [
+                    0.12719495594501495,
+                    1.0,
+                    0.029020754620432854,
+                    1.0
+                ]
+            },
+            {
+                "hint": "color_hdr",
+                "name": "emissive_factor",
+                "type": "vec4",
+                "value": [
+                    0.9709014296531677,
+                    16.0,
+                    0.5538634061813354,
+                    1.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "alpha_cutoff",
+                "type": "f32",
+                "value": [
+                    0.5,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "albedo_tiling_offset",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "emissive_tiling_offset",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        ],
+        "samplers": [
+            {
+                "name": "albedo",
+                "sampler": 1009
+            },
+            {
+                "name": "emissive",
+                "sampler": 1009
+            }
+        ],
+        "shader": 1030,
+        "textures": [
+            {
+                "name": "albedo",
+                "texture": 1002,
+                "type": "texture2d"
+            },
+            {
+                "name": "emissive",
+                "texture": 1002,
+                "type": "texture2d"
+            }
+        ],
+        "use_alpha_cutoff": false,
+        "write_reflections": true,
+        "write_shadows": true
+    },
+    "guid": 9778385513976204170,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 2,
+    "thumbnail_guid": 17620675064315141499,
+    "version": 0
+}

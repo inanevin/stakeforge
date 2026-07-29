@@ -1,0 +1,18 @@
+{
+    "asset_type": "sprite",
+    "cook_options": {
+        "column_count": 0,
+        "ktx2_compression": 1,
+        "padding_x": 0,
+        "padding_y": 0,
+        "payload_type": 1,
+        "row_count": 0
+    },
+    "embedded_source": null,
+    "guid": 1049,
+    "source_relative": "_sfg_assets/default_sprite_circle.png",
+    "source_type": "file",
+    "sub_type": 0,
+    "thumbnail_guid": 10739558350898329203,
+    "version": 0
+}

@@ -1,0 +1,47 @@
+{
+    "asset_type": "shader",
+    "cook_options": {
+        "include_dirs": [
+            "common/shaders/",
+            "common/shaders/world/"
+        ],
+        "schema": "sfg.schema.shader",
+        "type": 6
+    },
+    "embedded_source": {
+        "parameters": [
+            {
+                "default": 0.6499999761581421,
+                "hint": "none",
+                "max": 1.0,
+                "min": 0.0,
+                "name": "intensity",
+                "type": "f32"
+            },
+            {
+                "default": 0.75,
+                "hint": "none",
+                "max": 2.0,
+                "min": 0.0,
+                "name": "radius",
+                "type": "f32"
+            },
+            {
+                "default": 0.3499999940395355,
+                "hint": "none",
+                "max": 1.0,
+                "min": 0.0010000000474974513,
+                "name": "softness",
+                "type": "f32"
+            }
+        ],
+        "samplers": [],
+        "textures": []
+    },
+    "guid": 16555211846544979413,
+    "source_relative": "misc/post_process_shader (Copy).hlsl",
+    "source_type": "file",
+    "sub_type": 6,
+    "thumbnail_guid": 4004057940332049195,
+    "version": 0
+}

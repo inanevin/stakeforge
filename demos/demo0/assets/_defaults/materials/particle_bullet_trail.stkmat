@@ -1,8 +1,0 @@
-{
-   "pass": "particle",
-   "shader": "assets/_defaults/shaders/particle_stretched.stkshader",
-   "parameters": [
-      {"name": "base_color", "value": [25.2,1.1,1.0,1]},
-      {"name": "stretch_params", "value": [0.05,0.25]}
-   ]
-}

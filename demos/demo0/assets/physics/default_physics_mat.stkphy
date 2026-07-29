@@ -1,9 +1,0 @@
-{
-  "settings": {
-    "mass": 25,
-    "restitution": 0.1,
-    "friction": 0.0,
-    "angular_damp": 0.05,
-    "linear_damp": 0.05
-  }
-}

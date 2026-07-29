@@ -1,0 +1,11 @@
+{
+    "asset_type": "physics_collision_mesh",
+    "cook_options": {},
+    "embedded_source": null,
+    "guid": 8602329796580972520,
+    "source_relative": "models/cesium/Cesium_Man_collision.sfg_bin",
+    "source_type": "file_blob",
+    "sub_type": 0,
+    "thumbnail_guid": 9849187063496508030,
+    "version": 0
+}

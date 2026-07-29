@@ -1,0 +1,72 @@
+{
+    "asset_type": "prefab",
+    "cook_options": {},
+    "embedded_source": {
+        "components": [
+            {
+                "data": {
+                    "materials": [
+                        3810938079940790549
+                    ],
+                    "mesh": 11123355677350350903
+                },
+                "entity": 2,
+                "type": 146804687333956351
+            }
+        ],
+        "local_entities": [
+            {
+                "guid": 1,
+                "local_pos": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "local_rot": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "local_scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "name": "BoomBox",
+                "parent_guid": 18446744073709551615,
+                "prefab": 18446744073709551615,
+                "prefab_entity_guids": []
+            },
+            {
+                "guid": 2,
+                "local_pos": [
+                    0.0,
+                    0.0,
+                    0.0
+                ],
+                "local_rot": [
+                    0.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ],
+                "local_scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "name": "BoomBox",
+                "parent_guid": 1,
+                "prefab": 18446744073709551615,
+                "prefab_entity_guids": []
+            }
+        ]
+    },
+    "guid": 16661764529143137595,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 0,
+    "thumbnail_guid": 9570178492154002598,
+    "version": 0
+}

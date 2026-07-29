@@ -1,0 +1,55 @@
+{
+    "asset_type": "material",
+    "cook_options": {},
+    "embedded_source": {
+        "blend_mode": "opaque",
+        "double_sided": false,
+        "parameters": [
+            {
+                "hint": "none",
+                "name": "intensity",
+                "type": "f32",
+                "value": [
+                    0.34173646569252014,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "radius",
+                "type": "f32",
+                "value": [
+                    0.16059711575508118,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "softness",
+                "type": "f32",
+                "value": [
+                    0.258445143699646,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        ],
+        "samplers": [],
+        "shader": 16555211846544979413,
+        "textures": [],
+        "use_alpha_cutoff": false,
+        "write_reflections": false,
+        "write_shadows": false
+    },
+    "guid": 819618036709220031,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 8,
+    "thumbnail_guid": 15884026093768288164,
+    "version": 0
+}

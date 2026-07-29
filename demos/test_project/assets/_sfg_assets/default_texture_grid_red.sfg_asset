@@ -1,0 +1,15 @@
+{
+    "asset_type": "texture",
+    "cook_options": {
+        "generate_mipmaps": false,
+        "is_linear": false,
+        "payload_type": 2
+    },
+    "embedded_source": null,
+    "guid": 1040,
+    "source_relative": "_sfg_assets/default_texture_grid_red.png",
+    "source_type": "file",
+    "sub_type": 0,
+    "thumbnail_guid": 17218065567159882615,
+    "version": 0
+}

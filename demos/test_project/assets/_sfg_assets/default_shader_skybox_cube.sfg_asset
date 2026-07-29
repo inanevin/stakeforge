@@ -1,0 +1,31 @@
+{
+    "asset_type": "shader",
+    "cook_options": {
+        "include_dirs": [
+            "common/shaders/",
+            "common/shaders/world/"
+        ],
+        "schema": "sfg.schema.shader",
+        "type": 20
+    },
+    "embedded_source": {
+        "parameters": [],
+        "samplers": [
+            {
+                "name": "cubemap"
+            }
+        ],
+        "textures": [
+            {
+                "name": "cubemap",
+                "type": "texture_cube"
+            }
+        ]
+    },
+    "guid": 1025,
+    "source_relative": "_sfg_assets/default_shader_skybox_cube.hlsl",
+    "source_type": "file",
+    "sub_type": 20,
+    "thumbnail_guid": 4004057940332049195,
+    "version": 0
+}

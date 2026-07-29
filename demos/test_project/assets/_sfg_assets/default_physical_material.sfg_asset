@@ -1,0 +1,17 @@
+{
+    "asset_type": "physical_material",
+    "cook_options": {},
+    "embedded_source": {
+        "angular_damping": 0.05,
+        "friction": 0.2,
+        "linear_damping": 0.05,
+        "restitution": 0.0,
+        "schema": "sfg.schema.physical_material"
+    },
+    "guid": 1008,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 0,
+    "thumbnail_guid": 689587137404843823,
+    "version": 0
+}

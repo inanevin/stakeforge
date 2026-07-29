@@ -7,6 +7,10 @@
 *.userosscache
 *.sln.docstates
 ./.clang-format
+_cache
+Cooked
+Intermediate
+Library
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

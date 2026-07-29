@@ -1,5 +1,0 @@
-{
-  "source": "assets/map/map.gltf",
-  "import_pbr_materials": 1,
-  "generate_colliders": 1
-}

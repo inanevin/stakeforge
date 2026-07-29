@@ -1,0 +1,178 @@
+{
+    "asset_type": "material",
+    "cook_options": {},
+    "embedded_source": {
+        "blend_mode": "opaque",
+        "double_sided": false,
+        "parameters": [
+            {
+                "hint": "color",
+                "name": "base_color_factor",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            {
+                "hint": "color_hdr",
+                "name": "emissive_factor",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "ao_multiplier",
+                "type": "f32",
+                "value": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "roughness_multiplier",
+                "type": "f32",
+                "value": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "metallic_multiplier",
+                "type": "f32",
+                "value": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "normal_strength",
+                "type": "f32",
+                "value": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "alpha_cutoff",
+                "type": "f32",
+                "value": [
+                    0.5,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "albedo_tiling_offset",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "normal_tiling_offset",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "orm_tiling_offset",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "emissive_tiling_offset",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        ],
+        "samplers": [
+            {
+                "name": "albedo",
+                "sampler": 1009
+            },
+            {
+                "name": "normal",
+                "sampler": 1009
+            },
+            {
+                "name": "orm",
+                "sampler": 1009
+            },
+            {
+                "name": "emissive",
+                "sampler": 1009
+            }
+        ],
+        "schema": "sfg.schema.material",
+        "shader": 1029,
+        "textures": [
+            {
+                "name": "albedo",
+                "texture": 1002
+            },
+            {
+                "name": "normal",
+                "texture": 1004
+            },
+            {
+                "name": "orm",
+                "texture": 1003
+            },
+            {
+                "name": "emissive",
+                "texture": 1005
+            }
+        ],
+        "use_alpha_cutoff": false,
+        "write_reflections": true,
+        "write_shadows": true
+    },
+    "guid": 1031,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 0,
+    "thumbnail_guid": 16728227608578616799,
+    "version": 0
+}

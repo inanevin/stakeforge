@@ -1,0 +1,45 @@
+{
+    "asset_type": "material",
+    "cook_options": {},
+    "embedded_source": {
+        "blend_mode": "alpha",
+        "double_sided": true,
+        "parameters": [
+            {
+                "hint": "color_hdr",
+                "name": "tint",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        ],
+        "samplers": [
+            {
+                "name": "sprite",
+                "sampler": 1009
+            }
+        ],
+        "schema": "sfg.schema.material",
+        "shader": 1045,
+        "textures": [
+            {
+                "name": "sprite",
+                "texture": 1049,
+                "type": "sprite"
+            }
+        ],
+        "use_alpha_cutoff": false,
+        "write_reflections": true,
+        "write_shadows": false
+    },
+    "guid": 1046,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 7,
+    "thumbnail_guid": 2981312675725650233,
+    "version": 0
+}

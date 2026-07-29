@@ -1,0 +1,41 @@
+{
+    "settings": {
+        "last_world_guid": 16955923858824301660,
+        "project_settings": {
+            "max_sim_steps": 4,
+            "physics": {
+                "collision_layers": [
+                    {
+                        "collides_with": 1,
+                        "identifier": 9,
+                        "name": "Default",
+                        "slot": 0
+                    }
+                ],
+                "next_collision_layer_identifier": 10
+            },
+            "quality_level": 2,
+            "shadows": {
+                "max_resolution": 2048,
+                "max_views": 48,
+                "min_resolution": 256,
+                "shadow_distance": 200.0,
+                "shadow_fade_distance": 30.0,
+                "texel_budget": 16777216
+            },
+            "tags": [
+                "player",
+                "test_trigger",
+                "cast_target"
+            ],
+            "world_physics_rate": 100,
+            "world_tick_rate": 60
+        },
+        "world_view_aabb_enabled": false,
+        "world_view_grid_enabled": true,
+        "world_view_perf_metrics_enabled": true,
+        "world_view_physics_debug_enabled": false,
+        "world_view_skeleton_enabled": false,
+        "world_view_snapping_enabled": false
+    }
+}

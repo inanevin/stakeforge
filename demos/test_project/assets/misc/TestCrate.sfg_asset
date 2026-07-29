@@ -1,0 +1,85 @@
+{
+    "asset_type": "prefab",
+    "cook_options": {},
+    "embedded_source": {
+        "components": [
+            {
+                "data": {
+                    "materials": [
+                        1031
+                    ],
+                    "mesh": 1015
+                },
+                "entity": 10268835462802592877,
+                "type": 146804687333956351
+            },
+            {
+                "data": {
+                    "allow_sleep": true,
+                    "angular_damping": 0.05000000074505806,
+                    "collision_layer": 0,
+                    "collision_mesh": 18446744073709551615,
+                    "gravity_factor": 1.0,
+                    "half_extent": {
+                        "x": 0.5,
+                        "y": 0.5,
+                        "z": 0.5
+                    },
+                    "half_height": 0.5,
+                    "is_sensor": false,
+                    "linear_damping": 0.05000000074505806,
+                    "local_position": {
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "local_rotation": {
+                        "w": 1.0,
+                        "x": 0.0,
+                        "y": 0.0,
+                        "z": 0.0
+                    },
+                    "mass": 1.0,
+                    "motion_quality_continuous": false,
+                    "motion_type": 2,
+                    "physical_material": 18446744073709551615,
+                    "radius": 0.5,
+                    "shape": 0
+                },
+                "entity": 10268835462802592877,
+                "type": 7287311941718555053
+            }
+        ],
+        "local_entities": [
+            {
+                "guid": 10268835462802592877,
+                "local_pos": [
+                    -4.743271827697754,
+                    1.856201171875,
+                    -2.632575035095215
+                ],
+                "local_rot": [
+                    0.0,
+                    0.0,
+                    0.0,
+                    1.0
+                ],
+                "local_scale": [
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "name": "TestCrate",
+                "parent_guid": 18446744073709551615,
+                "prefab": 18446744073709551615,
+                "prefab_entity_guids": []
+            }
+        ]
+    },
+    "guid": 10759720565375796104,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 0,
+    "thumbnail_guid": 9413582896631001226,
+    "version": 0
+}

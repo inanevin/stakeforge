@@ -1,0 +1,11 @@
+{
+    "asset_type": "physics_collision_mesh",
+    "cook_options": {},
+    "embedded_source": null,
+    "guid": 10338482005765553522,
+    "source_relative": "models/quaternius/Mannequin_collision.sfg_bin",
+    "source_type": "file_blob",
+    "sub_type": 0,
+    "thumbnail_guid": 2845946754708441437,
+    "version": 0
+}

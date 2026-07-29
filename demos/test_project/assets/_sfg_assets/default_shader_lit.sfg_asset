@@ -1,0 +1,123 @@
+{
+    "asset_type": "shader",
+    "cook_options": {
+        "include_dirs": [
+            "common/shaders/",
+            "common/shaders/world/"
+        ],
+        "schema": "sfg.schema.shader",
+        "type": 5
+    },
+    "embedded_source": {
+        "parameters": [
+            {
+                "hint": "color",
+                "name": "base_color_factor",
+                "type": "vec4"
+            },
+            {
+                "hint": "color_hdr",
+                "name": "emissive_factor",
+                "type": "vec4"
+            },
+            {
+                "default": 1.0,
+                "hint": "none",
+                "max": 1.0,
+                "min": 0.0,
+                "name": "ao_multiplier",
+                "type": "f32"
+            },
+            {
+                "default": 1.0,
+                "hint": "none",
+                "max": 1.0,
+                "min": 0.0,
+                "name": "roughness_multiplier",
+                "type": "f32"
+            },
+            {
+                "default": 1.0,
+                "hint": "none",
+                "max": 1.0,
+                "min": 0.0,
+                "name": "metallic_multiplier",
+                "type": "f32"
+            },
+            {
+                "default": 1.0,
+                "hint": "none",
+                "max": 2.0,
+                "min": 0.0,
+                "name": "normal_strength",
+                "type": "f32"
+            },
+            {
+                "default": 0.5,
+                "hint": "none",
+                "max": 1.0,
+                "min": 0.0,
+                "name": "alpha_cutoff",
+                "type": "f32"
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "albedo_tiling_offset",
+                "type": "vec4"
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "normal_tiling_offset",
+                "type": "vec4"
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "orm_tiling_offset",
+                "type": "vec4"
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "emissive_tiling_offset",
+                "type": "vec4"
+            }
+        ],
+        "samplers": [
+            {
+                "name": "albedo"
+            },
+            {
+                "name": "normal"
+            },
+            {
+                "name": "orm"
+            },
+            {
+                "name": "emissive"
+            }
+        ],
+        "textures": [
+            {
+                "name": "albedo",
+                "type": "texture2d"
+            },
+            {
+                "name": "normal",
+                "type": "texture2d"
+            },
+            {
+                "name": "orm",
+                "type": "texture2d"
+            },
+            {
+                "name": "emissive",
+                "type": "texture2d"
+            }
+        ]
+    },
+    "guid": 1029,
+    "source_relative": "_sfg_assets/default_shader_lit.hlsl",
+    "source_type": "file",
+    "sub_type": 5,
+    "thumbnail_guid": 4004057940332049195,
+    "version": 0
+}

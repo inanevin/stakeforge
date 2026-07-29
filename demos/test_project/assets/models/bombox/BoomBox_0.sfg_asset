@@ -1,0 +1,22 @@
+{
+    "asset_type": "texture",
+    "cook_options": {
+        "force_4_channels": false,
+        "generate_mipmaps": true,
+        "is_linear": false,
+        "ktx2_compression": 0,
+        "payload_type": 0,
+        "size": {
+            "x": 2048,
+            "y": 2048
+        },
+        "use_streaming": true
+    },
+    "embedded_source": null,
+    "guid": 9196711287224636523,
+    "source_relative": "models/bombox/BoomBox_0.png",
+    "source_type": "file_blob",
+    "sub_type": 0,
+    "thumbnail_guid": 6552682420085199654,
+    "version": 0
+}

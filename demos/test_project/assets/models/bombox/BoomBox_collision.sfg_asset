@@ -1,0 +1,11 @@
+{
+    "asset_type": "physics_collision_mesh",
+    "cook_options": {},
+    "embedded_source": null,
+    "guid": 5447775562694758847,
+    "source_relative": "models/bombox/BoomBox_collision.sfg_bin",
+    "source_type": "file_blob",
+    "sub_type": 0,
+    "thumbnail_guid": 1657227474509081950,
+    "version": 0
+}

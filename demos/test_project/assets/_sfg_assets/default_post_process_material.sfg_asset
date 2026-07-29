@@ -1,0 +1,38 @@
+{
+    "asset_type": "material",
+    "cook_options": {},
+    "embedded_source": {
+        "blend_mode": "opaque",
+        "double_sided": false,
+        "parameters": [
+            {
+                "name": "intensity",
+                "type": "f32",
+                "value": 0.65
+            },
+            {
+                "name": "radius",
+                "type": "f32",
+                "value": 0.75
+            },
+            {
+                "name": "softness",
+                "type": "f32",
+                "value": 0.35
+            }
+        ],
+        "samplers": [],
+        "schema": "sfg.schema.material",
+        "shader": 1050,
+        "textures": [],
+        "use_alpha_cutoff": false,
+        "write_reflections": false,
+        "write_shadows": false
+    },
+    "guid": 1051,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 8,
+    "thumbnail_guid": 3507542174643720095,
+    "version": 0
+}

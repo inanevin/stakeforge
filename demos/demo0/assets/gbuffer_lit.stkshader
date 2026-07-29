@@ -1,4 +1,0 @@
-{
-    "source": "assets/gbuffer_lit.hlsl",
-    "variant_style": "gbuffer_object"
-}

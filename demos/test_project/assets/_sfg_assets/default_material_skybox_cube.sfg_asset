@@ -1,0 +1,33 @@
+{
+    "asset_type": "material",
+    "cook_options": {},
+    "embedded_source": {
+        "blend_mode": "opaque",
+        "double_sided": false,
+        "parameters": [],
+        "samplers": [
+            {
+                "name": "cubemap",
+                "sampler": 1009
+            }
+        ],
+        "schema": "sfg.schema.material",
+        "shader": 1025,
+        "textures": [
+            {
+                "name": "cubemap",
+                "texture": 1012,
+                "type": "texture_cube"
+            }
+        ],
+        "use_alpha_cutoff": false,
+        "write_reflections": false,
+        "write_shadows": false
+    },
+    "guid": 1027,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 3,
+    "thumbnail_guid": 18157109506529522021,
+    "version": 0
+}

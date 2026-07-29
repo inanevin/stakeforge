@@ -1,0 +1,11 @@
+{
+    "asset_type": "mesh",
+    "cook_options": {},
+    "embedded_source": null,
+    "guid": 6604681127486226170,
+    "source_relative": "models/cesium/Cesium_Man.sfg_bin",
+    "source_type": "file_blob",
+    "sub_type": 0,
+    "thumbnail_guid": 8606613529062547375,
+    "version": 0
+}

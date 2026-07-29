@@ -1,0 +1,11 @@
+{
+    "asset_type": "mesh",
+    "cook_options": {},
+    "embedded_source": null,
+    "guid": 11123355677350350903,
+    "source_relative": "models/bombox/BoomBox.sfg_bin",
+    "source_type": "file_blob",
+    "sub_type": 0,
+    "thumbnail_guid": 5881235052017258735,
+    "version": 0
+}

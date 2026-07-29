@@ -1,0 +1,45 @@
+{
+    "asset_type": "material",
+    "cook_options": {},
+    "embedded_source": {
+        "blend_mode": "opaque",
+        "double_sided": true,
+        "parameters": [
+            {
+                "hint": "color",
+                "name": "tint",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "alpha_cutoff",
+                "type": "f32",
+                "value": [
+                    0.5,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        ],
+        "samplers": [],
+        "schema": "sfg.schema.material",
+        "shader": 1041,
+        "textures": [],
+        "use_alpha_cutoff": true,
+        "write_reflections": true,
+        "write_shadows": true
+    },
+    "guid": 1042,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 5,
+    "thumbnail_guid": 12649111655307026747,
+    "version": 0
+}
