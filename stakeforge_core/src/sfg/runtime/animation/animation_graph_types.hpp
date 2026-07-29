@@ -145,13 +145,16 @@ namespace sfg
 
 	struct animation_graph_asm_transition_t
 	{
-		chunk_handle32_t					  from_state	= {};
-		chunk_handle32_t					  to_state		= {};
-		chunk_handle32_t					  parameter		= {};
-		f32									  compare_value = 0.0f;
-		f32									  duration		= 0.0f;
-		animation_graph_asm_transition_type_e type			= animation_graph_asm_transition_type_e::equals;
-		bool								  is_blended	= false;
+		chunk_handle32_t					  from_state	   = {};
+		chunk_handle32_t					  to_state		   = {};
+		chunk_handle32_t					  parameter		   = {};
+		f32									  compare_value	   = 0.0f;
+		f32									  duration		   = 0.0f;
+		u32									  priority		   = 0;
+		animation_graph_asm_transition_type_e type			   = animation_graph_asm_transition_type_e::equals;
+		bool								  is_blended	   = false;
+		bool								  is_interruptible = true;
+		bool								  restart_target   = true;
 	};
 
 	struct animation_graph_node_asm_t

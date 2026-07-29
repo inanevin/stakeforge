@@ -250,10 +250,13 @@ namespace sfg
 								.size = sizeof(animation_graph_asm_state_t),
 							},
 
-						.compare_value = source_transition.compare_value,
-						.duration	   = source_transition.duration,
-						.type		   = source_transition.type,
-						.is_blended	   = source_transition.is_blended,
+						.compare_value	  = source_transition.compare_value,
+						.duration		  = source_transition.duration,
+						.priority		  = source_transition.priority,
+						.type			  = source_transition.type,
+						.is_blended		  = source_transition.is_blended,
+						.is_interruptible = source_transition.is_interruptible,
+						.restart_target	  = source_transition.restart_target,
 					};
 
 					if (source_transition.parameter_index == UINT32_MAX)
@@ -406,6 +409,19 @@ namespace sfg
 			bones.data[bone_index].bone_transform = pose_bones[bone_index].local_matrix;
 	}
 
+	void animation_graph_storage_t::advance_graph(chunk_handle32_t nodes, u32 node_count, f32 delta_time)
+	{
+		animation_graph_node_t* graph_nodes = _nodes.get<animation_graph_node_t>(nodes);
+
+		for (u32 node_index = 0; node_index < node_count; ++node_index)
+		{
+			animation_graph_node_t& node = graph_nodes[node_index];
+
+			if (node.type == animation_graph_node_type_e::asm_node)
+				advance_node_asm(node.node_asm, delta_time);
+		}
+	}
+
 	void animation_graph_storage_t::process_graph(chunk_handle32_t nodes, u32 node_count, chunk_handle32_t initial_pose, const mat4x3_t& entity_transform, span_t<animation_bone_t> bones, f32 delta_time)
 	{
 		chunk_handle32_t previous_pose_handle = initial_pose;
@@ -447,102 +463,123 @@ namespace sfg
 		copy_pose_to_bones(previous_pose_handle, bones);
 	}
 
-	void animation_graph_storage_t::process_node_asm(animation_graph_node_asm_t& node, chunk_handle32_t mask_handle, span_t<animation_graph_bone_t> pose_bones, f32 delta_time)
+	bool animation_graph_storage_t::is_asm_transition_eligible(const animation_graph_asm_transition_t& transition) const
 	{
+		if (!transition.parameter)
+		{
+			const animation_graph_asm_state_t& state = *_asm_states.get<animation_graph_asm_state_t>(transition.from_state);
+			return math::almost_equal(state._current_phase, 1.0f);
+		}
+
+		const animation_graph_param_t& parameter		= *_params.get<animation_graph_param_t>(transition.parameter);
+		f32							   transition_value = 0.0f;
+
+		switch (parameter.type)
+		{
+		case animation_param_type_e::f32:
+			transition_value = parameter.f32_value;
+			break;
+		case animation_param_type_e::vec2:
+			transition_value = parameter.vec2_value.x;
+			break;
+		case animation_param_type_e::vec3:
+			transition_value = parameter.vec3_value.x;
+			break;
+		case animation_param_type_e::quat:
+			transition_value = parameter.quat_value.x;
+			break;
+		case animation_param_type_e::boolean:
+			transition_value = parameter.bool_value;
+			break;
+		}
+
+		switch (transition.type)
+		{
+		case animation_graph_asm_transition_type_e::equals:
+			return transition_value == transition.compare_value;
+		case animation_graph_asm_transition_type_e::lequals:
+			return transition_value <= transition.compare_value;
+		case animation_graph_asm_transition_type_e::gequals:
+			return transition_value >= transition.compare_value;
+		case animation_graph_asm_transition_type_e::less:
+			return transition_value < transition.compare_value;
+		case animation_graph_asm_transition_type_e::greater:
+			return transition_value > transition.compare_value;
+		}
+
+		return false;
+	}
+
+	animation_graph_storage_t::asm_update_t animation_graph_storage_t::update_node_asm(animation_graph_node_asm_t& node, f32 delta_time)
+	{
+		asm_update_t update = {};
+
 		if (!node.first_state)
 		{
 			SFG_WARN("animation state machine has no first state");
-			return;
+			return update;
 		}
 
 		if (!node._current_state)
 			node._current_state = node.first_state;
 
-		animation_graph_asm_state_t* transition_target_node	 = nullptr;
-		f32							 transition_target_blend = 0.0f;
+		const animation_graph_asm_transition_t* active_transition		  = node._current_transition ? _asm_transitions.get<animation_graph_asm_transition_t>(node._current_transition) : nullptr;
+		u32										selected_transition_index = UINT32_MAX;
+		u32										selected_priority		  = 0;
+		bool									selected_from_target	  = false;
 
 		// check if eligible transition.
-		if (!node._current_transition)
+		if (active_transition == nullptr || active_transition->is_interruptible)
 		{
-			for (u32 i = 0; i < node.transition_count; ++i)
+			const animation_graph_asm_transition_t* transitions = _asm_transitions.get<animation_graph_asm_transition_t>(node.transitions);
+
+			for (u32 transition_index = 0; transition_index < node.transition_count; ++transition_index)
 			{
-				const animation_graph_asm_transition_t& transition = _asm_transitions.get<animation_graph_asm_transition_t>(node.transitions)[i];
-
-				if (transition.from_state != node._current_state)
-					continue;
-
-				if (!transition.parameter)
-				{
-					animation_graph_asm_state_t* state = _asm_states.get<animation_graph_asm_state_t>(node._current_state);
-					if (state)
-					{
-						if (math::almost_equal(state->_current_phase, 1.0f))
-						{
-							node._current_transition = {
-								.head = node.transitions.head + static_cast<u32>(sizeof(animation_graph_asm_transition_t)) * i,
-								.size = static_cast<u32>(sizeof(animation_graph_asm_transition_t)),
-							};
-							node._current_transition_time = 0.0f;
-							break;
-						}
-					}
-
-					continue;
-				}
-
-				const animation_graph_param_t& parameter		= *_params.get<animation_graph_param_t>(transition.parameter);
-				f32							   transition_value = 0.0f;
-
-				switch (parameter.type)
-				{
-				case animation_param_type_e::f32:
-					transition_value = parameter.f32_value;
-					break;
-				case animation_param_type_e::vec2:
-					transition_value = parameter.vec2_value.x;
-					break;
-				case animation_param_type_e::vec3:
-					transition_value = parameter.vec3_value.x;
-					break;
-				case animation_param_type_e::quat:
-					transition_value = parameter.quat_value.x;
-					break;
-				case animation_param_type_e::boolean:
-					transition_value = parameter.bool_value;
-					break;
-				}
-
-				bool passes = false;
-
-				switch (transition.type)
-				{
-				case animation_graph_asm_transition_type_e::equals:
-					passes = transition_value == transition.compare_value;
-					break;
-				case animation_graph_asm_transition_type_e::lequals:
-					passes = transition_value <= transition.compare_value;
-					break;
-				case animation_graph_asm_transition_type_e::gequals:
-					passes = transition_value >= transition.compare_value;
-					break;
-				case animation_graph_asm_transition_type_e::less:
-					passes = transition_value < transition.compare_value;
-					break;
-				case animation_graph_asm_transition_type_e::greater:
-					passes = transition_value > transition.compare_value;
-					break;
-				}
-
-				if (!passes)
-					continue;
-
-				node._current_transition = {
-					.head = node.transitions.head + static_cast<u32>(sizeof(animation_graph_asm_transition_t)) * i,
+				const animation_graph_asm_transition_t& transition = transitions[transition_index];
+				const chunk_handle32_t					transition_handle{
+					.head = node.transitions.head + static_cast<u32>(sizeof(animation_graph_asm_transition_t)) * transition_index,
 					.size = static_cast<u32>(sizeof(animation_graph_asm_transition_t)),
 				};
-				node._current_transition_time = 0.0f;
-				break;
+
+				if (transition_handle == node._current_transition)
+					continue;
+
+				const bool from_current_state	  = transition.from_state == node._current_state;
+				const bool from_transition_target = active_transition != nullptr && transition.from_state == active_transition->to_state;
+
+				if (!from_current_state && !from_transition_target)
+					continue;
+
+				if (active_transition != nullptr && transition.priority < active_transition->priority)
+					continue;
+
+				if (!is_asm_transition_eligible(transition))
+					continue;
+
+				if (selected_transition_index != UINT32_MAX && transition.priority <= selected_priority)
+					continue;
+
+				selected_transition_index = transition_index;
+				selected_priority		  = transition.priority;
+				selected_from_target	  = from_transition_target;
 			}
+		}
+
+		if (selected_transition_index != UINT32_MAX)
+		{
+			const animation_graph_asm_transition_t& transition = _asm_transitions.get<animation_graph_asm_transition_t>(node.transitions)[selected_transition_index];
+
+			if (selected_from_target)
+				node._current_state = active_transition->to_state;
+
+			node._current_transition = {
+				.head = node.transitions.head + static_cast<u32>(sizeof(animation_graph_asm_transition_t)) * selected_transition_index,
+				.size = static_cast<u32>(sizeof(animation_graph_asm_transition_t)),
+			};
+			node._current_transition_time = 0.0f;
+
+			if (transition.restart_target)
+				_asm_states.get<animation_graph_asm_state_t>(transition.to_state)->_current_phase = 0.0f;
 		}
 
 		// if active transition, bump the time & switch state or set blended.
@@ -551,7 +588,7 @@ namespace sfg
 			const animation_graph_asm_transition_t& transition = *_asm_transitions.get<animation_graph_asm_transition_t>(node._current_transition);
 			node._current_transition_time += delta_time;
 
-			if (node._current_transition_time > transition.duration)
+			if (node._current_transition_time >= transition.duration)
 			{
 				node._current_transition	  = {};
 				node._current_transition_time = 0.0f;
@@ -559,17 +596,39 @@ namespace sfg
 			}
 			else if (transition.is_blended)
 			{
-				transition_target_node	= _asm_states.get<animation_graph_asm_state_t>(transition.to_state);
-				transition_target_blend = node._current_transition_time / transition.duration;
+				update.transition_target = _asm_states.get<animation_graph_asm_state_t>(transition.to_state);
+				update.transition_blend	 = node._current_transition_time / transition.duration;
 			}
 		}
 
-		animation_graph_asm_state_t& current_state = *_asm_states.get<animation_graph_asm_state_t>(node._current_state);
+		update.current_state = _asm_states.get<animation_graph_asm_state_t>(node._current_state);
+		return update;
+	}
+
+	void animation_graph_storage_t::advance_node_asm(animation_graph_node_asm_t& node, f32 delta_time)
+	{
+		const asm_update_t update = update_node_asm(node, delta_time);
+
+		if (update.current_state == nullptr)
+			return;
+
+		advance_asm_state(*update.current_state, delta_time);
+
+		if (update.transition_target != nullptr)
+			advance_asm_state(*update.transition_target, delta_time);
+	}
+
+	void animation_graph_storage_t::process_node_asm(animation_graph_node_asm_t& node, chunk_handle32_t mask_handle, span_t<animation_graph_bone_t> pose_bones, f32 delta_time)
+	{
+		const asm_update_t update = update_node_asm(node, delta_time);
+
+		if (update.current_state == nullptr)
+			return;
 
 		// no transition, process & write to current pose.
-		if (transition_target_node == nullptr)
+		if (update.transition_target == nullptr)
 		{
-			process_asm_state(current_state, mask_handle, delta_time, pose_bones);
+			process_asm_state(*update.current_state, mask_handle, delta_time, pose_bones);
 			return;
 		}
 
@@ -583,10 +642,10 @@ namespace sfg
 		SFG_MEMCPY(transition_target_pose.data, pose_bones.data, sizeof(animation_graph_bone_t) * pose_bones.size);
 
 		// process current state normally, we write to current pose.
-		process_asm_state(current_state, mask_handle, delta_time, pose_bones);
+		process_asm_state(*update.current_state, mask_handle, delta_time, pose_bones);
 
 		// process transition state, we write to temporary transition pose.
-		process_asm_state(*transition_target_node, mask_handle, delta_time, transition_target_pose);
+		process_asm_state(*update.transition_target, mask_handle, delta_time, transition_target_pose);
 
 		// blend the transition target into current pose
 		for (size_t bone_index = 0; bone_index < pose_bones.size; ++bone_index)
@@ -607,7 +666,7 @@ namespace sfg
 			transition_target_bone.local_matrix.decompose(target_position, target_rotation, target_scale);
 
 			final_bone.local_matrix =
-				mat4x3_t::transform(vec3f_t::lerp(final_position, target_position, transition_target_blend), quat_t::slerp(final_rotation, target_rotation, transition_target_blend), vec3f_t::lerp(final_scale, target_scale, transition_target_blend));
+				mat4x3_t::transform(vec3f_t::lerp(final_position, target_position, update.transition_blend), quat_t::slerp(final_rotation, target_rotation, update.transition_blend), vec3f_t::lerp(final_scale, target_scale, update.transition_blend));
 		}
 	}
 
@@ -708,57 +767,29 @@ namespace sfg
 	{
 	}
 
-	void animation_graph_storage_t::process_asm_state(animation_graph_asm_state_t& state, chunk_handle32_t mask_handle, f32 delta_time, span_t<animation_graph_bone_t> pose_bones)
+	bool animation_graph_storage_t::compute_asm_state_blend_weights(const animation_graph_asm_state_t& state, span_t<f32> blend_weights) const
 	{
-		if (state.clip_count == 0)
-		{
-			SFG_WARN("animation state has no clips");
-			return;
-		}
-
-		const animation_graph_mask_t* mask			   = mask_handle ? _masks.get<animation_graph_mask_t>(mask_handle) : nullptr;
-		const animation_graph_clip_t* clips			   = _clips.get<animation_graph_clip_t>(state.clips);
-		resource_manager_t&			  resource_manager = resource_manager_t::get();
-
-		// 0d, directly write anim data into pose.
-		if (state.state_type == animation_graph_asm_state_type_e::no_blend)
-		{
-			const animation_runtime_t* animation = resource_manager.find_runtime<animation_runtime_t>(clips[0].clip);
-
-			if (animation == nullptr)
-			{
-				SFG_WARN("animation clip is not loaded: {0}", clips[0].clip);
-				return;
-			}
-
-			animation_graph_util_t::advance_asm_state_phase(state, delta_time, animation->duration / clips[0].playback_speed);
-
-			const f32 sample_time = state._current_phase * animation->duration;
-
-			sample_clip(*animation, sample_time, mask, pose_bones);
-			return;
-		}
-
-		frame_vector_t<f32> blend_weights(state.clip_count, 0.0f);
-
 		// determine weights
 		switch (state.state_type)
 		{
 		case animation_graph_asm_state_type_e::no_blend:
-			break;
+			blend_weights.data[0] = 1.0f;
+			return true;
 		case animation_graph_asm_state_type_e::blend_1d: {
 
 			if (!state.blend_parameter)
 			{
-				SFG_WARN("state is missing blend parameter!");
-				break;
+				// SFG_WARN("state is missing blend parameter!");
+				return false;
 			}
 
+			const animation_graph_clip_t*  clips	 = _clips.get<animation_graph_clip_t>(state.clips);
 			const animation_graph_param_t& parameter = *_params.get<animation_graph_param_t>(state.blend_parameter);
+
 			if (parameter.type != animation_param_type_e::f32)
 			{
 				SFG_WARN("animation parameter type does not match blend type! parameter type: {0}, blend type: 1d", (u32)parameter.type);
-				return;
+				return false;
 			}
 
 			u32 lower_index = UINT32_MAX;
@@ -784,14 +815,23 @@ namespace sfg
 				blend_weights[lower_index] = 1.0f - blend;
 				blend_weights[upper_index] = blend;
 			}
-			break;
+
+			return true;
 		}
 		case animation_graph_asm_state_type_e::blend_2d: {
+			if (!state.blend_parameter)
+			{
+				SFG_WARN("state is missing blend parameter");
+				return false;
+			}
+
+			const animation_graph_clip_t*  clips	 = _clips.get<animation_graph_clip_t>(state.clips);
 			const animation_graph_param_t& parameter = *_params.get<animation_graph_param_t>(state.blend_parameter);
+
 			if (parameter.type != animation_param_type_e::vec2)
 			{
 				SFG_WARN("animation parameter type does not match blend type! parameter type: {0}, blend type: 2d", (u32)parameter.type);
-				return;
+				return false;
 			}
 
 			const f32 epsilon_sq   = MATH_EPS * MATH_EPS;
@@ -825,9 +865,113 @@ namespace sfg
 				for (u32 i = 0; i < state.clip_count; ++i)
 					blend_weights[i] /= total_weight;
 			}
-			break;
+
+			return true;
 		}
 		}
+
+		return false;
+	}
+
+	void animation_graph_storage_t::advance_asm_state(animation_graph_asm_state_t& state, f32 delta_time)
+	{
+		if (state.clip_count == 0)
+		{
+			SFG_WARN("animation state has no clips");
+			return;
+		}
+
+		const animation_graph_clip_t* clips			   = _clips.get<animation_graph_clip_t>(state.clips);
+		resource_manager_t&			  resource_manager = resource_manager_t::get();
+
+		if (state.state_type == animation_graph_asm_state_type_e::no_blend)
+		{
+			const animation_runtime_t* animation = resource_manager.find_runtime<animation_runtime_t>(clips[0].clip);
+
+			if (animation == nullptr)
+			{
+				SFG_WARN("animation clip is not loaded: {0}", clips[0].clip);
+				return;
+			}
+
+			animation_graph_util_t::advance_asm_state_phase(state, delta_time, animation->duration / clips[0].playback_speed);
+			return;
+		}
+
+		frame_vector_t<f32> blend_weights(state.clip_count, 0.0f);
+		const span_t<f32>	blend_weights_span{
+			.data = blend_weights.data(),
+			.size = blend_weights.size(),
+		};
+
+		if (!compute_asm_state_blend_weights(state, blend_weights_span))
+			return;
+
+		f32 weighted_duration = 0.0f;
+		f32 loaded_weight	  = 0.0f;
+
+		for (u32 i = 0; i < state.clip_count; ++i)
+		{
+			if (blend_weights[i] <= 0.0f)
+				continue;
+
+			const animation_runtime_t* animation = resource_manager.find_runtime<animation_runtime_t>(clips[i].clip);
+
+			if (animation == nullptr)
+			{
+				SFG_WARN("animation clip is not loaded: {0}", clips[i].clip);
+				continue;
+			}
+
+			weighted_duration += animation->duration / clips[i].playback_speed * blend_weights[i];
+			loaded_weight += blend_weights[i];
+		}
+
+		const f32 duration = loaded_weight > 0.0f ? weighted_duration / loaded_weight : 0.0f;
+
+		animation_graph_util_t::advance_asm_state_phase(state, delta_time, duration);
+	}
+
+	void animation_graph_storage_t::process_asm_state(animation_graph_asm_state_t& state, chunk_handle32_t mask_handle, f32 delta_time, span_t<animation_graph_bone_t> pose_bones)
+	{
+		if (state.clip_count == 0)
+		{
+			SFG_WARN("animation state has no clips");
+			return;
+		}
+
+		const animation_graph_mask_t* mask			   = mask_handle ? _masks.get<animation_graph_mask_t>(mask_handle) : nullptr;
+		const animation_graph_clip_t* clips			   = _clips.get<animation_graph_clip_t>(state.clips);
+		resource_manager_t&			  resource_manager = resource_manager_t::get();
+
+		// 0d, directly write anim data into pose.
+		if (state.state_type == animation_graph_asm_state_type_e::no_blend)
+		{
+			const animation_runtime_t* animation = resource_manager.find_runtime<animation_runtime_t>(clips[0].clip);
+
+			if (animation == nullptr)
+			{
+				SFG_WARN("animation clip is not loaded: {0}", clips[0].clip);
+				return;
+			}
+
+			animation_graph_util_t::advance_asm_state_phase(state, delta_time, animation->duration / clips[0].playback_speed);
+
+			const f32 sample_time = state._current_phase * animation->duration;
+
+			sample_clip(*animation, sample_time, mask, pose_bones);
+			return;
+		}
+
+		frame_vector_t<f32> blend_weights(state.clip_count, 0.0f);
+		const span_t<f32>	blend_weights_span{
+			.data = blend_weights.data(),
+			.size = blend_weights.size(),
+		};
+
+		// determine weights
+		if (!compute_asm_state_blend_weights(state, blend_weights_span))
+			return;
 
 		frame_vector_t<const animation_runtime_t*> animations(state.clip_count, nullptr);
 		f32										   weighted_duration = 0.0f;
