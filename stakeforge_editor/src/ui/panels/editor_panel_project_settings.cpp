@@ -90,6 +90,22 @@ namespace sfg
 							 .objects = {.data = &object, .size = 1},
 							 .type_id = type_id_t<editor_project_settings_data_t>::value,
 						 });
+
+		void* editor_object = &editor_settings_t::get().configurable;
+		_editor_reflection.init(ui,
+								_content,
+								{
+									.fold_states = &_field_states,
+									.callbacks =
+										{
+											.edit_begin		= on_project_settings_edit_begin,
+											.edit_submitted = on_project_settings_edit_submitted,
+											.user_data		= this,
+										},
+									.objects = {.data = &editor_object, .size = 1},
+									.type_id = type_id_t<editor_settings_configurable_t>::value,
+								});
+
 		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
 	}
 
@@ -97,6 +113,7 @@ namespace sfg
 	{
 		editor_command_system_t::get().remove_listener(_command_listener);
 		_ui->cancel_mutations(this);
+		_editor_reflection.uninit();
 		_reflection.uninit();
 		_scrollbar.uninit();
 		_ui->deallocate_widget(_content);
@@ -119,8 +136,10 @@ namespace sfg
 			return;
 		}
 
-		void* object = &editor_project_t::get().settings;
+		void* object		= &editor_project_t::get().settings;
+		void* editor_object = &editor_settings_t::get().configurable;
 		_reflection.save_fold_states();
+		_editor_reflection.save_fold_states();
 
 		_reflection.set_reflection({
 			.fold_states = &_field_states,
@@ -132,6 +151,18 @@ namespace sfg
 				},
 			.objects = {.data = &object, .size = 1},
 			.type_id = type_id_t<editor_project_settings_data_t>::value,
+		});
+
+		_editor_reflection.set_reflection({
+			.fold_states = &_field_states,
+			.callbacks =
+				{
+					.edit_begin		= on_project_settings_edit_begin,
+					.edit_submitted = on_project_settings_edit_submitted,
+					.user_data		= this,
+				},
+			.objects = {.data = &editor_object, .size = 1},
+			.type_id = type_id_t<editor_settings_configurable_t>::value,
 		});
 	}
 
@@ -167,10 +198,11 @@ namespace sfg
 		if (!_project_edit_active)
 			return;
 
-		const editor_project_settings_data_t previous = _project_edit_previous;
-		editor_project_t::get().settings.project_settings.normalize(&previous.project_settings);
-		const editor_project_settings_data_t post = editor_command_project_settings_t::read();
-		_project_edit_active					  = false;
+		const editor_command_project_settings_data_t previous = _project_edit_previous;
+		editor_project_t::get().settings.project_settings.normalize(&previous.project.project_settings);
+		editor_settings_t::get().configurable.normalize();
+		const editor_command_project_settings_data_t post = editor_command_project_settings_t::read();
+		_project_edit_active							  = false;
 		if (previous == post)
 			return;
 

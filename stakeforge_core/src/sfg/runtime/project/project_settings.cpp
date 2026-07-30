@@ -43,7 +43,6 @@ namespace sfg
 		world_physics_rate			 = math::clamp(world_physics_rate, 30u, 240u);
 		max_sim_steps				 = math::clamp(max_sim_steps, 1u, 8u);
 		ui_scale					 = math::clamp(ui_scale, 0.1f, 8.0f);
-		editor_ui_scale				 = math::clamp(editor_ui_scale, 0.1f, 8.0f);
 		shadows.min_resolution		 = math::clamp<u16>(shadows.min_resolution, 64, 8192);
 		shadows.max_resolution		 = math::clamp<u16>(shadows.max_resolution, shadows.min_resolution, 8192);
 		shadows.max_views			 = math::min<u16>(shadows.max_views, ENGINE_SHADOW_VIEW_MAX);
@@ -158,15 +157,6 @@ namespace sfg
 					{.name				= "ui_scale",
 					 .display_name		= "UI Scale",
 					 .offset			= offsetof(project_settings_t, ui_scale),
-					 .size				= sizeof(f32),
-					 .flags				= reflected_field_flag_clamped,
-					 .min_clamp			= 0.1f,
-					 .max_clamp			= 8.0f,
-					 .clamp_granularity = 0.1f,
-					 .type				= reflected_value_type_e::f32},
-					{.name				= "editor_ui_scale",
-					 .display_name		= "Editor UI Scale",
-					 .offset			= offsetof(project_settings_t, editor_ui_scale),
 					 .size				= sizeof(f32),
 					 .flags				= reflected_field_flag_clamped,
 					 .min_clamp			= 0.1f,

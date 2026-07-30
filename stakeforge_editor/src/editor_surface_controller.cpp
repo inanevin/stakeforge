@@ -476,7 +476,7 @@ namespace sfg
 					.buffer_count			  = 64,
 					.geometry_span_count	  = 16384,
 				},
-			.user_ui_scale			   = editor_settings_t::get().ui_scale,
+			.user_ui_scale			   = editor_settings_t::get().configurable.editor_ui_scale,
 			.dpi_scale				   = surface.runtime->monitor_info.dpi_scale,
 			.max_widgets			   = 10000,
 			.text_pool_budget_bytes	   = 1024 * 1024,
@@ -664,10 +664,8 @@ namespace sfg
 	{
 		ZoneScoped;
 
-		f32& editor_ui_scale = editor_settings_t::get().ui_scale;
-		editor_ui_scale		 = engine_runtime_t::get().get_project_settings().editor_ui_scale;
-
-		const u16 surface_head = _surfaces.head();
+		const f32 editor_ui_scale = editor_settings_t::get().configurable.editor_ui_scale;
+		const u16 surface_head	  = _surfaces.head();
 
 		for (u16 i = 0; i < surface_head; ++i)
 		{

@@ -27,9 +27,10 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_settings.hpp"
 #include "editor_directories.hpp"
 
-#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/math/math.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -48,6 +49,11 @@ namespace sfg
 		{
 			reflection_registry_t::get().type_from_json(type_id_t<T>::value, &value, nullptr, json);
 		}
+	}
+
+	void editor_settings_configurable_t::normalize()
+	{
+		editor_ui_scale = math::clamp(editor_ui_scale, 0.1f, 8.0f);
 	}
 
 	bool editor_settings_t::save()
@@ -87,6 +93,31 @@ namespace sfg
 
 namespace sfg
 {
+	editor_settings_reflection_t::editor_settings_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+
+		registry.register_type({
+			.name		  = "editor_settings_configurable_t",
+			.display_name = "Editor",
+			.fields =
+				{
+					{.name				= "editor_ui_scale",
+					 .display_name		= "Editor UI Scale",
+					 .offset			= offsetof(editor_settings_configurable_t, editor_ui_scale),
+					 .size				= sizeof(f32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 0.1f,
+					 .max_clamp			= 8.0f,
+					 .clamp_granularity = 0.1f,
+					 .type				= reflected_value_type_e::f32},
+				},
+			.type_id   = type_id_t<editor_settings_configurable_t>::value,
+			.size	   = sizeof(editor_settings_configurable_t),
+			.alignment = alignof(editor_settings_configurable_t),
+		});
+	}
+
 	void to_json(nlohmann::json& j, const editor_import_settings_t& settings)
 	{
 		j["texture"] = reflected_to_json(settings.texture);
@@ -110,8 +141,8 @@ namespace sfg
 		j["layout"]		  = settings.layout;
 		j["import"]		  = settings.import;
 		j["project_cook"] = reflected_to_json(settings.project_cook);
+		j["configurable"] = reflected_to_json(settings.configurable);
 		j["project_path"] = settings.last_project_path;
-		j["ui_scale"]	  = settings.ui_scale;
 	}
 
 	void from_json(const nlohmann::json& j, editor_settings_t& settings)
@@ -119,7 +150,9 @@ namespace sfg
 		settings.layout = j.value("layout", editor_layout_t{});
 		settings.import = j.value("import", editor_import_settings_t{});
 		reflected_from_json(j.value("project_cook", nlohmann::json::object()), settings.project_cook);
+		settings.configurable = {};
+		reflected_from_json(j.value("configurable", nlohmann::json::object()), settings.configurable);
+		settings.configurable.normalize();
 		settings.last_project_path = j.value<string_t>("project_path", {});
-		settings.ui_scale		   = j.value<f32>("ui_scale", 1.0f);
 	}
 }

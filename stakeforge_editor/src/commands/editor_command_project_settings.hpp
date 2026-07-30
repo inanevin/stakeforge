@@ -27,16 +27,27 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "editor_project.hpp"
+#include "editor_settings.hpp"
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
 
 namespace sfg
 {
+	struct editor_command_project_settings_data_t
+	{
+		editor_project_settings_data_t project = {};
+		editor_settings_configurable_t editor  = {};
+
+		bool operator==(const editor_command_project_settings_data_t&) const = default;
+	};
+
 	struct editor_command_edit_project_settings_payload_t
 	{
 		chunk_handle32_t previous_project_settings = {};
 		chunk_handle32_t post_project_settings	   = {};
+		chunk_handle32_t previous_editor_settings  = {};
+		chunk_handle32_t post_editor_settings	   = {};
 		sid_t			 previous_last_world_guid  = NULL_SID;
 		sid_t			 post_last_world_guid	   = NULL_SID;
 	};
@@ -46,8 +57,8 @@ namespace sfg
 	public:
 		editor_command_project_settings_t() = delete;
 
-		static editor_project_settings_data_t read();
-		static void							  apply(const editor_project_settings_data_t& settings);
-		static bool							  edit(const editor_project_settings_data_t& previous, const editor_project_settings_data_t& post);
+		static editor_command_project_settings_data_t read();
+		static void									  apply(const editor_command_project_settings_data_t& settings);
+		static bool									  edit(const editor_command_project_settings_data_t& previous, const editor_command_project_settings_data_t& post);
 	};
 }

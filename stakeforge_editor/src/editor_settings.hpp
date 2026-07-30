@@ -47,6 +47,15 @@ namespace sfg
 		sprite_cook_config_t  sprite  = {};
 	};
 
+	struct editor_settings_configurable_t
+	{
+		f32 editor_ui_scale = 1.0f;
+
+		void normalize();
+
+		bool operator==(const editor_settings_configurable_t&) const = default;
+	};
+
 	struct editor_settings_t
 	{
 		inline static editor_settings_t& get()
@@ -58,12 +67,21 @@ namespace sfg
 		bool save();
 		bool ensure_loaded();
 
-		editor_layout_t				  layout			= {};
-		editor_import_settings_t	  import			= {};
-		editor_project_cook_options_t project_cook		= {};
-		string_t					  last_project_path = "";
-		f32							  ui_scale			= 1.0f;
+		editor_layout_t				   layout			 = {};
+		editor_import_settings_t	   import			 = {};
+		editor_project_cook_options_t  project_cook		 = {};
+		string_t					   last_project_path = "";
+		editor_settings_configurable_t configurable		 = {};
 	};
+
+	SFG_DEFINE_TYPE_ID(editor_settings_configurable_t);
+
+	struct editor_settings_reflection_t
+	{
+		editor_settings_reflection_t();
+	};
+
+	inline editor_settings_reflection_t g_reflect_editor_settings;
 
 	void to_json(nlohmann::json& j, const editor_import_settings_t& settings);
 	void from_json(const nlohmann::json& j, editor_import_settings_t& settings);

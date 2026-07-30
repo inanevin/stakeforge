@@ -65,8 +65,9 @@ namespace sfg
 	private:
 		vector_t<editor_widget_reflection_fold_state_t> _field_states		   = {};
 		editor_widget_reflection_t						_reflection			   = {};
+		editor_widget_reflection_t						_editor_reflection	   = {};
 		editor_scrollbar_t								_scrollbar			   = {};
-		editor_project_settings_data_t					_project_edit_previous = {};
+		editor_command_project_settings_data_t			_project_edit_previous = {};
 		editor_command_listener_handle_t				_command_listener	   = {};
 		ui::widget_id_t									_scroll_area		   = NULL_WIDGET;
 		ui::widget_id_t									_content			   = NULL_WIDGET;
