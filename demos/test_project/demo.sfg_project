@@ -1,8 +1,7 @@
 {
     "settings": {
-        "last_world_guid": 16955923858824301660,
+        "last_world_guid": 13991058972890426152,
         "project_settings": {
-            "editor_ui_scale": 1.0,
             "max_sim_steps": 4,
             "physics": {
                 "collision_layers": [

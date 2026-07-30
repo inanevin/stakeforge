@@ -108,5 +108,8 @@ namespace sfg
 
 		s_editor_manifest = string_t(SFG_ROOT_DIRECTORY) + "assets/assets_editor.sfg";
 		s_engine_manifest = string_t(SFG_ROOT_DIRECTORY) + "assets/assets_engine.sfg";
+
+		if (!file_system_t::exists(s_user_directory.c_str()))
+			file_system_t::create_directory(s_user_directory.c_str());
 	}
 }
