@@ -206,7 +206,7 @@ namespace sfg::ui
 
 	private:
 		void flatten();
-		void resolve_relative_sizes(f32 scale);
+		void resolve_child_sizes(f32 scale);
 
 	private:
 		struct custom_cb_t
@@ -226,6 +226,7 @@ namespace sfg::ui
 		widget_id_t					 _root						= NULL_WIDGET;
 		u32							 _max_widgets				= 0;
 		u32							 _alive_count				= 0;
+		f32							 _last_solve_scale			= 0.0f;
 		bool						 _topology_dirty			= true;
 		bool						 _layout_dirty				= true;
 		bool						 _topology_mutation_allowed = true;

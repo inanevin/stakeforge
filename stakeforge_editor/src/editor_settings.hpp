@@ -62,6 +62,7 @@ namespace sfg
 		editor_import_settings_t	  import			= {};
 		editor_project_cook_options_t project_cook		= {};
 		string_t					  last_project_path = "";
+		f32							  ui_scale			= 1.0f;
 	};
 
 	void to_json(nlohmann::json& j, const editor_import_settings_t& settings);

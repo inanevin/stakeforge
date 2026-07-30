@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
+#include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/resources/font.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
@@ -64,7 +65,7 @@ namespace sfg::ui
 
 		_user_ui_scale			  = get_valid_scale(cfg.user_ui_scale);
 		_dpi_scale				  = get_valid_scale(cfg.dpi_scale);
-		_ui_scale				  = _dpi_scale * _user_ui_scale;
+		_ui_scale				  = _dpi_scale * engine_runtime_t::get().get_project_settings().ui_scale * _user_ui_scale;
 		_pipeline_variant_flags	  = cfg.pipeline_variant_flags;
 		_render_snapshots_enabled = cfg.render_snapshots_enabled;
 
@@ -95,6 +96,7 @@ namespace sfg::ui
 			_consumer_slot = 1;
 			_snapshot_mailbox.store(2, std::memory_order_relaxed);
 		}
+
 		set_phase(ui_phase_e::idle);
 	}
 
@@ -155,8 +157,9 @@ namespace sfg::ui
 	void ui_context::tick(const vec4f_t& screen_rect, f32 dpi_scale, f32 dt_seconds)
 	{
 		ZoneScoped;
+
 		_dpi_scale = dpi_scale > 0.0f ? dpi_scale : 1.0f;
-		_ui_scale  = _dpi_scale * _user_ui_scale;
+		_ui_scale  = _dpi_scale * engine_runtime_t::get().get_project_settings().ui_scale * _user_ui_scale;
 
 		set_phase(ui_phase_e::mutation);
 		drain_mutations();
@@ -187,11 +190,14 @@ namespace sfg::ui
 
 		_canvas.frame_begin(screen_rect);
 		_paint.paint_all(_tree, _input, _canvas, _ui_scale, _dpi_scale);
+
 		if (_debug_draw)
 			draw_debug_hovered_widget();
+
 		_canvas.frame_end();
 
 		_canvas.resolve(_pipeline_variant_flags);
+
 		set_phase(ui_phase_e::idle);
 	}
 
@@ -306,6 +312,7 @@ namespace sfg::ui
 	void ui_context::request_post_layout_solve()
 	{
 		_post_solve = true;
+		_tree.mark_layout_dirty();
 	}
 
 	void ui_context::clear_widget_state_recursive(widget_id_t id)

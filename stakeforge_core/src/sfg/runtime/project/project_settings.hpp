@@ -64,6 +64,8 @@ namespace sfg
 		u32						   world_tick_rate	  = 60;
 		u32						   world_physics_rate = 100;
 		u32						   max_sim_steps	  = 4;
+		f32						   ui_scale			  = 1.0f;
+		f32						   editor_ui_scale	  = 1.0f;
 		engine_quality_level_e	   quality_level	  = engine_quality_level_e::high;
 
 		void normalize(const project_settings_t* previous = nullptr);

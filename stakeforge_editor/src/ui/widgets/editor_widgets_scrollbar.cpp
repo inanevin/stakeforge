@@ -168,9 +168,10 @@ namespace sfg
 		if ((_config.axes & editor_scrollbar_axis_y) == 0)
 			return;
 
-		ui::layout_tree_t&		tree = _ui->get_tree();
-		ui::layout_in_t&		in	 = tree.in(_config.target);
-		const ui::layout_out_t& out	 = tree.out(_config.target);
+		const ui::layout_tree_t& tree = _ui->get_tree();
+		const ui::layout_in_t&	 in	  = tree.in_const(_config.target);
+		const ui::layout_out_t&	 out  = tree.out(_config.target);
+
 		if (out.max_scroll.y <= 0.0f)
 			return;
 
@@ -197,29 +198,45 @@ namespace sfg
 		const bool				enabled	   = axis.axis == axis_e::x ? ((_config.axes & editor_scrollbar_axis_x) != 0) : ((_config.axes & editor_scrollbar_axis_y) != 0);
 		const f32				ui_scale   = _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
 		ui::layout_tree_t&		tree	   = _ui->get_tree();
-		ui::layout_in_t&		target_in  = tree.in(_config.target);
+		const ui::layout_in_t&	target_in  = tree.in_const(_config.target);
 		const ui::layout_out_t& target_out = tree.out(_config.target);
-		ui::layout_in_t&		track_in   = tree.in(axis.track);
+		const ui::layout_in_t&	track_in   = tree.in_const(axis.track);
 		ui::layout_out_t&		track_out  = tree.out(axis.track);
-		ui::layout_in_t&		thumb_in   = tree.in(axis.thumb);
+		const ui::layout_in_t&	thumb_in   = tree.in_const(axis.thumb);
 		ui::layout_out_t&		thumb_out  = tree.out(axis.thumb);
 
 		const f32 max_scroll = axis.axis == axis_e::x ? target_out.max_scroll.x : target_out.max_scroll.y;
+
 		if (!enabled || max_scroll * ui_scale <= EDITOR_SCROLLBAR_SHOW_EPS)
 		{
-			track_in.flags = 0;
+			if (track_in.flags != 0)
+				tree.in(axis.track).flags = 0;
+
 			track_out.clip = {};
+
 			if (axis.axis == axis_e::x)
-				target_in.scroll_offset.x = 0.0f;
+			{
+				if (target_in.scroll_offset.x != 0.0f)
+					tree.in(_config.target).scroll_offset.x = 0.0f;
+			}
 			else
-				target_in.scroll_offset.y = 0.0f;
+			{
+				if (target_in.scroll_offset.y != 0.0f)
+					tree.in(_config.target).scroll_offset.y = 0.0f;
+			}
 			return;
 		}
 
-		track_in.flags = ui::wf_visible | ui::wf_input;
-		thumb_in.flags = ui::wf_visible | ui::wf_input;
+		const u16 visible_flags = static_cast<u16>(ui::wf_visible | ui::wf_input);
+
+		if (track_in.flags != visible_flags)
+			tree.in(axis.track).flags = visible_flags;
+
+		if (thumb_in.flags != visible_flags)
+			tree.in(axis.thumb).flags = visible_flags;
 
 		const f32 thickness = EDITOR_SCROLLBAR_THICKNESS * ui_scale;
+
 		if (axis.axis == axis_e::x)
 		{
 			track_out.pos  = {target_out.pos.x, target_out.pos.y + target_out.size.y - thickness};
@@ -242,35 +259,63 @@ namespace sfg
 
 		if (axis.axis == axis_e::x)
 		{
-			thumb_in.size_mode_x = ui::axis_mode_e::fixed;
-			thumb_in.size_mode_y = ui::axis_mode_e::parent_relative;
-			thumb_in.size_value	 = {thumb / ui_scale, 1.0f};
-			thumb_in.pos_value	 = {pos / ui_scale, 0.0f};
-			thumb_out.pos		 = {track_out.pos.x + pos, track_out.pos.y};
-			thumb_out.size		 = {thumb, track_out.size.y};
+			const vec2f_t size_value = {thumb / ui_scale, 1.0f};
+			const vec2f_t pos_value	 = {pos / ui_scale, 0.0f};
+
+			if (thumb_in.size_mode_x != ui::axis_mode_e::fixed || thumb_in.size_mode_y != ui::axis_mode_e::parent_relative || thumb_in.size_value != size_value || thumb_in.pos_value != pos_value)
+			{
+				ui::layout_in_t& mutable_thumb = tree.in(axis.thumb);
+				mutable_thumb.size_mode_x	   = ui::axis_mode_e::fixed;
+				mutable_thumb.size_mode_y	   = ui::axis_mode_e::parent_relative;
+				mutable_thumb.size_value	   = size_value;
+				mutable_thumb.pos_value		   = pos_value;
+			}
+
+			thumb_out.pos  = {track_out.pos.x + pos, track_out.pos.y};
+			thumb_out.size = {thumb, track_out.size.y};
 		}
 		else
 		{
-			thumb_in.size_mode_x = ui::axis_mode_e::parent_relative;
-			thumb_in.size_mode_y = ui::axis_mode_e::fixed;
-			thumb_in.size_value	 = {1.0f, thumb / ui_scale};
-			thumb_in.pos_value	 = {0.0f, pos / ui_scale};
-			thumb_out.pos		 = {track_out.pos.x, track_out.pos.y + pos};
-			thumb_out.size		 = {track_out.size.x, thumb};
+			const vec2f_t size_value = {1.0f, thumb / ui_scale};
+			const vec2f_t pos_value	 = {0.0f, pos / ui_scale};
+
+			if (thumb_in.size_mode_x != ui::axis_mode_e::parent_relative || thumb_in.size_mode_y != ui::axis_mode_e::fixed || thumb_in.size_value != size_value || thumb_in.pos_value != pos_value)
+			{
+				ui::layout_in_t& mutable_thumb = tree.in(axis.thumb);
+				mutable_thumb.size_mode_x	   = ui::axis_mode_e::parent_relative;
+				mutable_thumb.size_mode_y	   = ui::axis_mode_e::fixed;
+				mutable_thumb.size_value	   = size_value;
+				mutable_thumb.pos_value		   = pos_value;
+			}
+
+			thumb_out.pos  = {track_out.pos.x, track_out.pos.y + pos};
+			thumb_out.size = {track_out.size.x, thumb};
 		}
+
 		thumb_out.clip = ui::intersect_clip_rect(track_out.clip, {thumb_out.pos.x, thumb_out.pos.y, thumb_out.size.x, thumb_out.size.y});
 	}
 
 	void editor_scrollbar_t::set_scroll(axis_e axis, f32 value)
 	{
 		ui::layout_tree_t&		tree	= _ui->get_tree();
-		ui::layout_in_t&		in		= tree.in(_config.target);
+		const ui::layout_in_t&	in		= tree.in_const(_config.target);
 		const ui::layout_out_t& out		= tree.out(_config.target);
 		const f32				aligned = align_scroll_value(value);
+
 		if (axis == axis_e::x)
-			in.scroll_offset.x = math::clamp(aligned, -out.max_scroll.x, 0.0f);
+		{
+			const f32 scroll = math::clamp(aligned, -out.max_scroll.x, 0.0f);
+
+			if (in.scroll_offset.x != scroll)
+				tree.in(_config.target).scroll_offset.x = scroll;
+		}
 		else
-			in.scroll_offset.y = math::clamp(aligned, -out.max_scroll.y, 0.0f);
+		{
+			const f32 scroll = math::clamp(aligned, -out.max_scroll.y, 0.0f);
+
+			if (in.scroll_offset.y != scroll)
+				tree.in(_config.target).scroll_offset.y = scroll;
+		}
 	}
 
 	f32 editor_scrollbar_t::align_scroll_value(f32 value) const
@@ -341,10 +386,10 @@ namespace sfg
 
 	void editor_scrollbar_t::update_layout_outputs()
 	{
-		ui::layout_tree_t& tree	   = _ui->get_tree();
-		ui::layout_in_t&   root_in = tree.in(_root);
-		bool			   visible = true;
-		ui::widget_id_t	   id	   = _config.target;
+		ui::layout_tree_t&	   tree	   = _ui->get_tree();
+		const ui::layout_in_t& root_in = tree.in_const(_root);
+		bool				   visible = true;
+		ui::widget_id_t		   id	   = _config.target;
 
 		while (id != NULL_WIDGET && id != tree.get_root())
 		{
@@ -358,7 +403,9 @@ namespace sfg
 
 		if (!visible)
 		{
-			root_in.flags		 = 0;
+			if (root_in.flags != 0)
+				tree.in(_root).flags = 0;
+
 			tree.out(_root).clip = {};
 			return;
 		}
@@ -366,12 +413,20 @@ namespace sfg
 		const ui::layout_out_t& target_out = tree.out(_config.target);
 		ui::layout_out_t&		root_out   = tree.out(_root);
 		const f32				ui_scale   = _ui->get_ui_scale() > 0.0f ? _ui->get_ui_scale() : 1.0f;
-		root_in.flags					   = ui::wf_visible | ui::wf_overlay;
-		root_in.pos_value				   = target_out.pos;
-		root_in.size_value				   = target_out.size / ui_scale;
-		root_out.pos					   = target_out.pos;
-		root_out.size					   = target_out.size;
-		root_out.clip					   = target_out.clip;
+		const u16				root_flags = static_cast<u16>(ui::wf_visible | ui::wf_overlay);
+		const vec2f_t			root_size  = target_out.size / ui_scale;
+
+		if (root_in.flags != root_flags || root_in.pos_value != target_out.pos || root_in.size_value != root_size)
+		{
+			ui::layout_in_t& mutable_root = tree.in(_root);
+			mutable_root.flags			  = root_flags;
+			mutable_root.pos_value		  = target_out.pos;
+			mutable_root.size_value		  = root_size;
+		}
+
+		root_out.pos  = target_out.pos;
+		root_out.size = target_out.size;
+		root_out.clip = target_out.clip;
 
 		update_axis(_x);
 		update_axis(_y);

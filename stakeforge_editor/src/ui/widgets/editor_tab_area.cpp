@@ -99,8 +99,10 @@ namespace sfg
 				}
 			}
 
-			ui::layout_in_t& marker_in = tree.in(tab.marker_inner);
-			marker_in.size_value.y	   = tab.marker_height;
+			const ui::layout_in_t& marker_in = tree.in_const(tab.marker_inner);
+
+			if (marker_in.size_value.y != tab.marker_height)
+				tree.in(tab.marker_inner).size_value.y = tab.marker_height;
 		}
 	}
 
@@ -141,8 +143,12 @@ namespace sfg
 				tab.pos_y = easing_t::smooth_damp(tab.pos_y, target_y, &tab.velocity_y, 0.08f, 1000.0f, dt);
 			}
 
-			ui::layout_in_t& in				  = tree.in(tab.widget);
-			in.pos_value					  = {tab.pos_x * inv_scale, tab.pos_y * inv_scale};
+			const vec2f_t		   pos_value = {tab.pos_x * inv_scale, tab.pos_y * inv_scale};
+			const ui::layout_in_t& in		 = tree.in_const(tab.widget);
+
+			if (in.pos_value != pos_value)
+				tree.in(tab.widget).pos_value = pos_value;
+
 			tree.draw_order(tab.widget)		  = dragging ? 1000u : 0u;
 			tree.draw_order(tab.marker)		  = dragging ? 1000u : 0u;
 			tree.draw_order(tab.marker_inner) = dragging ? 1000u : 0u;

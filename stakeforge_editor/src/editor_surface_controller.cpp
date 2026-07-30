@@ -476,7 +476,7 @@ namespace sfg
 					.buffer_count			  = 64,
 					.geometry_span_count	  = 16384,
 				},
-			.user_ui_scale			   = 1.0f,
+			.user_ui_scale			   = editor_settings_t::get().ui_scale,
 			.dpi_scale				   = surface.runtime->monitor_info.dpi_scale,
 			.max_widgets			   = 10000,
 			.text_pool_budget_bytes	   = 1024 * 1024,
@@ -664,9 +664,17 @@ namespace sfg
 	{
 		ZoneScoped;
 
-		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)
+		f32& editor_ui_scale = editor_settings_t::get().ui_scale;
+		editor_ui_scale		 = engine_runtime_t::get().get_project_settings().editor_ui_scale;
+
+		const u16 surface_head = _surfaces.head();
+
+		for (u16 i = 0; i < surface_head; ++i)
 		{
-			const surface_handle_t handle  = *it;
+			if (!_surfaces.is_active(i))
+				continue;
+
+			const surface_handle_t handle  = _surfaces.get_handle(i);
 			editor_surface_t&	   surface = _surfaces.get(handle);
 
 			if (surface.runtime->has_flag(window_runtime_flags_e::close_requested) || _close)
@@ -706,11 +714,13 @@ namespace sfg
 
 			if (!minimized && !hidden)
 			{
-				const vec4f_t screen	= {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
-				const f32	  dpi_scale = surface.runtime->monitor_info.dpi_scale > 0.0f ? surface.runtime->monitor_info.dpi_scale : 1.0f;
+				const vec4f_t		  screen	 = {0.0f, 0.0f, static_cast<f32>(surface.swapchain_size.x), static_cast<f32>(surface.swapchain_size.y)};
+				const f32			  dpi_scale	 = surface.runtime->monitor_info.dpi_scale > 0.0f ? surface.runtime->monitor_info.dpi_scale : 1.0f;
+				ui::ui_context* const surface_ui = surface.ui.get();
 
-				surface.ui->tick(screen, dpi_scale, dt);
-				surface.ui->publish_frame();
+				surface_ui->set_user_ui_scale(editor_ui_scale);
+				surface_ui->tick(screen, dpi_scale, dt);
+				surface_ui->publish_frame();
 			}
 		}
 	}

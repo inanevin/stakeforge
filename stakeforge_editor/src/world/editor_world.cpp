@@ -352,6 +352,7 @@ namespace sfg
 
 		_render_resolution = render_resolution;
 		_render_context.resize(render_resolution);
+		_world.get_screen().set_render_size(render_resolution);
 		_pick_result.store(0, std::memory_order_relaxed);
 		_last_render_pick_request_id = 0;
 

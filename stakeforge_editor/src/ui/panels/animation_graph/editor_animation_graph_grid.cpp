@@ -559,8 +559,11 @@ namespace sfg
 				else
 					grid._nodes[i]->clear_entry_and_exit();
 
-				ui::layout_in_t& node_in = ui.get_tree().in(grid._nodes[i]->get_root());
-				node_in.pos_value		 = center + (grid._offset + graph.nodes[i].editor_position * grid._zoom) * scale;
+				const ui::widget_id_t node_id	= grid._nodes[i]->get_root();
+				const vec2f_t		  pos_value = center + (grid._offset + graph.nodes[i].editor_position * grid._zoom) * scale;
+
+				if (ui.get_tree().in_const(node_id).pos_value != pos_value)
+					ui.get_tree().in(node_id).pos_value = pos_value;
 			}
 		}
 		else
@@ -575,8 +578,11 @@ namespace sfg
 				grid._nodes[i]->clear_entry_and_exit();
 				grid._nodes[i]->set_start_state(node_it->asm_node.states[i].id == node_it->asm_node.first_state_id);
 
-				ui::layout_in_t& node_in = ui.get_tree().in(grid._nodes[i]->get_root());
-				node_in.pos_value		 = center + (grid._offset + node_it->asm_node.states[i].editor_position * grid._zoom) * scale;
+				const ui::widget_id_t node_id	= grid._nodes[i]->get_root();
+				const vec2f_t		  pos_value = center + (grid._offset + node_it->asm_node.states[i].editor_position * grid._zoom) * scale;
+
+				if (ui.get_tree().in_const(node_id).pos_value != pos_value)
+					ui.get_tree().in(node_id).pos_value = pos_value;
 			}
 		}
 	}

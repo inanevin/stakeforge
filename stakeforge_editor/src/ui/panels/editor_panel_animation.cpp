@@ -1066,8 +1066,11 @@ namespace sfg
 		ui::layout_tree_t&		  tree			= ui.get_tree();
 		const ui::layout_in_t&	  right_body_in = tree.in_const(panel._left_pane_bottom_right_body);
 
-		tree.in(panel._left_pane_bottom_left_body).scroll_offset.y	   = right_body_in.scroll_offset.y;
-		tree.in(panel._left_pane_bottom_right_toolbar).scroll_offset.x = right_body_in.scroll_offset.x;
+		if (tree.in_const(panel._left_pane_bottom_left_body).scroll_offset.y != right_body_in.scroll_offset.y)
+			tree.in(panel._left_pane_bottom_left_body).scroll_offset.y = right_body_in.scroll_offset.y;
+
+		if (tree.in_const(panel._left_pane_bottom_right_toolbar).scroll_offset.x != right_body_in.scroll_offset.x)
+			tree.in(panel._left_pane_bottom_right_toolbar).scroll_offset.x = right_body_in.scroll_offset.x;
 
 		if (!panel._is_playing || panel._display_entity == NULL_ENTITY_ID)
 			return;

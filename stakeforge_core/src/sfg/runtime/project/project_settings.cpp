@@ -42,6 +42,8 @@ namespace sfg
 		world_tick_rate				 = math::clamp(world_tick_rate, 15u, 240u);
 		world_physics_rate			 = math::clamp(world_physics_rate, 30u, 240u);
 		max_sim_steps				 = math::clamp(max_sim_steps, 1u, 8u);
+		ui_scale					 = math::clamp(ui_scale, 0.1f, 8.0f);
+		editor_ui_scale				 = math::clamp(editor_ui_scale, 0.1f, 8.0f);
 		shadows.min_resolution		 = math::clamp<u16>(shadows.min_resolution, 64, 8192);
 		shadows.max_resolution		 = math::clamp<u16>(shadows.max_resolution, shadows.min_resolution, 8192);
 		shadows.max_views			 = math::min<u16>(shadows.max_views, ENGINE_SHADOW_VIEW_MAX);
@@ -52,6 +54,7 @@ namespace sfg
 	project_settings_reflection_t::project_settings_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();
+
 		registry.register_type({
 			.name		  = "engine_quality_level_e",
 			.display_name = "Quality Level",
@@ -61,6 +64,7 @@ namespace sfg
 			.alignment	  = alignof(engine_quality_level_e),
 			.flags		  = reflected_type_flag_enum,
 		});
+
 		registry.register_type({
 			.name		  = "engine_shadow_settings_t",
 			.display_name = "Shadows",
@@ -105,6 +109,7 @@ namespace sfg
 			.size	   = sizeof(engine_shadow_settings_t),
 			.alignment = alignof(engine_shadow_settings_t),
 		});
+
 		registry.register_type({
 			.name		  = "project_settings_t",
 			.display_name = "Project Settings",
@@ -150,6 +155,24 @@ namespace sfg
 					 .max_clamp			= 8.0f,
 					 .clamp_granularity = 1.0f,
 					 .type				= reflected_value_type_e::u32},
+					{.name				= "ui_scale",
+					 .display_name		= "UI Scale",
+					 .offset			= offsetof(project_settings_t, ui_scale),
+					 .size				= sizeof(f32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 0.1f,
+					 .max_clamp			= 8.0f,
+					 .clamp_granularity = 0.1f,
+					 .type				= reflected_value_type_e::f32},
+					{.name				= "editor_ui_scale",
+					 .display_name		= "Editor UI Scale",
+					 .offset			= offsetof(project_settings_t, editor_ui_scale),
+					 .size				= sizeof(f32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 0.1f,
+					 .max_clamp			= 8.0f,
+					 .clamp_granularity = 0.1f,
+					 .type				= reflected_value_type_e::f32},
 					{.name		   = "quality_level",
 					 .display_name = "Quality Level",
 					 .sub_type_id  = type_id_t<engine_quality_level_e>::value,

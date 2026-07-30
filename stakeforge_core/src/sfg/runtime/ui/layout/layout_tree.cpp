@@ -46,7 +46,11 @@ namespace sfg::ui
 	void layout_tree_t::init(u32 max_widgets)
 	{
 		SFG_ASSERT(max_widgets > 0 && max_widgets <= 0xFFFEu);
-		_max_widgets = max_widgets;
+
+		_max_widgets	  = max_widgets;
+		_last_solve_scale = 0.0f;
+		_topology_dirty	  = true;
+		_layout_dirty	  = true;
 		_nodes.init(max_widgets);
 		_layout_ins.init(max_widgets);
 		_layout_outs.init(max_widgets);
@@ -203,7 +207,9 @@ namespace sfg::ui
 	void layout_tree_t::set_custom_solve(widget_id_t id, custom_solve_fn fn, void* user_data)
 	{
 		SFG_ASSERT(id < _max_widgets && _nodes[id].alive);
+
 		_custom_cbs[id] = {fn, user_data};
+		_layout_dirty	= true;
 	}
 
 	const tree_node_t& layout_tree_t::node(widget_id_t id) const
@@ -231,15 +237,28 @@ namespace sfg::ui
 
 	void layout_tree_t::set_visible(widget_id_t id, bool visible)
 	{
-		if (visible)
-			in(id).flags |= wf_visible;
-		else
-			in(id).flags &= ~wf_visible;
+		SFG_ASSERT(id < _max_widgets && _nodes[id].alive);
+
+		const u16 flags = visible ? static_cast<u16>(_layout_ins[id].flags | wf_visible) : static_cast<u16>(_layout_ins[id].flags & ~wf_visible);
+
+		if (_layout_ins[id].flags == flags)
+			return;
+
+		_layout_ins[id].flags = flags;
+		_layout_dirty		  = true;
 	}
 
 	void layout_tree_t::set_visible(widget_id_t id, bool visible, bool input)
 	{
-		in(id).flags = visible ? static_cast<u16>(wf_visible | (input ? wf_input : 0)) : 0;
+		SFG_ASSERT(id < _max_widgets && _nodes[id].alive);
+
+		const u16 flags = visible ? static_cast<u16>(wf_visible | (input ? wf_input : 0)) : 0;
+
+		if (_layout_ins[id].flags == flags)
+			return;
+
+		_layout_ins[id].flags = flags;
+		_layout_dirty		  = true;
 	}
 
 	void layout_tree_t::set_topology_mutation_allowed(bool allowed)
@@ -282,42 +301,139 @@ namespace sfg::ui
 		_topology_dirty = false;
 	}
 
-	void layout_tree_t::resolve_relative_sizes(f32 scale)
+	void layout_tree_t::resolve_child_sizes(f32 scale)
 	{
 		for (widget_id_t id : _dfs)
 		{
-			layout_in_t&	   in  = _layout_ins[id];
-			layout_out_t&	   out = _layout_outs[id];
-			const tree_node_t& n   = _nodes[id];
-			if (id == _root)
+			const layout_in_t&	in		= _layout_ins[id];
+			const layout_out_t& out		= _layout_outs[id];
+			const tree_node_t&	node	= _nodes[id];
+			const vec4f_t		margins = scale_rect(in.child_margins, scale);
+			const f32			inner_w = out.size.x - margins.w - margins.y;
+			const f32			inner_h = out.size.y - margins.x - margins.z;
+			widget_id_t			child	= node.first_child;
+
+			while (child != NULL_WIDGET)
+			{
+				const layout_in_t& child_in	 = _layout_ins[child];
+				layout_out_t&	   child_out = _layout_outs[child];
+
+				if (child_in.size_mode_x == axis_mode_e::parent_relative)
+					child_out.size.x = inner_w * child_in.size_value.x;
+				if (child_in.size_mode_y == axis_mode_e::parent_relative)
+					child_out.size.y = inner_h * child_in.size_value.y;
+
+				if (child_in.size_mode_x == axis_mode_e::copy_other)
+					child_out.size.x = child_out.size.y;
+				if (child_in.size_mode_y == axis_mode_e::copy_other)
+					child_out.size.y = child_out.size.x;
+
+				child = _nodes[child].next_sibling;
+			}
+
+			if (in.flow == flow_e::none)
 				continue;
-			if (n.parent == NULL_WIDGET)
+
+			f32 used		  = 0.0f;
+			u32 fill_count	  = 0;
+			u32 visible_count = 0;
+
+			child = node.first_child;
+
+			while (child != NULL_WIDGET)
+			{
+				const layout_in_t&	child_in  = _layout_ins[child];
+				const layout_out_t& child_out = _layout_outs[child];
+				const widget_id_t	next	  = _nodes[child].next_sibling;
+
+				if ((child_in.flags & wf_overlay) || !(child_in.flags & wf_visible))
+				{
+					child = next;
+					continue;
+				}
+
+				if (in.flow == flow_e::row)
+				{
+					if (child_in.size_mode_x == axis_mode_e::fill)
+						fill_count++;
+					else
+						used += child_out.size.x;
+				}
+				else
+				{
+					if (child_in.size_mode_y == axis_mode_e::fill)
+						fill_count++;
+					else
+						used += child_out.size.y;
+				}
+
+				visible_count++;
+				child = next;
+			}
+
+			if (visible_count == 0)
 				continue;
 
-			const layout_in_t&	pin			= _layout_ins[n.parent];
-			const layout_out_t& pout		= _layout_outs[n.parent];
-			const vec4f_t		pin_margins = scale_rect(pin.child_margins, scale);
-			const f32			pinner_w	= pout.size.x - pin_margins.w - pin_margins.y;
-			const f32			pinner_h	= pout.size.y - pin_margins.x - pin_margins.z;
+			const f32 spacing_total	  = in.child_spacing * scale * static_cast<f32>(visible_count - 1);
+			const f32 main_axis_avail = in.flow == flow_e::row ? inner_w : inner_h;
+			const f32 leftover		  = math::max(0.0f, main_axis_avail - used - spacing_total);
+			const f32 per_fill		  = fill_count > 0 ? leftover / static_cast<f32>(fill_count) : 0.0f;
 
-			if (in.size_mode_x == axis_mode_e::parent_relative)
-				out.size.x = pinner_w * in.size_value.x;
-			if (in.size_mode_y == axis_mode_e::parent_relative)
-				out.size.y = pinner_h * in.size_value.y;
+			child = node.first_child;
 
-			if (in.size_mode_x == axis_mode_e::copy_other)
-				out.size.x = out.size.y;
-			if (in.size_mode_y == axis_mode_e::copy_other)
-				out.size.y = out.size.x;
+			while (child != NULL_WIDGET)
+			{
+				const layout_in_t& child_in	 = _layout_ins[child];
+				layout_out_t&	   child_out = _layout_outs[child];
+				const widget_id_t  next		 = _nodes[child].next_sibling;
+
+				if ((child_in.flags & wf_overlay) || !(child_in.flags & wf_visible))
+				{
+					child = next;
+					continue;
+				}
+
+				if (in.flow == flow_e::row)
+				{
+					if (child_in.size_mode_x == axis_mode_e::fill)
+						child_out.size.x = per_fill;
+					if (child_in.size_mode_y == axis_mode_e::fill)
+						child_out.size.y = inner_h;
+				}
+				else
+				{
+					if (child_in.size_mode_y == axis_mode_e::fill)
+						child_out.size.y = per_fill;
+					if (child_in.size_mode_x == axis_mode_e::fill)
+						child_out.size.x = inner_w;
+				}
+
+				if (child_in.size_mode_x == axis_mode_e::copy_other)
+					child_out.size.x = child_out.size.y;
+				if (child_in.size_mode_y == axis_mode_e::copy_other)
+					child_out.size.y = child_out.size.x;
+
+				child = next;
+			}
 		}
 	}
 
 	void layout_tree_t::solve(const vec4f_t& screen_rect, f32 ui_scale)
 	{
+		const f32		   scale			= ui_scale > 0.0f ? ui_scale : 1.0f;
+		const layout_in_t& root_in			= _layout_ins[_root];
+		const bool		   viewport_changed = root_in.pos_value.x != screen_rect.x || root_in.pos_value.y != screen_rect.y || root_in.size_value.x != screen_rect.z || root_in.size_value.y != screen_rect.w;
+
+		if (viewport_changed || _last_solve_scale != scale)
+			_layout_dirty = true;
+
+		if (!_layout_dirty && !_topology_dirty)
+			return;
+
 		if (_topology_dirty)
 			flatten();
 
-		const f32 scale = ui_scale > 0.0f ? ui_scale : 1.0f;
+		_layout_dirty = false;
 
 		layout_in_t&  ri = _layout_ins[_root];
 		layout_out_t& ro = _layout_outs[_root];
@@ -334,13 +450,13 @@ namespace sfg::ui
 
 		for (widget_id_t id : _dfs)
 		{
-			layout_in_t&	   in  = _layout_ins[id];
-			layout_out_t&	   out = _layout_outs[id];
-			const tree_node_t& n   = _nodes[id];
+			layout_in_t&  in  = _layout_ins[id];
+			layout_out_t& out = _layout_outs[id];
 
 			if (in.flags & wf_custom_solve)
 			{
 				const custom_cb_t& cb = _custom_cbs[id];
+
 				if (cb.fn)
 					cb.fn(*this, id, cb.user_data);
 				continue;
@@ -403,94 +519,7 @@ namespace sfg::ui
 				out.size.y = total_y + mh;
 		}
 
-		resolve_relative_sizes(scale);
-
-		for (widget_id_t id : _dfs)
-		{
-			const layout_in_t&	in	 = _layout_ins[id];
-			const layout_out_t& pout = _layout_outs[id];
-			if (in.flow == flow_e::none)
-				continue;
-			const tree_node_t& n = _nodes[id];
-
-			const vec4f_t margins = scale_rect(in.child_margins, scale);
-			const f32	  inner_w = pout.size.x - margins.w - margins.y;
-			const f32	  inner_h = pout.size.y - margins.x - margins.z;
-
-			f32 used		  = 0.0f;
-			u32 fill_count	  = 0;
-			u32 visible_count = 0;
-
-			widget_id_t c = n.first_child;
-			while (c != NULL_WIDGET)
-			{
-				const layout_in_t&	cin	 = _layout_ins[c];
-				const layout_out_t& cout = _layout_outs[c];
-				const widget_id_t	nxt	 = _nodes[c].next_sibling;
-				if ((cin.flags & wf_overlay) || !(cin.flags & wf_visible))
-				{
-					c = nxt;
-					continue;
-				}
-
-				if (in.flow == flow_e::row)
-				{
-					if (cin.size_mode_x == axis_mode_e::fill)
-						fill_count++;
-					else
-						used += cout.size.x;
-				}
-				else
-				{
-					if (cin.size_mode_y == axis_mode_e::fill)
-						fill_count++;
-					else
-						used += cout.size.y;
-				}
-				visible_count++;
-				c = nxt;
-			}
-
-			if (visible_count == 0)
-				continue;
-
-			const f32 spacing_total	  = in.child_spacing * scale * static_cast<f32>(visible_count - 1);
-			const f32 main_axis_avail = (in.flow == flow_e::row) ? inner_w : inner_h;
-			const f32 leftover		  = math::max(0.0f, main_axis_avail - used - spacing_total);
-			const f32 per_fill		  = fill_count > 0 ? leftover / static_cast<f32>(fill_count) : 0.0f;
-
-			c = n.first_child;
-			while (c != NULL_WIDGET)
-			{
-				const layout_in_t& cin = _layout_ins[c];
-				layout_out_t&	   o   = _layout_outs[c];
-				const widget_id_t  nxt = _nodes[c].next_sibling;
-
-				if ((cin.flags & wf_overlay) || !(cin.flags & wf_visible))
-				{
-					c = nxt;
-					continue;
-				}
-
-				if (in.flow == flow_e::row)
-				{
-					if (cin.size_mode_x == axis_mode_e::fill)
-						o.size.x = per_fill;
-					if (cin.size_mode_y == axis_mode_e::fill)
-						o.size.y = inner_h;
-				}
-				else
-				{
-					if (cin.size_mode_y == axis_mode_e::fill)
-						o.size.y = per_fill;
-					if (cin.size_mode_x == axis_mode_e::fill)
-						o.size.x = inner_w;
-				}
-				c = nxt;
-			}
-		}
-
-		resolve_relative_sizes(scale);
+		resolve_child_sizes(scale);
 
 		for (widget_id_t id : _dfs)
 		{
@@ -641,6 +670,6 @@ namespace sfg::ui
 			out.clip				 = intersect_clip_rect(pout.clip, bbox);
 		}
 
-		_layout_dirty = false;
+		_last_solve_scale = scale;
 	}
 }

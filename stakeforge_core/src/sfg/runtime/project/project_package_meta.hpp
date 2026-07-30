@@ -52,7 +52,7 @@ namespace sfg
 		static inline constexpr const char* FILE_NAME					 = "project_meta.sfg_bin";
 		static inline constexpr const char* RESOURCE_FILE_NAME			 = "resources.sfg_bin";
 		static inline constexpr u32			WIRE_MAGIC					 = make_resource_wire_magic('P', 'M', 'E', 'T');
-		static inline constexpr u32			WIRE_VERSION				 = 8;
+		static inline constexpr u32			WIRE_VERSION				 = 9;
 		static inline constexpr u32			RESOURCE_STREAM_WIRE_MAGIC	 = make_resource_wire_magic('R', 'S', 'T', 'R');
 		static inline constexpr u32			RESOURCE_STREAM_WIRE_VERSION = 4;
 

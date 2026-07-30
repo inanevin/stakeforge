@@ -111,6 +111,7 @@ namespace sfg
 		j["import"]		  = settings.import;
 		j["project_cook"] = reflected_to_json(settings.project_cook);
 		j["project_path"] = settings.last_project_path;
+		j["ui_scale"]	  = settings.ui_scale;
 	}
 
 	void from_json(const nlohmann::json& j, editor_settings_t& settings)
@@ -119,5 +120,6 @@ namespace sfg
 		settings.import = j.value("import", editor_import_settings_t{});
 		reflected_from_json(j.value("project_cook", nlohmann::json::object()), settings.project_cook);
 		settings.last_project_path = j.value<string_t>("project_path", {});
+		settings.ui_scale		   = j.value<f32>("ui_scale", 1.0f);
 	}
 }

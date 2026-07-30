@@ -299,7 +299,7 @@ namespace sfg
 
 		if (out.size.x > 0.0f && out.size.y > 0.0f)
 		{
-			editor_world->get_world().get_canvas_controller().set_viewport({out.pos.x, out.pos.y, out.size.x, out.size.y}, editor_world->get_render_context().get_size(), widget._ui->get_dpi_scale());
+			editor_world->get_world().get_screen().set_viewport({out.pos.x, out.pos.y, out.size.x, out.size.y}, editor_world->get_render_context().get_size(), widget._ui->get_dpi_scale());
 		}
 
 		editor_world->get_input_controller().tick(relative_position, hovered);

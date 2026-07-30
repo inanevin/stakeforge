@@ -126,6 +126,22 @@ namespace sfg
 		paint.set_custom(_overlay, draw_overlay, this);
 
 		update_field_data(config.field);
+
+		root_in.child_margins =
+			config.field.is_slider ? vec4f_t{editor_theme_t::get().outline_thickness * 2, 0.0f, editor_theme_t::get().outline_thickness * 2, 0.0f} : vec4f_t{0.0f, editor_theme_t::get().margin_horizontal, 0.0f, editor_theme_t::get().margin_horizontal};
+
+		if (_config.field.is_slider)
+		{
+			label_in.pos_mode_x	 = ui::pos_mode_e::relative_in_parent;
+			label_in.pos_value.x = 0.5f;
+			label_in.anchor_x	 = ui::anchor_e::center;
+		}
+		else
+		{
+			label_in.pos_mode_x	 = ui::pos_mode_e::offset_in_parent;
+			label_in.pos_value.x = 0.0f;
+			label_in.anchor_x	 = ui::anchor_e::start;
+		}
 	}
 
 	void editor_input_field_t::uninit()
@@ -180,10 +196,6 @@ namespace sfg
 		_mixed		  = false;
 		_edit_active  = false;
 		_edit_dirty	  = false;
-
-		ui::layout_in_t& root_in = _ui->get_tree().in(_root);
-		root_in.child_margins =
-			field.is_slider ? vec4f_t{editor_theme_t::get().outline_thickness * 2, 0.0f, editor_theme_t::get().outline_thickness * 2, 0.0f} : vec4f_t{0.0f, editor_theme_t::get().margin_horizontal, 0.0f, editor_theme_t::get().margin_horizontal};
 
 		switch (field.type)
 		{
@@ -264,19 +276,7 @@ namespace sfg
 		ui::paint_def_t& label_paint = _ui->get_paint().def(_label);
 		label_paint.text.color		 = _mixed ? theme.color_accent_warn : (placeholder ? (std::strcmp(_config.placeholder, "Mixed") == 0 ? theme.color_accent_warn : theme.color_text2) : theme.color_text0);
 
-		ui::layout_in_t& label_in = _ui->get_tree().in(_label);
-		if (_config.field.is_slider)
-		{
-			label_in.pos_mode_x	 = ui::pos_mode_e::relative_in_parent;
-			label_in.pos_value.x = 0.5f;
-			label_in.anchor_x	 = ui::anchor_e::center;
-		}
-		else
-		{
-			label_in.pos_mode_x	 = ui::pos_mode_e::offset_in_parent;
-			label_in.pos_value.x = 0.0f;
-			label_in.anchor_x	 = ui::anchor_e::start;
-		}
+		return;
 	}
 
 	void editor_input_field_t::commit_number_text()
