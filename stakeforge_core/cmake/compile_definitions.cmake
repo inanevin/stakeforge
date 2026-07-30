@@ -30,7 +30,6 @@ add_compile_definitions($<$<CONFIG:Profile>:TRACY_ENABLE>)
 add_compile_definitions($<$<CONFIG:Profile>:SFG_ENABLE_MEMORY_TRACER>)
 
 add_definitions(-DSFG_CONFIGURATION="$<CONFIGURATION>")
-add_definitions(-DSFG_ROOT_DIRECTORY="${CMAKE_SOURCE_DIR}/")
 set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<OR:$<CONFIG:Debug>,$<CONFIG:Profile>>:ProgramDatabase>")
 
 if(WIN32)

@@ -66,6 +66,13 @@ endfunction()
 
 function (sfg_add_copy_commands target_name sfg_core_dir)
 
+    add_custom_command(
+    TARGET ${target_name}
+    POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${sfg_core_dir}/../assets"
+        "$<TARGET_FILE_DIR:${target_name}>/assets")
+
     # copy nethost dll to target,
     # copy engine managed dll, deps json and runtime config to target
     if(WIN32)

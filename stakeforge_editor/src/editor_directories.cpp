@@ -101,13 +101,13 @@ namespace sfg
 		s_editor_settings = s_user_directory + SETTINGS_FILE;
 
 		// editor assets
-		s_editor_assets = string_t(SFG_ROOT_DIRECTORY) + "assets/";
+		s_editor_assets = file_system_t::get_running_directory() + "assets/";
 
 		// editor res cache
 		s_editor_resource_cache = s_user_directory + "editor/resource_cache/";
 
-		s_editor_manifest = string_t(SFG_ROOT_DIRECTORY) + "assets/assets_editor.sfg";
-		s_engine_manifest = string_t(SFG_ROOT_DIRECTORY) + "assets/assets_engine.sfg";
+		s_editor_manifest = s_editor_assets + "assets_editor.sfg";
+		s_engine_manifest = s_editor_assets + "assets_engine.sfg";
 
 		if (!file_system_t::exists(s_user_directory.c_str()))
 			file_system_t::create_directory(s_user_directory.c_str());
