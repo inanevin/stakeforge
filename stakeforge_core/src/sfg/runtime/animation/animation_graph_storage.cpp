@@ -836,7 +836,7 @@ namespace sfg
 		case animation_graph_asm_state_type_e::blend_2d: {
 			if (!state.blend_parameter)
 			{
-				SFG_WARN("state is missing blend parameter");
+				// SFG_WARN("state is missing blend parameter");
 				return false;
 			}
 
