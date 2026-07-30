@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/engine/perf_metrics.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
@@ -292,6 +293,8 @@ namespace sfg
 
 		while (!_window.has_flag(window_runtime_flags_e::close_requested))
 		{
+			const i64 main_thread_start_us = time_t::get_cpu_microseconds();
+
 			frame_allocator_tls_t::reset();
 			process::pump_os_messages();
 
@@ -312,6 +315,7 @@ namespace sfg
 
 			engine_runtime_t::get().tick();
 
+			perf_metrics_t::update_main_thread(time_t::get_cpu_microseconds() - main_thread_start_us);
 			FrameMarkNamed("main");
 			time_t::yield_thread();
 		}

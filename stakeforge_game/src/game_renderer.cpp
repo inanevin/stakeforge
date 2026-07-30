@@ -41,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
+#include <sfg/runtime/engine/perf_metrics.hpp>
 #include <sfg/runtime/render/render_globals.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
@@ -258,6 +259,9 @@ namespace sfg
 
 	void game_renderer_t::render()
 	{
+		const i64 render_thread_start_us = time_t::get_cpu_microseconds();
+		i64		  render_thread_wait_us	 = 0;
+
 		gfx_backend&		backend			 = gfx_backend::get();
 		render_resources_t& render_resources = render_resources_t::get();
 
@@ -266,17 +270,25 @@ namespace sfg
 		if (_minimized)
 		{
 			render_resources.drain_destroy_requests();
+
+			perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, render_thread_wait_us);
 			return;
 		}
 
+		i64 wait_start_us = time_t::get_cpu_microseconds();
 		backend.wait_for_swapchain_latency(_swapchain);
+		render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
+
 		backend.get_back_buffer_index(_swapchain);
 		_world_controller->acquire_render_world();
 
 		const u8		  frame_index = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
 		per_frame_data_t& pfd		  = _pfd[frame_index];
 
+		wait_start_us = time_t::get_cpu_microseconds();
 		backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
+		render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
+
 		render_resources.flush_texture_region_data_uploads(frame_index);
 		render_resources.flush_material_parameter_updates(frame_index);
 
@@ -361,6 +373,8 @@ namespace sfg
 
 		render_resources.drain_destroy_requests();
 		_frame_counter++;
+
+		perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, render_thread_wait_us);
 	}
 
 	void game_renderer_t::render_loop()
