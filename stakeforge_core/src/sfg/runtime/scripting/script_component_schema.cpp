@@ -322,6 +322,30 @@ namespace sfg
 		return delta;
 	}
 
+	bool script_component_schema_t::is_equivalent(const script_component_schema_t& other) const
+	{
+		if (_components.size() != other._components.size() || _world_scripts.size() != other._world_scripts.size())
+			return false;
+
+		for (const script_component_desc_t& component : _components)
+		{
+			const script_component_desc_t* other_component = other.find_component(component.type_id);
+
+			if (other_component == nullptr || !component.is_reflection_equal(*other_component))
+				return false;
+		}
+
+		for (const script_world_script_desc_t& world_script : _world_scripts)
+		{
+			const script_world_script_desc_t* other_world_script = other.find_world_script(world_script.type_id);
+
+			if (other_world_script == nullptr || world_script.name != other_world_script->name || world_script.full_name != other_world_script->full_name)
+				return false;
+		}
+
+		return true;
+	}
+
 	const script_component_desc_t* script_component_schema_t::find_component(sid_t type_id) const
 	{
 		const auto it = std::find_if(_components.begin(), _components.end(), [type_id](const script_component_desc_t& component) { return component.type_id == type_id; });

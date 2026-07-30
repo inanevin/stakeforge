@@ -33,11 +33,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	bool script_compiler_t::publish_file(const char* staging_directory, const char* library_directory, const char* project_name, const char* extension)
+	bool script_compiler_t::publish_file(const char* staging_directory, const char* publish_directory, const char* project_name, const char* extension)
 	{
 		const string_t file_name	= string_t(project_name) + extension;
 		const string_t staged_path	= string_t(staging_directory) + file_name;
-		const string_t target_path	= string_t(library_directory) + file_name;
+		const string_t target_path	= string_t(publish_directory) + file_name;
 		const string_t pending_path = target_path + ".new";
 
 		if (!file_system_t::copy_file(staged_path.c_str(), pending_path.c_str()))
@@ -46,17 +46,18 @@ namespace sfg
 		return file_system_t::replace_file(pending_path.c_str(), target_path.c_str());
 	}
 
-	script_compile_result_t script_compiler_t::compile(const char* project_path)
+	script_compile_result_t script_compiler_t::compile(const char* project_path, script_build_configuration_e configuration, const char* publish_directory)
 	{
-		// stage to Build, accept towards Library/Scripts
-		script_compile_result_t result			  = {};
-		const string_t			project_name	  = file_system_t::get_filename_from_path(project_path);
-		const string_t			project_directory = file_system_t::get_directory_of_file(project_path);
-		string_t				staging_directory = project_directory + "Build/";
-		string_t				library_directory = file_system_t::get_absolute_path((project_directory + "../../Library/Scripts/").c_str());
+		const char* configuration_name = configuration == script_build_configuration_e::release ? "Release" : "Debug";
+
+		script_compile_result_t result					   = {};
+		const string_t			project_name			   = file_system_t::get_filename_from_path(project_path);
+		const string_t			project_directory		   = file_system_t::get_directory_of_file(project_path);
+		string_t				staging_directory		   = project_directory + "Build/" + configuration_name + "/";
+		string_t				resolved_publish_directory = publish_directory == nullptr ? "" : file_system_t::get_absolute_path(publish_directory);
 
 		file_system_t::fix_path_end_slash(staging_directory);
-		file_system_t::fix_path_end_slash(library_directory);
+		result.output_directory = staging_directory;
 
 		if (!file_system_t::ensure_directory(staging_directory.c_str()))
 		{
@@ -64,15 +65,22 @@ namespace sfg
 			return result;
 		}
 
-		if (!file_system_t::ensure_directory(library_directory.c_str()))
+		if (!resolved_publish_directory.empty())
 		{
-			result.diagnostics = "could not ensure the C# script library directory.";
-			return result;
+			file_system_t::fix_path_end_slash(resolved_publish_directory);
+
+			if (!file_system_t::ensure_directory(resolved_publish_directory.c_str()))
+			{
+				result.diagnostics = "could not ensure the C# script publish directory.";
+				return result;
+			}
 		}
 
 		string_t command_line = "dotnet build \"";
 		command_line += project_path;
-		command_line += "\" --nologo --configuration Debug --output \"";
+		command_line += "\" --nologo --configuration ";
+		command_line += configuration_name;
+		command_line += " --output \"";
 		command_line += staging_directory;
 		command_line += "\"";
 
@@ -83,25 +91,32 @@ namespace sfg
 		if (!process_result.started || process_result.exit_code != 0)
 			return result;
 
-		if (!publish_file(staging_directory.c_str(), library_directory.c_str(), project_name.c_str(), ".deps.json"))
+		if (resolved_publish_directory.empty())
+		{
+			SFG_INFO("compiled {0} script assembly: {1}", configuration_name, project_path);
+			result.success = true;
+			return result;
+		}
+
+		if (!publish_file(staging_directory.c_str(), resolved_publish_directory.c_str(), project_name.c_str(), ".deps.json"))
 		{
 			result.diagnostics += "\nCompilation succeeded, but the dependency file could not be published.";
 			return result;
 		}
 
-		if (!publish_file(staging_directory.c_str(), library_directory.c_str(), project_name.c_str(), ".pdb"))
+		if (!publish_file(staging_directory.c_str(), resolved_publish_directory.c_str(), project_name.c_str(), ".pdb"))
 		{
 			result.diagnostics += "\nCompilation succeeded, but the debug symbols could not be published.";
 			return result;
 		}
 
-		if (!publish_file(staging_directory.c_str(), library_directory.c_str(), project_name.c_str(), ".dll"))
+		if (!publish_file(staging_directory.c_str(), resolved_publish_directory.c_str(), project_name.c_str(), ".dll"))
 		{
 			result.diagnostics += "\nCompilation succeeded, but the script assembly could not be published.";
 			return result;
 		}
 
-		SFG_INFO("compiled script assembly: {0}", project_path);
+		SFG_INFO("compiled {0} script assembly: {1}", configuration_name, project_path);
 		result.success = true;
 		return result;
 	}

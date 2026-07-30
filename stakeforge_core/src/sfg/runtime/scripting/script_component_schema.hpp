@@ -86,6 +86,7 @@ namespace sfg
 		bool							parse(const char* schema_json);
 		void							register_reflection_types() const;
 		script_component_schema_delta_t compare(const script_component_schema_t& candidate) const;
+		bool							is_equivalent(const script_component_schema_t& other) const;
 
 		// -----------------------------------------------------------------------------
 		// queries

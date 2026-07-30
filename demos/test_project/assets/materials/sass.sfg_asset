@@ -1,0 +1,181 @@
+{
+    "asset_type": "material",
+    "cook_options": {},
+    "embedded_source": {
+        "blend_mode": "alpha",
+        "double_sided": false,
+        "parameters": [
+            {
+                "hint": "color",
+                "name": "base_color_factor",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    0.2637690007686615,
+                    0.16792981326580048,
+                    1.0
+                ]
+            },
+            {
+                "hint": "color_hdr",
+                "name": "emissive_factor",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "ao_multiplier",
+                "type": "f32",
+                "value": [
+                    0.2989320755004883,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "roughness_multiplier",
+                "type": "f32",
+                "value": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "metallic_multiplier",
+                "type": "f32",
+                "value": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "normal_strength",
+                "type": "f32",
+                "value": [
+                    1.0,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "none",
+                "name": "alpha_cutoff",
+                "type": "f32",
+                "value": [
+                    0.33834120631217957,
+                    0.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "albedo_tiling_offset",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "normal_tiling_offset",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "orm_tiling_offset",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            },
+            {
+                "hint": "pack_uint2",
+                "name": "emissive_tiling_offset",
+                "type": "vec4",
+                "value": [
+                    1.0,
+                    1.0,
+                    0.0,
+                    0.0
+                ]
+            }
+        ],
+        "samplers": [
+            {
+                "name": "albedo",
+                "sampler": 1009
+            },
+            {
+                "name": "normal",
+                "sampler": 1009
+            },
+            {
+                "name": "orm",
+                "sampler": 1009
+            },
+            {
+                "name": "emissive",
+                "sampler": 1009
+            }
+        ],
+        "shader": 1029,
+        "textures": [
+            {
+                "name": "albedo",
+                "texture": 9196711287224636523,
+                "type": "texture2d"
+            },
+            {
+                "name": "normal",
+                "texture": 1004,
+                "type": "texture2d"
+            },
+            {
+                "name": "orm",
+                "texture": 1003,
+                "type": "texture2d"
+            },
+            {
+                "name": "emissive",
+                "texture": 1005,
+                "type": "texture2d"
+            }
+        ],
+        "use_alpha_cutoff": false,
+        "write_reflections": true,
+        "write_shadows": true
+    },
+    "guid": 10987264308557708157,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 0,
+    "thumbnail_guid": 14788217418501903358,
+    "version": 0
+}

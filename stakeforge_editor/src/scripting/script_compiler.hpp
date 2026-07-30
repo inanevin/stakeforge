@@ -32,9 +32,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	enum class script_build_configuration_e : u8
+	{
+		debug,
+		release,
+	};
+
 	struct script_compile_result_t
 	{
 		string_t diagnostics;
+		string_t output_directory;
 		i32		 exit_code = -1;
 		bool	 success   = false;
 	};
@@ -47,9 +54,9 @@ namespace sfg
 		script_compiler_t(const script_compiler_t&)			   = delete;
 		script_compiler_t& operator=(const script_compiler_t&) = delete;
 
-		static script_compile_result_t compile(const char* project_path);
+		static script_compile_result_t compile(const char* project_path, script_build_configuration_e configuration, const char* publish_directory = nullptr);
 
 	private:
-		static bool publish_file(const char* staging_directory, const char* library_directory, const char* project_name, const char* extension);
+		static bool publish_file(const char* staging_directory, const char* publish_directory, const char* project_name, const char* extension);
 	};
 }

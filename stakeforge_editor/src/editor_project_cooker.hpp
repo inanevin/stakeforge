@@ -72,16 +72,20 @@ namespace sfg
 		enum class cook_state_e : u8
 		{
 			idle,
+			compiling_scripts,
+			scripts_compiled,
 			cooking,
 			succeeded,
 			failed,
 		};
 
-		bool cook_project_worker(const char* target_path);
-		bool publish_game_files();
+		bool validate_release_script_schema();
+		bool cook_project_worker(const char* target_path, const char* script_output_directory);
+		bool publish_game_files(const char* script_output_directory);
 
 	private:
-		string_t								_cook_failure_reason = {};
+		string_t								_cook_failure_reason			 = {};
+		string_t								_release_script_output_directory = {};
 		unique_t<editor_project_cook_options_t> _cook_options;
 		unique_t<project_package_meta_t>		_package_meta;
 		unique_t<editor_modal_project_cooker_t> _options_modal;

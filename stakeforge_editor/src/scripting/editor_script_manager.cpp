@@ -188,11 +188,13 @@ namespace sfg
 			_modal_open = true;
 		}
 
-		const string_t project_path = editor_project_t::get()._runtime.script_project_path;
+		const editor_project_runtime_t& project_runtime	  = editor_project_t::get()._runtime;
+		const string_t					project_path	  = project_runtime.script_project_path;
+		const string_t					publish_directory = project_runtime.script_library_path;
 
 		_compile_state.store(compile_state_e::compiling, std::memory_order_relaxed);
-		editor_app_t::get().get_editor_work_executor().silent_async([this, project_path]() {
-			script_compile_result_t result = script_compiler_t::compile(project_path.c_str());
+		editor_app_t::get().get_editor_work_executor().silent_async([this, project_path, publish_directory]() {
+			script_compile_result_t result = script_compiler_t::compile(project_path.c_str(), script_build_configuration_e::debug, publish_directory.c_str());
 			const compile_state_e	state  = result.success ? compile_state_e::succeeded : compile_state_e::failed;
 
 			_compile_result = std::move(result);

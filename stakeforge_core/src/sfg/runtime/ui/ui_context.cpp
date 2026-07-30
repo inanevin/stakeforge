@@ -626,34 +626,34 @@ namespace sfg::ui
 
 	void ui_context::on_mouse_move(const vec2f_t& pos)
 	{
-		const ui_phase_e previous_phase = _phase;
-		set_phase(ui_phase_e::input);
+		//const ui_phase_e previous_phase = _phase;
+		//set_phase(ui_phase_e::input);
 		_input.on_mouse_move(pos);
-		set_phase(previous_phase);
+		//set_phase(previous_phase);
 	}
 
 	void ui_context::on_mouse_button(mouse_button_e btn, bool pressed)
 	{
-		const ui_phase_e previous_phase = _phase;
-		set_phase(ui_phase_e::input);
+		//const ui_phase_e previous_phase = _phase;
+		//set_phase(ui_phase_e::input);
 		_input.on_mouse_button(btn, pressed);
-		set_phase(previous_phase);
+		//set_phase(previous_phase);
 	}
 
 	void ui_context::on_wheel(f32 delta)
 	{
-		const ui_phase_e previous_phase = _phase;
-		set_phase(ui_phase_e::input);
+		//const ui_phase_e previous_phase = _phase;
+		//set_phase(ui_phase_e::input);
 		_input.on_wheel(delta);
-		set_phase(previous_phase);
+		//set_phase(previous_phase);
 	}
 
 	void ui_context::on_key(const key_event_t& ev)
 	{
-		const ui_phase_e previous_phase = _phase;
-		set_phase(ui_phase_e::input);
+		//const ui_phase_e previous_phase = _phase;
+		//set_phase(ui_phase_e::input);
 		_input.on_key(ev);
-		set_phase(previous_phase);
+		//set_phase(previous_phase);
 	}
 
 	void ui_context::set_widget_text(widget_id_t id, const char* text)

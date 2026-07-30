@@ -38,6 +38,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_settings.hpp"
 #include "editor_surface_controller.hpp"
 #include "scripting/editor_script_manager.hpp"
+#include "scripting/script_compiler.hpp"
 #include "ui/editor_modal_progress_bar.hpp"
 #include "ui/editor_modal_project_cooker.hpp"
 
@@ -49,6 +50,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/runtime/project/project_package_meta.hpp>
 #include <sfg/runtime/resources/resource_manifest.hpp>
+#include <sfg/runtime/scripting/script_runtime.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
 
@@ -69,7 +71,9 @@ namespace sfg
 
 	void editor_project_cooker_t::uninit()
 	{
-		if (_cook_state.load(std::memory_order_acquire) == cook_state_e::cooking)
+		const cook_state_e cook_state = _cook_state.load(std::memory_order_acquire);
+
+		if (cook_state == cook_state_e::compiling_scripts || cook_state == cook_state_e::cooking)
 			editor_app_t::get().get_editor_work_executor().wait_for_all();
 
 		_progress_modal.reset();
@@ -78,17 +82,46 @@ namespace sfg
 		_cook_options.reset();
 
 		_cook_failure_reason.resize(0);
+		_release_script_output_directory.resize(0);
 		_cook_state.store(cook_state_e::idle, std::memory_order_relaxed);
 	}
 
 	void editor_project_cooker_t::tick()
 	{
-		const cook_state_e cook_state = _cook_state.load(std::memory_order_acquire);
+		cook_state_e cook_state = _cook_state.load(std::memory_order_acquire);
 
-		if (cook_state == cook_state_e::idle || cook_state == cook_state_e::cooking)
+		if (cook_state == cook_state_e::idle || cook_state == cook_state_e::compiling_scripts || cook_state == cook_state_e::cooking)
 			return;
 
 		editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
+
+		if (cook_state == cook_state_e::scripts_compiled)
+		{
+			_progress_modal->set_progress(0.2f);
+			modal.set_body_text("Validating the Release C# script schema.");
+
+			if (!validate_release_script_schema())
+			{
+				cook_state = cook_state_e::failed;
+				_cook_state.store(cook_state, std::memory_order_relaxed);
+			}
+			else
+			{
+				_progress_modal->set_progress(0.3f);
+				modal.set_body_text("Preparing the project package.");
+				_cook_state.store(cook_state_e::cooking, std::memory_order_relaxed);
+
+				const string_t target_path			   = editor_project_t::get()._runtime.cook_path + project_package_meta_t::FILE_NAME;
+				const string_t script_output_directory = _release_script_output_directory;
+
+				editor_app_t::get().get_editor_work_executor().silent_async([this, target_path, script_output_directory]() {
+					const cook_state_e result = cook_project_worker(target_path.c_str(), script_output_directory.c_str()) ? cook_state_e::succeeded : cook_state_e::failed;
+					_cook_state.store(result, std::memory_order_release);
+				});
+				return;
+			}
+		}
+
 		modal.close_modal();
 		_cook_state.store(cook_state_e::idle, std::memory_order_relaxed);
 
@@ -158,22 +191,75 @@ namespace sfg
 
 		*_cook_options = options;
 		_cook_failure_reason.resize(0);
+		_release_script_output_directory.resize(0);
 
-		_cook_state.store(cook_state_e::cooking, std::memory_order_relaxed);
+		_cook_state.store(cook_state_e::compiling_scripts, std::memory_order_relaxed);
 
 		_progress_modal->set_progress(0.0f);
 		const editor_modal_content_desc_t content = _progress_modal->get_content_desc();
-		modal.request_modal("Cooking Project", "Preparing the project package.", false, nullptr, 0, &content);
+		modal.request_modal("Cooking Project", "Compiling Release C# scripts.", false, nullptr, 0, &content);
 
-		const string_t target_path = editor_project_t::get()._runtime.cook_path + project_package_meta_t::FILE_NAME;
+		const string_t script_project_path = editor_project_t::get()._runtime.script_project_path;
 
-		editor_app_t::get().get_editor_work_executor().silent_async([this, target_path]() {
-			const cook_state_e result = cook_project_worker(target_path.c_str()) ? cook_state_e::succeeded : cook_state_e::failed;
-			_cook_state.store(result, std::memory_order_release);
+		editor_app_t::get().get_editor_work_executor().silent_async([this, script_project_path]() {
+			script_compile_result_t result = script_compiler_t::compile(script_project_path.c_str(), script_build_configuration_e::release);
+
+			if (!result.success)
+			{
+				_cook_failure_reason = "Release C# script compilation failed.";
+
+				if (!result.diagnostics.empty())
+					_cook_failure_reason += string_t("\n\n") + result.diagnostics;
+
+				_cook_state.store(cook_state_e::failed, std::memory_order_release);
+				return;
+			}
+
+			_release_script_output_directory = std::move(result.output_directory);
+			_cook_state.store(cook_state_e::scripts_compiled, std::memory_order_release);
 		});
 	}
 
-	bool editor_project_cooker_t::cook_project_worker(const char* target_path)
+	bool editor_project_cooker_t::validate_release_script_schema()
+	{
+		const editor_script_manager_t& script_manager = editor_script_manager_t::get();
+
+		if (!script_manager.is_compile_idle() || !script_manager.is_active_assembly_current())
+		{
+			_cook_failure_reason = "The active Debug C# assembly changed while Release scripts were compiling. Restart the cook.";
+			return false;
+		}
+
+		script_runtime_t& script_runtime = script_runtime_t::get();
+
+		if (script_runtime.is_project_assembly_staged())
+		{
+			_cook_failure_reason = "A C# project assembly is already staged. Restart the cook after script compilation finishes.";
+			return false;
+		}
+
+		const editor_project_runtime_t& project_runtime		  = editor_project_t::get()._runtime;
+		const string_t					release_assembly_path = _release_script_output_directory + project_runtime.name + ".dll";
+
+		if (!script_runtime.stage_project_assembly(release_assembly_path.c_str()))
+		{
+			_cook_failure_reason = "The Release C# script assembly could not be staged for schema validation.";
+			return false;
+		}
+
+		const bool schemas_match = script_runtime.get_component_schema().is_equivalent(script_runtime.get_staged_component_schema());
+		script_runtime.discard_staged_project_assembly();
+
+		if (!schemas_match)
+		{
+			_cook_failure_reason = "The Debug and Release C# script schemas do not match. Components, component fields, and world scripts must be identical in both configurations.";
+			return false;
+		}
+
+		return true;
+	}
+
+	bool editor_project_cooker_t::cook_project_worker(const char* target_path, const char* script_output_directory)
 	{
 		if (!file_system_t::ensure_directory(editor_project_t::get()._runtime.cook_path.c_str()))
 		{
@@ -529,13 +615,13 @@ namespace sfg
 			return false;
 		}
 
-		if (!publish_game_files())
+		if (!publish_game_files(script_output_directory))
 			return false;
 
 		return true;
 	}
 
-	bool editor_project_cooker_t::publish_game_files()
+	bool editor_project_cooker_t::publish_game_files(const char* script_output_directory)
 	{
 		const editor_project_runtime_t& project_runtime = editor_project_t::get()._runtime;
 		const string_t					running_path	= file_system_t::get_running_directory();
@@ -603,7 +689,7 @@ namespace sfg
 		for (const char* extension : script_extensions)
 		{
 			const string_t file_name   = project_runtime.name + extension;
-			const string_t source_path = project_runtime.script_library_path + file_name;
+			const string_t source_path = string_t(script_output_directory) + file_name;
 			const string_t target_path = scripts_path + file_name;
 
 			if (!file_system_t::copy_file(source_path.c_str(), target_path.c_str()))

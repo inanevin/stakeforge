@@ -1,0 +1,176 @@
+{
+    "asset_type": "animation_graph",
+    "cook_options": {},
+    "embedded_source": {
+        "editor_view_offset": {
+            "x": 0.0,
+            "y": 0.0
+        },
+        "editor_view_zoom": 1.0,
+        "entry_node_id": 1,
+        "name": "player_anim_graph",
+        "next_id": 17,
+        "nodes": [
+            {
+                "asm_node": {
+                    "first_state_id": 2,
+                    "masked_bones": [],
+                    "states": [
+                        {
+                            "blend_parameter_id": 14287056609090442302,
+                            "clips": [
+                                {
+                                    "blend_value": 0.0,
+                                    "blend_value_2d": {
+                                        "x": 0.0,
+                                        "y": 0.0
+                                    },
+                                    "clip": 9304169626055304686,
+                                    "playback_speed": 1.0
+                                },
+                                {
+                                    "blend_value": 1.0,
+                                    "blend_value_2d": {
+                                        "x": 0.0,
+                                        "y": 0.0
+                                    },
+                                    "clip": 537085749884013324,
+                                    "playback_speed": 1.0
+                                }
+                            ],
+                            "duration": 0.0,
+                            "editor_position": {
+                                "x": -223.64247131347656,
+                                "y": 103.88179779052734
+                            },
+                            "id": 2,
+                            "loop": true,
+                            "name": "StateF",
+                            "state_type": 1
+                        },
+                        {
+                            "blend_parameter_id": 18446744073709551615,
+                            "clips": [
+                                {
+                                    "blend_value": 0.0,
+                                    "blend_value_2d": {
+                                        "x": 0.0,
+                                        "y": 0.0
+                                    },
+                                    "clip": 6127337471200042599,
+                                    "playback_speed": 1.0
+                                }
+                            ],
+                            "duration": 0.0,
+                            "editor_position": {
+                                "x": 42.18079376220703,
+                                "y": 55.428558349609375
+                            },
+                            "id": 5,
+                            "loop": true,
+                            "name": "State",
+                            "state_type": 0
+                        }
+                    ],
+                    "transitions": [
+                        {
+                            "compare_value": 0.0,
+                            "duration": 0.25,
+                            "from_state_id": 2,
+                            "id": 13,
+                            "is_blended": true,
+                            "is_interruptible": true,
+                            "parameter_id": 11752713044961869789,
+                            "priority": 0,
+                            "restart_target": true,
+                            "to_state_id": 5,
+                            "type": 0
+                        },
+                        {
+                            "compare_value": 1.0,
+                            "duration": 0.05000000074505806,
+                            "from_state_id": 5,
+                            "id": 14,
+                            "is_blended": true,
+                            "is_interruptible": true,
+                            "parameter_id": 11752713044961869789,
+                            "priority": 0,
+                            "restart_target": true,
+                            "to_state_id": 2,
+                            "type": 0
+                        }
+                    ]
+                },
+                "bone_control_node": {
+                    "bones": [],
+                    "control_space": 0,
+                    "control_type": 0
+                },
+                "editor_position": {
+                    "x": -113.0,
+                    "y": -38.0
+                },
+                "id": 1,
+                "ik_node": {
+                    "reserved": 0
+                },
+                "name": "ASM Node",
+                "next_node_id": 4294967295,
+                "type": 0
+            }
+        ],
+        "output_node_id": 1,
+        "parameters": [
+            {
+                "bool_value": false,
+                "f32_value": 0.0,
+                "name": "speed",
+                "quat_value": {
+                    "w": 1.0,
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "type": 0,
+                "vec2_value": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "vec3_value": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            },
+            {
+                "bool_value": true,
+                "f32_value": 0.0,
+                "name": "grounded",
+                "quat_value": {
+                    "w": 1.0,
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                },
+                "type": 4,
+                "vec2_value": {
+                    "x": 0.0,
+                    "y": 0.0
+                },
+                "vec3_value": {
+                    "x": 0.0,
+                    "y": 0.0,
+                    "z": 0.0
+                }
+            }
+        ],
+        "schema": "sfg.schema.animation_graph",
+        "target_skeleton": 3170846357421345537
+    },
+    "guid": 17437542402065754180,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 0,
+    "thumbnail_guid": 759341398874177689,
+    "version": 0
+}

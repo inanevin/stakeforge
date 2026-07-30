@@ -156,6 +156,7 @@ namespace sfg
 			.cleanup	= project_settings_cleanup,
 			.debug_name = "Edit Project Settings",
 			.type		= editor_command_type_e::project_settings_edit,
+			.notify		= false,
 		};
 
 		const editor_command_handle_t handle = system.issue_command(desc, payload);

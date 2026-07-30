@@ -45,7 +45,7 @@ namespace sfg
 					.failures = 0,
 				};
 
-				const char* current_json	= R"({
+				const char* current_json			   = R"({
 					"components": [
 						{"name":"Velocity","full_name":"Game.Velocity","id":90001,"size":4,"alignment":4,"fields":[{"name":"Value","id":91001,"value_type":"f32","sub_type_id":0,"offset":0,"size":4,"no_ui":true}]},
 						{"name":"Removed","full_name":"Game.Removed","id":90002,"size":4,"alignment":4,"fields":[{"name":"Value","id":91002,"value_type":"u32","sub_type_id":0,"offset":0,"size":4}]}
@@ -54,7 +54,7 @@ namespace sfg
 						{"name":"MainWorld","full_name":"Game.MainWorld","id":92001}
 					]
 				})";
-				const char* candidate_json	= R"({
+				const char* candidate_json			   = R"({
 					"components": [
 						{"name":"Velocity","full_name":"Game.Velocity","id":90001,"size":8,"alignment":4,"fields":[{"name":"Value","id":91001,"value_type":"f32","sub_type_id":0,"offset":0,"size":4,"no_ui":true},{"name":"Scale","id":91003,"value_type":"f32","sub_type_id":0,"offset":4,"size":4}]},
 						{"name":"Added","full_name":"Game.Added","id":90003,"size":4,"alignment":4,"fields":[{"name":"Value","id":91004,"value_type":"i32","sub_type_id":0,"offset":0,"size":4}]}
@@ -63,7 +63,7 @@ namespace sfg
 						{"name":"MainWorld","full_name":"Game.MainWorld","id":92001}
 					]
 				})";
-				const char* visibility_json = R"({
+				const char* visibility_json			   = R"({
 					"components": [
 						{"name":"Velocity","full_name":"Game.Velocity","id":90001,"size":4,"alignment":4,"fields":[{"name":"Value","id":91001,"value_type":"f32","sub_type_id":0,"offset":0,"size":4}]},
 						{"name":"Removed","full_name":"Game.Removed","id":90002,"size":4,"alignment":4,"fields":[{"name":"Value","id":91002,"value_type":"u32","sub_type_id":0,"offset":0,"size":4}]}
@@ -72,14 +72,27 @@ namespace sfg
 						{"name":"MainWorld","full_name":"Game.MainWorld","id":92001}
 					]
 				})";
+				const char* world_script_mismatch_json = R"({
+					"components": [
+						{"name":"Velocity","full_name":"Game.Velocity","id":90001,"size":4,"alignment":4,"fields":[{"name":"Value","id":91001,"value_type":"f32","sub_type_id":0,"offset":0,"size":4,"no_ui":true}]},
+						{"name":"Removed","full_name":"Game.Removed","id":90002,"size":4,"alignment":4,"fields":[{"name":"Value","id":91002,"value_type":"u32","sub_type_id":0,"offset":0,"size":4}]}
+					],
+					"world_scripts": [
+						{"name":"ReleaseWorld","full_name":"Game.ReleaseWorld","id":92001}
+					]
+				})";
 
-				script_component_schema_t current			   = {};
-				script_component_schema_t candidate			   = {};
-				script_component_schema_t visibility_candidate = {};
+				script_component_schema_t current				= {};
+				script_component_schema_t equivalent			= {};
+				script_component_schema_t candidate				= {};
+				script_component_schema_t visibility_candidate	= {};
+				script_component_schema_t world_script_mismatch = {};
 
 				SFG_TEST_EXPECT(context, current.parse(current_json));
+				SFG_TEST_EXPECT(context, equivalent.parse(current_json));
 				SFG_TEST_EXPECT(context, candidate.parse(candidate_json));
 				SFG_TEST_EXPECT(context, visibility_candidate.parse(visibility_json));
+				SFG_TEST_EXPECT(context, world_script_mismatch.parse(world_script_mismatch_json));
 
 				const script_component_schema_delta_t delta			   = current.compare(candidate);
 				const script_component_schema_delta_t visibility_delta = current.compare(visibility_candidate);
@@ -92,6 +105,10 @@ namespace sfg
 				SFG_TEST_EXPECT(context, visibility_delta.removed.empty());
 				SFG_TEST_EXPECT(context, visibility_delta.layout_changed.empty());
 				SFG_TEST_EXPECT(context, visibility_delta.reflection_changed.size() == 1 && visibility_delta.reflection_changed[0] == 90001);
+				SFG_TEST_EXPECT(context, current.is_equivalent(equivalent));
+				SFG_TEST_EXPECT(context, !current.is_equivalent(candidate));
+				SFG_TEST_EXPECT(context, !current.is_equivalent(visibility_candidate));
+				SFG_TEST_EXPECT(context, !current.is_equivalent(world_script_mismatch));
 
 				const script_world_script_desc_t* world_script = current.find_world_script(92001);
 
