@@ -407,12 +407,20 @@ namespace sfg::ui
 		_vertex_spans.resize(0);
 		_index_spans.resize(0);
 
-		_vertex_capacity	 = 0;
-		_vertex_count		 = 0;
-		_index_capacity		 = 0;
-		_index_count		 = 0;
-		_buffer_count		 = 0;
-		_geometry_span_count = 0;
+		_vertex_capacity			= 0;
+		_vertex_count				= 0;
+		_index_capacity				= 0;
+		_index_count				= 0;
+		_buffer_count				= 0;
+		_geometry_span_count		= 0;
+		_text_cache_vertex_capacity = 0;
+		_text_cache_vertex_count	= 0;
+		_text_cache_index_capacity	= 0;
+		_text_cache_index_count		= 0;
+		_text_run_generation++;
+
+		if (_text_run_generation == 0)
+			_text_run_generation = 1;
 	}
 
 	namespace
@@ -1078,6 +1086,242 @@ namespace sfg::ui
 		return {bounds.valid ? bounds.max_x - bounds.min_x : math::max(0.0f, bounds.advance_x), bounds.max_y - bounds.min_y};
 	}
 
+	vg_text_run_handle_t vg_canvas_t::prepare_text(const char* text, size_t len, const vg_text_paint_t& paint)
+	{
+		if (paint.font == nullptr || text == nullptr || len == 0)
+			return {};
+
+		const u64 cache_hash = hashing_t::hash_u64_combine(hashing_t::hash_u64(text, len), paint.font, paint.size_px, paint.raster_px, paint.spacing, paint.raster_mode, paint.flip_uv);
+
+		for (u32 i = 0; i < static_cast<u32>(_text_cache.size()); ++i)
+		{
+			if (_text_cache[i].hash == cache_hash)
+				return {.index = i, .generation = _text_run_generation};
+		}
+
+		const u32 char_count = static_cast<u32>(len);
+		const u32 vtx_count	 = char_count * 4;
+		const u32 idx_count	 = char_count * 6;
+
+		if (_text_cache_vertex_count + vtx_count > _text_cache_vertex_capacity || _text_cache_index_count + idx_count > _text_cache_index_capacity)
+			return {};
+
+		const u32			 px		 = get_text_paint_raster_px(paint);
+		glyph_atlas_t&		 atlas	 = resource_manager_t::get().get_glyph_atlas();
+		const size_metrics_t metrics = atlas.request_size_metrics(paint.font, px);
+		const f32			 scale	 = get_text_paint_draw_scale(paint, px);
+		const f32			 spacing = paint.spacing;
+		text_bounds_t		 bounds	 = {};
+		vec2f_t				 pen	 = {0.0f, metrics.ascent_px * scale};
+		vg_vertex_t*		 verts	 = &_text_cache_vertex_buffer[_text_cache_vertex_count];
+		vg_index_t*			 indices = &_text_cache_index_buffer[_text_cache_index_count];
+		u32					 prev	 = 0;
+
+		for (u32 i = 0; i < char_count; ++i)
+		{
+			const u32 c = static_cast<u8>(text[i]);
+
+			if (prev != 0)
+				pen.x += atlas.get_kern_advance(paint.font, prev, c, px) * scale;
+
+			const glyph_entry_t* glyph		 = atlas.request_glyph(paint.font, c, px, paint.raster_mode);
+			const f32			 quad_left	 = pen.x + glyph->left_bearing * scale;
+			const f32			 quad_top	 = pen.y + glyph->top_bearing * scale;
+			const f32			 quad_right	 = quad_left + static_cast<f32>(glyph->width) * scale;
+			const f32			 quad_bottom = quad_top + static_cast<f32>(glyph->height) * scale;
+
+			if (glyph->width > 0 && glyph->height > 0)
+			{
+				if (!bounds.valid)
+				{
+					bounds.min_x = quad_left;
+					bounds.min_y = quad_top;
+					bounds.max_x = quad_right;
+					bounds.max_y = quad_bottom;
+					bounds.valid = true;
+				}
+				else
+				{
+					bounds.min_x = math::min(bounds.min_x, quad_left);
+					bounds.min_y = math::min(bounds.min_y, quad_top);
+					bounds.max_x = math::max(bounds.max_x, quad_right);
+					bounds.max_y = math::max(bounds.max_y, quad_bottom);
+				}
+			}
+
+			const f32 u0 = glyph->uv_x;
+			const f32 u1 = glyph->uv_x + glyph->uv_w;
+			const f32 v0 = paint.flip_uv ? glyph->uv_y + glyph->uv_h : glyph->uv_y;
+			const f32 v1 = paint.flip_uv ? glyph->uv_y : glyph->uv_y + glyph->uv_h;
+
+			vg_vertex_t& v0_out = verts[i * 4 + 0];
+			vg_vertex_t& v1_out = verts[i * 4 + 1];
+			vg_vertex_t& v2_out = verts[i * 4 + 2];
+			vg_vertex_t& v3_out = verts[i * 4 + 3];
+
+			v0_out.pos = {quad_left, quad_top};
+			v1_out.pos = {quad_right, quad_top};
+			v2_out.pos = {quad_right, quad_bottom};
+			v3_out.pos = {quad_left, quad_bottom};
+
+			v0_out.color = vec4f_t::one;
+			v1_out.color = vec4f_t::one;
+			v2_out.color = vec4f_t::one;
+			v3_out.color = vec4f_t::one;
+
+			v0_out.uv = {u0, v0};
+			v1_out.uv = {u1, v0};
+			v2_out.uv = {u1, v1};
+			v3_out.uv = {u0, v1};
+
+			const u32 base	   = i * 4;
+			indices[i * 6 + 0] = static_cast<vg_index_t>(base + 0);
+			indices[i * 6 + 1] = static_cast<vg_index_t>(base + 1);
+			indices[i * 6 + 2] = static_cast<vg_index_t>(base + 3);
+			indices[i * 6 + 3] = static_cast<vg_index_t>(base + 1);
+			indices[i * 6 + 4] = static_cast<vg_index_t>(base + 2);
+			indices[i * 6 + 5] = static_cast<vg_index_t>(base + 3);
+
+			pen.x += glyph->advance_x * scale + spacing;
+			prev = c;
+		}
+
+		bounds.advance_x = pen.x - spacing;
+
+		if (!bounds.valid)
+		{
+			bounds.max_x = math::max(0.0f, bounds.advance_x);
+			bounds.max_y = metrics.line_height_px * scale;
+		}
+
+		for (u32 i = 0; i < vtx_count; ++i)
+		{
+			verts[i].pos.x -= bounds.min_x;
+			verts[i].pos.y -= bounds.min_y;
+		}
+
+		const text_cache_entry_t entry{
+			.hash	   = cache_hash,
+			.size	   = {bounds.valid ? bounds.max_x - bounds.min_x : math::max(0.0f, bounds.advance_x), bounds.max_y - bounds.min_y},
+			.vtx_start = _text_cache_vertex_count,
+			.vtx_count = vtx_count,
+			.idx_start = _text_cache_index_count,
+			.idx_count = idx_count,
+		};
+
+		_text_cache_vertex_count += vtx_count;
+		_text_cache_index_count += idx_count;
+		_text_cache.push_back(entry);
+
+		return {.index = static_cast<u32>(_text_cache.size() - 1), .generation = _text_run_generation};
+	}
+
+	vec2f_t vg_canvas_t::get_text_run_size(vg_text_run_handle_t handle) const
+	{
+		SFG_ASSERT(is_text_run_valid(handle));
+		return _text_cache[handle.index].size;
+	}
+
+	bool vg_canvas_t::is_text_run_valid(vg_text_run_handle_t handle) const
+	{
+		return handle.generation == _text_run_generation && handle.index < _text_cache.size();
+	}
+
+	void vg_canvas_t::add_text_run(vg_text_run_handle_t handle, const vec2f_t& pos, const vec4f_t& color, const ui_render_state_t& state, u32 draw_order)
+	{
+		SFG_ASSERT(is_text_run_valid(handle));
+
+		const text_cache_entry_t& entry		= _text_cache[handle.index];
+		vg_draw_buffer_t*		  db		= get_draw_buffer(draw_order, state, entry.vtx_count);
+		const vec2f_t			  draw_pos	= {math::round(pos.x), math::round(pos.y)};
+		const u32				  vtx_base	= db->vertex_count;
+		vg_vertex_t*			  verts		= take_vertices(db, entry.vtx_count);
+		vg_index_t*				  indices	= take_indices(db, entry.idx_count);
+		const vg_vertex_t*		  src_verts = &_text_cache_vertex_buffer[entry.vtx_start];
+
+		if (!has_cpu_clip())
+		{
+			SFG_MEMCPY(verts, src_verts, entry.vtx_count * sizeof(vg_vertex_t));
+			SFG_MEMCPY(indices, &_text_cache_index_buffer[entry.idx_start], entry.idx_count * sizeof(vg_index_t));
+
+			for (u32 i = 0; i < entry.vtx_count; ++i)
+			{
+				verts[i].pos.x += draw_pos.x;
+				verts[i].pos.y += draw_pos.y;
+				verts[i].color = color;
+			}
+
+			for (u32 i = 0; i < entry.idx_count; ++i)
+				indices[i] = static_cast<vg_index_t>(indices[i] + vtx_base);
+			return;
+		}
+
+		const u32 glyph_count	= entry.vtx_count / 4;
+		u32		  emitted_count = 0;
+
+		for (u32 i = 0; i < glyph_count; ++i)
+		{
+			const vg_vertex_t* glyph_verts = src_verts + i * 4;
+			const f32		   quad_left   = glyph_verts[0].pos.x + draw_pos.x;
+			const f32		   quad_top	   = glyph_verts[0].pos.y + draw_pos.y;
+			const f32		   quad_right  = glyph_verts[2].pos.x + draw_pos.x;
+			const f32		   quad_bottom = glyph_verts[2].pos.y + draw_pos.y;
+			vec2f_t			   clipped_min = {quad_left, quad_top};
+			vec2f_t			   clipped_max = {quad_right, quad_bottom};
+
+			if (!clip_rect_to_cpu(clipped_min, clipped_max))
+				continue;
+
+			const f32	 inv_w		= quad_right > quad_left ? 1.0f / (quad_right - quad_left) : 0.0f;
+			const f32	 inv_h		= quad_bottom > quad_top ? 1.0f / (quad_bottom - quad_top) : 0.0f;
+			const f32	 tx0		= (clipped_min.x - quad_left) * inv_w;
+			const f32	 tx1		= (clipped_max.x - quad_left) * inv_w;
+			const f32	 ty0		= (clipped_min.y - quad_top) * inv_h;
+			const f32	 ty1		= (clipped_max.y - quad_top) * inv_h;
+			const f32	 u0			= glyph_verts[0].uv.x;
+			const f32	 u1			= glyph_verts[1].uv.x;
+			const f32	 v0			= glyph_verts[0].uv.y;
+			const f32	 v1			= glyph_verts[3].uv.y;
+			const f32	 clipped_u0 = math::lerp(u0, u1, tx0);
+			const f32	 clipped_u1 = math::lerp(u0, u1, tx1);
+			const f32	 clipped_v0 = math::lerp(v0, v1, ty0);
+			const f32	 clipped_v1 = math::lerp(v0, v1, ty1);
+			vg_vertex_t* out_verts	= verts + emitted_count * 4;
+
+			out_verts[0] = {.pos = {clipped_min.x, clipped_min.y}, .uv = {clipped_u0, clipped_v0}, .color = color};
+			out_verts[1] = {.pos = {clipped_max.x, clipped_min.y}, .uv = {clipped_u1, clipped_v0}, .color = color};
+			out_verts[2] = {.pos = {clipped_max.x, clipped_max.y}, .uv = {clipped_u1, clipped_v1}, .color = color};
+			out_verts[3] = {.pos = {clipped_min.x, clipped_max.y}, .uv = {clipped_u0, clipped_v1}, .color = color};
+
+			const u32 base				   = vtx_base + emitted_count * 4;
+			indices[emitted_count * 6 + 0] = static_cast<vg_index_t>(base + 0);
+			indices[emitted_count * 6 + 1] = static_cast<vg_index_t>(base + 1);
+			indices[emitted_count * 6 + 2] = static_cast<vg_index_t>(base + 3);
+			indices[emitted_count * 6 + 3] = static_cast<vg_index_t>(base + 1);
+			indices[emitted_count * 6 + 4] = static_cast<vg_index_t>(base + 2);
+			indices[emitted_count * 6 + 5] = static_cast<vg_index_t>(base + 3);
+			emitted_count++;
+		}
+
+		if (emitted_count == glyph_count)
+			return;
+
+		const u32 unused_vertex_count = (glyph_count - emitted_count) * 4;
+		const u32 unused_index_count  = (glyph_count - emitted_count) * 6;
+
+		SFG_ASSERT(db->vertex_span_last != UINT32_MAX);
+		SFG_ASSERT(db->index_span_last != UINT32_MAX);
+		SFG_ASSERT(_vertex_spans[db->vertex_span_last].count >= unused_vertex_count);
+		SFG_ASSERT(_index_spans[db->index_span_last].count >= unused_index_count);
+
+		_vertex_spans[db->vertex_span_last].count -= unused_vertex_count;
+		_index_spans[db->index_span_last].count -= unused_index_count;
+		_vertex_count -= unused_vertex_count;
+		_index_count -= unused_index_count;
+		db->vertex_count -= unused_vertex_count;
+		db->index_count -= unused_index_count;
+	}
+
 	void vg_canvas_t::add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, const ui_render_state_t& state, u32 draw_order, bool use_cache)
 	{
 		if (!paint.font)
@@ -1088,46 +1332,27 @@ namespace sfg::ui
 		if (len == 0)
 			return;
 
-		const bool cpu_clip = has_cpu_clip();
-		if (cpu_clip)
-			use_cache = false;
-
-		const u32		  required_vertex_count = static_cast<u32>(len) * 4;
-		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count);
-		const vec2f_t	  draw_pos				= {math::round(pos.x), math::round(pos.y)};
-		u64				  cache_hash			= 0;
-
 		if (use_cache)
 		{
-			cache_hash = hashing_t::hash_u64_combine(hashing_t::hash_u64(text, len), paint.font, paint.color, paint.size_px, paint.raster_px, paint.spacing, paint.raster_mode, paint.flip_uv);
-			for (const text_cache_entry_t& e : _text_cache)
+			const vg_text_run_handle_t handle = prepare_text(text, len, paint);
+
+			if (!handle.is_null())
 			{
-				if (e.hash != cache_hash)
-					continue;
-
-				const u32	 vtx_base = db->vertex_count;
-				vg_vertex_t* verts	  = take_vertices(db, e.vtx_count);
-				vg_index_t*	 indices  = take_indices(db, e.idx_count);
-				SFG_MEMCPY(verts, &_text_cache_vertex_buffer[e.vtx_start], e.vtx_count * sizeof(vg_vertex_t));
-				SFG_MEMCPY(indices, &_text_cache_index_buffer[e.idx_start], e.idx_count * sizeof(vg_index_t));
-
-				for (u32 i = 0; i < e.vtx_count; ++i)
-				{
-					verts[i].pos.x += draw_pos.x;
-					verts[i].pos.y += draw_pos.y;
-				}
-				for (u32 i = 0; i < e.idx_count; ++i)
-					indices[i] = static_cast<vg_index_t>(indices[i] + vtx_base);
+				add_text_run(handle, pos, paint.color, state, draw_order);
 				return;
 			}
 		}
 
-		const u32			 px		 = get_text_paint_raster_px(paint);
-		glyph_atlas_t&		 atlas	 = resource_manager_t::get().get_glyph_atlas();
-		const size_metrics_t metrics = atlas.request_size_metrics(paint.font, px);
-		const f32			 scale	 = get_text_paint_draw_scale(paint, px);
-		const f32			 spacing = paint.spacing;
-		const text_bounds_t	 bounds	 = measure_text_bounds(text, len, atlas, paint.font, metrics, px, paint.raster_mode, scale, spacing);
+		const bool			 cpu_clip			   = has_cpu_clip();
+		const u32			 required_vertex_count = static_cast<u32>(len) * 4;
+		vg_draw_buffer_t*	 db					   = get_draw_buffer(draw_order, state, required_vertex_count);
+		const vec2f_t		 draw_pos			   = {math::round(pos.x), math::round(pos.y)};
+		const u32			 px					   = get_text_paint_raster_px(paint);
+		glyph_atlas_t&		 atlas				   = resource_manager_t::get().get_glyph_atlas();
+		const size_metrics_t metrics			   = atlas.request_size_metrics(paint.font, px);
+		const f32			 scale				   = get_text_paint_draw_scale(paint, px);
+		const f32			 spacing			   = paint.spacing;
+		const text_bounds_t	 bounds				   = measure_text_bounds(text, len, atlas, paint.font, metrics, px, paint.raster_mode, scale, spacing);
 
 		const u32 char_count = static_cast<u32>(len);
 		const u32 vtx_base	 = db->vertex_count;
@@ -1136,7 +1361,7 @@ namespace sfg::ui
 		vg_vertex_t* verts	 = take_vertices(db, char_count * 4);
 		vg_index_t*	 indices = take_indices(db, char_count * 6);
 
-		const vec2f_t pen_origin = use_cache ? vec2f_t{0.0f, 0.0f} : draw_pos;
+		const vec2f_t pen_origin = draw_pos;
 		vec2f_t		  pen		 = {pen_origin.x - bounds.min_x, pen_origin.y + metrics.ascent_px * scale - bounds.min_y};
 
 		u32 emitted_chars = 0;
@@ -1223,37 +1448,7 @@ namespace sfg::ui
 			prev = c;
 		}
 
-		if (use_cache)
-		{
-			const u32 vtx_count = char_count * 4;
-			const u32 idx_count = char_count * 6;
-
-			if (_text_cache_vertex_count + vtx_count <= _text_cache_vertex_capacity && _text_cache_index_count + idx_count <= _text_cache_index_capacity)
-			{
-				text_cache_entry_t e = {};
-				e.hash				 = cache_hash;
-				e.vtx_start			 = _text_cache_vertex_count;
-				e.vtx_count			 = vtx_count;
-				e.idx_start			 = _text_cache_index_count;
-				e.idx_count			 = idx_count;
-
-				SFG_MEMCPY(&_text_cache_vertex_buffer[_text_cache_vertex_count], verts, vtx_count * sizeof(vg_vertex_t));
-				vg_index_t* cache_idx = &_text_cache_index_buffer[_text_cache_index_count];
-				for (u32 i = 0; i < idx_count; ++i)
-					cache_idx[i] = static_cast<vg_index_t>(indices[i] - vtx_base);
-
-				_text_cache_vertex_count += vtx_count;
-				_text_cache_index_count += idx_count;
-				_text_cache.push_back(e);
-			}
-
-			for (u32 i = 0; i < vtx_count; ++i)
-			{
-				verts[i].pos.x += draw_pos.x;
-				verts[i].pos.y += draw_pos.y;
-			}
-		}
-		else if (emitted_chars != char_count)
+		if (emitted_chars != char_count)
 		{
 			const u32 unused_vertex_count = (char_count - emitted_chars) * 4;
 			const u32 unused_index_count  = (char_count - emitted_chars) * 6;
@@ -1277,5 +1472,9 @@ namespace sfg::ui
 		_text_cache.resize(0);
 		_text_cache_vertex_count = 0;
 		_text_cache_index_count	 = 0;
+		_text_run_generation++;
+
+		if (_text_run_generation == 0)
+			_text_run_generation = 1;
 	}
 }

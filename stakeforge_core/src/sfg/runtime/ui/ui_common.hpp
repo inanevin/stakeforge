@@ -175,6 +175,17 @@ namespace sfg::ui
 		bool				  flip_uv	  = false;
 	};
 
+	struct vg_text_run_handle_t
+	{
+		u32 index	   = UINT32_MAX;
+		u32 generation = 0;
+
+		inline bool is_null() const
+		{
+			return index == UINT32_MAX;
+		}
+	};
+
 	inline f32 get_valid_scale(f32 scale)
 	{
 		return scale > 0.0f ? scale : 1.0f;

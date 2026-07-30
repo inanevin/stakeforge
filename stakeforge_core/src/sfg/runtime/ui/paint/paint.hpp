@@ -66,11 +66,12 @@ namespace sfg::ui
 
 	struct paint_def_t
 	{
-		paint_kind_e	  kind		   = paint_kind_e::none;
-		u8				  state_flags  = 0;
-		vg_rect_paint_t	  rect		   = {};
-		vg_text_style_t	  text		   = {};
-		ui_render_state_t render_state = {};
+		paint_kind_e		 kind		  = paint_kind_e::none;
+		u8					 state_flags  = 0;
+		vg_rect_paint_t		 rect		  = {};
+		vg_text_style_t		 text		  = {};
+		ui_render_state_t	 render_state = {};
+		vg_text_run_handle_t text_run	  = {};
 		// paint layer does not own this memory.
 		const char* text_data = nullptr;
 		u32			text_len  = 0;
@@ -94,7 +95,7 @@ namespace sfg::ui
 
 		void init(u32 max_widgets);
 		void uninit();
-		void update_text_layout(layout_tree_t& tree, f32 ui_scale, f32 dpi_scale);
+		void update_text_layout(layout_tree_t& tree, vg_canvas_t& canvas, f32 ui_scale, f32 dpi_scale);
 		void paint_all(const layout_tree_t& tree, const input_router_t& input, vg_canvas_t& canvas, f32 ui_scale, f32 dpi_scale);
 
 		// -----------------------------------------------------------------------------
@@ -150,5 +151,6 @@ namespace sfg::ui
 		paint_pipelines_t				   _pipelines			  = {};
 		f32								   _text_layout_ui_scale  = 0.0f;
 		f32								   _text_layout_dpi_scale = 0.0f;
+		u32								   _text_run_generation	  = 0;
 	};
 }

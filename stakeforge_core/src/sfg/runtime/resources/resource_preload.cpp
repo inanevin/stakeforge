@@ -426,7 +426,7 @@ namespace sfg
 
 	void resource_preload_t::tick()
 	{
-		_watcher.tick();
+		// _watcher.tick();
 	}
 
 	void resource_preload_t::on_file_changed(const char*, u64, u16 id, void* user_data)

@@ -326,7 +326,7 @@ namespace sfg
 		perf_metrics_frame_in.pos_value		   = {1.0f, 1.0f};
 		perf_metrics_frame_in.anchor_x		   = ui::anchor_e::end;
 		perf_metrics_frame_in.anchor_y		   = ui::anchor_e::end;
-		perf_metrics_frame_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
+		perf_metrics_frame_in.size_mode_x	   = ui::axis_mode_e::max_children;
 		perf_metrics_frame_in.size_mode_y	   = ui::axis_mode_e::sum_children;
 		perf_metrics_frame_in.size_value.x	   = 0.3f;
 		perf_metrics_frame_in.flow			   = ui::flow_e::column;

@@ -108,12 +108,15 @@ namespace sfg::ui
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void		   push_clip(const vec4f_t& rect, clip_mode_e mode);
-		void		   pop_clip(clip_mode_e mode);
-		vec4f_t		   current_scissor_clip() const;
-		vec4f_t		   current_cpu_clip() const;
-		void		   clear_text_cache();
-		static vec2f_t measure_text(const char* text, size_t len, const vg_text_paint_t& paint);
+		void				 push_clip(const vec4f_t& rect, clip_mode_e mode);
+		void				 pop_clip(clip_mode_e mode);
+		vec4f_t				 current_scissor_clip() const;
+		vec4f_t				 current_cpu_clip() const;
+		void				 clear_text_cache();
+		static vec2f_t		 measure_text(const char* text, size_t len, const vg_text_paint_t& paint);
+		vg_text_run_handle_t prepare_text(const char* text, size_t len, const vg_text_paint_t& paint);
+		vec2f_t				 get_text_run_size(vg_text_run_handle_t handle) const;
+		bool				 is_text_run_valid(vg_text_run_handle_t handle) const;
 
 		// -----------------------------------------------------------------------------
 		// pipelines
@@ -132,6 +135,7 @@ namespace sfg::ui
 		void add_arc(const vec2f_t& center, f32 radius, f32 start, f32 end, const vg_arc_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0);
 		void add_convex(span_t<const vec2f_t> path, const vg_convex_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0);
 		void add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, const ui_render_state_t& state, u32 draw_order = 0, bool use_cache = true);
+		void add_text_run(vg_text_run_handle_t handle, const vec2f_t& pos, const vec4f_t& color, const ui_render_state_t& state, u32 draw_order = 0);
 
 		// -----------------------------------------------------------------------------
 		// emit
@@ -160,6 +164,11 @@ namespace sfg::ui
 			return _draw_buffers;
 		}
 
+		inline u32 get_text_run_generation() const
+		{
+			return _text_run_generation;
+		}
+
 		const vg_vertex_t& get_draw_buffer_vertex(const vg_draw_buffer_t& draw_buffer, u32 index) const;
 		const vg_index_t&  get_draw_buffer_index(const vg_draw_buffer_t& draw_buffer, u32 index) const;
 
@@ -184,11 +193,12 @@ namespace sfg::ui
 
 		struct text_cache_entry_t
 		{
-			u64 hash	  = 0;
-			u32 vtx_start = 0;
-			u32 vtx_count = 0;
-			u32 idx_start = 0;
-			u32 idx_count = 0;
+			u64		hash	  = 0;
+			vec2f_t size	  = vec2f_t::zero;
+			u32		vtx_start = 0;
+			u32		vtx_count = 0;
+			u32		idx_start = 0;
+			u32		idx_count = 0;
 		};
 
 		struct clip_entry_t
@@ -219,5 +229,6 @@ namespace sfg::ui
 		u32							 _text_cache_vertex_count	 = 0;
 		u32							 _text_cache_index_capacity	 = 0;
 		u32							 _text_cache_index_count	 = 0;
+		u32							 _text_run_generation		 = 1;
 	};
 }

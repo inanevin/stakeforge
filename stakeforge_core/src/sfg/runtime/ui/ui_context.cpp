@@ -168,7 +168,7 @@ namespace sfg::ui
 		run_pre_layout_ticks(dt_seconds);
 
 		set_phase(ui_phase_e::text_layout);
-		_paint.update_text_layout(_tree, _ui_scale, _dpi_scale);
+		_paint.update_text_layout(_tree, _canvas, _ui_scale, _dpi_scale);
 
 		set_phase(ui_phase_e::layout);
 		_tree.solve(screen_rect, _ui_scale);
@@ -674,6 +674,7 @@ namespace sfg::ui
 		{
 			pd.text_data = e.ptr;
 			pd.text_len	 = e.len;
+			pd.text_run	 = {};
 			_paint.mark_text_layout_dirty(id);
 		}
 	}
@@ -696,6 +697,7 @@ namespace sfg::ui
 		{
 			pd.text_data = nullptr;
 			pd.text_len	 = 0;
+			pd.text_run	 = {};
 			_paint.mark_text_layout_dirty(id);
 		}
 	}
