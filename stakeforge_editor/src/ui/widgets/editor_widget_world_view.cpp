@@ -450,7 +450,7 @@ namespace sfg
 				.font		 = font,
 				.color		 = colors[i],
 				.size_px	 = theme.text_default_px_size * scale,
-				.raster_px	 = ui::get_text_raster_px(theme.text_default_px_size * scale, widget._ui->get_dpi_scale()),
+				.raster_px	 = ui::get_text_raster_px(theme.text_default_px_size * scale),
 				.raster_mode = raster_mode,
 			};
 			const vec2f_t text_size = ui::vg_canvas_t::measure_text(labels + i, 1, text_paint);

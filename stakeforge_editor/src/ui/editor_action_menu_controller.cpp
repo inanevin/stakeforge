@@ -689,7 +689,7 @@ namespace sfg
 		paint.font				  = font;
 		paint.color				  = _desc.style.text_color;
 		paint.size_px			  = point_size;
-		paint.raster_px			  = ui::get_text_raster_px(point_size * ui::get_valid_scale(_ui->get_ui_scale()), _ui->get_dpi_scale());
+		paint.raster_px			  = ui::get_text_raster_px(point_size * ui::get_valid_scale(_ui->get_ui_scale()));
 		paint.raster_mode		  = editor_text_rasterization_t::get_rasterization_type();
 
 		return ui::vg_canvas_t::measure_text(text, len, paint).x;

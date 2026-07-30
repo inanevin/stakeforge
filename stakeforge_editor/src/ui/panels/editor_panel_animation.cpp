@@ -897,7 +897,7 @@ namespace sfg
 				.font		 = font,
 				.color		 = theme.color_text1,
 				.size_px	 = theme.text_small_px_size * scale,
-				.raster_px	 = ui::get_text_raster_px(theme.text_small_px_size * scale, panel._ui->get_dpi_scale()),
+				.raster_px	 = ui::get_text_raster_px(theme.text_small_px_size * scale),
 				.raster_mode = raster_mode,
 			};
 
@@ -913,7 +913,7 @@ namespace sfg
 				.font		 = font,
 				.color		 = theme.color_text0,
 				.size_px	 = theme.text_small_px_size * scale,
-				.raster_px	 = ui::get_text_raster_px(theme.text_small_px_size * scale, panel._ui->get_dpi_scale()),
+				.raster_px	 = ui::get_text_raster_px(theme.text_small_px_size * scale),
 				.raster_mode = raster_mode,
 			};
 			const vec2f_t cursor_label_size = ui::vg_canvas_t::measure_text(panel._timeline_cursor_label, panel._timeline_cursor_label_length, cursor_text_paint);

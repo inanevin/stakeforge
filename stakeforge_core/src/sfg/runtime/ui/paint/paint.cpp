@@ -252,7 +252,7 @@ namespace sfg::ui
 				paint.font		  = font;
 				paint.color		  = pd.text.color;
 				paint.size_px	  = pd.text.point_size * scale;
-				paint.raster_px	  = get_text_raster_px(paint.size_px, dpi);
+				paint.raster_px	  = get_text_raster_px(paint.size_px);
 				paint.spacing	  = static_cast<f32>(pd.text.spacing) * scale;
 				paint.raster_mode = pd.text.raster_mode;
 				paint.flip_uv	  = pd.text.flip_uv;
@@ -386,7 +386,7 @@ namespace sfg::ui
 					paint.font			  = font;
 					paint.color			  = has_override ? override_color : pd.text.color;
 					paint.size_px		  = pd.text.point_size * scale;
-					paint.raster_px		  = get_text_raster_px(paint.size_px, dpi_scale);
+					paint.raster_px		  = get_text_raster_px(paint.size_px);
 					paint.spacing		  = static_cast<f32>(pd.text.spacing) * scale;
 					paint.raster_mode	  = pd.text.raster_mode;
 					paint.flip_uv		  = pd.text.flip_uv;

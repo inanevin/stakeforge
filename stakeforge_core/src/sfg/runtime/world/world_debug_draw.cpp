@@ -855,7 +855,7 @@ namespace sfg
 				.font		 = font,
 				.color		 = command.color,
 				.size_px	 = command.size_px,
-				.raster_px	 = ui::get_text_raster_px(command.size_px, 1.0f),
+				.raster_px	 = ui::get_text_raster_px(command.size_px),
 				.spacing	 = 0.0f,
 				.raster_mode = ui::glyph_raster_mode_e::grayscale,
 			};

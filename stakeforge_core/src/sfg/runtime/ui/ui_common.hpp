@@ -191,9 +191,9 @@ namespace sfg::ui
 		return scale > 0.0f ? scale : 1.0f;
 	}
 
-	inline u32 get_text_raster_px(f32 size_px, f32 dpi_scale)
+	inline u32 get_text_raster_px(f32 size_px)
 	{
-		const i32 px = static_cast<i32>(size_px * get_valid_scale(dpi_scale) + 0.5f);
+		const i32 px = static_cast<i32>(size_px + 0.5f);
 		return px > 0 ? static_cast<u32>(px) : 1;
 	}
 

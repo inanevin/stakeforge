@@ -496,13 +496,12 @@ namespace sfg::ui
 		}
 
 		const f32 scale = get_valid_scale(_ui_scale);
-		const f32 dpi	= get_valid_scale(_dpi_scale);
 
 		vg_text_paint_t text_paint = {};
 		text_paint.font			   = font;
 		text_paint.color		   = {1.0f, 0.0f, 1.0f, 1.0f};
 		text_paint.size_px		   = DEBUG_TEXT_POINT_SIZE * scale;
-		text_paint.raster_px	   = get_text_raster_px(text_paint.size_px, dpi);
+		text_paint.raster_px	   = get_text_raster_px(text_paint.size_px);
 		text_paint.raster_mode	   = glyph_raster_mode_e::grayscale;
 
 		const vec2f_t text_size = vg_canvas_t::measure_text(_debug_hover_text.ptr, _debug_hover_text.len, text_paint);

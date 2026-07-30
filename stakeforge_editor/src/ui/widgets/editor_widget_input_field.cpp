@@ -559,7 +559,7 @@ namespace sfg
 		text_paint.font				   = font;
 		text_paint.color			   = text_style.color;
 		text_paint.size_px			   = text_style.point_size * ui_scale;
-		text_paint.raster_px		   = ui::get_text_raster_px(text_paint.size_px, dpi_scale);
+		text_paint.raster_px		   = ui::get_text_raster_px(text_paint.size_px);
 		text_paint.spacing			   = static_cast<f32>(text_style.spacing) * ui_scale;
 		text_paint.raster_mode		   = text_style.raster_mode;
 		text_paint.flip_uv			   = text_style.flip_uv;

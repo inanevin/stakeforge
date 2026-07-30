@@ -372,7 +372,7 @@ namespace sfg
 			.font		 = font,
 			.color		 = theme.color_text1,
 			.size_px	 = theme.text_small_px_size * scale,
-			.raster_px	 = ui::get_text_raster_px(theme.text_small_px_size * scale, edit._ui->get_dpi_scale()),
+			.raster_px	 = ui::get_text_raster_px(theme.text_small_px_size * scale),
 			.raster_mode = raster_mode,
 		};
 		const char* amplitude_labels[] = {
