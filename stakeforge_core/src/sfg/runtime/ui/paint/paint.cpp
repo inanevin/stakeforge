@@ -56,11 +56,18 @@ namespace sfg::ui
 	{
 		_defs.init(max_widgets);
 		_clip_stack.init(max_widgets);
+		_dirty_text_layout.init(max_widgets);
+		_text_layout_dirty.init(max_widgets);
 		_defs.resize(max_widgets);
+		_text_layout_dirty.resize(max_widgets);
+		_text_layout_ui_scale  = 0.0f;
+		_text_layout_dpi_scale = 0.0f;
 	}
 
 	void paint_layer_t::uninit()
 	{
+		_text_layout_dirty.uninit();
+		_dirty_text_layout.uninit();
 		_clip_stack.uninit();
 		_defs.uninit();
 	}
@@ -97,24 +104,31 @@ namespace sfg::ui
 	void paint_layer_t::set_text(widget_id_t id, const char* text, u32 len, const vg_text_style_t& s, const ui_render_state_t& state)
 	{
 		SFG_ASSERT(id < _defs.size());
+
 		paint_def_t& def = _defs[id];
 		def.kind		 = paint_kind_e::text;
 		def.text		 = s;
 		def.text_data	 = text;
 		def.text_len	 = len;
 		def.render_state = state;
+
 		if (def.render_state.pipeline == NULL_RESOURCE_HANDLE)
 			def.render_state.pipeline = text_pipeline_for(_pipelines, s.raster_mode);
+
+		mark_text_layout_dirty(id);
 	}
 
 	void paint_layer_t::set_text_raster_mode(glyph_raster_mode_e raster_mode)
 	{
-		for (paint_def_t& def : _defs)
+		for (u32 i = 0; i < static_cast<u32>(_defs.size()); ++i)
 		{
+			paint_def_t& def = _defs[i];
+
 			if (def.kind == paint_kind_e::text)
 			{
 				def.text.raster_mode	  = raster_mode;
 				def.render_state.pipeline = text_pipeline_for(_pipelines, raster_mode);
+				mark_text_layout_dirty(static_cast<widget_id_t>(i));
 			}
 		}
 	}
@@ -165,38 +179,91 @@ namespace sfg::ui
 		_defs[id].state_source = source;
 	}
 
+	void paint_layer_t::mark_text_layout_dirty(widget_id_t id)
+	{
+		SFG_ASSERT(id < _text_layout_dirty.size());
+
+		if (_text_layout_dirty[id] != 0)
+			return;
+
+		_text_layout_dirty[id] = 1;
+		_dirty_text_layout.push_back(id);
+	}
+
+	void paint_layer_t::mark_all_text_layout_dirty()
+	{
+		for (u32 i = 0; i < static_cast<u32>(_defs.size()); ++i)
+		{
+			if (_defs[i].kind == paint_kind_e::text)
+				mark_text_layout_dirty(static_cast<widget_id_t>(i));
+		}
+	}
+
 	void paint_layer_t::update_text_layout(layout_tree_t& tree, f32 ui_scale, f32 dpi_scale)
 	{
 		resource_manager_t& rm = resource_manager_t::get();
 
 		vg_text_paint_t paint = {};
 		const f32		scale = get_valid_scale(ui_scale);
+		const f32		dpi	  = get_valid_scale(dpi_scale);
 
-		for (u32 i = 0; i < static_cast<u32>(_defs.size()); ++i)
+		if (_text_layout_ui_scale != scale || _text_layout_dpi_scale != dpi)
 		{
-			const paint_def_t& pd = _defs[i];
-			if (pd.kind != paint_kind_e::text || pd.text_data == nullptr || pd.text_len == 0)
-				continue;
-
-			const font_runtime_t* font = rm.find_runtime<font_runtime_t>(pd.text.font);
-			if (font == nullptr || font->face == nullptr)
-				continue;
-
-			paint.font		  = font;
-			paint.color		  = pd.text.color;
-			paint.size_px	  = pd.text.point_size;
-			paint.raster_px	  = get_text_raster_px(pd.text.point_size * scale, dpi_scale);
-			paint.spacing	  = static_cast<f32>(pd.text.spacing);
-			paint.raster_mode = pd.text.raster_mode;
-			paint.flip_uv	  = pd.text.flip_uv;
-
-			const vec2f_t m	 = vg_canvas_t::measure_text(pd.text_data, pd.text_len, paint);
-			layout_in_t&  in = tree.in(static_cast<widget_id_t>(i));
-			in.size_mode_x	 = axis_mode_e::fixed;
-			in.size_mode_y	 = axis_mode_e::fixed;
-			in.size_value.x	 = m.x;
-			in.size_value.y	 = m.y;
+			mark_all_text_layout_dirty();
+			_text_layout_ui_scale  = scale;
+			_text_layout_dpi_scale = dpi;
 		}
+
+		u32 pending_count = 0;
+
+		for (u32 i = 0; i < static_cast<u32>(_dirty_text_layout.size()); ++i)
+		{
+			const widget_id_t  id = _dirty_text_layout[i];
+			const paint_def_t& pd = _defs[id];
+
+			if (pd.kind != paint_kind_e::text)
+			{
+				_text_layout_dirty[id] = 0;
+				continue;
+			}
+
+			vec2f_t measured = vec2f_t::zero;
+
+			if (pd.text_data != nullptr && pd.text_len != 0)
+			{
+				const font_runtime_t* font = rm.find_runtime<font_runtime_t>(pd.text.font);
+
+				if (font == nullptr || font->face == nullptr)
+				{
+					_dirty_text_layout[pending_count++] = id;
+					continue;
+				}
+
+				paint.font		  = font;
+				paint.color		  = pd.text.color;
+				paint.size_px	  = pd.text.point_size;
+				paint.raster_px	  = get_text_raster_px(pd.text.point_size * scale, dpi);
+				paint.spacing	  = static_cast<f32>(pd.text.spacing);
+				paint.raster_mode = pd.text.raster_mode;
+				paint.flip_uv	  = pd.text.flip_uv;
+
+				measured = vg_canvas_t::measure_text(pd.text_data, pd.text_len, paint);
+			}
+
+			const layout_in_t& in = tree.in_const(id);
+
+			if (in.size_mode_x != axis_mode_e::fixed || in.size_mode_y != axis_mode_e::fixed || in.size_value.x != measured.x || in.size_value.y != measured.y)
+			{
+				layout_in_t& mutable_in = tree.in(id);
+				mutable_in.size_mode_x	= axis_mode_e::fixed;
+				mutable_in.size_mode_y	= axis_mode_e::fixed;
+				mutable_in.size_value	= measured;
+			}
+
+			_text_layout_dirty[id] = 0;
+		}
+
+		_dirty_text_layout.resize(pending_count);
 	}
 
 	void paint_layer_t::paint_all(const layout_tree_t& tree, const input_router_t& input, vg_canvas_t& canvas, f32 ui_scale, f32 dpi_scale)

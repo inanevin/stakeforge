@@ -645,6 +645,11 @@ namespace sfg::ui
 
 	void ui_context::set_widget_text(widget_id_t id, const char* text, u32 len)
 	{
+		const auto existing = _widget_texts.find(id);
+
+		if (existing != _widget_texts.end() && existing->second.len == len && (len == 0 || SFG_MEMCMP(existing->second.ptr, text, len) == 0))
+			return;
+
 		auto& e = _widget_texts[id];
 
 		if (e.ptr != nullptr)
@@ -662,23 +667,29 @@ namespace sfg::ui
 		{
 			pd.text_data = e.ptr;
 			pd.text_len	 = e.len;
+			_paint.mark_text_layout_dirty(id);
 		}
 	}
 
 	void ui_context::clear_widget_text(widget_id_t id)
 	{
 		auto it = _widget_texts.find(id);
+
 		if (it == _widget_texts.end())
 			return;
+
 		if (it->second.ptr != nullptr)
 			_text_pool.deallocate(it->second.ptr);
+
 		_widget_texts.erase(it);
 
 		paint_def_t& pd = _paint.def(id);
+
 		if (pd.kind == paint_kind_e::text)
 		{
 			pd.text_data = nullptr;
 			pd.text_len	 = 0;
+			_paint.mark_text_layout_dirty(id);
 		}
 	}
 

@@ -54,7 +54,7 @@ namespace sfg
 		fixed_vector_t(const fixed_vector_t&)			 = delete;
 		fixed_vector_t& operator=(const fixed_vector_t&) = delete;
 
-		void init(size_type capacity)
+		inline void init(size_type capacity)
 		{
 			SFG_ASSERT(_data == nullptr);
 			_capacity = capacity;
@@ -67,7 +67,7 @@ namespace sfg
 			SFG_ASSERT(_data != nullptr);
 		}
 
-		void uninit()
+		inline void uninit()
 		{
 			clear();
 			if (_data != nullptr)
@@ -76,16 +76,17 @@ namespace sfg
 			_capacity = 0;
 		}
 
-		reference operator[](size_type index)
-		{
-			return at(index);
-		}
-		const_reference operator[](size_type index) const
+		inline reference operator[](size_type index)
 		{
 			return at(index);
 		}
 
-		reference at(size_type index)
+		inline const_reference operator[](size_type index) const
+		{
+			return at(index);
+		}
+
+		inline reference at(size_type index)
 		{
 			if (index >= size())
 			{
@@ -95,7 +96,7 @@ namespace sfg
 			return _data[index];
 		}
 
-		const_reference at(size_type index) const
+		inline const_reference at(size_type index) const
 		{
 			if (index >= size())
 			{
@@ -105,82 +106,91 @@ namespace sfg
 			return _data[index];
 		}
 
-		reference front()
-		{
-			SFG_ASSERT(!empty());
-			return _data[0];
-		}
-		const_reference front() const
+		inline reference front()
 		{
 			SFG_ASSERT(!empty());
 			return _data[0];
 		}
 
-		reference back()
+		inline const_reference front() const
+		{
+			SFG_ASSERT(!empty());
+			return _data[0];
+		}
+
+		inline reference back()
 		{
 			SFG_ASSERT(!empty());
 			return _data[_head - 1];
 		}
-		const_reference back() const
+
+		inline const_reference back() const
 		{
 			SFG_ASSERT(!empty());
 			return _data[_head - 1];
 		}
 
-		iterator_t begin()
-		{
-			return data();
-		}
-		const_iterator begin() const
-		{
-			return data();
-		}
-		const_iterator cbegin() const
+		inline iterator_t begin()
 		{
 			return data();
 		}
 
-		iterator_t end()
+		inline const_iterator begin() const
 		{
-			return data() == nullptr ? nullptr : data() + _head;
+			return data();
 		}
-		const_iterator end() const
+
+		inline const_iterator cbegin() const
 		{
-			return data() == nullptr ? nullptr : data() + _head;
+			return data();
 		}
-		const_iterator cend() const
+
+		inline iterator_t end()
 		{
 			return data() == nullptr ? nullptr : data() + _head;
 		}
 
-		size_type size() const
+		inline const_iterator end() const
+		{
+			return data() == nullptr ? nullptr : data() + _head;
+		}
+
+		inline const_iterator cend() const
+		{
+			return data() == nullptr ? nullptr : data() + _head;
+		}
+
+		inline size_type size() const
 		{
 			return _head;
 		}
-		size_type capacity() const
+
+		inline size_type capacity() const
 		{
 			return _capacity;
 		}
-		bool empty() const
+
+		inline bool empty() const
 		{
 			return _head == 0;
 		}
-		bool full() const
+
+		inline bool full() const
 		{
 			return _head == _capacity;
 		}
 
-		void push_back(const T& value)
+		inline void push_back(const T& value)
 		{
 			emplace_back(value);
 		}
 
-		void push_back(T&& value)
+		inline void push_back(T&& value)
 		{
 			emplace_back(std::move(value));
 		}
 
-		template <typename... Args> reference emplace_back(Args&&... args)
+		template <typename... Args> inline reference emplace_back(Args&&... args)
 		{
 			SFG_ASSERT(!full());
 			T* inserted = _data + _head;
@@ -189,14 +199,14 @@ namespace sfg
 			return *inserted;
 		}
 
-		void pop_back()
+		inline void pop_back()
 		{
 			SFG_ASSERT(!empty());
 			--_head;
 			std::destroy_at(_data + _head);
 		}
 
-		void clear()
+		inline void clear()
 		{
 			if constexpr (!std::is_trivially_destructible_v<T>)
 			{
@@ -207,7 +217,7 @@ namespace sfg
 			_head = 0;
 		}
 
-		void resize(size_type sz)
+		inline void resize(size_type sz)
 		{
 			SFG_ASSERT(sz <= _capacity);
 			while (_head > sz)
@@ -217,7 +227,7 @@ namespace sfg
 				emplace_back();
 		}
 
-		iterator_t erase(iterator_t it)
+		inline iterator_t erase(iterator_t it)
 		{
 			SFG_ASSERT(it >= begin() && it < end());
 			const size_type idx = static_cast<size_type>(it - begin());
@@ -225,7 +235,7 @@ namespace sfg
 			return begin() + idx;
 		}
 
-		iterator_t find(const T& value)
+		inline iterator_t find(const T& value)
 		{
 			for (size_type i = 0; i < _head; ++i)
 			{
@@ -235,7 +245,7 @@ namespace sfg
 			return end();
 		}
 
-		const_iterator find(const T& value) const
+		inline const_iterator find(const T& value) const
 		{
 			for (size_type i = 0; i < _head; ++i)
 			{
@@ -245,7 +255,7 @@ namespace sfg
 			return end();
 		}
 
-		template <typename Pred> iterator_t find_if(Pred pred)
+		template <typename Pred> inline iterator_t find_if(Pred pred)
 		{
 			for (size_type i = 0; i < _head; ++i)
 			{
@@ -255,7 +265,7 @@ namespace sfg
 			return end();
 		}
 
-		template <typename Pred> const_iterator find_if(Pred pred) const
+		template <typename Pred> inline const_iterator find_if(Pred pred) const
 		{
 			for (size_type i = 0; i < _head; ++i)
 			{
@@ -265,7 +275,7 @@ namespace sfg
 			return end();
 		}
 
-		void remove(const T& value)
+		inline void remove(const T& value)
 		{
 			auto it = find(value);
 			SFG_ASSERT(it != end());
@@ -273,7 +283,7 @@ namespace sfg
 			remove_index(idx);
 		}
 
-		void remove_swap(const T& value)
+		inline void remove_swap(const T& value)
 		{
 			auto it = find(value);
 			SFG_ASSERT(it != end());
@@ -281,7 +291,7 @@ namespace sfg
 			remove_index_swap(idx);
 		}
 
-		template <typename Pred> void remove_if(Pred pred)
+		template <typename Pred> inline void remove_if(Pred pred)
 		{
 			auto it = find_if(pred);
 			SFG_ASSERT(it != end());
@@ -289,7 +299,7 @@ namespace sfg
 			remove_index(idx);
 		}
 
-		template <typename Pred> void remove_if_swap(Pred pred)
+		template <typename Pred> inline void remove_if_swap(Pred pred)
 		{
 			auto it = find_if(pred);
 			SFG_ASSERT(it != end());
@@ -297,7 +307,7 @@ namespace sfg
 			remove_index_swap(idx);
 		}
 
-		void remove_index(size_type idx)
+		inline void remove_index(size_type idx)
 		{
 			SFG_ASSERT(idx < _head);
 			for (size_type i = idx; i < _head - 1; i++)
@@ -306,7 +316,7 @@ namespace sfg
 			pop_back();
 		}
 
-		void remove_index_swap(size_type idx)
+		inline void remove_index_swap(size_type idx)
 		{
 			SFG_ASSERT(idx < _head);
 
@@ -316,11 +326,12 @@ namespace sfg
 			pop_back();
 		}
 
-		T* data()
+		inline T* data()
 		{
 			return _data;
 		}
-		const T* data() const
+
+		inline const T* data() const
 		{
 			return _data;
 		}

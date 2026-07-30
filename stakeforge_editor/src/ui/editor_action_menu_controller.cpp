@@ -574,6 +574,7 @@ namespace sfg
 
 				paint.def(_row_shortcuts[depth][i]).text.color		= disabled ? style.disabled_text_color : style.shortcut_color;
 				paint.def(_row_shortcuts[depth][i]).text.point_size = style.shortcut_size;
+				paint.mark_text_layout_dirty(_row_shortcuts[depth][i]);
 			}
 			else
 			{
@@ -610,6 +611,7 @@ namespace sfg
 				_ui->set_widget_text(_row_icon_labels[depth][i], icon);
 				paint.def(_row_icon_labels[depth][i]).text.color	  = row_icon_color(rows[i], style);
 				paint.def(_row_icon_labels[depth][i]).text.point_size = style.icon_size;
+				paint.mark_text_layout_dirty(_row_icon_labels[depth][i]);
 			}
 			else
 				_ui->clear_widget_text(_row_icon_labels[depth][i]);

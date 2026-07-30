@@ -546,7 +546,7 @@ namespace sfg
 
 		const editor_theme_t&	   theme	  = editor_theme_t::get();
 		const font_runtime_t*	   font		  = resource_manager_t::get().find_runtime<font_runtime_t>(theme.font_default);
-		const ui::vg_text_style_t& text_style = _ui->get_paint().def(_label).text;
+		const ui::vg_text_style_t& text_style = _ui->get_paint().def_const(_label).text;
 
 		if (font == nullptr || font->face == nullptr)
 		{

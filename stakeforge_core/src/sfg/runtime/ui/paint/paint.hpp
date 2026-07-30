@@ -111,6 +111,7 @@ namespace sfg::ui
 
 		void set_rect(widget_id_t id, const vg_rect_paint_t& p, const ui_render_state_t& state = {});
 		void set_text(widget_id_t id, const char* text, u32 len, const vg_text_style_t& s, const ui_render_state_t& state = {});
+		void mark_text_layout_dirty(widget_id_t id);
 		void set_text_raster_mode(glyph_raster_mode_e raster_mode);
 		void set_custom(widget_id_t id, paint_custom_fn fn, void* user_data, const ui_render_state_t& state = {});
 		void set_hover_color(widget_id_t id, const vec4f_t& c);
@@ -140,8 +141,14 @@ namespace sfg::ui
 			u8			depth = 0;
 		};
 
+		void mark_all_text_layout_dirty();
+
 		fixed_vector_t<paint_def_t>		   _defs;
 		fixed_vector_t<clip_stack_entry_t> _clip_stack;
-		paint_pipelines_t				   _pipelines = {};
+		fixed_vector_t<widget_id_t>		   _dirty_text_layout;
+		fixed_vector_t<u8>				   _text_layout_dirty;
+		paint_pipelines_t				   _pipelines			  = {};
+		f32								   _text_layout_ui_scale  = 0.0f;
+		f32								   _text_layout_dpi_scale = 0.0f;
 	};
 }
