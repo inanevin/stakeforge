@@ -582,7 +582,7 @@ namespace sfg
 		_types.reserve(512);
 		_fields.reserve(1024);
 
-		_text_allocator.init(64 * 1024);
+		_text_allocator.init(2 * 1024 * 1024);
 		_script_text_allocator.init(SCRIPT_TEXT_CAPACITY);
 	}
 
