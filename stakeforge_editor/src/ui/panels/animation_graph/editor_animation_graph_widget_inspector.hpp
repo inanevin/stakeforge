@@ -83,7 +83,7 @@ namespace sfg
 		void on_edit_begin();
 		void on_edit_submitted();
 
-		static span_t<const editor_widget_reflection_dropdown_item_t> resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, void* user_data);
+		static span_t<const editor_widget_reflection_dropdown_item_t> resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, u32 element_index, void* user_data);
 		static void													  on_refresh_mutation(ui::ui_context& ui, void* user_data);
 		static void													  on_edit_begin(void* user_data);
 		static void													  on_edit_submitted(void* user_data);

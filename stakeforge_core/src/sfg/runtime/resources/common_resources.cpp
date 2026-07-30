@@ -25,6 +25,7 @@
 #include "sprite.hpp"
 #include "cubemap.hpp"
 #include "curve.hpp"
+#include "ragdoll.hpp"
 #include "texture.hpp"
 #include "texture_sampler.hpp"
 
@@ -99,6 +100,7 @@ namespace sfg
 		&physics_collision_mesh_resource_desc,
 		&sprite_resource_desc,
 		&curve_resource_desc,
+		&ragdoll_resource_desc,
 	};
 
 	const char* resource_state_to_string(resource_state_e state)
@@ -150,6 +152,8 @@ namespace sfg
 			return "Sprite";
 		case resource_type_e::curve:
 			return "Curve";
+		case resource_type_e::ragdoll:
+			return "Ragdoll";
 		default:
 			return "Invalid";
 		}
@@ -192,6 +196,7 @@ namespace sfg
 					{.name = "physics_collision_mesh", .display_name = "Physics Collision Mesh"},
 					{.name = "sprite", .display_name = "Sprite"},
 					{.name = "curve", .display_name = "Curve"},
+					{.name = "ragdoll", .display_name = "Ragdoll"},
 				},
 			.type_id   = type_id_t<resource_type_e>::value,
 			.size	   = sizeof(resource_type_e),

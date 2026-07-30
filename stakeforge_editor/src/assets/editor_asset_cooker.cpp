@@ -27,10 +27,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset.hpp"
-#include "assets/thumbnail/editor_asset_thumbnailer.hpp"
 #include "assets/editor_asset_io.hpp"
+#include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
+#include "assets/thumbnail/editor_asset_thumbnailer.hpp"
 #include "editor_project.hpp"
 
 #include <sfg/common/hashing.hpp>
@@ -62,6 +63,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/cubemap_cook.hpp>
 #include <sfg/runtime/resources/curve_cook.hpp>
 #include <sfg/runtime/resources/curve_def.hpp>
+#include <sfg/runtime/resources/ragdoll_cook.hpp>
+#include <sfg/runtime/resources/ragdoll_def.hpp>
 #include <sfg/runtime/resources/texture_cook.hpp>
 #include <sfg/runtime/resources/texture_sampler_cook.hpp>
 #include <sfg/serialization/serialization.hpp>
@@ -142,6 +145,8 @@ namespace sfg
 			return cook_sprite(asset, asset_name);
 		case editor_asset_type_e::curve:
 			return cook_curve(asset, asset_name);
+		case editor_asset_type_e::ragdoll:
+			return cook_ragdoll(asset, asset_name);
 		case editor_asset_type_e::texture_sampler:
 			return cook_texture_sampler(asset, asset_name);
 		case editor_asset_type_e::physical_material:
@@ -174,6 +179,7 @@ namespace sfg
 		case editor_asset_type_e::texture:
 		case editor_asset_type_e::sprite:
 		case editor_asset_type_e::curve:
+		case editor_asset_type_e::ragdoll:
 		case editor_asset_type_e::texture_sampler:
 		case editor_asset_type_e::physical_material:
 		case editor_asset_type_e::animation_graph:
@@ -381,6 +387,58 @@ namespace sfg
 		if (!animation_graph_cooker::cook_from_def(def, header, stream))
 		{
 			SFG_ERR("failed to cook animation graph asset {0}", asset.guid);
+			return false;
+		}
+
+		return save_cooked_asset(asset, header, stream, asset_name);
+	}
+
+	bool editor_asset_cooker_t::cook_ragdoll(const editor_asset_t& asset, const char* asset_name)
+	{
+		SFG_ASSERT(asset.asset_type == editor_asset_type_e::ragdoll);
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
+
+		ragdoll_def_t		 def			 = {};
+		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<ragdoll_def_t>::value, &def, nullptr, embedded_source))
+		{
+			SFG_ERR("failed to deserialize ragdoll definition for asset {0}", asset.guid);
+			return false;
+		}
+
+		const editor_asset_t* skeleton_asset = editor_asset_manager_t::get().find_asset(def.target_skeleton);
+
+		if (skeleton_asset == nullptr || skeleton_asset->asset_type != editor_asset_type_e::skeleton || skeleton_asset->source_type != editor_asset_source_type_e::embedded)
+		{
+			SFG_ERR("ragdoll asset {0} requires an embedded target skeleton", asset.guid);
+			return false;
+		}
+
+		skeleton_def_t		 skeleton		 = {};
+		const nlohmann::json skeleton_source = editor_asset_io_t::get_embedded_source_json(*skeleton_asset);
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, skeleton_source) || !skeleton.is_evaluation_order_valid())
+		{
+			SFG_ERR("ragdoll asset {0} target skeleton is invalid", asset.guid);
+			return false;
+		}
+
+		for (u32 part_index = 0; part_index < def.parts.size(); ++part_index)
+		{
+			if (def.parts[part_index].joint_index >= skeleton.joints.size())
+			{
+				SFG_ERR("ragdoll asset {0} part {1} references an invalid skeleton joint", asset.guid, part_index);
+				return false;
+			}
+		}
+
+		resource_header_t header = {};
+		ostream_t		  stream = {};
+
+		if (!ragdoll_cooker::cook_from_def(def, header, stream))
+		{
+			SFG_ERR("failed to cook ragdoll asset {0}", asset.guid);
 			return false;
 		}
 

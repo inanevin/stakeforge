@@ -285,7 +285,7 @@ namespace sfg
 		}
 	}
 
-	void editor_widget_reflection_t::create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, editor_world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider)
+	void editor_widget_reflection_t::create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, editor_world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider, u32 element_index)
 	{
 		const reflected_type_t* type = reflection_registry_t::get().find_type(type_id);
 		if (type == nullptr)
@@ -335,7 +335,7 @@ namespace sfg
 				for (size_t idx = 0; idx < objects.size; ++idx)
 					object_fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
 
-				create_object(parent, type_id, field, {.data = object_fields.data(), .size = object_fields.size()}, world, track_rows, sub_item, false, indentation);
+				create_object(parent, type_id, field, {.data = object_fields.data(), .size = object_fields.size()}, world, track_rows, sub_item, false, indentation, nullptr, element_index);
 				break;
 			}
 			case reflected_value_type_e::container: {
@@ -382,7 +382,7 @@ namespace sfg
 				for (size_t idx = 0; idx < objects.size; ++idx)
 					fields.push_back(static_cast<u8*>(objects.data[idx]) + field->offset);
 
-				if (create_dropdown(parent, field, field->field_identifier, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, false, indentation))
+				if (create_dropdown(parent, field, field->field_identifier, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, false, indentation, nullptr, element_index))
 					break;
 
 				create_input_field(parent, field, {.data = fields.data(), .size = fields.size()}, track_rows, sub_item, false, indentation);
@@ -466,7 +466,7 @@ namespace sfg
 
 		if (_dropdown_items != nullptr)
 		{
-			const span_t<const editor_widget_reflection_dropdown_item_t> resolved_items = _dropdown_items(field->field_identifier, owner_field_id, _dropdown_items_user_data);
+			const span_t<const editor_widget_reflection_dropdown_item_t> resolved_items = _dropdown_items(field->field_identifier, owner_field_id, element_index, _dropdown_items_user_data);
 
 			items.reserve(resolved_items.size);
 
@@ -846,7 +846,7 @@ namespace sfg
 		}
 		_fold_labels.push_back(fold);
 		_field_folds.push_back({.fold = fold, .type_id = type_id, .field_id = field->field_identifier});
-		create_fields(fold->get_body(), objects, field->sub_type_id, world, false, true, indentation + editor_theme_t::get().margin_horizontal, false);
+		create_fields(fold->get_body(), objects, field->sub_type_id, world, false, true, indentation + editor_theme_t::get().margin_horizontal, false, element_index);
 	}
 
 	void editor_widget_reflection_t::create_container(ui::widget_id_t parent, sid_t type_id, const reflected_field_t* field, span_t<void*> containers, editor_world_handle_t world, bool, bool sub_item, f32 indentation)

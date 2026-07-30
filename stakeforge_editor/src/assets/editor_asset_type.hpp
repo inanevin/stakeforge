@@ -56,6 +56,7 @@ namespace sfg
 		physics_collision_mesh,
 		sprite,
 		curve,
+		ragdoll,
 		world,
 		count,
 	};

@@ -87,6 +87,21 @@ namespace sfg
 			destroy_animation_graph(entity);
 	}
 
+	void world_animation_controller_t::reset_pose_after_ragdoll(entity_id_t entity)
+	{
+		const ecs_component_table_t&			  system_skinned_table = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
+		component_system_skinned_mesh_renderer_t* system_skinned	   = ecs_helpers_t::table_find_as<component_system_skinned_mesh_renderer_t>(system_skinned_table, entity);
+
+		if (system_skinned != nullptr)
+			system_skinned->final_bones_calculated = false;
+
+		const ecs_component_table_t&		system_animation_graph_table = _world->get_component_table(type_id_t<component_system_animation_graph_t>::value);
+		component_system_animation_graph_t* system_animation_graph		 = ecs_helpers_t::table_find_as<component_system_animation_graph_t>(system_animation_graph_table, entity);
+
+		if (system_animation_graph != nullptr)
+			system_animation_graph->force_evaluate = true;
+	}
+
 	void world_animation_controller_t::on_reload(resource_manager_t& resource_manager, sid_t resource_id, resource_type_e resource_type, void* user_data)
 	{
 		if (resource_type != resource_type_e::animation_graph)
@@ -158,6 +173,7 @@ namespace sfg
 		const ecs_component_table_t&		alive_table						   = _world->get_component_table(type_id_t<component_alive_t>::value);
 		const ecs_component_table_t&		disabled_table					   = _world->get_component_table(type_id_t<component_disabled_t>::value);
 		const ecs_component_table_t&		skinned_mesh_renderer_table		   = _world->get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
+		const ecs_component_table_t&		system_ragdoll_table			   = _world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
 		resource_manager_t&					resource_manager				   = resource_manager_t::get();
 		const chunk_allocator32_t&			resource_memory					   = resource_manager.get_memory();
 		const entity_id_t					main_camera_entity				   = _world->get_main_camera_entity();
@@ -171,6 +187,7 @@ namespace sfg
 				system_skinned_mesh_renderer_table.ref(),
 				!system_animation_player_table.ref(),
 				!system_animation_graph_table.ref(),
+				!system_ragdoll_table.ref(),
 			};
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
@@ -197,6 +214,7 @@ namespace sfg
 				!disabled_table.ref(),
 				alive_table.ref(),
 				system_skinned_mesh_renderer_table.ref(),
+				!system_ragdoll_table.ref(),
 			};
 
 			animation_graph_bone_t pose_bones[MAX_SKELETON_BONES] = {};
@@ -256,6 +274,7 @@ namespace sfg
 				system_animation_graph_table.ref(),
 				animation_graph_table.ref(),
 				system_transform_table.ref(),
+				!system_ragdoll_table.ref(),
 			};
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
@@ -275,9 +294,10 @@ namespace sfg
 					system_skinned_mesh_renderer.final_bones_calculated = true;
 				}
 
-				bool is_culled = false;
+				const bool force_evaluate = system_animation_graph.force_evaluate;
+				bool	   is_culled	  = false;
 
-				if (animation_graph.is_culled && main_camera_transform != nullptr)
+				if (!force_evaluate && animation_graph.is_culled && main_camera_transform != nullptr)
 				{
 					const vec3f_t camera_to_entity = (system_transform.abs_pos - main_camera_transform->abs_pos).normalized();
 					const f32	  camera_dot	   = vec3f_t::dot(main_camera_transform->abs_rot.get_forward(), camera_to_entity);
@@ -286,9 +306,9 @@ namespace sfg
 					is_culled = camera_dot < cull_dot_limit;
 				}
 
-				u32 effective_tick_rate = animation_graph.tick_rate;
+				u32 effective_tick_rate = force_evaluate ? 1 : animation_graph.tick_rate;
 
-				if (animation_graph.throttling_enabled && main_camera_transform != nullptr)
+				if (!force_evaluate && animation_graph.throttling_enabled && main_camera_transform != nullptr)
 				{
 					const f32 distance			 = vec3f_t::distance(system_transform.abs_pos, main_camera_transform->abs_pos);
 					f32		  throttle_tick_rate = 1.0f;
@@ -315,6 +335,7 @@ namespace sfg
 
 				system_animation_graph.accumulated_delta_time = 0.0f;
 				system_animation_graph.tick_frame_count		  = 0;
+				system_animation_graph.force_evaluate		  = false;
 
 				if (is_culled)
 				{
@@ -329,6 +350,33 @@ namespace sfg
 
 				_animation_graph_storage.process_graph(system_animation_graph.nodes, system_animation_graph.node_count, system_animation_graph.initial_pose, system_transform.abs_mat, bones, graph_delta_time);
 				animation_graph_util_t::finalize_bones(skeleton, resource_memory, system_skinned_mesh_renderer.bones_handle, system_skinned_mesh_renderer.inverse_binds_handle, _bone_memory);
+
+				system_skinned_mesh_renderer.final_bones_calculated = true;
+			}
+		}
+
+		// copy physics-owned ragdoll poses
+		{
+			const ecs_component_table_ref_t table_refs[] = {
+				!disabled_table.ref(),
+				alive_table.ref(),
+				system_skinned_mesh_renderer_table.ref(),
+				system_ragdoll_table.ref(),
+			};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				component_system_skinned_mesh_renderer_t& system_skinned_mesh_renderer = ecs_helpers_t::row_get_mutable<component_system_skinned_mesh_renderer_t>(row, 2);
+				const component_system_ragdoll_t&		  system_ragdoll			   = ecs_helpers_t::row_get<component_system_ragdoll_t>(row, 3);
+				const skeleton_runtime_t*				  skeleton					   = resource_manager.find_runtime<skeleton_runtime_t>(system_ragdoll.skeleton);
+				SFG_ASSERT(skeleton != nullptr);
+
+				const skeleton_joint_runtime_t* joints		  = resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
+				const span_t<const mat4x3_t>	joint_globals = _world->get_physics().get_ragdoll_joint_globals(row.id);
+				animation_bone_t*				bones		  = _bone_memory.get<animation_bone_t>(system_skinned_mesh_renderer.bones_handle);
+
+				for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
+					bones[joint_index].bone_transform = joint_globals[joint_index] * joints[joint_index].inverse_bind;
 
 				system_skinned_mesh_renderer.final_bones_calculated = true;
 			}

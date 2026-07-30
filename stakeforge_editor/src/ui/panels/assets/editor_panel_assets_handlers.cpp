@@ -196,6 +196,7 @@ namespace sfg
 		case assets_action_menu_create_particle_shader:
 		case assets_action_menu_create_texture_sampler:
 		case assets_action_menu_create_curve:
+		case assets_action_menu_create_ragdoll:
 		case assets_action_menu_create_opaque_material:
 		case assets_action_menu_create_opaque_unlit_material:
 		case assets_action_menu_create_transparent_material:

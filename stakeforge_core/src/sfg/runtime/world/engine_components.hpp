@@ -244,6 +244,16 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_skinned_mesh_renderer_t);
 
+	struct component_ragdoll_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_ragdoll";
+
+		resource_handle_t ragdoll		  = NULL_RESOURCE_HANDLE;
+		u8				  collision_layer = 0;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_ragdoll_t);
+
 	struct component_animation_player_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_animation_player";

@@ -63,7 +63,7 @@ namespace sfg
 		u64			value = 0;
 	};
 
-	using editor_widget_reflection_dropdown_items_fn = span_t<const editor_widget_reflection_dropdown_item_t> (*)(sid_t field_id, sid_t owner_field_id, void* user_data);
+	using editor_widget_reflection_dropdown_items_fn = span_t<const editor_widget_reflection_dropdown_item_t> (*)(sid_t field_id, sid_t owner_field_id, u32 element_index, void* user_data);
 
 	struct editor_widget_reflection_fold_state_t
 	{
@@ -155,7 +155,7 @@ namespace sfg
 		void fit_control(ui::widget_id_t widget);
 		bool is_field_visible(const reflected_type_t& type, const reflected_field_t& field, span_t<void*> objects, u32 dependency_depth) const;
 		void refresh_dependency_visibility();
-		void create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, editor_world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider);
+		void create_fields(ui::widget_id_t parent, span_t<void*> objects, sid_t type_id, editor_world_handle_t world, bool track_rows, bool sub_item, f32 indentation, bool add_divider, u32 element_index = 0);
 		void create_checkbox(ui::widget_id_t parent, const reflected_field_t* const field, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);
 		bool create_dropdown(
 			ui::widget_id_t parent, const reflected_field_t* const field, sid_t owner_field_id, span_t<u8*> fields, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data = nullptr, u32 element_index = 0);

@@ -42,6 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/animation_graph_def.hpp>
 #include <sfg/runtime/resources/curve_def.hpp>
+#include <sfg/runtime/resources/ragdoll_def.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/serialization/serialization.hpp>
@@ -285,6 +286,32 @@ namespace sfg
 			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
+		bool create_ragdoll_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
+		{
+			ragdoll_def_t  definition	   = {};
+			nlohmann::json embedded_source = nlohmann::json::object();
+
+			if (!reflection_registry_t::get().type_to_json(type_id_t<ragdoll_def_t>::value, &definition, nullptr, embedded_source))
+			{
+				SFG_ERR("failed to serialize initial ragdoll definition");
+				return false;
+			}
+
+			embedded_source["schema"] = "sfg.schema.ragdoll";
+
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &embedded_source,
+				.parent_path	 = parent_path,
+				.name			 = desc.name,
+				.guid			 = desc.guid,
+				.asset_type		 = editor_asset_type_e::ragdoll,
+				.sub_type		 = desc.sub_type,
+				.allow_overwrite = desc.allow_overwrite,
+			};
+
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
+		}
+
 		bool create_prefab_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const nlohmann::json embedded_source = nlohmann::json::parse(desc.embedded_data, nullptr, false);
@@ -369,6 +396,9 @@ namespace sfg
 			result = create_animation_graph_asset(desc, parent_path, &asset, &asset_path);
 			if (result)
 				result = editor_asset_cooker_t::cook_animation_graph(asset, desc.name);
+			break;
+		case editor_asset_type_e::ragdoll:
+			result = create_ragdoll_asset(desc, parent_path, &asset, &asset_path);
 			break;
 		case editor_asset_type_e::prefab:
 			result = create_prefab_asset(desc, parent_path, &asset, &asset_path);

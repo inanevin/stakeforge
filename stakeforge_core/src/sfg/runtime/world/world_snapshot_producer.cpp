@@ -592,9 +592,11 @@ namespace sfg
 				if (entry == nullptr)
 					continue;
 
-				const mesh_runtime_t*			mesh_runtime   = rm_aux.get<mesh_runtime_t>(entry->runtime);
-				const mesh_internals_t*			mesh_internals = rm_aux.get<mesh_internals_t>(entry->internals);
-				const mesh_primitive_runtime_t* primitives	   = rm_aux.get<mesh_primitive_runtime_t>(mesh_runtime->primitives);
+				const mesh_runtime_t*			  mesh_runtime		   = rm_aux.get<mesh_runtime_t>(entry->runtime);
+				const mesh_internals_t*			  mesh_internals	   = rm_aux.get<mesh_internals_t>(entry->internals);
+				const mesh_primitive_runtime_t*	  primitives		   = rm_aux.get<mesh_primitive_runtime_t>(mesh_runtime->primitives);
+				const ecs_component_table_t&	  system_ragdoll_table = world.get_component_table(type_id_t<component_system_ragdoll_t>::value);
+				const component_system_ragdoll_t* system_ragdoll	   = ecs_helpers_t::table_find_as_const<component_system_ragdoll_t>(system_ragdoll_table, row.id);
 
 				const render_resource_handle_t		 vertex_buffer = mesh_internals->vertex_buffer;
 				const render_resource_handle_t		 index_buffer  = mesh_internals->index_buffer;
@@ -644,12 +646,13 @@ namespace sfg
 					// renderable instance
 					snapshot.renderables.push_back({
 						.sort_key		= mat_handle,
-						.aabb			= mesh_internals->local_bounds,
+						.aabb			= system_ragdoll != nullptr ? system_ragdoll->world_bounds : mesh_internals->local_bounds,
 						.payload_index	= static_cast<u32>(snapshot.mesh_draws.size() - 1),
 						.material_index = draw_material_index,
 						.entity_index	= entity_index,
 						.pass_mask		= snapshot.materials[draw_material_index].pass_mask,
 						.type			= world_renderable_type_e::mesh,
+						.flags			= system_ragdoll != nullptr ? world_renderable_flag_world_space_aabb : world_renderable_flag_none,
 					});
 				}
 			}

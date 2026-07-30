@@ -896,6 +896,30 @@ namespace sfg
 			});
 		}
 
+		void register_component_ragdoll_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name			 = "component_ragdoll",
+				.display_name	 = "Ragdoll",
+				.category		 = "Physics",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_ragdoll_t*>(ptr), component_ragdoll_t{}); },
+				.fields =
+					{
+						{.name = "ragdoll", .display_name = "Ragdoll", .sub_type_id = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_RAGDOLL, .offset = offsetof(component_ragdoll_t, ragdoll), .size = sizeof(resource_handle_t), .type = reflected_value_type_e::u64},
+						{.name		   = "collision_layer",
+						 .display_name = "Collision Layer",
+						 .sub_type_id  = REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER,
+						 .offset	   = offsetof(component_ragdoll_t, collision_layer),
+						 .size		   = sizeof(u8),
+						 .type		   = reflected_value_type_e::u8},
+					},
+				.type_id   = type_id_t<component_ragdoll_t>::value,
+				.size	   = sizeof(component_ragdoll_t),
+				.alignment = alignof(component_ragdoll_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
 		void register_component_animation_player_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -3632,6 +3656,7 @@ namespace sfg
 		register_component_sprite_renderer_reflection(registry);
 		register_particle_reflection(registry);
 		register_component_skinned_mesh_renderer_reflection(registry);
+		register_component_ragdoll_reflection(registry);
 		register_component_animation_player_reflection(registry);
 		register_component_animation_graph_reflection(registry);
 		register_audio_component_reflection(registry);

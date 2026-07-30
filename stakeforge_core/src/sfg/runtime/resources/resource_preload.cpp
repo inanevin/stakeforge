@@ -13,6 +13,8 @@
 #include "material_cook.hpp"
 #include "material_def.hpp"
 #include "physical_material_cook.hpp"
+#include "ragdoll_cook.hpp"
+#include "ragdoll_def.hpp"
 #include "prefab.hpp"
 #include "resource_manager.hpp"
 #include "resource_manifest.hpp"
@@ -203,6 +205,19 @@ namespace sfg
 				}
 
 				return curve_cooker::cook_from_def(def, out_header, stream);
+			}
+
+			if (schema == "sfg.schema.ragdoll")
+			{
+				ragdoll_def_t def = {};
+
+				if (!reflection_registry_t::get().type_from_json(type_id_t<ragdoll_def_t>::value, &def, nullptr, config))
+				{
+					SFG_ERR("failed to deserialize ragdoll definition");
+					return false;
+				}
+
+				return ragdoll_cooker::cook_from_def(def, out_header, stream);
 			}
 
 			if (schema == "sfg.schema.cubemap")

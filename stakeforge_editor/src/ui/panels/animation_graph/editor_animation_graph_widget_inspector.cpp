@@ -469,7 +469,7 @@ namespace sfg
 		_edit_active = false;
 	}
 
-	span_t<const editor_widget_reflection_dropdown_item_t> editor_animation_graph_widget_inspector_t::resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, void* user_data)
+	span_t<const editor_widget_reflection_dropdown_item_t> editor_animation_graph_widget_inspector_t::resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, u32 element_index, void* user_data)
 	{
 		editor_animation_graph_widget_inspector_t& inspector = *static_cast<editor_animation_graph_widget_inspector_t*>(user_data);
 

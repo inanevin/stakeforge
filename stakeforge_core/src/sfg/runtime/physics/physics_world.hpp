@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/data/span.hpp>
+#include <sfg/math/mat4x3.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/runtime/physics/physics_config.hpp>
 #include <sfg/runtime/physics/physics_types.hpp>
@@ -78,15 +79,17 @@ namespace sfg
 		// bodies
 		// -----------------------------------------------------------------------------
 
-		void sync_body_create_destroy();
-		void destroy_body(entity_id_t entity);
-		void set_body_linear_velocity(entity_id_t entity, const vec3f_t& velocity);
-		void set_body_angular_velocity(entity_id_t entity, const vec3f_t& velocity);
-		void add_body_force(entity_id_t entity, const vec3f_t& force);
-		void add_body_impulse(entity_id_t entity, const vec3f_t& impulse);
-		void wake_body(entity_id_t entity);
-		bool get_body_state(entity_id_t entity, physics_body_state_t& out_state) const;
-		bool is_body(entity_id_t entity) const;
+		void				   sync_body_create_destroy();
+		void				   destroy_entity(entity_id_t entity);
+		void				   destroy_body(entity_id_t entity);
+		void				   set_body_linear_velocity(entity_id_t entity, const vec3f_t& velocity);
+		void				   set_body_angular_velocity(entity_id_t entity, const vec3f_t& velocity);
+		void				   add_body_force(entity_id_t entity, const vec3f_t& force);
+		void				   add_body_impulse(entity_id_t entity, const vec3f_t& impulse);
+		void				   wake_body(entity_id_t entity);
+		bool				   get_body_state(entity_id_t entity, physics_body_state_t& out_state) const;
+		bool				   is_body(entity_id_t entity) const;
+		span_t<const mat4x3_t> get_ragdoll_joint_globals(entity_id_t entity) const;
 
 		// -----------------------------------------------------------------------------
 		// queries

@@ -66,6 +66,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void destroy_entity(entity_id_t entity);
+		void reset_pose_after_ragdoll(entity_id_t entity);
 		void tick_prep(f32 delta_time);
 		void tick_logic(f32 delta_time);
 		bool set_graph_parameter_f32(entity_id_t entity, sid_t parameter_hash, f32 value);

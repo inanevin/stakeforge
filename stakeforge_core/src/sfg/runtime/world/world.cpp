@@ -608,17 +608,16 @@ namespace sfg
 		SFG_ASSERT(is_alive(id));
 
 		_particle_simulation.destroy_entity(id);
+
+		if (_physics_world.is_init())
+			_physics_world.destroy_entity(id);
+
 		_animation_controller.destroy_entity(id);
 		_audio_controller.destroy_entity(id);
 		_canvas_controller.destroy_entity(id);
 
 		component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
 		SFG_ASSERT(hierarchy.first_child == NULL_ENTITY_ID);
-
-		if (_physics_world.is_init())
-		{
-			_physics_world.destroy_body(id);
-		}
 
 		detach(id);
 

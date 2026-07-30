@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/animation_graph_def.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
+#include <sfg/runtime/resources/ragdoll_def.hpp>
 #include <sfg/runtime/resources/shader_data_definition.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -195,6 +196,19 @@ namespace sfg
 				}
 			}
 
+			break;
+		}
+		case editor_asset_type_e::ragdoll: {
+			if (!embedded_source.is_object())
+				return false;
+
+			ragdoll_def_t ragdoll = {};
+
+			if (!reflection_registry_t::get().type_from_json(type_id_t<ragdoll_def_t>::value, &ragdoll, nullptr, embedded_source))
+				return false;
+
+			append_dependency(ragdoll.target_skeleton, resource_type_e::skeleton, out_dependencies);
+			append_dependency(ragdoll.physical_material, resource_type_e::physical_material, out_dependencies);
 			break;
 		}
 		case editor_asset_type_e::prefab:

@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/audio/audio_engine.hpp>
 #include <sfg/common/type_id.hpp>
 #include <sfg/math/mat4x3.hpp>
+#include <sfg/math/aabb.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec2u16.hpp>
@@ -43,6 +44,7 @@ namespace JPH
 {
 	class CharacterVirtual;
 	class Constraint;
+	class Ragdoll;
 }
 
 namespace sfg
@@ -97,6 +99,23 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_system_skinned_mesh_renderer_t);
 
+	struct component_system_ragdoll_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_ragdoll";
+
+		JPH::Ragdoll*	  ragdoll			= nullptr;
+		mat4x3_t		  entity_from_root	= mat4x3_t::identity;
+		aabb_t			  world_bounds		= {};
+		chunk_handle32_t  frozen_local_pose = {};
+		chunk_handle32_t  joint_global_pose = {};
+		resource_handle_t ragdoll_resource	= NULL_RESOURCE_HANDLE;
+		resource_handle_t skeleton			= NULL_RESOURCE_HANDLE;
+		u32				  joint_count		= 0;
+		u8				  collision_layer	= 0;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_ragdoll_t);
+
 	struct component_system_sprite_renderer_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_sprite_renderer";
@@ -132,6 +151,7 @@ namespace sfg
 		u32				  parameter_count		 = 0;
 		u32				  node_count			 = 0;
 		u32				  tick_frame_count		 = 0;
+		bool			  force_evaluate		 = false;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_animation_graph_t);

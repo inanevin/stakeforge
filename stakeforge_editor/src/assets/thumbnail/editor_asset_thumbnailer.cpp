@@ -311,6 +311,8 @@ namespace sfg
 			return "editor/resource_pack/textures/thumbnails/animation_graph.png"_hs;
 		case editor_asset_type_e::skeleton:
 			return "editor/resource_pack/textures/thumbnails/skeleton.png"_hs;
+		case editor_asset_type_e::ragdoll:
+			return "editor/resource_pack/textures/thumbnails/skeleton.png"_hs;
 
 		default:
 			return NULL_SID;

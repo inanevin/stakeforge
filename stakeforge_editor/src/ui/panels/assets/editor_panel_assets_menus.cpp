@@ -73,6 +73,7 @@ namespace sfg
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_PHYSICS_ROWS[] = {
 			{.text = "Physical Material", .command = assets_action_menu_create_physical_material},
+			{.text = "Ragdoll", .command = assets_action_menu_create_ragdoll},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_CREATE_ROWS[] = {

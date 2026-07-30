@@ -53,6 +53,8 @@ namespace sfg
 			return "Mesh Viewer";
 		case editor_panel_type_e::skeleton_viewer:
 			return "Skeleton Viewer";
+		case editor_panel_type_e::ragdoll_viewer:
+			return "Ragdoll Viewer";
 		case editor_panel_type_e::animation_graph:
 			return "Animation Graph";
 		default:

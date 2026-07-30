@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/log/editor_panel_log.hpp"
 #include "ui/panels/editor_panel_mesh_viewer.hpp"
 #include "ui/panels/editor_panel_skeleton_viewer.hpp"
+#include "ui/panels/editor_panel_ragdoll_viewer.hpp"
 #include "ui/panels/editor_panel_project_settings.hpp"
 #include "ui/panels/editor_panel_resources.hpp"
 #include "ui/panels/editor_panel_world.hpp"
@@ -53,6 +54,7 @@ namespace sfg
 			{.type = editor_panel_type_e::project_settings},
 			{.type = editor_panel_type_e::mesh_viewer, .allows_multiple_instances = true},
 			{.type = editor_panel_type_e::skeleton_viewer, .allows_multiple_instances = true},
+			{.type = editor_panel_type_e::ragdoll_viewer, .allows_multiple_instances = true},
 			{.type = editor_panel_type_e::animation_graph},
 		};
 
@@ -83,6 +85,8 @@ namespace sfg
 			return new editor_panel_mesh_viewer_t();
 		case editor_panel_type_e::skeleton_viewer:
 			return new editor_panel_skeleton_viewer_t();
+		case editor_panel_type_e::ragdoll_viewer:
+			return new editor_panel_ragdoll_viewer_t();
 		case editor_panel_type_e::animation_graph:
 			return new editor_panel_animation_graph_t();
 		default:

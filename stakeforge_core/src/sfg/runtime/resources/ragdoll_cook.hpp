@@ -27,32 +27,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/math/vec3f.hpp>
-#include <sfg/runtime/physics/physics_types.hpp>
+#include "common_resources.hpp"
 
 namespace sfg
 {
-	struct physics_runtime_config_t
-	{
-		physics_runtime_config_t()
-		{
-			for (u32 i = 0; i < PHYSICS_COLLISION_LAYER_MAX; ++i)
-				collision_masks[i] = UINT64_MAX;
-		}
+	class ostream_t;
+	struct ragdoll_def_t;
 
-		vec3f_t gravity										 = {0.0f, -9.81f, 0.0f};
-		u64		collision_masks[PHYSICS_COLLISION_LAYER_MAX] = {};
-		u64		active_collision_layers						 = 1;
-		u32		max_bodies									 = 16384;
-		u32		body_mutex_count							 = 0;
-		u32		max_body_pairs								 = 32768;
-		u32		max_contact_constraints						 = 16384;
-		u32		temp_allocator_bytes						 = 16 * 1024 * 1024;
-		u32		body_reserve								 = 4096;
-		u32		character_reserve							 = 128;
-		u32		contact_event_reserve						 = 4096;
-		u32		ragdoll_pose_budget_bytes					 = 4 * 1024 * 1024;
-		u32		physics_rate								 = 100;
-		u32		max_sub_steps								 = 4;
+	class ragdoll_cooker
+	{
+	public:
+		static bool cook_from_def(const ragdoll_def_t& def, resource_header_t& out_header, ostream_t& stream);
 	};
 }

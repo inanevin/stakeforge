@@ -27,32 +27,32 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <sfg/math/vec3f.hpp>
-#include <sfg/runtime/physics/physics_types.hpp>
+#include <sfg/memory/chunk_handle.hpp>
 
 namespace sfg
 {
-	struct physics_runtime_config_t
-	{
-		physics_runtime_config_t()
-		{
-			for (u32 i = 0; i < PHYSICS_COLLISION_LAYER_MAX; ++i)
-				collision_masks[i] = UINT64_MAX;
-		}
+	class editor_panel_ragdoll_viewer_t;
 
-		vec3f_t gravity										 = {0.0f, -9.81f, 0.0f};
-		u64		collision_masks[PHYSICS_COLLISION_LAYER_MAX] = {};
-		u64		active_collision_layers						 = 1;
-		u32		max_bodies									 = 16384;
-		u32		body_mutex_count							 = 0;
-		u32		max_body_pairs								 = 32768;
-		u32		max_contact_constraints						 = 16384;
-		u32		temp_allocator_bytes						 = 16 * 1024 * 1024;
-		u32		body_reserve								 = 4096;
-		u32		character_reserve							 = 128;
-		u32		contact_event_reserve						 = 4096;
-		u32		ragdoll_pose_budget_bytes					 = 4 * 1024 * 1024;
-		u32		physics_rate								 = 100;
-		u32		max_sub_steps								 = 4;
+	struct editor_command_ragdoll_edit_payload_t
+	{
+		chunk_handle32_t previous_stream = {};
+		chunk_handle32_t post_stream	 = {};
+	};
+
+	class editor_command_ragdoll_edit_t final
+	{
+	public:
+		editor_command_ragdoll_edit_t()												   = delete;
+		~editor_command_ragdoll_edit_t()											   = delete;
+		editor_command_ragdoll_edit_t(const editor_command_ragdoll_edit_t&)			   = delete;
+		editor_command_ragdoll_edit_t& operator=(const editor_command_ragdoll_edit_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool begin(editor_panel_ragdoll_viewer_t& viewer);
+		static bool submit(editor_panel_ragdoll_viewer_t& viewer, const char* debug_name, bool notify);
+		static void cancel(editor_panel_ragdoll_viewer_t& viewer);
 	};
 }

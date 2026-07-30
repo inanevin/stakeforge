@@ -72,6 +72,7 @@ namespace sfg
 		animation_graph_set_display_mode,
 		animation_graph_edit,
 		skeleton_edit,
+		ragdoll_edit,
 	};
 
 	enum class editor_command_state_e : u8

@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/editor_panel_mesh_viewer.hpp"
 #include "ui/panels/editor_panel_skeleton_viewer.hpp"
+#include "ui/panels/editor_panel_ragdoll_viewer.hpp"
 #include "ui/panels/animation_graph/editor_panel_animation_graph.hpp"
 #include "assets/editor_asset_creator.hpp"
 #include "editor_directories.hpp"
@@ -535,6 +536,13 @@ namespace sfg
 			if (panel != nullptr)
 				static_cast<editor_panel_skeleton_viewer_t*>(panel)->set_skeleton(asset->guid, asset_node.name.c_str());
 		}
+		else if (asset->asset_type == editor_asset_type_e::ragdoll)
+		{
+			editor_panel_t* panel = editor_surface_controller_t::get().create_panel_instance(editor_panel_type_e::ragdoll_viewer, {}, true, asset->guid);
+
+			if (panel != nullptr)
+				static_cast<editor_panel_ragdoll_viewer_t*>(panel)->set_ragdoll(asset->guid, asset_node.name.c_str());
+		}
 		else if (asset->asset_type == editor_asset_type_e::animation)
 		{
 			editor_panel_t* panel = editor_surface_controller_t::get().create_panel_instance(editor_panel_type_e::animation, {}, true, asset->guid);
@@ -670,6 +678,9 @@ namespace sfg
 			break;
 		case assets_action_menu_create_curve:
 			text = "curve";
+			break;
+		case assets_action_menu_create_ragdoll:
+			text = "ragdoll";
 			break;
 		case assets_action_menu_create_opaque_material:
 			text = "opaque_material";
@@ -881,6 +892,9 @@ namespace sfg
 			return true;
 		case assets_action_menu_create_curve:
 			out_desc.asset_type = editor_asset_type_e::curve;
+			return true;
+		case assets_action_menu_create_ragdoll:
+			out_desc.asset_type = editor_asset_type_e::ragdoll;
 			return true;
 		case assets_action_menu_create_opaque_material:
 			out_desc.asset_type = editor_asset_type_e::material;

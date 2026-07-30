@@ -48,6 +48,7 @@ namespace sfg
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICS_COLLISION_MESH "reflection_resource_subtype_physics_collision_mesh"_hs
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SPRITE				   "reflection_resource_subtype_sprite"_hs
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_CURVE				   "reflection_resource_subtype_curve"_hs
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_RAGDOLL				   "reflection_resource_subtype_ragdoll"_hs
 
 	enum class resource_type_e : u8
 	{
@@ -68,6 +69,7 @@ namespace sfg
 		physics_collision_mesh,
 		sprite,
 		curve,
+		ragdoll,
 		count,
 	};
 
@@ -107,6 +109,8 @@ namespace sfg
 			return resource_type_e::sprite;
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_CURVE)
 			return resource_type_e::curve;
+		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_RAGDOLL)
+			return resource_type_e::ragdoll;
 		return resource_type_e::invalid;
 	}
 

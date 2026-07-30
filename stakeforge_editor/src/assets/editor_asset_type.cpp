@@ -84,6 +84,9 @@ namespace sfg
 		case editor_asset_type_e::curve:
 			j = "curve";
 			break;
+		case editor_asset_type_e::ragdoll:
+			j = "ragdoll";
+			break;
 		case editor_asset_type_e::world:
 			j = "world";
 			break;
@@ -129,6 +132,8 @@ namespace sfg
 			t = editor_asset_type_e::sprite;
 		else if (s == "curve")
 			t = editor_asset_type_e::curve;
+		else if (s == "ragdoll")
+			t = editor_asset_type_e::ragdoll;
 		else if (s == "world")
 			t = editor_asset_type_e::world;
 		else
@@ -171,6 +176,8 @@ namespace sfg
 			return editor_asset_type_e::sprite;
 		case resource_type_e::curve:
 			return editor_asset_type_e::curve;
+		case resource_type_e::ragdoll:
+			return editor_asset_type_e::ragdoll;
 		default:
 			return editor_asset_type_e::invalid;
 		}
