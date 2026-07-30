@@ -13,6 +13,7 @@ internal unsafe struct NativeApi
     internal NativePlatformApi* Platform;
     internal NativeGameApi* Game;
     internal NativeStatsApi* Stats;
+    internal NativeScreenApi* Screen;
     internal NativeResourceApi* Resource;
     internal NativeWorldApi* World;
     internal NativeAudioApi* Audio;
@@ -27,7 +28,7 @@ internal unsafe struct NativeApi
 
 internal static unsafe class ManagedRuntime
 {
-    private const uint ApiVersion = 7;
+    private const uint ApiVersion = 8;
     private const uint CategoryApiVersion = 1;
     private const uint GameApiVersion = 4;
     private const uint WorldApiVersion = 5;
@@ -100,6 +101,9 @@ internal static unsafe class ManagedRuntime
             api->Stats == null ||
             api->Stats->Size < sizeof(NativeStatsApi) ||
             api->Stats->Version != CategoryApiVersion ||
+            api->Screen == null ||
+            api->Screen->Size < sizeof(NativeScreenApi) ||
+            api->Screen->Version != CategoryApiVersion ||
             api->Resource == null ||
             api->Resource->Size < sizeof(NativeResourceApi) ||
             api->Resource->Version != CategoryApiVersion ||

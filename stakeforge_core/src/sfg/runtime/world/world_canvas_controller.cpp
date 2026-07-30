@@ -239,6 +239,7 @@ namespace sfg
 			runtime.events.init(static_cast<u32>(component.max_widgets) * 2u);
 
 			const u32 pipeline_flags = component.render_stage == canvas_render_stage_e::before_post_process ? shader_variant_flags_post_process_hdr : shader_variant_flags_post_process_ldr;
+			const f32 dpi_scale		 = world->get_screen().get_dpi_scale();
 
 			runtime.context->init({
 				.canvas =
@@ -302,10 +303,7 @@ namespace sfg
 
 		vec2f_t map_position(const vec2f_t& position) const
 		{
-			return {
-				(position.x - input_rect.x) * static_cast<f32>(render_size.x) / input_rect.z,
-				(position.y - input_rect.y) * static_cast<f32>(render_size.y) / input_rect.w,
-			};
+			return world->get_screen().screen_to_render_position(position);
 		}
 
 		void append_runtime(const runtime_t& runtime, world_canvas_draw_snapshot_t& destination) const
@@ -338,11 +336,8 @@ namespace sfg
 			}
 		}
 
-		vector_t<unique_t<runtime_t>> runtimes	  = {};
-		world_t*					  world		  = nullptr;
-		vec4f_t						  input_rect  = {0.0f, 0.0f, 1280.0f, 720.0f};
-		vec2u16_t					  render_size = {1280, 720};
-		f32							  dpi_scale	  = 1.0f;
+		vector_t<unique_t<runtime_t>> runtimes = {};
+		world_t*					  world	   = nullptr;
 	};
 
 	world_canvas_controller_t::world_canvas_controller_t() : _impl(make_unique<impl_t>())
@@ -461,20 +456,12 @@ namespace sfg
 	{
 		sync_create_destroy_canvases();
 
-		const vec4f_t screen_rect = {0.0f, 0.0f, static_cast<f32>(_impl->render_size.x), static_cast<f32>(_impl->render_size.y)};
+		const world_screen_t& screen	  = _impl->world->get_screen();
+		const vec2u16_t		  render_size = screen.get_render_size();
+		const vec4f_t		  screen_rect = {0.0f, 0.0f, static_cast<f32>(render_size.x), static_cast<f32>(render_size.y)};
 
 		for (const unique_t<impl_t::runtime_t>& runtime : _impl->runtimes)
-			runtime->context->tick(screen_rect, _impl->dpi_scale, dt_seconds);
-	}
-
-	void world_canvas_controller_t::set_viewport(const vec4f_t& input_rect, vec2u16_t render_size, f32 dpi_scale)
-	{
-		SFG_ASSERT(input_rect.z > 0.0f && input_rect.w > 0.0f);
-		SFG_ASSERT(render_size.x > 0 && render_size.y > 0);
-
-		_impl->input_rect  = input_rect;
-		_impl->render_size = render_size;
-		_impl->dpi_scale   = ui::get_valid_scale(dpi_scale);
+			runtime->context->tick(screen_rect, screen.get_dpi_scale(), dt_seconds);
 	}
 
 	void world_canvas_controller_t::write_render_snapshot(world_canvas_render_snapshot_t& snapshot) const

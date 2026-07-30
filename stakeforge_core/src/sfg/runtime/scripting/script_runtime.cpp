@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/scripting/api/script_api_physics.hpp>
 #include <sfg/runtime/scripting/api/script_api_platform.hpp>
 #include <sfg/runtime/scripting/api/script_api_resource.hpp>
+#include <sfg/runtime/scripting/api/script_api_screen.hpp>
 #include <sfg/runtime/scripting/api/script_api_stats.hpp>
 #include <sfg/runtime/scripting/api/script_api_world.hpp>
 
@@ -256,12 +257,13 @@ namespace sfg
 
 		_native_api = {
 			.size			= static_cast<u32>(sizeof(script_host_native_api_t)),
-			.version		= 7,
+			.version		= 8,
 			.log_info		= script_host_log_info,
 			.log_error		= script_host_log_error,
 			.platform		= &get_script_api_platform(),
 			.game			= &get_script_api_game(),
 			.stats			= &get_script_api_stats(),
+			.screen			= &get_script_api_screen(),
 			.resource		= &get_script_api_resource(),
 			.world			= &get_script_api_world(),
 			.audio			= &get_script_api_audio(),

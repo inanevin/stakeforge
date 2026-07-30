@@ -283,6 +283,7 @@ namespace sfg
 			return;
 
 		_render_context.resize(render_resolution);
+		_main_world.get_screen().set_render_size(render_resolution);
 	}
 
 	bool game_world_controller_t::load_world(sid_t world)

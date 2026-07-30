@@ -64,13 +64,16 @@ namespace sfg
 		_text_allocation_free_list.reserve(config.text_allocation_initial_capacity);
 		_text_allocator.init(config.text_budget_bytes);
 		_used_resources.reserve(config.used_resource_initial_capacity);
+		_screen.init(config.render_resolution);
 
 		const vector_t<reflected_type_t>& types = reflection_registry_t::get().get_types();
+
 		for (const reflected_type_t& type : types)
 		{
 			const bool is_component		   = type.flags.is_set(reflected_type_flags_e::reflected_type_flag_component);
 			const bool is_tag_component	   = type.flags.is_set(reflected_type_flags_e::reflected_type_flag_tag_component);
 			const bool is_system_component = type.flags.is_set(reflected_type_flags_e::reflected_type_flag_system_component);
+
 			if (!is_component && !is_tag_component && !is_system_component)
 				continue;
 
@@ -105,6 +108,8 @@ namespace sfg
 
 		_canvas_controller.uninit();
 
+		_screen.uninit();
+
 		_audio_controller.uninit();
 
 		_animation_controller.uninit();
@@ -117,6 +122,7 @@ namespace sfg
 		_logic_helper.uninit();
 
 		_debug_draw.uninit();
+
 		for (ecs_component_table_t& table : _component_tables)
 			ecs_t::table_uninit(table);
 
@@ -153,6 +159,7 @@ namespace sfg
 		_real_elapsed_time	 = 0.0f;
 
 		update_world_transforms(false);
+		refresh_main_camera();
 		_audio_controller.set_time_scale(_time_scale);
 		_audio_controller.begin_play();
 		_particle_simulation.begin_play();
@@ -226,6 +233,7 @@ namespace sfg
 		_canvas_controller.clear();
 
 		_debug_draw.begin_frame();
+
 		for (ecs_component_table_t& table : _component_tables)
 			ecs_t::table_clear(table);
 
@@ -239,6 +247,7 @@ namespace sfg
 		_time_scale			= 1.0f;
 		_entity_head		= 0;
 		_main_camera_entity = NULL_ENTITY_ID;
+		_screen.clear_camera();
 		_audio_controller.set_time_scale(_time_scale);
 
 		for (key_state_t& state : _key_states)
@@ -488,13 +497,41 @@ namespace sfg
 
 		const f32 scaled_dt = dt * _time_scale;
 
+		refresh_main_camera();
+
 		_particle_simulation.tick(scaled_dt);
 		_canvas_controller.tick(dt);
 		_canvas_controller.dispatch_events(_world_script_instance);
 
 		_logic_helper.sync_sprite_renderers();
 		_logic_helper.sync_reflection_probes(_tick_count);
+	}
+
+	void world_t::refresh_main_camera()
+	{
 		_main_camera_entity = _logic_helper.sync_main_camera();
+
+		if (_main_camera_entity == NULL_ENTITY_ID)
+		{
+			_screen.clear_camera();
+			return;
+		}
+
+		const ecs_component_table_t&		camera_table	= get_component_table(type_id_t<component_camera_t>::value);
+		const ecs_component_table_t&		transform_table = get_component_table(type_id_t<component_system_transform_t>::value);
+		const component_camera_t&			camera			= ecs_helpers_t::table_get_as_const<component_camera_t>(camera_table, _main_camera_entity);
+		const component_system_transform_t& transform		= ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, _main_camera_entity);
+		const world_render_view_t			render_view{
+			.pos		 = transform.abs_pos,
+			.rot		 = transform.abs_rot,
+			.prev_pos	 = transform.prev_abs_pos,
+			.prev_rot	 = transform.prev_abs_rot,
+			.near_plane	 = camera.near_plane,
+			.far_plane	 = camera.far_plane,
+			.fov_degrees = camera.fov_degrees,
+		};
+
+		_screen.update_camera(render_view);
 	}
 
 	void world_t::recreate_physical(entity_id_t id)

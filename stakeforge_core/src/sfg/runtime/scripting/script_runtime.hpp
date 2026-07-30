@@ -39,6 +39,7 @@ namespace sfg
 	struct script_api_platform_t;
 	struct script_api_game_t;
 	struct script_api_stats_t;
+	struct script_api_screen_t;
 	struct script_api_resource_t;
 	struct script_api_world_t;
 	struct physics_contact_event_t;
@@ -55,6 +56,7 @@ namespace sfg
 		const script_api_platform_t*  platform		 = nullptr;
 		const script_api_game_t*	  game			 = nullptr;
 		const script_api_stats_t*	  stats			 = nullptr;
+		const script_api_screen_t*	  screen		 = nullptr;
 		const script_api_resource_t*  resource		 = nullptr;
 		const script_api_world_t*	  world			 = nullptr;
 		const script_api_audio_t*	  audio			 = nullptr;

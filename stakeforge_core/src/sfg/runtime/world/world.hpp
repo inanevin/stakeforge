@@ -16,6 +16,7 @@
 #include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/runtime/world/world_logic_helper.hpp>
 #include <sfg/runtime/world/world_particle_simulation.hpp>
+#include <sfg/runtime/world/world_screen.hpp>
 #include <sfg/runtime/physics/physics_world.hpp>
 
 namespace sfg
@@ -211,6 +212,16 @@ namespace sfg
 			return _canvas_controller;
 		}
 
+		inline world_screen_t& get_screen()
+		{
+			return _screen;
+		}
+
+		inline const world_screen_t& get_screen() const
+		{
+			return _screen;
+		}
+
 		inline world_particle_simulation_t& get_particle_simulation()
 		{
 			return _particle_simulation;
@@ -249,6 +260,7 @@ namespace sfg
 	private:
 		void	 flush_pressed_keys();
 		void	 update_key_state(u16 key, u16 scan_code, u8 action);
+		void	 refresh_main_camera();
 		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
 		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
 		mat4x3_t calculate_parent_transform_direct(entity_id_t id);
@@ -287,6 +299,7 @@ namespace sfg
 		vector_t<u32>					  _text_allocation_free_list;
 		vector_t<entity_id_t>			  _entity_free_list;
 		vector_t<world_resource_t>		  _used_resources;
+		world_screen_t					  _screen						= {};
 		world_debug_draw_t				  _debug_draw					= {};
 		physics_world_t					  _physics_world				= {};
 		world_animation_controller_t	  _animation_controller			= {};

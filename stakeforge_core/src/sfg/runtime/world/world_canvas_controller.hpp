@@ -29,7 +29,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/unique.hpp>
 #include <sfg/math/vec2f.hpp>
-#include <sfg/math/vec2u16.hpp>
 #include <sfg/math/vec4f.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
@@ -106,7 +105,6 @@ namespace sfg
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void set_viewport(const vec4f_t& input_rect, vec2u16_t render_size, f32 dpi_scale);
 		void write_render_snapshot(world_canvas_render_snapshot_t& snapshot) const;
 
 		// -----------------------------------------------------------------------------

@@ -71,7 +71,7 @@ namespace sfg
 		world_t& world = game._world_controller.get_main_world();
 		if (!game._window.has_flag(window_runtime_flags_e::minimized))
 		{
-			world.get_canvas_controller().set_viewport({0.0f, 0.0f, static_cast<f32>(game._window.size.x), static_cast<f32>(game._window.size.y)}, game._world_controller.get_render_resolution(), game._window.monitor_info.dpi_scale);
+			world.get_screen().set_viewport({0.0f, 0.0f, static_cast<f32>(game._window.size.x), static_cast<f32>(game._window.size.y)}, game._world_controller.get_render_resolution(), game._window.monitor_info.dpi_scale);
 		}
 
 		switch (event.type)
@@ -305,7 +305,7 @@ namespace sfg
 
 			if (_world_controller.get_main_world().is_playing() && !_window.has_flag(window_runtime_flags_e::minimized))
 			{
-				_world_controller.get_main_world().get_canvas_controller().set_viewport({0.0f, 0.0f, static_cast<f32>(_window.size.x), static_cast<f32>(_window.size.y)}, _world_controller.get_render_resolution(), _window.monitor_info.dpi_scale);
+				_world_controller.get_main_world().get_screen().set_viewport({0.0f, 0.0f, static_cast<f32>(_window.size.x), static_cast<f32>(_window.size.y)}, _world_controller.get_render_resolution(), _window.monitor_info.dpi_scale);
 			}
 
 			_world_controller.tick();
