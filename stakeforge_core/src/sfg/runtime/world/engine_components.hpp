@@ -608,19 +608,25 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_hinge_constraint";
 
-		vec3f_t		  local_point		  = vec3f_t::zero;
-		vec3f_t		  target_point		  = vec3f_t::zero;
-		vec3f_t		  local_hinge_axis	  = vec3f_t::up;
-		vec3f_t		  target_hinge_axis	  = vec3f_t::up;
-		vec3f_t		  local_normal_axis	  = vec3f_t::right;
-		vec3f_t		  target_normal_axis  = vec3f_t::right;
-		entity_guid_t target_entity		  = NULL_ENTITY_GUID;
-		f32			  limit_min_degrees	  = -180.0f;
-		f32			  limit_max_degrees	  = 180.0f;
-		f32			  spring_frequency	  = 0.0f;
-		f32			  spring_damping	  = 0.5f;
-		f32			  max_friction_torque = 0.0f;
-		u8			  enabled			  = 1;
+		vec3f_t							 local_point							  = vec3f_t::zero;
+		vec3f_t							 target_point							  = vec3f_t::zero;
+		vec3f_t							 local_hinge_axis						  = vec3f_t::up;
+		vec3f_t							 target_hinge_axis						  = vec3f_t::up;
+		vec3f_t							 local_normal_axis						  = vec3f_t::right;
+		vec3f_t							 target_normal_axis						  = vec3f_t::right;
+		entity_guid_t					 target_entity							  = NULL_ENTITY_GUID;
+		f32								 limit_min_degrees						  = -180.0f;
+		f32								 limit_max_degrees						  = 180.0f;
+		f32								 spring_frequency						  = 0.0f;
+		f32								 spring_damping							  = 0.5f;
+		f32								 max_friction_torque					  = 0.0f;
+		f32								 motor_target_velocity_degrees_per_second = 0.0f;
+		f32								 motor_target_angle_degrees				  = 0.0f;
+		f32								 motor_frequency						  = 2.0f;
+		f32								 motor_damping							  = 1.0f;
+		f32								 max_motor_torque						  = 1000.0f;
+		physics_constraint_motor_state_e motor_state							  = physics_constraint_motor_state_e::off;
+		u8								 enabled								  = 1;
 
 		bool operator==(const component_hinge_constraint_t&) const = default;
 	};
@@ -648,19 +654,25 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_slider_constraint";
 
-		vec3f_t		  local_point		 = vec3f_t::zero;
-		vec3f_t		  target_point		 = vec3f_t::zero;
-		vec3f_t		  local_slider_axis	 = vec3f_t::right;
-		vec3f_t		  target_slider_axis = vec3f_t::right;
-		vec3f_t		  local_normal_axis	 = vec3f_t::up;
-		vec3f_t		  target_normal_axis = vec3f_t::up;
-		entity_guid_t target_entity		 = NULL_ENTITY_GUID;
-		f32			  limit_min			 = -1000000.0f;
-		f32			  limit_max			 = 1000000.0f;
-		f32			  spring_frequency	 = 0.0f;
-		f32			  spring_damping	 = 0.5f;
-		f32			  max_friction_force = 0.0f;
-		u8			  enabled			 = 1;
+		vec3f_t							 local_point		   = vec3f_t::zero;
+		vec3f_t							 target_point		   = vec3f_t::zero;
+		vec3f_t							 local_slider_axis	   = vec3f_t::right;
+		vec3f_t							 target_slider_axis	   = vec3f_t::right;
+		vec3f_t							 local_normal_axis	   = vec3f_t::up;
+		vec3f_t							 target_normal_axis	   = vec3f_t::up;
+		entity_guid_t					 target_entity		   = NULL_ENTITY_GUID;
+		f32								 limit_min			   = -1000000.0f;
+		f32								 limit_max			   = 1000000.0f;
+		f32								 spring_frequency	   = 0.0f;
+		f32								 spring_damping		   = 0.5f;
+		f32								 max_friction_force	   = 0.0f;
+		f32								 motor_target_velocity = 0.0f;
+		f32								 motor_target_position = 0.0f;
+		f32								 motor_frequency	   = 2.0f;
+		f32								 motor_damping		   = 1.0f;
+		f32								 max_motor_force	   = 1000.0f;
+		physics_constraint_motor_state_e motor_state		   = physics_constraint_motor_state_e::off;
+		u8								 enabled			   = 1;
 
 		bool operator==(const component_slider_constraint_t&) const = default;
 	};
