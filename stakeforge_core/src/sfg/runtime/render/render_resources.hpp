@@ -19,7 +19,7 @@ namespace sfg
 
 	struct render_resources_config_t
 	{
-		u32 texture_region_upload_staging_budget_bytes = 4u << 20;
+		u32 texture_region_upload_staging_budget_bytes = 6u << 20;
 		u32 texture_upload_initial_capacity			   = 32;
 		u32 pending_material_update_initial_capacity   = 64;
 		u32 resource_initial_capacity				   = 0;

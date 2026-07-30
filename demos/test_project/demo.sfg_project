@@ -2,6 +2,7 @@
     "settings": {
         "last_world_guid": 16955923858824301660,
         "project_settings": {
+            "editor_ui_scale": 1.0,
             "max_sim_steps": 4,
             "physics": {
                 "collision_layers": [
@@ -28,6 +29,7 @@
                 "test_trigger",
                 "cast_target"
             ],
+            "ui_scale": 1.0,
             "world_physics_rate": 100,
             "world_tick_rate": 60
         },

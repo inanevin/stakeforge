@@ -160,7 +160,7 @@ namespace sfg
 		ui::ui_render_state_t title_state = {};
 		title_state.pipeline			  = theme.shader_glitch_lcd;
 		paint.set_text(
-			_title, ui.widget_text(_title), ui.widget_text_len(_title), {.font = theme.font_sfg, .color = theme.color_text0, .point_size = static_cast<f32>(config.owner_size.y) * 0.15f, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
+			_title, ui.widget_text(_title), ui.widget_text_len(_title), {.font = theme.font_sfg, .color = theme.color_text0, .point_size = static_cast<f32>(config.owner_size.x) * 0.05f, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
 
 		_version = ui.allocate_widget();
 		ui.set_widget_debug_name(_version, "splash_version");
@@ -172,7 +172,7 @@ namespace sfg
 		paint.set_text(_version,
 					   ui.widget_text(_version),
 					   ui.widget_text_len(_version),
-					   {.font = theme.font_title, .color = theme.color_text1, .point_size = static_cast<f32>(config.owner_size.y) * 0.07f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+					   {.font = theme.font_title, .color = theme.color_text1, .point_size = static_cast<f32>(config.owner_size.x) * 0.02f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_build = ui.allocate_widget();
 		ui.set_widget_debug_name(_build, "splash_build");
@@ -184,7 +184,7 @@ namespace sfg
 		paint.set_text(_build,
 					   ui.widget_text(_build),
 					   ui.widget_text_len(_build),
-					   {.font = theme.font_title, .color = theme.color_text2, .point_size = static_cast<f32>(config.owner_size.y) * 0.07f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+					   {.font = theme.font_title, .color = theme.color_text2, .point_size = static_cast<f32>(config.owner_size.x) * 0.02f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		const editor_project_runtime_t& project_runtime = editor_project_t::get()._runtime;
 		const string_t					project_path	= string_t("Project Path: ") + project_runtime.path;

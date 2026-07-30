@@ -60,7 +60,7 @@ namespace sfg
 #define EDITOR_RAW_WHEEL_DELTA		120.0f
 #define EDITOR_SPLASH_ASPECT_X		16.0f
 #define EDITOR_SPLASH_ASPECT_Y		9.0f
-#define EDITOR_SPLASH_MONITOR_SCALE 0.25f
+#define EDITOR_SPLASH_MONITOR_SCALE 0.4f
 
 	editor_app_t::editor_app_t()  = default;
 	editor_app_t::~editor_app_t() = default;
