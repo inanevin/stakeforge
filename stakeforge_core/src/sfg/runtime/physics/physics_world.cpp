@@ -751,7 +751,7 @@ namespace sfg
 			{
 				const component_system_constraints_t& system_constraints = ecs_helpers_t::row_get<component_system_constraints_t>(row, 0);
 
-				physics_world_util_t::sync_constraint_properties(*_world, row.id, system_constraints);
+				physics_world_util_t::sync_constraint_properties(*_world, *_system, row.id, system_constraints);
 			}
 		}
 

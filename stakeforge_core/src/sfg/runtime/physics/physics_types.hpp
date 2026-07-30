@@ -68,6 +68,13 @@ namespace sfg
 		compound,
 	};
 
+	enum class physics_constraint_motor_state_e : u8
+	{
+		off,
+		velocity,
+		position,
+	};
+
 	enum physics_query_flags_e : u8
 	{
 		physics_query_flag_static	 = 1 << 0,
@@ -152,4 +159,5 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(physics_motion_type_e);
 	SFG_DEFINE_TYPE_ID(physics_shape_type_e);
+	SFG_DEFINE_TYPE_ID(physics_constraint_motor_state_e);
 }

@@ -92,6 +92,22 @@ namespace sfg
 		return JPH::EMotionType::Static;
 	}
 
+	JPH::EMotorState physics_world_util_t::to_jolt(physics_constraint_motor_state_e motor_state)
+	{
+		switch (motor_state)
+		{
+		case physics_constraint_motor_state_e::off:
+			return JPH::EMotorState::Off;
+		case physics_constraint_motor_state_e::velocity:
+			return JPH::EMotorState::Velocity;
+		case physics_constraint_motor_state_e::position:
+			return JPH::EMotorState::Position;
+		}
+
+		SFG_ASSERT(false);
+		return JPH::EMotorState::Off;
+	}
+
 	vec3f_t physics_world_util_t::from_jolt(JPH::Vec3Arg value)
 	{
 		return {value.GetX(), value.GetY(), value.GetZ()};
@@ -350,6 +366,22 @@ namespace sfg
 		return true;
 	}
 
+	void physics_world_util_t::wake_constraint_bodies(world_t& world, JPH::PhysicsSystem& system, entity_id_t entity, const system_constraint_slot_t& slot)
+	{
+		const ecs_component_table_t&	  system_physics_table = world.get_component_table(type_id_t<component_system_physics_t>::value);
+		const component_system_physics_t& system_physics	   = ecs_helpers_t::table_get_as_const<component_system_physics_t>(system_physics_table, entity);
+		JPH::BodyID						  body_ids[2]		   = {JPH::BodyID(system_physics.body_id), JPH::BodyID()};
+		i32								  body_count		   = 1;
+
+		if (slot.target_entity != NULL_ENTITY_ID)
+		{
+			const component_system_physics_t& target_physics = ecs_helpers_t::table_get_as_const<component_system_physics_t>(system_physics_table, slot.target_entity);
+			body_ids[body_count++]							 = JPH::BodyID(target_physics.body_id);
+		}
+
+		system.GetBodyInterface().ActivateBodies(body_ids, body_count);
+	}
+
 	bool physics_world_util_t::create_fixed_constraint(world_t& world, JPH::PhysicsSystem& system, entity_id_t entity, const component_fixed_constraint_t& component, component_system_constraints_t& system_constraints)
 	{
 		constraint_create_context_t context = {};
@@ -414,21 +446,33 @@ namespace sfg
 		if (!get_constraint_create_context(world, entity, component.target_entity, context))
 			return false;
 
-		JPH::HingeConstraintSettings settings = {};
-		settings.mEnabled					  = component.enabled != 0;
-		settings.mUserData					  = entity;
-		settings.mLimitsMin					  = math::clamp(math::degrees_to_radians(component.limit_min_degrees), -JPH::JPH_PI, 0.0f);
-		settings.mLimitsMax					  = math::clamp(math::degrees_to_radians(component.limit_max_degrees), 0.0f, JPH::JPH_PI);
-		settings.mLimitsSpringSettings		  = JPH::SpringSettings(JPH::ESpringMode::FrequencyAndDamping, component.spring_frequency, component.spring_damping);
-		settings.mMaxFrictionTorque			  = component.max_friction_torque;
-		settings.mSpace						  = JPH::EConstraintSpace::WorldSpace;
-		settings.mPoint1					  = to_jolt_position(context.transform->abs_mat * component.local_point);
-		settings.mHingeAxis1				  = to_jolt(context.transform->abs_rot * component.local_hinge_axis);
-		settings.mNormalAxis1				  = to_jolt(context.transform->abs_rot * component.local_normal_axis);
-		settings.mPoint2					  = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_point : component.target_point);
-		settings.mHingeAxis2				  = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_hinge_axis : component.target_hinge_axis);
-		settings.mNormalAxis2				  = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_normal_axis : component.target_normal_axis);
-		return add_two_body_constraint(system, context, system_constraint_type_e::hinge, settings, system_constraints);
+		JPH::HingeConstraintSettings settings	= {};
+		settings.mEnabled						= component.enabled != 0;
+		settings.mUserData						= entity;
+		settings.mLimitsMin						= math::clamp(math::degrees_to_radians(component.limit_min_degrees), -JPH::JPH_PI, 0.0f);
+		settings.mLimitsMax						= math::clamp(math::degrees_to_radians(component.limit_max_degrees), 0.0f, JPH::JPH_PI);
+		settings.mLimitsSpringSettings			= JPH::SpringSettings(JPH::ESpringMode::FrequencyAndDamping, component.spring_frequency, component.spring_damping);
+		settings.mMaxFrictionTorque				= component.max_friction_torque;
+		settings.mMotorSettings.mSpringSettings = JPH::SpringSettings(JPH::ESpringMode::FrequencyAndDamping, component.motor_frequency, component.motor_damping);
+		settings.mMotorSettings.SetTorqueLimit(component.max_motor_torque);
+		settings.mSpace		  = JPH::EConstraintSpace::WorldSpace;
+		settings.mPoint1	  = to_jolt_position(context.transform->abs_mat * component.local_point);
+		settings.mHingeAxis1  = to_jolt(context.transform->abs_rot * component.local_hinge_axis);
+		settings.mNormalAxis1 = to_jolt(context.transform->abs_rot * component.local_normal_axis);
+		settings.mPoint2	  = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_point : component.target_point);
+		settings.mHingeAxis2  = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_hinge_axis : component.target_hinge_axis);
+		settings.mNormalAxis2 = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_normal_axis : component.target_normal_axis);
+
+		if (!add_two_body_constraint(system, context, system_constraint_type_e::hinge, settings, system_constraints))
+			return false;
+
+		JPH::HingeConstraint& constraint = *static_cast<JPH::HingeConstraint*>(system_constraints.slots[static_cast<u32>(system_constraint_type_e::hinge)].constraint);
+
+		constraint.SetTargetAngularVelocity(math::degrees_to_radians(component.motor_target_velocity_degrees_per_second));
+		constraint.SetTargetAngle(math::degrees_to_radians(component.motor_target_angle_degrees));
+		constraint.SetMotorState(to_jolt(component.motor_state));
+
+		return true;
 	}
 
 	bool physics_world_util_t::create_cone_constraint(world_t& world, JPH::PhysicsSystem& system, entity_id_t entity, const component_cone_constraint_t& component, component_system_constraints_t& system_constraints)
@@ -457,21 +501,33 @@ namespace sfg
 		if (!get_constraint_create_context(world, entity, component.target_entity, context))
 			return false;
 
-		JPH::SliderConstraintSettings settings = {};
-		settings.mEnabled					   = component.enabled != 0;
-		settings.mUserData					   = entity;
-		settings.mLimitsMin					   = component.limit_min;
-		settings.mLimitsMax					   = component.limit_max;
-		settings.mLimitsSpringSettings		   = JPH::SpringSettings(JPH::ESpringMode::FrequencyAndDamping, component.spring_frequency, component.spring_damping);
-		settings.mMaxFrictionForce			   = component.max_friction_force;
-		settings.mSpace						   = JPH::EConstraintSpace::WorldSpace;
-		settings.mPoint1					   = to_jolt_position(context.transform->abs_mat * component.local_point);
-		settings.mSliderAxis1				   = to_jolt(context.transform->abs_rot * component.local_slider_axis);
-		settings.mNormalAxis1				   = to_jolt(context.transform->abs_rot * component.local_normal_axis);
-		settings.mPoint2					   = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_point : component.target_point);
-		settings.mSliderAxis2				   = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_slider_axis : component.target_slider_axis);
-		settings.mNormalAxis2				   = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_normal_axis : component.target_normal_axis);
-		return add_two_body_constraint(system, context, system_constraint_type_e::slider, settings, system_constraints);
+		JPH::SliderConstraintSettings settings	= {};
+		settings.mEnabled						= component.enabled != 0;
+		settings.mUserData						= entity;
+		settings.mLimitsMin						= component.limit_min;
+		settings.mLimitsMax						= component.limit_max;
+		settings.mLimitsSpringSettings			= JPH::SpringSettings(JPH::ESpringMode::FrequencyAndDamping, component.spring_frequency, component.spring_damping);
+		settings.mMaxFrictionForce				= component.max_friction_force;
+		settings.mMotorSettings.mSpringSettings = JPH::SpringSettings(JPH::ESpringMode::FrequencyAndDamping, component.motor_frequency, component.motor_damping);
+		settings.mMotorSettings.SetForceLimit(component.max_motor_force);
+		settings.mSpace		  = JPH::EConstraintSpace::WorldSpace;
+		settings.mPoint1	  = to_jolt_position(context.transform->abs_mat * component.local_point);
+		settings.mSliderAxis1 = to_jolt(context.transform->abs_rot * component.local_slider_axis);
+		settings.mNormalAxis1 = to_jolt(context.transform->abs_rot * component.local_normal_axis);
+		settings.mPoint2	  = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_point : component.target_point);
+		settings.mSliderAxis2 = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_slider_axis : component.target_slider_axis);
+		settings.mNormalAxis2 = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_normal_axis : component.target_normal_axis);
+
+		if (!add_two_body_constraint(system, context, system_constraint_type_e::slider, settings, system_constraints))
+			return false;
+
+		JPH::SliderConstraint& constraint = *static_cast<JPH::SliderConstraint*>(system_constraints.slots[static_cast<u32>(system_constraint_type_e::slider)].constraint);
+
+		constraint.SetTargetVelocity(component.motor_target_velocity);
+		constraint.SetTargetPosition(component.motor_target_position);
+		constraint.SetMotorState(to_jolt(component.motor_state));
+
+		return true;
 	}
 
 	bool physics_world_util_t::create_swing_twist_constraint(world_t& world, JPH::PhysicsSystem& system, entity_id_t entity, const component_swing_twist_constraint_t& component, component_system_constraints_t& system_constraints)
@@ -755,7 +811,7 @@ namespace sfg
 		system_constraints.active_mask = 0;
 	}
 
-	void physics_world_util_t::sync_constraint_properties(world_t& world, entity_id_t entity, const component_system_constraints_t& system_constraints)
+	void physics_world_util_t::sync_constraint_properties(world_t& world, JPH::PhysicsSystem& system, entity_id_t entity, const component_system_constraints_t& system_constraints)
 	{
 		for (u32 i = 0; i < static_cast<u32>(system_constraint_type_e::count); ++i)
 		{
@@ -855,6 +911,48 @@ namespace sfg
 
 				if (constraint.GetMaxFrictionTorque() != component->max_friction_torque)
 					constraint.SetMaxFrictionTorque(component->max_friction_torque);
+
+				JPH::MotorSettings&		  motor_settings = constraint.GetMotorSettings();
+				const JPH::SpringSettings motor_spring(JPH::ESpringMode::FrequencyAndDamping, component->motor_frequency, component->motor_damping);
+				const f32				  target_velocity		 = math::degrees_to_radians(component->motor_target_velocity_degrees_per_second);
+				const f32				  unclamped_target_angle = math::degrees_to_radians(component->motor_target_angle_degrees);
+				const f32				  target_angle			 = constraint.HasLimits() ? math::clamp(unclamped_target_angle, constraint.GetLimitsMin(), constraint.GetLimitsMax()) : unclamped_target_angle;
+				const JPH::EMotorState	  motor_state			 = to_jolt(component->motor_state);
+				bool					  motor_changed			 = false;
+
+				if (motor_settings.mSpringSettings.mMode != motor_spring.mMode || motor_settings.mSpringSettings.mFrequency != motor_spring.mFrequency || motor_settings.mSpringSettings.mDamping != motor_spring.mDamping)
+				{
+					motor_settings.mSpringSettings = motor_spring;
+					motor_changed				   = true;
+				}
+
+				if (motor_settings.mMinTorqueLimit != -component->max_motor_torque || motor_settings.mMaxTorqueLimit != component->max_motor_torque)
+				{
+					motor_settings.SetTorqueLimit(component->max_motor_torque);
+					motor_changed = true;
+				}
+
+				if (constraint.GetTargetAngularVelocity() != target_velocity)
+				{
+					constraint.SetTargetAngularVelocity(target_velocity);
+					motor_changed = true;
+				}
+
+				if (constraint.GetTargetAngle() != target_angle)
+				{
+					constraint.SetTargetAngle(target_angle);
+					motor_changed = true;
+				}
+
+				if (constraint.GetMotorState() != motor_state)
+				{
+					constraint.SetMotorState(motor_state);
+					motor_changed = true;
+				}
+
+				if (motor_changed)
+					wake_constraint_bodies(world, system, entity, slot);
+
 				break;
 			}
 			case system_constraint_type_e::cone: {
@@ -896,6 +994,46 @@ namespace sfg
 
 				if (constraint.GetMaxFrictionForce() != component->max_friction_force)
 					constraint.SetMaxFrictionForce(component->max_friction_force);
+
+				JPH::MotorSettings&		  motor_settings = constraint.GetMotorSettings();
+				const JPH::SpringSettings motor_spring(JPH::ESpringMode::FrequencyAndDamping, component->motor_frequency, component->motor_damping);
+				const f32				  target_position = constraint.HasLimits() ? math::clamp(component->motor_target_position, constraint.GetLimitsMin(), constraint.GetLimitsMax()) : component->motor_target_position;
+				const JPH::EMotorState	  motor_state	  = to_jolt(component->motor_state);
+				bool					  motor_changed	  = false;
+
+				if (motor_settings.mSpringSettings.mMode != motor_spring.mMode || motor_settings.mSpringSettings.mFrequency != motor_spring.mFrequency || motor_settings.mSpringSettings.mDamping != motor_spring.mDamping)
+				{
+					motor_settings.mSpringSettings = motor_spring;
+					motor_changed				   = true;
+				}
+
+				if (motor_settings.mMinForceLimit != -component->max_motor_force || motor_settings.mMaxForceLimit != component->max_motor_force)
+				{
+					motor_settings.SetForceLimit(component->max_motor_force);
+					motor_changed = true;
+				}
+
+				if (constraint.GetTargetVelocity() != component->motor_target_velocity)
+				{
+					constraint.SetTargetVelocity(component->motor_target_velocity);
+					motor_changed = true;
+				}
+
+				if (constraint.GetTargetPosition() != target_position)
+				{
+					constraint.SetTargetPosition(target_position);
+					motor_changed = true;
+				}
+
+				if (constraint.GetMotorState() != motor_state)
+				{
+					constraint.SetMotorState(motor_state);
+					motor_changed = true;
+				}
+
+				if (motor_changed)
+					wake_constraint_bodies(world, system, entity, slot);
+
 				break;
 			}
 			case system_constraint_type_e::swing_twist: {
