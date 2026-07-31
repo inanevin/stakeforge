@@ -817,6 +817,10 @@ namespace sfg
 
 			settings.mIsSensor = physical.is_sensor != 0;
 			settings.mUserData = entity;
+			settings.mCollideKinematicVsNonDynamic =
+				_config.kinematic_sensors_collide_with_non_dynamic &&
+				motion_type == physics_motion_type_e::kinematic_body &&
+				physical.is_sensor != 0;
 
 			if (motion_type != physics_motion_type_e::static_body)
 			{
@@ -1974,6 +1978,30 @@ namespace sfg
 		_impl->_config.physics_rate	 = physics_rate;
 		_impl->_config.max_sub_steps = max_sub_steps;
 		_impl->_accumulator			 = 0.0f;
+	}
+
+	void physics_world_t::update_kinematic_sensors_collide_with_non_dynamic(bool enabled)
+	{
+		_impl->_config.kinematic_sensors_collide_with_non_dynamic = enabled;
+
+		const ecs_component_table_t& system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
+		const ecs_component_table_ref_t refs[] = {system_physics_table.ref()};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+		{
+			const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
+			if (system_physics.character != nullptr ||
+				system_physics.body_id == UINT32_MAX ||
+				system_physics.motion_type != static_cast<u8>(physics_motion_type_e::kinematic_body))
+				continue;
+
+			JPH::BodyLockWrite lock(_impl->_system->GetBodyLockInterface(), JPH::BodyID(system_physics.body_id));
+			if (!lock.Succeeded())
+				continue;
+
+			JPH::Body& body = lock.GetBody();
+			body.SetCollideKinematicVsNonDynamic(enabled && body.IsSensor());
+		}
 	}
 
 	span_t<const physics_contact_event_t> physics_world_t::get_contact_events() const

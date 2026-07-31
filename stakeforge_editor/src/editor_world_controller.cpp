@@ -546,7 +546,7 @@ namespace sfg
 		world.tick_post(simulation_paused && !force_simulation ? 0.0f : dt_seconds);
 	}
 
-	void editor_world_controller_t::update_physics_settings(const u64* collision_masks, u64 active_layers, u32 physics_rate, u32 max_sub_steps)
+	void editor_world_controller_t::update_physics_settings(const u64* collision_masks, u64 active_layers, u32 physics_rate, u32 max_sub_steps, bool kinematic_sensors_collide_with_non_dynamic)
 	{
 		for (editor_world_t* editor_world : _worlds)
 		{
@@ -558,6 +558,7 @@ namespace sfg
 			physics_world_t& physics = world.get_physics();
 			physics.update_collision_masks(collision_masks, active_layers);
 			physics.update_step_settings(physics_rate, max_sub_steps);
+			physics.update_kinematic_sensors_collide_with_non_dynamic(kinematic_sensors_collide_with_non_dynamic);
 		}
 	}
 

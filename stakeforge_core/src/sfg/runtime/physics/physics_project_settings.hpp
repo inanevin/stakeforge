@@ -50,6 +50,7 @@ namespace sfg
 
 		vector_t<physics_collision_layer_definition_t> collision_layers				   = {};
 		u64											   next_collision_layer_identifier = 2;
+		bool										   kinematic_sensors_collide_with_non_dynamic = false;
 
 		void					 normalize(const physics_project_settings_t* previous = nullptr);
 		physics_runtime_config_t make_runtime_config(u32 physics_rate, u32 max_sub_steps) const;

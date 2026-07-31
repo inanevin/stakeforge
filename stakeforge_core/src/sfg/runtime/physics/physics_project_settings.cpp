@@ -173,6 +173,7 @@ namespace sfg
 		}
 		config.physics_rate	 = physics_rate;
 		config.max_sub_steps = max_sub_steps;
+		config.kinematic_sensors_collide_with_non_dynamic = kinematic_sensors_collide_with_non_dynamic;
 		return config;
 	}
 
@@ -212,6 +213,12 @@ namespace sfg
 					 .size		   = sizeof(u64),
 					 .flags		   = reflected_field_flag_no_ui,
 					 .type		   = reflected_value_type_e::u64},
+					{.name		 = "kinematic_sensors_collide_with_non_dynamic",
+					 .display_name = "Kinematic Sensors vs Non-Dynamic",
+					 .tooltip	 = "Allows kinematic sensors to generate trigger contacts with static and kinematic bodies. Enable only when needed and use restrictive collision layers.",
+					 .offset		 = offsetof(physics_project_settings_t, kinematic_sensors_collide_with_non_dynamic),
+					 .size		 = sizeof(bool),
+					 .type		 = reflected_value_type_e::boolean},
 				},
 			.type_id   = type_id_t<physics_project_settings_t>::value,
 			.size	   = sizeof(physics_project_settings_t),

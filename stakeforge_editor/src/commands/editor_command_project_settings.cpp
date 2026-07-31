@@ -132,7 +132,12 @@ namespace sfg
 		editor_settings_t::get().configurable.normalize();
 
 		const physics_runtime_config_t physics_config = project.settings.project_settings.physics.make_runtime_config(project.settings.project_settings.world_physics_rate, project.settings.project_settings.max_sim_steps);
-		editor_world_controller_t::get().update_physics_settings(physics_config.collision_masks, physics_config.active_collision_layers, physics_config.physics_rate, physics_config.max_sub_steps);
+		editor_world_controller_t::get().update_physics_settings(
+			physics_config.collision_masks,
+			physics_config.active_collision_layers,
+			physics_config.physics_rate,
+			physics_config.max_sub_steps,
+			physics_config.kinematic_sensors_collide_with_non_dynamic);
 	}
 
 	bool editor_command_project_settings_t::edit(const editor_command_project_settings_data_t& previous, const editor_command_project_settings_data_t& post)

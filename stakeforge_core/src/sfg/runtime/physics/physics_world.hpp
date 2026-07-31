@@ -121,6 +121,7 @@ namespace sfg
 
 		void update_collision_masks(const u64 masks[PHYSICS_COLLISION_LAYER_MAX], u64 active_layers);
 		void update_step_settings(u32 physics_rate, u32 max_sub_steps);
+		void update_kinematic_sensors_collide_with_non_dynamic(bool enabled);
 
 		// -----------------------------------------------------------------------------
 		// accessors

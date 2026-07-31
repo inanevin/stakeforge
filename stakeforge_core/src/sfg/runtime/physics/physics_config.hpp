@@ -54,5 +54,6 @@ namespace sfg
 		u32		ragdoll_pose_budget_bytes					 = 4 * 1024 * 1024;
 		u32		physics_rate								 = 100;
 		u32		max_sub_steps								 = 4;
+		bool	kinematic_sensors_collide_with_non_dynamic = false;
 	};
 }
