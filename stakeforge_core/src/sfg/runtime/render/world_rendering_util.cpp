@@ -669,14 +669,16 @@ namespace sfg
 				const bool is_view_model = (renderable.flags & world_renderable_flag_view_model) != 0;
 				if (is_view_model)
 				{
-					// View models exist only in the main-camera foreground pass. They do
-					// not enter world depth, GBuffer, shadow, or reflection queues.
+					// only in main camera
 					if (view_index == 0 && renderable.type == world_renderable_type_e::mesh)
 					{
 						if ((renderable.pass_mask & world_pass_flags_depth) != 0)
 							prep_data.view_model_depth_queue.push_back(item);
 						prep_data.view_model_queue.push_back(item);
 					}
+
+					if ((view.queue_flags & world_render_queue_flag_visible) != 0 && (renderable.pass_mask & world_pass_flags_id) != 0)
+						prep_data.visible_queue.push_back(item);
 					continue;
 				}
 

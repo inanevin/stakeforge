@@ -303,6 +303,7 @@ namespace sfg
 		}
 
 		backend.cmd_end_render_pass(cmd, {});
+
 		END_DEBUG_EVENT((&backend), cmd);
 
 		const barrier_t end_barrier = {
