@@ -423,11 +423,22 @@ public readonly unsafe struct World : IEquatable<World>
         return api->World->HideEntity(GetNative(), entity.Id) != 0;
     }
 
-    public bool ShowEntity(Entity entity)
-    {
-        NativeApi* api = ManagedRuntime.GetApi();
-        return api->World->ShowEntity(GetNative(), entity.Id) != 0;
-    }
+	public bool ShowEntity(Entity entity)
+	{
+		NativeApi* api = ManagedRuntime.GetApi();
+		return api->World->ShowEntity(GetNative(), entity.Id) != 0;
+	}
+
+	/// <summary>
+	/// Renders this entity's geometry in the first-person foreground layer.
+	/// Foreground geometry keeps its own depth relationships but is never
+	/// occluded by world geometry.
+	/// </summary>
+	public bool SetViewModel(Entity entity, bool enabled)
+	{
+		NativeApi* api = ManagedRuntime.GetApi();
+		return api->World->SetViewModel(GetNative(), entity.Id, enabled ? (byte)1 : (byte)0) != 0;
+	}
 
     public Entity FindEntityByGuid(EntityGuid guid)
     {

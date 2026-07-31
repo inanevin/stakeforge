@@ -185,6 +185,7 @@ namespace sfg
 		size_t transparent_queue_initial_capacity = 0;
 		size_t shadow_queue_initial_capacity	  = 0;
 		size_t visible_queue_initial_capacity	  = 0;
+		size_t view_model_queue_initial_capacity  = 0;
 		size_t shadow_view_initial_capacity		  = 0;
 	};
 
@@ -196,6 +197,8 @@ namespace sfg
 		vector_t<world_render_queue_item_t>	 transparent_queue		= {};
 		vector_t<world_render_queue_item_t>	 shadow_queue			= {};
 		vector_t<world_render_queue_item_t>	 visible_queue			= {};
+		vector_t<world_render_queue_item_t>	 view_model_depth_queue = {};
+		vector_t<world_render_queue_item_t>	 view_model_queue		= {};
 		vector_t<world_render_shadow_view_t> shadow_views			= {};
 		u32									 reflection_probe_count = 0;
 
@@ -207,6 +210,8 @@ namespace sfg
 			transparent_queue.reserve(config.transparent_queue_initial_capacity);
 			shadow_queue.reserve(config.shadow_queue_initial_capacity);
 			visible_queue.reserve(config.visible_queue_initial_capacity);
+			view_model_depth_queue.reserve(config.view_model_queue_initial_capacity);
+			view_model_queue.reserve(config.view_model_queue_initial_capacity);
 			shadow_views.reserve(config.shadow_view_initial_capacity);
 		}
 
@@ -218,6 +223,8 @@ namespace sfg
 			transparent_queue.resize(0);
 			shadow_queue.resize(0);
 			visible_queue.resize(0);
+			view_model_depth_queue.resize(0);
+			view_model_queue.resize(0);
 			shadow_views.resize(0);
 			reflection_probe_count = 0;
 		}
@@ -270,6 +277,16 @@ namespace sfg
 		inline span_t<const world_render_queue_item_t> get_visible_queue(const world_render_prep_view_t& view) const
 		{
 			return {.data = visible_queue.data() + view.visible_range.offset, .size = view.visible_range.count};
+		}
+
+		inline span_t<const world_render_queue_item_t> get_view_model_depth_queue() const
+		{
+			return {.data = view_model_depth_queue.data(), .size = view_model_depth_queue.size()};
+		}
+
+		inline span_t<const world_render_queue_item_t> get_view_model_queue() const
+		{
+			return {.data = view_model_queue.data(), .size = view_model_queue.size()};
 		}
 
 		inline span_t<world_render_queue_item_t> get_mutable_depth_queue(const world_render_prep_view_t& view)

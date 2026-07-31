@@ -48,6 +48,7 @@ namespace sfg
 	{
 		world_renderable_flag_none			   = 0,
 		world_renderable_flag_world_space_aabb = 1 << 0,
+		world_renderable_flag_view_model	   = 1 << 1,
 	};
 
 	struct alignas(64) world_renderable_t

@@ -140,6 +140,7 @@ namespace sfg
 	f32			api_world_get_time_scale(const world_t* world);
 	f32			api_world_get_elapsed_time(const world_t* world);
 	f32			api_world_get_real_elapsed_time(const world_t* world);
+	u8			api_world_set_view_model(world_t* world, entity_id_t entity, u8 enabled);
 
 	struct script_api_world_t
 	{
@@ -207,6 +208,7 @@ namespace sfg
 		decltype(&api_world_get_time_scale)					 get_time_scale					 = nullptr;
 		decltype(&api_world_get_elapsed_time)				 get_elapsed_time				 = nullptr;
 		decltype(&api_world_get_real_elapsed_time)			 get_real_elapsed_time			 = nullptr;
+		decltype(&api_world_set_view_model)				 set_view_model					 = nullptr;
 	};
 
 	const script_api_world_t& get_script_api_world();

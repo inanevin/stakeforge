@@ -244,6 +244,16 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_skinned_mesh_renderer_t);
 
+	// Marks this entity's renderable geometry as a first-person view model. View
+	// models are rendered in a dedicated foreground pass so they cannot be
+	// occluded by world geometry.
+	struct component_view_model_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_view_model";
+	};
+
+	SFG_DEFINE_TYPE_ID(component_view_model_t);
+
 	struct component_ragdoll_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_ragdoll";

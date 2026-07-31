@@ -1007,11 +1007,34 @@ namespace sfg
 		return world->get_real_elapsed_time();
 	}
 
+	u8 api_world_set_view_model(world_t* world, entity_id_t entity, u8 enabled)
+	{
+		SFG_ASSERT(world != nullptr);
+
+		if (world->is_component_query_active() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
+			return 0;
+
+		ecs_component_table_t& table = world->get_component_table(type_id_t<component_view_model_t>::value);
+		const bool			  has_marker = ecs_t::table_has(table, entity);
+
+		if (enabled != 0)
+		{
+			if (!has_marker)
+				ecs_t::table_add(table, entity);
+		}
+		else if (has_marker)
+		{
+			ecs_t::table_remove(table, entity);
+		}
+
+		return 1;
+	}
+
 	const script_api_world_t& get_script_api_world()
 	{
 		static const script_api_world_t api{
 			.size							 = static_cast<u32>(sizeof(script_api_world_t)),
-			.version						 = 6,
+			.version						 = 7,
 			.create_entity					 = api_world_create_entity,
 			.destroy_entity					 = api_world_destroy_entity,
 			.duplicate_entity				 = api_world_duplicate_entity,
@@ -1074,6 +1097,7 @@ namespace sfg
 			.get_time_scale					 = api_world_get_time_scale,
 			.get_elapsed_time				 = api_world_get_elapsed_time,
 			.get_real_elapsed_time			 = api_world_get_real_elapsed_time,
+			.set_view_model					 = api_world_set_view_model,
 		};
 
 		return api;

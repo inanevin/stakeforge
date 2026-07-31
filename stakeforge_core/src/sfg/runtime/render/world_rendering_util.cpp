@@ -636,10 +636,13 @@ namespace sfg
 		prep_data.transparent_queue.resize(0);
 		prep_data.shadow_queue.resize(0);
 		prep_data.visible_queue.resize(0);
+		prep_data.view_model_depth_queue.resize(0);
+		prep_data.view_model_queue.resize(0);
 
 		// build and sort the queues for each view
-		for (world_render_prep_view_t& view : prep_data.views)
+		for (u32 view_index = 0; view_index < prep_data.views.size(); ++view_index)
 		{
+			world_render_prep_view_t& view = prep_data.views[view_index];
 			prep_data.begin_view_queues(view);
 
 			for (u32 renderable_index = 0; renderable_index < snapshot.renderables.size(); ++renderable_index)
@@ -662,6 +665,20 @@ namespace sfg
 					.depth			  = -view_center.z,
 					.renderable_index = renderable_index,
 				};
+
+				const bool is_view_model = (renderable.flags & world_renderable_flag_view_model) != 0;
+				if (is_view_model)
+				{
+					// View models exist only in the main-camera foreground pass. They do
+					// not enter world depth, GBuffer, shadow, or reflection queues.
+					if (view_index == 0 && renderable.type == world_renderable_type_e::mesh)
+					{
+						if ((renderable.pass_mask & world_pass_flags_depth) != 0)
+							prep_data.view_model_depth_queue.push_back(item);
+						prep_data.view_model_queue.push_back(item);
+					}
+					continue;
+				}
 
 				if ((view.queue_flags & world_render_queue_flag_depth) != 0 && (renderable.pass_mask & world_pass_flags_depth) != 0)
 					prep_data.depth_queue.push_back(item);
@@ -710,6 +727,13 @@ namespace sfg
 			// sort visible back to front
 			std::sort(visible_draws.begin(), visible_draws.end(), [](const world_render_queue_item_t& left, const world_render_queue_item_t& right) { return left.depth > right.depth; });
 		}
+
+		std::sort(prep_data.view_model_depth_queue.begin(), prep_data.view_model_depth_queue.end(), [](const world_render_queue_item_t& left, const world_render_queue_item_t& right) { return left.depth < right.depth; });
+		std::sort(prep_data.view_model_queue.begin(), prep_data.view_model_queue.end(), [&snapshot](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
+			const world_renderable_t& left_renderable  = snapshot.renderables[left.renderable_index];
+			const world_renderable_t& right_renderable = snapshot.renderables[right.renderable_index];
+			return left_renderable.sort_key == right_renderable.sort_key ? left.depth < right.depth : left_renderable.sort_key < right_renderable.sort_key;
+		});
 
 		// build sprite instances
 		world_draw_sprite_instance_gpu_t* mapped_instances = reinterpret_cast<world_draw_sprite_instance_gpu_t*>(ctx.get_mapped_sprite_instance_buffer(frame_index));

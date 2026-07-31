@@ -781,6 +781,20 @@ namespace sfg
 			});
 		}
 
+		void register_component_view_model_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name			 = "component_view_model",
+				.display_name	 = "View Model",
+				.category		 = "Graphics",
+				.default_init_fn = [](void*) {},
+				.type_id		 = type_id_t<component_view_model_t>::value,
+				.size			 = sizeof(component_view_model_t),
+				.alignment		 = alignof(component_view_model_t),
+				.flags			 = reflected_type_flag_tag_component,
+			});
+		}
+
 		void register_component_animation_graph_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -3656,6 +3670,7 @@ namespace sfg
 		register_component_sprite_renderer_reflection(registry);
 		register_particle_reflection(registry);
 		register_component_skinned_mesh_renderer_reflection(registry);
+		register_component_view_model_reflection(registry);
 		register_component_ragdoll_reflection(registry);
 		register_component_animation_player_reflection(registry);
 		register_component_animation_graph_reflection(registry);

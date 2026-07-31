@@ -337,6 +337,11 @@ namespace sfg
 			return _pfd[frame_index].depth_texture;
 		}
 
+		inline gfx_handle_t get_view_model_depth_texture(u8 frame_index) const
+		{
+			return _pfd[frame_index].view_model_depth_texture;
+		}
+
 		inline gfx_handle_t get_post_process_texture(u8 frame_index) const
 		{
 			return _pfd[frame_index].post_process_texture;
@@ -918,6 +923,7 @@ namespace sfg
 			gfx_handle_t post_process_hdr_scratch									= {};
 			gfx_handle_t post_process_ldr_scratch									= {};
 			gfx_handle_t depth_texture												= {};
+			gfx_handle_t view_model_depth_texture									= {};
 			gfx_handle_t gbuffer_albedo												= {};
 			gfx_handle_t gbuffer_normal												= {};
 			gfx_handle_t gbuffer_orm												= {};

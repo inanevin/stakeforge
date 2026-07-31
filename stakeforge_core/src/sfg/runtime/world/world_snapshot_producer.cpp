@@ -219,6 +219,7 @@ namespace sfg
 
 			return emplaced_id;
 		}
+
 	}
 
 	void world_snapshot_producer_t::produce(world_t& world, world_render_snapshot_t& snapshot, const project_settings_t& project_settings)
@@ -261,6 +262,7 @@ namespace sfg
 		const ecs_component_table_t& system_particle_emitter_table		= world.get_component_table(type_id_t<component_system_particle_emitter_t>::value);
 		const ecs_component_table_t& skinned_mesh_renderer_table		= world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
 		const ecs_component_table_t& system_skinned_mesh_renderer_table = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
+		const ecs_component_table_t& view_model_table					= world.get_component_table(type_id_t<component_view_model_t>::value);
 
 		resource_manager_t&		   rm	  = resource_manager_t::get();
 		const chunk_allocator32_t& rm_aux = rm.get_memory();
@@ -522,6 +524,7 @@ namespace sfg
 
 				const render_resource_handle_t vtx = mesh_internals->vertex_buffer;
 				const render_resource_handle_t idx = mesh_internals->index_buffer;
+				const u8 renderable_flags = ecs_t::table_has(view_model_table, row.id) ? world_renderable_flag_view_model : world_renderable_flag_none;
 
 				for (u32 i = 0; i < mesh_runtime->primitive_count; i++)
 				{
@@ -561,6 +564,7 @@ namespace sfg
 						.entity_index	= entity_index,
 						.pass_mask		= snapshot.materials[draw_material_index].pass_mask,
 						.type			= world_renderable_type_e::mesh,
+						.flags			= renderable_flags,
 					});
 				}
 			}
@@ -597,6 +601,8 @@ namespace sfg
 				const mesh_primitive_runtime_t*	  primitives		   = rm_aux.get<mesh_primitive_runtime_t>(mesh_runtime->primitives);
 				const ecs_component_table_t&	  system_ragdoll_table = world.get_component_table(type_id_t<component_system_ragdoll_t>::value);
 				const component_system_ragdoll_t* system_ragdoll	   = ecs_helpers_t::table_find_as_const<component_system_ragdoll_t>(system_ragdoll_table, row.id);
+				const u8 renderable_flags = (system_ragdoll != nullptr ? world_renderable_flag_world_space_aabb : world_renderable_flag_none) |
+									(ecs_t::table_has(view_model_table, row.id) ? world_renderable_flag_view_model : world_renderable_flag_none);
 
 				const render_resource_handle_t		 vertex_buffer = mesh_internals->vertex_buffer;
 				const render_resource_handle_t		 index_buffer  = mesh_internals->index_buffer;
@@ -652,7 +658,7 @@ namespace sfg
 						.entity_index	= entity_index,
 						.pass_mask		= snapshot.materials[draw_material_index].pass_mask,
 						.type			= world_renderable_type_e::mesh,
-						.flags			= system_ragdoll != nullptr ? world_renderable_flag_world_space_aabb : world_renderable_flag_none,
+						.flags			= renderable_flags,
 					});
 				}
 			}

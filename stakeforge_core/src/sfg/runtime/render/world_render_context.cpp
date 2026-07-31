@@ -774,6 +774,15 @@ namespace sfg
 		depth_desc.clear_values[0]		= 0.0f;
 		depth_desc.set_name("world_depth");
 
+		texture_desc_t view_model_depth_desc = depth_desc;
+		view_model_depth_desc.initial_states = resource_state_depth_read;
+		view_model_depth_desc.flags			 = texture_flags::tf_depth_texture | texture_flags::tf_typeless | texture_flags::tf_is_2d;
+		view_model_depth_desc.view_count	 = 2;
+		view_model_depth_desc.views[0]		 = {.type = view_type::depth_stencil};
+		view_model_depth_desc.views[1]		 = {.type = view_type::depth_stencil, .read_only = 1};
+		view_model_depth_desc.views[2]		 = {};
+		view_model_depth_desc.set_name("world_view_model_depth");
+
 		texture_desc_t gbuffer_albedo_desc = {};
 		gbuffer_albedo_desc.texture_format = format_e::r8g8b8a8_srgb;
 		gbuffer_albedo_desc.initial_states = resource_state_ps_resource;
@@ -874,6 +883,7 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].post_process_hdr_scratch.is_null());
 			SFG_ASSERT(_pfd[i].post_process_ldr_scratch.is_null());
 			SFG_ASSERT(_pfd[i].depth_texture.is_null());
+			SFG_ASSERT(_pfd[i].view_model_depth_texture.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_albedo.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_normal.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_orm.is_null());
@@ -886,6 +896,7 @@ namespace sfg
 			_pfd[i].lighting_texture	 = backend.create_texture(lighting_desc);
 			_pfd[i].post_process_texture = backend.create_texture(post_process_desc);
 			_pfd[i].depth_texture		 = backend.create_texture(depth_desc);
+			_pfd[i].view_model_depth_texture = backend.create_texture(view_model_depth_desc);
 			_pfd[i].gbuffer_albedo		 = backend.create_texture(gbuffer_albedo_desc);
 			_pfd[i].gbuffer_normal		 = backend.create_texture(gbuffer_normal_desc);
 			_pfd[i].gbuffer_orm			 = backend.create_texture(gbuffer_orm_desc);
@@ -941,6 +952,7 @@ namespace sfg
 			SFG_ASSERT(!_pfd[i].lighting_texture.is_null());
 			SFG_ASSERT(!_pfd[i].post_process_texture.is_null());
 			SFG_ASSERT(!_pfd[i].depth_texture.is_null());
+			SFG_ASSERT(!_pfd[i].view_model_depth_texture.is_null());
 			SFG_ASSERT(!_pfd[i].gbuffer_albedo.is_null());
 			SFG_ASSERT(!_pfd[i].gbuffer_normal.is_null());
 			SFG_ASSERT(!_pfd[i].gbuffer_orm.is_null());
@@ -951,6 +963,7 @@ namespace sfg
 			backend.destroy_texture(_pfd[i].lighting_texture);
 			backend.destroy_texture(_pfd[i].post_process_texture);
 			backend.destroy_texture(_pfd[i].depth_texture);
+			backend.destroy_texture(_pfd[i].view_model_depth_texture);
 			backend.destroy_texture(_pfd[i].gbuffer_albedo);
 			backend.destroy_texture(_pfd[i].gbuffer_normal);
 			backend.destroy_texture(_pfd[i].gbuffer_orm);
@@ -984,6 +997,7 @@ namespace sfg
 			_pfd[i].post_process_hdr_scratch = {};
 			_pfd[i].post_process_ldr_scratch = {};
 			_pfd[i].depth_texture			 = {};
+			_pfd[i].view_model_depth_texture = {};
 			_pfd[i].gbuffer_albedo			 = {};
 			_pfd[i].gbuffer_normal			 = {};
 			_pfd[i].gbuffer_orm				 = {};

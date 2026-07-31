@@ -1415,11 +1415,75 @@ namespace sfg
 		const world_render_prep_view_t& prep_view = prep_data.views[0];
 		draw_world_draws(backend, cmd, ctx, snapshot, prep_data.get_transparent_queue(prep_view), world_pass_flags_forward, 0, frame_index);
 
-		const ui::vg_draw_snapshot_t canvas_snapshot = snapshot.canvas.before_post_process.get_snapshot();
-		ctx.get_canvas_before_renderer().render(cmd, &canvas_snapshot, frame_index, size);
-
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
+
+		const span_t<const world_render_queue_item_t> view_model_draws = prep_data.get_view_model_queue();
+		if (view_model_draws.size != 0)
+		{
+			const gfx_handle_t view_model_depth = ctx.get_view_model_depth_texture(frame_index);
+			const barrier_t	 view_model_depth_write_barrier = {
+				.from_states = resource_state_depth_read,
+				.to_states	 = resource_state_depth_write,
+				.texture_t	 = view_model_depth,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+			backend.cmd_barrier(cmd, {.barriers = &view_model_depth_write_barrier, .barrier_count = 1});
+
+			BEGIN_DEBUG_EVENT((&backend), cmd, "world_view_model");
+			backend.cmd_begin_render_pass_depth_only(cmd,
+											 {
+												 .depth_stencil_attachment =
+													 {
+														 .texture		 = view_model_depth,
+														 .clear_stencil	 = 0,
+														 .clear_depth	 = 0.0f,
+														 .depth_load_op	 = load_op::clear,
+														 .depth_store_op = store_op::store,
+														 .view_index	 = 0,
+													 },
+											 });
+
+			backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
+			backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
+			draw_world_draws(backend, cmd, ctx, snapshot, prep_data.get_view_model_depth_queue(), world_pass_flags_depth, shader_variant_flags_z_prepass, frame_index);
+			backend.cmd_end_render_pass(cmd, {});
+
+			const barrier_t view_model_depth_read_barrier = {
+				.from_states = resource_state_depth_write,
+				.to_states	 = resource_state_depth_read,
+				.texture_t	 = view_model_depth,
+				.flags		 = barrier_flags::baf_is_texture,
+			};
+			backend.cmd_barrier(cmd, {.barriers = &view_model_depth_read_barrier, .barrier_count = 1});
+
+			backend.cmd_begin_render_pass_depth_read_only(cmd,
+												  {
+													  .color_attachments = &color_attachment,
+													  .depth_stencil_attachment =
+														  {
+															  .texture			= view_model_depth,
+															  .clear_depth		= 0.0f,
+															  .depth_load_op	= load_op::load,
+															  .depth_store_op	= store_op::store,
+															  .view_index		= 1,
+														  },
+													  .color_attachment_count = 1,
+												  });
+			backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
+			backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
+			draw_world_draws(backend, cmd, ctx, snapshot, view_model_draws, 0, 0, frame_index);
+			backend.cmd_end_render_pass(cmd, {});
+			END_DEBUG_EVENT((&backend), cmd);
+		}
+
+		const ui::vg_draw_snapshot_t canvas_snapshot = snapshot.canvas.before_post_process.get_snapshot();
+		if (canvas_snapshot.draw_buffer_count != 0)
+		{
+			backend.cmd_begin_render_pass(cmd, {.color_attachments = &color_attachment, .color_attachment_count = 1});
+			ctx.get_canvas_before_renderer().render(cmd, &canvas_snapshot, frame_index, size);
+			backend.cmd_end_render_pass(cmd, {});
+		}
 
 		const barrier_t end_barriers[3] = {
 			{
