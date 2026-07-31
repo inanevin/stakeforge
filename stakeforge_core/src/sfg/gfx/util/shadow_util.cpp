@@ -55,58 +55,56 @@ namespace sfg
 		out_center /= static_cast<f32>(out_world_space.size());
 	}
 
-	void shadow_util_t::get_lightspace_projection(mat4x4_t& out_proj, const mat4x4_t& light_view, const inplace_vector_t<vec4f_t, 8>& world_space_ndc, const vec2u16_t& resolution, vec2f_t& out_texel_size)
+	void shadow_util_t::get_stable_directional_matrices(mat4x4_t&							out_view,
+														mat4x4_t&							out_proj,
+														const vec3f_t&						light_forward,
+														const inplace_vector_t<vec4f_t, 8>& world_space_ndc,
+														const vec3f_t&						receiver_center,
+														const vec2u16_t&					resolution,
+														f32									caster_extrusion,
+														vec2f_t&							out_texel_size,
+														f32&								out_near_plane,
+														f32&								out_far_plane)
 	{
-		{
+		constexpr u16 CASCADE_GUARD_TEXELS		  = 2;
+		constexpr f32 CASCADE_RADIUS_QUANTIZATION = 16.0f;
+		constexpr f32 CASCADE_DEPTH_GUARD		  = 1.0f;
 
-			f32 min_x = std::numeric_limits<f32>::max();
-			f32 max_x = std::numeric_limits<f32>::lowest();
-			f32 min_y = std::numeric_limits<f32>::max();
-			f32 max_y = std::numeric_limits<f32>::lowest();
-			f32 min_z = std::numeric_limits<f32>::max();
-			f32 max_z = std::numeric_limits<f32>::lowest();
-			for (const auto& v : world_space_ndc)
-			{
-				const auto trf = light_view * v;
-				min_x		   = math::min(min_x, trf.x);
-				max_x		   = math::max(max_x, trf.x);
-				min_y		   = math::min(min_y, trf.y);
-				max_y		   = math::max(max_y, trf.y);
-				min_z		   = math::min(min_z, trf.z);
-				max_z		   = math::max(max_z, trf.z);
-			}
+		f32 receiver_radius = 0.0f;
+		for (const vec4f_t& corner : world_space_ndc)
+			receiver_radius = math::max(receiver_radius, vec3f_t::distance(receiver_center, {corner.x, corner.y, corner.z}));
 
-			const f32 orthoWidth  = max_x - min_x;
-			const f32 orthoHeight = max_y - min_y;
+		// A quantized bounding sphere makes the projection size independent of camera
+		// rotation and suppresses tiny floating-point changes in the reconstructed corners.
+		receiver_radius = math::ceil(receiver_radius * CASCADE_RADIUS_QUANTIZATION) / CASCADE_RADIUS_QUANTIZATION;
 
-			// Texel size in light space:
-			const f32 texelX = orthoWidth / static_cast<f32>(resolution.x);
-			const f32 texelY = orthoHeight / static_cast<f32>(resolution.y);
+		const u16 usable_width	 = math::max<u16>(1, resolution.x > CASCADE_GUARD_TEXELS * 2 ? resolution.x - CASCADE_GUARD_TEXELS * 2 : 1);
+		const u16 usable_height	 = math::max<u16>(1, resolution.y > CASCADE_GUARD_TEXELS * 2 ? resolution.y - CASCADE_GUARD_TEXELS * 2 : 1);
+		const f32 guarded_radius = receiver_radius * math::max(static_cast<f32>(resolution.x) / usable_width, static_cast<f32>(resolution.y) / usable_height);
 
-			// Center before snapping
-			vec2f_t center = {0.5f * (min_x + max_x), 0.5f * (min_y + max_y)};
+		out_texel_size = {guarded_radius * 2.0f / math::max<f32>(resolution.x, 1.0f), guarded_radius * 2.0f / math::max<f32>(resolution.y, 1.0f)};
 
-			// Snap center to texel grid
-			center.x = floor(center.x / texelX + 0.5f) * texelX;
-			center.y = floor(center.y / texelY + 0.5f) * texelY;
+		const vec3f_t forward = light_forward.normalized();
+		const vec3f_t up	  = math::abs(vec3f_t::dot(forward, vec3f_t::up)) > 0.95f ? vec3f_t::right : vec3f_t::up;
+		const vec3f_t view_z  = -forward;
+		const vec3f_t view_x  = vec3f_t::cross(up, view_z).normalized();
+		const vec3f_t view_y  = vec3f_t::cross(view_z, view_x);
 
-			// Rebuild min/max using snapped center (KEEP SIZE THE SAME)
-			min_x = center.x - 0.5f * orthoWidth;
-			max_x = center.x + 0.5f * orthoWidth;
-			min_y = center.y - 0.5f * orthoHeight;
-			max_y = center.y + 0.5f * orthoHeight;
+		// Snap absolute light-basis coordinates. Snapping a center after constructing a
+		// center-relative view would always snap zero and would not stabilize the matrix.
+		const f32	  center_x		   = vec3f_t::dot(receiver_center, view_x);
+		const f32	  center_y		   = vec3f_t::dot(receiver_center, view_y);
+		const f32	  snapped_center_x = math::floor(center_x / out_texel_size.x + 0.5f) * out_texel_size.x;
+		const f32	  snapped_center_y = math::floor(center_y / out_texel_size.y + 0.5f) * out_texel_size.y;
+		const vec3f_t snapped_center   = receiver_center + view_x * (snapped_center_x - center_x) + view_y * (snapped_center_y - center_y);
 
-			const f32 z_padding = math::max(10.0f, (max_z - min_z) * 0.25f);
-			min_z -= z_padding;
-			max_z += z_padding;
+		caster_extrusion			= math::max(caster_extrusion, 0.0f);
+		const f32	  view_distance = receiver_radius + caster_extrusion + CASCADE_DEPTH_GUARD;
+		const vec3f_t view_pos		= snapped_center - forward * view_distance;
 
-			f32 near_dist = -max_z;
-			f32 far_dist  = -min_z;
-
-			out_proj	   = mat4x4_t::ortho(min_x, max_x, max_y, min_y, near_dist, far_dist);
-			out_texel_size = vec2f_t((max_x - min_x) / static_cast<f32>(resolution.x), (max_y - min_y) / static_cast<f32>(resolution.y));
-		}
-
-		//
+		out_near_plane = CASCADE_DEPTH_GUARD;
+		out_far_plane  = CASCADE_DEPTH_GUARD * 2.0f + caster_extrusion + receiver_radius * 2.0f;
+		out_view	   = mat4x4_t::look_at(view_pos, snapped_center, up);
+		out_proj	   = mat4x4_t::ortho(-guarded_radius, guarded_radius, guarded_radius, -guarded_radius, out_near_plane, out_far_plane);
 	}
 }

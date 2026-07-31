@@ -44,6 +44,7 @@ namespace sfg
 #define REFLECTION_SUB_TYPE_IDENTIFIER_DIRECTORY	   "reflection_subtype_directory"_hs
 #define REFLECTION_SUB_TYPE_IDENTIFIER_PATH			   "reflection_subtype_path"_hs
 #define REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER "reflection_subtype_collision_layer"_hs
+#define REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER_MASK "reflection_subtype_collision_layer_mask"_hs
 #define REFLECTION_SUB_TYPE_IDENTIFIER_WORLD_SCRIPT	   "reflection_subtype_world_script"_hs
 
 	enum class reflected_value_type_e : u8

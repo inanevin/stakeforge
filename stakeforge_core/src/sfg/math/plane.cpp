@@ -40,6 +40,6 @@ namespace sfg
 
 	f32 plane_t::get_signed_distance(const vec3f_t& point) const
 	{
-		return vec3f_t::dot(normal, point) - distance;
+		return vec3f_t::dot(normal, point) + distance;
 	}
 }

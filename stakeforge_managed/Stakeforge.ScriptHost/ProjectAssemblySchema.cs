@@ -219,6 +219,8 @@ internal sealed class ProjectAssemblySchema
         if (type == typeof(short)) return ("i16", 0, 2, 2);
         if (type == typeof(byte)) return ("u8", 0, 1, 1);
         if (type == typeof(sbyte)) return ("i8", 0, 1, 1);
+        if (type == typeof(CollisionLayer)) return ("u8", Hash.StringId("reflection_subtype_collision_layer"), 1, 1);
+        if (type == typeof(CollisionLayerMask)) return ("u64", Hash.StringId("reflection_subtype_collision_layer_mask"), 8, 8);
         if (type == typeof(EntityGuid)) return ("u64", Hash.StringId("reflection_subtype_entity_guid"), 8, 8);
         if (type == typeof(AudioHandle)) return ("u64", Hash.StringId("reflection_resource_subtype_audio"), 8, 8);
         if (type == typeof(FontHandle)) return ("u64", Hash.StringId("reflection_resource_subtype_font"), 8, 8);

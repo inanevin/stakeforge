@@ -495,6 +495,18 @@ namespace sfg
 				for (u32 i = 0; i < layers.size(); ++i)
 					items.push_back({.text = layers[i].name.empty() ? "Unnamed Layer" : layers[i].name.c_str(), .value = layers[i].slot});
 			}
+			else if (field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER_MASK)
+			{
+				const vector_t<physics_collision_layer_definition_t>& layers = editor_project_t::get().settings.project_settings.physics.collision_layers;
+				items.reserve(layers.size() + 1);
+				items.push_back({.text = "None", .value = 0});
+
+				for (u32 i = 0; i < layers.size(); ++i)
+				{
+					if (layers[i].slot < 64)
+						items.push_back({.text = layers[i].name.empty() ? "Unnamed Layer" : layers[i].name.c_str(), .value = 1ull << layers[i].slot});
+				}
+			}
 			else
 			{
 				const reflected_type_t* enum_type = reflection_registry_t::get().find_type(field->sub_type_id);
@@ -522,11 +534,13 @@ namespace sfg
 					   row.right,
 					   {
 						   .items	   = items.data(),
+						   .title	   = field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER_MASK ? "Collision Layers" : nullptr,
 						   .field	   = {.fields = fields, .field_size = field->size},
 						   .callbacks  = _field_callbacks,
 						   .item_count = static_cast<u16>(items.size()),
 						   .width	   = editor_dropdown_width_e::parent_relative,
 						   .pos_y	   = editor_dropdown_pos_y_e::center,
+						   .is_bitmask  = field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER_MASK,
 					   });
 
 		fit_control(dropdown->get_root());

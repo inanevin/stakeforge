@@ -179,11 +179,14 @@ namespace sfg
 
 			for (u8 layer = 0; layer < layer_count; ++layer)
 			{
-				mat4x4_t light_view		= mat4x4_t::identity;
-				mat4x4_t light_proj		= mat4x4_t::identity;
-				vec3f_t	 light_view_pos = pos;
-				f32		 split_near		= light.shadow_near_plane;
-				f32		 split_far		= light.range;
+				mat4x4_t light_view		 = mat4x4_t::identity;
+				mat4x4_t light_proj		 = mat4x4_t::identity;
+				vec3f_t	 light_view_pos	 = pos;
+				f32		 split_near		 = light.shadow_near_plane;
+				f32		 split_far		 = light.range;
+				f32		 projection_near = light.shadow_near_plane;
+				f32		 projection_far	 = light.range;
+				f32		 texel_world		 = 0.0f;
 
 				if (light.type == static_cast<u8>(world_render_light_type_e::spot))
 				{
@@ -210,11 +213,10 @@ namespace sfg
 					shadow_util_t::get_world_space_ndc((cascade_proj * main_camera_view.view).inverse(), corners, center);
 
 					const vec3f_t forward = rot.get_forward();
-					const vec3f_t up	  = math::abs(vec3f_t::dot(forward, vec3f_t::up)) > 0.95f ? vec3f_t::right : vec3f_t::up;
-					light_view_pos		  = center - forward * shadow_distance;
-					light_view			  = mat4x4_t::look_at(light_view_pos, center, up);
-					vec2f_t texel		  = vec2f_t::zero;
-					shadow_util_t::get_lightspace_projection(light_proj, light_view, corners, {resolution, resolution}, texel);
+					vec2f_t		  texel	  = vec2f_t::zero;
+					shadow_util_t::get_stable_directional_matrices(light_view, light_proj, forward, corners, center, {resolution, resolution}, shadow_distance, texel, projection_near, projection_far);
+					light_view_pos = light_view.inverse().get_translation();
+					texel_world	   = math::max(texel.x, texel.y);
 				}
 
 				const mat4x4_t view_proj = light_proj * light_view;
@@ -229,8 +231,8 @@ namespace sfg
 					.camera_pos		   = vec4f_t(light_view_pos.x, light_view_pos.y, light_view_pos.z, 1.0f),
 					.viewport_size	   = vec2f_t(resolution, resolution),
 					.inv_viewport_size = vec2f_t(1.0f / resolution, 1.0f / resolution),
-					.near_plane		   = light.shadow_near_plane,
-					.far_plane		   = light.range,
+					.near_plane		   = projection_near,
+					.far_plane		   = projection_far,
 					.queue_flags	   = world_render_queue_flag_shadow,
 				};
 				const u16 cull_view_index = prep_data.add_view(prep_view);
@@ -242,8 +244,9 @@ namespace sfg
 												  .light_index	   = light_index,
 												  .split_near	   = split_near,
 												  .split_far	   = split_far,
-												  .near_plane	   = light.shadow_near_plane,
-												  .far_plane	   = light.range,
+												  .near_plane	   = projection_near,
+												  .far_plane	   = projection_far,
+												  .texel_world	   = texel_world,
 												  .fade			   = shadow_fade,
 												  .cull_view_index = cull_view_index,
 												  .view_index	   = layer,
@@ -269,10 +272,11 @@ namespace sfg
 			const world_render_light_t&		  light		= snapshot.lights[view.light_index];
 
 			// what lighting code uses to shade shadows.
-			const gpu_shadow_view_t gpu_view = {
+			const f32				depth_range = math::max(view.far_plane - view.near_plane, 0.001f);
+			const gpu_shadow_view_t gpu_view	= {
 				.view_proj	   = prep_view.view_proj,
 				.params0	   = {view.split_near, view.split_far, view.near_plane, view.far_plane},
-				.params1	   = {1.0f / view.resolution.x, 1.0f / view.resolution.y, 0.0f, 0.0f},
+				.params1	   = {1.0f / view.resolution.x, 1.0f / view.resolution.y, view.texel_world, 1.0f / depth_range},
 				.params2	   = {light.shadow_bias, light.shadow_normal_bias, view.fade, shadows.shadow_fade_distance},
 				.texture_index = view.texture_index,
 				.slice		   = view.view_index,

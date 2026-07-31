@@ -40,6 +40,8 @@ internal static unsafe class ManagedRuntime
         NativeApi* api = (NativeApi*)apiAddress;
 
         if (sizeof(Entity) != 4 ||
+            sizeof(CollisionLayer) != 1 ||
+            sizeof(CollisionLayerMask) != 8 ||
             sizeof(EntityGuid) != 8 ||
             sizeof(ResourceHandle) != 8 ||
             sizeof(AudioHandle) != 8 ||

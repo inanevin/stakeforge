@@ -34,11 +34,20 @@ namespace sfg
 	struct vec2u16_t;
 	struct vec2f_t;
 	class mat4x4_t;
-	class vec3f_t;
+	struct vec3f_t;
 
 	namespace shadow_util_t
 	{
 		void get_world_space_ndc(const mat4x4_t& inv_view_proj, inplace_vector_t<vec4f_t, 8>& out_world_space, vec3f_t& out_center);
-		void get_lightspace_projection(mat4x4_t& out_proj, const mat4x4_t& light_view, const inplace_vector_t<vec4f_t, 8>& world_space_ndc, const vec2u16_t& resolution, vec2f_t& out_texel_size);
+		void get_stable_directional_matrices(mat4x4_t&							 out_view,
+											 mat4x4_t&							 out_proj,
+											 const vec3f_t&						 light_forward,
+											 const inplace_vector_t<vec4f_t, 8>& world_space_ndc,
+											 const vec3f_t&						 receiver_center,
+											 const vec2u16_t&					 resolution,
+											 f32								 caster_extrusion,
+											 vec2f_t&							 out_texel_size,
+											 f32&								 out_near_plane,
+											 f32&								 out_far_plane);
 	}
 }

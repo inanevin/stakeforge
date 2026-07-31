@@ -225,7 +225,7 @@ float sample_cascade_shadow(
     float3         N,
     float3         L,
     int            slice,
-    float2         shadow_resolution, float texel_world, float depth_bias, float normal_bias)
+    float2         shadow_resolution, float texel_world, float inv_depth_range, float depth_bias, float normal_bias)
 {
 
     // Transform world position into light clip space
@@ -233,10 +233,10 @@ float sample_cascade_shadow(
     if (clip.w <= 0.0f) return 1.0f;
     float3 ndc = clip.xyz / clip.w;
     float2 uv = ndc_to_uv(ndc.xy);
-    if (outside(uv)) return 1.0f;
-    uv.y = 1.0 - uv.y;
-
     float2 texel = 1.0f / shadow_resolution;
+	float2 kernel_guard = (float(g_pcf_radius) + 0.5f) * texel;
+	if (ndc.z < 0.0f || ndc.z > 1.0f || any(uv < kernel_guard) || any(uv > 1.0f - kernel_guard)) return 1.0f;
+	uv.y = 1.0 - uv.y;
 
     // we try to trust rasterizer bias, if not below
     // float NoL = saturate(dot(N, normalize(L)));
@@ -244,7 +244,11 @@ float sample_cascade_shadow(
     // float compare_depth = ndc.z - receiver_bias * 0.1;
 
     float NoL = saturate(dot(N, normalize(L)));
-    float compare_depth = ndc.z - depth_bias - normal_bias * (1.0 - NoL);
+	// Existing light bias values were authored as normalized values at 1024px.
+	// Convert them to a fixed number of shadow texels, then into this cascade's
+	// normalized depth range so the world-space bias no longer changes per fit.
+	float bias_to_depth = texel_world * 1024.0f * inv_depth_range;
+	float compare_depth = ndc.z - (depth_bias + normal_bias * (1.0f - NoL)) * bias_to_depth;
 
      // Single tap (fast path)
     if (g_pcf_radius == 0)
@@ -347,17 +351,17 @@ float sample_cascade_shadow_blend(
     float2         shadow_resolution,
     float          depth_linear,           // eye-linear 
     float          split_curr,             // end depth of current cascade
-    float          blend_width, float texel_world, float depth_bias, float normal_bias)
+    float          blend_width, float texel_world, float inv_depth_range, float depth_bias, float normal_bias)
 {
     if (blend_width <= 0.0f || slice_next < 0)
     {
-        return sample_cascade_shadow(shadow_map, smp_shadow, light_space_matrix_curr, world_pos, N, L, slice_curr, shadow_resolution, texel_world, depth_bias, normal_bias);
+        return sample_cascade_shadow(shadow_map, smp_shadow, light_space_matrix_curr, world_pos, N, L, slice_curr, shadow_resolution, texel_world, inv_depth_range, depth_bias, normal_bias);
     }
 
     float a = saturate( (split_curr - depth_linear) / max(blend_width, 1e-6f) );
     // a=1 => fully current cascade, a=0 => transition to next
-    float s0 = sample_cascade_shadow(shadow_map, smp_shadow, light_space_matrix_curr, world_pos, N, L, slice_curr, shadow_resolution, texel_world, depth_bias, normal_bias);
-    float s1 = sample_cascade_shadow(shadow_map, smp_shadow, light_space_matrix_next, world_pos, N, L, slice_next, shadow_resolution, texel_world, depth_bias, normal_bias);
+    float s0 = sample_cascade_shadow(shadow_map, smp_shadow, light_space_matrix_curr, world_pos, N, L, slice_curr, shadow_resolution, texel_world, inv_depth_range, depth_bias, normal_bias);
+    float s1 = sample_cascade_shadow(shadow_map, smp_shadow, light_space_matrix_next, world_pos, N, L, slice_next, shadow_resolution, texel_world, inv_depth_range, depth_bias, normal_bias);
     
     return lerp(s1, s0, a);
 }
@@ -518,7 +522,9 @@ float evaluate_directional_shadow(
 	if (light.shadow.x == SFG_INVALID_GPU_INDEX)
 		return 1.0;
 
-	const float depth_linear = abs(mul(view, float4(surface.world_pos, 1.0)).z);
+	const float3 view_position = mul(view, float4(surface.world_pos, 1.0)).xyz;
+	const float depth_linear = abs(view_position.z);
+	const float radial_distance = length(view_position);
 	uint cascade = 0;
 
 	// grab the cascade covering this pixel
@@ -539,7 +545,8 @@ float evaluate_directional_shadow(
 		light_direction,
 		shadow_view.slice,
 		1.0 / shadow_view.params1.xy,
-		0.0,
+		shadow_view.params1.z,
+		shadow_view.params1.w,
 		shadow_view.params2.x,
 		shadow_view.params2.y);
 
@@ -561,7 +568,8 @@ float evaluate_directional_shadow(
 				light_direction,
 				next_shadow_view.slice,
 				1.0 / next_shadow_view.params1.xy,
-				0.0,
+				next_shadow_view.params1.z,
+				next_shadow_view.params1.w,
 				next_shadow_view.params2.x,
 				next_shadow_view.params2.y);
 
@@ -570,7 +578,7 @@ float evaluate_directional_shadow(
 	}
 
 	// fade out before the cascade coverage ends
-	const float distance_fade = saturate((last_shadow_view.params0.y - depth_linear) / max(last_shadow_view.params2.w, 0.001));
+	const float distance_fade = saturate((last_shadow_view.params0.y - radial_distance) / max(last_shadow_view.params2.w, 0.001));
 
 	return lerp(1.0, shadow, shadow_view.params2.z * distance_fade);
 }

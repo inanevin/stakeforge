@@ -56,6 +56,7 @@ namespace sfg
 		f32			 split_far		 = 0.0f;
 		f32			 near_plane		 = 0.0f;
 		f32			 far_plane		 = 0.0f;
+		f32			 texel_world		 = 0.0f;
 		f32			 fade			 = 1.0f;
 		u16			 cull_view_index = UINT16_MAX;
 		u8			 view_index		 = 0;

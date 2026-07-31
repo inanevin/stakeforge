@@ -36,13 +36,14 @@ namespace sfg
 		frustum_result test = frustum_result::inside;
 
 		auto performTest = [&](const plane_t& p) {
-			const f32	  pos	 = -p.distance;
 			const vec3f_t normal = p.normal;
 
-			if (vec3f_t::dot(normal, local_box.get_positive(normal)) + pos < 0.0f)
+			if (vec3f_t::dot(normal, local_box.get_positive(normal)) + p.distance < 0.0f)
+			{
 				test = frustum_result ::outside;
-
-			if (vec3f_t::dot(normal, local_box.get_negative(normal)) + pos < 0.0f)
+				return;
+			}
+			if (test != frustum_result::outside && vec3f_t::dot(normal, local_box.get_negative(normal)) + p.distance < 0.0f)
 				test = frustum_result::intersects;
 		};
 
@@ -159,8 +160,11 @@ namespace sfg
 		fr.right	 = plane_t(m[3] - m[0], m[7] - m[4], m[11] - m[8], m[15] - m[12]);
 		fr.bottom	 = plane_t(m[3] + m[1], m[7] + m[5], m[11] + m[9], m[15] + m[13]);
 		fr.top		 = plane_t(m[3] - m[1], m[7] - m[5], m[11] - m[9], m[15] - m[13]);
-		fr.near		 = plane_t(m[3] + m[2], m[7] + m[6], m[11] + m[10], m[15] + m[14]);
-		fr.far		 = plane_t(m[3] - m[2], m[7] - m[6], m[11] - m[10], m[15] - m[14]);
+		// DirectX/Vulkan clip depth is 0..w, so the z >= 0 plane is row 2.
+		// Using row 3 + row 2 here assumes OpenGL's -w..w convention and can
+		// reject valid casters near either end of a shadow frustum.
+		fr.near = plane_t(m[2], m[6], m[10], m[14]);
+		fr.far	= plane_t(m[3] - m[2], m[7] - m[6], m[11] - m[10], m[15] - m[14]);
 		fr.left.normalize();
 		fr.right.normalize();
 		fr.bottom.normalize();
