@@ -114,7 +114,7 @@ namespace
 		::SetCursor(::LoadCursor(nullptr, cursor_id_from_state(g_cursor_state)));
 	}
 
-	void apply_cursor_confinement(HWND hwnd, sfg::window_cursor_confinement_e confinement)
+	void apply_cursor_confinement(HWND hwnd, sfg::window_cursor_confinement_e confinement, const sfg::vec2i16_t& confinement_position)
 	{
 		if (confinement == sfg::window_cursor_confinement_e::none)
 		{
@@ -131,12 +131,33 @@ namespace
 		}
 
 		POINT cursor_pos{};
-		GetCursorPos(&cursor_pos);
+		if (confinement == sfg::window_cursor_confinement_e::pointer)
+		{
+			GetCursorPos(&cursor_pos);
+		}
+		else
+		{
+			if (confinement == sfg::window_cursor_confinement_e::center)
+			{
+				RECT client_rect{};
+				GetClientRect(hwnd, &client_rect);
+				cursor_pos.x = (client_rect.left + client_rect.right) / 2;
+				cursor_pos.y = (client_rect.top + client_rect.bottom) / 2;
+			}
+			else
+			{
+				cursor_pos.x = confinement_position.x;
+				cursor_pos.y = confinement_position.y;
+			}
+
+			ClientToScreen(hwnd, &cursor_pos);
+		}
+
 		const RECT clip_rect = {
 			cursor_pos.x,
 			cursor_pos.y,
-			cursor_pos.x,
-			cursor_pos.y,
+			cursor_pos.x + 1,
+			cursor_pos.y + 1,
 		};
 		ClipCursor(&clip_rect);
 	}
@@ -465,7 +486,7 @@ namespace
 			return 0;
 		case WM_KILLFOCUS:
 			runtime->set_flag(sfg::window_runtime_flags_e::has_focus, false);
-			apply_cursor_confinement(hwnd, sfg::window_cursor_confinement_e::none);
+			apply_cursor_confinement(hwnd, sfg::window_cursor_confinement_e::none, sfg::vec2i16_t::zero);
 			apply_cursor_visibility(true);
 			push_event(*runtime,
 					   {
@@ -477,7 +498,7 @@ namespace
 			runtime->set_flag(sfg::window_runtime_flags_e::has_focus);
 			if (runtime->has_flag(sfg::window_runtime_flags_e::high_frequency_input))
 				register_raw_input_target(hwnd);
-			apply_cursor_confinement(hwnd, runtime->cursor_confinement);
+			apply_cursor_confinement(hwnd, runtime->cursor_confinement, runtime->cursor_confinement_position);
 			apply_cursor_visibility(runtime->cursor_visible);
 			push_event(*runtime,
 					   {
@@ -1684,7 +1705,25 @@ namespace sfg
 		runtime->cursor_confinement = conf;
 
 		if (runtime->has_flag(window_runtime_flags_e::has_focus))
-			apply_cursor_confinement(hwnd, conf);
+			apply_cursor_confinement(hwnd, conf, runtime->cursor_confinement_position);
+	}
+
+	void process::set_cursor_confinement_position(void* window_handle, const vec2i16_t& position)
+	{
+		HWND hwnd = static_cast<HWND>(window_handle);
+		SFG_ASSERT(hwnd != nullptr);
+
+		window_runtime_t* const runtime = reinterpret_cast<window_runtime_t*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+		SFG_ASSERT(runtime != nullptr);
+
+		if (runtime->cursor_confinement == window_cursor_confinement_e::position && runtime->cursor_confinement_position == position)
+			return;
+
+		runtime->cursor_confinement_position = position;
+		runtime->cursor_confinement		   = window_cursor_confinement_e::position;
+
+		if (runtime->has_flag(window_runtime_flags_e::has_focus))
+			apply_cursor_confinement(hwnd, runtime->cursor_confinement, runtime->cursor_confinement_position);
 	}
 
 	void process::set_cursor_state(window_cursor_state_e state)

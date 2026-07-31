@@ -36,27 +36,33 @@ namespace sfg
 
 	namespace
 	{
-		window_runtime_t* g_window_runtime = nullptr;
+		window_runtime_t*					g_window_runtime = nullptr;
+		script_api_platform_lock_cursor_fn g_lock_cursor	   = nullptr;
 	}
 
 	void set_script_api_platform_window_runtime(window_runtime_t* window)
 	{
 		if (g_window_runtime != nullptr && g_window_runtime != window)
-		{
-			process::set_cursor_confinement(g_window_runtime->window_handle, window_cursor_confinement_e::none);
 			process::set_cursor_visible(g_window_runtime->window_handle, true);
-		}
 
 		g_window_runtime = window;
 	}
 
+	void set_script_api_platform_lock_cursor_callback(script_api_platform_lock_cursor_fn lock_cursor)
+	{
+		if (g_lock_cursor != nullptr && g_lock_cursor != lock_cursor)
+			g_lock_cursor(script_cursor_lock_mode_e::none);
+
+		g_lock_cursor = lock_cursor;
+	}
+
 	void reset_script_api_platform_cursor_state()
 	{
-		if (g_window_runtime == nullptr)
-			return;
+		if (g_lock_cursor != nullptr)
+			g_lock_cursor(script_cursor_lock_mode_e::none);
 
-		process::set_cursor_confinement(g_window_runtime->window_handle, window_cursor_confinement_e::none);
-		process::set_cursor_visible(g_window_runtime->window_handle, true);
+		if (g_window_runtime != nullptr)
+			process::set_cursor_visible(g_window_runtime->window_handle, true);
 	}
 
 	void api_platform_set_cursor_visible(u8 visible)
@@ -67,12 +73,10 @@ namespace sfg
 		process::set_cursor_visible(g_window_runtime->window_handle, visible != 0);
 	}
 
-	void api_platform_lock_cursor(u8 locked)
+	void api_platform_lock_cursor(script_cursor_lock_mode_e mode)
 	{
-		if (g_window_runtime == nullptr)
-			return;
-
-		process::set_cursor_confinement(g_window_runtime->window_handle, locked != 0 ? window_cursor_confinement_e::pointer : window_cursor_confinement_e::none);
+		if (g_lock_cursor != nullptr)
+			g_lock_cursor(mode);
 	}
 
 	void api_platform_set_window_size(u16 width, u16 height)

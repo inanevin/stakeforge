@@ -62,6 +62,8 @@ namespace sfg
 		none,
 		window,
 		pointer,
+		position,
+		center,
 	};
 
 	enum window_event_flags
@@ -130,6 +132,7 @@ namespace sfg
 		vec2u16_t						true_size				  = vec2u16_t::zero;
 		vec2i16_t						mouse_position_abs		  = vec2i16_t::zero;
 		vec2i16_t						mouse_position			  = vec2i16_t::zero;
+		vec2i16_t						cursor_confinement_position = vec2i16_t::zero;
 		gfx_handle_t					swapchain				  = {};
 		window_style_e					style					  = window_style_e::app_window;
 		window_cursor_confinement_e		cursor_confinement		  = window_cursor_confinement_e::none;

@@ -37,6 +37,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	enum class script_cursor_lock_mode_e : u8;
+
 	struct game_config_t
 	{
 		engine_runtime_config_t engine					= {};
@@ -76,6 +78,7 @@ namespace sfg
 		static u8	load_script_game_world(sid_t world_name_hash);
 		static u8	restart_script_game_world();
 		static void quit_script_game();
+		static void lock_script_cursor(script_cursor_lock_mode_e mode);
 
 		bool load_package_resources();
 		bool load_project_scripts();

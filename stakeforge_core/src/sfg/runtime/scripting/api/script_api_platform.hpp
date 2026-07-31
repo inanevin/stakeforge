@@ -34,12 +34,22 @@ namespace sfg
 	struct window_runtime_t;
 	enum class window_style_e : u8;
 
+	enum class script_cursor_lock_mode_e : u8
+	{
+		none,
+		current_position,
+		center,
+	};
+
+	typedef void (*script_api_platform_lock_cursor_fn)(script_cursor_lock_mode_e mode);
+
 	extern bool g_window_api_enabled;
 
 	void set_script_api_platform_window_runtime(window_runtime_t* window);
+	void set_script_api_platform_lock_cursor_callback(script_api_platform_lock_cursor_fn lock_cursor);
 	void reset_script_api_platform_cursor_state();
 	void api_platform_set_cursor_visible(u8 visible);
-	void api_platform_lock_cursor(u8 locked);
+	void api_platform_lock_cursor(script_cursor_lock_mode_e mode);
 	void api_platform_set_window_size(u16 width, u16 height);
 	void api_platform_set_window_style(window_style_e style);
 
@@ -48,7 +58,7 @@ namespace sfg
 		u32 size									   = 0;
 		u32 version									   = 0;
 		void (*set_cursor_visible)(u8 visible)		   = nullptr;
-		void (*lock_cursor)(u8 locked)				   = nullptr;
+		void (*lock_cursor)(script_cursor_lock_mode_e mode) = nullptr;
 		void (*set_window_size)(u16 width, u16 height) = nullptr;
 		void (*set_window_style)(window_style_e style) = nullptr;
 	};

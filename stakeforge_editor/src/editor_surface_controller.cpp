@@ -995,6 +995,18 @@ namespace sfg
 		return _surfaces.get(get_surface_handle_by_runtime(runtime));
 	}
 
+	editor_surface_t& editor_surface_controller_t::get_surface_by_ui(ui::ui_context& ui)
+	{
+		for (editor_surface_t& surface : _surfaces)
+		{
+			if (surface.ui.get() == &ui)
+				return surface;
+		}
+
+		SFG_ASSERT(false);
+		return *_surfaces.begin();
+	}
+
 	surface_handle_t editor_surface_controller_t::get_surface_handle_by_runtime(window_runtime_t& runtime)
 	{
 		for (auto it = _surfaces.begin_handle(); it != _surfaces.end_handle(); ++it)

@@ -53,6 +53,19 @@ namespace sfg
 {
 #define GAME_RAW_WHEEL_DELTA 120.0f
 
+	void game_t::lock_script_cursor(script_cursor_lock_mode_e mode)
+	{
+		if (s_instance == nullptr || !s_instance->_window_initialized)
+			return;
+
+		window_runtime_t& window = s_instance->_window;
+		if (mode == script_cursor_lock_mode_e::center)
+			process::set_cursor_confinement(window.window_handle, window_cursor_confinement_e::center);
+		else
+			process::set_cursor_confinement(
+				window.window_handle, mode == script_cursor_lock_mode_e::current_position ? window_cursor_confinement_e::pointer : window_cursor_confinement_e::none);
+	}
+
 	void game_t::on_window_event(void* window_handle, const window_event_t& event, void* user_data)
 	{
 		game_t& game = *static_cast<game_t*>(user_data);
@@ -253,6 +266,7 @@ namespace sfg
 
 		g_window_api_enabled = true;
 		set_script_api_platform_window_runtime(&_window);
+		set_script_api_platform_lock_cursor_callback(lock_script_cursor);
 		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, load_script_game_world, restart_script_game_world, quit_script_game);
 		_script_api_bound = true;
 
@@ -496,6 +510,7 @@ namespace sfg
 		if (_script_api_bound)
 		{
 			reset_script_api_platform_cursor_state();
+			set_script_api_platform_lock_cursor_callback(nullptr);
 			set_script_api_platform_window_runtime(nullptr);
 			set_script_api_game_callbacks(nullptr, nullptr, nullptr, nullptr, nullptr);
 			_script_api_bound = false;

@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_surface_controller.hpp"
 #include "scripting/editor_script_manager.hpp"
 #include "ui/editor_text_rasterization.hpp"
+#include "ui/panels/editor_panel_world.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/widgets/editor_splash_screen.hpp"
 #include "world/editor_world.hpp"
@@ -119,6 +120,27 @@ namespace sfg
 	void editor_app_t::quit_script_game()
 	{
 		editor_app_t::get().get_world_controller().queue_game_quit();
+	}
+
+	void editor_app_t::lock_script_cursor(script_cursor_lock_mode_e mode)
+	{
+		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
+
+		for (editor_surface_t& surface : surfaces)
+			process::set_cursor_confinement(surface.runtime->window_handle, window_cursor_confinement_e::none);
+
+		if (mode == script_cursor_lock_mode_e::none)
+			return;
+
+		editor_panel_world_t* const world_panel = static_cast<editor_panel_world_t*>(surfaces.find_panel(editor_panel_type_e::world));
+		if (world_panel == nullptr)
+			return;
+
+		editor_surface_t& surface = surfaces.get_surface_by_ui(world_panel->get_ui());
+		if (mode == script_cursor_lock_mode_e::center)
+			process::set_cursor_confinement_position(surface.runtime->window_handle, world_panel->get_world_view().get_center());
+		else
+			process::set_cursor_confinement(surface.runtime->window_handle, window_cursor_confinement_e::pointer);
 	}
 
 	bool editor_app_t::init(const editor_app_config_t& config)
@@ -245,6 +267,7 @@ namespace sfg
 	{
 		engine_runtime_t& runtime = engine_runtime_t::get();
 
+		set_script_api_platform_lock_cursor_callback(nullptr);
 		set_script_api_platform_window_runtime(nullptr);
 		set_script_api_game_callbacks(nullptr, nullptr, nullptr, nullptr, nullptr);
 
@@ -384,6 +407,7 @@ namespace sfg
 		_normal_world_load_pending = proj.settings.last_world_guid != NULL_SID;
 
 		set_script_api_platform_window_runtime(surfaces.get_main_surface().runtime.get());
+		set_script_api_platform_lock_cursor_callback(lock_script_cursor);
 		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, load_script_game_world, restart_script_game_world, quit_script_game);
 
 		editor_script_manager_t::get().init();
@@ -418,6 +442,7 @@ namespace sfg
 
 		if (_mode == editor_app_mode_e::normal)
 		{
+			set_script_api_platform_lock_cursor_callback(nullptr);
 			set_script_api_platform_window_runtime(nullptr);
 			set_script_api_game_callbacks(nullptr, nullptr, nullptr, nullptr, nullptr);
 		}

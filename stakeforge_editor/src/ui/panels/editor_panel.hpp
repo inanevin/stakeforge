@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/panels/editor_panel_types.hpp"
 #include <sfg/data/string.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
@@ -72,6 +73,11 @@ namespace sfg
 		inline ui::widget_id_t get_root() const
 		{
 			return _root;
+		}
+		inline ui::ui_context& get_ui()
+		{
+			SFG_ASSERT(_ui != nullptr);
+			return *_ui;
 		}
 		inline bool is_inited() const
 		{

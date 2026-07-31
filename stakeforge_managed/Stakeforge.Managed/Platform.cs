@@ -7,6 +7,13 @@ public enum WindowStyle : byte
     Alpha,
 }
 
+public enum CursorLockMode : byte
+{
+    None,
+    CurrentPosition,
+    Center,
+}
+
 public static unsafe class Platform
 {
     public static void SetCursorVisible(bool visible)
@@ -16,7 +23,12 @@ public static unsafe class Platform
 
     public static void LockCursor(bool locked)
     {
-        ManagedRuntime.GetApi()->Platform->LockCursor(locked ? (byte)1 : (byte)0);
+        LockCursor(locked ? CursorLockMode.CurrentPosition : CursorLockMode.None);
+    }
+
+    public static void LockCursor(CursorLockMode mode)
+    {
+        ManagedRuntime.GetApi()->Platform->LockCursor(mode);
     }
 
     public static void SetWindowSize(ushort width, ushort height)

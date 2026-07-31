@@ -95,6 +95,7 @@ namespace sfg
 
 		editor_surface_t& get_main_surface();
 		editor_surface_t& get_surface_by_runtime(window_runtime_t& runtime);
+		editor_surface_t& get_surface_by_ui(ui::ui_context& ui);
 		surface_handle_t  get_surface_handle_by_runtime(window_runtime_t& runtime);
 
 		inline bool is_empty() const
