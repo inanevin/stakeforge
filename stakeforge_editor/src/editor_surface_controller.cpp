@@ -504,7 +504,7 @@ namespace sfg
 				},
 			.user_ui_scale			   = editor_settings_t::get().configurable.editor_ui_scale,
 			.dpi_scale				   = surface.runtime->monitor_info.dpi_scale,
-			.max_widgets			   = 10000,
+			.max_widgets			   = 24000,
 			.text_pool_budget_bytes	   = 1024 * 1024,
 			.snapshot_vertex_max_bytes = 2 << 20,
 			.snapshot_index_max_bytes  = 1 << 20,
