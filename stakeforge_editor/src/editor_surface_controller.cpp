@@ -88,6 +88,12 @@ namespace sfg
 			return false;
 		}
 
+		bool is_main_world_view_focused(editor_surface_controller_t& surfaces, surface_handle_t surface, ui::ui_context& ui)
+		{
+			editor_panel_world_t* const world_panel = static_cast<editor_panel_world_t*>(surfaces.find_panel_on_surface(editor_panel_type_e::world, surface));
+			return world_panel != nullptr && ui.get_input().get_focused() == world_panel->get_world_view().get_view_widget();
+		}
+
 		bool add_panel_to_existing_type_leaf(editor_surface_t& surface, editor_panel_t* panel)
 		{
 			if (surface.type == editor_surface_type_e::primary)
@@ -290,10 +296,19 @@ namespace sfg
 			const vec2i16_t mp = runtime.mouse_position;
 			ui.on_mouse_move({static_cast<f32>(mp.x), static_cast<f32>(mp.y)});
 
+			if (ev.type == window_event_type_e::mouse)
+			{
+				if (ev.sub_type == window_event_sub_type_e::press)
+					ui.on_mouse_button(ui::input_router_t::map_button(ev.button), true);
+				else if (ev.sub_type == window_event_sub_type_e::release)
+					ui.on_mouse_button(ui::input_router_t::map_button(ev.button), false);
+			}
+
 			const bool modal_active = surfaces.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
+			const bool game_input_focused = is_main_world_view_focused(surfaces, surface_handle, ui);
 
-			if (!modal_active && !popup_active && game_world != nullptr && game_world->get_world().is_playing())
+			if (!modal_active && !popup_active && game_input_focused && game_world != nullptr && game_world->get_world().is_playing())
 			{
 				if (ev.type == window_event_type_e::delta)
 					game_world->get_world().mouse_move_event(static_cast<f32>(runtime.mouse_position.x), static_cast<f32>(runtime.mouse_position.y), static_cast<f32>(ev.value.x), static_cast<f32>(ev.value.y));
@@ -321,23 +336,16 @@ namespace sfg
 			else if (editor_widget_world_view_t::on_window_event(runtime, ev))
 				return;
 
-			if (ev.type == window_event_type_e::mouse)
-			{
-				if (ev.sub_type == window_event_sub_type_e::press)
-					ui.on_mouse_button(ui::input_router_t::map_button(ev.button), true);
-				else if (ev.sub_type == window_event_sub_type_e::release)
-					ui.on_mouse_button(ui::input_router_t::map_button(ev.button), false);
-			}
-
 			break;
 		}
 		case window_event_type_e::wheel: {
 
 			const bool modal_active = surfaces.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
+			const bool game_input_focused = is_main_world_view_focused(surfaces, surface_handle, ui);
 			const f32  delta		= ev.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(ev.value.y) / EDITOR_RAW_WHEEL_DELTA : static_cast<f32>(ev.value.y);
 
-			if (!modal_active && !popup_active && game_world != nullptr && game_world->get_world().is_playing())
+			if (!modal_active && !popup_active && game_input_focused && game_world != nullptr && game_world->get_world().is_playing())
 				game_world->get_world().mouse_wheel_event(static_cast<f32>(runtime.mouse_position.x), static_cast<f32>(runtime.mouse_position.y), delta);
 
 			if (modal_active || popup_active)
@@ -354,8 +362,9 @@ namespace sfg
 
 			const bool modal_active = surfaces.is_any_modal_active();
 			const bool popup_active = ui.get_input().is_popup_scope_active();
+			const bool game_input_focused = is_main_world_view_focused(surfaces, surface_handle, ui);
 
-			if (!modal_active && !popup_active && game_world != nullptr && game_world->get_world().is_playing())
+			if (!modal_active && !popup_active && game_input_focused && game_world != nullptr && game_world->get_world().is_playing())
 				game_world->get_world().key_event(ev.button, static_cast<u16>(ev.value.x), static_cast<u8>(ev.sub_type));
 
 			if (modal_active || popup_active)

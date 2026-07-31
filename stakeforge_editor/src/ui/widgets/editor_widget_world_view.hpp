@@ -67,6 +67,11 @@ namespace sfg
 			return _root;
 		}
 
+		inline ui::widget_id_t get_view_widget() const
+		{
+			return _world_view;
+		}
+
 	private:
 		void	clear_world();
 		void	refresh_world_texture();
