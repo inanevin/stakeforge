@@ -68,6 +68,8 @@ namespace sfg
 
 	namespace
 	{
+		bool g_focus_main_world_view = false;
+
 		editor_panel_t* find_panel_in_surface(editor_surface_t& surface, editor_panel_type_e type, sid_t sub_item_id)
 		{
 			if (surface.type == editor_surface_type_e::primary)
@@ -178,6 +180,21 @@ namespace sfg
 
 		for (editor_surface_t& surface : _surfaces)
 			surface.ui->get_paint().set_text_raster_mode(raster_mode);
+	}
+
+	bool editor_surface_controller_t::focus_main_world_view()
+	{
+		editor_panel_world_t* const world_panel = static_cast<editor_panel_world_t*>(find_panel(editor_panel_type_e::world));
+		if (world_panel == nullptr)
+			return false;
+
+		world_panel->get_ui().get_input().set_focus(world_panel->get_world_view().get_view_widget(), false);
+		return true;
+	}
+
+	void editor_surface_controller_t::request_focus_main_world_view()
+	{
+		g_focus_main_world_view = true;
 	}
 
 	void editor_surface_controller_t::begin_editor_camera_cursor_capture(window_runtime_t& runtime)
@@ -729,6 +746,12 @@ namespace sfg
 				surface_ui->tick(screen, dpi_scale, dt);
 				surface_ui->publish_frame();
 			}
+		}
+
+		if (g_focus_main_world_view)
+		{
+			g_focus_main_world_view = false;
+			focus_main_world_view();
 		}
 	}
 

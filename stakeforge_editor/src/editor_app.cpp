@@ -53,6 +53,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/scripting/api/script_api_game.hpp>
 #include <sfg/runtime/scripting/api/script_api_platform.hpp>
+#include <sfg/runtime/ui/input/input_router.hpp>
+#include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
 #include <tracy/Tracy.hpp>
 
@@ -135,6 +137,9 @@ namespace sfg
 		editor_panel_world_t* const world_panel = static_cast<editor_panel_world_t*>(surfaces.find_panel(editor_panel_type_e::world));
 		if (world_panel == nullptr)
 			return;
+
+		ui::ui_context& world_ui = world_panel->get_ui();
+		world_ui.get_input().set_focus(world_panel->get_world_view().get_view_widget(), false);
 
 		editor_surface_t& surface = surfaces.get_surface_by_ui(world_panel->get_ui());
 		if (mode == script_cursor_lock_mode_e::center)

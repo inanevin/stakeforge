@@ -444,6 +444,9 @@ namespace sfg
 
 		editor_world.update_play_mode(mode);
 
+		if (entering_play && mode == editor_play_mode_e::play)
+			editor_surface_controller_t::get().request_focus_main_world_view();
+
 		if (exiting_full)
 			reset_script_api_platform_cursor_state();
 

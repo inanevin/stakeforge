@@ -79,6 +79,8 @@ namespace sfg
 		void			 load_primary_main_toolbar(editor_surface_t& surface, const string_t& main_toolbar);
 		void			 set_debug_mode(bool enabled);
 		void			 set_text_subpixel_enabled();
+		void			 request_focus_main_world_view();
+		bool			 focus_main_world_view();
 		void			 begin_editor_camera_cursor_capture(window_runtime_t& runtime);
 		void			 end_editor_camera_cursor_capture(window_runtime_t& runtime);
 		editor_panel_t*	 find_panel(editor_panel_type_e type, surface_handle_t surface_handle = {}, sid_t sub_item_id = 0);
