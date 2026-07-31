@@ -70,4 +70,5 @@ internal unsafe struct NativeWorldApi
     internal delegate* unmanaged[Cdecl]<nint, float> GetElapsedTime;
 	internal delegate* unmanaged[Cdecl]<nint, float> GetRealElapsedTime;
 	internal delegate* unmanaged[Cdecl]<nint, uint, byte, byte> SetViewModel;
+	internal delegate* unmanaged[Cdecl]<nint, uint, byte*> GetEntityName;
 }

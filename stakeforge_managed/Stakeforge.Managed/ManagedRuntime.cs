@@ -31,7 +31,7 @@ internal static unsafe class ManagedRuntime
     private const uint ApiVersion = 8;
     private const uint CategoryApiVersion = 1;
     private const uint GameApiVersion = 4;
-	private const uint WorldApiVersion = 7;
+	private const uint WorldApiVersion = 8;
 
     private static NativeApi* _api;
 

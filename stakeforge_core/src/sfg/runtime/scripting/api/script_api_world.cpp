@@ -1030,11 +1030,21 @@ namespace sfg
 		return 1;
 	}
 
+	const char* api_world_get_entity_name(const world_t* world, entity_id_t entity)
+	{
+		SFG_ASSERT(world != nullptr);
+
+		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
+			return nullptr;
+
+		return world->get_entity_name(entity);
+	}
+
 	const script_api_world_t& get_script_api_world()
 	{
 		static const script_api_world_t api{
 			.size							 = static_cast<u32>(sizeof(script_api_world_t)),
-			.version						 = 7,
+			.version						 = 8,
 			.create_entity					 = api_world_create_entity,
 			.destroy_entity					 = api_world_destroy_entity,
 			.duplicate_entity				 = api_world_duplicate_entity,
@@ -1098,6 +1108,7 @@ namespace sfg
 			.get_elapsed_time				 = api_world_get_elapsed_time,
 			.get_real_elapsed_time			 = api_world_get_real_elapsed_time,
 			.set_view_model					 = api_world_set_view_model,
+			.get_entity_name					 = api_world_get_entity_name,
 		};
 
 		return api;

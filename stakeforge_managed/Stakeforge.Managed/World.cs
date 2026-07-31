@@ -446,6 +446,24 @@ public readonly unsafe struct World : IEquatable<World>
         return new Entity(api->World->FindEntityByGuid(GetNative(), guid.Id));
     }
 
+    public string GetEntityName(Entity entity)
+    {
+        NativeApi* api = ManagedRuntime.GetApi();
+        byte* name = api->World->GetEntityName(GetNative(), entity.Id);
+        if (name == null)
+        {
+            return string.Empty;
+        }
+
+        int byteCount = 0;
+        while (name[byteCount] != 0)
+        {
+            byteCount++;
+        }
+
+        return Encoding.UTF8.GetString(name, byteCount);
+    }
+
     public Entity SpawnPrefab(PrefabHandle prefab)
     {
         return SpawnPrefab(prefab, Entity.Invalid, Vector3.Zero, Quaternion.Identity, Vector3.One);
