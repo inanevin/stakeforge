@@ -37,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_surface_controller.hpp"
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
+#include "ui/panels/editor_panel_inspector.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/frame_hash_map.hpp>
 #include <sfg/data/string_util.hpp>
@@ -44,8 +45,12 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/color_utils.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/runtime/resources/material_def.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/shader_data_definition.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 #include <sfg/vendor/taskflow/taskflow.hpp>
+#include <algorithm>
 #include <utility>
 #include <tracy/Tracy.hpp>
 
@@ -55,6 +60,51 @@ namespace sfg
 #define EDITOR_ASSET_DELETION_LISTENER_MAX	 64
 #define EDITOR_COOKED_RESOURCE_SCAN_INTERVAL 30
 #define EDITOR_SOURCE_FILE_SCAN_INTERVAL	 30
+
+	namespace
+	{
+		material_def_t refresh_material_from_shader_definition(const material_def_t& source, const shader_data_definition_t& shader_definition)
+		{
+			material_def_t material	   = material_def_from_shader_def(shader_definition, source.shader);
+			material.blend_mode		   = source.blend_mode;
+			material.write_shadows	   = source.write_shadows;
+			material.write_reflections = source.write_reflections;
+			material.double_sided	   = source.double_sided;
+			material.use_alpha_cutoff  = source.use_alpha_cutoff;
+
+			for (material_texture_value_t& texture : material.textures)
+			{
+				const auto it = std::find_if(source.textures.begin(), source.textures.end(), [&](const material_texture_value_t& value) { return value.name == texture.name; });
+				if (it != source.textures.end())
+					texture.texture = it->texture;
+			}
+
+			for (material_sampler_value_t& sampler : material.samplers)
+			{
+				const auto it = std::find_if(source.samplers.begin(), source.samplers.end(), [&](const material_sampler_value_t& value) { return value.name == sampler.name; });
+				if (it != source.samplers.end())
+					sampler.sampler = it->sampler;
+			}
+
+			for (material_param_value_t& parameter : material.parameters)
+			{
+				const auto it = std::find_if(source.parameters.begin(), source.parameters.end(), [&](const material_param_value_t& value) { return value.name == parameter.name && value.type == parameter.type; });
+				if (it == source.parameters.end())
+					continue;
+
+				parameter.hint = it->hint;
+				for (u8 i = 0; i < 4; ++i)
+				{
+					if (parameter.type == shader_param_type_e::u32)
+						parameter.value_u32[i] = it->value_u32[i];
+					else
+						parameter.value[i] = it->value[i];
+				}
+			}
+
+			return material;
+		}
+	}
 
 	bool editor_asset_manager_t::init()
 	{
@@ -134,6 +184,13 @@ namespace sfg
 	void editor_asset_manager_t::tick()
 	{
 		ZoneScoped;
+
+		const bool shader_definitions_changed = process_completed_shader_cooks();
+		if (shader_definitions_changed && !editor_surface_controller_t::get().is_empty())
+		{
+			if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::inspector))
+				static_cast<editor_panel_inspector_t*>(panel)->refresh_from_assets();
+		}
 
 		// import modal
 		if (_import_in_progress && _import_status_dirty.exchange(false, std::memory_order_acquire))
@@ -228,6 +285,8 @@ namespace sfg
 		_asset_to_source_tracking.clear();
 		_changed_cooked_resources.resize(0);
 		_changed_source_assets.resize(0);
+		_completed_shader_cooks.resize(0);
+		_latest_asset_cook_revisions.clear();
 		_cooked_resource_scan_ticks = 0;
 		_source_file_scan_ticks		= 0;
 		_cooked_file_track_inited	= false;
@@ -865,7 +924,7 @@ namespace sfg
 
 		const editor_asset_node_t& asset_node = _database.get_asset_tree().value(node);
 
-		schedule_asset_cook(asset_id, *asset, "", asset_node.name.c_str(), false);
+		schedule_asset_cook(asset_id, *asset, asset_node.full_path.c_str(), asset_node.name.c_str(), false);
 
 		return true;
 	}
@@ -884,7 +943,9 @@ namespace sfg
 			cook_state.display_name		   = display_name;
 			cook_state.revision			   = _next_asset_cook_revision++;
 			cook_state.save_asset		   = save_asset;
-			schedule_worker				   = inserted;
+			if (cook_state.asset.asset_type == editor_asset_type_e::shader)
+				_latest_asset_cook_revisions[asset_id] = cook_state.revision;
+			schedule_worker = inserted;
 
 			if (schedule_worker)
 				_asset_cook_worker_count.fetch_add(1, std::memory_order_release);
@@ -896,10 +957,16 @@ namespace sfg
 
 	void editor_asset_manager_t::flush_asset_cook_jobs()
 	{
-		if (_asset_cook_worker_count.load(std::memory_order_acquire) == 0)
-			return;
+		while (true)
+		{
+			if (_asset_cook_worker_count.load(std::memory_order_acquire) != 0)
+				editor_app_t::get().get_editor_work_executor().wait_for_all();
 
-		editor_app_t::get().get_editor_work_executor().wait_for_all();
+			const bool processed_shader = process_completed_shader_cooks();
+			if (_asset_cook_worker_count.load(std::memory_order_acquire) == 0 && !processed_shader)
+				break;
+		}
+
 		SFG_ASSERT(_asset_cook_worker_count.load(std::memory_order_acquire) == 0);
 	}
 
@@ -917,8 +984,20 @@ namespace sfg
 				cook_state = it->second;
 			}
 
-			const bool asset_saved	= !cook_state.save_asset || editor_asset_io_t::write_asset(cook_state.asset_path.c_str(), cook_state.asset);
-			const bool asset_cooked = asset_saved && editor_asset_cooker_t::cook_asset(cook_state.asset, cook_state.display_name.c_str());
+			const bool asset_saved = !cook_state.save_asset || editor_asset_io_t::write_asset(cook_state.asset_path.c_str(), cook_state.asset);
+
+			editor_asset_t cooked_asset = cook_state.asset;
+			bool		   asset_cooked = false;
+
+			if (asset_saved && cook_state.asset.asset_type == editor_asset_type_e::shader)
+			{
+				shader_data_definition_t definition = {};
+				asset_cooked						= editor_asset_cooker_t::cook_shader(cook_state.asset, cook_state.display_name.c_str(), &definition);
+				if (asset_cooked)
+					editor_asset_io_t::set_embedded_source_json(cooked_asset, definition);
+			}
+			else if (asset_saved)
+				asset_cooked = editor_asset_cooker_t::cook_asset(cook_state.asset, cook_state.display_name.c_str());
 
 			if (!asset_cooked)
 			{
@@ -942,6 +1021,11 @@ namespace sfg
 
 				if (it->second.revision == cook_state.revision)
 				{
+					if (asset_cooked && cook_state.asset.asset_type == editor_asset_type_e::shader)
+						_completed_shader_cooks.push_back({.asset = std::move(cooked_asset), .revision = cook_state.revision});
+					else if (cook_state.asset.asset_type == editor_asset_type_e::shader)
+						_latest_asset_cook_revisions.erase(asset_id);
+
 					_asset_cook_states.erase(it);
 					_asset_cook_worker_count.fetch_sub(1, std::memory_order_release);
 					is_completed = true;
@@ -951,6 +1035,95 @@ namespace sfg
 			if (is_completed)
 				return;
 		}
+	}
+
+	bool editor_asset_manager_t::process_completed_shader_cooks()
+	{
+		vector_t<completed_shader_cook_t> completed = {};
+		{
+			LOCK_GUARD(_asset_cook_mtx);
+			if (_completed_shader_cooks.empty())
+				return false;
+
+			completed = std::move(_completed_shader_cooks);
+			_completed_shader_cooks.clear();
+		}
+
+		bool definitions_changed = false;
+
+		for (completed_shader_cook_t& result : completed)
+		{
+			{
+				LOCK_GUARD(_asset_cook_mtx);
+				const auto latest = _latest_asset_cook_revisions.find(result.asset.guid);
+				if (latest == _latest_asset_cook_revisions.end() || latest->second != result.revision)
+					continue;
+
+				_latest_asset_cook_revisions.erase(latest);
+			}
+
+			editor_asset_t* shader_asset = _database.find_asset(result.asset.guid);
+			if (shader_asset == nullptr || shader_asset->asset_type != editor_asset_type_e::shader)
+				continue;
+
+			const editor_asset_node_handle_t shader_node = _database.find_asset_node(result.asset.guid);
+			if (shader_node.is_null())
+				continue;
+
+			const nlohmann::json	 definition_json = editor_asset_io_t::get_embedded_source_json(result.asset);
+			shader_data_definition_t definition		 = {};
+			definition_json.get_to(definition);
+
+			if (definition_json == editor_asset_io_t::get_embedded_source_json(*shader_asset))
+				continue;
+
+			editor_asset_t updated_shader = *shader_asset;
+			editor_asset_io_t::set_embedded_source_json(updated_shader, definition_json);
+
+			const editor_asset_node_t& shader_node_value = _database.get_asset_tree().value(shader_node);
+			if (!editor_asset_io_t::write_asset(shader_node_value.full_path.c_str(), updated_shader))
+				SFG_ERR("failed to persist reflected shader definition for asset {0}", result.asset.guid);
+
+			*shader_asset = std::move(updated_shader);
+			notify_changed();
+			definitions_changed = true;
+
+			struct material_update_t
+			{
+				sid_t		   asset_id = NULL_SID;
+				nlohmann::json embedded = {};
+			};
+
+			vector_t<material_update_t> material_updates = {};
+			for (const auto& asset_pair : _database.get_assets())
+			{
+				const editor_asset_t& material_asset = asset_pair.second;
+				if (material_asset.asset_type != editor_asset_type_e::material)
+					continue;
+
+				const nlohmann::json embedded = editor_asset_io_t::get_embedded_source_json(material_asset);
+				if (!embedded.is_object())
+					continue;
+
+				material_def_t material = {};
+				embedded.get_to(material);
+				if (material.shader != result.asset.guid)
+					continue;
+
+				const material_def_t refreshed		= refresh_material_from_shader_definition(material, definition);
+				const nlohmann::json refreshed_json = refreshed;
+				if (refreshed_json != embedded)
+					material_updates.push_back({.asset_id = material_asset.guid, .embedded = refreshed_json});
+			}
+
+			for (const material_update_t& update : material_updates)
+			{
+				if (!save_and_cook_embedded_asset_async(update.asset_id, update.embedded))
+					SFG_ERR("failed to synchronize material {0} with shader {1}", update.asset_id, result.asset.guid);
+			}
+		}
+
+		return definitions_changed;
 	}
 
 	void editor_asset_manager_t::scan_cooked_resources()

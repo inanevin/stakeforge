@@ -168,6 +168,12 @@ namespace sfg
 			bool		   save_asset	= false;
 		};
 
+		struct completed_shader_cook_t
+		{
+			editor_asset_t asset	= {};
+			u64			   revision = 0;
+		};
+
 		enum class cooked_resource_kind_e : u8
 		{
 			asset,
@@ -203,6 +209,7 @@ namespace sfg
 		bool					   cook_asset_async(sid_t asset_id);
 		void					   schedule_asset_cook(sid_t asset_id, editor_asset_t asset, const char* asset_path, const char* display_name, bool save_asset);
 		void					   asset_cook_worker(sid_t asset_id);
+		bool					   process_completed_shader_cooks();
 		void					   scan_cooked_resources();
 		void					   process_changed_cooked_resources();
 		void					   track_cooked_resource(sid_t resource_id, sid_t asset_id, cooked_resource_kind_e kind, bool report_existing_file);
@@ -230,6 +237,8 @@ namespace sfg
 		vector_t<string_t>																		_import_asset_paths_visible;
 		mutex_t																					_import_status_mtx;
 		hash_map_t<sid_t, asset_cook_state_t>													_asset_cook_states;
+		hash_map_t<sid_t, u64>																	_latest_asset_cook_revisions;
+		vector_t<completed_shader_cook_t>														_completed_shader_cooks;
 		hash_map_t<sid_t, cooked_resource_tracking_state_t>										_cooked_resource_tracking_states;
 		hash_map_t<sid_t, source_file_tracking_state_t>											_source_file_to_tracking;
 		hash_map_t<sid_t, script_file_tracking_state_t>											_script_file_tracking_states;
