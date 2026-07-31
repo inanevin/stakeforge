@@ -70,6 +70,7 @@ namespace sfg
 		void tick_animation_prep(f32 dt);
 		void tick_animation_logic(f32 dt);
 		void tick_logic(f32 dt);
+		void tick_logic_post(f32 dt);
 		void tick_logic_post_physics(f32 dt);
 		void tick_logic_post_animation(f32 dt);
 		void draw_world_script_debug();
@@ -125,6 +126,9 @@ namespace sfg
 		const vec3f_t& get_entity_pos_local(entity_id_t id) const;
 		const quat_t&  get_entity_rot_local(entity_id_t id) const;
 		const vec3f_t& get_entity_scale_local(entity_id_t id) const;
+		const vec3f_t& get_entity_pos_abs(entity_id_t id) const;
+		const quat_t&  get_entity_rot_abs(entity_id_t id) const;
+		const vec3f_t& get_entity_scale_abs(entity_id_t id) const;
 		const vec3f_t& get_entity_pos_last_abs(entity_id_t id) const;
 		const quat_t&  get_entity_rot_last_abs(entity_id_t id) const;
 		const vec3f_t& get_entity_scale_last_abs(entity_id_t id) const;

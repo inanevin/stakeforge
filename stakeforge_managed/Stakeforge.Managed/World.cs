@@ -153,6 +153,39 @@ public readonly unsafe struct World : IEquatable<World>
         }
     }
 
+    public bool TryGetEntityPositionAbsolute(Entity entity, out Vector3 position)
+    {
+        NativeApi* api = ManagedRuntime.GetApi();
+        position = default;
+
+        fixed (Vector3* positionPointer = &position)
+        {
+            return api->World->GetEntityPosAbs(GetNative(), entity.Id, positionPointer) != 0;
+        }
+    }
+
+    public bool TryGetEntityRotationAbsolute(Entity entity, out Quaternion rotation)
+    {
+        NativeApi* api = ManagedRuntime.GetApi();
+        rotation = default;
+
+        fixed (Quaternion* rotationPointer = &rotation)
+        {
+            return api->World->GetEntityRotAbs(GetNative(), entity.Id, rotationPointer) != 0;
+        }
+    }
+
+    public bool TryGetEntityScaleAbsolute(Entity entity, out Vector3 scale)
+    {
+        NativeApi* api = ManagedRuntime.GetApi();
+        scale = default;
+
+        fixed (Vector3* scalePointer = &scale)
+        {
+            return api->World->GetEntityScaleAbs(GetNative(), entity.Id, scalePointer) != 0;
+        }
+    }
+
     public bool TryGetEntityPositionLastAbsolute(Entity entity, out Vector3 position)
     {
         NativeApi* api = ManagedRuntime.GetApi();

@@ -220,6 +220,48 @@ namespace sfg
 		return 1;
 	}
 
+	u8 api_world_get_entity_pos_abs(const world_t* world, entity_id_t entity, vec3f_t* out_position)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(out_position != nullptr);
+
+		*out_position = vec3f_t::zero;
+
+		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
+			return 0;
+
+		*out_position = world->get_entity_pos_abs(entity);
+		return 1;
+	}
+
+	u8 api_world_get_entity_rot_abs(const world_t* world, entity_id_t entity, quat_t* out_rotation)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(out_rotation != nullptr);
+
+		*out_rotation = quat_t::identity;
+
+		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
+			return 0;
+
+		*out_rotation = world->get_entity_rot_abs(entity);
+		return 1;
+	}
+
+	u8 api_world_get_entity_scale_abs(const world_t* world, entity_id_t entity, vec3f_t* out_scale)
+	{
+		SFG_ASSERT(world != nullptr);
+		SFG_ASSERT(out_scale != nullptr);
+
+		*out_scale = vec3f_t::one;
+
+		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
+			return 0;
+
+		*out_scale = world->get_entity_scale_abs(entity);
+		return 1;
+	}
+
 	u8 api_world_get_entity_pos_last_abs(const world_t* world, entity_id_t entity, vec3f_t* out_position)
 	{
 		SFG_ASSERT(world != nullptr);
@@ -969,7 +1011,7 @@ namespace sfg
 	{
 		static const script_api_world_t api{
 			.size							 = static_cast<u32>(sizeof(script_api_world_t)),
-			.version						 = 5,
+			.version						 = 6,
 			.create_entity					 = api_world_create_entity,
 			.destroy_entity					 = api_world_destroy_entity,
 			.duplicate_entity				 = api_world_duplicate_entity,
@@ -983,6 +1025,9 @@ namespace sfg
 			.get_entity_pos_local			 = api_world_get_entity_pos_local,
 			.get_entity_rot_local			 = api_world_get_entity_rot_local,
 			.get_entity_scale_local			 = api_world_get_entity_scale_local,
+			.get_entity_pos_abs				 = api_world_get_entity_pos_abs,
+			.get_entity_rot_abs				 = api_world_get_entity_rot_abs,
+			.get_entity_scale_abs			 = api_world_get_entity_scale_abs,
 			.get_entity_pos_last_abs		 = api_world_get_entity_pos_last_abs,
 			.get_entity_rot_last_abs		 = api_world_get_entity_rot_last_abs,
 			.get_entity_scale_last_abs		 = api_world_get_entity_scale_last_abs,

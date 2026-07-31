@@ -91,6 +91,9 @@ namespace sfg
 	u8			api_world_get_entity_pos_local(const world_t* world, entity_id_t entity, vec3f_t* out_position);
 	u8			api_world_get_entity_rot_local(const world_t* world, entity_id_t entity, quat_t* out_rotation);
 	u8			api_world_get_entity_scale_local(const world_t* world, entity_id_t entity, vec3f_t* out_scale);
+	u8			api_world_get_entity_pos_abs(const world_t* world, entity_id_t entity, vec3f_t* out_position);
+	u8			api_world_get_entity_rot_abs(const world_t* world, entity_id_t entity, quat_t* out_rotation);
+	u8			api_world_get_entity_scale_abs(const world_t* world, entity_id_t entity, vec3f_t* out_scale);
 	u8			api_world_get_entity_pos_last_abs(const world_t* world, entity_id_t entity, vec3f_t* out_position);
 	u8			api_world_get_entity_rot_last_abs(const world_t* world, entity_id_t entity, quat_t* out_rotation);
 	u8			api_world_get_entity_scale_last_abs(const world_t* world, entity_id_t entity, vec3f_t* out_scale);
@@ -155,6 +158,9 @@ namespace sfg
 		decltype(&api_world_get_entity_pos_local)			 get_entity_pos_local			 = nullptr;
 		decltype(&api_world_get_entity_rot_local)			 get_entity_rot_local			 = nullptr;
 		decltype(&api_world_get_entity_scale_local)			 get_entity_scale_local			 = nullptr;
+		decltype(&api_world_get_entity_pos_abs)			 get_entity_pos_abs				 = nullptr;
+		decltype(&api_world_get_entity_rot_abs)			 get_entity_rot_abs				 = nullptr;
+		decltype(&api_world_get_entity_scale_abs)		 get_entity_scale_abs			 = nullptr;
 		decltype(&api_world_get_entity_pos_last_abs)		 get_entity_pos_last_abs		 = nullptr;
 		decltype(&api_world_get_entity_rot_last_abs)		 get_entity_rot_last_abs		 = nullptr;
 		decltype(&api_world_get_entity_scale_last_abs)		 get_entity_scale_last_abs		 = nullptr;

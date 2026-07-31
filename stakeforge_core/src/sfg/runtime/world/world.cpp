@@ -300,6 +300,15 @@ namespace sfg
 
 		_logic_helper.sync_destroyers(scaled_dt);
 		_audio_controller.tick(scaled_dt);
+	}
+
+	void world_t::tick_logic_post(f32 dt)
+	{
+		ZoneScoped;
+
+		SFG_ASSERT(_is_playing);
+
+		const f32 scaled_dt = dt * _time_scale;
 
 		if (_world_script_instance != nullptr)
 			script_runtime_t::get().post_tick_world_script(_world_script_instance, scaled_dt);
@@ -848,6 +857,30 @@ namespace sfg
 
 		const component_transform_t& transform = ecs_helpers_t::table_get_as_const<component_transform_t>(*_engine_components.transform_table, id);
 		return transform.scale;
+	}
+
+	const vec3f_t& world_t::get_entity_pos_abs(entity_id_t id) const
+	{
+		SFG_ASSERT(is_alive(id));
+
+		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(*_system_components.transform_table, id);
+		return transform.abs_pos;
+	}
+
+	const quat_t& world_t::get_entity_rot_abs(entity_id_t id) const
+	{
+		SFG_ASSERT(is_alive(id));
+
+		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(*_system_components.transform_table, id);
+		return transform.abs_rot;
+	}
+
+	const vec3f_t& world_t::get_entity_scale_abs(entity_id_t id) const
+	{
+		SFG_ASSERT(is_alive(id));
+
+		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(*_system_components.transform_table, id);
+		return transform.abs_scale;
 	}
 
 	const vec3f_t& world_t::get_entity_pos_last_abs(entity_id_t id) const

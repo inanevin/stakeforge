@@ -20,6 +20,9 @@ internal unsafe struct NativeWorldApi
     internal delegate* unmanaged[Cdecl]<nint, uint, Vector3*, byte> GetEntityPosLocal;
     internal delegate* unmanaged[Cdecl]<nint, uint, Quaternion*, byte> GetEntityRotLocal;
     internal delegate* unmanaged[Cdecl]<nint, uint, Vector3*, byte> GetEntityScaleLocal;
+    internal delegate* unmanaged[Cdecl]<nint, uint, Vector3*, byte> GetEntityPosAbs;
+    internal delegate* unmanaged[Cdecl]<nint, uint, Quaternion*, byte> GetEntityRotAbs;
+    internal delegate* unmanaged[Cdecl]<nint, uint, Vector3*, byte> GetEntityScaleAbs;
     internal delegate* unmanaged[Cdecl]<nint, uint, Vector3*, byte> GetEntityPosLastAbs;
     internal delegate* unmanaged[Cdecl]<nint, uint, Quaternion*, byte> GetEntityRotLastAbs;
     internal delegate* unmanaged[Cdecl]<nint, uint, Vector3*, byte> GetEntityScaleLastAbs;

@@ -475,6 +475,7 @@ namespace sfg
 			editor_world.tick_camera(dt_seconds);
 			world.update_world_transforms();
 			world.tick_physics(dt_seconds);
+			world.update_world_transforms(false);
 
 			world.tick_animation_prep(dt_seconds);
 			world.tick_animation_logic(dt_seconds);
@@ -494,31 +495,38 @@ namespace sfg
 			break;
 		case editor_play_mode_e::play:
 			world.tick_logic(dt_seconds);
+			world.tick_logic_post(dt_seconds);
 			world.update_world_transforms();
 			world.tick_physics(dt_seconds);
 			world.tick_logic_post_physics(dt_seconds);
+			world.update_world_transforms(false);
 
 			world.tick_animation_prep(dt_seconds);
 			world.tick_animation_logic(dt_seconds);
 			world.tick_logic_post_animation(dt_seconds);
+			world.update_world_transforms(false);
 
 			break;
 		case editor_play_mode_e::play_physics:
 			editor_world.tick_camera(dt_seconds);
 			world.update_world_transforms();
 			world.tick_physics(dt_seconds);
+			world.update_world_transforms(false);
 			break;
 		case editor_play_mode_e::play_paused:
 			if (force_simulation)
 			{
 				world.tick_logic(dt_seconds);
+				world.tick_logic_post(dt_seconds);
 				world.update_world_transforms();
 				world.tick_physics(dt_seconds);
 				world.tick_logic_post_physics(dt_seconds);
+				world.update_world_transforms(false);
 
 				world.tick_animation_prep(dt_seconds);
 				world.tick_animation_logic(dt_seconds);
 				world.tick_logic_post_animation(dt_seconds);
+				world.update_world_transforms(false);
 			}
 
 			break;
@@ -528,6 +536,7 @@ namespace sfg
 				editor_world.tick_camera(dt_seconds);
 				world.update_world_transforms();
 				world.tick_physics(dt_seconds);
+				world.update_world_transforms(false);
 			}
 
 			break;
