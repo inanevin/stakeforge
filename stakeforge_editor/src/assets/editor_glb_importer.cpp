@@ -797,12 +797,15 @@ namespace sfg
 							 const tg3_skin&					  skin,
 							 const glb_basis_conversion_t&		  basis,
 							 u32								  skin_index,
+							 mat4x3_t&						  out_bind_correction,
 							 hash_map_t<u32, sid_t>&			  skeleton_guid_map,
 							 glb_asset_name_registry_t&			  asset_names,
 							 const editor_asset_import_context_t& context,
 							 vector_t<editor_asset_t>&			  out_assets,
 							 vector_t<string_t>&				  out_asset_paths)
 		{
+			out_bind_correction = mat4x3_t::identity;
+
 			string_t asset_name = get_asset_name(skin.name);
 
 			if (asset_name.empty())
@@ -932,6 +935,22 @@ namespace sfg
 			{
 				SFG_ERR("glb skeleton hierarchy is invalid: {0}", skin_index);
 				return false;
+			}
+
+			if (!skeleton.joints.empty())
+			{
+				vector_t<mat4x3_t> bind_globals = {};
+				bind_globals.resize(skeleton.joints.size());
+
+				for (u32 joint_index : skeleton.evaluation_order)
+				{
+					const skeleton_joint_def_t& joint = skeleton.joints[joint_index];
+					bind_globals[joint_index] = joint.parent_index == SKELETON_JOINT_NO_PARENT ? joint.local : bind_globals[joint.parent_index] * joint.local;
+				}
+
+				const u32 correction_joint_index = skeleton.root_joint_index != SKELETON_JOINT_NO_PARENT ? skeleton.root_joint_index : skeleton.evaluation_order.front();
+				out_bind_correction				 = bind_globals[correction_joint_index] * skeleton.joints[correction_joint_index].inverse_bind;
+				skeleton.skinning_transform	 = out_bind_correction.inverse();
 			}
 
 			nlohmann::json embedded_source = nlohmann::json::object();
@@ -1502,6 +1521,7 @@ namespace sfg
 						   const glb_basis_conversion_t&		basis,
 						   const hash_map_t<u32, sid_t>&		mesh_guid_map,
 						   const hash_map_t<u32, sid_t>&		skeleton_guid_map,
+						   const vector_t<mat4x3_t>&			skin_bind_corrections,
 						   const hash_map_t<u32, sid_t>&		collision_guid_map,
 						   const hash_map_t<u32, sid_t>&		material_guid_map,
 						   glb_asset_name_registry_t&			asset_names,
@@ -1668,10 +1688,15 @@ namespace sfg
 					node_name += std::to_string(node_index);
 				}
 
+				mat4x3_t render_matrix = node_matrix;
+
+				if (node.skin >= 0 && static_cast<u32>(node.skin) < skin_bind_corrections.size())
+					render_matrix = render_matrix * skin_bind_corrections[static_cast<u32>(node.skin)];
+
 				vec3f_t local_pos	= vec3f_t::zero;
 				quat_t	local_rot	= quat_t::identity;
 				vec3f_t local_scale = vec3f_t::one;
-				node_matrix.decompose(local_pos, local_rot, local_scale);
+				render_matrix.decompose(local_pos, local_rot, local_scale);
 
 				prefab_json["local_entities"].push_back(world_cook_entity_header_t{
 					.guid		 = guid,
@@ -1879,7 +1904,12 @@ namespace sfg
 					vec3f_t local_scale = vec3f_t::one;
 
 					if (mesh_node_count == 1)
+					{
+						if (combined_skin_index >= 0 && static_cast<u32>(combined_skin_index) < skin_bind_corrections.size())
+							render_node_matrix = render_node_matrix * skin_bind_corrections[static_cast<u32>(combined_skin_index)];
+
 						render_node_matrix.decompose(local_pos, local_rot, local_scale);
+					}
 
 					const entity_guid_t mesh_guid = next_guid++;
 					prefab_json["local_entities"].push_back(world_cook_entity_header_t{
@@ -2251,12 +2281,14 @@ namespace sfg
 
 			hash_map_t<u32, sid_t> skeleton_guid_map = {};
 			skeleton_guid_map.reserve(model.skins_count);
+			vector_t<mat4x3_t> skin_bind_corrections = {};
+			skin_bind_corrections.resize(model.skins_count, mat4x3_t::identity);
 
 			if (result && import_skeletons)
 			{
 				for (u32 i = 0; i < model.skins_count; ++i)
 				{
-					if (!import_skeleton(target_directory, source_full_path, model, model.skins[i], basis, i, skeleton_guid_map, asset_names, context, out_assets, out_asset_paths))
+					if (!import_skeleton(target_directory, source_full_path, model, model.skins[i], basis, i, skin_bind_corrections[i], skeleton_guid_map, asset_names, context, out_assets, out_asset_paths))
 					{
 						SFG_ERR("failed to import GLB skeleton {0}", i);
 						result = false;
@@ -2292,7 +2324,7 @@ namespace sfg
 					if (result)
 					{
 						if (!import_prefab(
-								target_directory, source_full_path, model, basis, mesh_guid_map, skeleton_guid_map, collision_guid_map, material_guid_map, asset_names, context, combined_mesh_guid, combined_collision_guid, out_assets, out_asset_paths))
+								target_directory, source_full_path, model, basis, mesh_guid_map, skeleton_guid_map, skin_bind_corrections, collision_guid_map, material_guid_map, asset_names, context, combined_mesh_guid, combined_collision_guid, out_assets, out_asset_paths))
 						{
 							SFG_ERR("failed to import GLB prefab");
 							result = false;
@@ -2320,7 +2352,7 @@ namespace sfg
 
 				if (result && !cook_config.combine_meshes && model.nodes_count != 0)
 				{
-					if (!import_prefab(target_directory, source_full_path, model, basis, mesh_guid_map, skeleton_guid_map, collision_guid_map, material_guid_map, asset_names, context, NULL_SID, NULL_SID, out_assets, out_asset_paths))
+					if (!import_prefab(target_directory, source_full_path, model, basis, mesh_guid_map, skeleton_guid_map, skin_bind_corrections, collision_guid_map, material_guid_map, asset_names, context, NULL_SID, NULL_SID, out_assets, out_asset_paths))
 					{
 						SFG_ERR("failed to import GLB prefab");
 						result = false;

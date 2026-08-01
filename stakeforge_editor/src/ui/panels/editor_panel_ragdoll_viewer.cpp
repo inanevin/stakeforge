@@ -312,6 +312,9 @@ namespace sfg
 			_joint_globals[joint_index]		  = joint.parent_index == SKELETON_JOINT_NO_PARENT ? joint.local : _joint_globals[joint.parent_index] * joint.local;
 		}
 
+		for (mat4x3_t& joint_global : _joint_globals)
+			joint_global = _skeleton.skinning_transform * joint_global;
+
 		vec3f_t bounds_min = _joint_globals[0].get_translation();
 		vec3f_t bounds_max = bounds_min;
 
@@ -327,11 +330,15 @@ namespace sfg
 			if (part.joint_index >= _joint_globals.size())
 				continue;
 
-			const vec3f_t position = (_joint_globals[part.joint_index] * mat4x3_t::transform(part.local_position, part.local_rotation, vec3f_t::one)).get_translation();
-			const f32	  extent   = part.radius + part.half_height;
+			vec3f_t	  capsule_position = vec3f_t::zero;
+			quat_t	  capsule_rotation = quat_t::identity;
+			vec3f_t	  capsule_scale = vec3f_t::one;
+			(_joint_globals[part.joint_index] * mat4x3_t::transform(part.local_position, part.local_rotation, vec3f_t::one)).decompose(capsule_position, capsule_rotation, capsule_scale);
+			const f32	  shape_scale = math::max(math::max(math::abs(capsule_scale.x), math::abs(capsule_scale.y)), math::abs(capsule_scale.z));
+			const f32	  extent   = (part.radius + part.half_height) * shape_scale;
 			const vec3f_t margin(extent, extent, extent);
-			bounds_min = vec3f_t::min(bounds_min, position - margin);
-			bounds_max = vec3f_t::max(bounds_max, position + margin);
+			bounds_min = vec3f_t::min(bounds_min, capsule_position - margin);
+			bounds_max = vec3f_t::max(bounds_max, capsule_position + margin);
 		}
 
 		if (!_world.is_null())
@@ -433,8 +440,9 @@ namespace sfg
 			quat_t		   rotation			 = quat_t::identity;
 			vec3f_t		   scale			 = vec3f_t::one;
 			capsule_transform.decompose(position, rotation, scale);
+			const f32 shape_scale = math::max(math::max(math::abs(scale.x), math::abs(scale.y)), math::abs(scale.z));
 
-			debug_draw.draw_capsule(position, math::max(part.radius, 0.001f), math::max(part.half_height, 0.001f), rotation.get_up(), color_t::purple, 2.0f, debug_draw_depth_e::depth_tested, 20);
+			debug_draw.draw_capsule(position, math::max(part.radius * shape_scale, 0.001f), math::max(part.half_height * shape_scale, 0.001f), rotation.get_up(), color_t::purple, 2.0f, debug_draw_depth_e::depth_tested, 20);
 		}
 	}
 

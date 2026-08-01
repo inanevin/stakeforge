@@ -289,6 +289,9 @@ namespace sfg
 			draw_data.transform						= joint.parent_index == SKELETON_JOINT_NO_PARENT ? joint.local : _joint_draw_data[joint.parent_index].transform * joint.local;
 		}
 
+		for (joint_draw_data_t& draw_data : _joint_draw_data)
+			draw_data.transform = _skeleton.skinning_transform * draw_data.transform;
+
 		vec3f_t bounds_min = _joint_draw_data[0].transform.get_translation();
 		vec3f_t bounds_max = bounds_min;
 

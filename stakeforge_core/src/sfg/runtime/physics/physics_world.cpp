@@ -594,8 +594,6 @@ namespace sfg
 
 			JPH::Mat44 initial_pose[RAGDOLL_PART_MAX] = {};
 
-			const f32 shape_scale = math::max(math::max(math::abs(transform.abs_scale.x), math::abs(transform.abs_scale.y)), math::abs(transform.abs_scale.z));
-
 			for (u32 part_index = 0; part_index < resource->part_count; ++part_index)
 			{
 				const ragdoll_part_runtime_t& source_part = resource_parts[part_index];
@@ -610,10 +608,11 @@ namespace sfg
 				vec3f_t		   joint_scale	  = vec3f_t::one;
 				const mat4x3_t joint_world	  = transform.abs_mat * joint_global_pose[source_part.joint_index];
 				joint_world.decompose(joint_position, joint_rotation, joint_scale);
+				const f32 shape_scale = math::max(math::max(math::abs(joint_scale.x), math::abs(joint_scale.y)), math::abs(joint_scale.z));
 
 				JPH::RagdollSettings::Part&					  part	  = settings->mParts[part_index];
 				JPH::Ref<JPH::CapsuleShapeSettings>			  capsule = new JPH::CapsuleShapeSettings(math::max(source_part.half_height * shape_scale, 0.001f), math::max(source_part.radius * shape_scale, 0.001f));
-				JPH::Ref<JPH::RotatedTranslatedShapeSettings> shape = new JPH::RotatedTranslatedShapeSettings(physics_world_util_t::to_jolt(source_part.local_position * transform.abs_scale), physics_world_util_t::to_jolt(source_part.local_rotation), capsule);
+				JPH::Ref<JPH::RotatedTranslatedShapeSettings> shape = new JPH::RotatedTranslatedShapeSettings(physics_world_util_t::to_jolt(source_part.local_position * joint_scale), physics_world_util_t::to_jolt(source_part.local_rotation), capsule);
 				const JPH::ShapeSettings::ShapeResult		  shape_result = shape->Create();
 
 				if (shape_result.HasError())
@@ -1330,7 +1329,21 @@ namespace sfg
 				const mat4x3_t inverse_entity_world_rigid = mat4x3_t::transform(entity_position, entity_rotation, vec3f_t::one).inverse();
 
 				for (u32 part_index = 0; part_index < resource->part_count; ++part_index)
-					joint_globals[parts[part_index].joint_index] = inverse_entity_world_rigid * part_world[part_index];
+				{
+					const u32 joint_index = parts[part_index].joint_index;
+
+					vec3f_t preserved_position = vec3f_t::zero;
+					quat_t  preserved_rotation = quat_t::identity;
+					vec3f_t preserved_scale    = vec3f_t::one;
+					joint_globals[joint_index].decompose(preserved_position, preserved_rotation, preserved_scale);
+
+					vec3f_t joint_position = vec3f_t::zero;
+					quat_t  joint_rotation = quat_t::identity;
+					vec3f_t rigid_scale    = vec3f_t::one;
+					(inverse_entity_world_rigid * part_world[part_index]).decompose(joint_position, joint_rotation, rigid_scale);
+
+					joint_globals[joint_index] = mat4x3_t::transform(joint_position, joint_rotation, preserved_scale);
+				}
 
 				for (u32 order_index = 0; order_index < skeleton->joint_count; ++order_index)
 				{

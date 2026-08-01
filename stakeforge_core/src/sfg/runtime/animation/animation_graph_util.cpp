@@ -116,6 +116,6 @@ namespace sfg
 		}
 
 		for (u32 joint_index = 0; joint_index < skeleton.joint_count; ++joint_index)
-			bones[joint_index].bone_transform = bones[joint_index].bone_transform * inverse_binds[joint_index].bone_transform;
+			bones[joint_index].bone_transform = skeleton.skinning_transform * bones[joint_index].bone_transform * inverse_binds[joint_index].bone_transform;
 	}
 }

@@ -185,6 +185,7 @@ namespace sfg
 					 .offset		= offsetof(skeleton_def_t, slots),
 					 .size			= sizeof(vector_t<skeleton_slot_def_t>),
 					 .type			= reflected_value_type_e::container},
+					{.name = "skinning_transform", .display_name = "Skinning Transform", .sub_type_id = type_id_t<mat4x3_t>::value, .offset = offsetof(skeleton_def_t, skinning_transform), .size = sizeof(mat4x3_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::object},
 					{.name = "root_index", .display_name = "Root Index", .offset = offsetof(skeleton_def_t, root_joint_index), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
 				},
 			.type_id   = type_id_t<skeleton_def_t>::value,
