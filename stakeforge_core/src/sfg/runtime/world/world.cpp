@@ -1148,7 +1148,7 @@ namespace sfg
 		}
 
 		system_transform.abs_pos   = parent_abs_pos + (parent_abs_rot * (transform.pos * parent_abs_scale));
-		system_transform.abs_rot   = parent_abs_rot * transform.rot;
+		system_transform.abs_rot   = (parent_abs_rot * transform.rot).normalized();
 		system_transform.abs_scale = parent_abs_scale * transform.scale;
 		system_transform.abs_mat   = parent_abs_mat * mat4x3_t::transform(transform.pos, transform.rot, transform.scale);
 

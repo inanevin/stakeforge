@@ -23,4 +23,5 @@ public static unsafe class Screen
             return ManagedRuntime.GetApi()->Screen->ScreenToWorld(world.GetNative(), screenPositionPointer, normalizedDepth, worldPositionPointer) != 0;
         }
     }
+
 }

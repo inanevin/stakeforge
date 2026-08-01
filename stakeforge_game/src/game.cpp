@@ -94,6 +94,9 @@ namespace sfg
 				world.key_event(event.button, static_cast<u16>(event.value.x), static_cast<u8>(event.sub_type));
 			break;
 		case window_event_type_e::mouse: {
+			if (!game._window.has_flag(window_runtime_flags_e::has_focus))
+				break;
+
 			u8 button = UINT8_MAX;
 
 			if (event.button == static_cast<u16>(input_code::mouse_0))
@@ -111,9 +114,13 @@ namespace sfg
 			break;
 		}
 		case window_event_type_e::delta:
-			world.mouse_move_event(static_cast<f32>(game._window.mouse_position.x), static_cast<f32>(game._window.mouse_position.y), static_cast<f32>(event.value.x), static_cast<f32>(event.value.y));
+			if (game._window.has_flag(window_runtime_flags_e::has_focus))
+				world.mouse_move_event(static_cast<f32>(game._window.mouse_position.x), static_cast<f32>(game._window.mouse_position.y), static_cast<f32>(event.value.x), static_cast<f32>(event.value.y));
 			break;
 		case window_event_type_e::wheel: {
+			if (!game._window.has_flag(window_runtime_flags_e::has_focus))
+				break;
+
 			const f32 delta = event.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(event.value.y) / GAME_RAW_WHEEL_DELTA : static_cast<f32>(event.value.y);
 
 			world.mouse_wheel_event(static_cast<f32>(game._window.mouse_position.x), static_cast<f32>(game._window.mouse_position.y), delta);
@@ -257,6 +264,7 @@ namespace sfg
 																			  };
 		const window_style_e  window_style	  = _package_meta.is_fullscreen ? window_style_e::borderless : _package_meta.window_style;
 
+		_window.set_flag(window_runtime_flags_e::high_frequency_input);
 		if (!process::create_window("Stakeforge Game", window_position, window_size, window_style, 1.0f, false, _window))
 			return fail_init("Failed to create the game window.");
 

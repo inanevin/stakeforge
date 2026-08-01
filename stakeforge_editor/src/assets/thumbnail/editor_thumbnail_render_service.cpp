@@ -69,7 +69,7 @@ namespace sfg
 							.particle_max_count					   = 0,
 						},
 					.render_resolution				   = vec2u16_t(256, 256),
-					.render_entity_max_count		   = 10,
+					.render_entity_max_count		   = 1024,
 					.render_sprite_max_count		   = 16,
 					.render_particle_max_count		   = 0,
 					.render_bone_max_count			   = 128,
@@ -85,7 +85,7 @@ namespace sfg
 			.render_context =
 				{
 					.size				 = vec2u16_t(256, 256),
-					.entity_max			 = 10,
+					.entity_max			 = 1024,
 					.sprite_max			 = 16,
 					.particle_max		 = 0,
 					.bone_max			 = 128,

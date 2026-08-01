@@ -321,8 +321,8 @@ namespace sfg
 					ui.on_mouse_button(ui::input_router_t::map_button(ev.button), false);
 			}
 
-			const bool modal_active = surfaces.is_any_modal_active();
-			const bool popup_active = ui.get_input().is_popup_scope_active();
+			const bool modal_active		  = surfaces.is_any_modal_active();
+			const bool popup_active		  = ui.get_input().is_popup_scope_active();
 			const bool game_input_focused = is_main_world_view_focused(surfaces, surface_handle, ui);
 
 			if (!modal_active && !popup_active && game_input_focused && game_world != nullptr && game_world->get_world().is_playing())
@@ -357,10 +357,10 @@ namespace sfg
 		}
 		case window_event_type_e::wheel: {
 
-			const bool modal_active = surfaces.is_any_modal_active();
-			const bool popup_active = ui.get_input().is_popup_scope_active();
+			const bool modal_active		  = surfaces.is_any_modal_active();
+			const bool popup_active		  = ui.get_input().is_popup_scope_active();
 			const bool game_input_focused = is_main_world_view_focused(surfaces, surface_handle, ui);
-			const f32  delta		= ev.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(ev.value.y) / EDITOR_RAW_WHEEL_DELTA : static_cast<f32>(ev.value.y);
+			const f32  delta			  = ev.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(ev.value.y) / EDITOR_RAW_WHEEL_DELTA : static_cast<f32>(ev.value.y);
 
 			if (!modal_active && !popup_active && game_input_focused && game_world != nullptr && game_world->get_world().is_playing())
 				game_world->get_world().mouse_wheel_event(static_cast<f32>(runtime.mouse_position.x), static_cast<f32>(runtime.mouse_position.y), delta);
@@ -377,8 +377,8 @@ namespace sfg
 			if (!runtime.has_flag(window_runtime_flags_e::has_focus))
 				return;
 
-			const bool modal_active = surfaces.is_any_modal_active();
-			const bool popup_active = ui.get_input().is_popup_scope_active();
+			const bool modal_active		  = surfaces.is_any_modal_active();
+			const bool popup_active		  = ui.get_input().is_popup_scope_active();
 			const bool game_input_focused = is_main_world_view_focused(surfaces, surface_handle, ui);
 
 			if (!modal_active && !popup_active && game_input_focused && game_world != nullptr && game_world->get_world().is_playing())
@@ -499,12 +499,12 @@ namespace sfg
 				{
 					.vertex_pool_budget_bytes = 2 << 20,
 					.index_pool_budget_bytes  = 1 << 20,
-					.buffer_count			  = 64,
+					.buffer_count			  = 128,
 					.geometry_span_count	  = 16384,
 				},
 			.user_ui_scale			   = editor_settings_t::get().configurable.editor_ui_scale,
 			.dpi_scale				   = surface.runtime->monitor_info.dpi_scale,
-			.max_widgets			   = 24000,
+			.max_widgets			   = 48000,
 			.text_pool_budget_bytes	   = 1024 * 1024,
 			.snapshot_vertex_max_bytes = 2 << 20,
 			.snapshot_index_max_bytes  = 1 << 20,

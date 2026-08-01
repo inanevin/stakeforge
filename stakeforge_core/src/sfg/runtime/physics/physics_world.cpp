@@ -1248,12 +1248,9 @@ namespace sfg
 				JPH::Quat  body_rotation = JPH::Quat::sIdentity();
 				body_interface.GetPositionAndRotation(JPH::BodyID(system_physics.body_id), body_position, body_rotation);
 
-				quat_t	entity_rotation = physics_world_util_t::from_jolt(body_rotation);
-				vec3f_t entity_position = physics_world_util_t::from_jolt(body_position);
-
 				component_system_transform_t& system_transform = ecs_helpers_t::row_get_mutable<component_system_transform_t>(row, 1);
-				entity_position								   = physics_world_util_t::from_jolt(body_position) - (system_physics.local_position * system_transform.abs_scale);
-				entity_rotation								   = physics_world_util_t::from_jolt(body_rotation) * system_physics.local_rotation.inverse();
+				const quat_t					 entity_rotation  = physics_world_util_t::from_jolt(body_rotation) * system_physics.local_rotation.inverse();
+				const vec3f_t				 entity_position  = physics_world_util_t::from_jolt(body_position) - entity_rotation * (system_physics.local_position * system_transform.abs_scale);
 
 				system_transform.abs_pos = entity_position;
 				system_transform.abs_rot = entity_rotation;
@@ -1753,20 +1750,31 @@ namespace sfg
 		};
 	}
 
-	void physics_world_t::set_body_linear_velocity(entity_id_t entity, const vec3f_t& velocity)
+	bool physics_world_t::set_body_linear_velocity(entity_id_t entity, const vec3f_t& velocity)
 	{
+		const ecs_component_table_t&	  system_ragdoll_table = _impl->_world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
+		const component_system_ragdoll_t* system_ragdoll		 = ecs_helpers_t::table_find_as_const<component_system_ragdoll_t>(system_ragdoll_table, entity);
+
+		if (system_ragdoll != nullptr && system_ragdoll->ragdoll != nullptr)
+		{
+			system_ragdoll->ragdoll->SetLinearVelocity(physics_world_util_t::to_jolt(velocity));
+			return true;
+		}
+
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
 		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
-		SFG_ASSERT(system_physics != nullptr);
-		SFG_ASSERT(system_physics->character != nullptr || system_physics->body_id != UINT32_MAX);
+
+		if (system_physics == nullptr || system_physics->character != nullptr || system_physics->body_id == UINT32_MAX)
+			return false;
 
 		if (system_physics->motion_type == static_cast<u8>(physics_motion_type_e::static_body))
 		{
 			SFG_WARN("can't set linear velocity of a static body!");
-			return;
+			return false;
 		}
 
 		_impl->_system->GetBodyInterface().SetLinearVelocity(JPH::BodyID(system_physics->body_id), physics_world_util_t::to_jolt(velocity));
+		return true;
 	}
 
 	void physics_world_t::set_body_angular_velocity(entity_id_t entity, const vec3f_t& velocity)
@@ -1795,14 +1803,25 @@ namespace sfg
 		_impl->_system->GetBodyInterface().AddForce(JPH::BodyID(system_physics->body_id), physics_world_util_t::to_jolt(force));
 	}
 
-	void physics_world_t::add_body_impulse(entity_id_t entity, const vec3f_t& impulse)
+	bool physics_world_t::add_body_impulse(entity_id_t entity, const vec3f_t& impulse)
 	{
+		const ecs_component_table_t&	  system_ragdoll_table = _impl->_world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
+		const component_system_ragdoll_t* system_ragdoll		 = ecs_helpers_t::table_find_as_const<component_system_ragdoll_t>(system_ragdoll_table, entity);
+
+		if (system_ragdoll != nullptr && system_ragdoll->ragdoll != nullptr)
+		{
+			system_ragdoll->ragdoll->AddImpulse(physics_world_util_t::to_jolt(impulse));
+			return true;
+		}
+
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
 		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
-		SFG_ASSERT(system_physics != nullptr);
-		SFG_ASSERT(system_physics->character != nullptr || system_physics->body_id != UINT32_MAX);
+
+		if (system_physics == nullptr || system_physics->character != nullptr || system_physics->body_id == UINT32_MAX)
+			return false;
 
 		_impl->_system->GetBodyInterface().AddImpulse(JPH::BodyID(system_physics->body_id), physics_world_util_t::to_jolt(impulse));
+		return true;
 	}
 
 	void physics_world_t::wake_body(entity_id_t entity)

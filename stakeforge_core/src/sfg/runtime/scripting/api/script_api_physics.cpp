@@ -40,11 +40,10 @@ namespace sfg
 
 		physics_world_t& physics = world->get_physics();
 
-		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_body(entity))
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		physics.set_body_linear_velocity(entity, *velocity);
-		return 1;
+		return physics.set_body_linear_velocity(entity, *velocity) ? 1 : 0;
 	}
 
 	u8 api_physics_set_body_angular_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity)
@@ -82,11 +81,10 @@ namespace sfg
 
 		physics_world_t& physics = world->get_physics();
 
-		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity) || !physics.is_body(entity))
+		if (!physics.is_init() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		physics.add_body_impulse(entity, *impulse);
-		return 1;
+		return physics.add_body_impulse(entity, *impulse) ? 1 : 0;
 	}
 
 	u8 api_physics_wake_body(world_t* world, entity_id_t entity)
