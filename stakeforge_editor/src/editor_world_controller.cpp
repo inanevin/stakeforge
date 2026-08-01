@@ -442,7 +442,16 @@ namespace sfg
 		if (entering_play)
 			_play_main_world_dirty = _main_world_dirty;
 
+		if (exiting_play)
+		{
+			editor_app_t::get().stop_render();
+			SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+		}
+
 		editor_world.update_play_mode(mode);
+
+		if (exiting_play)
+			editor_world.produce_snapshot();
 
 		if (entering_play && mode == editor_play_mode_e::play)
 			editor_surface_controller_t::get().request_focus_main_world_view();
