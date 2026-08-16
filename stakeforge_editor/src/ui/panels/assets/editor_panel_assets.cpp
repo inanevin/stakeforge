@@ -374,7 +374,6 @@ namespace sfg
 
 	void editor_panel_assets_t::uninit()
 	{
-		_ui->cancel_mutations(this);
 		editor_payload_controller_t::get().unregister_listener(this);
 		_search_input.uninit();
 		_filter_button.uninit();

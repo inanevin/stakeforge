@@ -170,13 +170,6 @@ namespace sfg
 		if (guid == NULL_ENTITY_GUID || _edit_world.is_null())
 			return;
 
-		if (!can_mutate_ui_topology())
-		{
-			_pending_show_entity_guid = guid;
-			request_refresh_entities();
-			return;
-		}
-
 		world_t&		  world	 = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
 		const entity_id_t entity = world.find_by_guid(guid);
 		if (entity == NULL_ENTITY_ID || !world.is_alive(entity))

@@ -44,12 +44,6 @@ namespace sfg
 {
 	void editor_widget_outliner_t::refresh_entities()
 	{
-		if (!can_mutate_ui_topology())
-		{
-			request_refresh_entities();
-			return;
-		}
-
 		vector_t<editor_outliner_row_t>& rows = _outliner_rows;
 
 		_visible_entity_count = 0;
@@ -419,38 +413,6 @@ namespace sfg
 		_focused = focused;
 		for (const editor_outliner_row_t& row : _outliner_rows)
 			update_outliner_row_background(row);
-	}
-
-	bool editor_widget_outliner_t::can_mutate_ui_topology() const
-	{
-		if (_ui == nullptr)
-			return false;
-
-		const ui::ui_phase_e phase = _ui->get_phase();
-		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
-	}
-
-	void editor_widget_outliner_t::request_refresh_entities()
-	{
-		_refresh_entities_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_widget_outliner_t::flush_pending_ui_mutations()
-	{
-		if (_pending_show_entity_guid != NULL_ENTITY_GUID)
-		{
-			const entity_guid_t guid  = _pending_show_entity_guid;
-			_pending_show_entity_guid = NULL_ENTITY_GUID;
-			show_entity(guid);
-			return;
-		}
-
-		if (!_refresh_entities_pending)
-			return;
-
-		_refresh_entities_pending = false;
-		refresh_entities();
 	}
 
 }

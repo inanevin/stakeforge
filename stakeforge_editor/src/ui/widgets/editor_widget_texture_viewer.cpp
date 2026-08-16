@@ -142,7 +142,6 @@ namespace sfg
 
 	void editor_widget_texture_viewer_t::uninit()
 	{
-		_ui->cancel_mutations(this);
 
 		if (_mip_dropdown_inited)
 		{
@@ -162,25 +161,23 @@ namespace sfg
 		_payload_format_text.resize(0);
 		_runtime_format_text.resize(0);
 		_mip_count_text.resize(0);
-		_ui						 = nullptr;
-		_texture_guid			 = 0;
-		_pending_texture_guid	 = 0;
-		_root					 = NULL_WIDGET;
-		_top_pane				 = NULL_WIDGET;
-		_bottom_pane			 = NULL_WIDGET;
-		_texture_display		 = NULL_WIDGET;
-		_texture_size_value		 = NULL_WIDGET;
-		_is_linear_value		 = NULL_WIDGET;
-		_mip_dropdown_row		 = NULL_WIDGET;
-		_payload_format_value	 = NULL_WIDGET;
-		_runtime_format_value	 = NULL_WIDGET;
-		_mip_count_value		 = NULL_WIDGET;
-		_selected_mip			 = 0;
-		_loaded_mip_count		 = 0;
-		_texture_loaded			 = false;
-		_texture_failed			 = false;
-		_refresh_texture_pending = false;
-		_resource_type			 = editor_widget_texture_viewer_resource_e::texture;
+		_ui					  = nullptr;
+		_texture_guid		  = 0;
+		_root				  = NULL_WIDGET;
+		_top_pane			  = NULL_WIDGET;
+		_bottom_pane		  = NULL_WIDGET;
+		_texture_display	  = NULL_WIDGET;
+		_texture_size_value	  = NULL_WIDGET;
+		_is_linear_value	  = NULL_WIDGET;
+		_mip_dropdown_row	  = NULL_WIDGET;
+		_payload_format_value = NULL_WIDGET;
+		_runtime_format_value = NULL_WIDGET;
+		_mip_count_value	  = NULL_WIDGET;
+		_selected_mip		  = 0;
+		_loaded_mip_count	  = 0;
+		_texture_loaded		  = false;
+		_texture_failed		  = false;
+		_resource_type		  = editor_widget_texture_viewer_resource_e::texture;
 	}
 
 	void editor_widget_texture_viewer_t::set_texture(sid_t texture_guid)
@@ -195,18 +192,6 @@ namespace sfg
 
 	void editor_widget_texture_viewer_t::set_resource(sid_t resource_guid)
 	{
-		if (!can_mutate_ui_topology())
-		{
-			if (_texture_guid != resource_guid)
-			{
-				unload_texture();
-				_texture_guid = resource_guid;
-			}
-
-			request_texture_refresh(resource_guid);
-			return;
-		}
-
 		if (_texture_guid != resource_guid)
 			unload_texture();
 
@@ -457,30 +442,6 @@ namespace sfg
 		return label;
 	}
 
-	bool editor_widget_texture_viewer_t::can_mutate_ui_topology() const
-	{
-		const ui::ui_phase_e phase = _ui->get_phase();
-		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
-	}
-
-	void editor_widget_texture_viewer_t::request_texture_refresh(sid_t texture_guid)
-	{
-		_pending_texture_guid	 = texture_guid;
-		_refresh_texture_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_widget_texture_viewer_t::flush_pending_ui_mutations()
-	{
-		if (!_refresh_texture_pending)
-			return;
-
-		const sid_t texture_guid = _pending_texture_guid;
-		_pending_texture_guid	 = 0;
-		_refresh_texture_pending = false;
-		set_resource(texture_guid);
-	}
-
 	void editor_widget_texture_viewer_t::on_texture_display_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
 	{
 		editor_widget_texture_viewer_t& viewer = *static_cast<editor_widget_texture_viewer_t*>(user_data);
@@ -526,11 +487,6 @@ namespace sfg
 
 		ui::layout_in_t& texture_display_in = viewer._ui->get_tree().in(viewer._texture_display);
 		texture_display_in.size_value		= {display_size.x, display_size.y};
-	}
-
-	void editor_widget_texture_viewer_t::on_ui_mutation(ui::ui_context&, void* user_data)
-	{
-		static_cast<editor_widget_texture_viewer_t*>(user_data)->flush_pending_ui_mutations();
 	}
 
 	u16 editor_widget_texture_viewer_t::get_selected_mip(void* user_data)

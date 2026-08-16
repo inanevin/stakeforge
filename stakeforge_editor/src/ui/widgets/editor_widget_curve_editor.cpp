@@ -63,29 +63,20 @@ namespace sfg
 
 	void editor_widget_curve_editor_t::uninit()
 	{
-		_ui->cancel_mutations(this);
 		clear_display();
 		_ui->deallocate_widget(_root);
-		_pending_curve_ids.resize(0);
 		_curves.resize(0);
 		_curve_ids.resize(0);
 		_edit_previous_curves.resize(0);
 		_edit_curve_ids.resize(0);
 		_field_states.resize(0);
-		_ui						= nullptr;
-		_root					= NULL_WIDGET;
-		_edit_active			= false;
-		_refresh_curves_pending = false;
+		_ui			 = nullptr;
+		_root		 = NULL_WIDGET;
+		_edit_active = false;
 	}
 
 	void editor_widget_curve_editor_t::set_curves(span_t<const sid_t> curves)
 	{
-		if (!can_mutate_ui_topology())
-		{
-			request_curves_refresh(curves);
-			return;
-		}
-
 		clear_curve_edit();
 		clear_display();
 		_curves.resize(0);
@@ -169,12 +160,6 @@ namespace sfg
 		_labels.resize(0);
 	}
 
-	bool editor_widget_curve_editor_t::can_mutate_ui_topology() const
-	{
-		const ui::ui_phase_e phase = _ui->get_phase();
-		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
-	}
-
 	void editor_widget_curve_editor_t::begin_curve_edit()
 	{
 		clear_curve_edit();
@@ -190,7 +175,10 @@ namespace sfg
 
 		editor_command_curve_edit_t::edit({.data = _edit_curve_ids.data(), .size = _edit_curve_ids.size()}, {.data = _edit_previous_curves.data(), .size = _edit_previous_curves.size()}, {.data = _curves.data(), .size = _curves.size()});
 		clear_curve_edit();
-		request_display_refresh();
+
+		vector_t<sid_t> curve_ids = {};
+		curve_ids.assign(_curve_ids.begin(), _curve_ids.end());
+		set_curves({.data = curve_ids.data(), .size = curve_ids.size()});
 	}
 
 	void editor_widget_curve_editor_t::clear_curve_edit()
@@ -198,32 +186,6 @@ namespace sfg
 		_edit_previous_curves.resize(0);
 		_edit_curve_ids.resize(0);
 		_edit_active = false;
-	}
-
-	void editor_widget_curve_editor_t::request_curves_refresh(span_t<const sid_t> curves)
-	{
-		_pending_curve_ids.assign(curves.data, curves.data + curves.size);
-		_refresh_curves_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_widget_curve_editor_t::request_display_refresh()
-	{
-		_pending_curve_ids.assign(_curve_ids.begin(), _curve_ids.end());
-		_refresh_curves_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_widget_curve_editor_t::flush_pending_ui_mutations()
-	{
-		if (!_refresh_curves_pending)
-			return;
-
-		_refresh_curves_pending = false;
-		vector_t<sid_t> curves	= {};
-		curves.assign(_pending_curve_ids.begin(), _pending_curve_ids.end());
-		_pending_curve_ids.resize(0);
-		set_curves({.data = curves.data(), .size = curves.size()});
 	}
 
 	void editor_widget_curve_editor_t::on_curve_edit_begin(void* user_data)
@@ -240,8 +202,4 @@ namespace sfg
 		static_cast<editor_widget_curve_editor_t*>(user_data)->submit_curve_edit();
 	}
 
-	void editor_widget_curve_editor_t::on_ui_mutation(ui::ui_context&, void* user_data)
-	{
-		static_cast<editor_widget_curve_editor_t*>(user_data)->flush_pending_ui_mutations();
-	}
 }

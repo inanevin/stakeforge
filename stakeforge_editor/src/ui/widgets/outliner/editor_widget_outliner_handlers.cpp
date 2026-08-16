@@ -529,8 +529,4 @@ namespace sfg
 			panel.update_outliner_row_background(row);
 	}
 
-	void editor_widget_outliner_t::on_ui_mutation(ui::ui_context&, void* user_data)
-	{
-		static_cast<editor_widget_outliner_t*>(user_data)->flush_pending_ui_mutations();
-	}
 }

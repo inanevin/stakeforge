@@ -273,9 +273,4 @@ namespace sfg
 		}
 	}
 
-	void editor_widget_inspector_t::on_ui_mutation(ui::ui_context&, void* user_data)
-	{
-		static_cast<editor_widget_inspector_t*>(user_data)->flush_pending_ui_mutations();
-	}
-
 }

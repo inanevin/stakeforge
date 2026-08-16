@@ -112,7 +112,6 @@ namespace sfg
 	void editor_panel_project_settings_t::uninit()
 	{
 		editor_command_system_t::get().remove_listener(_command_listener);
-		_ui->cancel_mutations(this);
 		_editor_reflection.uninit();
 		_reflection.uninit();
 		_scrollbar.uninit();
@@ -123,19 +122,12 @@ namespace sfg
 		_command_listener	   = {};
 		_scroll_area		   = NULL_WIDGET;
 		_content			   = NULL_WIDGET;
-		_refresh_pending	   = false;
 		_project_edit_active   = false;
 		editor_panel_t::uninit();
 	}
 
 	void editor_panel_project_settings_t::refresh_reflection()
 	{
-		if (!can_mutate_ui_topology())
-		{
-			request_refresh_reflection();
-			return;
-		}
-
 		void* object		= &editor_project_t::get().settings;
 		void* editor_object = &editor_settings_t::get().configurable;
 		_reflection.save_fold_states();
@@ -164,27 +156,6 @@ namespace sfg
 			.objects = {.data = &editor_object, .size = 1},
 			.type_id = type_id_t<editor_settings_configurable_t>::value,
 		});
-	}
-
-	void editor_panel_project_settings_t::request_refresh_reflection()
-	{
-		_refresh_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_panel_project_settings_t::flush_pending_ui_mutations()
-	{
-		if (!_refresh_pending)
-			return;
-
-		_refresh_pending = false;
-		refresh_reflection();
-	}
-
-	bool editor_panel_project_settings_t::can_mutate_ui_topology() const
-	{
-		const ui::ui_phase_e phase = _ui->get_phase();
-		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
 	}
 
 	void editor_panel_project_settings_t::begin_project_settings_edit()
@@ -227,8 +198,4 @@ namespace sfg
 			static_cast<editor_panel_project_settings_t*>(user_data)->refresh_reflection();
 	}
 
-	void editor_panel_project_settings_t::on_ui_mutation(ui::ui_context&, void* user_data)
-	{
-		static_cast<editor_panel_project_settings_t*>(user_data)->flush_pending_ui_mutations();
-	}
 }

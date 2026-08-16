@@ -41,13 +41,6 @@ namespace sfg
 		if (guid == NULL_SID)
 			return;
 
-		if (!can_mutate_ui_topology())
-		{
-			_pending_show_asset_guid = guid;
-			request_ui_mutation();
-			return;
-		}
-
 		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t&		 tree		   = asset_manager.get_asset_tree();
 		const editor_asset_node_handle_t asset_node	   = asset_manager.find_asset_node_handle(guid);

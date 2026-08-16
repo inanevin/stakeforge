@@ -137,7 +137,6 @@ namespace sfg
 			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().remove_selection_listener(_selection_listener);
 
 		editor_payload_controller_t::get().unregister_listener(this);
-		_ui->cancel_mutations(this);
 		_search_input.uninit();
 		_scrollbar.uninit();
 

@@ -192,7 +192,6 @@ namespace sfg
 		void set_fold_state(sid_t type_id, sid_t field_id, bool folded);
 		container_user_data_t*		   create_container_user_data(const reflected_field_t* field, span_t<void*> containers, editor_world_handle_t world, sid_t type_id, f32 indentation, editor_widget_fold_label_t* fold);
 		container_element_user_data_t* create_container_element_user_data(container_user_data_t* container_data, u32 element_index, ui::widget_id_t button);
-		void						   request_container_refresh(container_user_data_t& data);
 		void						   refresh_container(container_user_data_t& data);
 		void						   clear_container_widgets(ui::widget_id_t parent);
 		void						   clear_child_tooltips(ui::widget_id_t parent);
@@ -207,7 +206,6 @@ namespace sfg
 		static void on_container_reset(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_container_element_remove(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_path_picker(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
-		static void on_container_refresh(ui::ui_context& ui, void* user_data);
 		static void on_field_edit_begin(void* user_data);
 		static void on_field_edited(void* user_data);
 		static void on_field_edit_submitted(void* user_data);

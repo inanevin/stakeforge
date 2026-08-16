@@ -48,14 +48,6 @@ namespace sfg
 {
 	void editor_panel_assets_t::refresh_asset_grid(bool force)
 	{
-		if (!can_mutate_ui_topology())
-		{
-			_asset_grid_refresh_pending = true;
-			_asset_grid_refresh_force |= force;
-			request_ui_mutation();
-			return;
-		}
-
 		const editor_asset_manager_t&	 asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t&		 asset_tree	   = asset_manager.get_asset_tree();
 		const editor_asset_node_handle_t folder		   = _selected_folder_node;
@@ -75,7 +67,7 @@ namespace sfg
 
 		clear_asset_grid(!preserve_scroll);
 		if (preserve_scroll)
-			restore_asset_grid_scroll(scroll_y);
+			_right_scrollbar.set_scroll_y_immediate(scroll_y);
 
 		const ui::layout_out_t& body_out = _ui->get_tree().out(_assets_body_pane_mid);
 		if (asset_tree.empty() || !folder_valid || body_out.size.x <= 0.0f)
@@ -185,33 +177,7 @@ namespace sfg
 		_asset_grid_items.resize(0);
 
 		if (reset_scroll)
-		{
-			_grid_scroll_restore_pending = false;
-			_ui->clear_post_layout_tick(_assets_body_pane_mid);
 			_right_scrollbar.set_scroll_y_immediate(0.0f);
-		}
-	}
-
-	void editor_panel_assets_t::restore_asset_grid_scroll(f32 scroll_y)
-	{
-		_grid_restore_scroll_y		 = scroll_y;
-		_grid_scroll_restore_pending = true;
-		_ui->set_post_layout_tick(_assets_body_pane_mid, on_asset_grid_scroll_restore_tick, this);
-	}
-
-	void editor_panel_assets_t::apply_pending_asset_grid_scroll_restore()
-	{
-		if (!_grid_scroll_restore_pending)
-		{
-			_ui->clear_post_layout_tick(_assets_body_pane_mid);
-			return;
-		}
-
-		_right_scrollbar.set_scroll_y_immediate(_grid_restore_scroll_y);
-		_ui->request_post_layout_solve();
-		_grid_restore_scroll_y		 = 0.0f;
-		_grid_scroll_restore_pending = false;
-		_ui->clear_post_layout_tick(_assets_body_pane_mid);
 	}
 
 	void editor_panel_assets_t::update_current_directory_label()

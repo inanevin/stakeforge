@@ -119,10 +119,6 @@ namespace sfg
 		void					   save_display_state();
 		void					   clear_display();
 		void					   create_entity_display();
-		bool					   can_mutate_ui_topology() const;
-		void					   request_refresh_display();
-		void					   request_refresh_component_reflection(sid_t component_type);
-		void					   flush_pending_ui_mutations();
 		bool					   is_displaying_any_entity(span_t<const entity_id_t> entities) const;
 		component_display_t*	   find_component_display(sid_t type_id);
 		component_display_state_t* find_component_display_state(sid_t type_id);
@@ -159,7 +155,6 @@ namespace sfg
 		static void on_component_edit_begin(void* user_data);
 		static void on_component_edit_submitted(void* user_data);
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
-		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
 		vector_t<component_display_state_t>				  _component_states			   = {};
@@ -185,10 +180,7 @@ namespace sfg
 		editor_world_handle_t							  _edit_world				   = {};
 		sid_t											  _copied_component_type	   = 0;
 		sid_t											  _action_menu_type_id		   = 0;
-		sid_t											  _pending_component_type	   = 0;
 		sid_t											  _component_edit_type		   = 0;
-		bool											  _refresh_display_pending	   = false;
-		bool											  _refresh_component_pending   = false;
 		bool											  _copied_entity_info_valid	   = false;
 		bool											  _entity_info_edit_active	   = false;
 		bool											  _component_edit_active	   = false;

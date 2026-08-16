@@ -63,31 +63,22 @@ namespace sfg
 
 	void editor_widget_texture_sampler_editor_t::uninit()
 	{
-		_ui->cancel_mutations(this);
 		clear_display();
 		_ui->deallocate_widget(_root);
 
-		_pending_sampler_ids.resize(0);
 		_samplers.resize(0);
 		_sampler_ids.resize(0);
 		_edit_previous_samplers.resize(0);
 		_edit_sampler_ids.resize(0);
 		_field_states.resize(0);
-		_ui						  = nullptr;
-		_root					  = NULL_WIDGET;
-		_reflection_initialized	  = false;
-		_edit_active			  = false;
-		_refresh_samplers_pending = false;
+		_ui						= nullptr;
+		_root					= NULL_WIDGET;
+		_reflection_initialized = false;
+		_edit_active			= false;
 	}
 
 	void editor_widget_texture_sampler_editor_t::set_texture_samplers(span_t<const sid_t> samplers)
 	{
-		if (!can_mutate_ui_topology())
-		{
-			request_samplers_refresh(samplers);
-			return;
-		}
-
 		clear_sampler_edit();
 		clear_display();
 		_samplers.resize(0);
@@ -170,12 +161,6 @@ namespace sfg
 		_dividers.push_back(editor_dividers_t::add_divider_hor(*_ui, _root, editor_theme_t::get().divider_thickness * 2.0f, editor_theme_t::get().color_frame, editor_theme_t::get().color_frame, ui::vg_gradient_e::none));
 	}
 
-	bool editor_widget_texture_sampler_editor_t::can_mutate_ui_topology() const
-	{
-		const ui::ui_phase_e phase = _ui->get_phase();
-		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
-	}
-
 	void editor_widget_texture_sampler_editor_t::begin_sampler_edit()
 	{
 		clear_sampler_edit();
@@ -191,7 +176,10 @@ namespace sfg
 
 		editor_command_texture_sampler_edit_t::edit({.data = _edit_sampler_ids.data(), .size = _edit_sampler_ids.size()}, {.data = _edit_previous_samplers.data(), .size = _edit_previous_samplers.size()}, {.data = _samplers.data(), .size = _samplers.size()});
 		clear_sampler_edit();
-		request_display_refresh();
+
+		vector_t<sid_t> sampler_ids = {};
+		sampler_ids.assign(_sampler_ids.begin(), _sampler_ids.end());
+		set_texture_samplers({.data = sampler_ids.data(), .size = sampler_ids.size()});
 	}
 
 	void editor_widget_texture_sampler_editor_t::clear_sampler_edit()
@@ -199,35 +187,6 @@ namespace sfg
 		_edit_previous_samplers.resize(0);
 		_edit_sampler_ids.resize(0);
 		_edit_active = false;
-	}
-
-	void editor_widget_texture_sampler_editor_t::request_samplers_refresh(span_t<const sid_t> samplers)
-	{
-		_pending_sampler_ids.resize(0);
-		_pending_sampler_ids.reserve(samplers.size);
-		for (size_t i = 0; i < samplers.size; ++i)
-			_pending_sampler_ids.push_back(samplers.data[i]);
-		_refresh_samplers_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_widget_texture_sampler_editor_t::request_display_refresh()
-	{
-		_pending_sampler_ids.assign(_sampler_ids.begin(), _sampler_ids.end());
-		_refresh_samplers_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_widget_texture_sampler_editor_t::flush_pending_ui_mutations()
-	{
-		if (!_refresh_samplers_pending)
-			return;
-
-		_refresh_samplers_pending = false;
-		vector_t<sid_t> samplers;
-		samplers.assign(_pending_sampler_ids.begin(), _pending_sampler_ids.end());
-		_pending_sampler_ids.resize(0);
-		set_texture_samplers({.data = samplers.data(), .size = samplers.size()});
 	}
 
 	void editor_widget_texture_sampler_editor_t::on_sampler_edit_begin()
@@ -259,8 +218,4 @@ namespace sfg
 		static_cast<editor_widget_texture_sampler_editor_t*>(user_data)->on_sampler_edit_submitted();
 	}
 
-	void editor_widget_texture_sampler_editor_t::on_ui_mutation(ui::ui_context&, void* user_data)
-	{
-		static_cast<editor_widget_texture_sampler_editor_t*>(user_data)->flush_pending_ui_mutations();
-	}
 }

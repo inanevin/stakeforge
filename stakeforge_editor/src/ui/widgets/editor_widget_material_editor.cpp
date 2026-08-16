@@ -69,34 +69,25 @@ namespace sfg
 
 	void editor_widget_material_editor_t::uninit()
 	{
-		_ui->cancel_mutations(this);
 		clear_display();
 		_ui->deallocate_widget(_root);
 
-		_pending_material_ids.resize(0);
 		_materials.resize(0);
 		_material_ids.resize(0);
 		_edit_previous_materials.resize(0);
 		_edit_material_ids.resize(0);
 		_shader_edit_previous_materials.resize(0);
 		_shader_edit_material_ids.resize(0);
-		_shader_definition		   = {};
-		_ui						   = nullptr;
-		_root					   = NULL_WIDGET;
-		_has_shared_shader		   = false;
-		_edit_active			   = false;
-		_shader_edit_active		   = false;
-		_refresh_materials_pending = false;
+		_shader_definition	= {};
+		_ui					= nullptr;
+		_root				= NULL_WIDGET;
+		_has_shared_shader	= false;
+		_edit_active		= false;
+		_shader_edit_active = false;
 	}
 
 	void editor_widget_material_editor_t::set_materials(span_t<const sid_t> materials)
 	{
-		if (!can_mutate_ui_topology())
-		{
-			request_materials_refresh(materials);
-			return;
-		}
-
 		clear_material_edit();
 		clear_shader_edit();
 		clear_display();
@@ -533,12 +524,6 @@ namespace sfg
 		_dividers.push_back(editor_dividers_t::add_divider_hor(*_ui, _root, editor_theme_t::get().divider_thickness * 2.0f, editor_theme_t::get().color_frame, editor_theme_t::get().color_frame, ui::vg_gradient_e::none));
 	}
 
-	bool editor_widget_material_editor_t::can_mutate_ui_topology() const
-	{
-		const ui::ui_phase_e phase = _ui->get_phase();
-		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
-	}
-
 	bool editor_widget_material_editor_t::load_shared_shader_definition()
 	{
 		const resource_handle_t shader = _materials[0].shader;
@@ -647,7 +632,10 @@ namespace sfg
 		editor_command_shader_edit_t::edit(
 			{.data = _shader_edit_material_ids.data(), .size = _shader_edit_material_ids.size()}, {.data = _shader_edit_previous_materials.data(), .size = _shader_edit_previous_materials.size()}, {.data = post_shaders.data(), .size = post_shaders.size()});
 		clear_shader_edit();
-		request_display_refresh();
+
+		vector_t<sid_t> material_ids = {};
+		material_ids.assign(_material_ids.begin(), _material_ids.end());
+		set_materials({.data = material_ids.data(), .size = material_ids.size()});
 	}
 
 	void editor_widget_material_editor_t::clear_shader_edit()
@@ -655,35 +643,6 @@ namespace sfg
 		_shader_edit_previous_materials.resize(0);
 		_shader_edit_material_ids.resize(0);
 		_shader_edit_active = false;
-	}
-
-	void editor_widget_material_editor_t::request_materials_refresh(span_t<const sid_t> materials)
-	{
-		_pending_material_ids.resize(0);
-		_pending_material_ids.reserve(materials.size);
-		for (size_t i = 0; i < materials.size; ++i)
-			_pending_material_ids.push_back(materials.data[i]);
-		_refresh_materials_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_widget_material_editor_t::request_display_refresh()
-	{
-		_pending_material_ids.assign(_material_ids.begin(), _material_ids.end());
-		_refresh_materials_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_widget_material_editor_t::flush_pending_ui_mutations()
-	{
-		if (!_refresh_materials_pending)
-			return;
-
-		_refresh_materials_pending = false;
-		vector_t<sid_t> materials  = {};
-		materials.assign(_pending_material_ids.begin(), _pending_material_ids.end());
-		_pending_material_ids.resize(0);
-		set_materials({.data = materials.data(), .size = materials.size()});
 	}
 
 	void editor_widget_material_editor_t::on_material_edit_begin()
@@ -744,8 +703,4 @@ namespace sfg
 		static_cast<editor_widget_material_editor_t*>(user_data)->on_shader_edit_submitted();
 	}
 
-	void editor_widget_material_editor_t::on_ui_mutation(ui::ui_context&, void* user_data)
-	{
-		static_cast<editor_widget_material_editor_t*>(user_data)->flush_pending_ui_mutations();
-	}
 }

@@ -252,7 +252,6 @@ namespace sfg
 						.text_cache_index_budget_bytes	= component.index_pool_budget_bytes,
 						.clip_stack_initial_capacity	= math::min<u32>(component.max_widgets, 64u),
 						.text_cache_initial_capacity	= component.max_widgets,
-						.path_initial_capacity			= 256,
 					},
 				.user_ui_scale			   = component.ui_scale,
 				.dpi_scale				   = dpi_scale,

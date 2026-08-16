@@ -194,7 +194,6 @@ namespace sfg
 
 	void editor_panel_log_t::uninit()
 	{
-		_ui->cancel_mutations(this);
 		_scrollbar.uninit();
 		for (editor_icon_button_t& button : _filter_buttons)
 			button.uninit();

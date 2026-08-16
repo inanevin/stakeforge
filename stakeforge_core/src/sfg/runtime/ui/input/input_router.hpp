@@ -114,7 +114,9 @@ namespace sfg::ui
 
 		void init(const input_config_t& cfg = {}, u32 max_widgets = 1024);
 		void uninit();
-		void tick(const layout_tree_t& tree, f32 dt_seconds);
+		void begin_frame(const layout_tree_t& tree, f32 dt_seconds);
+		void prepare_layout(const layout_tree_t& tree);
+		void finalize_frame(const layout_tree_t& tree);
 
 		// -----------------------------------------------------------------------------
 		// listener

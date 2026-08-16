@@ -350,14 +350,12 @@ namespace sfg::ui
 		}
 	}
 
-	void input_router_t::tick(const layout_tree_t& tree, f32 dt_seconds)
+	void input_router_t::begin_frame(const layout_tree_t& tree, f32 dt_seconds)
 	{
 		_tree = &tree;
 		_accum_time += dt_seconds;
 
 		sanitize_state(tree);
-		rebuild_hit_test(tree);
-
 		const widget_id_t target = hit_test(_mouse);
 		if (target != _hovered)
 			fire_hover_change(target);
@@ -387,6 +385,18 @@ namespace sfg::ui
 		}
 
 		_mouse_prev = _mouse;
+	}
+
+	void input_router_t::prepare_layout(const layout_tree_t& tree)
+	{
+		_tree = &tree;
+		sanitize_state(tree);
+	}
+
+	void input_router_t::finalize_frame(const layout_tree_t& tree)
+	{
+		_tree = &tree;
+		rebuild_hit_test(tree);
 	}
 
 	void input_router_t::on_mouse_move(const vec2f_t& pos)

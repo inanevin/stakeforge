@@ -117,9 +117,6 @@ namespace sfg
 		void				   update_outliner_row_background(const editor_outliner_row_t& row);
 		void				   set_outliner_row_visible(const editor_outliner_row_t& row, bool visible);
 		void				   set_focus_state(bool focused);
-		bool				   can_mutate_ui_topology() const;
-		void				   request_refresh_entities();
-		void				   flush_pending_ui_mutations();
 		void				   select_entity_row(entity_id_t entity, bool range_select, bool incremental_select);
 		void				   select_all_visible_entities();
 		void				   append_selected_root_entities(frame_vector_t<entity_id_t>& out_entities) const;
@@ -190,7 +187,6 @@ namespace sfg
 		static bool on_payload_drop(const editor_payload_t& payload, void* user_data);
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 		static void on_selection_changed(editor_world_edit_context_t& controller, void* user_data);
-		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
 		editor_input_field_t							  _search_input				  = {};
@@ -214,12 +210,10 @@ namespace sfg
 		ui::widget_id_t									  _root						  = NULL_WIDGET;
 		ui::widget_id_t									  _entity_top_row			  = NULL_WIDGET;
 		ui::widget_id_t									  _entity_list_area			  = NULL_WIDGET;
-		entity_guid_t									  _pending_show_entity_guid	  = NULL_ENTITY_GUID;
 		entity_id_t										  _action_menu_entity		  = NULL_ENTITY_ID;
 		u32												  _entity_generation		  = 0;
 		u32												  _visibility_generation	  = 0;
 		u32												  _visible_entity_count		  = 0;
-		bool											  _refresh_entities_pending	  = false;
 		bool											  _focused					  = false;
 	};
 }

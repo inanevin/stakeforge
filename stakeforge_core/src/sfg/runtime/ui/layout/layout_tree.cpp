@@ -418,6 +418,99 @@ namespace sfg::ui
 		}
 	}
 
+	void layout_tree_t::resolve_positions(f32 scale)
+	{
+		for (widget_id_t id : _dfs)
+		{
+			const layout_in_t&	in	= _layout_ins[id];
+			const layout_out_t& out = _layout_outs[id];
+			const tree_node_t&	n	= _nodes[id];
+
+			const vec4f_t margins = scale_rect(in.child_margins, scale);
+			const f32	  inner_x = out.pos.x + margins.w;
+			const f32	  inner_y = out.pos.y + margins.x;
+			const f32	  inner_w = out.size.x - margins.w - margins.y;
+			const f32	  inner_h = out.size.y - margins.x - margins.z;
+			f32			  flow_x  = inner_x + in.scroll_offset.x * scale;
+			f32			  flow_y  = inner_y + in.scroll_offset.y * scale;
+
+			widget_id_t c = n.first_child;
+
+			while (c != NULL_WIDGET)
+			{
+				const layout_in_t& cin = _layout_ins[c];
+				layout_out_t&	   co  = _layout_outs[c];
+				const widget_id_t  nxt = _nodes[c].next_sibling;
+
+				if (cin.pos_mode_x == pos_mode_e::absolute_screen)
+				{
+					co.pos.x = cin.pos_value.x;
+				}
+				else if (cin.pos_mode_x == pos_mode_e::offset_in_parent)
+				{
+					co.pos.x = inner_x + cin.pos_value.x * scale;
+				}
+				else if (cin.pos_mode_x == pos_mode_e::relative_in_parent)
+				{
+					f32 base = inner_x + cin.pos_value.x * inner_w;
+
+					if (cin.anchor_x == anchor_e::center)
+						base -= co.size.x * 0.5f;
+					else if (cin.anchor_x == anchor_e::end)
+						base -= co.size.x;
+
+					co.pos.x = base;
+				}
+				else
+				{
+					if (in.flow == flow_e::row && !(cin.flags & wf_overlay) && (cin.flags & wf_visible))
+					{
+						co.pos.x = flow_x;
+						flow_x += co.size.x + in.child_spacing * scale;
+					}
+					else
+					{
+						co.pos.x = inner_x + in.scroll_offset.x * scale;
+					}
+				}
+
+				if (cin.pos_mode_y == pos_mode_e::absolute_screen)
+				{
+					co.pos.y = cin.pos_value.y;
+				}
+				else if (cin.pos_mode_y == pos_mode_e::offset_in_parent)
+				{
+					co.pos.y = inner_y + cin.pos_value.y * scale;
+				}
+				else if (cin.pos_mode_y == pos_mode_e::relative_in_parent)
+				{
+					f32 base = inner_y + cin.pos_value.y * inner_h;
+
+					if (cin.anchor_y == anchor_e::center)
+						base -= co.size.y * 0.5f;
+					else if (cin.anchor_y == anchor_e::end)
+						base -= co.size.y;
+
+					co.pos.y = base;
+				}
+				else
+				{
+					if (in.flow == flow_e::column && !(cin.flags & wf_overlay) && (cin.flags & wf_visible))
+					{
+						co.pos.y = flow_y;
+						flow_y += co.size.y + in.child_spacing * scale;
+					}
+					else
+					{
+						co.pos.y = inner_y + in.scroll_offset.y * scale;
+					}
+				}
+
+				c = nxt;
+			}
+		}
+	}
+
 	void layout_tree_t::solve(const vec4f_t& screen_rect, f32 ui_scale)
 	{
 		const f32		   scale			= ui_scale > 0.0f ? ui_scale : 1.0f;
@@ -520,103 +613,26 @@ namespace sfg::ui
 		}
 
 		resolve_child_sizes(scale);
+		resolve_positions(scale);
+
+		bool scroll_offset_clamped = false;
 
 		for (widget_id_t id : _dfs)
 		{
-			layout_in_t&		in	= _layout_ins[id];
-			const layout_out_t& out = _layout_outs[id];
-			const tree_node_t&	n	= _nodes[id];
-
-			const vec4f_t margins = scale_rect(in.child_margins, scale);
-			const f32	  inner_x = out.pos.x + margins.w;
-			const f32	  inner_y = out.pos.y + margins.x;
-			const f32	  inner_w = out.size.x - margins.w - margins.y;
-			const f32	  inner_h = out.size.y - margins.x - margins.z;
-			in.scroll_offset.x	  = math::clamp(in.scroll_offset.x, -out.max_scroll.x, 0.0f);
-			in.scroll_offset.y	  = math::clamp(in.scroll_offset.y, -out.max_scroll.y, 0.0f);
-			f32 flow_x			  = inner_x + in.scroll_offset.x * scale;
-			f32 flow_y			  = inner_y + in.scroll_offset.y * scale;
-
-			widget_id_t c = n.first_child;
-			while (c != NULL_WIDGET)
-			{
-				const layout_in_t& cin = _layout_ins[c];
-				layout_out_t&	   co  = _layout_outs[c];
-				const widget_id_t  nxt = _nodes[c].next_sibling;
-
-				if (cin.pos_mode_x == pos_mode_e::absolute_screen)
-				{
-					co.pos.x = cin.pos_value.x;
-				}
-				else if (cin.pos_mode_x == pos_mode_e::offset_in_parent)
-				{
-					co.pos.x = inner_x + cin.pos_value.x * scale;
-				}
-				else if (cin.pos_mode_x == pos_mode_e::relative_in_parent)
-				{
-					f32 base = inner_x + cin.pos_value.x * inner_w;
-					if (cin.anchor_x == anchor_e::center)
-						base -= co.size.x * 0.5f;
-					else if (cin.anchor_x == anchor_e::end)
-						base -= co.size.x;
-					co.pos.x = base;
-				}
-				else
-				{
-					if (in.flow == flow_e::row && !(cin.flags & wf_overlay) && (cin.flags & wf_visible))
-					{
-						co.pos.x = flow_x;
-						flow_x += co.size.x + in.child_spacing * scale;
-					}
-					else
-					{
-						co.pos.x = inner_x + in.scroll_offset.x * scale;
-					}
-				}
-
-				if (cin.pos_mode_y == pos_mode_e::absolute_screen)
-				{
-					co.pos.y = cin.pos_value.y;
-				}
-				else if (cin.pos_mode_y == pos_mode_e::offset_in_parent)
-				{
-					co.pos.y = inner_y + cin.pos_value.y * scale;
-				}
-				else if (cin.pos_mode_y == pos_mode_e::relative_in_parent)
-				{
-					f32 base = inner_y + cin.pos_value.y * inner_h;
-					if (cin.anchor_y == anchor_e::center)
-						base -= co.size.y * 0.5f;
-					else if (cin.anchor_y == anchor_e::end)
-						base -= co.size.y;
-					co.pos.y = base;
-				}
-				else
-				{
-					if (in.flow == flow_e::column && !(cin.flags & wf_overlay) && (cin.flags & wf_visible))
-					{
-						co.pos.y = flow_y;
-						flow_y += co.size.y + in.child_spacing * scale;
-					}
-					else
-					{
-						co.pos.y = inner_y + in.scroll_offset.y * scale;
-					}
-				}
-
-				c = nxt;
-			}
-		}
-
-		for (widget_id_t id : _dfs)
-		{
-			const layout_in_t& in  = _layout_ins[id];
+			layout_in_t&	   in  = _layout_ins[id];
 			layout_out_t&	   out = _layout_outs[id];
 			const tree_node_t& n   = _nodes[id];
 
 			if ((in.flags & (wf_scroll_x | wf_scroll_y)) == 0)
 			{
 				out.max_scroll = {};
+
+				if (in.scroll_offset != vec2f_t::zero)
+				{
+					in.scroll_offset	  = vec2f_t::zero;
+					scroll_offset_clamped = true;
+				}
+
 				continue;
 			}
 
@@ -651,7 +667,19 @@ namespace sfg::ui
 
 			out.max_scroll.x = (in.flags & wf_scroll_x) ? math::max(0.0f, max_x - min_x - inner_w) / scale : 0.0f;
 			out.max_scroll.y = (in.flags & wf_scroll_y) ? math::max(0.0f, max_y - min_y - inner_h) / scale : 0.0f;
+
+			const f32 scroll_x = math::clamp(in.scroll_offset.x, -out.max_scroll.x, 0.0f);
+			const f32 scroll_y = math::clamp(in.scroll_offset.y, -out.max_scroll.y, 0.0f);
+
+			if (in.scroll_offset.x != scroll_x || in.scroll_offset.y != scroll_y)
+			{
+				in.scroll_offset	  = {scroll_x, scroll_y};
+				scroll_offset_clamped = true;
+			}
 		}
+
+		if (scroll_offset_clamped)
+			resolve_positions(scale);
 
 		for (widget_id_t id : _dfs)
 		{

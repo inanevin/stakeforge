@@ -112,7 +112,6 @@ namespace sfg
 		void				   save_entity_scroll_state();
 		void				   restore_entity_scroll_state();
 		void				   reset_scroll_state();
-		void				   apply_pending_scroll_restore();
 		bool				   collect_selected_materials(frame_vector_t<sid_t>& out_materials) const;
 		bool				   collect_selected_texture_samplers(frame_vector_t<sid_t>& out_samplers) const;
 		bool				   collect_selected_curves(frame_vector_t<sid_t>& out_curves) const;
@@ -124,7 +123,6 @@ namespace sfg
 
 		static void on_entity_selection_changed(editor_world_edit_context_t& context, void* user_data);
 		static void on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data);
-		static void on_scroll_restore_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 
 	private:
@@ -152,9 +150,7 @@ namespace sfg
 		editor_world_handle_t									 _edit_world			   = {};
 		ui::widget_id_t											 _scroll_area			   = NULL_WIDGET;
 		ui::widget_id_t											 _content				   = NULL_WIDGET;
-		f32														 _pending_scroll_y		   = 0.0f;
 		editor_panel_inspector_display_e						 _display				   = editor_panel_inspector_display_e::none;
 		editor_panel_inspector_source_e							 _last_source			   = editor_panel_inspector_source_e::none;
-		bool													 _scroll_restore_pending   = false;
 	};
 }

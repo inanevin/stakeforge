@@ -53,18 +53,13 @@ namespace sfg
 	private:
 		void refresh_display();
 		void clear_display();
-		bool can_mutate_ui_topology() const;
 		void begin_curve_edit();
 		void submit_curve_edit();
 		void clear_curve_edit();
-		void request_curves_refresh(span_t<const sid_t> curves);
-		void request_display_refresh();
-		void flush_pending_ui_mutations();
 
 		static void on_curve_edit_begin(void* user_data);
 		static void on_curve_edited(void* user_data);
 		static void on_curve_edit_submitted(void* user_data);
-		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
 		ui::ui_context*									_ui						= nullptr;
@@ -73,7 +68,6 @@ namespace sfg
 		editor_widget_curve_edit_t						_curve_edit				= {};
 		vector_t<editor_widget_reflection_fold_state_t> _field_states			= {};
 		vector_t<ui::widget_id_t>						_labels					= {};
-		vector_t<sid_t>									_pending_curve_ids		= {};
 		vector_t<curve_def_t>							_curves					= {};
 		vector_t<sid_t>									_curve_ids				= {};
 		vector_t<curve_def_t>							_edit_previous_curves	= {};
@@ -81,6 +75,5 @@ namespace sfg
 		bool											_reflection_initialized = false;
 		bool											_curve_edit_initialized = false;
 		bool											_edit_active			= false;
-		bool											_refresh_curves_pending = false;
 	};
 }

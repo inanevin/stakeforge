@@ -376,9 +376,6 @@ namespace sfg::ui
 		_scissor_clip_stack.reserve(cfg.clip_stack_initial_capacity);
 		_cpu_clip_stack.reserve(cfg.clip_stack_initial_capacity);
 		_text_cache.reserve(cfg.text_cache_initial_capacity);
-		_path0.reserve(cfg.path_initial_capacity);
-		_path1.reserve(cfg.path_initial_capacity);
-		_path2.reserve(cfg.path_initial_capacity);
 	}
 
 	void vg_canvas_t::uninit()
@@ -401,9 +398,6 @@ namespace sfg::ui
 		_scissor_clip_stack.resize(0);
 		_cpu_clip_stack.resize(0);
 		_text_cache.resize(0);
-		_path0.resize(0);
-		_path1.resize(0);
-		_path2.resize(0);
 		_vertex_spans.resize(0);
 		_index_spans.resize(0);
 
@@ -752,6 +746,7 @@ namespace sfg::ui
 
 		vec2f_t clipped_min = draw_min;
 		vec2f_t clipped_max = draw_max;
+
 		if (!clip_rect_to_cpu(clipped_min, clipped_max))
 			return;
 
@@ -760,32 +755,41 @@ namespace sfg::ui
 			vg_draw_buffer_t* db	   = get_draw_buffer(draw_order, state, 4);
 			const u32		  vtx_base = db->vertex_count;
 			vec2f_t			  path[4]  = {{clipped_min.x, clipped_min.y}, {clipped_max.x, clipped_min.y}, {clipped_max.x, clipped_max.y}, {clipped_min.x, clipped_max.y}};
+
 			if (grad)
 				emit_path_grad(db, {path, 4}, paint.fill_color_a, paint.fill_color_b, paint.gradient, draw_min, draw_max);
 			else
 				emit_path_solid(db, {path, 4}, paint.fill_color_a, draw_min, draw_max);
+
 			emit_quad_indices(db, vtx_base);
 			return;
 		}
 
+		frame_vector_t<vec2f_t> fill_path	 = {};
+		frame_vector_t<vec2f_t> outline_path = {};
+		frame_vector_t<vec2f_t> aa_path		 = {};
+
 		if (round)
-			vg_path_rounded_rect(_path0, draw_min, draw_max, math::max(0.0f, math::round(paint.rounding)), paint.rounding_segs);
+			vg_path_rounded_rect(fill_path, draw_min, draw_max, math::max(0.0f, math::round(paint.rounding)), paint.rounding_segs);
 		else
-			vg_path_sharp_rect(_path0, draw_min, draw_max);
+			vg_path_sharp_rect(fill_path, draw_min, draw_max);
 
 		if (out)
 		{
 			f32 thickness = paint.outline_thickness > 0.0f ? math::max(1.0f, math::round(paint.outline_thickness)) : 0.0f;
+
 			if (round)
 			{
 				const f32 dir = paint.filled ? 1.0f : -1.0f;
-				vg_path_expand(_path1, _path0, thickness * dir);
+
+				vg_path_expand(outline_path, {fill_path.data(), fill_path.size()}, thickness * dir);
 			}
 			else if (paint.filled)
 			{
 				const vec2f_t outline_min = {draw_min.x - thickness, draw_min.y - thickness};
 				const vec2f_t outline_max = {draw_max.x + thickness, draw_max.y + thickness};
-				vg_path_sharp_rect(_path1, outline_min, outline_max);
+
+				vg_path_sharp_rect(outline_path, outline_min, outline_max);
 			}
 			else
 			{
@@ -793,44 +797,48 @@ namespace sfg::ui
 				thickness				  = math::min(thickness, max_thickness);
 				const vec2f_t outline_min = {draw_min.x + thickness, draw_min.y + thickness};
 				const vec2f_t outline_max = {draw_max.x - thickness, draw_max.y - thickness};
-				vg_path_sharp_rect(_path1, outline_min, outline_max);
+
+				vg_path_sharp_rect(outline_path, outline_min, outline_max);
 			}
 		}
 
-		const vector_t<vec2f_t>& outermost_path = (paint.filled && out) ? _path1 : _path0;
+		const frame_vector_t<vec2f_t>& outermost_path = (paint.filled && out) ? outline_path : fill_path;
 
 		if (aa)
-			vg_path_expand(_path2, outermost_path, paint.aa_thickness);
+			vg_path_expand(aa_path, {outermost_path.data(), outermost_path.size()}, paint.aa_thickness);
 
 		u32 required_vertex_count = 0;
 
 		if (paint.filled)
-			required_vertex_count += static_cast<u32>(_path0.size()) + (round ? 1u : 0u);
+			required_vertex_count += static_cast<u32>(fill_path.size()) + (round ? 1u : 0u);
 
 		if (out)
-			required_vertex_count += static_cast<u32>(_path0.size() + _path1.size());
+			required_vertex_count += static_cast<u32>(fill_path.size() + outline_path.size());
 
 		if (aa)
-			required_vertex_count += static_cast<u32>(_path2.size());
+			required_vertex_count += static_cast<u32>(aa_path.size());
 
 		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state, required_vertex_count);
 
 		const u32 fill_vtx_base = db->vertex_count;
+
 		if (paint.filled)
 		{
 			if (grad)
-				emit_path_grad(db, {_path0.data(), _path0.size()}, paint.fill_color_a, paint.fill_color_b, paint.gradient, draw_min, draw_max);
+				emit_path_grad(db, {fill_path.data(), fill_path.size()}, paint.fill_color_a, paint.fill_color_b, paint.gradient, draw_min, draw_max);
 			else
-				emit_path_solid(db, {_path0.data(), _path0.size()}, paint.fill_color_a, draw_min, draw_max);
+				emit_path_solid(db, {fill_path.data(), fill_path.size()}, paint.fill_color_a, draw_min, draw_max);
 
 			if (round)
 			{
 				const u32 center_idx = db->vertex_count;
+
 				if (grad)
 					emit_central_grad(db, paint.fill_color_a, paint.fill_color_b, draw_min, draw_max);
 				else
 					emit_central_solid(db, paint.fill_color_a, draw_min, draw_max);
-				emit_fan_indices(db, fill_vtx_base, center_idx, static_cast<u32>(_path0.size()));
+
+				emit_fan_indices(db, fill_vtx_base, center_idx, static_cast<u32>(fill_path.size()));
 			}
 			else
 			{
@@ -839,31 +847,37 @@ namespace sfg::ui
 		}
 
 		u32 outline_outer_base = UINT32_MAX;
+
 		if (out)
 		{
 			outline_outer_base = db->vertex_count;
+
 			if (paint.filled)
 			{
-				emit_path_solid(db, {_path1.data(), _path1.size()}, paint.outline_color, draw_min, draw_max);
+				emit_path_solid(db, {outline_path.data(), outline_path.size()}, paint.outline_color, draw_min, draw_max);
+
 				const u32 outline_inner_base = db->vertex_count;
-				emit_path_solid(db, {_path0.data(), _path0.size()}, paint.outline_color, draw_min, draw_max);
-				emit_strip_indices(db, outline_outer_base, outline_inner_base, static_cast<u32>(_path0.size()));
+
+				emit_path_solid(db, {fill_path.data(), fill_path.size()}, paint.outline_color, draw_min, draw_max);
+				emit_strip_indices(db, outline_outer_base, outline_inner_base, static_cast<u32>(fill_path.size()));
 			}
 			else
 			{
-				emit_path_solid(db, {_path0.data(), _path0.size()}, paint.outline_color, draw_min, draw_max);
+				emit_path_solid(db, {fill_path.data(), fill_path.size()}, paint.outline_color, draw_min, draw_max);
+
 				const u32 outline_inner_base = db->vertex_count;
-				emit_path_solid(db, {_path1.data(), _path1.size()}, paint.outline_color, draw_min, draw_max);
-				emit_strip_indices(db, outline_outer_base, outline_inner_base, static_cast<u32>(_path0.size()));
+
+				emit_path_solid(db, {outline_path.data(), outline_path.size()}, paint.outline_color, draw_min, draw_max);
+				emit_strip_indices(db, outline_outer_base, outline_inner_base, static_cast<u32>(fill_path.size()));
 			}
 		}
 
 		if (aa)
 		{
 			const u32 outermost_base = out ? outline_outer_base : fill_vtx_base;
+			const u32 aa_base		 = db->vertex_count;
 
-			const u32 aa_base = db->vertex_count;
-			emit_path_alpha(db, {_path2.data(), _path2.size()}, outermost_base, 0.0f, draw_min, draw_max);
+			emit_path_alpha(db, {aa_path.data(), aa_path.size()}, outermost_base, 0.0f, draw_min, draw_max);
 			emit_strip_indices(db, aa_base, outermost_base, static_cast<u32>(outermost_path.size()));
 		}
 	}
@@ -872,6 +886,7 @@ namespace sfg::ui
 	{
 		vec2f_t clipped_p0 = p0;
 		vec2f_t clipped_p1 = p1;
+
 		if (!clip_line_to_cpu(clipped_p0, clipped_p1, paint.thickness))
 			return;
 
@@ -883,36 +898,40 @@ namespace sfg::ui
 		const vec2f_t bb_min = {math::min(clipped_p0.x, clipped_p1.x) - paint.thickness, math::min(clipped_p0.y, clipped_p1.y) - paint.thickness};
 		const vec2f_t bb_max = {math::max(clipped_p0.x, clipped_p1.x) + paint.thickness, math::max(clipped_p0.y, clipped_p1.y) + paint.thickness};
 
-		_path0.resize(4);
-		_path0[0] = {clipped_p0.x - off.x, clipped_p0.y - off.y};
-		_path0[1] = {clipped_p1.x - off.x, clipped_p1.y - off.y};
-		_path0[2] = {clipped_p1.x + off.x, clipped_p1.y + off.y};
-		_path0[3] = {clipped_p0.x + off.x, clipped_p0.y + off.y};
+		frame_vector_t<vec2f_t> line_path = {
+			{clipped_p0.x - off.x, clipped_p0.y - off.y},
+			{clipped_p1.x - off.x, clipped_p1.y - off.y},
+			{clipped_p1.x + off.x, clipped_p1.y + off.y},
+			{clipped_p0.x + off.x, clipped_p0.y + off.y},
+		};
+		frame_vector_t<vec2f_t> aa_path = {};
 
 		if (paint.aa_thickness > 0.0f)
-			vg_path_expand(_path2, _path0, paint.aa_thickness);
+			vg_path_expand(aa_path, {line_path.data(), line_path.size()}, paint.aa_thickness);
 
 		const u32		  required_vertex_count = paint.aa_thickness > 0.0f ? 8 : 4;
 		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count);
 		const u32		  base					= db->vertex_count;
 
-		emit_path_solid(db, {_path0.data(), _path0.size()}, paint.color, bb_min, bb_max);
+		emit_path_solid(db, {line_path.data(), line_path.size()}, paint.color, bb_min, bb_max);
 		emit_quad_indices(db, base);
 
 		if (paint.aa_thickness > 0.0f)
 		{
 			const u32 aa_base = db->vertex_count;
-			emit_path_alpha(db, {_path2.data(), _path2.size()}, base, 0.0f, bb_min, bb_max);
+			emit_path_alpha(db, {aa_path.data(), aa_path.size()}, base, 0.0f, bb_min, bb_max);
 			emit_strip_indices(db, aa_base, base, 4);
 		}
 	}
 
 	void vg_canvas_t::add_cubic_bezier(const vec2f_t& p0, const vec2f_t& p1, const vec2f_t& p2, const vec2f_t& p3, u32 segments, const vg_line_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
 	{
-		vg_path_cubic_bezier(_path1, p0, p1, p2, p3, segments);
+		frame_vector_t<vec2f_t> bezier_path = {};
+
+		vg_path_cubic_bezier(bezier_path, p0, p1, p2, p3, segments);
 
 		for (u32 segment_index = 0; segment_index < segments; ++segment_index)
-			add_line(_path1[segment_index], _path1[segment_index + 1], paint, state, draw_order);
+			add_line(bezier_path[segment_index], bezier_path[segment_index + 1], paint, state, draw_order);
 	}
 
 	void vg_canvas_t::add_circle(const vec2f_t& center, f32 radius, const vg_circle_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
@@ -921,44 +940,57 @@ namespace sfg::ui
 		const vec2f_t bb_max	  = {center.x + radius + paint.thickness, center.y + radius + paint.thickness};
 		vec2f_t		  clipped_min = bb_min;
 		vec2f_t		  clipped_max = bb_max;
+
 		if (!clip_rect_to_cpu(clipped_min, clipped_max))
 			return;
 
-		vg_path_circle(_path0, center, radius, paint.segments);
+		frame_vector_t<vec2f_t> outer_path = {};
+		frame_vector_t<vec2f_t> inner_path = {};
+		frame_vector_t<vec2f_t> aa_path	   = {};
 
-		const u32		  path_vertex_count		= static_cast<u32>(_path0.size());
+		vg_path_circle(outer_path, center, radius, paint.segments);
+
+		const u32		  path_vertex_count		= static_cast<u32>(outer_path.size());
 		const u32		  required_vertex_count = paint.filled ? path_vertex_count + 1 : path_vertex_count * 2;
 		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count + (paint.aa_thickness > 0.0f ? path_vertex_count : 0));
 
 		const u32 base = db->vertex_count;
-		emit_path_solid(db, {_path0.data(), _path0.size()}, paint.color, bb_min, bb_max);
+
+		emit_path_solid(db, {outer_path.data(), outer_path.size()}, paint.color, bb_min, bb_max);
 
 		if (paint.filled)
 		{
 			const u32 center_idx = db->vertex_count;
+
 			emit_central_solid(db, paint.color, bb_min, bb_max);
 			emit_fan_indices(db, base, center_idx, paint.segments);
 
 			if (paint.aa_thickness > 0.0f)
 			{
-				vg_path_expand(_path2, _path0, paint.aa_thickness);
+				vg_path_expand(aa_path, {outer_path.data(), outer_path.size()}, paint.aa_thickness);
+
 				const u32 aa_base = db->vertex_count;
-				emit_path_alpha(db, {_path2.data(), _path2.size()}, base, 0.0f, bb_min, bb_max);
+
+				emit_path_alpha(db, {aa_path.data(), aa_path.size()}, base, 0.0f, bb_min, bb_max);
 				emit_strip_indices(db, aa_base, base, paint.segments);
 			}
 		}
 		else
 		{
-			vg_path_expand(_path1, _path0, -paint.thickness);
+			vg_path_expand(inner_path, {outer_path.data(), outer_path.size()}, -paint.thickness);
+
 			const u32 inner_base = db->vertex_count;
-			emit_path_solid(db, {_path1.data(), _path1.size()}, paint.color, bb_min, bb_max);
+
+			emit_path_solid(db, {inner_path.data(), inner_path.size()}, paint.color, bb_min, bb_max);
 			emit_strip_indices(db, base, inner_base, paint.segments);
 
 			if (paint.aa_thickness > 0.0f)
 			{
-				vg_path_expand(_path2, _path0, paint.aa_thickness);
+				vg_path_expand(aa_path, {outer_path.data(), outer_path.size()}, paint.aa_thickness);
+
 				const u32 aa_base = db->vertex_count;
-				emit_path_alpha(db, {_path2.data(), _path2.size()}, base, 0.0f, bb_min, bb_max);
+
+				emit_path_alpha(db, {aa_path.data(), aa_path.size()}, base, 0.0f, bb_min, bb_max);
 				emit_strip_indices(db, aa_base, base, paint.segments);
 			}
 		}
@@ -979,41 +1011,55 @@ namespace sfg::ui
 		const vec2f_t bb_max	  = {center.x + outer_aa_radius, center.y + outer_aa_radius};
 		vec2f_t		  clipped_min = bb_min;
 		vec2f_t		  clipped_max = bb_max;
+
 		if (!clip_rect_to_cpu(clipped_min, clipped_max))
 			return;
 
-		vg_path_arc(_path0, center, outer_radius, start, end, paint.segments);
-		vg_path_arc(_path1, center, inner_radius, start, end, paint.segments);
+		frame_vector_t<vec2f_t> outer_path = {};
+		frame_vector_t<vec2f_t> inner_path = {};
+		frame_vector_t<vec2f_t> aa_path	   = {};
 
-		const u32		  required_vertex_count = static_cast<u32>(_path0.size() + _path1.size()) * (paint.aa_thickness > 0.0f ? 2 : 1);
+		vg_path_arc(outer_path, center, outer_radius, start, end, paint.segments);
+		vg_path_arc(inner_path, center, inner_radius, start, end, paint.segments);
+
+		const u32		  required_vertex_count = static_cast<u32>(outer_path.size() + inner_path.size()) * (paint.aa_thickness > 0.0f ? 2 : 1);
 		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count);
 		const u32		  outer_base			= db->vertex_count;
-		emit_path_solid(db, {_path0.data(), _path0.size()}, paint.color, bb_min, bb_max);
-		const u32 inner_base = db->vertex_count;
-		emit_path_solid(db, {_path1.data(), _path1.size()}, paint.color, bb_min, bb_max);
-		emit_open_strip_indices(db, outer_base, inner_base, static_cast<u32>(_path0.size()));
 
-		const vec2f_t cap_start = _path0.front() + (_path1.front() - _path0.front()) * 0.5f;
-		const vec2f_t cap_end	= _path0.back() + (_path1.back() - _path0.back()) * 0.5f;
+		emit_path_solid(db, {outer_path.data(), outer_path.size()}, paint.color, bb_min, bb_max);
+
+		const u32 inner_base = db->vertex_count;
+
+		emit_path_solid(db, {inner_path.data(), inner_path.size()}, paint.color, bb_min, bb_max);
+		emit_open_strip_indices(db, outer_base, inner_base, static_cast<u32>(outer_path.size()));
+
+		const vec2f_t cap_start = outer_path.front() + (inner_path.front() - outer_path.front()) * 0.5f;
+		const vec2f_t cap_end	= outer_path.back() + (inner_path.back() - outer_path.back()) * 0.5f;
 
 		if (paint.aa_thickness > 0.0f)
 		{
-			vg_path_arc(_path2, center, outer_aa_radius, start, end, paint.segments);
-			const u32 outer_aa_base = db->vertex_count;
-			emit_path_alpha(db, {_path2.data(), _path2.size()}, outer_base, 0.0f, bb_min, bb_max);
-			emit_open_strip_indices(db, outer_aa_base, outer_base, static_cast<u32>(_path0.size()));
+			vg_path_arc(aa_path, center, outer_aa_radius, start, end, paint.segments);
 
-			vg_path_arc(_path2, center, inner_aa_radius, start, end, paint.segments);
+			const u32 outer_aa_base = db->vertex_count;
+
+			emit_path_alpha(db, {aa_path.data(), aa_path.size()}, outer_base, 0.0f, bb_min, bb_max);
+			emit_open_strip_indices(db, outer_aa_base, outer_base, static_cast<u32>(outer_path.size()));
+
+			vg_path_arc(aa_path, center, inner_aa_radius, start, end, paint.segments);
+
 			const u32 inner_aa_base = db->vertex_count;
-			emit_path_alpha(db, {_path2.data(), _path2.size()}, inner_base, 0.0f, bb_min, bb_max);
-			emit_open_strip_indices(db, inner_base, inner_aa_base, static_cast<u32>(_path1.size()));
+
+			emit_path_alpha(db, {aa_path.data(), aa_path.size()}, inner_base, 0.0f, bb_min, bb_max);
+			emit_open_strip_indices(db, inner_base, inner_aa_base, static_cast<u32>(inner_path.size()));
 		}
 
-		vg_circle_paint_t cap = {};
-		cap.color			  = paint.color;
-		cap.filled			  = true;
-		cap.segments		  = 24;
-		cap.aa_thickness	  = paint.aa_thickness;
+		const vg_circle_paint_t cap{
+			.color		  = paint.color,
+			.aa_thickness = paint.aa_thickness,
+			.segments	  = 24,
+			.filled		  = true,
+		};
+
 		add_circle(cap_start, half_thickness, cap, state, draw_order);
 		add_circle(cap_end, half_thickness, cap, state, draw_order);
 	}
@@ -1025,6 +1071,7 @@ namespace sfg::ui
 
 		vec2f_t bb_min = path.data[0];
 		vec2f_t bb_max = path.data[0];
+
 		for (size_t i = 1; i < path.size; ++i)
 		{
 			bb_min = vec2f_t::min(bb_min, path.data[i]);
@@ -1033,29 +1080,27 @@ namespace sfg::ui
 
 		vec2f_t clipped_min = bb_min;
 		vec2f_t clipped_max = bb_max;
+
 		if (!clip_rect_to_cpu(clipped_min, clipped_max))
 			return;
 
+		frame_vector_t<vec2f_t> aa_path = {};
+
 		if (paint.aa_thickness > 0.0f)
-		{
-			_path0.resize(path.size);
+			vg_path_expand(aa_path, path, paint.aa_thickness);
 
-			for (size_t i = 0; i < path.size; ++i)
-				_path0[i] = path.data[i];
-
-			vg_path_expand(_path2, _path0, paint.aa_thickness);
-		}
-
-		const u32		  required_vertex_count = static_cast<u32>(path.size) + (paint.aa_thickness > 0.0f ? static_cast<u32>(_path2.size()) : 0);
+		const u32		  required_vertex_count = static_cast<u32>(path.size) + (paint.aa_thickness > 0.0f ? static_cast<u32>(aa_path.size()) : 0);
 		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count);
 
 		const u32 base = db->vertex_count;
+
 		if (paint.gradient != vg_gradient_e::none)
 			emit_path_grad(db, path, paint.fill_color_a, paint.fill_color_b, paint.gradient, bb_min, bb_max);
 		else
 			emit_path_solid(db, path, paint.fill_color_a, bb_min, bb_max);
 
 		vg_index_t* idx = take_indices(db, static_cast<u32>((path.size - 2) * 3));
+
 		for (size_t i = 0; i < path.size - 2; ++i)
 		{
 			idx[i * 3 + 0] = static_cast<vg_index_t>(base);
@@ -1066,7 +1111,8 @@ namespace sfg::ui
 		if (paint.aa_thickness > 0.0f)
 		{
 			const u32 aa_base = db->vertex_count;
-			emit_path_alpha(db, {_path2.data(), _path2.size()}, base, 0.0f, bb_min, bb_max);
+
+			emit_path_alpha(db, {aa_path.data(), aa_path.size()}, base, 0.0f, bb_min, bb_max);
 			emit_strip_indices(db, aa_base, base, static_cast<u32>(path.size));
 		}
 	}

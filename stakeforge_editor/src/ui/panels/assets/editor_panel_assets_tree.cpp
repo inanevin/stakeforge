@@ -38,13 +38,6 @@ namespace sfg
 {
 	void editor_panel_assets_t::refresh_folder_rows()
 	{
-		if (!can_mutate_ui_topology())
-		{
-			_folder_rows_refresh_pending = true;
-			request_ui_mutation();
-			return;
-		}
-
 		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t&	  asset_tree	= asset_manager.get_asset_tree();
 		_asset_tree_generation						= asset_manager.get_generation();

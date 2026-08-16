@@ -63,7 +63,6 @@ namespace sfg
 
 	void editor_tab_area_t::uninit()
 	{
-		_ui->cancel_mutations(this);
 		_ui->deallocate_widget(_root);
 
 		_ui	  = nullptr;
@@ -366,7 +365,8 @@ namespace sfg
 		_pending_close_tab = identifier;
 		if (_drag_tab == identifier)
 			_drag_tab = 0;
-		_ui->request_unique_mutation(on_ui_mutation, this);
+
+		consume_pending_removals();
 	}
 
 	void editor_tab_area_t::request_drag_out(sid_t identifier)
@@ -374,7 +374,8 @@ namespace sfg
 		_pending_drag_out_tab = identifier;
 		if (_drag_tab == identifier)
 			_drag_tab = 0;
-		_ui->request_unique_mutation(on_ui_mutation, this);
+
+		consume_pending_removals();
 	}
 
 	bool editor_tab_area_t::consume_pending_removals()
@@ -438,16 +439,14 @@ namespace sfg
 		editor_tab_area_t& tab_area = *static_cast<editor_tab_area_t*>(user_data);
 		tab_area.update_markers(dt);
 		if (tab_area._drag_tab != 0 && tab_area.is_drag_out_position(tab_area._ui->get_input().get_mouse_position()))
+		{
 			tab_area.request_drag_out(tab_area._drag_tab);
+			return;
+		}
 
 		tab_area.update_tab_positions(dt);
 		if (tab_area._drag_tab != 0)
 			tab_area.reorder_dragged_tab(tab_area._ui->get_input().get_mouse_position());
-	}
-
-	void editor_tab_area_t::on_ui_mutation(ui::ui_context&, void* user_data)
-	{
-		static_cast<editor_tab_area_t*>(user_data)->consume_pending_removals();
 	}
 
 	void editor_tab_area_t::draw_tab_frame(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
@@ -536,7 +535,10 @@ namespace sfg
 			return;
 
 		if (is_drag_out_position(pos))
+		{
 			request_drag_out(_drag_tab);
+			return;
+		}
 
 		_drag_tab = 0;
 	}

@@ -30,39 +30,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-	bool editor_panel_log_t::can_mutate_ui_topology() const
-	{
-		const ui::ui_phase_e phase = _ui->get_phase();
-		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
-	}
-
 	void editor_panel_log_t::request_clear_logs()
 	{
-		_clear_logs_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
+		clear_logs();
 	}
 
 	void editor_panel_log_t::request_collapse_rows()
 	{
-		_collapse_rows_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_panel_log_t::flush_pending_ui_mutations()
-	{
-		const bool do_clear_logs = _clear_logs_pending;
-		const bool collapse_rows = _collapse_rows_pending;
-		_clear_logs_pending		 = false;
-		_collapse_rows_pending	 = false;
-
-		if (do_clear_logs)
-		{
-			clear_logs();
-			return;
-		}
-
-		if (collapse_rows)
-			collapse_existing_rows();
+		collapse_existing_rows();
 	}
 
 }

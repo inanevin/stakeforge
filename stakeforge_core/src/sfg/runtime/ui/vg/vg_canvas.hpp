@@ -84,7 +84,6 @@ namespace sfg::ui
 		u32 text_cache_index_budget_bytes  = 1u << 22;
 		u32 clip_stack_initial_capacity	   = 64;
 		u32 text_cache_initial_capacity	   = 256;
-		u32 path_initial_capacity		   = 512;
 	};
 
 	class vg_canvas_t final
@@ -210,9 +209,6 @@ namespace sfg::ui
 		vector_t<clip_entry_t>		 _scissor_clip_stack;
 		vector_t<clip_entry_t>		 _cpu_clip_stack;
 		vector_t<text_cache_entry_t> _text_cache;
-		vector_t<vec2f_t>			 _path0;
-		vector_t<vec2f_t>			 _path1;
-		vector_t<vec2f_t>			 _path2;
 		vector_t<buffer_span_t>		 _vertex_spans;
 		vector_t<buffer_span_t>		 _index_spans;
 		vg_vertex_t*				 _vertex_pool				 = nullptr;

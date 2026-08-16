@@ -292,7 +292,6 @@ namespace sfg
 
 	void editor_popup_controller_t::uninit()
 	{
-		_ui->cancel_mutations(this);
 		close_popup(false);
 		destroy_asset_rows();
 		_list_scrollbar.uninit();
@@ -347,18 +346,6 @@ namespace sfg
 	{
 		SFG_ASSERT(desc.item_count <= MAX_ITEMS);
 
-		if (!can_mutate_ui_topology())
-		{
-			_pending_desc = desc;
-
-			for (u32 i = 0; i < MAX_ITEMS; ++i)
-				_pending_items[i] = i < desc.item_count ? desc.items[i] : editor_popup_item_desc_t{};
-
-			_pending_desc.items = _pending_items;
-			defer_request(pending_request_e::items);
-			return;
-		}
-
 		close_popup(false);
 		_desc = desc;
 		_mode = popup_mode_e::items;
@@ -378,13 +365,6 @@ namespace sfg
 	void editor_popup_controller_t::request_input_popup(const editor_input_popup_desc_t& desc)
 	{
 
-		if (!can_mutate_ui_topology())
-		{
-			_pending_input_desc = desc;
-			defer_request(pending_request_e::input);
-			return;
-		}
-
 		close_popup(false);
 		_input_desc = desc;
 		_mode		= popup_mode_e::input;
@@ -402,13 +382,6 @@ namespace sfg
 
 	void editor_popup_controller_t::request_asset_popup(const editor_asset_popup_desc_t& desc)
 	{
-		if (!can_mutate_ui_topology())
-		{
-			_pending_asset_desc = desc;
-			defer_request(pending_request_e::assets);
-			return;
-		}
-
 		close_popup(false);
 		_asset_desc = desc;
 		_mode		= popup_mode_e::assets;
@@ -434,13 +407,6 @@ namespace sfg
 
 	void editor_popup_controller_t::request_entity_popup(const editor_entity_popup_desc_t& desc)
 	{
-		if (!can_mutate_ui_topology())
-		{
-			_pending_entity_desc = desc;
-			defer_request(pending_request_e::entities);
-			return;
-		}
-
 		close_popup(false);
 		_entity_desc = desc;
 		_mode		 = popup_mode_e::entities;
@@ -468,13 +434,6 @@ namespace sfg
 	{
 		SFG_ASSERT(desc.install != nullptr);
 		SFG_ASSERT(desc.uninstall != nullptr);
-
-		if (!can_mutate_ui_topology())
-		{
-			_pending_custom_desc = desc;
-			defer_request(pending_request_e::custom);
-			return;
-		}
 
 		close_popup(false);
 		_custom_desc = desc;
@@ -504,13 +463,6 @@ namespace sfg
 	{
 		if (_ui == nullptr || !_visible)
 			return;
-
-		if (!can_mutate_ui_topology())
-		{
-			_pending_input_close_reason = input_close_reason;
-			defer_request(pending_request_e::close);
-			return;
-		}
 
 		const bool							   notify_input_submitted	= input_close_reason == input_close_reason_e::submitted && _mode == popup_mode_e::input && _input_desc.submitted != nullptr;
 		const bool							   notify_input_cancelled	= input_close_reason == input_close_reason_e::cancelled && _mode == popup_mode_e::input && _input_desc.cancelled != nullptr;
@@ -996,56 +948,6 @@ namespace sfg
 		}
 	}
 
-	bool editor_popup_controller_t::can_mutate_ui_topology() const
-	{
-		const ui::ui_phase_e phase = _ui->get_phase();
-		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
-	}
-
-	bool editor_popup_controller_t::defer_request(pending_request_e request)
-	{
-		_pending_request = request;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-		return true;
-	}
-
-	void editor_popup_controller_t::flush_pending_request()
-	{
-		const pending_request_e request = _pending_request;
-		_pending_request				= pending_request_e::none;
-
-		switch (request)
-		{
-		case pending_request_e::close:
-			close_popup_internal(_pending_input_close_reason);
-			_pending_input_close_reason = input_close_reason_e::silent;
-			return;
-		case pending_request_e::items:
-			request_popup(_pending_desc);
-			return;
-		case pending_request_e::input:
-			request_input_popup(_pending_input_desc);
-			return;
-		case pending_request_e::assets:
-			request_asset_popup(_pending_asset_desc);
-			return;
-		case pending_request_e::entities:
-			request_entity_popup(_pending_entity_desc);
-			return;
-		case pending_request_e::custom:
-			request_custom_popup(_pending_custom_desc);
-			return;
-		case pending_request_e::asset_rows:
-			refresh_asset_rows();
-			refresh_layout();
-			_list_scrollbar.set_scroll_y_immediate(0.0f);
-			set_visible(true);
-			return;
-		default:
-			return;
-		}
-	}
-
 	sid_t editor_popup_controller_t::get_search_selected_value() const
 	{
 		return _mode == popup_mode_e::entities ? static_cast<sid_t>(_entity_desc.selected) : _asset_desc.selected;
@@ -1161,12 +1063,6 @@ namespace sfg
 		editor_popup_controller_t& popup = *static_cast<editor_popup_controller_t*>(user_data);
 		popup.filter_asset_items();
 
-		if (!popup.can_mutate_ui_topology())
-		{
-			popup.defer_request(pending_request_e::asset_rows);
-			return;
-		}
-
 		popup.refresh_asset_rows();
 		popup.refresh_layout();
 		popup._list_scrollbar.set_scroll_y_immediate(0.0f);
@@ -1204,8 +1100,4 @@ namespace sfg
 		popup._list_scroll_pending_frames = 0;
 	}
 
-	void editor_popup_controller_t::on_ui_mutation(ui::ui_context&, void* user_data)
-	{
-		static_cast<editor_popup_controller_t*>(user_data)->flush_pending_request();
-	}
 }

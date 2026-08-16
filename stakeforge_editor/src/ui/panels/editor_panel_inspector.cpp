@@ -139,9 +139,7 @@ namespace sfg
 		_edit_world				 = {};
 		_scroll_area			 = NULL_WIDGET;
 		_content				 = NULL_WIDGET;
-		_pending_scroll_y		 = 0.0f;
 		_display				 = editor_panel_inspector_display_e::none;
-		_scroll_restore_pending	 = false;
 
 		editor_panel_t::uninit();
 	}
@@ -569,31 +567,12 @@ namespace sfg
 		}
 
 		const entity_scroll_state_t* state = find_entity_scroll_state(_display_entities[0]);
-		_pending_scroll_y				   = state != nullptr ? state->scroll_y : 0.0f;
-		_scroll_restore_pending			   = true;
-		_ui->set_post_layout_tick(_scroll_area, on_scroll_restore_tick, this);
+		_scrollbar.set_scroll_y_immediate(state != nullptr ? state->scroll_y : 0.0f);
 	}
 
 	void editor_panel_inspector_t::reset_scroll_state()
 	{
-		_scroll_restore_pending = false;
-		_pending_scroll_y		= 0.0f;
-		_ui->clear_post_layout_tick(_scroll_area);
 		_scrollbar.set_scroll_y_immediate(0.0f);
-	}
-
-	void editor_panel_inspector_t::apply_pending_scroll_restore()
-	{
-		if (!_scroll_restore_pending)
-		{
-			_ui->clear_post_layout_tick(_scroll_area);
-			return;
-		}
-
-		_scrollbar.set_scroll_y_immediate(_pending_scroll_y);
-		_ui->request_post_layout_solve();
-		_scroll_restore_pending = false;
-		_ui->clear_post_layout_tick(_scroll_area);
 	}
 
 	bool editor_panel_inspector_t::collect_selected_materials(frame_vector_t<sid_t>& out_materials) const
@@ -841,11 +820,6 @@ namespace sfg
 
 		if (asset_is_displayed)
 			panel.set_display_none();
-	}
-
-	void editor_panel_inspector_t::on_scroll_restore_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
-	{
-		static_cast<editor_panel_inspector_t*>(user_data)->apply_pending_scroll_restore();
 	}
 
 	void editor_panel_inspector_t::on_command_system_event(editor_command_system_t&, const editor_command_t& command, void* user_data)

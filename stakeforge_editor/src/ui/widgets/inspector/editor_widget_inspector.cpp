@@ -75,7 +75,6 @@ namespace sfg
 	void editor_widget_inspector_t::uninit()
 	{
 		editor_command_system_t::get().remove_listener(_command_listener);
-		_ui->cancel_mutations(this);
 		clear_display();
 		_ui->deallocate_widget(_root);
 		_component_states.clear();
@@ -83,15 +82,13 @@ namespace sfg
 		_display_entities.clear();
 		_column = NULL_WIDGET;
 		_copied_component_stream.destroy();
-		_copied_entity_info		   = {};
-		_command_listener		   = {};
-		_edit_world				   = {};
-		_copied_component_type	   = 0;
-		_action_menu_type_id	   = 0;
-		_pending_component_type	   = 0;
-		_refresh_component_pending = false;
-		_copied_entity_info_valid  = false;
-		_allow_prefab_blocks	   = false;
+		_copied_entity_info		  = {};
+		_command_listener		  = {};
+		_edit_world				  = {};
+		_copied_component_type	  = 0;
+		_action_menu_type_id	  = 0;
+		_copied_entity_info_valid = false;
+		_allow_prefab_blocks	  = false;
 
 		_root = NULL_WIDGET;
 		_ui	  = nullptr;

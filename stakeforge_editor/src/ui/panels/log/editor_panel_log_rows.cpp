@@ -138,12 +138,6 @@ namespace sfg
 
 	void editor_panel_log_t::collapse_existing_rows()
 	{
-		if (!can_mutate_ui_topology())
-		{
-			request_collapse_rows();
-			return;
-		}
-
 		const size_t row_count = _rows.size();
 		if (row_count < 2)
 			return;
@@ -191,12 +185,6 @@ namespace sfg
 
 	void editor_panel_log_t::clear_logs()
 	{
-		if (!can_mutate_ui_topology())
-		{
-			request_clear_logs();
-			return;
-		}
-
 		{
 			LOCK_GUARD(_log_storage_mtx);
 			_stored_logs.clear();

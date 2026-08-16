@@ -48,45 +48,6 @@ namespace sfg
 		refresh_asset_grid_item_backgrounds();
 	}
 
-	bool editor_panel_assets_t::can_mutate_ui_topology() const
-	{
-		const ui::ui_phase_e phase = _ui->get_phase();
-		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
-	}
-
-	void editor_panel_assets_t::request_ui_mutation()
-	{
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_panel_assets_t::flush_pending_ui_mutations()
-	{
-		if (_pending_show_asset_guid != NULL_SID)
-		{
-			const sid_t guid		 = _pending_show_asset_guid;
-			_pending_show_asset_guid = NULL_SID;
-			show_asset(guid);
-			return;
-		}
-
-		const bool refresh_folders = _folder_rows_refresh_pending;
-		const bool refresh_assets  = _asset_grid_refresh_pending;
-		const bool force_assets	   = _asset_grid_refresh_force;
-
-		_folder_rows_refresh_pending = false;
-		_asset_grid_refresh_pending	 = false;
-		_asset_grid_refresh_force	 = false;
-
-		if (refresh_folders)
-		{
-			refresh_folder_rows();
-			return;
-		}
-
-		if (refresh_assets)
-			refresh_asset_grid(force_assets);
-	}
-
 	void editor_panel_assets_t::notify_asset_selection_changed()
 	{
 		if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::inspector))

@@ -62,13 +62,9 @@ namespace sfg
 		void refresh_display();
 		void clear_display();
 		void append_property_row(ui::widget_id_t row);
-		bool can_mutate_ui_topology() const;
 		void begin_physical_material_edit();
 		void submit_physical_material_edit();
 		void clear_physical_material_edit();
-		void request_physical_materials_refresh(span_t<const sid_t> physical_materials);
-		void request_display_refresh();
-		void flush_pending_ui_mutations();
 		void on_physical_material_edit_begin();
 		void on_physical_material_edited();
 		void on_physical_material_edit_submitted();
@@ -76,24 +72,21 @@ namespace sfg
 		static void on_physical_material_edit_begin(void* user_data);
 		static void on_physical_material_edited(void* user_data);
 		static void on_physical_material_edit_submitted(void* user_data);
-		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
 		ui::ui_context* _ui	  = nullptr;
 		ui::widget_id_t _root = NULL_WIDGET;
 
-		editor_widget_reflection_t						_reflection							= {};
-		vector_t<editor_widget_reflection_fold_state_t> _field_states						= {};
-		vector_t<ui::widget_id_t>						_rows								= {};
-		vector_t<ui::widget_id_t>						_dividers							= {};
-		vector_t<ui::widget_id_t>						_labels								= {};
-		vector_t<sid_t>									_pending_physical_material_ids		= {};
-		vector_t<physical_material_def_t>				_physical_materials					= {};
-		vector_t<sid_t>									_physical_material_ids				= {};
-		vector_t<physical_material_def_t>				_edit_previous_physical_materials	= {};
-		vector_t<sid_t>									_edit_physical_material_ids			= {};
-		bool											_reflection_initialized				= false;
-		bool											_edit_active						= false;
-		bool											_refresh_physical_materials_pending = false;
+		editor_widget_reflection_t						_reflection						  = {};
+		vector_t<editor_widget_reflection_fold_state_t> _field_states					  = {};
+		vector_t<ui::widget_id_t>						_rows							  = {};
+		vector_t<ui::widget_id_t>						_dividers						  = {};
+		vector_t<ui::widget_id_t>						_labels							  = {};
+		vector_t<physical_material_def_t>				_physical_materials				  = {};
+		vector_t<sid_t>									_physical_material_ids			  = {};
+		vector_t<physical_material_def_t>				_edit_previous_physical_materials = {};
+		vector_t<sid_t>									_edit_physical_material_ids		  = {};
+		bool											_reflection_initialized			  = false;
+		bool											_edit_active					  = false;
 	};
 }

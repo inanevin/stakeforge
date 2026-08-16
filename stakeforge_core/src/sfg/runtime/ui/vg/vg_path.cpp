@@ -35,7 +35,7 @@ namespace sfg::ui
 		constexpr f32 deg2rad = 0.0174532925f;
 	}
 
-	void vg_path_sharp_rect(vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max)
+	void vg_path_sharp_rect(frame_vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max)
 	{
 		out_path.resize(4);
 		out_path[0] = {min.x, min.y};
@@ -44,14 +44,16 @@ namespace sfg::ui
 		out_path[3] = {min.x, max.y};
 	}
 
-	void vg_path_rounded_rect(vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max, f32 rounding, u32 segments)
+	void vg_path_rounded_rect(frame_vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max, f32 rounding, u32 segments)
 	{
 		const f32 half_min = math::min((max.x - min.x) * 0.5f, (max.y - min.y) * 0.5f);
 		f32		  r		   = math::min(rounding, half_min);
+
 		if (r < 0.0f)
 			r = 0.0f;
 
 		i32 segs = static_cast<i32>(segments);
+
 		if (segs == 0)
 			segs = 10;
 		if (segs < 1)
@@ -60,11 +62,13 @@ namespace sfg::ui
 			segs = 90;
 
 		out_path.resize(0);
+		out_path.reserve(static_cast<size_t>(segs + 1) * 4);
 
 		const f32 step = 90.0f / static_cast<f32>(segs);
 
 		{
 			const vec2f_t c = {min.x + r, min.y + r};
+
 			for (i32 i = 0; i <= segs; ++i)
 			{
 				const f32	  a		= deg2rad * (270.0f + step * static_cast<f32>(i));
@@ -72,8 +76,10 @@ namespace sfg::ui
 				out_path.push_back({c.x + local.x, c.y + local.y});
 			}
 		}
+
 		{
 			const vec2f_t c = {max.x - r, min.y + r};
+
 			for (i32 i = 0; i <= segs; ++i)
 			{
 				const f32	  a		= deg2rad * (step * static_cast<f32>(i));
@@ -81,8 +87,10 @@ namespace sfg::ui
 				out_path.push_back({c.x + local.x, c.y + local.y});
 			}
 		}
+
 		{
 			const vec2f_t c = {max.x - r, max.y - r};
+
 			for (i32 i = 0; i <= segs; ++i)
 			{
 				const f32	  a		= deg2rad * (90.0f + step * static_cast<f32>(i));
@@ -90,8 +98,10 @@ namespace sfg::ui
 				out_path.push_back({c.x + local.x, c.y + local.y});
 			}
 		}
+
 		{
 			const vec2f_t c = {min.x + r, max.y - r};
+
 			for (i32 i = 0; i <= segs; ++i)
 			{
 				const f32	  a		= deg2rad * (180.0f + step * static_cast<f32>(i));
@@ -101,7 +111,7 @@ namespace sfg::ui
 		}
 	}
 
-	void vg_path_inset_rect_4(vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max, f32 amount)
+	void vg_path_inset_rect_4(frame_vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max, f32 amount)
 	{
 		out_path.resize(4);
 		out_path[0] = {min.x + amount, min.y + amount};
@@ -110,9 +120,10 @@ namespace sfg::ui
 		out_path[3] = {min.x + amount, max.y - amount};
 	}
 
-	void vg_path_expand(vector_t<vec2f_t>& out_path, const vector_t<vec2f_t>& base_path, f32 expand)
+	void vg_path_expand(frame_vector_t<vec2f_t>& out_path, span_t<const vec2f_t> base_path, f32 expand)
 	{
-		const size_t n = base_path.size();
+		const size_t n = base_path.size;
+
 		if (n < 2)
 		{
 			out_path.resize(0);
@@ -139,7 +150,7 @@ namespace sfg::ui
 		}
 	}
 
-	void vg_path_circle(vector_t<vec2f_t>& out_path, const vec2f_t& center, f32 radius, u32 segments)
+	void vg_path_circle(frame_vector_t<vec2f_t>& out_path, const vec2f_t& center, f32 radius, u32 segments)
 	{
 		if (segments < 3)
 			segments = 3;
@@ -147,6 +158,7 @@ namespace sfg::ui
 		out_path.resize(segments);
 
 		const f32 step = 6.2831853f / static_cast<f32>(segments);
+
 		for (u32 i = 0; i < segments; ++i)
 		{
 			const f32 a = step * static_cast<f32>(i);
@@ -154,7 +166,7 @@ namespace sfg::ui
 		}
 	}
 
-	void vg_path_arc(vector_t<vec2f_t>& out_path, const vec2f_t& center, f32 radius, f32 start, f32 end, u32 segments)
+	void vg_path_arc(frame_vector_t<vec2f_t>& out_path, const vec2f_t& center, f32 radius, f32 start, f32 end, u32 segments)
 	{
 		if (segments < 1)
 			segments = 1;
@@ -178,7 +190,7 @@ namespace sfg::ui
 		return p0 * (inverse_t_squared * inverse_t) + p1 * (3.0f * inverse_t_squared * t) + p2 * (3.0f * inverse_t * t_squared) + p3 * (t_squared * t);
 	}
 
-	void vg_path_cubic_bezier(vector_t<vec2f_t>& out_path, const vec2f_t& p0, const vec2f_t& p1, const vec2f_t& p2, const vec2f_t& p3, u32 segments)
+	void vg_path_cubic_bezier(frame_vector_t<vec2f_t>& out_path, const vec2f_t& p0, const vec2f_t& p1, const vec2f_t& p2, const vec2f_t& p3, u32 segments)
 	{
 		SFG_ASSERT(segments != 0);
 

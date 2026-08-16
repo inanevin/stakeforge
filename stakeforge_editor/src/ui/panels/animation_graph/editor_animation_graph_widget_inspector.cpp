@@ -189,7 +189,6 @@ namespace sfg
 
 	void editor_animation_graph_widget_inspector_t::uninit()
 	{
-		_ui->cancel_mutations(this);
 
 		if (_edit_active)
 			editor_command_animation_graph_edit_t::cancel(*_config.context);
@@ -228,7 +227,7 @@ namespace sfg
 
 	void editor_animation_graph_widget_inspector_t::refresh_inspector()
 	{
-		_ui->request_unique_mutation(on_refresh_mutation, this);
+		refresh_inspector_immediate();
 	}
 
 	void editor_animation_graph_widget_inspector_t::set_asset_name(const char* asset_name)
@@ -483,11 +482,6 @@ namespace sfg
 			return {.data = inspector._parameter_dropdown_items.data(), .size = inspector._parameter_dropdown_items.size()};
 
 		return {};
-	}
-
-	void editor_animation_graph_widget_inspector_t::on_refresh_mutation(ui::ui_context& ui, void* user_data)
-	{
-		static_cast<editor_animation_graph_widget_inspector_t*>(user_data)->refresh_inspector_immediate();
 	}
 
 	void editor_animation_graph_widget_inspector_t::on_edit_begin(void* user_data)

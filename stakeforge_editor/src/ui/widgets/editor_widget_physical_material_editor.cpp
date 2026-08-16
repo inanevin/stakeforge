@@ -63,31 +63,22 @@ namespace sfg
 
 	void editor_widget_physical_material_editor_t::uninit()
 	{
-		_ui->cancel_mutations(this);
 		clear_display();
 		_ui->deallocate_widget(_root);
 
-		_pending_physical_material_ids.resize(0);
 		_physical_materials.resize(0);
 		_physical_material_ids.resize(0);
 		_edit_previous_physical_materials.resize(0);
 		_edit_physical_material_ids.resize(0);
 		_field_states.resize(0);
-		_ui									= nullptr;
-		_root								= NULL_WIDGET;
-		_reflection_initialized				= false;
-		_edit_active						= false;
-		_refresh_physical_materials_pending = false;
+		_ui						= nullptr;
+		_root					= NULL_WIDGET;
+		_reflection_initialized = false;
+		_edit_active			= false;
 	}
 
 	void editor_widget_physical_material_editor_t::set_physical_materials(span_t<const sid_t> physical_materials)
 	{
-		if (!can_mutate_ui_topology())
-		{
-			request_physical_materials_refresh(physical_materials);
-			return;
-		}
-
 		clear_physical_material_edit();
 		clear_display();
 		_physical_materials.resize(0);
@@ -170,12 +161,6 @@ namespace sfg
 		_dividers.push_back(editor_dividers_t::add_divider_hor(*_ui, _root, editor_theme_t::get().divider_thickness * 2.0f, editor_theme_t::get().color_frame, editor_theme_t::get().color_frame, ui::vg_gradient_e::none));
 	}
 
-	bool editor_widget_physical_material_editor_t::can_mutate_ui_topology() const
-	{
-		const ui::ui_phase_e phase = _ui->get_phase();
-		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
-	}
-
 	void editor_widget_physical_material_editor_t::begin_physical_material_edit()
 	{
 		clear_physical_material_edit();
@@ -193,7 +178,10 @@ namespace sfg
 													  {.data = _edit_previous_physical_materials.data(), .size = _edit_previous_physical_materials.size()},
 													  {.data = _physical_materials.data(), .size = _physical_materials.size()});
 		clear_physical_material_edit();
-		request_display_refresh();
+
+		vector_t<sid_t> physical_material_ids = {};
+		physical_material_ids.assign(_physical_material_ids.begin(), _physical_material_ids.end());
+		set_physical_materials({.data = physical_material_ids.data(), .size = physical_material_ids.size()});
 	}
 
 	void editor_widget_physical_material_editor_t::clear_physical_material_edit()
@@ -201,35 +189,6 @@ namespace sfg
 		_edit_previous_physical_materials.resize(0);
 		_edit_physical_material_ids.resize(0);
 		_edit_active = false;
-	}
-
-	void editor_widget_physical_material_editor_t::request_physical_materials_refresh(span_t<const sid_t> physical_materials)
-	{
-		_pending_physical_material_ids.resize(0);
-		_pending_physical_material_ids.reserve(physical_materials.size);
-		for (size_t i = 0; i < physical_materials.size; ++i)
-			_pending_physical_material_ids.push_back(physical_materials.data[i]);
-		_refresh_physical_materials_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_widget_physical_material_editor_t::request_display_refresh()
-	{
-		_pending_physical_material_ids.assign(_physical_material_ids.begin(), _physical_material_ids.end());
-		_refresh_physical_materials_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_widget_physical_material_editor_t::flush_pending_ui_mutations()
-	{
-		if (!_refresh_physical_materials_pending)
-			return;
-
-		_refresh_physical_materials_pending = false;
-		vector_t<sid_t> physical_materials;
-		physical_materials.assign(_pending_physical_material_ids.begin(), _pending_physical_material_ids.end());
-		_pending_physical_material_ids.resize(0);
-		set_physical_materials({.data = physical_materials.data(), .size = physical_materials.size()});
 	}
 
 	void editor_widget_physical_material_editor_t::on_physical_material_edit_begin()
@@ -261,8 +220,4 @@ namespace sfg
 		static_cast<editor_widget_physical_material_editor_t*>(user_data)->on_physical_material_edit_submitted();
 	}
 
-	void editor_widget_physical_material_editor_t::on_ui_mutation(ui::ui_context&, void* user_data)
-	{
-		static_cast<editor_widget_physical_material_editor_t*>(user_data)->flush_pending_ui_mutations();
-	}
 }

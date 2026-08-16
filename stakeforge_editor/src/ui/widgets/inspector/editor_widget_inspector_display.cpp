@@ -61,54 +61,10 @@ namespace sfg
 
 	void editor_widget_inspector_t::refresh_display()
 	{
-		if (!can_mutate_ui_topology())
-		{
-			request_refresh_display();
-			return;
-		}
-
 		save_display_state();
 		clear_display();
 		if (!_display_entities.empty())
 			create_entity_display();
-	}
-
-	bool editor_widget_inspector_t::can_mutate_ui_topology() const
-	{
-		const ui::ui_phase_e phase = _ui->get_phase();
-		return phase == ui::ui_phase_e::idle || phase == ui::ui_phase_e::mutation || phase == ui::ui_phase_e::pre_layout;
-	}
-
-	void editor_widget_inspector_t::request_refresh_display()
-	{
-		_refresh_display_pending = true;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_widget_inspector_t::request_refresh_component_reflection(sid_t component_type)
-	{
-		_refresh_component_pending = true;
-		_pending_component_type	   = component_type;
-		_ui->request_unique_mutation(on_ui_mutation, this);
-	}
-
-	void editor_widget_inspector_t::flush_pending_ui_mutations()
-	{
-		if (_refresh_display_pending)
-		{
-			_refresh_display_pending   = false;
-			_refresh_component_pending = false;
-			refresh_display();
-			return;
-		}
-
-		if (_refresh_component_pending)
-		{
-			const sid_t component_type = _pending_component_type;
-			_refresh_component_pending = false;
-			_pending_component_type	   = 0;
-			refresh_component_reflection(component_type);
-		}
 	}
 
 	void editor_widget_inspector_t::save_display_state()
@@ -252,12 +208,6 @@ namespace sfg
 
 	void editor_widget_inspector_t::refresh_component_reflection(sid_t component_type)
 	{
-		if (!can_mutate_ui_topology())
-		{
-			request_refresh_component_reflection(component_type);
-			return;
-		}
-
 		component_display_t* display = find_component_display(component_type);
 		if (display == nullptr)
 			return;

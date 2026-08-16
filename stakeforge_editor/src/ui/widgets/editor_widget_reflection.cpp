@@ -114,7 +114,6 @@ namespace sfg
 
 	void editor_widget_reflection_t::uninit()
 	{
-		_ui->cancel_mutations(this);
 		clear_widgets();
 		if (_blocker != NULL_WIDGET)
 			_ui->deallocate_widget(_blocker);
@@ -135,7 +134,6 @@ namespace sfg
 
 	void editor_widget_reflection_t::set_reflection(const editor_widget_reflection_config_t& config)
 	{
-		_ui->cancel_mutations(this);
 		clear_widgets();
 
 		_fold_states			  = config.fold_states;
@@ -540,7 +538,7 @@ namespace sfg
 						   .item_count = static_cast<u16>(items.size()),
 						   .width	   = editor_dropdown_width_e::parent_relative,
 						   .pos_y	   = editor_dropdown_pos_y_e::center,
-						   .is_bitmask  = field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER_MASK,
+						   .is_bitmask = field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER_MASK,
 					   });
 
 		fit_control(dropdown->get_root());
@@ -1057,11 +1055,6 @@ namespace sfg
 		return data;
 	}
 
-	void editor_widget_reflection_t::request_container_refresh(container_user_data_t& data)
-	{
-		_ui->request_unique_mutation(on_container_refresh, &data);
-	}
-
 	void editor_widget_reflection_t::refresh_container(container_user_data_t& data)
 	{
 		clear_container_widgets(data.fold->get_body());
@@ -1353,9 +1346,13 @@ namespace sfg
 			data.field->container_ops.add_element_ptr_fn(container);
 		if (data.reflection->_callbacks.edited != nullptr)
 			data.reflection->_callbacks.edited(data.reflection->_callbacks.user_data);
-		data.reflection->request_container_refresh(data);
-		if (data.reflection->_callbacks.edit_submitted != nullptr)
-			data.reflection->_callbacks.edit_submitted(data.reflection->_callbacks.user_data);
+
+		const editor_widget_callback_fn edit_submitted	   = data.reflection->_callbacks.edit_submitted;
+		void* const						callback_user_data = data.reflection->_callbacks.user_data;
+		data.reflection->refresh_container(data);
+
+		if (edit_submitted != nullptr)
+			edit_submitted(callback_user_data);
 	}
 
 	void editor_widget_reflection_t::on_container_reset(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
@@ -1370,9 +1367,13 @@ namespace sfg
 			data.field->container_ops.reset_fn(container);
 		if (data.reflection->_callbacks.edited != nullptr)
 			data.reflection->_callbacks.edited(data.reflection->_callbacks.user_data);
-		data.reflection->request_container_refresh(data);
-		if (data.reflection->_callbacks.edit_submitted != nullptr)
-			data.reflection->_callbacks.edit_submitted(data.reflection->_callbacks.user_data);
+
+		const editor_widget_callback_fn edit_submitted	   = data.reflection->_callbacks.edit_submitted;
+		void* const						callback_user_data = data.reflection->_callbacks.user_data;
+		data.reflection->refresh_container(data);
+
+		if (edit_submitted != nullptr)
+			edit_submitted(callback_user_data);
 	}
 
 	void editor_widget_reflection_t::on_container_element_remove(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
@@ -1388,9 +1389,13 @@ namespace sfg
 			container_data.field->container_ops.remove_index_fn(container, data.element_index);
 		if (container_data.reflection->_callbacks.edited != nullptr)
 			container_data.reflection->_callbacks.edited(container_data.reflection->_callbacks.user_data);
-		container_data.reflection->request_container_refresh(container_data);
-		if (container_data.reflection->_callbacks.edit_submitted != nullptr)
-			container_data.reflection->_callbacks.edit_submitted(container_data.reflection->_callbacks.user_data);
+
+		const editor_widget_callback_fn edit_submitted	   = container_data.reflection->_callbacks.edit_submitted;
+		void* const						callback_user_data = container_data.reflection->_callbacks.user_data;
+		container_data.reflection->refresh_container(container_data);
+
+		if (edit_submitted != nullptr)
+			edit_submitted(callback_user_data);
 	}
 
 	void editor_widget_reflection_t::on_path_picker(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
@@ -1404,12 +1409,6 @@ namespace sfg
 			return;
 
 		data.input->set_text(path.c_str());
-	}
-
-	void editor_widget_reflection_t::on_container_refresh(ui::ui_context&, void* user_data)
-	{
-		container_user_data_t& data = *static_cast<container_user_data_t*>(user_data);
-		data.reflection->refresh_container(data);
 	}
 
 	void editor_widget_reflection_t::on_field_edit_begin(void* user_data)
@@ -1428,12 +1427,15 @@ namespace sfg
 
 	void editor_widget_reflection_t::on_field_edit_submitted(void* user_data)
 	{
-		editor_widget_reflection_t& reflection = *static_cast<editor_widget_reflection_t*>(user_data);
-		if (reflection._callbacks.edit_submitted != nullptr)
-			reflection._callbacks.edit_submitted(reflection._callbacks.user_data);
+		editor_widget_reflection_t&		reflection		   = *static_cast<editor_widget_reflection_t*>(user_data);
+		const editor_widget_callback_fn edit_submitted	   = reflection._callbacks.edit_submitted;
+		void* const						callback_user_data = reflection._callbacks.user_data;
 
 		if (!reflection._dependent_fields.empty())
 			reflection.refresh_dependency_visibility();
+
+		if (edit_submitted != nullptr)
+			edit_submitted(callback_user_data);
 	}
 
 	void editor_widget_reflection_t::install_tooltip(ui::widget_id_t owner, const char* text)
@@ -1522,10 +1524,7 @@ namespace sfg
 			_ui->deallocate_widget(divider);
 
 		for (container_user_data_t* data : _container_user_data)
-		{
-			_ui->cancel_mutations(data);
 			delete data;
-		}
 		for (container_element_user_data_t* data : _container_element_user_data)
 			delete data;
 		for (path_picker_user_data_t* data : _path_picker_user_data)

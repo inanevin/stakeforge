@@ -326,14 +326,26 @@ namespace sfg
 
 	void editor_scrollbar_t::set_scroll_immediate(axis_e axis, f32 value)
 	{
-		set_scroll(axis, value);
+		ui::layout_tree_t&	   tree	  = _ui->get_tree();
+		const ui::layout_in_t& in	  = tree.in_const(_config.target);
+		const f32			   scroll = math::min(align_scroll_value(value), 0.0f);
+
+		if (axis == axis_e::x)
+		{
+			if (in.scroll_offset.x != scroll)
+				tree.in(_config.target).scroll_offset.x = scroll;
+		}
+		else if (in.scroll_offset.y != scroll)
+		{
+			tree.in(_config.target).scroll_offset.y = scroll;
+		}
+
 		if (axis == axis_e::y)
 		{
-			const ui::layout_in_t& in = _ui->get_tree().in_const(_config.target);
-			_scroll_target_y		  = in.scroll_offset.y;
-			_scroll_value_y			  = in.scroll_offset.y;
-			_scroll_velocity_y		  = 0.0f;
-			_scroll_target_y_active	  = false;
+			_scroll_target_y		= scroll;
+			_scroll_value_y			= scroll;
+			_scroll_velocity_y		= 0.0f;
+			_scroll_target_y_active = false;
 		}
 	}
 

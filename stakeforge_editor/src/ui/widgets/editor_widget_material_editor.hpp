@@ -73,7 +73,6 @@ namespace sfg
 		void clear_display();
 		void fit_control(ui::widget_id_t widget);
 		void append_property_row(ui::widget_id_t row);
-		bool can_mutate_ui_topology() const;
 		bool load_shared_shader_definition();
 		void normalize_materials_to_shader_definition();
 		void begin_material_edit();
@@ -82,9 +81,6 @@ namespace sfg
 		void begin_shader_edit();
 		void submit_shader_edit();
 		void clear_shader_edit();
-		void request_materials_refresh(span_t<const sid_t> materials);
-		void request_display_refresh();
-		void flush_pending_ui_mutations();
 		void on_material_edit_begin();
 		void on_material_edited();
 		void on_material_edit_submitted();
@@ -98,7 +94,6 @@ namespace sfg
 		static void on_shader_edit_begin(void* user_data);
 		static void on_shader_edited(void* user_data);
 		static void on_shader_edit_submitted(void* user_data);
-		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 
 	private:
 		ui::ui_context* _ui	  = nullptr;
@@ -115,7 +110,6 @@ namespace sfg
 		vector_t<ui::widget_id_t>			 _rows							 = {};
 		vector_t<ui::widget_id_t>			 _dividers						 = {};
 		vector_t<ui::widget_id_t>			 _labels						 = {};
-		vector_t<sid_t>						 _pending_material_ids			 = {};
 		vector_t<material_def_t>			 _materials						 = {};
 		vector_t<sid_t>						 _material_ids					 = {};
 		vector_t<material_def_t>			 _edit_previous_materials		 = {};
@@ -125,6 +119,5 @@ namespace sfg
 		bool								 _has_shared_shader				 = false;
 		bool								 _edit_active					 = false;
 		bool								 _shader_edit_active			 = false;
-		bool								 _refresh_materials_pending		 = false;
 	};
 }

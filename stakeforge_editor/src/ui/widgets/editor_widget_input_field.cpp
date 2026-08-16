@@ -345,10 +345,14 @@ namespace sfg
 			_edit_active = false;
 			return;
 		}
-		if (_config.callbacks.edit_submitted != nullptr)
-			_config.callbacks.edit_submitted(_config.callbacks.user_data);
-		_edit_active = false;
-		_edit_dirty	 = false;
+
+		const editor_widget_callback_fn edit_submitted	   = _config.callbacks.edit_submitted;
+		void* const						callback_user_data = _config.callbacks.user_data;
+		_edit_active									   = false;
+		_edit_dirty										   = false;
+
+		if (edit_submitted != nullptr)
+			edit_submitted(callback_user_data);
 	}
 
 	void editor_input_field_t::modify_field()

@@ -169,17 +169,12 @@ namespace sfg
 		void append_asset_list_item(editor_asset_node_handle_t node);
 		void update_current_directory_label();
 		void update_import_button_state();
-		void restore_asset_grid_scroll(f32 scroll_y);
-		void apply_pending_asset_grid_scroll_restore();
 
 		folder_row_t& get_or_create_folder_row(size_t index);
 		void		  update_folder_row(folder_row_t& row, editor_asset_node_handle_t node, const char* name, u16 depth, u64 path_hash, bool has_children, bool is_folded, bool is_favourite);
 		void		  update_folder_row_background(const folder_row_t& row);
 		void		  set_folder_row_visible(const folder_row_t& row, bool visible);
 		void		  set_focus_state(bool focused);
-		bool		  can_mutate_ui_topology() const;
-		void		  request_ui_mutation();
-		void		  flush_pending_ui_mutations();
 		void		  notify_asset_selection_changed();
 
 		void select_folder_row(editor_asset_node_handle_t node, u64 path_hash, bool range_select = false, bool incremental_select = false);
@@ -294,8 +289,6 @@ namespace sfg
 		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_asset_tree_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_asset_grid_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
-		static void on_asset_grid_scroll_restore_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
-		static void on_ui_mutation(ui::ui_context& ui, void* user_data);
 		static void on_asset_grid_background_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_asset_grid_item_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_asset_grid_item_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
@@ -344,7 +337,6 @@ namespace sfg
 		u64										_selected_folder_hash			 = UINT64_MAX;
 		u64										_folder_selection_anchor		 = 0;
 		u64										_asset_grid_folder_hash			 = UINT64_MAX;
-		sid_t									_pending_show_asset_guid		 = NULL_SID;
 		editor_asset_node_handle_t				_selected_folder_node			 = {};
 		editor_asset_node_handle_t				_selected_asset_node			 = {};
 		editor_asset_node_handle_t				_asset_selection_anchor			 = {};
@@ -371,7 +363,6 @@ namespace sfg
 		u16										_create_asset_popup_command		 = 0;
 		u16										_pending_override_create_command = 0;
 		f32										_pane_split						 = 0.3f;
-		f32										_grid_restore_scroll_y			 = 0.0f;
 		asset_item_style_e						_asset_item_style				 = asset_item_style_e::grid;
 		asset_override_operation_e				_pending_override_operation		 = asset_override_operation_e::none;
 		bool									_favourites_only				 = false;
@@ -380,12 +371,8 @@ namespace sfg
 		bool									_create_folder_popup_pending	 = false;
 		bool									_rename_popup_pending			 = false;
 		bool									_asset_rename_popup_pending		 = false;
-		bool									_folder_rows_refresh_pending	 = false;
-		bool									_asset_grid_refresh_pending		 = false;
-		bool									_asset_grid_refresh_force		 = false;
 		bool									_asset_grid_body_size_valid		 = false;
 		bool									_asset_grid_rebuild_pending		 = false;
-		bool									_grid_scroll_restore_pending	 = false;
 		bool									_focused						 = false;
 	};
 }
