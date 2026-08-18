@@ -178,10 +178,6 @@ namespace sfg
 													  {.data = _edit_previous_physical_materials.data(), .size = _edit_previous_physical_materials.size()},
 													  {.data = _physical_materials.data(), .size = _physical_materials.size()});
 		clear_physical_material_edit();
-
-		vector_t<sid_t> physical_material_ids = {};
-		physical_material_ids.assign(_physical_material_ids.begin(), _physical_material_ids.end());
-		set_physical_materials({.data = physical_material_ids.data(), .size = physical_material_ids.size()});
 	}
 
 	void editor_widget_physical_material_editor_t::clear_physical_material_edit()

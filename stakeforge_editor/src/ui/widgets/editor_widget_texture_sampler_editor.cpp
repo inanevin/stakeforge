@@ -176,10 +176,6 @@ namespace sfg
 
 		editor_command_texture_sampler_edit_t::edit({.data = _edit_sampler_ids.data(), .size = _edit_sampler_ids.size()}, {.data = _edit_previous_samplers.data(), .size = _edit_previous_samplers.size()}, {.data = _samplers.data(), .size = _samplers.size()});
 		clear_sampler_edit();
-
-		vector_t<sid_t> sampler_ids = {};
-		sampler_ids.assign(_sampler_ids.begin(), _sampler_ids.end());
-		set_texture_samplers({.data = sampler_ids.data(), .size = sampler_ids.size()});
 	}
 
 	void editor_widget_texture_sampler_editor_t::clear_sampler_edit()
