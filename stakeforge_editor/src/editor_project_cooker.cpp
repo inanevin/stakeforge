@@ -52,7 +52,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_manifest.hpp>
 #include <sfg/runtime/scripting/script_runtime.hpp>
 #include <sfg/serialization/serialization.hpp>
-#include <sfg/vendor/taskflow/taskflow.hpp>
 
 namespace sfg
 {
@@ -67,14 +66,13 @@ namespace sfg
 		_package_meta	= make_unique<project_package_meta_t>();
 		_options_modal	= make_unique<editor_modal_project_cooker_t>();
 		_progress_modal = make_unique<editor_modal_progress_bar_t>();
+		_work_handle	= {};
+		_cook_state		= cook_state_e::idle;
 	}
 
 	void editor_project_cooker_t::uninit()
 	{
-		const cook_state_e cook_state = _cook_state.load(std::memory_order_acquire);
-
-		if (cook_state == cook_state_e::compiling_scripts || cook_state == cook_state_e::cooking)
-			editor_app_t::get().get_editor_work_executor().wait_for_all();
+		SFG_ASSERT(_work_handle.is_null());
 
 		_progress_modal.reset();
 		_options_modal.reset();
@@ -83,61 +81,13 @@ namespace sfg
 
 		_cook_failure_reason.resize(0);
 		_release_script_output_directory.resize(0);
-		_cook_state.store(cook_state_e::idle, std::memory_order_relaxed);
-	}
-
-	void editor_project_cooker_t::tick()
-	{
-		cook_state_e cook_state = _cook_state.load(std::memory_order_acquire);
-
-		if (cook_state == cook_state_e::idle || cook_state == cook_state_e::compiling_scripts || cook_state == cook_state_e::cooking)
-			return;
-
-		editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
-
-		if (cook_state == cook_state_e::scripts_compiled)
-		{
-			_progress_modal->set_progress(0.2f);
-			modal.set_body_text("Validating the Release C# script schema.");
-
-			if (!validate_release_script_schema())
-			{
-				cook_state = cook_state_e::failed;
-				_cook_state.store(cook_state, std::memory_order_relaxed);
-			}
-			else
-			{
-				_progress_modal->set_progress(0.3f);
-				modal.set_body_text("Preparing the project package.");
-				_cook_state.store(cook_state_e::cooking, std::memory_order_relaxed);
-
-				const string_t target_path			   = editor_project_t::get()._runtime.cook_path + project_package_meta_t::FILE_NAME;
-				const string_t script_output_directory = _release_script_output_directory;
-
-				editor_app_t::get().get_editor_work_executor().silent_async([this, target_path, script_output_directory]() {
-					const cook_state_e result = cook_project_worker(target_path.c_str(), script_output_directory.c_str()) ? cook_state_e::succeeded : cook_state_e::failed;
-					_cook_state.store(result, std::memory_order_release);
-				});
-				return;
-			}
-		}
-
-		modal.close_modal();
-		_cook_state.store(cook_state_e::idle, std::memory_order_relaxed);
-
-		if (cook_state == cook_state_e::failed)
-		{
-			const editor_modal_button_desc_t buttons[] = {
-				{.text = "Close"},
-			};
-
-			modal.request_modal("Cook Project Failed", _cook_failure_reason.c_str(), buttons, static_cast<u16>(std::size(buttons)), editor_modal_severity_e::error);
-		}
+		_target_path.resize(0);
+		_cook_state = cook_state_e::idle;
 	}
 
 	void editor_project_cooker_t::request_cook()
 	{
-		SFG_ASSERT(_cook_state.load(std::memory_order_relaxed) == cook_state_e::idle);
+		SFG_ASSERT(_cook_state == cook_state_e::idle);
 
 		editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
 
@@ -146,7 +96,7 @@ namespace sfg
 
 	void editor_project_cooker_t::cook_project(const editor_project_cook_options_t& options)
 	{
-		SFG_ASSERT(_cook_state.load(std::memory_order_relaxed) == cook_state_e::idle);
+		SFG_ASSERT(_cook_state == cook_state_e::idle);
 
 		editor_modal_controller_t&		 modal	   = *editor_surface_controller_t::get().get_main_surface().modal_controller;
 		const editor_modal_button_desc_t buttons[] = {
@@ -187,37 +137,43 @@ namespace sfg
 			return;
 		}
 
-		editor_app_t::get().get_editor_work_executor().wait_for_all();
-
 		*_cook_options = options;
 		_cook_failure_reason.resize(0);
 		_release_script_output_directory.resize(0);
+		_target_path.resize(0);
 
-		_cook_state.store(cook_state_e::compiling_scripts, std::memory_order_relaxed);
+		_cook_state = cook_state_e::compiling_scripts;
 
 		_progress_modal->set_progress(0.0f);
 		const editor_modal_content_desc_t content = _progress_modal->get_content_desc();
 		modal.request_modal("Cooking Project", "Compiling Release C# scripts.", false, nullptr, 0, &content);
 
-		const string_t script_project_path = editor_project_t::get()._runtime.script_project_path;
-
-		editor_app_t::get().get_editor_work_executor().silent_async([this, script_project_path]() {
-			script_compile_result_t result = script_compiler_t::compile(script_project_path.c_str(), script_build_configuration_e::release);
-
-			if (!result.success)
-			{
-				_cook_failure_reason = "Release C# script compilation failed.";
-
-				if (!result.diagnostics.empty())
-					_cook_failure_reason += string_t("\n\n") + result.diagnostics;
-
-				_cook_state.store(cook_state_e::failed, std::memory_order_release);
-				return;
-			}
-
-			_release_script_output_directory = std::move(result.output_directory);
-			_cook_state.store(cook_state_e::scripts_compiled, std::memory_order_release);
+		_work_handle = editor_app_t::get().get_work_controller().submit_work({
+			.fn				= [](editor_work_context_t& context, void* user_data) { return static_cast<editor_project_cooker_t*>(user_data)->compile_scripts_worker(); },
+			.completed		= [](editor_work_handle_t handle, editor_work_state_e state, void* user_data) { static_cast<editor_project_cooker_t*>(user_data)->complete_work(handle, state == editor_work_state_e::succeeded); },
+			.user_data		= this,
+			.initial_status = "Compiling Release C# scripts",
 		});
+	}
+
+	bool editor_project_cooker_t::compile_scripts_worker()
+	{
+		const string_t			script_project_path = editor_project_t::get()._runtime.script_project_path;
+		script_compile_result_t result				= script_compiler_t::compile(script_project_path.c_str(), script_build_configuration_e::release);
+
+		if (!result.success)
+		{
+			_cook_failure_reason = "Release C# script compilation failed.";
+
+			if (!result.diagnostics.empty())
+				_cook_failure_reason += string_t("\n\n") + result.diagnostics;
+
+			return false;
+		}
+
+		_release_script_output_directory = std::move(result.output_directory);
+
+		return true;
 	}
 
 	bool editor_project_cooker_t::validate_release_script_schema()
@@ -259,7 +215,7 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_project_cooker_t::cook_project_worker(const char* target_path, const char* script_output_directory)
+	bool editor_project_cooker_t::cook_project_worker()
 	{
 		if (!file_system_t::ensure_directory(editor_project_t::get()._runtime.cook_path.c_str()))
 		{
@@ -609,16 +565,62 @@ namespace sfg
 			return false;
 		}
 
-		if (!serializer_t::save_to_file_atomic(target_path, meta_stream))
+		if (!serializer_t::save_to_file_atomic(_target_path.c_str(), meta_stream))
 		{
 			_cook_failure_reason = "Failed to write project package metadata.";
 			return false;
 		}
 
-		if (!publish_game_files(script_output_directory))
+		if (!publish_game_files(_release_script_output_directory.c_str()))
 			return false;
 
 		return true;
+	}
+
+	void editor_project_cooker_t::complete_work(editor_work_handle_t work_handle, bool succeeded)
+	{
+		SFG_ASSERT(work_handle == _work_handle);
+		SFG_ASSERT(_cook_state == cook_state_e::compiling_scripts || _cook_state == cook_state_e::cooking);
+
+		_work_handle = {};
+
+		editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
+
+		if (_cook_state == cook_state_e::compiling_scripts && succeeded)
+		{
+			_progress_modal->set_progress(0.2f);
+			modal.set_body_text("Validating the Release C# script schema.");
+
+			if (validate_release_script_schema())
+			{
+				_progress_modal->set_progress(0.3f);
+				modal.set_body_text("Preparing the project package.");
+
+				_target_path = editor_project_t::get()._runtime.cook_path + project_package_meta_t::FILE_NAME;
+				_cook_state	 = cook_state_e::cooking;
+				_work_handle = editor_app_t::get().get_work_controller().submit_work({
+					.fn				= [](editor_work_context_t& context, void* user_data) { return static_cast<editor_project_cooker_t*>(user_data)->cook_project_worker(); },
+					.completed		= [](editor_work_handle_t handle, editor_work_state_e state, void* user_data) { static_cast<editor_project_cooker_t*>(user_data)->complete_work(handle, state == editor_work_state_e::succeeded); },
+					.user_data		= this,
+					.initial_status = "Preparing the project package",
+				});
+				return;
+			}
+
+			succeeded = false;
+		}
+
+		_cook_state = cook_state_e::idle;
+		modal.close_modal();
+
+		if (!succeeded)
+		{
+			const editor_modal_button_desc_t buttons[] = {
+				{.text = "Close"},
+			};
+
+			modal.request_modal("Cook Project Failed", _cook_failure_reason.c_str(), buttons, static_cast<u16>(std::size(buttons)), editor_modal_severity_e::error);
+		}
 	}
 
 	bool editor_project_cooker_t::publish_game_files(const char* script_output_directory)

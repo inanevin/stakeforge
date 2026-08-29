@@ -28,13 +28,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/atomic.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/unique.hpp>
+#include <sfg/memory/pool_handle.hpp>
 
 namespace sfg
 {
 	struct editor_project_cook_options_t;
+	struct editor_work_handle_tag_t;
 	struct project_package_meta_t;
 	class editor_modal_progress_bar_t;
 	class editor_modal_project_cooker_t;
@@ -59,7 +60,6 @@ namespace sfg
 
 		void init();
 		void uninit();
-		void tick();
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -73,23 +73,24 @@ namespace sfg
 		{
 			idle,
 			compiling_scripts,
-			scripts_compiled,
 			cooking,
-			succeeded,
-			failed,
 		};
 
+		bool compile_scripts_worker();
 		bool validate_release_script_schema();
-		bool cook_project_worker(const char* target_path, const char* script_output_directory);
+		bool cook_project_worker();
+		void complete_work(pool_handle_t<u32, editor_work_handle_tag_t> work_handle, bool succeeded);
 		bool publish_game_files(const char* script_output_directory);
 
 	private:
-		string_t								_cook_failure_reason			 = {};
-		string_t								_release_script_output_directory = {};
-		unique_t<editor_project_cook_options_t> _cook_options;
-		unique_t<project_package_meta_t>		_package_meta;
-		unique_t<editor_modal_project_cooker_t> _options_modal;
-		unique_t<editor_modal_progress_bar_t>	_progress_modal;
-		atomic_t<cook_state_e>					_cook_state = cook_state_e::idle;
+		string_t									 _cook_failure_reason			  = {};
+		string_t									 _release_script_output_directory = {};
+		string_t									 _target_path					  = {};
+		unique_t<editor_project_cook_options_t>		 _cook_options;
+		unique_t<project_package_meta_t>			 _package_meta;
+		unique_t<editor_modal_project_cooker_t>		 _options_modal;
+		unique_t<editor_modal_progress_bar_t>		 _progress_modal;
+		pool_handle_t<u32, editor_work_handle_tag_t> _work_handle = {};
+		cook_state_e								 _cook_state  = cook_state_e::idle;
 	};
 }

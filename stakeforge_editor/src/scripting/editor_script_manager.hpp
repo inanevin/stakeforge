@@ -30,8 +30,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "script_compiler.hpp"
 #include "ui/editor_modal_progress_bar.hpp"
 
-#include <sfg/data/atomic.hpp>
-
 namespace sfg
 {
 	class editor_script_manager_t final
@@ -55,7 +53,6 @@ namespace sfg
 
 		void init();
 		void uninit();
-		void tick();
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -74,7 +71,7 @@ namespace sfg
 
 		inline bool is_compile_idle() const
 		{
-			return _compile_state.load(std::memory_order_acquire) == compile_state_e::idle;
+			return _compile_state == compile_state_e::idle;
 		}
 
 		inline bool is_active_assembly_current() const
@@ -87,20 +84,17 @@ namespace sfg
 		{
 			idle,
 			compiling,
-			succeeded,
-			failed,
 		};
 
-		void start_compile();
+		void complete_compile(bool succeeded);
 		bool activate_staged_scripts();
 
 	private:
 		script_compile_result_t		_compile_result				  = {};
 		editor_modal_progress_bar_t _progress_modal				  = {};
-		atomic_t<compile_state_e>	_compile_state				  = compile_state_e::idle;
-		bool						_initialized				  = false;
-		bool						_compile_requested			  = false;
-		bool						_modal_open					  = false;
+		string_t					_compile_project_path		  = {};
+		string_t					_compile_publish_directory	  = {};
+		compile_state_e				_compile_state				  = compile_state_e::idle;
 		bool						_initial_activation_completed = false;
 		bool						_active_assembly_current	  = false;
 	};

@@ -29,12 +29,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_glb_import_util.hpp"
 #include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_builtin_types.hpp"
+#include "assets/editor_asset_importer.hpp"
 #include "assets/editor_asset_path.hpp"
 #include "assets/editor_asset_util.hpp"
 #include "assets/editor_asset_writer.hpp"
-#include "editor_app.hpp"
 #include "editor_directories.hpp"
 #include "editor_project.hpp"
+#include <sfg/data/hash_map.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
@@ -56,7 +57,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/vendor/nhlohmann/json.hpp>
 #include <sfg/vendor/stb/stb_image.h>
 #include <sfg/vendor/stb/stb_image_write.h>
-#include <sfg/vendor/taskflow/taskflow.hpp>
 
 #define TINYGLTF3_IMPLEMENTATION
 #include <sfg/vendor/tinygltf/tiny_gltf_v3.h>
@@ -797,7 +797,7 @@ namespace sfg
 							 const tg3_skin&					  skin,
 							 const glb_basis_conversion_t&		  basis,
 							 u32								  skin_index,
-							 mat4x3_t&						  out_bind_correction,
+							 mat4x3_t&							  out_bind_correction,
 							 hash_map_t<u32, sid_t>&			  skeleton_guid_map,
 							 glb_asset_name_registry_t&			  asset_names,
 							 const editor_asset_import_context_t& context,
@@ -945,12 +945,12 @@ namespace sfg
 				for (u32 joint_index : skeleton.evaluation_order)
 				{
 					const skeleton_joint_def_t& joint = skeleton.joints[joint_index];
-					bind_globals[joint_index] = joint.parent_index == SKELETON_JOINT_NO_PARENT ? joint.local : bind_globals[joint.parent_index] * joint.local;
+					bind_globals[joint_index]		  = joint.parent_index == SKELETON_JOINT_NO_PARENT ? joint.local : bind_globals[joint.parent_index] * joint.local;
 				}
 
 				const u32 correction_joint_index = skeleton.root_joint_index != SKELETON_JOINT_NO_PARENT ? skeleton.root_joint_index : skeleton.evaluation_order.front();
 				out_bind_correction				 = bind_globals[correction_joint_index] * skeleton.joints[correction_joint_index].inverse_bind;
-				skeleton.skinning_transform	 = out_bind_correction.inverse();
+				skeleton.skinning_transform		 = out_bind_correction.inverse();
 			}
 
 			nlohmann::json embedded_source = nlohmann::json::object();
@@ -2205,39 +2205,26 @@ namespace sfg
 
 				vector_t<glb_texture_import_result_t> texture_import_results = {};
 				texture_import_results.resize(texture_imports.size());
-				std::atomic<u32> textures_finished = 0;
-
-				tf::Taskflow texture_import_flow = {};
 
 				for (u32 import_index = 0; import_index < texture_imports.size(); ++import_index)
 				{
-					texture_import_flow.emplace([&, import_index]() {
-						const glb_texture_import_t&			texture_import	= texture_imports[import_index];
-						glb_texture_import_result_t&		import_result	= texture_import_results[import_index];
-						const tg3_texture&					texture			= model.textures[texture_import.texture_index];
-						const editor_asset_import_context_t texture_context = {};
+					const glb_texture_import_t&			texture_import	= texture_imports[import_index];
+					glb_texture_import_result_t&		import_result	= texture_import_results[import_index];
+					const tg3_texture&					texture			= model.textures[texture_import.texture_index];
+					const editor_asset_import_context_t texture_context = {};
 
-						import_result.success =
-							import_texture(target_directory, source_full_path, model, texture, texture_config, texture_import.asset_name, texture_import.texture_index, texture_import.is_linear, texture_context, import_result.asset, import_result.asset_path);
+					import_result.success =
+						import_texture(target_directory, source_full_path, model, texture, texture_config, texture_import.asset_name, texture_import.texture_index, texture_import.is_linear, texture_context, import_result.asset, import_result.asset_path);
 
-						if (import_result.success)
-							import_result.guid = import_result.asset.guid;
+					if (import_result.success)
+						import_result.guid = import_result.asset.guid;
 
-						const u32 finished		 = textures_finished.fetch_add(1, std::memory_order_relaxed) + 1;
-						string_t  texture_status = "Importing textures ";
-						texture_status += std::to_string(finished);
-						texture_status += "/";
-						texture_status += std::to_string(texture_imports.size());
-						context.report_status(texture_status.c_str());
-					});
+					string_t texture_status = "Importing textures ";
+					texture_status += std::to_string(import_index + 1);
+					texture_status += "/";
+					texture_status += std::to_string(texture_imports.size());
+					context.report_status(texture_status.c_str());
 				}
-
-				tf::Executor& editor_work_executor = editor_app_t::get().get_editor_work_executor();
-
-				if (editor_work_executor.this_worker() != nullptr)
-					editor_work_executor.corun(texture_import_flow);
-				else
-					editor_work_executor.run(texture_import_flow).wait();
 
 				for (const glb_texture_import_result_t& import_result : texture_import_results)
 					result = import_result.success && result;
@@ -2323,8 +2310,21 @@ namespace sfg
 
 					if (result)
 					{
-						if (!import_prefab(
-								target_directory, source_full_path, model, basis, mesh_guid_map, skeleton_guid_map, skin_bind_corrections, collision_guid_map, material_guid_map, asset_names, context, combined_mesh_guid, combined_collision_guid, out_assets, out_asset_paths))
+						if (!import_prefab(target_directory,
+										   source_full_path,
+										   model,
+										   basis,
+										   mesh_guid_map,
+										   skeleton_guid_map,
+										   skin_bind_corrections,
+										   collision_guid_map,
+										   material_guid_map,
+										   asset_names,
+										   context,
+										   combined_mesh_guid,
+										   combined_collision_guid,
+										   out_assets,
+										   out_asset_paths))
 						{
 							SFG_ERR("failed to import GLB prefab");
 							result = false;

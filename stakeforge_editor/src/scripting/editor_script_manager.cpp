@@ -36,81 +36,46 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/scripting/script_runtime.hpp>
-#include <sfg/vendor/taskflow/taskflow.hpp>
 
 namespace sfg
 {
 	void editor_script_manager_t::init()
 	{
-		SFG_ASSERT(!_initialized);
-
 		_compile_result = {};
-		_compile_state.store(compile_state_e::idle, std::memory_order_relaxed);
-		_initialized				  = true;
-		_compile_requested			  = false;
-		_modal_open					  = false;
+		_compile_project_path.resize(0);
+		_compile_publish_directory.resize(0);
+		_compile_state				  = compile_state_e::idle;
 		_initial_activation_completed = false;
 		_active_assembly_current	  = false;
 	}
 
 	void editor_script_manager_t::uninit()
 	{
-		SFG_ASSERT(_initialized);
-
-		if (_compile_state.load(std::memory_order_acquire) == compile_state_e::compiling)
-			editor_app_t::get().get_editor_work_executor().wait_for_all();
-
 		script_runtime_t& script_runtime = script_runtime_t::get();
 
 		if (script_runtime.is_project_assembly_staged())
 			script_runtime.discard_staged_project_assembly();
 
 		_compile_result = {};
-		_compile_state.store(compile_state_e::idle, std::memory_order_relaxed);
-		_initialized				  = false;
-		_compile_requested			  = false;
-		_modal_open					  = false;
+		_compile_project_path.resize(0);
+		_compile_publish_directory.resize(0);
+		_compile_state				  = compile_state_e::idle;
 		_initial_activation_completed = false;
 		_active_assembly_current	  = false;
 	}
 
-	void editor_script_manager_t::tick()
+	void editor_script_manager_t::complete_compile(bool succeeded)
 	{
-		SFG_ASSERT(_initialized);
-
-		const compile_state_e compile_state = _compile_state.load(std::memory_order_acquire);
-
-		if (compile_state == compile_state_e::idle)
+		if (editor_surface_controller_t::get().is_empty())
 		{
-			if (_compile_requested)
-			{
-				_compile_requested = false;
-				start_compile();
-			}
-
+			_compile_state = compile_state_e::idle;
 			return;
 		}
 
-		if (compile_state == compile_state_e::compiling)
-			return;
-
-		if (_compile_requested)
-		{
-			_compile_requested = false;
-			_compile_state.store(compile_state_e::idle, std::memory_order_relaxed);
-
-			start_compile();
-			return;
-		}
-
-		editor_modal_controller_t& modal	 = *editor_surface_controller_t::get().get_main_surface().modal_controller;
-		bool					   succeeded = compile_state == compile_state_e::succeeded;
+		editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
 
 		if (succeeded)
 		{
-			_progress_modal.set_progress(0.75f);
-			modal.set_body_text("Loading the compiled C# assembly.");
-
 			script_runtime_t& script_runtime = script_runtime_t::get();
 
 			if (script_runtime.is_project_assembly_staged())
@@ -134,8 +99,7 @@ namespace sfg
 
 		_progress_modal.set_progress(1.0f);
 		modal.close_modal();
-		_modal_open = false;
-		_compile_state.store(compile_state_e::idle, std::memory_order_relaxed);
+		_compile_state = compile_state_e::idle;
 
 		if (succeeded)
 		{
@@ -158,20 +122,7 @@ namespace sfg
 
 	void editor_script_manager_t::compile_scripts()
 	{
-		SFG_ASSERT(_initialized);
-
-		if (_compile_state.load(std::memory_order_acquire) != compile_state_e::idle)
-		{
-			_compile_requested = true;
-			return;
-		}
-
-		start_compile();
-	}
-
-	void editor_script_manager_t::start_compile()
-	{
-		SFG_ASSERT(_compile_state.load(std::memory_order_relaxed) == compile_state_e::idle);
+		SFG_ASSERT(_compile_state == compile_state_e::idle);
 
 		_compile_result			 = {};
 		_active_assembly_current = false;
@@ -179,26 +130,32 @@ namespace sfg
 
 		editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
 
-		if (_modal_open)
-			modal.set_body_text("Building the C# script project.");
-		else
-		{
-			const editor_modal_content_desc_t content = _progress_modal.get_content_desc();
-			modal.request_modal("Compiling C# Scripts", "Building the C# script project.", false, nullptr, 0, &content);
-			_modal_open = true;
-		}
+		const editor_modal_content_desc_t content = _progress_modal.get_content_desc();
+		modal.request_modal("Compiling C# Scripts", "Building the C# script project.", false, nullptr, 0, &content);
 
-		const editor_project_runtime_t& project_runtime	  = editor_project_t::get()._runtime;
-		const string_t					project_path	  = project_runtime.script_project_path;
-		const string_t					publish_directory = project_runtime.script_library_path;
+		const editor_project_runtime_t& project_runtime = editor_project_t::get()._runtime;
 
-		_compile_state.store(compile_state_e::compiling, std::memory_order_relaxed);
-		editor_app_t::get().get_editor_work_executor().silent_async([this, project_path, publish_directory]() {
-			script_compile_result_t result = script_compiler_t::compile(project_path.c_str(), script_build_configuration_e::debug, publish_directory.c_str());
-			const compile_state_e	state  = result.success ? compile_state_e::succeeded : compile_state_e::failed;
+		_compile_project_path	   = project_runtime.script_project_path;
+		_compile_publish_directory = project_runtime.script_library_path;
+		_compile_state			   = compile_state_e::compiling;
 
-			_compile_result = std::move(result);
-			_compile_state.store(state, std::memory_order_release);
+		editor_app_t::get().get_work_controller().submit_work({
+			.fn =
+				[](editor_work_context_t& context, void* user_data) {
+					editor_script_manager_t& script_manager = *static_cast<editor_script_manager_t*>(user_data);
+
+					script_manager._compile_result = script_compiler_t::compile(script_manager._compile_project_path.c_str(), script_build_configuration_e::debug, script_manager._compile_publish_directory.c_str());
+
+					return script_manager._compile_result.success;
+				},
+			.completed =
+				[](editor_work_handle_t handle, editor_work_state_e state, void* user_data) {
+					editor_script_manager_t& script_manager = *static_cast<editor_script_manager_t*>(user_data);
+
+					script_manager.complete_compile(state == editor_work_state_e::succeeded);
+				},
+			.user_data		= this,
+			.initial_status = "Building the C# script project",
 		});
 	}
 
@@ -236,13 +193,10 @@ namespace sfg
 			editor_world_controller_t::get().complete_script_assembly_reload();
 		}
 
-		if (!editor_surface_controller_t::get().is_empty())
-		{
-			editor_panel_t* inspector_panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::inspector);
+		editor_panel_t* inspector_panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::inspector);
 
-			if (inspector_panel != nullptr)
-				static_cast<editor_panel_inspector_t*>(inspector_panel)->refresh_display();
-		}
+		if (inspector_panel != nullptr)
+			static_cast<editor_panel_inspector_t*>(inspector_panel)->refresh_display();
 
 		SFG_INFO("activated C# scripts. Components: {0} added, {1} removed, {2} migrated, {3} reflection-only changes.", delta.added.size(), delta.removed.size(), delta.layout_changed.size(), delta.reflection_changed.size());
 		return true;

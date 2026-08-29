@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset_manager.hpp"
 #include "editor_command_system.hpp"
 #include "editor_renderer.hpp"
+#include "editor_work_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/editor_modal_progress_bar.hpp"
 #include "ui/editor_payload_controller.hpp"
@@ -37,8 +38,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/engine/engine_runtime_config.hpp>
 #include <sfg/runtime/resources/resource_preload.hpp>
-#include <sfg/vendor/taskflow/core/declarations.hpp>
-#include <sfg/data/mutex.hpp>
 
 namespace sfg
 {
@@ -54,11 +53,10 @@ namespace sfg
 
 	struct editor_app_config_t
 	{
-		engine_runtime_config_t		   engine							 = {};
-		editor_command_system_config_t command_system					 = {};
-		editor_renderer_config_t	   renderer							 = {};
-		size_t						   main_frame_budget_bytes			 = 4ull * 1024ull * 1024ull;
-		u32							   editor_work_executor_thread_count = 4;
+		engine_runtime_config_t		   engine				   = {};
+		editor_command_system_config_t command_system		   = {};
+		editor_renderer_config_t	   renderer				   = {};
+		size_t						   main_frame_budget_bytes = 4ull * 1024ull * 1024ull;
 	};
 
 	class editor_app_t final
@@ -98,11 +96,6 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline tf::Executor& get_editor_work_executor()
-		{
-			return *_editor_work_executor;
-		}
-
 		inline bool is_debug_mode_enabled() const
 		{
 			return _debug_mode;
@@ -113,6 +106,11 @@ namespace sfg
 			return _world_controller;
 		}
 
+		inline editor_work_controller_t& get_work_controller()
+		{
+			return _work_controller;
+		}
+
 		inline editor_command_system_t& get_command_system()
 		{
 			return _command_system;
@@ -121,7 +119,6 @@ namespace sfg
 	private:
 		bool		init_normal_mode();
 		void		uninit_normal_mode();
-		static void on_project_assets_progress(void* user_data, f32 progress, const char* progress_text);
 		static u8	get_script_game_render_resolution(vec2u16_t& out_resolution);
 		static u8	set_script_game_render_resolution(const vec2u16_t& resolution);
 		static u8	load_script_game_world(sid_t world_name_hash);
@@ -135,20 +132,19 @@ namespace sfg
 		editor_renderer_t			_renderer;
 		editor_command_system_t		_command_system;
 		editor_world_controller_t	_world_controller;
+		editor_work_controller_t	_work_controller;
 		resource_preload_t			_editor_resource_preload;
 		resource_preload_t			_engine_resource_preload;
 		editor_payload_controller_t _payload_controller;
 		editor_modal_progress_bar_t _debug_progress_modal;
-		unique_t<tf::Executor>		_editor_work_executor;
-		string_t					_splash_progress_text;
-		mutex_t						_splash_progress_text_mutex;
-		i64							_last_tick_us				= 0;
-		f32							_debug_modal_progress		= 0.0f;
-		atomic_t<f32>				_splash_progress			= 0.0f;
-		atomic_t<bool>				_splash_progress_text_dirty = false;
-		atomic_t<editor_app_mode_e> _pending_mode				= editor_app_mode_e::none;
-		editor_app_mode_e			_mode						= editor_app_mode_e::none;
-		bool						_debug_mode					= false;
-		bool						_normal_world_load_pending	= false;
+		editor_work_status_t		_splash_work_status = {};
+		string_t					_splash_displayed_progress_text;
+		i64							_last_tick_us			   = 0;
+		f32							_debug_modal_progress	   = 0.0f;
+		editor_work_handle_t		_splash_work			   = {};
+		atomic_t<editor_app_mode_e> _pending_mode			   = editor_app_mode_e::none;
+		editor_app_mode_e			_mode					   = editor_app_mode_e::none;
+		bool						_debug_mode				   = false;
+		bool						_normal_world_load_pending = false;
 	};
 }

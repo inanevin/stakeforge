@@ -55,7 +55,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/scripting/api/script_api_platform.hpp>
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/vendor/taskflow/taskflow.hpp>
 #include <tracy/Tracy.hpp>
 
 namespace sfg
@@ -67,21 +66,6 @@ namespace sfg
 
 	editor_app_t::editor_app_t()  = default;
 	editor_app_t::~editor_app_t() = default;
-
-	void editor_app_t::on_project_assets_progress(void* user_data, f32 progress, const char* progress_text)
-	{
-		editor_app_t& app = *static_cast<editor_app_t*>(user_data);
-
-		app._splash_progress.store(progress, std::memory_order_release);
-		{
-			LOCK_GUARD(app._splash_progress_text_mutex);
-			app._splash_progress_text = progress_text;
-		}
-
-		app._splash_progress_text_dirty.store(true, std::memory_order_release);
-		if (progress >= 1.0f)
-			app.request_switch_mode(editor_app_mode_e::normal);
-	}
 
 	u8 editor_app_t::get_script_game_render_resolution(vec2u16_t& out_resolution)
 	{
@@ -152,7 +136,6 @@ namespace sfg
 	{
 		SFG_ASSERT(config.main_frame_budget_bytes != 0);
 		SFG_ASSERT(config.renderer.frame_budget_bytes != 0);
-		SFG_ASSERT(config.editor_work_executor_thread_count != 0);
 
 		_config = config;
 
@@ -231,7 +214,7 @@ namespace sfg
 		editor_surface_controller_t::get().init(_renderer, _payload_controller);
 
 		frame_allocator_tls_t::init(config.main_frame_budget_bytes);
-		_editor_work_executor = make_unique<tf::Executor>(config.editor_work_executor_thread_count);
+		_work_controller.init();
 
 		const string_t& last_project = editor_settings_t::get().last_project_path;
 		if (!last_project.empty() && file_system_t::exists(last_project.c_str()))
@@ -249,8 +232,7 @@ namespace sfg
 
 		if (editor_surface_controller_t::get().is_empty())
 		{
-			_editor_work_executor->wait_for_all();
-			_editor_work_executor.reset();
+			_work_controller.uninit();
 			editor_surface_controller_t::get().uninit();
 			_renderer.uninit();
 			_editor_resource_preload.uninit();
@@ -281,21 +263,28 @@ namespace sfg
 
 		stop_render();
 		resource_manager_t::get().flush();
-		_editor_work_executor->wait_for_all();
+
+		if (_mode == editor_app_mode_e::normal)
+			uninit_normal_mode();
+		else
+			_work_controller.wait_for_all();
+
+		_work_controller.uninit();
 		_renderer.uninit();
 		_editor_resource_preload.uninit();
 		_engine_resource_preload.uninit();
 
-		if (_mode == editor_app_mode_e::normal)
-			uninit_normal_mode();
+		SFG_ASSERT(_splash_work.is_null());
 
 		_asset_manager.uninit();
-		_editor_work_executor.reset();
 		surfaces.uninit();
 		runtime.uninit();
 		runtime.uninit_globals();
 		runtime.uninit_backend();
 		frame_allocator_tls_t::uninit();
+		_splash_work_status = {};
+		_splash_displayed_progress_text.resize(0);
+		_pending_mode.store(editor_app_mode_e::none, std::memory_order_relaxed);
 		_config = {};
 		_mode	= editor_app_mode_e::none;
 	}
@@ -425,11 +414,13 @@ namespace sfg
 
 	void editor_app_t::uninit_normal_mode()
 	{
+		_asset_manager.flush_asset_cook_jobs();
+		_work_controller.wait_for_all();
+
 		_asset_manager.uninitialize_script_file_tracking();
 		editor_script_manager_t::get().uninit();
 		editor_project_cooker_t::get().uninit();
 
-		_asset_manager.flush_asset_cook_jobs();
 		editor_thumbnail_render_service_t::get().uninit();
 		editor_asset_thumbnail_manager_t::get().uninit();
 		_world_controller.uninit();
@@ -467,7 +458,7 @@ namespace sfg
 		}
 		else if (mode == editor_app_mode_e::splash || mode == editor_app_mode_e::project_creator)
 		{
-			vector_t<monitor_info_t> monitors;
+			vector_t<monitor_info_t> monitors = {};
 			process::get_all_monitors(monitors);
 			const monitor_info_t& monitor = process::find_primary_monitor(monitors);
 
@@ -484,14 +475,30 @@ namespace sfg
 			if (mode == editor_app_mode_e::splash)
 			{
 				editor_project_t& proj = editor_project_t::get();
+
 				engine_runtime_t::get().get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
-				_splash_progress.store(0.0f, std::memory_order_release);
-				{
-					LOCK_GUARD(_splash_progress_text_mutex);
-					_splash_progress_text = "Ensuring default assets";
-				}
-				_splash_progress_text_dirty.store(true, std::memory_order_release);
-				editor_asset_manager_util_t::ensure_project_assets_async(_asset_manager, get_editor_work_executor(), on_project_assets_progress, this);
+
+				_splash_work_status = {};
+				_splash_displayed_progress_text.resize(0);
+				_splash_work = _work_controller.submit_work({
+					.fn =
+						[](editor_work_context_t& context, void* user_data) {
+							editor_app_t& app = *static_cast<editor_app_t*>(user_data);
+
+							return editor_asset_manager_util_t::ensure_project_assets(app._asset_manager, context);
+						},
+					.completed =
+						[](editor_work_handle_t handle, editor_work_state_e state, void* user_data) {
+							editor_app_t& app = *static_cast<editor_app_t*>(user_data);
+
+							SFG_ASSERT(handle == app._splash_work);
+
+							app._splash_work = {};
+							app.request_switch_mode(editor_app_mode_e::normal);
+						},
+					.user_data		= this,
+					.initial_status = "Ensuring default assets",
+				});
 			}
 		}
 
@@ -549,12 +556,11 @@ namespace sfg
 			_editor_resource_preload.tick();
 
 			resource_manager_t::get().flush();
+			_work_controller.tick();
 
 			if (_mode == editor_app_mode_e::normal)
 			{
 				editor_script_manager_t& script_manager = editor_script_manager_t::get();
-
-				script_manager.tick();
 
 				if (_normal_world_load_pending && script_manager.is_initial_activation_completed())
 				{
@@ -565,7 +571,6 @@ namespace sfg
 				}
 
 				_asset_manager.tick();
-				editor_project_cooker_t::get().tick();
 
 				if (!_asset_manager.is_import_in_progress())
 					editor_asset_thumbnail_manager_t::get().tick();
@@ -580,17 +585,20 @@ namespace sfg
 
 			if (_mode == editor_app_mode_e::splash)
 			{
+				if (!_splash_work.is_null())
+					_work_controller.get_work_status(_splash_work, _splash_work_status);
+
 				for (editor_surface_t& surface : surfaces)
 				{
 					if (surface.type != editor_surface_type_e::splash)
 						continue;
 
-					surface.splash->update_progress(_splash_progress.load(std::memory_order_acquire));
+					surface.splash->update_progress(_splash_work_status.progress);
 
-					if (_splash_progress_text_dirty.exchange(false, std::memory_order_acq_rel))
+					if (_splash_work_status.text != _splash_displayed_progress_text)
 					{
-						LOCK_GUARD(_splash_progress_text_mutex);
-						surface.splash->update_progress_text(_splash_progress_text.c_str());
+						_splash_displayed_progress_text = _splash_work_status.text;
+						surface.splash->update_progress_text(_splash_displayed_progress_text.c_str());
 					}
 					break;
 				}

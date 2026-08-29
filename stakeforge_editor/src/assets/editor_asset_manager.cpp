@@ -49,22 +49,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/shader_data_definition.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
-#include <sfg/vendor/taskflow/taskflow.hpp>
-#include <algorithm>
-#include <utility>
 #include <tracy/Tracy.hpp>
 
 namespace sfg
 {
 #define EDITOR_ASSET_COLOR(R, G, B)			 color_utils_t::srgb_to_linear(color_t::from255(R, G, B, 255.0f)).to_vector()
+#define EDITOR_ASSET_COOK_BUCKET_CAPACITY	 512
 #define EDITOR_ASSET_DELETION_LISTENER_MAX	 64
-#define EDITOR_COOKED_RESOURCE_SCAN_INTERVAL 30
-#define EDITOR_SOURCE_FILE_SCAN_INTERVAL	 30
+#define EDITOR_COOKED_RESOURCE_SCAN_INTERVAL 30000
+#define EDITOR_SOURCE_FILE_SCAN_INTERVAL	 30000
 
 	namespace
 	{
 		material_def_t refresh_material_from_shader_definition(const material_def_t& source, const shader_data_definition_t& shader_definition)
 		{
+
 			material_def_t material	   = material_def_from_shader_def(shader_definition, source.shader);
 			material.blend_mode		   = source.blend_mode;
 			material.write_shadows	   = source.write_shadows;
@@ -113,6 +112,7 @@ namespace sfg
 		s_instance = this;
 
 		_asset_deletion_listeners.init(EDITOR_ASSET_DELETION_LISTENER_MAX);
+		_asset_cook_states.init(EDITOR_ASSET_COOK_BUCKET_CAPACITY);
 		_asset_descriptors.clear();
 		_asset_descriptors.reserve(static_cast<size_t>(editor_asset_type_e::count) - 1);
 
@@ -143,35 +143,32 @@ namespace sfg
 	void editor_asset_manager_t::uninit()
 	{
 		SFG_ASSERT(s_instance == this);
+		SFG_ASSERT(!_import_in_progress);
+		SFG_ASSERT(_import_work.is_null());
 
 		flush_asset_cook_jobs();
 
-		if (_import_in_progress)
-			editor_app_t::get().get_editor_work_executor().wait_for_all();
-
 		clear();
 
-		_import_status_pending.clear();
-		_import_status_visible.clear();
-		_import_asset_paths_pending.clear();
-		_import_asset_paths_visible.clear();
+		_import_state.target_directory.resize(0);
+		_import_state.paths.resize(0);
+		_import_state.imported_asset_paths.resize(0);
+		_import_state.import_options.resize(0);
+		_import_work_status_text.resize(0);
+		_import_displayed_status.resize(0);
 		_asset_descriptors.clear();
 		_asset_deletion_listeners.uninit();
+		_asset_cook_states.uninit();
 
-		{
-			LOCK_GUARD(_asset_cook_mtx);
-			_asset_cook_states.clear();
-		}
-
-		_import_status_dirty.store(false, std::memory_order_relaxed);
-		_asset_cook_worker_count.store(0, std::memory_order_relaxed);
+		_last_asset_cook_work	  = {};
+		_asset_cook_work_count	  = 0;
 		_next_asset_cook_revision = 1;
 
-		_import_progress_pending	  = 0.0f;
 		_cooked_resource_scan_ticks	  = 0;
 		_source_file_scan_ticks		  = 0;
-		_import_completed_pending	  = false;
 		_import_in_progress			  = false;
+		_import_work				  = {};
+		_import_work_progress		  = 0.0f;
 		_cooked_file_track_inited	  = false;
 		_source_file_track_inited	  = false;
 		_script_file_track_inited	  = false;
@@ -185,47 +182,20 @@ namespace sfg
 	{
 		ZoneScoped;
 
-		const bool shader_definitions_changed = process_completed_shader_cooks();
-		if (shader_definitions_changed && !editor_surface_controller_t::get().is_empty())
+		if (_import_in_progress)
 		{
-			if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::inspector))
-				static_cast<editor_panel_inspector_t*>(panel)->refresh_from_assets();
-		}
+			SFG_ASSERT(!_import_work.is_null());
 
-		// import modal
-		if (_import_in_progress && _import_status_dirty.exchange(false, std::memory_order_acquire))
-		{
-			f32		 progress	  = 0.0f;
-			bool	 is_completed = false;
-			string_t status		  = {};
-
-			{
-				LOCK_GUARD(_import_status_mtx);
-				progress					= _import_progress_pending;
-				is_completed				= _import_completed_pending;
-				_import_status_visible		= _import_status_pending;
-				_import_asset_paths_visible = _import_asset_paths_pending;
-				status						= _import_status_visible;
-			}
+			editor_app_t::get().get_work_controller().get_work_status(_import_work, _import_work_progress, _import_work_status_text);
 
 			editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
-			_import_progress_modal.set_progress(progress);
 
-			if (!status.empty())
-				modal.set_body_text(status.c_str());
+			_import_progress_modal.set_progress(_import_work_progress);
 
-			if (is_completed)
+			if (_import_work_status_text != _import_displayed_status)
 			{
-				modal.close_modal();
-				sync_imported_asset_paths(_import_target_directory_node, {.data = _import_asset_paths_visible.data(), .size = _import_asset_paths_visible.size()});
-				_import_status_pending.resize(0);
-				_import_status_visible.resize(0);
-				_import_asset_paths_pending.resize(0);
-				_import_asset_paths_visible.resize(0);
-				_import_progress_pending	  = 0.0f;
-				_import_completed_pending	  = false;
-				_import_in_progress			  = false;
-				_import_target_directory_node = {};
+				_import_displayed_status = _import_work_status_text;
+				modal.set_body_text(_import_displayed_status.c_str());
 			}
 		}
 
@@ -276,7 +246,10 @@ namespace sfg
 
 	void editor_asset_manager_t::clear()
 	{
-		SFG_ASSERT(_asset_cook_worker_count.load(std::memory_order_acquire) == 0);
+		SFG_ASSERT(!_import_in_progress);
+		SFG_ASSERT(_import_work.is_null());
+		SFG_ASSERT(_asset_cook_work_count == 0);
+		SFG_ASSERT(_asset_cook_states.begin() == _asset_cook_states.end());
 
 		_database.clear();
 		_cooked_resource_tracking_states.clear();
@@ -285,7 +258,6 @@ namespace sfg
 		_asset_to_source_tracking.clear();
 		_changed_cooked_resources.resize(0);
 		_changed_source_assets.resize(0);
-		_completed_shader_cooks.resize(0);
 		_latest_asset_cook_revisions.clear();
 		_cooked_resource_scan_ticks = 0;
 		_source_file_scan_ticks		= 0;
@@ -854,13 +826,11 @@ namespace sfg
 		}
 
 		const editor_asset_node_t& asset_node = _database.get_asset_tree().value(node);
-		editor_asset_t			   updated	  = *asset;
 
-		editor_asset_io_t::set_embedded_source_json(updated, embedded_source);
-		*asset = updated;
+		editor_asset_io_t::set_embedded_source_json(*asset, embedded_source);
 		notify_changed();
 
-		schedule_asset_cook(asset_id, std::move(updated), asset_node.full_path.c_str(), asset_node.name.c_str(), true);
+		schedule_asset_cook(asset_id, *asset, asset_node.full_path.c_str(), asset_node.name.c_str(), true);
 
 		return true;
 	}
@@ -890,12 +860,11 @@ namespace sfg
 		}
 
 		const editor_asset_node_t& asset_node = _database.get_asset_tree().value(node);
-		editor_asset_t			   updated	  = *asset;
-		editor_asset_io_t::set_cook_options_json(updated, cook_options);
-		*asset = updated;
+
+		editor_asset_io_t::set_cook_options_json(*asset, cook_options);
 		notify_changed();
 
-		schedule_asset_cook(asset_id, std::move(updated), asset_node.full_path.c_str(), asset_node.name.c_str(), true);
+		schedule_asset_cook(asset_id, *asset, asset_node.full_path.c_str(), asset_node.name.c_str(), true);
 
 		return true;
 	}
@@ -931,199 +900,193 @@ namespace sfg
 
 	void editor_asset_manager_t::schedule_asset_cook(sid_t asset_id, editor_asset_t asset, const char* asset_path, const char* display_name, bool save_asset)
 	{
-		bool schedule_worker = false;
+		const auto cook_handle = _asset_cook_states.emplace();
 
-		{
-			LOCK_GUARD(_asset_cook_mtx);
+		SFG_ASSERT(!cook_handle.is_null());
 
-			auto [it, inserted]			   = _asset_cook_states.try_emplace(asset_id);
-			asset_cook_state_t& cook_state = it->second;
-			cook_state.asset			   = std::move(asset);
-			cook_state.asset_path		   = asset_path;
-			cook_state.display_name		   = display_name;
-			cook_state.revision			   = _next_asset_cook_revision++;
-			cook_state.save_asset		   = save_asset;
-			if (cook_state.asset.asset_type == editor_asset_type_e::shader)
-				_latest_asset_cook_revisions[asset_id] = cook_state.revision;
-			schedule_worker = inserted;
+		asset_cook_state_t& cook_state = _asset_cook_states.get(cook_handle);
+		cook_state.asset			   = std::move(asset);
+		cook_state.asset_path		   = asset_path;
+		cook_state.display_name		   = display_name;
+		cook_state.handle			   = cook_handle;
+		cook_state.revision			   = _next_asset_cook_revision++;
+		cook_state.save_asset		   = save_asset;
 
-			if (schedule_worker)
-				_asset_cook_worker_count.fetch_add(1, std::memory_order_release);
-		}
+		if (cook_state.asset.asset_type == editor_asset_type_e::shader)
+			_latest_asset_cook_revisions[asset_id] = cook_state.revision;
 
-		if (schedule_worker)
-			editor_app_t::get().get_editor_work_executor().silent_async([this, asset_id]() { asset_cook_worker(asset_id); });
+		_last_asset_cook_work = editor_app_t::get().get_work_controller().submit_work({
+			.fn =
+				[](editor_work_context_t& context, void* user_data) {
+					asset_cook_state_t& state = *static_cast<asset_cook_state_t*>(user_data);
+
+					return editor_asset_manager_t::get().asset_cook_worker(state);
+				},
+			.completed =
+				[](editor_work_handle_t handle, editor_work_state_e state, void* user_data) {
+					asset_cook_state_t& cook_state = *static_cast<asset_cook_state_t*>(user_data);
+
+					editor_asset_manager_t::get().complete_asset_cook(handle, state == editor_work_state_e::succeeded, cook_state);
+				},
+			.user_data		= &cook_state,
+			.initial_status = "Cooking asset",
+		});
+		_asset_cook_work_count++;
 	}
 
 	void editor_asset_manager_t::flush_asset_cook_jobs()
 	{
-		while (true)
+		while (_asset_cook_work_count != 0)
 		{
-			if (_asset_cook_worker_count.load(std::memory_order_acquire) != 0)
-				editor_app_t::get().get_editor_work_executor().wait_for_all();
+			SFG_ASSERT(!_last_asset_cook_work.is_null());
 
-			const bool processed_shader = process_completed_shader_cooks();
-			if (_asset_cook_worker_count.load(std::memory_order_acquire) == 0 && !processed_shader)
-				break;
+			const editor_work_handle_t work = _last_asset_cook_work;
+
+			editor_app_t::get().get_work_controller().wait_for_work(work);
 		}
 
-		SFG_ASSERT(_asset_cook_worker_count.load(std::memory_order_acquire) == 0);
+		SFG_ASSERT(_last_asset_cook_work.is_null());
+		SFG_ASSERT(_asset_cook_states.begin() == _asset_cook_states.end());
 	}
 
-	void editor_asset_manager_t::asset_cook_worker(sid_t asset_id)
+	bool editor_asset_manager_t::asset_cook_worker(asset_cook_state_t& cook_state)
 	{
-		while (true)
+		const sid_t asset_id	 = cook_state.asset.guid;
+		const bool	asset_saved	 = !cook_state.save_asset || editor_asset_io_t::write_asset(cook_state.asset_path.c_str(), cook_state.asset);
+		bool		asset_cooked = false;
+
+		if (asset_saved && cook_state.asset.asset_type == editor_asset_type_e::shader)
 		{
-			asset_cook_state_t cook_state = {};
+			shader_data_definition_t definition = {};
+			asset_cooked						= editor_asset_cooker_t::cook_shader(cook_state.asset, cook_state.display_name.c_str(), &definition);
 
-			{
-				LOCK_GUARD(_asset_cook_mtx);
+			if (asset_cooked)
+				editor_asset_io_t::set_embedded_source_json(cook_state.asset, definition);
+		}
+		else if (asset_saved)
+			asset_cooked = editor_asset_cooker_t::cook_asset(cook_state.asset, cook_state.display_name.c_str());
 
-				const auto it = _asset_cook_states.find(asset_id);
-				SFG_ASSERT(it != _asset_cook_states.end());
-				cook_state = it->second;
-			}
-
-			const bool asset_saved = !cook_state.save_asset || editor_asset_io_t::write_asset(cook_state.asset_path.c_str(), cook_state.asset);
-
-			editor_asset_t cooked_asset = cook_state.asset;
-			bool		   asset_cooked = false;
-
-			if (asset_saved && cook_state.asset.asset_type == editor_asset_type_e::shader)
-			{
-				shader_data_definition_t definition = {};
-				asset_cooked						= editor_asset_cooker_t::cook_shader(cook_state.asset, cook_state.display_name.c_str(), &definition);
-				if (asset_cooked)
-					editor_asset_io_t::set_embedded_source_json(cooked_asset, definition);
-			}
-			else if (asset_saved)
-				asset_cooked = editor_asset_cooker_t::cook_asset(cook_state.asset, cook_state.display_name.c_str());
-
-			if (!asset_cooked)
-			{
-				if (cook_state.save_asset)
-					SFG_ERR("failed to save and cook embedded asset {0}", asset_id);
-				else
-					SFG_ERR("failed to cook file source asset {0}", asset_id);
-			}
-			else if (cook_state.save_asset)
-				SFG_TRACE("asynchronously saved and cooked asset! {0}", cook_state.display_name);
+		if (!asset_cooked)
+		{
+			if (cook_state.save_asset)
+				SFG_ERR("failed to save and cook embedded asset {0}", asset_id);
 			else
-				SFG_TRACE("asynchronously cooked asset! {0}", cook_state.display_name);
-
-			bool is_completed = false;
-
-			{
-				LOCK_GUARD(_asset_cook_mtx);
-
-				const auto it = _asset_cook_states.find(asset_id);
-				SFG_ASSERT(it != _asset_cook_states.end());
-
-				if (it->second.revision == cook_state.revision)
-				{
-					if (asset_cooked && cook_state.asset.asset_type == editor_asset_type_e::shader)
-						_completed_shader_cooks.push_back({.asset = std::move(cooked_asset), .revision = cook_state.revision});
-					else if (cook_state.asset.asset_type == editor_asset_type_e::shader)
-						_latest_asset_cook_revisions.erase(asset_id);
-
-					_asset_cook_states.erase(it);
-					_asset_cook_worker_count.fetch_sub(1, std::memory_order_release);
-					is_completed = true;
-				}
-			}
-
-			if (is_completed)
-				return;
+				SFG_ERR("failed to cook file source asset {0}", asset_id);
 		}
+		else if (cook_state.save_asset)
+			SFG_TRACE("asynchronously saved and cooked asset! {0}", cook_state.display_name);
+		else
+			SFG_TRACE("asynchronously cooked asset! {0}", cook_state.display_name);
+
+		return asset_cooked;
 	}
 
-	bool editor_asset_manager_t::process_completed_shader_cooks()
+	void editor_asset_manager_t::complete_asset_cook(editor_work_handle_t work_handle, bool succeeded, asset_cook_state_t& cook_state)
 	{
-		vector_t<completed_shader_cook_t> completed = {};
+		SFG_ASSERT(_asset_cook_work_count != 0);
+
+		_asset_cook_work_count--;
+
+		if (work_handle == _last_asset_cook_work)
+			_last_asset_cook_work = {};
+
+		bool shader_definitions_changed = false;
+
+		if (cook_state.asset.asset_type == editor_asset_type_e::shader)
 		{
-			LOCK_GUARD(_asset_cook_mtx);
-			if (_completed_shader_cooks.empty())
-				return false;
+			const auto latest = _latest_asset_cook_revisions.find(cook_state.asset.guid);
 
-			completed = std::move(_completed_shader_cooks);
-			_completed_shader_cooks.clear();
-		}
+			SFG_ASSERT(latest != _latest_asset_cook_revisions.end());
 
-		bool definitions_changed = false;
-
-		for (completed_shader_cook_t& result : completed)
-		{
+			if (latest->second == cook_state.revision)
 			{
-				LOCK_GUARD(_asset_cook_mtx);
-				const auto latest = _latest_asset_cook_revisions.find(result.asset.guid);
-				if (latest == _latest_asset_cook_revisions.end() || latest->second != result.revision)
-					continue;
-
 				_latest_asset_cook_revisions.erase(latest);
-			}
 
-			editor_asset_t* shader_asset = _database.find_asset(result.asset.guid);
-			if (shader_asset == nullptr || shader_asset->asset_type != editor_asset_type_e::shader)
-				continue;
-
-			const editor_asset_node_handle_t shader_node = _database.find_asset_node(result.asset.guid);
-			if (shader_node.is_null())
-				continue;
-
-			const nlohmann::json	 definition_json = editor_asset_io_t::get_embedded_source_json(result.asset);
-			shader_data_definition_t definition		 = {};
-			definition_json.get_to(definition);
-
-			if (definition_json == editor_asset_io_t::get_embedded_source_json(*shader_asset))
-				continue;
-
-			editor_asset_t updated_shader = *shader_asset;
-			editor_asset_io_t::set_embedded_source_json(updated_shader, definition_json);
-
-			const editor_asset_node_t& shader_node_value = _database.get_asset_tree().value(shader_node);
-			if (!editor_asset_io_t::write_asset(shader_node_value.full_path.c_str(), updated_shader))
-				SFG_ERR("failed to persist reflected shader definition for asset {0}", result.asset.guid);
-
-			*shader_asset = std::move(updated_shader);
-			notify_changed();
-			definitions_changed = true;
-
-			struct material_update_t
-			{
-				sid_t		   asset_id = NULL_SID;
-				nlohmann::json embedded = {};
-			};
-
-			vector_t<material_update_t> material_updates = {};
-			for (const auto& asset_pair : _database.get_assets())
-			{
-				const editor_asset_t& material_asset = asset_pair.second;
-				if (material_asset.asset_type != editor_asset_type_e::material)
-					continue;
-
-				const nlohmann::json embedded = editor_asset_io_t::get_embedded_source_json(material_asset);
-				if (!embedded.is_object())
-					continue;
-
-				material_def_t material = {};
-				embedded.get_to(material);
-				if (material.shader != result.asset.guid)
-					continue;
-
-				const material_def_t refreshed		= refresh_material_from_shader_definition(material, definition);
-				const nlohmann::json refreshed_json = refreshed;
-				if (refreshed_json != embedded)
-					material_updates.push_back({.asset_id = material_asset.guid, .embedded = refreshed_json});
-			}
-
-			for (const material_update_t& update : material_updates)
-			{
-				if (!save_and_cook_embedded_asset_async(update.asset_id, update.embedded))
-					SFG_ERR("failed to synchronize material {0} with shader {1}", update.asset_id, result.asset.guid);
+				if (succeeded)
+					shader_definitions_changed = process_completed_shader_cook(cook_state.asset);
 			}
 		}
 
-		return definitions_changed;
+		if (shader_definitions_changed)
+		{
+			if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::inspector))
+				static_cast<editor_panel_inspector_t*>(panel)->refresh_from_assets();
+		}
+
+		const auto cook_handle = cook_state.handle;
+
+		_asset_cook_states.remove(cook_handle);
+	}
+
+	bool editor_asset_manager_t::process_completed_shader_cook(const editor_asset_t& cooked_shader)
+	{
+		editor_asset_t* shader_asset = _database.find_asset(cooked_shader.guid);
+		if (shader_asset == nullptr || shader_asset->asset_type != editor_asset_type_e::shader)
+			return false;
+
+		const editor_asset_node_handle_t shader_node = _database.find_asset_node(cooked_shader.guid);
+
+		if (shader_node.is_null())
+			return false;
+
+		const nlohmann::json	 definition_json = editor_asset_io_t::get_embedded_source_json(cooked_shader);
+		shader_data_definition_t definition		 = {};
+		definition_json.get_to(definition);
+
+		if (definition_json == editor_asset_io_t::get_embedded_source_json(*shader_asset))
+			return false;
+
+		editor_asset_t updated_shader = *shader_asset;
+		editor_asset_io_t::set_embedded_source_json(updated_shader, definition_json);
+
+		const editor_asset_node_t& shader_node_value = _database.get_asset_tree().value(shader_node);
+
+		if (!editor_asset_io_t::write_asset(shader_node_value.full_path.c_str(), updated_shader))
+			SFG_ERR("failed to persist reflected shader definition for asset {0}", cooked_shader.guid);
+
+		*shader_asset = std::move(updated_shader);
+		notify_changed();
+
+		struct material_update_t
+		{
+			sid_t		   asset_id = NULL_SID;
+			nlohmann::json embedded = {};
+		};
+
+		frame_vector_t<material_update_t> material_updates = {};
+
+		for (const auto& asset_pair : _database.get_assets())
+		{
+			const editor_asset_t& material_asset = asset_pair.second;
+
+			if (material_asset.asset_type != editor_asset_type_e::material)
+				continue;
+
+			const nlohmann::json embedded = editor_asset_io_t::get_embedded_source_json(material_asset);
+
+			if (!embedded.is_object())
+				continue;
+
+			material_def_t material = {};
+			embedded.get_to(material);
+
+			if (material.shader != cooked_shader.guid)
+				continue;
+
+			const material_def_t refreshed		= refresh_material_from_shader_definition(material, definition);
+			const nlohmann::json refreshed_json = refreshed;
+
+			if (refreshed_json != embedded)
+				material_updates.push_back({.asset_id = material_asset.guid, .embedded = refreshed_json});
+		}
+
+		for (const material_update_t& update : material_updates)
+		{
+			if (!save_and_cook_embedded_asset_async(update.asset_id, update.embedded))
+				SFG_ERR("failed to synchronize material {0} with shader {1}", update.asset_id, cooked_shader.guid);
+		}
+
+		return true;
 	}
 
 	void editor_asset_manager_t::scan_cooked_resources()
@@ -1447,56 +1410,84 @@ namespace sfg
 
 	void editor_asset_manager_t::import_assets(editor_asset_node_handle_t directory_node, const frame_vector_t<string_t>& paths, const frame_vector_t<editor_asset_import_options_t>& import_options)
 	{
+		SFG_ASSERT(!_import_in_progress);
+
 		const editor_asset_tree_t& tree		 = _database.get_asset_tree();
 		const editor_asset_node_t& directory = tree.value(directory_node);
 
 		const auto status_path_it = std::find_if(paths.begin(), paths.end(), [](const string_t& path) { return !path.empty(); });
+
 		SFG_ASSERT(status_path_it != paths.end());
-		_import_status_pending = *status_path_it;
-		_import_status_visible = _import_status_pending;
-		_import_asset_paths_pending.resize(0);
-		_import_asset_paths_visible.resize(0);
-		_import_status_dirty.store(false, std::memory_order_relaxed);
-		_import_progress_pending	  = 0.0f;
-		_import_completed_pending	  = false;
+
+		_import_state.target_directory = directory.full_path;
+		_import_state.paths.resize(0);
+		_import_state.paths.reserve(paths.size());
+		_import_state.import_options.resize(0);
+		_import_state.import_options.reserve(import_options.size());
+		_import_state.imported_asset_paths.resize(0);
+
+		for (const string_t& path : paths)
+			_import_state.paths.push_back(path);
+
+		for (const editor_asset_import_options_t& options : import_options)
+			_import_state.import_options.push_back(options);
+
+		_import_work_status_text.resize(0);
+		_import_work_progress		  = 0.0f;
+		_import_displayed_status	  = *status_path_it;
 		_import_in_progress			  = true;
 		_import_target_directory_node = directory_node;
 
 		editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
+
 		_import_progress_modal.set_progress(0.0f);
-		editor_modal_content_desc_t progress_content = _import_progress_modal.get_content_desc();
-		modal.request_modal("Importing Assets", _import_status_visible.c_str(), false, nullptr, 0, &progress_content);
+		const editor_modal_content_desc_t progress_content = _import_progress_modal.get_content_desc();
 
-		const span_t<const string_t> import_paths = {
-			.data = paths.data(),
-			.size = paths.size(),
-		};
-		const span_t<const editor_asset_import_options_t> options = {
-			.data = import_options.data(),
-			.size = import_options.size(),
-		};
+		modal.request_modal("Importing Assets", _import_displayed_status.c_str(), false, nullptr, 0, &progress_content);
 
-		editor_asset_manager_util_t::import_assets_async(directory.full_path.c_str(), import_paths, options, editor_app_t::get().get_editor_work_executor(), on_import_progress, this);
-	}
+		_import_work = editor_app_t::get().get_work_controller().submit_work({
+			.fn =
+				[](editor_work_context_t& context, void* user_data) {
+					editor_asset_manager_t& asset_manager = *static_cast<editor_asset_manager_t*>(user_data);
+					asset_import_state_t&	import_state  = asset_manager._import_state;
 
-	void editor_asset_manager_t::on_import_progress(void* user_data, f32 progress, const char* text, bool is_completed, span_t<const string_t> imported_asset_paths)
-	{
-		editor_asset_manager_t& asset_manager = *static_cast<editor_asset_manager_t*>(user_data);
-		{
-			LOCK_GUARD(asset_manager._import_status_mtx);
-			asset_manager._import_progress_pending	= progress;
-			asset_manager._import_completed_pending = is_completed;
-			if (text != nullptr)
-				asset_manager._import_status_pending = text;
-			if (is_completed)
-			{
-				asset_manager._import_asset_paths_pending.resize(0);
-				asset_manager._import_asset_paths_pending.reserve(imported_asset_paths.size);
-				for (size_t i = 0; i < imported_asset_paths.size; ++i)
-					asset_manager._import_asset_paths_pending.push_back(imported_asset_paths.data[i]);
-			}
-		}
-		asset_manager._import_status_dirty.store(true, std::memory_order_release);
+					editor_asset_manager_util_t::import_assets(import_state.target_directory.c_str(),
+															   {.data = import_state.paths.data(), .size = import_state.paths.size()},
+															   {.data = import_state.import_options.data(), .size = import_state.import_options.size()},
+															   context,
+															   import_state.imported_asset_paths);
+
+					return true;
+				},
+			.completed =
+				[](editor_work_handle_t handle, editor_work_state_e state, void* user_data) {
+					editor_asset_manager_t& asset_manager = *static_cast<editor_asset_manager_t*>(user_data);
+
+					SFG_ASSERT(handle == asset_manager._import_work);
+
+					asset_manager._import_work = {};
+
+					if (!editor_surface_controller_t::get().is_empty())
+					{
+						editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
+
+						modal.close_modal();
+						asset_manager.sync_imported_asset_paths(asset_manager._import_target_directory_node, {.data = asset_manager._import_state.imported_asset_paths.data(), .size = asset_manager._import_state.imported_asset_paths.size()});
+					}
+
+					asset_manager._import_state.target_directory.resize(0);
+					asset_manager._import_state.paths.resize(0);
+					asset_manager._import_state.imported_asset_paths.resize(0);
+					asset_manager._import_state.import_options.resize(0);
+					asset_manager._import_work_status_text.resize(0);
+					asset_manager._import_work_progress = 0.0f;
+					asset_manager._import_displayed_status.resize(0);
+					asset_manager._import_target_directory_node = {};
+					asset_manager._import_in_progress			= false;
+				},
+			.user_data		= this,
+			.initial_status = _import_displayed_status.c_str(),
+		});
 	}
 
 	editor_asset_node_handle_t editor_asset_manager_t::find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const
