@@ -241,7 +241,7 @@ namespace sfg
 			return false;
 
 		runtime->residency = texture_residency_e::streaming;
-		ctx.resource_manager.get_texture_streamer().enqueue(entry, rfs, payload_offset);
+		ctx.resource_manager.get_texture_streamer().enqueue(entry, payload_offset);
 
 		return true;
 	}

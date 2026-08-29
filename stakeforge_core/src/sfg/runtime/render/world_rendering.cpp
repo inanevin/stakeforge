@@ -37,7 +37,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/commands.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/job/job_system.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
@@ -45,6 +44,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/shader_types.hpp>
 #include <sfg/runtime/ui/glyph_atlas.hpp>
 #include <sfg/runtime/ui/ui_renderer.hpp>
+#include <execution>
 #include <tracy/Tracy.hpp>
 
 namespace sfg
@@ -460,70 +460,66 @@ namespace sfg
 		const bool		   ssao_active			  = ctx.is_ssao_enabled() && snapshot.post_process.ssao.enabled != 0;
 		const bool		   bloom_active			  = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
 
-		const gfx_handle_t queue_gfx	 = backend.get_queue_gfx();
-		const gfx_handle_t queue_compute = backend.get_queue_compute();
-		job_system_t&	   jobs			 = job_system_t::get();
-		static job_graph_t render_graph;
+		const gfx_handle_t queue_gfx			  = backend.get_queue_gfx();
+		const gfx_handle_t queue_compute		  = backend.get_queue_compute();
+		const u32		   render_task_indices[5] = {0, 1, 2, 3, 4};
+		const u32		   first_phase_task_count = 3 + static_cast<u32>(ssao_active) + static_cast<u32>(reflection_allocation != nullptr);
 
-		render_graph.clear();
-		render_graph.emplace([&]() {
+		std::for_each(std::execution::par, render_task_indices, render_task_indices + first_phase_task_count, [&](u32 task_index) {
 			render_access_scope_t render_scope = {};
 
-			render_depth_prepass(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+			switch (task_index)
+			{
+			case 0:
+				render_depth_prepass(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 
-			if (!prep_data.shadow_views.empty())
-				render_shadows(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
-		});
-		render_graph.emplace([&]() {
-			render_access_scope_t render_scope = {};
-			render_gbuffer(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
-		});
-		render_graph.emplace([&]() {
-			render_access_scope_t render_scope = {};
+				if (!prep_data.shadow_views.empty())
+					render_shadows(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+				return;
+			case 1:
+				render_gbuffer(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+				return;
+			case 2:
+				render_clustered_lighting(
+					{
+						.command_buffer				  = ctx.get_command_buffer_clustered_lighting(frame_index),
+						.cluster_buffer				  = ctx.get_light_cluster_buffer(frame_index),
+						.cluster_light_indices_buffer = ctx.get_light_cluster_indices_buffer(frame_index),
+						.shader						  = ctx.get_clustered_light_culling_shader(),
+						.lighting_data_index		  = ctx.get_lighting_render_pass_data_index(frame_index),
+						.global_cbv_index			  = global_cbv_index,
+					},
+					{
+						.data = clustered_lighting_views.data(),
+						.size = clustered_lighting_views.size(),
+					});
+				return;
+			default:
+				break;
+			}
 
-			render_clustered_lighting(
-				{
-					.command_buffer				  = ctx.get_command_buffer_clustered_lighting(frame_index),
-					.cluster_buffer				  = ctx.get_light_cluster_buffer(frame_index),
-					.cluster_light_indices_buffer = ctx.get_light_cluster_indices_buffer(frame_index),
-					.shader						  = ctx.get_clustered_light_culling_shader(),
-					.lighting_data_index		  = ctx.get_lighting_render_pass_data_index(frame_index),
-					.global_cbv_index			  = global_cbv_index,
-				},
-				{
-					.data = clustered_lighting_views.data(),
-					.size = clustered_lighting_views.size(),
-				});
-		});
-
-		if (ssao_active)
-		{
-			render_graph.emplace([&]() {
-				render_access_scope_t render_scope = {};
+			if (ssao_active && task_index == 3)
+			{
 				render_ssao(ctx, snapshot, prep_data, frame_index, global_cbv_index);
-			});
-		}
+				return;
+			}
 
-		if (reflection_allocation != nullptr)
-		{
-			render_graph.emplace([&]() {
-				render_access_scope_t render_scope = {};
+			const u32 reflection_task_index = ssao_active ? 4 : 3;
 
-				render_probe(reflection_context.get_command_buffer_graphics(frame_index),
-							 ctx,
-							 snapshot,
-							 prep_data,
-							 *reflection_allocation,
-							 reflection_cull_view_indices,
-							 reflection_probe->capture_type == world_render_reflection_probe_capture_type_e::skybox,
-							 frame_index,
-							 global_cbv_index,
-							 global_layout);
-				render_prefilter_diffuse_sh(ctx, *reflection_allocation, frame_index, global_cbv_index);
-			});
-		}
+			SFG_ASSERT(reflection_allocation != nullptr && task_index == reflection_task_index);
 
-		jobs.run(render_graph).wait();
+			render_probe(reflection_context.get_command_buffer_graphics(frame_index),
+						 ctx,
+						 snapshot,
+						 prep_data,
+						 *reflection_allocation,
+						 reflection_cull_view_indices,
+						 reflection_probe->capture_type == world_render_reflection_probe_capture_type_e::skybox,
+						 frame_index,
+						 global_cbv_index,
+						 global_layout);
+			render_prefilter_diffuse_sh(ctx, *reflection_allocation, frame_index, global_cbv_index);
+		});
 
 		const gfx_handle_t depth_gbuffer_commands[2] = {cmd_depth, cmd_gbuffer};
 		backend.submit_commands(queue_gfx, depth_gbuffer_commands, 2);
@@ -573,15 +569,12 @@ namespace sfg
 			backend.queue_signal(queue_compute, &reflection_semaphore, &reflection_filter_ready, 1);
 		}
 
-		render_graph.clear();
-		render_graph.emplace([&]() {
+		{
 			render_access_scope_t render_scope = {};
 
 			render_lighting(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 			render_forward(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
-		});
-
-		jobs.run(render_graph).wait();
+		}
 
 		if (ssao_active)
 			backend.queue_wait(queue_gfx, &ssao_semaphore, &ssao_ready, 1);
@@ -604,22 +597,21 @@ namespace sfg
 			backend.queue_signal(queue_gfx, &bloom_semaphore, &lighting_ready, 1);
 		}
 
-		render_graph.clear();
-		render_graph.emplace([&]() {
+		const u32 final_phase_task_count = 1 + static_cast<u32>(bloom_active);
+
+		std::for_each(std::execution::par, render_task_indices, render_task_indices + final_phase_task_count, [&](u32 task_index) {
 			render_access_scope_t render_scope = {};
 
-			render_post_process(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+			if (task_index == 0)
+			{
+				render_post_process(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+				return;
+			}
+
+			SFG_ASSERT(bloom_active && task_index == 1);
+
+			render_bloom(ctx, snapshot, prep_data, frame_index, global_cbv_index);
 		});
-
-		if (bloom_active)
-		{
-			render_graph.emplace([&]() {
-				render_access_scope_t render_scope = {};
-				render_bloom(ctx, snapshot, prep_data, frame_index, global_cbv_index);
-			});
-		}
-
-		jobs.run(render_graph).wait();
 
 		if (bloom_active)
 		{
@@ -1421,8 +1413,8 @@ namespace sfg
 		const span_t<const world_render_queue_item_t> view_model_draws = prep_data.get_view_model_queue();
 		if (view_model_draws.size != 0)
 		{
-			const gfx_handle_t view_model_depth = ctx.get_view_model_depth_texture(frame_index);
-			const barrier_t	 view_model_depth_write_barrier = {
+			const gfx_handle_t view_model_depth				  = ctx.get_view_model_depth_texture(frame_index);
+			const barrier_t	   view_model_depth_write_barrier = {
 				.from_states = resource_state_depth_read,
 				.to_states	 = resource_state_depth_write,
 				.texture_t	 = view_model_depth,
@@ -1432,17 +1424,17 @@ namespace sfg
 
 			BEGIN_DEBUG_EVENT((&backend), cmd, "world_view_model");
 			backend.cmd_begin_render_pass_depth_only(cmd,
-											 {
-												 .depth_stencil_attachment =
 													 {
-														 .texture		 = view_model_depth,
-														 .clear_stencil	 = 0,
-														 .clear_depth	 = 0.0f,
-														 .depth_load_op	 = load_op::clear,
-														 .depth_store_op = store_op::store,
-														 .view_index	 = 0,
-													 },
-											 });
+														 .depth_stencil_attachment =
+															 {
+																 .texture		 = view_model_depth,
+																 .clear_stencil	 = 0,
+																 .clear_depth	 = 0.0f,
+																 .depth_load_op	 = load_op::clear,
+																 .depth_store_op = store_op::store,
+																 .view_index	 = 0,
+															 },
+													 });
 
 			backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 			backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
@@ -1458,18 +1450,18 @@ namespace sfg
 			backend.cmd_barrier(cmd, {.barriers = &view_model_depth_read_barrier, .barrier_count = 1});
 
 			backend.cmd_begin_render_pass_depth_read_only(cmd,
-												  {
-													  .color_attachments = &color_attachment,
-													  .depth_stencil_attachment =
 														  {
-															  .texture			= view_model_depth,
-															  .clear_depth		= 0.0f,
-															  .depth_load_op	= load_op::load,
-															  .depth_store_op	= store_op::store,
-															  .view_index		= 1,
-														  },
-													  .color_attachment_count = 1,
-												  });
+															  .color_attachments = &color_attachment,
+															  .depth_stencil_attachment =
+																  {
+																	  .texture		  = view_model_depth,
+																	  .clear_depth	  = 0.0f,
+																	  .depth_load_op  = load_op::load,
+																	  .depth_store_op = store_op::store,
+																	  .view_index	  = 1,
+																  },
+															  .color_attachment_count = 1,
+														  });
 			backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 			backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 			draw_world_draws(backend, cmd, ctx, snapshot, view_model_draws, 0, 0, frame_index);

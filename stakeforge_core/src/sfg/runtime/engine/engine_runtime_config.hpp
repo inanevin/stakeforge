@@ -39,7 +39,6 @@ namespace sfg
 	{
 		resource_manager_config_t resource_manager = {};
 		audio_engine_config_t	  audio			   = {};
-		u32						  job_worker_count = 0;
 	};
 
 	struct engine_backend_config_t

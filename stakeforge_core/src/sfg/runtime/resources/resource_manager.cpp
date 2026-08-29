@@ -34,6 +34,7 @@ namespace sfg
 		_generation			  = 0;
 
 		_memory.init(config.memory_budget_bytes);
+		_texture_streamer.init(resource_file_system);
 
 		_entries.reserve(config.resource_initial_capacity);
 		_dirty_materials.reserve(config.dirty_material_initial_capacity);
@@ -68,6 +69,7 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(_reload_listeners.empty());
 
+		_texture_streamer.uninit();
 		_texture_streamer.flush_completed(*this);
 
 		for (auto& pair : _entries)

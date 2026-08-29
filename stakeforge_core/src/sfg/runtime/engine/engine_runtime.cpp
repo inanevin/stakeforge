@@ -6,7 +6,6 @@
 #include <sfg/gfx/backend/backend.hpp>
 #include <sfg/gfx/util/gfx_util.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/job/job_system.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/platform/time.hpp>
 #include <sfg/runtime/physics/physics_runtime.hpp>
@@ -50,7 +49,6 @@ namespace sfg
 	{
 		_audio_config					   = config.audio;
 		g_engine_thread_ids.main_thread_id = SFG_THIS_THREAD_ID();
-		job_system_t::get().init(config.job_worker_count);
 		physics_runtime_t::init();
 		time_t::init();
 		process::init();
@@ -60,11 +58,9 @@ namespace sfg
 
 	void engine_runtime_t::uninit_globals()
 	{
-		job_system_t::get().wait_for_all();
 		resource_manager_t::get().uninit();
 		freetype_runtime_t::uninit();
 		physics_runtime_t::uninit();
-		job_system_t::get().uninit();
 		time_t::uninit();
 		process::uninit();
 	}

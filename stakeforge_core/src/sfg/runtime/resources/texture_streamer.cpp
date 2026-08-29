@@ -37,11 +37,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/gfx/common/format.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
-#include <sfg/job/job_system.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/serialization/compression.hpp>
 #include <sfg/vendor/stb/stb_image.h>
+#include <tracy/Tracy.hpp>
 
 #include <cstdint>
 
@@ -297,16 +297,73 @@ namespace sfg
 		}
 	}
 
-	void texture_streamer_t::enqueue(resource_entry_t& entry, resource_file_system_t& rfs, size_t payload_offset)
+	void texture_streamer_t::init(resource_file_system_t& resource_file_system)
 	{
-		SFG_ASSERT(job_system_t::get().is_initialized());
+		SFG_ASSERT(_resource_file_system == nullptr);
+		SFG_ASSERT(!_worker_thread.joinable());
 
-		const sid_t				hash		 = entry.hash;
-		const u64				source_ticks = entry.source_ticks;
-		resource_file_system_t* rfs_ptr		 = &rfs;
-		texture_streamer_t*		streamer	 = this;
+		_resource_file_system = &resource_file_system;
+		_work_available.store(false, std::memory_order_relaxed);
+		_worker_thread = std::thread(&texture_streamer_t::worker_loop, this);
+	}
 
-		job_system_t::get().silent_async([hash, source_ticks, rfs_ptr, streamer, payload_offset]() mutable { streamer->_results.enqueue(load_result(hash, source_ticks, *rfs_ptr, payload_offset)); });
+	void texture_streamer_t::uninit()
+	{
+		SFG_ASSERT(_resource_file_system != nullptr);
+		SFG_ASSERT(_worker_thread.joinable());
+
+		const bool enqueued = _pending_requests.enqueue({.type = request_type_e::stop});
+
+		SFG_ASSERT(enqueued);
+
+		_work_available.store(true, std::memory_order_release);
+		_work_available.notify_one();
+		_worker_thread.join();
+
+		_resource_file_system = nullptr;
+		_work_available.store(false, std::memory_order_relaxed);
+	}
+
+	void texture_streamer_t::enqueue(resource_entry_t& entry, size_t payload_offset)
+	{
+		SFG_ASSERT(_resource_file_system != nullptr);
+
+		const bool enqueued = _pending_requests.enqueue({
+			.payload_offset = payload_offset,
+			.hash			= entry.hash,
+			.source_ticks	= entry.source_ticks,
+		});
+
+		SFG_ASSERT(enqueued);
+
+		_work_available.store(true, std::memory_order_release);
+		_work_available.notify_one();
+	}
+
+	void texture_streamer_t::worker_loop()
+	{
+#ifdef TRACY_ENABLE
+		tracy::SetThreadName("texture streaming");
+#endif
+
+		while (true)
+		{
+			_work_available.wait(false, std::memory_order_acquire);
+			_work_available.store(false, std::memory_order_release);
+
+			request_t request = {};
+
+			while (_pending_requests.try_dequeue(request))
+			{
+				if (request.type == request_type_e::stop)
+					return;
+
+				texture_stream_result_t result	 = load_result(request.hash, request.source_ticks, *_resource_file_system, request.payload_offset);
+				const bool				enqueued = _results.enqueue(std::move(result));
+
+				SFG_ASSERT(enqueued);
+			}
+		}
 	}
 
 	texture_stream_result_t texture_streamer_t::load_result(sid_t hash, u64 source_ticks, resource_file_system_t& rfs, size_t payload_offset)
