@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "assets/editor_asset_manager.hpp"
 #include "editor_command_system.hpp"
+#include "editor_file_watch_controller.hpp"
 #include "editor_renderer.hpp"
 #include "editor_work_controller.hpp"
 #include "editor_world_controller.hpp"
@@ -127,24 +128,25 @@ namespace sfg
 		static void lock_script_cursor(script_cursor_lock_mode_e mode);
 
 	private:
-		editor_app_config_t			_config = {};
-		editor_asset_manager_t		_asset_manager;
-		editor_renderer_t			_renderer;
-		editor_command_system_t		_command_system;
-		editor_world_controller_t	_world_controller;
-		editor_work_controller_t	_work_controller;
-		resource_preload_t			_editor_resource_preload;
-		resource_preload_t			_engine_resource_preload;
-		editor_payload_controller_t _payload_controller;
-		editor_modal_progress_bar_t _debug_progress_modal;
-		editor_work_status_t		_splash_work_status = {};
-		string_t					_splash_displayed_progress_text;
-		i64							_last_tick_us			   = 0;
-		f32							_debug_modal_progress	   = 0.0f;
-		editor_work_handle_t		_splash_work			   = {};
-		atomic_t<editor_app_mode_e> _pending_mode			   = editor_app_mode_e::none;
-		editor_app_mode_e			_mode					   = editor_app_mode_e::none;
-		bool						_debug_mode				   = false;
-		bool						_normal_world_load_pending = false;
+		editor_app_config_t			   _config = {};
+		editor_asset_manager_t		   _asset_manager;
+		editor_renderer_t			   _renderer;
+		editor_command_system_t		   _command_system;
+		editor_world_controller_t	   _world_controller;
+		editor_work_controller_t	   _work_controller;
+		editor_file_watch_controller_t _file_watch_controller;
+		resource_preload_t			   _editor_resource_preload;
+		resource_preload_t			   _engine_resource_preload;
+		editor_payload_controller_t	   _payload_controller;
+		editor_modal_progress_bar_t	   _debug_progress_modal;
+		editor_work_status_t		   _splash_work_status = {};
+		string_t					   _splash_displayed_progress_text;
+		i64							   _last_tick_us			  = 0;
+		f32							   _debug_modal_progress	  = 0.0f;
+		editor_work_handle_t		   _splash_work				  = {};
+		atomic_t<editor_app_mode_e>	   _pending_mode			  = editor_app_mode_e::none;
+		editor_app_mode_e			   _mode					  = editor_app_mode_e::none;
+		bool						   _debug_mode				  = false;
+		bool						   _normal_world_load_pending = false;
 	};
 }

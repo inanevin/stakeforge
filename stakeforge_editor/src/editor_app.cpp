@@ -297,15 +297,22 @@ namespace sfg
 	bool editor_app_t::init_normal_mode()
 	{
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
+		editor_project_t&			 proj	  = editor_project_t::get();
 
 		SFG_ASSERT(surfaces.is_empty());
+
+		if (!_file_watch_controller.init(proj._runtime.assets_path.c_str(), proj._runtime.cache_path.c_str()))
+			return false;
 
 		editor_asset_manager_util_t::ensure_default_meshes();
 
 		const surface_handle_t payload_surface = surfaces.create_surface({0, 0}, {160, 24}, editor_surface_type_e::payload);
 
 		if (payload_surface.is_null())
+		{
+			_file_watch_controller.uninit();
 			return false;
+		}
 
 		_payload_controller.init(surfaces.get_surface(payload_surface));
 		_payload_controller.set_unhandled_listener(editor_surface_controller_t::on_payload_unhandled, this);
@@ -327,6 +334,7 @@ namespace sfg
 			editor_asset_thumbnail_manager_t::get().uninit();
 			_world_controller.uninit();
 			_command_system.uninit();
+			_file_watch_controller.uninit();
 		};
 
 		const editor_layout_t& layout = editor_settings_t::get().layout;
@@ -393,8 +401,6 @@ namespace sfg
 			}
 		}
 
-		editor_project_t& proj = editor_project_t::get();
-
 		surfaces.get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());
 
 		_world_controller.load_dummy_world();
@@ -414,6 +420,8 @@ namespace sfg
 
 	void editor_app_t::uninit_normal_mode()
 	{
+		_file_watch_controller.uninit();
+
 		_asset_manager.flush_asset_cook_jobs();
 		_work_controller.wait_for_all();
 
@@ -561,6 +569,9 @@ namespace sfg
 			if (_mode == editor_app_mode_e::normal)
 			{
 				editor_script_manager_t& script_manager = editor_script_manager_t::get();
+
+				_file_watch_controller.tick();
+				_asset_manager.process_file_changes(_file_watch_controller.get_changes());
 
 				if (_normal_world_load_pending && script_manager.is_initial_activation_completed())
 				{
