@@ -279,6 +279,9 @@ namespace sfg
 		case assets_item_action_menu_rename:
 			panel._asset_rename_popup_pending = true;
 			return;
+		case assets_item_action_menu_check_integrity:
+			panel.check_asset_integrity();
+			return;
 		case assets_item_action_menu_fix_integrity:
 			panel.fix_asset_integrity();
 			return;

@@ -174,52 +174,69 @@ namespace sfg
 		asset_manager._generation++;
 	}
 
-	void editor_asset_manager_util_t::ensure_integrity(editor_asset_manager_t& asset_manager)
+	void editor_asset_manager_util_t::ensure_integrity(editor_asset_manager_t& asset_manager, sid_t asset_id)
 	{
 		const string_t&					 assets_path = editor_project_t::get()._runtime.assets_path;
 		hash_map_t<u64, editor_asset_t>& assets		 = asset_manager._database.get_assets();
-		for (auto& asset_pair : assets)
+		auto							 asset_it	 = assets.find(asset_id);
+
+		SFG_ASSERT(asset_it != assets.end());
+
+		editor_asset_t& asset = asset_it->second;
+		asset.status		  = editor_asset_status_e::ok;
+
+		const editor_asset_node_t* asset_node = asset_manager._database.find_asset_node_value(asset.guid);
+
+		SFG_ASSERT(asset_node != nullptr);
+
+		const auto	descriptor_it  = asset_manager._asset_descriptors.find(asset.asset_type);
+		const char* asset_type_str = descriptor_it != asset_manager._asset_descriptors.end() && !descriptor_it->second.display_name.empty() ? descriptor_it->second.display_name.c_str() : "Unknown";
+
+		if (asset.source_type == editor_asset_source_type_e::embedded && asset.embedded_source.empty())
 		{
-			editor_asset_t& asset				  = asset_pair.second;
-			asset.status						  = editor_asset_status_e::ok;
-			const editor_asset_node_t* asset_node = asset_manager._database.find_asset_node_value(asset.guid);
-			SFG_ASSERT(asset_node != nullptr);
-			const auto	descriptor_it  = asset_manager._asset_descriptors.find(asset.asset_type);
-			const char* asset_type_str = descriptor_it != asset_manager._asset_descriptors.end() && !descriptor_it->second.display_name.empty() ? descriptor_it->second.display_name.c_str() : "Unknown";
+			asset.status = editor_asset_status_e::missing_embedded_data;
+			SFG_WARN("asset {0}, {1}, {2} has missing embedded data", asset_node->full_path.c_str(), asset.guid, asset_type_str);
+		}
+		else if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
+		{
+			string_t source_path = file_system_t::get_absolute_path(assets_path.c_str());
+			source_path += asset.source_relative;
 
-			if (asset.source_type == editor_asset_source_type_e::embedded && asset.embedded_source.empty())
+			if (asset.source_relative.empty() || !file_system_t::exists(source_path.c_str()))
 			{
-				asset.status = editor_asset_status_e::missing_embedded_data;
-				SFG_WARN("asset {0}, {1}, {2} has missing embedded data", asset_node->full_path.c_str(), asset.guid, asset_type_str);
-			}
-			else if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
-			{
-				string_t source_path = file_system_t::get_absolute_path(assets_path.c_str());
-				source_path += asset.source_relative;
-				if (asset.source_relative.empty() || !file_system_t::exists(source_path.c_str()))
-				{
-					asset.status = editor_asset_status_e::missing_file_source;
-					SFG_WARN("asset {0}, {1}, {2} has missing file source {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, asset.source_relative.c_str());
-				}
-			}
-
-			vector_t<editor_asset_dependency_t> dependencies = {};
-			editor_asset_dependencies_t::fetch_dependencies(asset, dependencies);
-
-			for (const editor_asset_dependency_t& dependency : dependencies)
-			{
-				if (assets.find(dependency.sid) != assets.end())
-					continue;
-
-				// meh dont like this.
-				if (dependency.sid >= DEFAULT_MESH_CUBE_GUID && dependency.sid <= DEFAULT_MESH_PLANE_GUID)
-					continue;
-
-				if (asset.status == editor_asset_status_e::ok)
-					asset.status = editor_asset_status_e::missing_dependency;
-				SFG_WARN("asset {0}, {1}, {2} has missing dependency {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, dependency.sid);
+				asset.status = editor_asset_status_e::missing_file_source;
+				SFG_WARN("asset {0}, {1}, {2} has missing file source {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, asset.source_relative.c_str());
 			}
 		}
+
+		vector_t<editor_asset_dependency_t> dependencies		 = {};
+		const bool							dependencies_fetched = editor_asset_dependencies_t::fetch_dependencies(asset, dependencies);
+
+		if (!dependencies_fetched)
+		{
+			SFG_WARN("asset {0}, {1}, {2} integrity check could not read dependencies", asset_node->full_path.c_str(), asset.guid, asset_type_str);
+			return;
+		}
+
+		for (const editor_asset_dependency_t& dependency : dependencies)
+		{
+			if (assets.find(dependency.sid) != assets.end())
+				continue;
+
+			// meh dont like this.
+			if (dependency.sid >= DEFAULT_MESH_CUBE_GUID && dependency.sid <= DEFAULT_MESH_PLANE_GUID)
+				continue;
+
+			if (asset.status == editor_asset_status_e::ok)
+				asset.status = editor_asset_status_e::missing_dependency;
+
+			SFG_WARN("asset {0}, {1}, {2} has missing dependency {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, dependency.sid);
+		}
+
+		if (asset.status == editor_asset_status_e::ok)
+			SFG_INFO("asset {0}, {1}, {2} passed integrity check", asset_node->full_path.c_str(), asset.guid, asset_type_str);
+		else
+			SFG_WARN("asset {0}, {1}, {2} failed integrity check", asset_node->full_path.c_str(), asset.guid, asset_type_str);
 	}
 
 	bool editor_asset_manager_util_t::ensure_project_assets(editor_asset_manager_t& asset_manager, editor_work_context_t& work_context)

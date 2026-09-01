@@ -559,6 +559,18 @@ namespace sfg
 		}
 	}
 
+	void editor_panel_assets_t::check_asset_integrity()
+	{
+		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
+		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
+		const editor_asset_node_t& asset_node	 = tree.value(_selected_asset_node);
+
+		SFG_ASSERT(asset_node.type == editor_asset_node_type_e::asset);
+
+		editor_asset_manager_util_t::ensure_integrity(asset_manager, asset_node.asset_id);
+		refresh_asset_grid(true);
+	}
+
 	void editor_panel_assets_t::fix_asset_integrity()
 	{
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();

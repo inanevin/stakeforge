@@ -200,13 +200,6 @@ namespace sfg
 			}
 		}
 
-		// integrity check.
-		if (_last_integrity_generation != _generation && !_database.get_root_node().is_null())
-		{
-			editor_asset_manager_util_t::ensure_integrity(*this);
-			_last_integrity_generation = _generation;
-		}
-
 		process_file_reconciliation();
 
 		if (!_changed_cooked_resources.empty())

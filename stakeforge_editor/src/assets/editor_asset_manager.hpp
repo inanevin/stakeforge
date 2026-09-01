@@ -268,7 +268,6 @@ namespace sfg
 		editor_asset_node_handle_t																_import_target_directory_node = {};
 		f32																						_import_work_progress		  = 0.0f;
 		u32																						_generation					  = 0;
-		u32																						_last_integrity_generation	  = 0;
 		u32																						_asset_cook_work_count		  = 0;
 		u32																						_file_reconcile_index		  = 0;
 		u8																						_file_reconcile_root_mask	  = 0;

@@ -49,7 +49,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		static void build_asset_database(editor_asset_manager_t& asset_manager, const char* assets_dir);
-		static void ensure_integrity(editor_asset_manager_t& asset_manager);
+		static void ensure_integrity(editor_asset_manager_t& asset_manager, sid_t asset_id);
 		static bool ensure_project_assets(editor_asset_manager_t& asset_manager, editor_work_context_t& work_context);
 		static void import_assets(const char* target_directory, span_t<const string_t> paths, span_t<const editor_asset_import_options_t> import_options, editor_work_context_t& work_context, vector_t<string_t>& out_imported_asset_paths);
 		static void ensure_default_meshes();

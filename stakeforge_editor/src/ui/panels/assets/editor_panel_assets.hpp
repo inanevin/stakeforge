@@ -202,6 +202,7 @@ namespace sfg
 		void delete_asset();
 		void duplicate_asset();
 		void open_asset_item(editor_asset_node_handle_t node);
+		void check_asset_integrity();
 		void fix_asset_integrity();
 		void open_create_folder_popup();
 		void create_folder(const char* name);

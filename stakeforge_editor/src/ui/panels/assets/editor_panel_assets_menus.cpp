@@ -101,6 +101,7 @@ namespace sfg
 
 		editor_action_menu_row_desc_t ASSETS_ITEM_ACTION_MENU_ROWS[] = {
 			{.text = "Rename", .shortcut = "F2", .command = assets_item_action_menu_rename},
+			{.text = "Check Integrity", .command = assets_item_action_menu_check_integrity},
 			{.text = "Fix Integrity", .command = assets_item_action_menu_fix_integrity},
 			{.text = "Duplicate", .shortcut = "CTRL+D", .command = assets_item_action_menu_duplicate},
 			{.text = "Delete", .shortcut = "DEL", .command = assets_item_action_menu_delete},
@@ -181,11 +182,12 @@ namespace sfg
 		const bool			  multi_selected	   = _selected_asset_nodes.size() > 1;
 		const editor_asset_t* selected_asset	   = is_asset_node ? editor_asset_manager_t::get().find_asset(tree.value(_selected_asset_node).asset_id) : nullptr;
 		ASSETS_ITEM_ACTION_MENU_ROWS[0].disabled   = multi_selected;
-		ASSETS_ITEM_ACTION_MENU_ROWS[1].disabled   = multi_selected || selected_asset == nullptr || selected_asset->status == editor_asset_status_e::ok;
-		ASSETS_ITEM_ACTION_MENU_ROWS[2].disabled   = !is_asset_node;
-		ASSETS_ITEM_ACTION_MENU_ROWS[4].disabled   = multi_selected;
-		ASSETS_ITEM_ACTION_MENU_ROWS[5].disabled   = is_file_node;
-		ASSETS_ITEM_ACTION_MENU_ROWS[5].icon_color = editor_theme_t::get().color_accent1;
+		ASSETS_ITEM_ACTION_MENU_ROWS[1].disabled   = multi_selected || selected_asset == nullptr;
+		ASSETS_ITEM_ACTION_MENU_ROWS[2].disabled   = multi_selected || selected_asset == nullptr || selected_asset->status == editor_asset_status_e::ok;
+		ASSETS_ITEM_ACTION_MENU_ROWS[3].disabled   = !is_asset_node;
+		ASSETS_ITEM_ACTION_MENU_ROWS[5].disabled   = multi_selected;
+		ASSETS_ITEM_ACTION_MENU_ROWS[6].disabled   = is_file_node;
+		ASSETS_ITEM_ACTION_MENU_ROWS[6].icon_color = editor_theme_t::get().color_accent1;
 
 		editor_action_menu_desc_t desc = {};
 		desc.rows					   = ASSETS_ITEM_ACTION_MENU_ROWS;
