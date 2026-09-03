@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/aabb.hpp>
+#include <sfg/runtime/resources/resource_handle.hpp>
 
 namespace sfg
 {
@@ -54,6 +55,7 @@ namespace sfg
 	{
 		aabb_t							  local_bounds		 = {};
 		string_t						  name				 = {};
+		vector_t<resource_handle_t>		  preview_materials	 = {};
 		vector_t<primitive_static_def_t>  static_primitives	 = {};
 		vector_t<primitive_skinned_def_t> skinned_primitives = {};
 	};

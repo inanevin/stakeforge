@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
+#include <sfg/runtime/resources/resource_handle.hpp>
 
 namespace sfg
 {
@@ -59,12 +60,13 @@ namespace sfg
 
 	struct skeleton_def_t
 	{
-		vector_t<skeleton_joint_def_t> joints			= {};
-		vector_t<u32>				   evaluation_order = {};
-		vector_t<skeleton_slot_def_t>  slots			= {};
-		string_t					   name				= {};
+		vector_t<skeleton_joint_def_t> joints			  = {};
+		vector_t<u32>				   evaluation_order	  = {};
+		vector_t<skeleton_slot_def_t>  slots			  = {};
+		string_t					   name				  = {};
 		mat4x3_t					   skinning_transform = mat4x3_t::identity;
-		u32							   root_joint_index = UINT32_MAX;
+		resource_handle_t			   preview_mesh		  = NULL_RESOURCE_HANDLE;
+		u32							   root_joint_index	  = UINT32_MAX;
 
 		bool build_evaluation_order();
 		bool is_evaluation_order_valid() const;

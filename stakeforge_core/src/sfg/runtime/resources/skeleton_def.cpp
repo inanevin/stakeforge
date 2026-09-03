@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <sfg/reflection/reflection_container_ops.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/resources/resource_type.hpp>
 
 #include <cstddef>
 
@@ -185,7 +186,20 @@ namespace sfg
 					 .offset		= offsetof(skeleton_def_t, slots),
 					 .size			= sizeof(vector_t<skeleton_slot_def_t>),
 					 .type			= reflected_value_type_e::container},
-					{.name = "skinning_transform", .display_name = "Skinning Transform", .sub_type_id = type_id_t<mat4x3_t>::value, .offset = offsetof(skeleton_def_t, skinning_transform), .size = sizeof(mat4x3_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::object},
+					{.name		   = "skinning_transform",
+					 .display_name = "Skinning Transform",
+					 .sub_type_id  = type_id_t<mat4x3_t>::value,
+					 .offset	   = offsetof(skeleton_def_t, skinning_transform),
+					 .size		   = sizeof(mat4x3_t),
+					 .flags		   = reflected_field_flag_no_ui,
+					 .type		   = reflected_value_type_e::object},
+					{.name		   = "preview_mesh",
+					 .display_name = "Preview Mesh",
+					 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MESH,
+					 .offset	   = offsetof(skeleton_def_t, preview_mesh),
+					 .size		   = sizeof(resource_handle_t),
+					 .flags		   = reflected_field_flag_no_ui,
+					 .type		   = reflected_value_type_e::u64},
 					{.name = "root_index", .display_name = "Root Index", .offset = offsetof(skeleton_def_t, root_joint_index), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
 				},
 			.type_id   = type_id_t<skeleton_def_t>::value,

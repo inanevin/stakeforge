@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_mesh_viewer.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
@@ -36,6 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_misc.hpp"
 #include "world/editor_world.hpp"
 #include "world/editor_world_util.hpp"
+#include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
@@ -225,8 +227,21 @@ namespace sfg
 		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), _display_entity);
 		mesh_renderer.mesh						 = _mesh_guid;
 
-		for (size_t i = 0; i < decltype(mesh_renderer.materials)::capacity; ++i)
-			mesh_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
+		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(_mesh_guid);
+		SFG_ASSERT(asset != nullptr);
+
+		mesh_def_t mesh_def = {};
+
+		if (editor_asset_util_t::load_mesh_def(*asset, mesh_def) && !mesh_def.preview_materials.empty())
+		{
+			for (resource_handle_t material : mesh_def.preview_materials)
+				mesh_renderer.materials.push_back(material);
+		}
+		else
+		{
+			for (size_t i = 0; i < decltype(mesh_renderer.materials)::capacity; ++i)
+				mesh_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
+		}
 
 		world.scan_for_resources(_display_entity, true);
 

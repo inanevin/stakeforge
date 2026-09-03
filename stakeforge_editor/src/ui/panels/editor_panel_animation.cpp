@@ -410,8 +410,7 @@ namespace sfg
 		if (!_world.is_null())
 			destroy_preview_world();
 
-		_preview_materials = {};
-		_preview_skeleton  = {};
+		_preview_skeleton = {};
 		_joint_rows.resize(0);
 		_timeline_labels.resize(0);
 		_timeline_keyframes.resize(0);
@@ -432,11 +431,10 @@ namespace sfg
 
 		_animation_guid = animation_guid;
 		set_sub_item_id(animation_guid);
-		_asset_name		   = asset_name;
-		_preview_materials = {};
-		_preview_skeleton  = {};
-		_data			   = {};
-		_is_playing		   = false;
+		_asset_name		  = asset_name;
+		_preview_skeleton = {};
+		_data			  = {};
+		_is_playing		  = false;
 
 		if (_ui != nullptr)
 			_play_button.set_toggled(false);
@@ -479,7 +477,6 @@ namespace sfg
 		{
 			_data.target_mesh	  = animation->preview_mesh;
 			_data.target_skeleton = animation->preview_skeleton;
-			_preview_materials	  = animation->preview_materials;
 		}
 		else
 		{
@@ -518,9 +515,6 @@ namespace sfg
 		animation_player.speed_multiplier = _data.speed_multiplier;
 		animation_player.is_looping		  = _is_playing;
 		animation_player.is_scrub		  = !_is_playing;
-
-		for (const resource_handle_t material : _preview_materials)
-			skinned_renderer.materials.push_back(material);
 
 		world.scan_for_resources(_display_entity, true);
 

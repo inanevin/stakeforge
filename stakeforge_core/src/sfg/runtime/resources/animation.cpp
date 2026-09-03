@@ -45,10 +45,9 @@ namespace sfg
 			return false;
 		}
 
-		runtime->preview_materials = runtime->def.preview_materials;
-		runtime->preview_mesh	   = runtime->def.preview_mesh;
-		runtime->preview_skeleton  = runtime->def.preview_skeleton;
-		runtime->duration		   = runtime->def.duration;
+		runtime->preview_mesh	  = runtime->def.preview_mesh;
+		runtime->preview_skeleton = runtime->def.preview_skeleton;
+		runtime->duration		  = runtime->def.duration;
 
 		return true;
 	}

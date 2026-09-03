@@ -188,36 +188,20 @@ namespace sfg
 
 		struct cooked_resource_tracking_state_t
 		{
-			string_t			   cache_path	 = {};
-			sid_t				   asset_id		 = NULL_SID;
-			u64					   last_modified = 0;
-			cooked_resource_kind_e kind			 = cooked_resource_kind_e::asset;
+			string_t			   cache_path = {};
+			sid_t				   asset_id	  = NULL_SID;
+			cooked_resource_kind_e kind		  = cooked_resource_kind_e::asset;
 		};
 
 		struct source_file_tracking_state_t
 		{
-			string_t		full_path	  = {};
-			vector_t<sid_t> asset_ids	  = {};
-			u64				last_modified = 0;
+			string_t		full_path = {};
+			vector_t<sid_t> asset_ids = {};
 		};
 
 		struct script_file_tracking_state_t
 		{
-			string_t full_path	   = {};
-			u64		 last_modified = 0;
-		};
-
-		enum class file_reconcile_kind_e : u8
-		{
-			cooked,
-			source,
-			script,
-		};
-
-		struct file_reconcile_entry_t
-		{
-			sid_t				  id   = NULL_SID;
-			file_reconcile_kind_e kind = file_reconcile_kind_e::cooked;
+			string_t full_path = {};
 		};
 
 		friend class editor_asset_manager_util_t;
@@ -238,7 +222,6 @@ namespace sfg
 		void					   update_moved_source_paths(const char* old_path, const char* new_path, bool directory);
 		void					   track_script_file(const char* path);
 		bool					   process_script_file_change(sid_t script_id);
-		void					   process_file_reconciliation();
 		bool					   update_moved_script_paths(const char* old_path, const char* new_path, bool directory);
 		void					   notify_asset_deletion(span_t<const sid_t> asset_ids);
 		editor_asset_node_handle_t find_child_folder(editor_asset_node_handle_t parent, const string_t& name) const;
@@ -261,7 +244,6 @@ namespace sfg
 		hash_map_t<sid_t, sid_t>																_asset_to_source_tracking;
 		vector_t<sid_t>																			_changed_cooked_resources;
 		vector_t<sid_t>																			_changed_source_assets;
-		vector_t<file_reconcile_entry_t>														_file_reconcile_entries;
 		u64																						_next_asset_cook_revision	  = 1;
 		pool_handle_t<u32, editor_work_handle_tag_t>											_last_asset_cook_work		  = {};
 		pool_handle_t<u32, editor_work_handle_tag_t>											_import_work				  = {};
@@ -269,8 +251,6 @@ namespace sfg
 		f32																						_import_work_progress		  = 0.0f;
 		u32																						_generation					  = 0;
 		u32																						_asset_cook_work_count		  = 0;
-		u32																						_file_reconcile_index		  = 0;
-		u8																						_file_reconcile_root_mask	  = 0;
 		bool																					_import_in_progress			  = false;
 		bool																					_cooked_file_track_inited	  = false;
 		bool																					_source_file_track_inited	  = false;

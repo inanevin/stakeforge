@@ -35,6 +35,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 	struct editor_asset_t;
+	struct mesh_def_t;
 
 	class editor_asset_util_t final
 	{
@@ -49,6 +50,7 @@ namespace sfg
 		static const editor_asset_node_t* find_asset_node(sid_t guid);
 		static string_t					  find_asset_path(sid_t guid);
 		static const char*				  find_asset_display_name(sid_t guid);
+		static bool						  load_mesh_def(const editor_asset_t& asset, mesh_def_t& out);
 		static bool						  duplicate_folder(editor_asset_node_handle_t folder_node, string_t* out_duplicated_path = nullptr);
 		static bool						  rename_folder(editor_asset_node_handle_t folder_node, const char* new_path);
 		static bool						  move_folder(editor_asset_node_handle_t folder_node, editor_asset_node_handle_t target_folder_node);

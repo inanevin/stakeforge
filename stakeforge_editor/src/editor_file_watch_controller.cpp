@@ -156,7 +156,6 @@ namespace sfg
 		_pending_changes.reserve(4096);
 		_changes.resize(0);
 		_changes.reserve(EDITOR_FILE_CHANGE_MAX_PER_TICK);
-		_worker_overflow_mask.store(0, std::memory_order_relaxed);
 		_stop_requested.store(false, std::memory_order_relaxed);
 		_worker_thread = std::thread(&editor_file_watch_controller_t::worker_loop, this);
 		return true;
@@ -194,7 +193,6 @@ namespace sfg
 
 		_pending_changes.clear();
 		_changes.resize(0);
-		_worker_overflow_mask.store(0, std::memory_order_relaxed);
 		_stop_requested.store(false, std::memory_order_relaxed);
 
 		for (string_t& root_path : _root_paths)
@@ -217,23 +215,12 @@ namespace sfg
 
 		while (raw_change_count < EDITOR_FILE_RAW_CHANGE_MAX_PER_TICK && _raw_changes.try_dequeue(_raw_change_consumer, raw_change))
 		{
-			pending_change_t& pending = _pending_changes.try_emplace(raw_change.path_id).first->second;
+			const sid_t pending_change_id = hashing_t::hash_u64_combine(raw_change.path_id, raw_change.root);
+
+			pending_change_t& pending = _pending_changes.try_emplace(pending_change_id).first->second;
 			pending.change			  = raw_change;
 			pending.ready_time_us	  = now_us + EDITOR_FILE_CHANGE_DEBOUNCE_US;
 			++raw_change_count;
-		}
-
-		const u32 overflow_mask = _worker_overflow_mask.exchange(0, std::memory_order_acquire);
-
-		for (u8 i = 0; i < static_cast<u8>(editor_file_watch_root_e::count); ++i)
-		{
-			if ((overflow_mask & (1u << i)) == 0)
-				continue;
-
-			_changes.push_back({
-				.root = static_cast<editor_file_watch_root_e>(i),
-				.type = editor_file_change_type_e::overflow,
-			});
 		}
 
 		for (auto it = _pending_changes.begin(); it != _pending_changes.end() && _changes.size() < EDITOR_FILE_CHANGE_MAX_PER_TICK;)
@@ -244,7 +231,8 @@ namespace sfg
 				continue;
 			}
 
-			_changes.push_back(it->second.change);
+			const editor_file_change_t& change = it->second.change;
+			_changes.push_back(change);
 			it = _pending_changes.erase(it);
 		}
 	}
@@ -269,11 +257,14 @@ namespace sfg
 			const u8									 root_index = static_cast<u8>(completion_key - 1);
 			editor_file_watch_platform_state_t::watch_t& watch		= _platform_state->watches[root_index];
 
-			if (completed == FALSE || bytes_transferred == 0)
-				_worker_overflow_mask.fetch_or(1u << root_index, std::memory_order_release);
+			if (completed == FALSE)
+				SFG_ERR("file watch notification failed for {0}, error {1}; file changes were lost", _root_paths[root_index], GetLastError());
+			else if (bytes_transferred == 0)
+				SFG_ERR("file watch notification buffer overflowed for {0}; file changes were lost", _root_paths[root_index]);
 			else
 			{
-				u32 offset = 0;
+				u32	 offset		  = 0;
+				bool changes_lost = false;
 
 				while (offset < bytes_transferred)
 				{
@@ -282,7 +273,7 @@ namespace sfg
 					const int relative_path_size = WideCharToMultiByte(CP_UTF8, 0, notification.FileName, static_cast<int>(notification.FileNameLength / sizeof(wchar_t)), relative_path, EDITOR_FILE_WATCH_PATH_CAPACITY - 1, nullptr, nullptr);
 
 					if (relative_path_size == 0)
-						_worker_overflow_mask.fetch_or(1u << root_index, std::memory_order_release);
+						changes_lost = true;
 					else
 					{
 						relative_path[relative_path_size] = '\0';
@@ -302,7 +293,7 @@ namespace sfg
 																   });
 
 						if (!enqueued)
-							_worker_overflow_mask.fetch_or(1u << root_index, std::memory_order_release);
+							changes_lost = true;
 					}
 
 					if (notification.NextEntryOffset == 0)
@@ -310,12 +301,14 @@ namespace sfg
 
 					offset += notification.NextEntryOffset;
 				}
+
+				if (changes_lost)
+					SFG_ERR("failed to queue one or more file watch notifications for {0}; file changes were lost", _root_paths[root_index]);
 			}
 
 			if (!request_file_notifications(watch))
 			{
-				SFG_ERR("failed to continue watching directory {0}, error {1}", _root_paths[root_index], GetLastError());
-				_worker_overflow_mask.fetch_or(1u << root_index, std::memory_order_release);
+				SFG_ERR("failed to continue watching directory {0}, error {1}; future file changes will be lost", _root_paths[root_index], GetLastError());
 				break;
 			}
 		}

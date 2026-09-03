@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_builtin_types.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "world/editor_world_util.hpp"
 
@@ -233,8 +234,21 @@ namespace sfg
 		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), thumbnail_world.display_entity);
 		mesh_renderer.mesh						 = asset_guid;
 
-		for (size_t i = 0; i < decltype(mesh_renderer.materials)::capacity; ++i)
-			mesh_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
+		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(asset_guid);
+		SFG_ASSERT(asset != nullptr);
+
+		mesh_def_t mesh_def = {};
+
+		if (editor_asset_util_t::load_mesh_def(*asset, mesh_def) && !mesh_def.preview_materials.empty())
+		{
+			for (resource_handle_t material : mesh_def.preview_materials)
+				mesh_renderer.materials.push_back(material);
+		}
+		else
+		{
+			for (size_t i = 0; i < decltype(mesh_renderer.materials)::capacity; ++i)
+				mesh_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
+		}
 
 		world.scan_for_resources(thumbnail_world.display_entity, true);
 

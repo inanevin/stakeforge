@@ -33,10 +33,13 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/thumbnail/editor_asset_thumbnailer.hpp"
 #include "editor_project.hpp"
 
+#include <sfg/data/istream.hpp>
 #include <sfg/data/string_util.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/runtime/resources/mesh_cook.hpp>
+#include <sfg/runtime/resources/mesh_def.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -240,6 +243,29 @@ namespace sfg
 	{
 		const editor_asset_node_t* node = editor_asset_manager_t::get().find_asset_node(guid);
 		return node != nullptr ? node->name.c_str() : nullptr;
+	}
+
+	bool editor_asset_util_t::load_mesh_def(const editor_asset_t& asset, mesh_def_t& out)
+	{
+		SFG_ASSERT(asset.asset_type == editor_asset_type_e::mesh);
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file_blob);
+
+		const string_t source_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		istream_t	   stream	   = serializer_t::load_from_file_compressed(source_path.c_str());
+
+		if (stream.empty())
+		{
+			SFG_ERR("failed to read mesh definition file: {0}", source_path.c_str());
+			return false;
+		}
+
+		if (!mesh_cooker::deserialize_def_blob(stream, out))
+		{
+			SFG_ERR("failed to deserialize mesh definition file: {0}", source_path.c_str());
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_asset_util_t::duplicate_folder(editor_asset_node_handle_t folder_node, string_t* out_duplicated_path)

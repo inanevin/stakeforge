@@ -47,17 +47,10 @@ namespace sfg
 		count,
 	};
 
-	enum class editor_file_change_type_e : u8
-	{
-		path,
-		overflow,
-	};
-
 	struct editor_file_change_t
 	{
-		sid_t					  path_id = NULL_SID;
-		editor_file_watch_root_e  root	  = editor_file_watch_root_e::assets;
-		editor_file_change_type_e type	  = editor_file_change_type_e::path;
+		sid_t					 path_id = NULL_SID;
+		editor_file_watch_root_e root	 = editor_file_watch_root_e::assets;
 	};
 
 	class editor_file_watch_controller_t final
@@ -103,8 +96,7 @@ namespace sfg
 		string_t										  _root_paths[static_cast<u8>(editor_file_watch_root_e::count)]			  = {};
 		u64												  _root_path_hash_seeds[static_cast<u8>(editor_file_watch_root_e::count)] = {};
 		std::thread										  _worker_thread;
-		editor_file_watch_platform_state_t*				  _platform_state		= nullptr;
-		atomic_t<u32>									  _worker_overflow_mask = 0;
-		atomic_t<bool>									  _stop_requested		= false;
+		editor_file_watch_platform_state_t*				  _platform_state = nullptr;
+		atomic_t<bool>									  _stop_requested = false;
 	};
 }

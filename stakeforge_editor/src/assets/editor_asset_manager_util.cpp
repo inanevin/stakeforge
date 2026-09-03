@@ -224,7 +224,7 @@ namespace sfg
 				continue;
 
 			// meh dont like this.
-			if (dependency.sid >= DEFAULT_MESH_CUBE_GUID && dependency.sid <= DEFAULT_MESH_PLANE_GUID)
+			if (dependency.sid >= DEFAULT_MESH_START && dependency.sid <= DEFAULT_MESH_END)
 				continue;
 
 			if (asset.status == editor_asset_status_e::ok)

@@ -57,7 +57,6 @@ namespace sfg
 #define EDITOR_ASSET_COLOR(R, G, B)		   color_utils_t::srgb_to_linear(color_t::from255(R, G, B, 255.0f)).to_vector()
 #define EDITOR_ASSET_COOK_BUCKET_CAPACITY  512
 #define EDITOR_ASSET_DELETION_LISTENER_MAX 64
-#define EDITOR_FILE_RECONCILE_MAX_PER_TICK 64
 
 	namespace
 	{
@@ -164,9 +163,6 @@ namespace sfg
 		_asset_cook_work_count	  = 0;
 		_next_asset_cook_revision = 1;
 
-		_file_reconcile_entries.resize(0);
-		_file_reconcile_index		  = 0;
-		_file_reconcile_root_mask	  = 0;
 		_import_in_progress			  = false;
 		_import_work				  = {};
 		_import_work_progress		  = 0.0f;
@@ -200,8 +196,6 @@ namespace sfg
 			}
 		}
 
-		process_file_reconciliation();
-
 		if (!_changed_cooked_resources.empty())
 			process_changed_cooked_resources();
 
@@ -233,10 +227,7 @@ namespace sfg
 		_asset_to_source_tracking.clear();
 		_changed_cooked_resources.resize(0);
 		_changed_source_assets.resize(0);
-		_file_reconcile_entries.resize(0);
 		_latest_asset_cook_revisions.clear();
-		_file_reconcile_index	  = 0;
-		_file_reconcile_root_mask = 0;
 		_cooked_file_track_inited = false;
 		_source_file_track_inited = false;
 		_script_file_track_inited = false;
@@ -251,10 +242,6 @@ namespace sfg
 		_cooked_path_to_resource.clear();
 		_cooked_path_to_resource.reserve(_database.get_assets().size() * 2);
 		_changed_cooked_resources.resize(0);
-		_file_reconcile_entries.resize(0);
-		_file_reconcile_entries.reserve(_database.get_assets().size() * 4);
-		_file_reconcile_index	  = 0;
-		_file_reconcile_root_mask = 0;
 
 		for (const auto& asset_pair : _database.get_assets())
 		{
@@ -790,17 +777,6 @@ namespace sfg
 		{
 			const editor_file_change_t& change = changes.data[i];
 
-			if (change.type == editor_file_change_type_e::overflow)
-			{
-				if (change.root == editor_file_watch_root_e::cache)
-					SFG_WARN("cache file notifications overflowed, reconciling tracked files");
-				else
-					SFG_WARN("asset file notifications overflowed, reconciling tracked files");
-
-				_file_reconcile_root_mask |= static_cast<u8>(1u << static_cast<u8>(change.root));
-				continue;
-			}
-
 			if (change.root == editor_file_watch_root_e::cache)
 			{
 				const auto cooked_it = _cooked_path_to_resource.find(change.path_id);
@@ -817,79 +793,6 @@ namespace sfg
 
 		if (scripts_changed)
 			_script_compile_requested = true;
-	}
-
-	void editor_asset_manager_t::process_file_reconciliation()
-	{
-		if (_file_reconcile_entries.empty() && _file_reconcile_root_mask != 0)
-		{
-			const u8 root_mask		  = _file_reconcile_root_mask;
-			_file_reconcile_root_mask = 0;
-			_file_reconcile_index	  = 0;
-
-			if ((root_mask & (1u << static_cast<u8>(editor_file_watch_root_e::cache))) != 0)
-			{
-				for (const auto& tracking_pair : _cooked_resource_tracking_states)
-				{
-					_file_reconcile_entries.push_back({
-						.id	  = tracking_pair.first,
-						.kind = file_reconcile_kind_e::cooked,
-					});
-				}
-			}
-
-			if ((root_mask & (1u << static_cast<u8>(editor_file_watch_root_e::assets))) != 0)
-			{
-				for (const auto& tracking_pair : _source_file_to_tracking)
-				{
-					_file_reconcile_entries.push_back({
-						.id	  = tracking_pair.first,
-						.kind = file_reconcile_kind_e::source,
-					});
-				}
-
-				for (const auto& tracking_pair : _script_file_tracking_states)
-				{
-					_file_reconcile_entries.push_back({
-						.id	  = tracking_pair.first,
-						.kind = file_reconcile_kind_e::script,
-					});
-				}
-			}
-		}
-
-		bool scripts_changed = false;
-		u32	 processed_count = 0;
-
-		while (_file_reconcile_index < _file_reconcile_entries.size() && processed_count < EDITOR_FILE_RECONCILE_MAX_PER_TICK)
-		{
-			const file_reconcile_entry_t& entry = _file_reconcile_entries[_file_reconcile_index];
-
-			switch (entry.kind)
-			{
-			case file_reconcile_kind_e::cooked:
-				process_cooked_resource_change(entry.id);
-				break;
-			case file_reconcile_kind_e::source:
-				process_source_file_change(entry.id);
-				break;
-			case file_reconcile_kind_e::script:
-				scripts_changed = process_script_file_change(entry.id) || scripts_changed;
-				break;
-			}
-
-			++_file_reconcile_index;
-			++processed_count;
-		}
-
-		if (scripts_changed)
-			_script_compile_requested = true;
-
-		if (_file_reconcile_index == _file_reconcile_entries.size())
-		{
-			_file_reconcile_entries.resize(0);
-			_file_reconcile_index = 0;
-		}
 	}
 
 	bool editor_asset_manager_t::save_and_cook_embedded_asset_async(sid_t asset_id, const nlohmann::json& embedded_source)
@@ -1186,13 +1089,7 @@ namespace sfg
 		if (tracking_it == _cooked_resource_tracking_states.end())
 			return;
 
-		cooked_resource_tracking_state_t& tracking_state = tracking_it->second;
-		const u64						  last_modified	 = file_system_t::get_last_modified_ticks(tracking_state.cache_path.c_str());
-
-		if (last_modified == 0 || tracking_state.last_modified == last_modified)
-			return;
-
-		tracking_state.last_modified = last_modified;
+		const cooked_resource_tracking_state_t& tracking_state = tracking_it->second;
 
 		SFG_TRACE("detected cooked resource change! {0}", tracking_state.cache_path);
 		_changed_cooked_resources.push_back(resource_id);
@@ -1252,7 +1149,6 @@ namespace sfg
 		cooked_resource_tracking_state_t& tracking_state = it->second;
 		tracking_state.cache_path						 = editor_asset_path_t::get_cache_path_for_guid(resource_id);
 		tracking_state.asset_id							 = asset_id;
-		tracking_state.last_modified					 = file_system_t::get_last_modified_ticks(tracking_state.cache_path.c_str());
 		tracking_state.kind								 = kind;
 
 		const sid_t path_id					= editor_asset_path_t::hash_path(tracking_state.cache_path.c_str());
@@ -1260,7 +1156,7 @@ namespace sfg
 
 		SFG_ASSERT(path_inserted || path_it->second == resource_id);
 
-		if (report_existing_file && tracking_state.last_modified != 0)
+		if (report_existing_file && file_system_t::exists(tracking_state.cache_path.c_str()))
 			_changed_cooked_resources.push_back(resource_id);
 	}
 
@@ -1306,10 +1202,7 @@ namespace sfg
 		source_file_tracking_state_t& tracking_state = tracking_it->second;
 
 		if (inserted)
-		{
-			tracking_state.full_path	 = source_path;
-			tracking_state.last_modified = file_system_t::get_last_modified_ticks(source_path.c_str());
-		}
+			tracking_state.full_path = source_path;
 		else
 			SFG_ASSERT(editor_asset_path_t::is_same_path(tracking_state.full_path.c_str(), source_path.c_str()));
 
@@ -1324,13 +1217,7 @@ namespace sfg
 		if (tracking_it == _source_file_to_tracking.end())
 			return;
 
-		source_file_tracking_state_t& tracking_state = tracking_it->second;
-		const u64					  last_modified	 = file_system_t::get_last_modified_ticks(tracking_state.full_path.c_str());
-
-		if (last_modified == 0 || tracking_state.last_modified == last_modified)
-			return;
-
-		tracking_state.last_modified = last_modified;
+		const source_file_tracking_state_t& tracking_state = tracking_it->second;
 
 		SFG_TRACE("detected source file change! {0}", tracking_state.full_path);
 
@@ -1414,7 +1301,6 @@ namespace sfg
 
 		script_file_tracking_state_t& tracking_state = tracking_it->second;
 		tracking_state.full_path					 = absolute_path;
-		tracking_state.last_modified				 = file_system_t::get_last_modified_ticks(absolute_path.c_str());
 	}
 
 	bool editor_asset_manager_t::process_script_file_change(sid_t script_id)
@@ -1424,13 +1310,7 @@ namespace sfg
 		if (tracking_it == _script_file_tracking_states.end())
 			return false;
 
-		script_file_tracking_state_t& tracking_state = tracking_it->second;
-		const u64					  last_modified	 = file_system_t::get_last_modified_ticks(tracking_state.full_path.c_str());
-
-		if (tracking_state.last_modified == last_modified)
-			return false;
-
-		tracking_state.last_modified = last_modified;
+		const script_file_tracking_state_t& tracking_state = tracking_it->second;
 
 		SFG_TRACE("detected C# script file change: {0}", tracking_state.full_path);
 		return true;

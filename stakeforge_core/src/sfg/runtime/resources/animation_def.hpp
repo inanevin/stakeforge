@@ -32,7 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/type_id.hpp>
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
@@ -57,15 +56,14 @@ namespace sfg
 
 	struct animation_def_t
 	{
-		vector_t<animation_channel_v3_def_t>	position_channels = {};
-		vector_t<animation_channel_q_def_t>		rotation_channels = {};
-		vector_t<animation_channel_v3_def_t>	scale_channels	  = {};
-		string_t								name			  = {};
-		inplace_vector_t<resource_handle_t, 16> preview_materials = {};
-		resource_handle_t						preview_mesh	  = NULL_RESOURCE_HANDLE;
-		resource_handle_t						preview_skeleton  = NULL_RESOURCE_HANDLE;
-		sid_t									name_hash		  = NULL_SID;
-		f32										duration		  = 0.0f;
+		vector_t<animation_channel_v3_def_t> position_channels = {};
+		vector_t<animation_channel_q_def_t>	 rotation_channels = {};
+		vector_t<animation_channel_v3_def_t> scale_channels	   = {};
+		string_t							 name			   = {};
+		resource_handle_t					 preview_mesh	   = NULL_RESOURCE_HANDLE;
+		resource_handle_t					 preview_skeleton  = NULL_RESOURCE_HANDLE;
+		sid_t								 name_hash		   = NULL_SID;
+		f32									 duration		   = 0.0f;
 	};
 
 	SFG_DEFINE_TYPE_ID(animation_channel_v3_def_t);

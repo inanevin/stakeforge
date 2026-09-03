@@ -39,6 +39,91 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+#define ANIMATION_DEF_BLOB_MAGIC   make_resource_wire_magic('A', 'D', 'E', 'F')
+#define ANIMATION_DEF_BLOB_VERSION 1
+
+	bool animation_cooker::serialize_def_blob(const animation_def_t& def, ostream_t& stream)
+	{
+		stream << static_cast<u32>(ANIMATION_DEF_BLOB_MAGIC);
+		stream << static_cast<u32>(ANIMATION_DEF_BLOB_VERSION);
+
+		if (!reflection_registry_t::get().type_to_stream(type_id_t<animation_def_t>::value, const_cast<animation_def_t*>(&def), nullptr, stream))
+		{
+			SFG_ERR("failed to serialize animation definition blob");
+			return false;
+		}
+
+		return true;
+	}
+
+	bool animation_cooker::deserialize_def_blob(istream_t& stream, animation_def_t& out)
+	{
+		if (stream.get_size() < sizeof(u32))
+		{
+			SFG_ERR("animation definition blob is too small");
+			return false;
+		}
+
+		u32 magic = 0;
+		stream >> magic;
+
+		if (magic != ANIMATION_DEF_BLOB_MAGIC)
+		{
+			stream.seek(0);
+
+			reflection_registry_t& registry = reflection_registry_t::get();
+			const sid_t			   type_id	= type_id_t<animation_def_t>::value;
+
+			registry.type_field_from_stream(type_id, TO_SID("name"), &out, nullptr, stream);
+			registry.type_field_from_stream(type_id, TO_SID("name_hash"), &out, nullptr, stream);
+			registry.type_field_from_stream(type_id, TO_SID("duration"), &out, nullptr, stream);
+			registry.type_field_from_stream(type_id, TO_SID("preview_mesh"), &out, nullptr, stream);
+			registry.type_field_from_stream(type_id, TO_SID("preview_skeleton"), &out, nullptr, stream);
+
+			if (stream.get_size() - stream.tellg() < sizeof(u32))
+			{
+				SFG_ERR("legacy animation definition preview materials are missing");
+				return false;
+			}
+
+			u32 preview_material_count = 0;
+			stream >> preview_material_count;
+
+			const size_t preview_material_bytes = static_cast<size_t>(preview_material_count) * sizeof(resource_handle_t);
+
+			if (preview_material_bytes > stream.get_size() - stream.tellg())
+			{
+				SFG_ERR("legacy animation definition preview materials are invalid");
+				return false;
+			}
+
+			stream.skip_by(preview_material_bytes);
+
+			registry.type_field_from_stream(type_id, TO_SID("position_channels"), &out, nullptr, stream);
+			registry.type_field_from_stream(type_id, TO_SID("rotation_channels"), &out, nullptr, stream);
+			registry.type_field_from_stream(type_id, TO_SID("scale_channels"), &out, nullptr, stream);
+
+			return true;
+		}
+
+		if (stream.get_size() < sizeof(u32) * 2)
+		{
+			SFG_ERR("animation definition blob version is missing");
+			return false;
+		}
+
+		u32 version = 0;
+		stream >> version;
+
+		if (version != ANIMATION_DEF_BLOB_VERSION)
+		{
+			SFG_ERR("unsupported animation definition blob version: {0}", version);
+			return false;
+		}
+
+		return reflection_registry_t::get().type_from_stream(type_id_t<animation_def_t>::value, &out, nullptr, stream);
+	}
+
 	bool animation_cooker::cook_from_file(const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
 		istream_t animation_def_stream = serializer_t::load_from_file_compressed(full_path);
@@ -51,7 +136,7 @@ namespace sfg
 
 		animation_def_t def = {};
 
-		if (!reflection_registry_t::get().type_from_stream(type_id_t<animation_def_t>::value, &def, nullptr, animation_def_stream))
+		if (!deserialize_def_blob(animation_def_stream, def))
 		{
 			SFG_ERR("failed to deserialize animation definition file: {0}", full_path);
 			return false;
@@ -86,4 +171,7 @@ namespace sfg
 
 		return true;
 	}
+
+#undef ANIMATION_DEF_BLOB_VERSION
+#undef ANIMATION_DEF_BLOB_MAGIC
 }

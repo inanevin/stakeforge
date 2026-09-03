@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	class istream_t;
 	class ostream_t;
 	struct mesh_def_t;
 	struct resource_header_t;
@@ -36,6 +37,8 @@ namespace sfg
 	class mesh_cooker
 	{
 	public:
+		static bool serialize_def_blob(const mesh_def_t& def, ostream_t& stream);
+		static bool deserialize_def_blob(istream_t& stream, mesh_def_t& out);
 		static bool cook_from_file(const char* full_path, resource_header_t& out_header, ostream_t& stream);
 		static bool cook_from_def(const mesh_def_t& def, resource_header_t& out_header, ostream_t& stream, bool compress = true);
 	};

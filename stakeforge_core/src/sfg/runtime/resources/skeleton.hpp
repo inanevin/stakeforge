@@ -10,7 +10,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('S', 'K', 'E', 'L');
-		static constexpr u32 WIRE_VERSION = 8;
+		static constexpr u32 WIRE_VERSION = 9;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
@@ -37,13 +37,13 @@ namespace sfg
 
 	struct skeleton_runtime_t
 	{
-		chunk_handle32_t joints			  = {};
-		chunk_handle32_t evaluation_order = {};
-		chunk_handle32_t slots			  = {};
+		chunk_handle32_t joints				= {};
+		chunk_handle32_t evaluation_order	= {};
+		chunk_handle32_t slots				= {};
 		mat4x3_t		 skinning_transform = mat4x3_t::identity;
-		u32				 root_joint_index = SKELETON_JOINT_NO_PARENT;
-		u32				 joint_count	  = 0;
-		u32				 slot_count		  = 0;
+		u32				 root_joint_index	= SKELETON_JOINT_NO_PARENT;
+		u32				 joint_count		= 0;
+		u32				 slot_count			= 0;
 	};
 
 	struct skeleton_internals_t

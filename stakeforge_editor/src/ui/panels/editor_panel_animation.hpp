@@ -35,7 +35,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_handle.hpp"
 
 #include <sfg/common/type_id.hpp>
-#include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -158,7 +157,6 @@ namespace sfg
 		vector_t<joint_row_t>									 _joint_rows					 = {};
 		vector_t<timeline_label_t>								 _timeline_labels				 = {};
 		vector_t<u32>											 _timeline_keyframes			 = {};
-		inplace_vector_t<resource_handle_t, 16>					 _preview_materials				 = {};
 		string_t												 _asset_name					 = {};
 		panel_animation_data_t									 _data							 = {};
 		editor_world_handle_t									 _world							 = {};
