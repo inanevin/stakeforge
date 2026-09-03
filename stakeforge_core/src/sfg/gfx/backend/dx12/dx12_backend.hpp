@@ -122,10 +122,10 @@ namespace sfg
 		gfx_id_t command_buffer_initial_capacity		= 256;
 		gfx_id_t queue_initial_capacity					= 8;
 		gfx_id_t descriptor_initial_capacity			= 1024;
-		u32		 dsv_descriptor_max_count				= 2048;
-		u32		 rtv_descriptor_max_count				= 2048;
-		u32		 resource_descriptor_max_count			= 2048;
-		u32		 sampler_descriptor_max_count			= 2048;
+		u32		 dsv_descriptor_max_count				= 1024;
+		u32		 rtv_descriptor_max_count				= 1024;
+		u32		 resource_descriptor_max_count			= 4096;
+		u32		 sampler_descriptor_max_count			= 1024;
 		u32		 descriptor_free_block_initial_capacity = 1024;
 		u32		 scratch_initial_capacity				= 100;
 	};
