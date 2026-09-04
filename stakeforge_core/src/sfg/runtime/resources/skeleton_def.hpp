@@ -52,10 +52,11 @@ namespace sfg
 
 	struct skeleton_slot_def_t
 	{
-		char	slot_name[128]	 = {};
-		u32		slot_joint_index = SKELETON_JOINT_NO_PARENT;
-		vec3f_t local_position	 = vec3f_t::zero;
-		quat_t	local_rotation	 = quat_t::identity;
+		resource_handle_t preview_mesh	   = NULL_RESOURCE_HANDLE;
+		char			  slot_name[128]   = {};
+		u32				  slot_joint_index = SKELETON_JOINT_NO_PARENT;
+		vec3f_t			  local_position   = vec3f_t::zero;
+		quat_t			  local_rotation   = quat_t::identity;
 	};
 
 	struct skeleton_def_t

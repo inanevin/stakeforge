@@ -58,7 +58,7 @@ namespace sfg
 #define EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT		 999999.0f
 #define EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS		 0.05f
 #define EDITOR_WORLD_SKELETON_JOINT_RADIUS_RATIO	 0.02f
-#define EDITOR_WORLD_SKELETON_AXIS_LENGTH_RATIO		 0.12f
+#define EDITOR_WORLD_SKELETON_AXIS_LENGTH_RATIO		 0.06f
 #define EDITOR_WORLD_SKELETON_SLOT_HALF_EXTENT_SCALE 1.5f
 #define EDITOR_WORLD_COMPONENT_ICON_SIZE_PX			 42.0f
 #define EDITOR_WORLD_COMPONENT_ICON_GAP_PX			 4.0f
@@ -235,12 +235,12 @@ namespace sfg
 				if (joint.parent_index != SKELETON_JOINT_NO_PARENT)
 				{
 					const vec3f_t parent_position = joint_transforms[joint.parent_index].get_translation();
+					const vec3f_t line_inset	  = (position - parent_position) * 0.25f;
 
-					debug_draw.draw_line(parent_position, position, color_t::white, 2.0f, debug_draw_depth_e::depth_tested);
+					debug_draw.draw_line(parent_position + line_inset, position - line_inset, color_t::white, 4.0f, debug_draw_depth_e::depth_tested);
 				}
 
-				debug_draw.draw_sphere(position, joint_radius, color_t::purple, 1.5f, debug_draw_depth_e::depth_tested, 10);
-				draw_transform_axes(debug_draw, joint_transform, axis_length, 1.5f, debug_draw_depth_e::depth_tested);
+				draw_transform_axes(debug_draw, joint_transform, axis_length, 3.0f, debug_draw_depth_e::depth_tested);
 				debug_draw.draw_text_3d(position, joint_name, color_t::white, theme.text_small_px_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
 			}
 
@@ -614,8 +614,8 @@ namespace sfg
 		const vec3f_t		  position	   = transform.get_translation();
 		const char*			  display_name = name[0] == '\0' ? "Unnamed Slot" : name;
 
-		debug_draw.draw_box(transform, extents, slot_color, 2.0f, debug_draw_depth_e::depth_tested);
-		draw_transform_axes(debug_draw, transform, axis_length, 1.5f, debug_draw_depth_e::depth_tested);
+		debug_draw.draw_box(transform, extents, slot_color, 4.0f, debug_draw_depth_e::depth_tested);
+		draw_transform_axes(debug_draw, transform, axis_length, 3.0f, debug_draw_depth_e::depth_tested);
 		debug_draw.draw_text_3d(position, display_name, slot_color, text_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
 	}
 

@@ -42,13 +42,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_util.hpp"
 
 #include <sfg/common/hashing.hpp>
+#include <sfg/io/assert.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
+#include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -173,6 +176,7 @@ namespace sfg
 									  .callbacks =
 										  {
 											  .edit_begin	  = on_edit_begin,
+											  .edited		  = on_reflection_edited,
 											  .edit_submitted = on_edit_submitted,
 											  .user_data	  = this,
 										  },
@@ -253,6 +257,7 @@ namespace sfg
 
 		refresh_preview_mesh_reference();
 		create_display_entity();
+		refresh_slot_entities();
 		refresh_info();
 		refresh_reflection();
 		refresh_title(_asset_name.c_str(), "S: ");
@@ -263,6 +268,7 @@ namespace sfg
 		_skeleton		  = std::move(skeleton);
 		_root_joint_index = _skeleton.is_evaluation_order_valid() ? _skeleton.root_joint_index : UINT32_MAX;
 
+		refresh_slot_entities();
 		refresh_info();
 		refresh_reflection();
 	}
@@ -272,10 +278,10 @@ namespace sfg
 		const editor_world_init_config_t init_config = editor_world_init_config_t::make_preview(editor_surface_controller_t::get().get_main_surface().swapchain_size);
 
 		editor_world_controller_t& controller = editor_world_controller_t::get();
-		_world								  = controller.create_world(init_config, editor_world_edit_type_e::view_with_debug);
+		_world								  = controller.create_world(init_config, editor_world_edit_type_e::view_with_debug, on_world_tick, this);
 		editor_world_t* const editor_world	  = controller.get_editor_world(_world);
 
-		editor_world->install_camera(editor_world_camera_type_e::orbit);
+		editor_world->install_camera(editor_world_camera_type_e::fly);
 
 		editor_world_util_t::install_default_scene(editor_world->get_world());
 
@@ -291,6 +297,7 @@ namespace sfg
 
 		_world			= {};
 		_display_entity = NULL_ENTITY_ID;
+		_slot_entities.resize(0);
 	}
 
 	void editor_panel_skeleton_viewer_t::create_display_entity()
@@ -338,6 +345,97 @@ namespace sfg
 
 		world.destroy_entity(_display_entity);
 		_display_entity = NULL_ENTITY_ID;
+	}
+
+	void editor_panel_skeleton_viewer_t::refresh_slot_entities()
+	{
+		if (_world.is_null())
+			return;
+
+		world_t& world = editor_world_controller_t::get().get_editor_world(_world)->get_world();
+
+		for (const entity_id_t entity : _slot_entities)
+			world.destroy_entity(entity);
+
+		_slot_entities.resize(0);
+		_slot_entities.reserve(_skeleton.slots.size());
+
+		for (const skeleton_slot_def_t& slot : _skeleton.slots)
+		{
+			const entity_id_t entity = world.create_entity("skeleton_viewer_slot");
+
+			_slot_entities.push_back(entity);
+
+			if (slot.preview_mesh == NULL_RESOURCE_HANDLE)
+				continue;
+
+			component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), entity);
+
+			mesh_renderer.mesh = slot.preview_mesh;
+
+			const editor_asset_t* mesh_asset = editor_asset_manager_t::get().find_asset(slot.preview_mesh);
+			mesh_def_t			  mesh_def	 = {};
+
+			if (mesh_asset != nullptr && mesh_asset->asset_type == editor_asset_type_e::mesh && editor_asset_util_t::load_mesh_def(*mesh_asset, mesh_def) && !mesh_def.preview_materials.empty())
+			{
+				for (const resource_handle_t material : mesh_def.preview_materials)
+					mesh_renderer.materials.push_back(material);
+			}
+			else
+			{
+				for (size_t i = 0; i < decltype(mesh_renderer.materials)::capacity; ++i)
+					mesh_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
+			}
+
+			world.scan_for_resources(entity, true);
+		}
+	}
+
+	void editor_panel_skeleton_viewer_t::update_slot_entity_transforms(world_t& world)
+	{
+		if (_slot_entities.empty())
+			return;
+
+		const ecs_component_table_t&					system_skinned_table = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
+		const component_system_skinned_mesh_renderer_t* system_skinned		 = ecs_helpers_t::table_find_as_const<component_system_skinned_mesh_renderer_t>(system_skinned_table, _display_entity);
+
+		if (system_skinned == nullptr || !system_skinned->final_bones_calculated)
+			return;
+
+		resource_manager_t&		  resource_manager = resource_manager_t::get();
+		const skeleton_runtime_t* skeleton		   = resource_manager.find_runtime<skeleton_runtime_t>(system_skinned->skeleton);
+
+		if (skeleton == nullptr)
+			return;
+
+		const skeleton_joint_runtime_t*		 joints			= resource_manager.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
+		const span_t<const animation_bone_t> bones			= world.get_animation_controller().get_bones(system_skinned->bones_handle);
+		const mat4x3_t						 mesh_transform = world.calculate_transform_direct(_display_entity);
+
+		SFG_ASSERT(_slot_entities.size() == _skeleton.slots.size());
+
+		for (size_t slot_index = 0; slot_index < _skeleton.slots.size(); ++slot_index)
+		{
+			const skeleton_slot_def_t& slot = _skeleton.slots[slot_index];
+
+			if (slot.slot_joint_index == SKELETON_JOINT_NO_PARENT)
+				continue;
+
+			SFG_ASSERT(slot.slot_joint_index < skeleton->joint_count);
+
+			const u32	   joint_index			= slot.slot_joint_index;
+			const mat4x3_t joint_transform		= bones.data[joint_index].bone_transform * joints[joint_index].bind_global;
+			const mat4x3_t slot_local_transform = mat4x3_t::transform(slot.local_position, slot.local_rotation, vec3f_t::one);
+			const mat4x3_t slot_transform		= mesh_transform * joint_transform * slot_local_transform;
+			vec3f_t		   position				= vec3f_t::zero;
+			quat_t		   rotation				= quat_t::identity;
+			vec3f_t		   scale				= vec3f_t::one;
+
+			slot_transform.decompose(position, rotation, scale);
+			world.teleport_entity(_slot_entities[slot_index], position, rotation, vec3f_t::one);
+		}
+
+		world.update_world_transforms(false);
 	}
 
 	void editor_panel_skeleton_viewer_t::refresh_preview_mesh_reference()
@@ -421,6 +519,7 @@ namespace sfg
 			.callbacks =
 				{
 					.edit_begin		= on_edit_begin,
+					.edited			= on_reflection_edited,
 					.edit_submitted = on_edit_submitted,
 					.user_data		= this,
 				},
@@ -536,6 +635,11 @@ namespace sfg
 		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->on_edit_begin();
 	}
 
+	void editor_panel_skeleton_viewer_t::on_reflection_edited(void* user_data)
+	{
+		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->refresh_slot_entities();
+	}
+
 	void editor_panel_skeleton_viewer_t::on_edit_submitted(void* user_data)
 	{
 		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->on_edit_submitted();
@@ -544,6 +648,11 @@ namespace sfg
 	void editor_panel_skeleton_viewer_t::on_preview_mesh_edited(void* user_data)
 	{
 		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->create_display_entity();
+	}
+
+	void editor_panel_skeleton_viewer_t::on_world_tick(world_t& world, f32 delta_time, void* user_data)
+	{
+		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->update_slot_entity_transforms(world);
 	}
 
 	void editor_panel_skeleton_viewer_t::on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data)

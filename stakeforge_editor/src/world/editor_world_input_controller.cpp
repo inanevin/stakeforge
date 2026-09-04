@@ -498,7 +498,12 @@ namespace sfg
 		const span_t<const entity_id_t> selected = _world->get_edit_context().get_selected_entities();
 
 		if (selected.size == 0)
+		{
+			const vec3f_t half_extent(EDITOR_WORLD_INPUT_FOCUS_POINT_HALF_EXTENT);
+
+			_world->fit_camera_to_bounds(aabb_t(-half_extent, half_extent));
 			return;
+		}
 
 		const world_t&				 world					= _world->get_world();
 		const ecs_component_table_t& transform_table		= world.get_component_table(type_id_t<component_system_transform_t>::value);

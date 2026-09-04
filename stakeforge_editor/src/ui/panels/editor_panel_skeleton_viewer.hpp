@@ -45,6 +45,7 @@ namespace sfg
 {
 	class editor_asset_manager_t;
 	class editor_command_skeleton_edit_t;
+	class world_t;
 	struct editor_asset_deletion_listener_tag_t;
 
 	class editor_panel_skeleton_viewer_t final : public editor_panel_t
@@ -92,6 +93,8 @@ namespace sfg
 		void			destroy_preview_world();
 		void			create_display_entity();
 		void			clear_display_entity();
+		void			refresh_slot_entities();
+		void			update_slot_entity_transforms(world_t& world);
 		void			refresh_preview_mesh_reference();
 		void			refresh_info();
 		void			refresh_reflection();
@@ -104,8 +107,10 @@ namespace sfg
 		static span_t<const editor_widget_reflection_dropdown_item_t> resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, u32 element_index, void* user_data);
 		static void													  on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data);
 		static void													  on_edit_begin(void* user_data);
+		static void													  on_reflection_edited(void* user_data);
 		static void													  on_edit_submitted(void* user_data);
 		static void													  on_preview_mesh_edited(void* user_data);
+		static void													  on_world_tick(world_t& world, f32 delta_time, void* user_data);
 		static void													  on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 
 	private:
@@ -114,6 +119,7 @@ namespace sfg
 		editor_widget_reference_t								 _preview_mesh_reference  = {};
 		editor_split_border_t									 _split_border			  = {};
 		skeleton_def_t											 _skeleton				  = {};
+		vector_t<entity_id_t>									 _slot_entities			  = {};
 		vector_t<editor_widget_reflection_dropdown_item_t>		 _joint_dropdown_items	  = {};
 		vector_t<editor_widget_reflection_fold_state_t>			 _fold_states			  = {};
 		string_t												 _asset_name			  = {};

@@ -146,6 +146,14 @@ namespace sfg
 			.name = "skeleton_slot_def_t",
 			.fields =
 				{
+					{
+						.name		  = "preview_mesh",
+						.display_name = "Preview Mesh",
+						.sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MESH,
+						.offset		  = offsetof(skeleton_slot_def_t, preview_mesh),
+						.size		  = sizeof(resource_handle_t),
+						.type		  = reflected_value_type_e::u64,
+					},
 					{.name = "slot_name", .display_name = "Slot Name", .offset = offsetof(skeleton_slot_def_t, slot_name), .size = sizeof(skeleton_slot_def_t::slot_name), .type = reflected_value_type_e::char_array},
 					{.name = "slot_joint_index", .display_name = "Target Joint", .offset = offsetof(skeleton_slot_def_t, slot_joint_index), .size = sizeof(u32), .type = reflected_value_type_e::u32},
 					{.name = "local_position", .display_name = "Local Position", .sub_type_id = type_id_t<vec3f_t>::value, .offset = offsetof(skeleton_slot_def_t, local_position), .size = sizeof(vec3f_t), .type = reflected_value_type_e::object},
