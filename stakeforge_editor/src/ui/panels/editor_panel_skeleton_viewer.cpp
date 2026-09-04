@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "commands/editor_command_skeleton.hpp"
 #include "editor_command_system.hpp"
 #include "editor_surface_controller.hpp"
@@ -41,14 +42,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_util.hpp"
 
 #include <sfg/common/hashing.hpp>
-#include <sfg/io/assert.hpp>
-#include <sfg/math/aabb.hpp>
-#include <sfg/math/color.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/resources/mesh.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
+#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
-#include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -57,9 +58,6 @@ namespace sfg
 #define SKELETON_VIEWER_PANE_SPLIT_MIN				0.45f
 #define SKELETON_VIEWER_PANE_SPLIT_MAX				0.85f
 #define SKELETON_VIEWER_SPLIT_BORDER_THICKNESS_MULT 2.0f
-#define SKELETON_VIEWER_JOINT_RADIUS_RATIO			0.02f
-#define SKELETON_VIEWER_AXIS_LENGTH_RATIO			0.12f
-#define SKELETON_VIEWER_SLOT_HALF_EXTENT_SCALE		1.5f
 
 	editor_panel_skeleton_viewer_t::editor_panel_skeleton_viewer_t()
 	{
@@ -142,6 +140,28 @@ namespace sfg
 		editor_misc_widgets_t::make_section_label(ui, _right_pane, "Skeleton");
 
 		_joint_count_value = append_property_value_row("Joints");
+
+		const editor_property_row_t preview_mesh_row   = editor_misc_widgets_t::make_property_row_with_label(ui, _right_pane, "Preview Mesh");
+		u64*						preview_mesh_field = &_preview_mesh;
+
+		_preview_mesh_reference.init(ui,
+									 preview_mesh_row.right,
+									 {
+										 .callbacks =
+											 {
+												 .edited	= on_preview_mesh_edited,
+												 .user_data = this,
+											 },
+										 .fields	 = {.data = &preview_mesh_field, .size = 1},
+										 .asset_type = editor_asset_type_e::mesh,
+									 });
+
+		ui::layout_in_t& preview_mesh_in = tree.in(_preview_mesh_reference.get_root());
+		preview_mesh_in.size_mode_x		 = ui::axis_mode_e::fill;
+		preview_mesh_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		preview_mesh_in.pos_value.y		 = 0.5f;
+		preview_mesh_in.anchor_y		 = ui::anchor_e::center;
+
 		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 		_root_joint_value = append_property_value_row("Root Joint");
 
@@ -186,13 +206,13 @@ namespace sfg
 
 		_asset_deletion_listener = {};
 		_skeleton_reflection.uninit();
+		_preview_mesh_reference.uninit();
 		_world_view.uninit();
 		_split_border.uninit();
 		_ui->deallocate_widget(_left_pane);
 		_ui->deallocate_widget(_right_pane);
 		destroy_preview_world();
 
-		_joint_draw_data.resize(0);
 		_joint_dropdown_items.resize(0);
 		_fold_states.resize(0);
 		_skeleton = {};
@@ -211,9 +231,8 @@ namespace sfg
 
 		_skeleton_guid = skeleton_guid;
 		set_sub_item_id(skeleton_guid);
-		_asset_name = asset_name;
-		_skeleton	= {};
-		_joint_draw_data.resize(0);
+		_asset_name		  = asset_name;
+		_skeleton		  = {};
 		_root_joint_index = UINT32_MAX;
 
 		if (skeleton_guid != NULL_SID)
@@ -229,7 +248,11 @@ namespace sfg
 			}
 		}
 
-		rebuild_joint_draw_data();
+		_preview_mesh	  = _skeleton.preview_mesh;
+		_root_joint_index = _skeleton.is_evaluation_order_valid() ? _skeleton.root_joint_index : UINT32_MAX;
+
+		refresh_preview_mesh_reference();
+		create_display_entity();
 		refresh_info();
 		refresh_reflection();
 		refresh_title(_asset_name.c_str(), "S: ");
@@ -237,8 +260,9 @@ namespace sfg
 
 	void editor_panel_skeleton_viewer_t::apply_skeleton_def(skeleton_def_t&& skeleton)
 	{
-		_skeleton = std::move(skeleton);
-		rebuild_joint_draw_data();
+		_skeleton		  = std::move(skeleton);
+		_root_joint_index = _skeleton.is_evaluation_order_valid() ? _skeleton.root_joint_index : UINT32_MAX;
+
 		refresh_info();
 		refresh_reflection();
 	}
@@ -248,7 +272,7 @@ namespace sfg
 		const editor_world_init_config_t init_config = editor_world_init_config_t::make_preview(editor_surface_controller_t::get().get_main_surface().swapchain_size);
 
 		editor_world_controller_t& controller = editor_world_controller_t::get();
-		_world								  = controller.create_world(init_config, editor_world_edit_type_e::view_with_debug, on_world_tick, this);
+		_world								  = controller.create_world(init_config, editor_world_edit_type_e::view_with_debug);
 		editor_world_t* const editor_world	  = controller.get_editor_world(_world);
 
 		editor_world->install_camera(editor_world_camera_type_e::orbit);
@@ -265,92 +289,73 @@ namespace sfg
 
 		editor_world_controller_t::get().destroy_world(_world);
 
-		_world = {};
+		_world			= {};
+		_display_entity = NULL_ENTITY_ID;
 	}
 
-	void editor_panel_skeleton_viewer_t::rebuild_joint_draw_data()
+	void editor_panel_skeleton_viewer_t::create_display_entity()
 	{
-		_joint_draw_data.resize(0);
-		_root_joint_index = UINT32_MAX;
-
-		if (!_skeleton.is_evaluation_order_valid())
+		if (_world.is_null())
 			return;
 
-		const u32 joint_count = static_cast<u32>(_skeleton.joints.size());
-		_joint_draw_data.resize(joint_count);
-		_root_joint_index = _skeleton.root_joint_index;
+		clear_display_entity();
 
-		for (u32 i = 0; i < joint_count; ++i)
+		world_t& world = editor_world_controller_t::get().get_editor_world(_world)->get_world();
+
+		_display_entity = world.create_entity("skeleton_viewer_mesh");
+
+		component_skinned_mesh_renderer_t& skinned_renderer = ecs_helpers_t::table_add_or_get_as<component_skinned_mesh_renderer_t>(world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value), _display_entity);
+
+		skinned_renderer.mesh	  = _preview_mesh;
+		skinned_renderer.skeleton = _skeleton_guid;
+
+		const editor_asset_t* mesh_asset = editor_asset_manager_t::get().find_asset(_preview_mesh);
+		mesh_def_t			  mesh_def	 = {};
+
+		if (mesh_asset != nullptr && mesh_asset->asset_type == editor_asset_type_e::mesh && editor_asset_util_t::load_mesh_def(*mesh_asset, mesh_def) && !mesh_def.preview_materials.empty())
 		{
-			const u32					joint_index = _skeleton.evaluation_order[i];
-			const skeleton_joint_def_t& joint		= _skeleton.joints[joint_index];
-			joint_draw_data_t&			draw_data	= _joint_draw_data[joint_index];
-			draw_data.parent_index					= joint.parent_index;
-			draw_data.transform						= joint.parent_index == SKELETON_JOINT_NO_PARENT ? joint.local : _joint_draw_data[joint.parent_index].transform * joint.local;
+			for (const resource_handle_t material : mesh_def.preview_materials)
+				skinned_renderer.materials.push_back(material);
+		}
+		else
+		{
+			for (size_t i = 0; i < decltype(skinned_renderer.materials)::capacity; ++i)
+				skinned_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
 		}
 
-		for (joint_draw_data_t& draw_data : _joint_draw_data)
-			draw_data.transform = _skeleton.skinning_transform * draw_data.transform;
+		world.scan_for_resources(_display_entity, true);
 
-		vec3f_t bounds_min = _joint_draw_data[0].transform.get_translation();
-		vec3f_t bounds_max = bounds_min;
-
-		for (const joint_draw_data_t& draw_data : _joint_draw_data)
-		{
-			const vec3f_t position = draw_data.transform.get_translation();
-			bounds_min			   = vec3f_t::min(bounds_min, position);
-			bounds_max			   = vec3f_t::max(bounds_max, position);
-		}
-
-		const vec3f_t dimensions   = bounds_max - bounds_min;
-		const f32	  visual_scale = math::max(math::max(dimensions.x, dimensions.y), math::max(dimensions.z, 1.0f));
-		_joint_radius			   = visual_scale * SKELETON_VIEWER_JOINT_RADIUS_RATIO;
-		_axis_length			   = visual_scale * SKELETON_VIEWER_AXIS_LENGTH_RATIO;
-
-		if (!_world.is_null())
-		{
-			const vec3f_t bounds_margin(_axis_length, _axis_length, _axis_length);
-			editor_world_controller_t::get().get_editor_world(_world)->fit_camera_to_bounds(aabb_t(bounds_min - bounds_margin, bounds_max + bounds_margin));
-		}
+		if (const mesh_internals_t* internals = resource_manager_t::get().find_internals<mesh_internals_t>(_preview_mesh))
+			editor_world_controller_t::get().get_editor_world(_world)->fit_camera_to_bounds(internals->local_bounds);
 	}
 
-	void editor_panel_skeleton_viewer_t::draw_skeleton(world_t& world) const
+	void editor_panel_skeleton_viewer_t::clear_display_entity()
 	{
-		if (_joint_draw_data.empty())
+		if (_display_entity == NULL_ENTITY_ID)
 			return;
 
-		const editor_theme_t& theme		 = editor_theme_t::get();
-		world_debug_draw_t&	  debug_draw = world.get_debug_draw();
+		world_t& world = editor_world_controller_t::get().get_editor_world(_world)->get_world();
 
-		for (u32 joint_index = 0; joint_index < _skeleton.joints.size(); ++joint_index)
-		{
-			const joint_draw_data_t& draw_data	= _joint_draw_data[joint_index];
-			const vec3f_t			 position	= draw_data.transform.get_translation();
-			const char*				 joint_name = _skeleton.joints[joint_index].name.c_str();
+		world.destroy_entity(_display_entity);
+		_display_entity = NULL_ENTITY_ID;
+	}
 
-			if (draw_data.parent_index != SKELETON_JOINT_NO_PARENT)
-			{
-				const vec3f_t parent_position = _joint_draw_data[draw_data.parent_index].transform.get_translation();
-				debug_draw.draw_line(parent_position, position, color_t::white, 2.0f, debug_draw_depth_e::depth_tested);
-			}
+	void editor_panel_skeleton_viewer_t::refresh_preview_mesh_reference()
+	{
+		if (_ui == nullptr)
+			return;
 
-			debug_draw.draw_sphere(position, _joint_radius, color_t::purple, 1.5f, debug_draw_depth_e::depth_tested, 10);
-			editor_world_util_t::draw_transform_axes(debug_draw, draw_data.transform, _axis_length, 1.5f, debug_draw_depth_e::depth_tested);
-			debug_draw.draw_text_3d(position, joint_name, color_t::white, theme.text_small_px_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
-		}
+		u64* preview_mesh_field = &_preview_mesh;
 
-		for (const skeleton_slot_def_t& slot : _skeleton.slots)
-		{
-			if (slot.slot_joint_index == SKELETON_JOINT_NO_PARENT)
-				continue;
-
-			SFG_ASSERT(slot.slot_joint_index < _joint_draw_data.size());
-
-			const mat4x3_t slot_local_transform = mat4x3_t::transform(slot.local_position, slot.local_rotation, vec3f_t::one);
-			const mat4x3_t slot_transform		= _joint_draw_data[slot.slot_joint_index].transform * slot_local_transform;
-
-			editor_world_util_t::draw_skeleton_slot(debug_draw, slot_transform, slot.slot_name, _joint_radius * SKELETON_VIEWER_SLOT_HALF_EXTENT_SCALE, _axis_length, theme.text_small_px_size);
-		}
+		_preview_mesh_reference.set_reference({
+			.callbacks =
+				{
+					.edited	   = on_preview_mesh_edited,
+					.user_data = this,
+				},
+			.fields		= {.data = &preview_mesh_field, .size = 1},
+			.asset_type = editor_asset_type_e::mesh,
+		});
 	}
 
 	void editor_panel_skeleton_viewer_t::refresh_info()
@@ -363,13 +368,13 @@ namespace sfg
 
 		if (_skeleton_guid != 0)
 		{
-			if (_joint_draw_data.empty())
+			if (_root_joint_index == UINT32_MAX)
 			{
 				_joint_count_text = "Failed";
 			}
 			else
 			{
-				_joint_count_text = std::to_string(_joint_draw_data.size());
+				_joint_count_text = std::to_string(_skeleton.joints.size());
 				_root_joint_text  = std::to_string(_root_joint_index);
 			}
 		}
@@ -481,7 +486,6 @@ namespace sfg
 
 		panel._skeleton_guid = NULL_SID;
 		panel._skeleton		 = {};
-		panel._joint_draw_data.resize(0);
 		panel._joint_dropdown_items.resize(0);
 		panel._root_joint_index = UINT32_MAX;
 		panel._asset_name.resize(0);
@@ -537,10 +541,9 @@ namespace sfg
 		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->on_edit_submitted();
 	}
 
-	void editor_panel_skeleton_viewer_t::on_world_tick(world_t& world, f32 delta_time, void* user_data)
+	void editor_panel_skeleton_viewer_t::on_preview_mesh_edited(void* user_data)
 	{
-		const editor_panel_skeleton_viewer_t& panel = *static_cast<const editor_panel_skeleton_viewer_t*>(user_data);
-		panel.draw_skeleton(world);
+		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->create_display_entity();
 	}
 
 	void editor_panel_skeleton_viewer_t::on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data)
