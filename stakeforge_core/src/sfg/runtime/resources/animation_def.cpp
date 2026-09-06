@@ -103,6 +103,33 @@ namespace sfg
 		});
 	}
 
+	animation_event_def_reflection_t::animation_event_def_reflection_t()
+	{
+		reflection_registry_t::get().register_type({
+			.name = "animation_event_def_t",
+			.fields =
+				{
+					{
+						.name		  = "name",
+						.display_name = "Name",
+						.offset		  = offsetof(animation_event_def_t, name),
+						.size		  = sizeof(animation_event_def_t::name),
+						.type		  = reflected_value_type_e::char_array,
+					},
+					{
+						.name		  = "time",
+						.display_name = "Time (s)",
+						.offset		  = offsetof(animation_event_def_t, time),
+						.size		  = sizeof(f32),
+						.type		  = reflected_value_type_e::f32,
+					},
+				},
+			.type_id   = type_id_t<animation_event_def_t>::value,
+			.size	   = sizeof(animation_event_def_t),
+			.alignment = alignof(animation_event_def_t),
+		});
+	}
+
 	animation_def_reflection_t::animation_def_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();
@@ -146,6 +173,14 @@ namespace sfg
 					 .offset		= offsetof(animation_def_t, scale_channels),
 					 .size			= sizeof(vector_t<animation_channel_v3_def_t>),
 					 .type			= reflected_value_type_e::container},
+					{
+						.container_ops = reflection_container_ops_t::vector_ops<animation_event_def_t>(reflected_value_type_e::object, type_id_t<animation_event_def_t>::value),
+						.name		   = "events",
+						.display_name  = "Events",
+						.offset		   = offsetof(animation_def_t, events),
+						.size		   = sizeof(vector_t<animation_event_def_t>),
+						.type		   = reflected_value_type_e::container,
+					},
 				},
 			.type_id   = type_id_t<animation_def_t>::value,
 			.size	   = sizeof(animation_def_t),

@@ -269,6 +269,7 @@ namespace sfg
 		static inline constexpr const char* DEBUG_NAME = "component_animation_player";
 
 		resource_handle_t animation		   = NULL_RESOURCE_HANDLE;
+		sid_t			  mask			   = NULL_SID;
 		f32				  scrub_ratio	   = 0.0f;
 		f32				  speed_multiplier = 1.0f;
 		bool			  is_looping	   = false;

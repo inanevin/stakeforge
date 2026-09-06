@@ -33,6 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widget_world_view.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
 #include "ui/widgets/editor_widget_button.hpp"
+#include "ui/widgets/editor_widgets_icon_button.hpp"
 #include "world/editor_world_handle.hpp"
 
 #include <sfg/data/unique.hpp>
@@ -75,7 +76,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void set_skeleton(sid_t skeleton_guid, const char* asset_name);
-		void apply_slots(vector_t<skeleton_slot_def_t>&& slots, u32 selected_joint, u32 selected_slot);
+		void apply_edits(vector_t<skeleton_slot_def_t>&& slots, vector_t<skeleton_mask_def_t>&& masks, u32 selected_joint, u32 selected_slot);
 		bool on_command_event(const window_event_t& ev);
 
 		// -----------------------------------------------------------------------------
@@ -110,6 +111,8 @@ namespace sfg
 			bool			visible		   = true;
 		};
 
+		struct mask_item_t;
+
 		struct slot_preview_t
 		{
 			resource_handle_t mesh	 = NULL_RESOURCE_HANDLE;
@@ -124,7 +127,13 @@ namespace sfg
 		void update_slot_entity_transforms(world_t& world);
 		void init_slot_fields();
 		void refresh_slot_fields();
-		void select_row(u32 row_index);
+		void select_row(u32 row_index, bool additive = false);
+		void refresh_mask_button();
+		void refresh_joint_selection();
+		void finish_mask_edit();
+		void refresh_mask_backgrounds();
+		void refresh_mask_items();
+		void clear_mask_items();
 		void add_slot();
 		void duplicate_slot();
 		void rename_slot();
@@ -156,9 +165,15 @@ namespace sfg
 		ui::widget_id_t append_value_label(ui::widget_id_t parent);
 
 		static void on_preview_animation_edited(void* user_data);
-		static void on_animation_play_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
-		static void on_animation_reset_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_animation_play_pressed(bool toggled, void* user_data);
+		static void on_animation_reset_pressed(bool toggled, void* user_data);
 		static void on_save_changes_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_mask_edit_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_mask_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_mask_activate_toggled(bool is_toggled, void* user_data);
+		static void on_mask_name_edit_begin(void* user_data);
+		static void on_mask_name_edit_submitted(void* user_data);
+		static void on_make_mask_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_hierarchy_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_slot_rename_submitted(const char* value, void* user_data);
 		static void on_row_menu_action(u16 action, void* user_data);
@@ -176,14 +191,17 @@ namespace sfg
 	private:
 		editor_widget_world_view_t		  _world_view				   = {};
 		editor_widget_reference_t		  _preview_animation_reference = {};
-		editor_widget_button_t			  _animation_play_button	   = {};
-		editor_widget_button_t			  _animation_reset_button	   = {};
+		editor_icon_button_t			  _animation_play_button	   = {};
+		editor_icon_button_t			  _animation_reset_button	   = {};
 		editor_widget_button_t			  _save_changes_button		   = {};
+		editor_widget_button_t			  _make_mask_button			   = {};
+		vector_t<unique_t<mask_item_t>>	  _mask_items				   = {};
+		vector_t<u32>					  _selected_joints			   = {};
 		editor_vec3_field_t				  _slot_position_field		   = {};
 		editor_vec3_field_t				  _slot_preview_scale_field	   = {};
 		editor_quat_field_t				  _slot_rotation_field		   = {};
 		editor_widget_reference_t		  _slot_preview_mesh_reference = {};
-		editor_scrollbar_t				  _joint_scrollbar			   = {};
+		editor_scrollbar_t				  _right_scrollbar			   = {};
 		editor_widget_reference_t		  _preview_mesh_reference	   = {};
 		editor_split_border_t			  _split_border				   = {};
 		skeleton_def_t					  _skeleton					   = {};
@@ -219,6 +237,11 @@ namespace sfg
 		ui::widget_id_t											 _joint_list_area		  = NULL_WIDGET;
 		ui::widget_id_t											 _left_pane				  = NULL_WIDGET;
 		ui::widget_id_t											 _right_pane			  = NULL_WIDGET;
+		ui::widget_id_t											 _right_content			  = NULL_WIDGET;
+		ui::widget_id_t											 _mask_list				  = NULL_WIDGET;
+		u32														 _editing_mask			  = UINT32_MAX;
+		u32														 _active_mask			  = UINT32_MAX;
+		bool													 _mask_name_edit_active	  = false;
 		ui::widget_id_t											 _joint_count_value		  = NULL_WIDGET;
 		ui::widget_id_t											 _root_joint_value		  = NULL_WIDGET;
 		f32														 _pane_split			  = 0.72f;

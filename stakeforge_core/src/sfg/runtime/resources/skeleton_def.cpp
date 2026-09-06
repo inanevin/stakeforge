@@ -166,6 +166,36 @@ namespace sfg
 		});
 	}
 
+	skeleton_mask_def_reflection_t::skeleton_mask_def_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+
+		registry.register_type({
+			.name = "skeleton_mask_def_t",
+			.fields =
+				{
+					{
+						.name		  = "name",
+						.display_name = "Name",
+						.offset		  = offsetof(skeleton_mask_def_t, name),
+						.size		  = sizeof(skeleton_mask_def_t::name),
+						.type		  = reflected_value_type_e::char_array,
+					},
+					{
+						.container_ops = reflection_container_ops_t::vector_ops<u32>(reflected_value_type_e::u32),
+						.name		   = "joint_indices",
+						.display_name  = "Masked Joints",
+						.offset		   = offsetof(skeleton_mask_def_t, joint_indices),
+						.size		   = sizeof(vector_t<u32>),
+						.type		   = reflected_value_type_e::container,
+					},
+				},
+			.type_id   = type_id_t<skeleton_mask_def_t>::value,
+			.size	   = sizeof(skeleton_mask_def_t),
+			.alignment = alignof(skeleton_mask_def_t),
+		});
+	}
+
 	skeleton_def_reflection_t::skeleton_def_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();
@@ -228,6 +258,14 @@ namespace sfg
 						.type		  = reflected_value_type_e::u64,
 					},
 					{.name = "root_index", .display_name = "Root Index", .offset = offsetof(skeleton_def_t, root_joint_index), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
+					{
+						.container_ops = reflection_container_ops_t::vector_ops<skeleton_mask_def_t>(reflected_value_type_e::object, type_id_t<skeleton_mask_def_t>::value),
+						.name		   = "masks",
+						.display_name  = "Masks",
+						.offset		   = offsetof(skeleton_def_t, masks),
+						.size		   = sizeof(vector_t<skeleton_mask_def_t>),
+						.type		   = reflected_value_type_e::container,
+					},
 				},
 			.type_id   = type_id_t<skeleton_def_t>::value,
 			.size	   = sizeof(skeleton_def_t),

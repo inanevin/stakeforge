@@ -72,6 +72,7 @@ namespace sfg
 		animation_graph_set_display_mode,
 		animation_graph_edit,
 		skeleton_edit,
+		animation_events_edit,
 		ragdoll_edit,
 	};
 

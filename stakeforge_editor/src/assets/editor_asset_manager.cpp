@@ -39,6 +39,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_project.hpp"
 #include "ui/editor_modal_controller.hpp"
 #include "ui/panels/editor_panel_inspector.hpp"
+#include <sfg/data/ostream.hpp>
+#include <sfg/serialization/compression.hpp>
+#include <sfg/serialization/serialization.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/frame_hash_map.hpp>
 #include <sfg/data/string_util.hpp>
@@ -824,6 +827,35 @@ namespace sfg
 		notify_changed();
 
 		schedule_asset_cook(asset_id, *asset, asset_node.full_path.c_str(), asset_node.name.c_str(), true);
+
+		return true;
+	}
+
+	bool editor_asset_manager_t::save_and_cook_file_asset_blob_async(sid_t asset_id, const ostream_t& source)
+	{
+		const editor_asset_t* asset = _database.find_asset(asset_id);
+
+		if (asset == nullptr)
+		{
+			SFG_ERR("failed to find blob asset {0}", asset_id);
+			return false;
+		}
+
+		SFG_ASSERT(asset->source_type == editor_asset_source_type_e::file_blob);
+
+		const editor_asset_node_handle_t node		 = _database.find_asset_node(asset_id);
+		const editor_asset_node_t&		 asset_node	 = _database.get_asset_tree().value(node);
+		const string_t					 source_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), *asset);
+		ostream_t						 compressed	 = compressor_t::compress(source);
+
+		if (compressed.get_size() == 0 || !serializer_t::save_to_file_atomic(source_path.c_str(), compressed))
+		{
+			SFG_ERR("failed to save asset blob: {0}", source_path.c_str());
+			return false;
+		}
+
+		notify_changed();
+		schedule_asset_cook(asset_id, *asset, asset_node.full_path.c_str(), asset_node.name.c_str(), false);
 
 		return true;
 	}

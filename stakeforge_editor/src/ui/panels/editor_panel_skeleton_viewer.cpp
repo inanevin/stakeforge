@@ -36,7 +36,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/editor_action_menu_controller.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
+#include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widget_toggle_button.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
@@ -75,6 +77,16 @@ namespace sfg
 #define SKELETON_VIEWER_PANE_SPLIT_MIN				0.45f
 #define SKELETON_VIEWER_PANE_SPLIT_MAX				0.85f
 #define SKELETON_VIEWER_SPLIT_BORDER_THICKNESS_MULT 2.0f
+
+	struct editor_panel_skeleton_viewer_t::mask_item_t
+	{
+		editor_input_field_t			name_field		= {};
+		editor_widget_toggle_button_t	activate_button = {};
+		editor_widget_button_t			edit_button		= {};
+		editor_widget_button_t			remove_button	= {};
+		editor_panel_skeleton_viewer_t* viewer			= nullptr;
+		ui::widget_id_t					root			= NULL_WIDGET;
+	};
 
 	editor_panel_skeleton_viewer_t::editor_panel_skeleton_viewer_t()
 	{
@@ -118,7 +130,6 @@ namespace sfg
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flow			 = ui::flow_e::row;
 		root_in.child_spacing	 = 0.0f;
-		root_in.child_margins	 = {0.0f, 0.0f, theme.margin_vertical, 0.0f};
 
 		_left_pane = ui.allocate_widget();
 		ui.set_widget_debug_name(_left_pane, "skeleton_viewer_left_pane");
@@ -126,7 +137,6 @@ namespace sfg
 
 		ui::layout_in_t& left_in = tree.in(_left_pane);
 		left_in.flow			 = ui::flow_e::none;
-		left_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
 		left_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		left_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		left_in.size_value		 = {_pane_split, 1.0f};
@@ -154,18 +164,35 @@ namespace sfg
 		tree.attach(_root, _right_pane);
 
 		ui::layout_in_t& right_in = tree.in(_right_pane);
-		right_in.flow			  = ui::flow_e::column;
-		right_in.child_margins	  = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
-		right_in.size_mode_x	  = ui::axis_mode_e::fill;
-		right_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
-		right_in.size_value		  = {1.0f, 1.0f};
+		right_in.flags |= ui::wf_input | ui::wf_scroll_y;
+		right_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
+		right_in.size_mode_x	 = ui::axis_mode_e::fill;
+		right_in.size_mode_y	 = ui::axis_mode_e::parent_relative;
+		right_in.size_value		 = {1.0f, 1.0f};
 
-		editor_misc_widgets_t::make_section_label(ui, _right_pane, "Skeleton");
+		_right_content = ui.allocate_widget();
+		ui.set_widget_debug_name(_right_content, "skeleton_viewer_right_content");
+		tree.attach(_right_pane, _right_content);
+		tree.draw_order(_right_content) = tree.draw_order_const(_right_pane) + 1;
+
+		ui::layout_in_t& right_content_in = tree.in(_right_content);
+		right_content_in.flow			  = ui::flow_e::column;
+		right_content_in.child_margins	  = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
+		right_content_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
+		right_content_in.size_mode_y	  = ui::axis_mode_e::sum_children;
+		right_content_in.size_value		  = {1.0f, 1.0f};
+
+		_right_scrollbar.init(ui, {.target = _right_pane, .axes = editor_scrollbar_axis_y});
+
+		editor_misc_widgets_t::make_section_label(ui, _right_content, "Skeleton");
 
 		_joint_count_value = append_property_value_row("Joints");
-		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+		editor_dividers_t::add_divider_hor(ui, _right_content, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
-		const editor_property_row_t preview_mesh_row   = editor_misc_widgets_t::make_property_row_with_label(ui, _right_pane, "Preview Mesh");
+		_root_joint_value = append_property_value_row("Root Joint");
+		editor_dividers_t::add_divider_hor(ui, _right_content, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
+		const editor_property_row_t preview_mesh_row   = editor_misc_widgets_t::make_property_row_with_label(ui, _right_content, "Preview Mesh");
 		u64*						preview_mesh_field = &_preview_mesh;
 
 		_preview_mesh_reference.init(ui,
@@ -186,9 +213,9 @@ namespace sfg
 		preview_mesh_in.pos_value.y		 = 0.5f;
 		preview_mesh_in.anchor_y		 = ui::anchor_e::center;
 
-		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+		editor_dividers_t::add_divider_hor(ui, _right_content, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
-		const editor_property_row_t preview_animation_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _right_pane, "Preview Animation");
+		const editor_property_row_t preview_animation_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _right_content, "Preview Animation");
 		u64*						preview_animation_field = &_preview_animation;
 
 		_preview_animation_reference.init(ui,
@@ -205,27 +232,40 @@ namespace sfg
 		preview_animation_in.pos_value.y	  = 0.5f;
 		preview_animation_in.anchor_y		  = ui::anchor_e::center;
 
-		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
-		_root_joint_value = append_property_value_row("Root Joint");
-		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+		editor_dividers_t::add_divider_hor(ui, _right_content, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
 		init_animation_controls();
-		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
-		editor_misc_widgets_t::make_section_label(ui, _right_pane, "Selected Slot");
-		init_slot_fields();
-		init_joint_hierarchy();
-
-		editor_misc_widgets_t::add_spacer(ui, _right_pane, {0.0f, theme.item_spacing});
-		_save_changes_button.init(ui, _right_pane, {.text = "Save Changes", .width = {.mode = editor_widget_width_e::fixed, .value = theme.item_height * 6.0f}});
-
-		ui::layout_in_t& save_in = tree.in(_save_changes_button.get_root());
-
-		save_in.pos_mode_x	= ui::pos_mode_e::relative_in_parent;
-		save_in.pos_value.x = 0.5f;
-		save_in.anchor_x	= ui::anchor_e::center;
-		save_in.flags |= ui::wf_disabled;
+		editor_misc_widgets_t::add_spacer(ui, _right_content, {0.0f, theme.item_spacing});
+		_save_changes_button.init(ui, _right_content, {.text = "Save Changes"});
+		tree.in(_save_changes_button.get_root()).flags |= ui::wf_disabled;
 		ui.get_input().set_listener(_save_changes_button.get_root(), {.on_click = on_save_changes_pressed, .user_data = this});
+
+		editor_dividers_t::add_divider_hor(ui, _right_content, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
+		editor_misc_widgets_t::make_section_label(ui, _right_content, "Masks");
+		_make_mask_button.init(ui, _right_content, {.text = "Make Mask"});
+		tree.in(_make_mask_button.get_root()).flags |= ui::wf_disabled;
+		ui.get_input().set_listener(_make_mask_button.get_root(), {.on_click = on_make_mask_pressed, .user_data = this});
+		editor_tooltip_controller_t::find(ui)->set_tooltip(_make_mask_button.get_root(), {.text = "Create a mask from the selected joints and all their descendants."});
+
+		_mask_list = ui.allocate_widget();
+		ui.set_widget_debug_name(_mask_list, "skeleton_masks");
+		tree.attach(_right_content, _mask_list);
+
+		ui::layout_in_t& masks_in = tree.in(_mask_list);
+		masks_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
+		masks_in.size_mode_y	  = ui::axis_mode_e::sum_children;
+		masks_in.size_value		  = {1.0f, 1.0f};
+		masks_in.flow			  = ui::flow_e::column;
+		masks_in.child_spacing	  = theme.item_spacing;
+		masks_in.child_margins	  = {theme.margin_vertical, 0.0f, 0.0f, 0.0f};
+
+		editor_misc_widgets_t::make_section_label(ui, _right_content, "Selected Slot");
+		init_slot_fields();
+
+		editor_misc_widgets_t::make_section_label(ui, _right_content, "Hierarchy");
+		init_joint_hierarchy();
 
 		create_preview_world();
 
@@ -256,6 +296,9 @@ namespace sfg
 		editor_command_skeleton_edit_t::cancel(*this);
 		_commands->clear();
 		_slot_fields_edit_active = false;
+		_mask_name_edit_active	 = false;
+		_editing_mask			 = UINT32_MAX;
+		_active_mask			 = UINT32_MAX;
 
 		_slot_preview_mesh_reference.uninit();
 		_slot_position_field.uninit();
@@ -265,12 +308,16 @@ namespace sfg
 		editor_asset_manager_t::get().remove_asset_deletion_listener(_asset_deletion_listener);
 
 		_asset_deletion_listener = {};
-		_joint_scrollbar.uninit();
+		_right_scrollbar.uninit();
 		_preview_mesh_reference.uninit();
 		_preview_animation_reference.uninit();
 		_animation_play_button.uninit();
 		_animation_reset_button.uninit();
 		_save_changes_button.uninit();
+		editor_tooltip_controller_t::find(*_ui)->clear_tooltip(_make_mask_button.get_root());
+		_make_mask_button.uninit();
+		clear_mask_items();
+		_selected_joints.resize(0);
 		_world_view.uninit();
 		_split_border.uninit();
 		_ui->deallocate_widget(_left_pane);
@@ -303,6 +350,9 @@ namespace sfg
 		if (_row_menu_open)
 			editor_action_menu_controller_t::find(*_ui)->close_action_menu();
 
+		clear_mask_items();
+		_selected_joints.resize(0);
+
 		_selected_joint_index = SKELETON_JOINT_NO_PARENT;
 		_selected_slot_index  = UINT32_MAX;
 		++_slot_generation;
@@ -310,6 +360,9 @@ namespace sfg
 		editor_command_skeleton_edit_t::cancel(*this);
 		_commands->clear();
 		_slot_fields_edit_active = false;
+		_mask_name_edit_active	 = false;
+		_editing_mask			 = UINT32_MAX;
+		_active_mask			 = UINT32_MAX;
 
 		_skeleton_guid = skeleton_guid;
 
@@ -336,6 +389,8 @@ namespace sfg
 			}
 		}
 
+		_selected_joints.reserve(_skeleton.joints.size());
+
 		_preview_mesh		  = _skeleton.preview_mesh;
 		_preview_animation	  = _skeleton.preview_animation;
 		_is_animation_playing = false;
@@ -351,6 +406,7 @@ namespace sfg
 
 		refresh_info();
 		refresh_joint_hierarchy();
+		refresh_mask_items();
 		refresh_title(_asset_name.c_str(), "S: ");
 	}
 
@@ -366,15 +422,16 @@ namespace sfg
 
 		editor_world_controller_t::get().get_editor_world(_world)->end_gizmo_action();
 
-		if (_slot_position_field.is_editing() || _slot_rotation_field.is_editing() || _slot_preview_scale_field.is_editing())
+		if (_slot_position_field.is_editing() || _slot_rotation_field.is_editing() || _slot_preview_scale_field.is_editing() || _mask_name_edit_active)
 			_ui->get_input().set_focus(_joint_list_area, false);
 
 		on_slot_fields_edit_submitted(this);
+		finish_mask_edit();
 
 		return _commands->on_window_event(ev);
 	}
 
-	void editor_panel_skeleton_viewer_t::apply_slots(vector_t<skeleton_slot_def_t>&& slots, u32 selected_joint, u32 selected_slot)
+	void editor_panel_skeleton_viewer_t::apply_edits(vector_t<skeleton_slot_def_t>&& slots, vector_t<skeleton_mask_def_t>&& masks, u32 selected_joint, u32 selected_slot)
 	{
 		if (_rename_slot_index != UINT32_MAX)
 		{
@@ -386,11 +443,25 @@ namespace sfg
 			editor_action_menu_controller_t::find(*_ui)->close_action_menu();
 
 		editor_world_controller_t::get().get_editor_world(_world)->cancel_gizmo_action();
+		_selected_joints.resize(0);
 		_selected_joint_index = selected_joint;
 		_selected_slot_index  = selected_slot;
 		++_slot_generation;
 
-		_skeleton.slots = std::move(slots);
+		clear_mask_items();
+		_editing_mask		   = UINT32_MAX;
+		_mask_name_edit_active = false;
+		_skeleton.slots		   = std::move(slots);
+		if (_active_mask != UINT32_MAX && masks.size() != _skeleton.masks.size())
+		{
+			const sid_t active_name = TO_SID(static_cast<const char*>(_skeleton.masks[_active_mask].name));
+			const auto	active		= std::find_if(masks.begin(), masks.end(), [active_name](const skeleton_mask_def_t& mask) { return TO_SID(static_cast<const char*>(mask.name)) == active_name; });
+
+			_active_mask = active == masks.end() ? UINT32_MAX : static_cast<u32>(active - masks.begin());
+		}
+
+		_skeleton.masks = std::move(masks);
+		refresh_mask_items();
 
 		refresh_info();
 		refresh_joint_hierarchy();
@@ -518,6 +589,13 @@ namespace sfg
 		const mat4x3_t						 mesh_transform = world.calculate_transform_direct(_display_entity);
 		world_debug_draw_t&					 debug_draw		= world.get_debug_draw();
 
+		frame_vector_t<u8> selected = {};
+
+		selected.resize(skeleton->joint_count, 0);
+
+		for (const u32 joint_index : _selected_joints)
+			selected[joint_index] = 1;
+
 		for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
 		{
 			const skeleton_joint_runtime_t& joint = joints[joint_index];
@@ -528,13 +606,13 @@ namespace sfg
 			const vec3f_t position		  = mesh_transform * (bones.data[joint_index].bone_transform * joint.bind_global.get_translation());
 			const vec3f_t parent_position = mesh_transform * (bones.data[joint.parent_index].bone_transform * joints[joint.parent_index].bind_global.get_translation());
 
-			debug_draw.draw_line(parent_position, position, color_t::white, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(parent_position, position, selected[joint_index] != 0 ? color_t::red : color_t::white, 2.0f, debug_draw_depth_e::always_visible);
 		}
 
 		if (_selected_joint_index != SKELETON_JOINT_NO_PARENT)
 		{
 			const mat4x3_t transform = mesh_transform * bones.data[_selected_joint_index].bone_transform * joints[_selected_joint_index].bind_global;
-			const f32	   length	 = math::max(0.05f, (_skeleton.local_bounds.bounds_max - _skeleton.local_bounds.bounds_min).magnitude() * 0.08f);
+			const f32	   length	 = math::max(0.05f, (_skeleton.local_bounds.bounds_max - _skeleton.local_bounds.bounds_min).magnitude() * 0.08f) * 0.2f;
 
 			editor_world_util_t::draw_transform_axes(debug_draw, transform, length, 2.0f, debug_draw_depth_e::always_visible);
 		}
@@ -546,33 +624,55 @@ namespace sfg
 		const ui::widget_id_t controls = _ui->allocate_widget();
 
 		_ui->set_widget_debug_name(controls, "skeleton_animation_controls");
-		_ui->get_tree().attach(_right_pane, controls);
+		_ui->get_tree().attach(_right_content, controls);
 
 		ui::layout_in_t& in = _ui->get_tree().in(controls);
 
 		in.flow			 = ui::flow_e::row;
 		in.child_spacing = theme.item_spacing;
-		in.size_mode_x	 = ui::axis_mode_e::parent_relative;
+		in.size_mode_x	 = ui::axis_mode_e::sum_children;
 		in.size_mode_y	 = ui::axis_mode_e::fixed;
-		in.size_value	 = {1.0f, theme.item_area_height};
+		in.size_value.y	 = theme.item_area_height;
+		in.pos_mode_x	 = ui::pos_mode_e::relative_in_parent;
+		in.pos_value.x	 = 0.5f;
+		in.anchor_x		 = ui::anchor_e::center;
 
-		_animation_play_button.init(*_ui, controls, {.text = "Play"});
-		_animation_reset_button.init(*_ui, controls, {.text = "Reset"});
+		_animation_play_button.init(*_ui,
+									controls,
+									{
+										.toggled_frame_color = theme.color_accent2_dim,
+										.hover_color		 = theme.color_panel_light1,
+										.toggled_hover_color = theme.color_accent2_dim,
+										.press_color		 = theme.color_frame_light,
+										.icon_color			 = theme.color_accent2,
+										.disabled_color		 = theme.color_text_disabled,
+										.toggled_icon_color	 = theme.color_text0,
+										.icon				 = ICON_PLAY,
+										.toggled_icon		 = ICON_PAUSE,
+										.tooltip			 = "Play",
+										.on_clicked			 = on_animation_play_pressed,
+										.user_data			 = this,
+										.size				 = theme.item_area_height,
+										.icon_size			 = theme.text_big_px_size,
+										.rounding			 = theme.item_rounding,
+										.toggle_enabled		 = true,
+									});
 
-		const ui::widget_id_t buttons[] = {_animation_play_button.get_root(), _animation_reset_button.get_root()};
-
-		for (const ui::widget_id_t button : buttons)
-		{
-			ui::layout_in_t& button_in = _ui->get_tree().in(button);
-
-			button_in.size_mode_x = ui::axis_mode_e::fill;
-			button_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
-			button_in.pos_value.y = 0.5f;
-			button_in.anchor_y	  = ui::anchor_e::center;
-		}
-
-		_ui->get_input().set_listener(_animation_play_button.get_root(), {.on_click = on_animation_play_pressed, .user_data = this});
-		_ui->get_input().set_listener(_animation_reset_button.get_root(), {.on_click = on_animation_reset_pressed, .user_data = this});
+		_animation_reset_button.init(*_ui,
+									 controls,
+									 {
+										 .hover_color	 = theme.color_panel_light1,
+										 .press_color	 = theme.color_frame_light,
+										 .icon_color	 = theme.color_text0,
+										 .disabled_color = theme.color_text_disabled,
+										 .icon			 = ICON_RESET,
+										 .tooltip		 = "Reset",
+										 .on_clicked	 = on_animation_reset_pressed,
+										 .user_data		 = this,
+										 .size			 = theme.item_area_height,
+										 .icon_size		 = theme.text_big_px_size,
+										 .rounding		 = theme.item_rounding,
+									 });
 
 		refresh_animation_controls();
 	}
@@ -581,17 +681,9 @@ namespace sfg
 	{
 		const bool disabled = _preview_animation == NULL_RESOURCE_HANDLE || _display_entity == NULL_ENTITY_ID;
 
-		_animation_play_button.set_text(_is_animation_playing ? "Pause" : "Play", _is_animation_playing ? editor_theme_t::get().color_text0 : editor_theme_t::get().color_accent2);
-
-		const ui::widget_id_t buttons[] = {_animation_play_button.get_root(), _animation_reset_button.get_root()};
-
-		for (const ui::widget_id_t button : buttons)
-		{
-			if (disabled)
-				_ui->get_tree().in(button).flags |= ui::wf_disabled;
-			else
-				_ui->get_tree().in(button).flags &= ~ui::wf_disabled;
-		}
+		_animation_play_button.set_toggled(_is_animation_playing);
+		_animation_play_button.set_disabled(disabled);
+		_animation_reset_button.set_disabled(disabled);
 	}
 
 	void editor_panel_skeleton_viewer_t::update_animation_player(bool reset)
@@ -615,6 +707,7 @@ namespace sfg
 			component_animation_player_t& player = ecs_helpers_t::table_add_or_get_as<component_animation_player_t>(players, _display_entity);
 
 			player.animation		= _preview_animation;
+			player.mask				= _active_mask == UINT32_MAX ? NULL_SID : TO_SID(static_cast<const char*>(_skeleton.masks[_active_mask].name));
 			player.speed_multiplier = _is_animation_playing ? 1.0f : 0.0f;
 			player.is_looping		= true;
 			player.is_scrub			= false;
@@ -657,24 +750,18 @@ namespace sfg
 			world.get_world().scan_for_resources(viewer._display_entity, true);
 	}
 
-	void editor_panel_skeleton_viewer_t::on_animation_play_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	void editor_panel_skeleton_viewer_t::on_animation_play_pressed(bool toggled, void* user_data)
 	{
-		if (button != ui::mouse_button_e::left)
-			return;
-
 		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
 
 		editor_world_controller_t::get().get_editor_world(viewer._world)->cancel_gizmo_action();
 		++viewer._slot_generation;
-		viewer._is_animation_playing = !viewer._is_animation_playing;
+		viewer._is_animation_playing = toggled;
 		viewer.update_animation_player(false);
 	}
 
-	void editor_panel_skeleton_viewer_t::on_animation_reset_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	void editor_panel_skeleton_viewer_t::on_animation_reset_pressed(bool toggled, void* user_data)
 	{
-		if (button != ui::mouse_button_e::left)
-			return;
-
 		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
 
 		editor_world_controller_t::get().get_editor_world(viewer._world)->cancel_gizmo_action();
@@ -691,7 +778,9 @@ namespace sfg
 		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
 
 		editor_world_controller_t::get().get_editor_world(viewer._world)->end_gizmo_action();
+		router.set_focus(id, false);
 		on_slot_fields_edit_submitted(&viewer);
+		viewer.finish_mask_edit();
 
 		nlohmann::json embedded_source = nlohmann::json::object();
 
@@ -875,7 +964,7 @@ namespace sfg
 	void editor_panel_skeleton_viewer_t::init_slot_fields()
 	{
 		const editor_theme_t&		theme			 = editor_theme_t::get();
-		const editor_property_row_t preview_mesh_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_pane, "Preview Mesh");
+		const editor_property_row_t preview_mesh_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_content, "Preview Mesh");
 		u64*						mesh_field		 = &_slot_preview_mesh;
 
 		_slot_preview_mesh_reference.init(*_ui,
@@ -886,7 +975,7 @@ namespace sfg
 											  .asset_type = editor_asset_type_e::mesh,
 										  });
 
-		editor_dividers_t::add_divider_hor(*_ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+		editor_dividers_t::add_divider_hor(*_ui, _right_content, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
 		const editor_widget_callbacks_t callbacks{
 			.edit_begin		= on_slot_fields_edit_begin,
@@ -895,17 +984,17 @@ namespace sfg
 			.user_data		= this,
 		};
 
-		const editor_property_row_t preview_scale_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_pane, "Preview Scale");
+		const editor_property_row_t preview_scale_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_content, "Preview Scale");
 
 		_slot_preview_scale_field.init(*_ui, preview_scale_row.right, {.callbacks = callbacks});
-		editor_dividers_t::add_divider_hor(*_ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+		editor_dividers_t::add_divider_hor(*_ui, _right_content, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
-		const editor_property_row_t position_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_pane, "Local Position");
+		const editor_property_row_t position_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_content, "Local Position");
 
 		_slot_position_field.init(*_ui, position_row.right, {.callbacks = callbacks});
-		editor_dividers_t::add_divider_hor(*_ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+		editor_dividers_t::add_divider_hor(*_ui, _right_content, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
-		const editor_property_row_t rotation_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_pane, "Local Rotation");
+		const editor_property_row_t rotation_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_content, "Local Rotation");
 
 		_slot_rotation_field.init(*_ui, rotation_row.right, {.callbacks = callbacks});
 
@@ -958,7 +1047,290 @@ namespace sfg
 		_slot_rotation_field.set_value(enabled ? _skeleton.slots[_selected_slot_index].local_rotation : quat_t::identity);
 	}
 
-	void editor_panel_skeleton_viewer_t::select_row(u32 row_index)
+	void editor_panel_skeleton_viewer_t::refresh_mask_button()
+	{
+		ui::layout_in_t& in = _ui->get_tree().in(_make_mask_button.get_root());
+
+		if (_selected_joints.empty())
+			in.flags |= ui::wf_disabled;
+		else
+			in.flags &= ~ui::wf_disabled;
+	}
+
+	void editor_panel_skeleton_viewer_t::refresh_joint_selection()
+	{
+		for (u32 i = 0; i < _joint_rows.size(); ++i)
+			update_joint_row_background(i);
+
+		refresh_slot_fields();
+		refresh_mask_button();
+	}
+
+	void editor_panel_skeleton_viewer_t::refresh_mask_backgrounds()
+	{
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		for (u32 index = 0; index < _mask_items.size(); ++index)
+		{
+			const vec4f_t& color = index == _editing_mask ? theme.color_accent0_dim : theme.color_frame;
+
+			_ui->get_paint().set_rect(_mask_items[index]->root, {.fill_color_a = color, .fill_color_b = color});
+			_mask_items[index]->activate_button.set_toggled(index == _active_mask);
+		}
+	}
+
+	void editor_panel_skeleton_viewer_t::finish_mask_edit()
+	{
+		if (_editing_mask == UINT32_MAX)
+			return;
+
+		const u32 index = _editing_mask;
+
+		if (!editor_command_skeleton_edit_t::begin(*this))
+			return;
+
+		_skeleton.masks[index].joint_indices = _selected_joints;
+		std::sort(_skeleton.masks[index].joint_indices.begin(), _skeleton.masks[index].joint_indices.end());
+		_editing_mask = UINT32_MAX;
+		editor_command_skeleton_edit_t::submit(*this, "Skeleton Edit Mask Joints", false);
+		refresh_mask_backgrounds();
+	}
+
+	void editor_panel_skeleton_viewer_t::on_mask_edit_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+		const auto						item   = std::find_if(viewer._mask_items.begin(), viewer._mask_items.end(), [id](const unique_t<mask_item_t>& value) { return value->edit_button.get_root() == id; });
+
+		SFG_ASSERT(item != viewer._mask_items.end());
+
+		const u32  index	   = static_cast<u32>(item - viewer._mask_items.begin());
+		const bool was_editing = viewer._editing_mask == index;
+
+		router.set_focus(id, false);
+		viewer.finish_mask_edit();
+
+		if (was_editing)
+			return;
+
+		editor_world_controller_t::get().get_editor_world(viewer._world)->cancel_gizmo_action();
+		on_slot_fields_edit_submitted(&viewer);
+		viewer._editing_mask		 = index;
+		viewer._selected_joints		 = viewer._skeleton.masks[index].joint_indices;
+		viewer._selected_joint_index = viewer._selected_joints.empty() ? SKELETON_JOINT_NO_PARENT : viewer._selected_joints.back();
+		viewer._selected_slot_index	 = UINT32_MAX;
+		++viewer._slot_generation;
+		viewer.refresh_joint_selection();
+		viewer.refresh_mask_backgrounds();
+	}
+
+	void editor_panel_skeleton_viewer_t::on_mask_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+		const auto						item   = std::find_if(viewer._mask_items.begin(), viewer._mask_items.end(), [id](const unique_t<mask_item_t>& value) { return value->remove_button.get_root() == id; });
+
+		SFG_ASSERT(item != viewer._mask_items.end());
+
+		const u32 index = static_cast<u32>(item - viewer._mask_items.begin());
+
+		router.set_focus(viewer._right_content, false);
+		viewer.finish_mask_edit();
+		on_slot_fields_edit_submitted(&viewer);
+
+		if (!editor_command_skeleton_edit_t::begin(viewer))
+			return;
+
+		viewer.clear_mask_items();
+		viewer._skeleton.masks.erase(viewer._skeleton.masks.begin() + index);
+
+		if (viewer._active_mask == index)
+			viewer._active_mask = UINT32_MAX;
+		else if (viewer._active_mask != UINT32_MAX && viewer._active_mask > index)
+			--viewer._active_mask;
+
+		editor_command_skeleton_edit_t::submit(viewer, "Skeleton Remove Mask", false);
+		viewer.refresh_mask_items();
+	}
+
+	void editor_panel_skeleton_viewer_t::on_mask_activate_toggled(bool is_toggled, void* user_data)
+	{
+		mask_item_t&					item   = *static_cast<mask_item_t*>(user_data);
+		editor_panel_skeleton_viewer_t& viewer = *item.viewer;
+		const auto						active = std::find_if(viewer._mask_items.begin(), viewer._mask_items.end(), [&item](const unique_t<mask_item_t>& value) { return value.get() == &item; });
+
+		viewer._ui->get_input().set_focus(viewer._right_content, false);
+		viewer._active_mask = is_toggled ? static_cast<u32>(active - viewer._mask_items.begin()) : UINT32_MAX;
+		viewer.refresh_mask_backgrounds();
+		viewer.update_animation_player(false);
+	}
+
+	void editor_panel_skeleton_viewer_t::on_mask_name_edit_begin(void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		viewer._mask_name_edit_active = editor_command_skeleton_edit_t::begin(viewer);
+	}
+
+	void editor_panel_skeleton_viewer_t::on_mask_name_edit_submitted(void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		if (!viewer._mask_name_edit_active)
+			return;
+
+		viewer._mask_name_edit_active = false;
+		editor_command_skeleton_edit_t::submit(viewer, "Skeleton Rename Mask", false);
+
+		if (viewer._display_entity != NULL_ENTITY_ID)
+			viewer.update_animation_player(false);
+	}
+
+	void editor_panel_skeleton_viewer_t::clear_mask_items()
+	{
+		for (const unique_t<mask_item_t>& item : _mask_items)
+		{
+			item->name_field.uninit();
+			item->activate_button.uninit();
+			item->edit_button.uninit();
+			item->remove_button.uninit();
+			_ui->deallocate_widget(item->root);
+		}
+
+		_mask_items.resize(0);
+	}
+
+	void editor_panel_skeleton_viewer_t::refresh_mask_items()
+	{
+		clear_mask_items();
+
+		ui::layout_tree_t&	  tree	= _ui->get_tree();
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		_mask_items.reserve(_skeleton.masks.size());
+
+		for (skeleton_mask_def_t& mask : _skeleton.masks)
+		{
+			unique_t<mask_item_t> item = make_unique<mask_item_t>();
+
+			item->root = _ui->allocate_widget();
+			_ui->set_widget_debug_name(item->root, "skeleton_mask");
+			tree.attach(_mask_list, item->root);
+
+			ui::layout_in_t& in = tree.in(item->root);
+			in.size_mode_x		= ui::axis_mode_e::parent_relative;
+			in.size_mode_y		= ui::axis_mode_e::fixed;
+			in.size_value		= {1.0f, theme.item_area_height * 2.0f};
+			in.flow				= ui::flow_e::column;
+			_ui->get_paint().set_rect(item->root, {.fill_color_a = theme.color_frame, .fill_color_b = theme.color_frame});
+
+			const editor_property_row_t name_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, item->root, "Name");
+			u8*							name	 = reinterpret_cast<u8*>(mask.name);
+
+			tree.draw_order(name_row.label) = tree.draw_order_const(item->root) + 1;
+
+			item->name_field.init(*_ui,
+								  name_row.right,
+								  {
+									  .field	 = {.fields = {.data = &name, .size = 1}, .field_size = sizeof(mask.name), .type = editor_input_field_field_type_e::char_array},
+									  .callbacks = {.edit_begin = on_mask_name_edit_begin, .edit_submitted = on_mask_name_edit_submitted, .user_data = this},
+								  });
+
+			const editor_property_row_t edit_row = editor_misc_widgets_t::make_property_row(*_ui, item->root);
+
+			item->viewer = this;
+			item->activate_button.init(*_ui,
+									   edit_row.right,
+									   {
+										   .frame_color			= theme.color_panel_light,
+										   .toggled_frame_color = theme.color_accent0_dim,
+										   .hover_color			= theme.color_frame_light,
+										   .toggled_hover_color = theme.color_accent0,
+										   .pressed_color		= theme.color_frame,
+										   .text_color			= theme.color_text0,
+										   .toggled_text_color	= theme.color_text0,
+										   .text				= "Activate",
+										   .toggled_text		= "Activate",
+										   .on_toggle			= on_mask_activate_toggled,
+										   .user_data			= item.get(),
+									   });
+
+			item->edit_button.init(*_ui, edit_row.right, {.text = "Edit"});
+			_ui->get_input().set_listener(item->edit_button.get_root(), {.on_click = on_mask_edit_pressed, .user_data = this});
+
+			item->remove_button.init(*_ui, edit_row.right, {.text = "Remove"});
+			_ui->get_input().set_listener(item->remove_button.get_root(), {.on_click = on_mask_remove_pressed, .user_data = this});
+
+			const ui::widget_id_t controls[] = {item->name_field.get_root(), item->activate_button.get_root(), item->edit_button.get_root(), item->remove_button.get_root()};
+
+			for (const ui::widget_id_t control : controls)
+			{
+				ui::layout_in_t& control_in = tree.in(control);
+				control_in.size_mode_x		= ui::axis_mode_e::fill;
+				control_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
+				control_in.pos_value.y		= 0.5f;
+				control_in.anchor_y			= ui::anchor_e::center;
+			}
+
+			_mask_items.push_back(std::move(item));
+		}
+
+		refresh_mask_backgrounds();
+
+		if (_display_entity != NULL_ENTITY_ID)
+			update_animation_player(false);
+	}
+
+	void editor_panel_skeleton_viewer_t::on_make_mask_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		SFG_ASSERT(!viewer._selected_joints.empty());
+
+		router.set_focus(id, false);
+		viewer.finish_mask_edit();
+		on_slot_fields_edit_submitted(&viewer);
+
+		if (!editor_command_skeleton_edit_t::begin(viewer))
+			return;
+
+		viewer.clear_mask_items();
+
+		skeleton_mask_def_t mask{.name = "Mask"};
+		frame_vector_t<u8>	included = {};
+
+		included.resize(viewer._skeleton.joints.size(), 0);
+
+		for (const u32 joint : viewer._selected_joints)
+			included[joint] = 1;
+
+		mask.joint_indices.reserve(viewer._skeleton.joints.size());
+
+		for (const u32 joint : viewer._skeleton.evaluation_order)
+		{
+			const u32 parent = viewer._skeleton.joints[joint].parent_index;
+
+			if (parent != SKELETON_JOINT_NO_PARENT && included[parent] != 0)
+				included[joint] = 1;
+
+			if (included[joint] != 0)
+				mask.joint_indices.push_back(joint);
+		}
+
+		std::sort(mask.joint_indices.begin(), mask.joint_indices.end());
+		viewer._skeleton.masks.push_back(std::move(mask));
+		editor_command_skeleton_edit_t::submit(viewer, "Skeleton Make Mask", false);
+		viewer.refresh_mask_items();
+	}
+
+	void editor_panel_skeleton_viewer_t::select_row(u32 row_index, bool additive)
 	{
 		editor_world_controller_t::get().get_editor_world(_world)->cancel_gizmo_action();
 
@@ -966,15 +1338,29 @@ namespace sfg
 
 		const joint_row_t& row = _joint_rows[row_index];
 
-		_selected_joint_index = row.slot_index == UINT32_MAX ? row.joint_index : SKELETON_JOINT_NO_PARENT;
+		_ui->get_input().set_focus(row.root, false);
+
+		if (row.slot_index != UINT32_MAX)
+			finish_mask_edit();
+
+		if (!additive || row.slot_index != UINT32_MAX)
+			_selected_joints.resize(0);
+
+		if (row.slot_index == UINT32_MAX)
+		{
+			const auto selected = std::find(_selected_joints.begin(), _selected_joints.end(), row.joint_index);
+
+			if (selected == _selected_joints.end())
+				_selected_joints.push_back(row.joint_index);
+			else
+				_selected_joints.erase(selected);
+		}
+
+		_selected_joint_index = _selected_joints.empty() ? SKELETON_JOINT_NO_PARENT : _selected_joints.back();
 		_selected_slot_index  = row.slot_index;
 		++_slot_generation;
 
-		for (u32 i = 0; i < _joint_rows.size(); ++i)
-			update_joint_row_background(i);
-
-		refresh_slot_fields();
-		_ui->get_input().set_focus(row.root, false);
+		refresh_joint_selection();
 	}
 
 	void editor_panel_skeleton_viewer_t::add_slot()
@@ -982,6 +1368,7 @@ namespace sfg
 		SFG_ASSERT(_selected_joint_index != SKELETON_JOINT_NO_PARENT);
 
 		on_slot_fields_edit_submitted(this);
+		finish_mask_edit();
 
 		if (!editor_command_skeleton_edit_t::begin(*this))
 			return;
@@ -1363,14 +1750,13 @@ namespace sfg
 
 		_joint_list_area = _ui->allocate_widget();
 		_ui->set_widget_debug_name(_joint_list_area, "skeleton_joint_hierarchy");
-		tree.attach(_right_pane, _joint_list_area);
+		tree.attach(_right_content, _joint_list_area);
 
 		ui::layout_in_t& list_in = tree.in(_joint_list_area);
 
-		list_in.flags |= ui::wf_input | ui::wf_scroll_y;
 		list_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
 		list_in.size_mode_x		= ui::axis_mode_e::parent_relative;
-		list_in.size_mode_y		= ui::axis_mode_e::fill;
+		list_in.size_mode_y		= ui::axis_mode_e::sum_children;
 		list_in.size_value		= {1.0f, 1.0f};
 		list_in.flow			= ui::flow_e::column;
 		list_in.child_margins	= {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, 0.0f};
@@ -1381,8 +1767,7 @@ namespace sfg
 		};
 
 		_ui->get_paint().set_rect(_joint_list_area, list_rect);
-		_joint_scrollbar.init(*_ui, {.target = _joint_list_area, .axes = editor_scrollbar_axis_y});
-		_ui->get_input().set_listener(_right_pane, {.on_key = on_hierarchy_key, .user_data = this});
+		_ui->get_input().set_listener(_right_content, {.on_key = on_hierarchy_key, .user_data = this});
 	}
 
 	void editor_panel_skeleton_viewer_t::refresh_joint_hierarchy()
@@ -1390,6 +1775,12 @@ namespace sfg
 		if (_ui == nullptr)
 			return;
 
+		if (_selected_slot_index != UINT32_MAX)
+			_selected_joints.resize(0);
+		else if (_selected_joint_index != SKELETON_JOINT_NO_PARENT && _selected_joints.empty())
+			_selected_joints.push_back(_selected_joint_index);
+
+		refresh_mask_button();
 		refresh_slot_entities();
 
 		frame_vector_t<u8> expanded = {};
@@ -1565,7 +1956,7 @@ namespace sfg
 	{
 		const editor_theme_t&	  theme	   = editor_theme_t::get();
 		const joint_row_t&		  row	   = _joint_rows[joint_index];
-		const bool				  selected = row.slot_index == UINT32_MAX ? row.joint_index == _selected_joint_index : row.slot_index == _selected_slot_index;
+		const bool				  selected = row.slot_index == UINT32_MAX ? std::find(_selected_joints.begin(), _selected_joints.end(), row.joint_index) != _selected_joints.end() : row.slot_index == _selected_slot_index;
 		const ui::vg_rect_paint_t row_rect{
 			.fill_color_a  = selected ? theme.color_accent0 : vec4f_t::zero,
 			.fill_color_b  = selected ? theme.color_accent0_dim : vec4f_t::zero,
@@ -1623,7 +2014,9 @@ namespace sfg
 			return;
 		}
 
-		viewer.select_row(static_cast<u32>(row - viewer._joint_rows.begin()));
+		const bool ctrl = button == ui::mouse_button_e::left && (process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl)));
+
+		viewer.select_row(static_cast<u32>(row - viewer._joint_rows.begin()), ctrl);
 
 		if (button == ui::mouse_button_e::right)
 			viewer.open_row_menu(pos);
@@ -1698,7 +2091,8 @@ namespace sfg
 
 	ui::widget_id_t editor_panel_skeleton_viewer_t::append_property_value_row(const char* label)
 	{
-		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_pane, label);
+		const editor_property_row_t row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_content, label);
+
 		return append_value_label(row.right);
 	}
 

@@ -42,7 +42,7 @@ namespace sfg
 {
 	namespace
 	{
-		chunk_handle32_t slots_to_aux(editor_command_system_t& system, const skeleton_def_t& skeleton)
+		chunk_handle32_t edits_to_aux(editor_command_system_t& system, const skeleton_def_t& skeleton)
 		{
 			ostream_t stream = {};
 
@@ -57,13 +57,24 @@ namespace sfg
 				}
 			}
 
+			stream << static_cast<u32>(skeleton.masks.size());
+
+			for (const skeleton_mask_def_t& mask : skeleton.masks)
+			{
+				if (!reflection_registry_t::get().type_to_stream(type_id_t<skeleton_mask_def_t>::value, const_cast<skeleton_mask_def_t*>(&mask), nullptr, stream))
+				{
+					SFG_ERR("failed to serialize skeleton mask");
+					return {};
+				}
+			}
+
 			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(stream.get_size(), alignof(u8));
 
 			SFG_MEMCPY(system.get_aux_data().get<u8>(handle), stream.get_raw(), stream.get_size());
 			return handle;
 		}
 
-		bool slots_from_aux(editor_command_system_t& system, editor_panel_skeleton_viewer_t& viewer, chunk_handle32_t handle, u32 selected_joint, u32 selected_slot)
+		bool edits_from_aux(editor_command_system_t& system, editor_panel_skeleton_viewer_t& viewer, chunk_handle32_t handle, u32 selected_joint, u32 selected_slot)
 		{
 			istream_t stream(system.get_aux_data().get<u8>(handle), handle.size);
 			u32		  count = 0;
@@ -82,7 +93,22 @@ namespace sfg
 				}
 			}
 
-			viewer.apply_slots(std::move(slots), selected_joint, selected_slot);
+			stream >> count;
+
+			vector_t<skeleton_mask_def_t> masks = {};
+
+			masks.resize(count);
+
+			for (skeleton_mask_def_t& mask : masks)
+			{
+				if (!reflection_registry_t::get().type_from_stream(type_id_t<skeleton_mask_def_t>::value, &mask, nullptr, stream))
+				{
+					SFG_ERR("failed to deserialize skeleton mask");
+					return false;
+				}
+			}
+
+			viewer.apply_edits(std::move(slots), std::move(masks), selected_joint, selected_slot);
 
 			return true;
 		}
@@ -92,7 +118,7 @@ namespace sfg
 			const editor_command_skeleton_edit_payload_t& payload = system.get_payload_as<editor_command_skeleton_edit_payload_t>(command);
 			editor_panel_skeleton_viewer_t&				  viewer  = *static_cast<editor_panel_skeleton_viewer_t*>(command.user_data);
 
-			if (!slots_from_aux(system, viewer, payload.previous_stream, payload.previous_joint, payload.previous_slot))
+			if (!edits_from_aux(system, viewer, payload.previous_stream, payload.previous_joint, payload.previous_slot))
 				return false;
 
 			// save_and_cook_skeleton_async(viewer);
@@ -105,7 +131,7 @@ namespace sfg
 			const editor_command_skeleton_edit_payload_t& payload = system.get_payload_as<editor_command_skeleton_edit_payload_t>(command);
 			editor_panel_skeleton_viewer_t&				  viewer  = *static_cast<editor_panel_skeleton_viewer_t*>(command.user_data);
 
-			if (!slots_from_aux(system, viewer, payload.post_stream, payload.post_joint, payload.post_slot))
+			if (!edits_from_aux(system, viewer, payload.post_stream, payload.post_joint, payload.post_slot))
 				return false;
 
 			// save_and_cook_skeleton_async(viewer);
@@ -129,7 +155,7 @@ namespace sfg
 		SFG_ASSERT(!viewer._edit_previous_stream);
 
 		editor_command_system_t& command_system = *viewer._commands;
-		const chunk_handle32_t	 stream			= slots_to_aux(command_system, viewer.get_skeleton_def());
+		const chunk_handle32_t	 stream			= edits_to_aux(command_system, viewer.get_skeleton_def());
 
 		if (!stream)
 			return false;
@@ -146,11 +172,11 @@ namespace sfg
 		SFG_ASSERT(viewer._edit_previous_stream);
 
 		editor_command_system_t& command_system = *viewer._commands;
-		const chunk_handle32_t	 post_stream	= slots_to_aux(command_system, viewer.get_skeleton_def());
+		const chunk_handle32_t	 post_stream	= edits_to_aux(command_system, viewer.get_skeleton_def());
 
 		if (!post_stream)
 		{
-			slots_from_aux(command_system, viewer, viewer._edit_previous_stream, viewer._edit_previous_joint, viewer._edit_previous_slot);
+			edits_from_aux(command_system, viewer, viewer._edit_previous_stream, viewer._edit_previous_joint, viewer._edit_previous_slot);
 			command_system.get_aux_data().free(viewer._edit_previous_stream);
 			viewer._edit_previous_stream = {};
 
@@ -192,7 +218,7 @@ namespace sfg
 
 		if (handle.is_null())
 		{
-			slots_from_aux(command_system, viewer, viewer._edit_previous_stream, viewer._edit_previous_joint, viewer._edit_previous_slot);
+			edits_from_aux(command_system, viewer, viewer._edit_previous_stream, viewer._edit_previous_joint, viewer._edit_previous_slot);
 			command_system.get_aux_data().free(viewer._edit_previous_stream);
 			command_system.get_aux_data().free(post_stream);
 			viewer._edit_previous_stream = {};

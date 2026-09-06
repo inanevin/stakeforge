@@ -52,9 +52,11 @@ namespace sfg
 		u32			   sampled_indices[MAX_SKELETON_BONES] = {};
 		u32			   sampled_bone_count				   = 0;
 
-		for (const animation_channel_v3_def_t& channel : animation->def.position_channels)
+		for (u32 channel_index = 0; channel_index < animation->position_count; ++channel_index)
 		{
-			const u32 node_index = static_cast<u32>(channel.node_index);
+			const animation_channel_v3_runtime_t& channel	 = animation->position_channels[channel_index];
+			const u32							  node_index = static_cast<u32>(channel.node_index);
+
 			if (node_index >= pose_bones.size)
 				continue;
 
@@ -73,9 +75,11 @@ namespace sfg
 			sampled_bone.position = sample_channel(channel, sample_time);
 		}
 
-		for (const animation_channel_q_def_t& channel : animation->def.rotation_channels)
+		for (u32 channel_index = 0; channel_index < animation->rotation_count; ++channel_index)
 		{
-			const u32 node_index = static_cast<u32>(channel.node_index);
+			const animation_channel_q_runtime_t& channel	= animation->rotation_channels[channel_index];
+			const u32							 node_index = static_cast<u32>(channel.node_index);
+
 			if (node_index >= pose_bones.size)
 				continue;
 
@@ -94,9 +98,11 @@ namespace sfg
 			sampled_bone.rotation = sample_channel(channel, sample_time);
 		}
 
-		for (const animation_channel_v3_def_t& channel : animation->def.scale_channels)
+		for (u32 channel_index = 0; channel_index < animation->scale_count; ++channel_index)
 		{
-			const u32 node_index = static_cast<u32>(channel.node_index);
+			const animation_channel_v3_runtime_t& channel	 = animation->scale_channels[channel_index];
+			const u32							  node_index = static_cast<u32>(channel.node_index);
+
 			if (node_index >= pose_bones.size)
 				continue;
 
@@ -125,15 +131,15 @@ namespace sfg
 		}
 	}
 
-	vec3f_t animation_sampler_t::sample_channel(const animation_channel_v3_def_t& channel, f32 sample_time)
+	vec3f_t animation_sampler_t::sample_channel(const animation_channel_v3_runtime_t& channel, f32 sample_time)
 	{
 		if (channel.interpolation == animation_interpolation_e::cubic_spline)
 		{
-			if (channel.keyframes_spline.empty())
+			if (channel.spline_count == 0)
 				return vec3f_t::zero;
 
-			const animation_keyframe_v3_spline_t& front = channel.keyframes_spline.front();
-			const animation_keyframe_v3_spline_t& back	= channel.keyframes_spline.back();
+			const animation_keyframe_v3_spline_t& front = channel.keyframes_spline[0];
+			const animation_keyframe_v3_spline_t& back	= channel.keyframes_spline[channel.spline_count - 1];
 
 			if (sample_time <= front.time)
 				return front.value;
@@ -143,7 +149,7 @@ namespace sfg
 
 			size_t keyframe_index = 0;
 
-			while (keyframe_index < channel.keyframes_spline.size() - 1 && sample_time > channel.keyframes_spline[keyframe_index + 1].time)
+			while (keyframe_index < channel.spline_count - 1 && sample_time > channel.keyframes_spline[keyframe_index + 1].time)
 				++keyframe_index;
 
 			const animation_keyframe_v3_spline_t& keyframe0 = channel.keyframes_spline[keyframe_index];
@@ -160,11 +166,11 @@ namespace sfg
 			return h00 * keyframe0.value + h10 * keyframe0.out_tangent * duration + h01 * keyframe1.value + h11 * keyframe1.in_tangent * duration;
 		}
 
-		if (channel.keyframes.empty())
+		if (channel.keyframe_count == 0)
 			return vec3f_t::zero;
 
-		const animation_keyframe_v3_t& front = channel.keyframes.front();
-		const animation_keyframe_v3_t& back	 = channel.keyframes.back();
+		const animation_keyframe_v3_t& front = channel.keyframes[0];
+		const animation_keyframe_v3_t& back	 = channel.keyframes[channel.keyframe_count - 1];
 
 		if (sample_time <= front.time)
 			return front.value;
@@ -174,7 +180,7 @@ namespace sfg
 
 		size_t keyframe_index = 0;
 
-		while (keyframe_index < channel.keyframes.size() - 1 && sample_time > channel.keyframes[keyframe_index + 1].time)
+		while (keyframe_index < channel.keyframe_count - 1 && sample_time > channel.keyframes[keyframe_index + 1].time)
 			++keyframe_index;
 
 		const animation_keyframe_v3_t& keyframe0  = channel.keyframes[keyframe_index];
@@ -194,15 +200,15 @@ namespace sfg
 		return vec3f_t::zero;
 	}
 
-	quat_t animation_sampler_t::sample_channel(const animation_channel_q_def_t& channel, f32 sample_time)
+	quat_t animation_sampler_t::sample_channel(const animation_channel_q_runtime_t& channel, f32 sample_time)
 	{
 		if (channel.interpolation == animation_interpolation_e::cubic_spline)
 		{
-			if (channel.keyframes_spline.empty())
+			if (channel.spline_count == 0)
 				return quat_t::identity;
 
-			const animation_keyframe_q_spline_t& front = channel.keyframes_spline.front();
-			const animation_keyframe_q_spline_t& back  = channel.keyframes_spline.back();
+			const animation_keyframe_q_spline_t& front = channel.keyframes_spline[0];
+			const animation_keyframe_q_spline_t& back  = channel.keyframes_spline[channel.spline_count - 1];
 
 			if (sample_time <= front.time)
 				return front.value;
@@ -212,7 +218,7 @@ namespace sfg
 
 			size_t keyframe_index = 0;
 
-			while (keyframe_index < channel.keyframes_spline.size() - 1 && sample_time > channel.keyframes_spline[keyframe_index + 1].time)
+			while (keyframe_index < channel.spline_count - 1 && sample_time > channel.keyframes_spline[keyframe_index + 1].time)
 				++keyframe_index;
 
 			const animation_keyframe_q_spline_t& keyframe0 = channel.keyframes_spline[keyframe_index];
@@ -229,11 +235,11 @@ namespace sfg
 			return (h00 * keyframe0.value + h10 * keyframe0.out_tangent * duration + h01 * keyframe1.value + h11 * keyframe1.in_tangent * duration).normalized();
 		}
 
-		if (channel.keyframes.empty())
+		if (channel.keyframe_count == 0)
 			return quat_t::identity;
 
-		const animation_keyframe_q_t& front = channel.keyframes.front();
-		const animation_keyframe_q_t& back	= channel.keyframes.back();
+		const animation_keyframe_q_t& front = channel.keyframes[0];
+		const animation_keyframe_q_t& back	= channel.keyframes[channel.keyframe_count - 1];
 
 		if (sample_time <= front.time)
 			return front.value;
@@ -243,7 +249,7 @@ namespace sfg
 
 		size_t keyframe_index = 0;
 
-		while (keyframe_index < channel.keyframes.size() - 1 && sample_time > channel.keyframes[keyframe_index + 1].time)
+		while (keyframe_index < channel.keyframe_count - 1 && sample_time > channel.keyframes[keyframe_index + 1].time)
 			++keyframe_index;
 
 		const animation_keyframe_q_t& keyframe0	 = channel.keyframes[keyframe_index];

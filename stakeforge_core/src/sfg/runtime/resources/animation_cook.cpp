@@ -40,7 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace sfg
 {
 #define ANIMATION_DEF_BLOB_MAGIC   make_resource_wire_magic('A', 'D', 'E', 'F')
-#define ANIMATION_DEF_BLOB_VERSION 1
+#define ANIMATION_DEF_BLOB_VERSION 2
 
 	bool animation_cooker::serialize_def_blob(const animation_def_t& def, ostream_t& stream)
 	{
@@ -115,10 +115,22 @@ namespace sfg
 		u32 version = 0;
 		stream >> version;
 
-		if (version != ANIMATION_DEF_BLOB_VERSION)
+		if (version != ANIMATION_DEF_BLOB_VERSION && version != 1)
 		{
 			SFG_ERR("unsupported animation definition blob version: {0}", version);
 			return false;
+		}
+
+		if (version == 1)
+		{
+			const sid_t fields[] = {TO_SID("name"), TO_SID("name_hash"), TO_SID("duration"), TO_SID("preview_mesh"), TO_SID("preview_skeleton"), TO_SID("position_channels"), TO_SID("rotation_channels"), TO_SID("scale_channels")};
+
+			for (const sid_t field : fields)
+			{
+				reflection_registry_t::get().type_field_from_stream(type_id_t<animation_def_t>::value, field, &out, nullptr, stream);
+			}
+
+			return true;
 		}
 
 		return reflection_registry_t::get().type_from_stream(type_id_t<animation_def_t>::value, &out, nullptr, stream);

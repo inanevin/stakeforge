@@ -91,7 +91,6 @@ namespace sfg
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flow			 = ui::flow_e::row;
 		root_in.child_spacing	 = 0.0f;
-		root_in.child_margins	 = {0.0f, 0.0f, theme.margin_vertical, 0.0f};
 
 		_left_pane = ui.allocate_widget();
 		ui.set_widget_debug_name(_left_pane, "mesh_viewer_left_pane");
@@ -99,7 +98,6 @@ namespace sfg
 
 		ui::layout_in_t& left_in = tree.in(_left_pane);
 		left_in.flow			 = ui::flow_e::none;
-		left_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
 		left_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		left_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		left_in.size_value		 = {_pane_split, 1.0f};
@@ -148,10 +146,12 @@ namespace sfg
 		_is_skinned_value = append_property_value_row("Skinned");
 
 		create_preview_world();
+
 		if (_mesh_guid != 0)
 			set_mesh(_mesh_guid, _asset_name.c_str());
 		else
 			refresh_info();
+
 		apply_pane_split();
 	}
 

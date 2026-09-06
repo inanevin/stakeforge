@@ -41,6 +41,7 @@ namespace sfg
 {
 	class editor_asset_manager_util_t;
 	class editor_asset_manager_t;
+	class ostream_t;
 	struct editor_project_t;
 	struct editor_asset_cook_state_tag_t;
 	struct editor_asset_deletion_listener_tag_t;
@@ -101,6 +102,7 @@ namespace sfg
 		void									notify_changed();
 		void									process_file_changes(span_t<const editor_file_change_t> changes);
 		bool									save_and_cook_embedded_asset_async(sid_t asset_id, const nlohmann::json& embedded_source);
+		bool									save_and_cook_file_asset_blob_async(sid_t asset_id, const ostream_t& source);
 		bool									save_and_cook_file_asset_options_async(sid_t asset_id, const nlohmann::json& cook_options);
 		editor_asset_deletion_listener_handle_t add_asset_deletion_listener(editor_asset_deletion_listener_fn fn, void* user_data);
 		void									remove_asset_deletion_listener(editor_asset_deletion_listener_handle_t handle);

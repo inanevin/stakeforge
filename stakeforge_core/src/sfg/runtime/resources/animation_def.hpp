@@ -54,11 +54,18 @@ namespace sfg
 		i32										node_index		 = -1;
 	};
 
+	struct animation_event_def_t
+	{
+		char name[256] = {};
+		f32	 time	   = 0.0f;
+	};
+
 	struct animation_def_t
 	{
 		vector_t<animation_channel_v3_def_t> position_channels = {};
 		vector_t<animation_channel_q_def_t>	 rotation_channels = {};
 		vector_t<animation_channel_v3_def_t> scale_channels	   = {};
+		vector_t<animation_event_def_t>		 events			   = {};
 		string_t							 name			   = {};
 		resource_handle_t					 preview_mesh	   = NULL_RESOURCE_HANDLE;
 		resource_handle_t					 preview_skeleton  = NULL_RESOURCE_HANDLE;
@@ -69,6 +76,7 @@ namespace sfg
 	SFG_DEFINE_TYPE_ID(animation_channel_v3_def_t);
 	SFG_DEFINE_TYPE_ID(animation_channel_q_def_t);
 	SFG_DEFINE_TYPE_ID(animation_def_t);
+	SFG_DEFINE_TYPE_ID(animation_event_def_t);
 
 	struct animation_channel_v3_def_reflection_t
 	{
@@ -79,6 +87,13 @@ namespace sfg
 	{
 		animation_channel_q_def_reflection_t();
 	};
+
+	struct animation_event_def_reflection_t
+	{
+		animation_event_def_reflection_t();
+	};
+
+	inline animation_event_def_reflection_t g_reflect_animation_event_def;
 
 	struct animation_def_reflection_t
 	{

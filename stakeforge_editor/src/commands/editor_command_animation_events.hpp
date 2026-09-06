@@ -27,26 +27,34 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "animation_graph_types.hpp"
-
-#include <sfg/data/span.hpp>
+#include <sfg/memory/chunk_handle.hpp>
 
 namespace sfg
 {
-	struct animation_runtime_t;
-	struct animation_channel_v3_runtime_t;
-	struct animation_channel_q_runtime_t;
-	struct vec3f_t;
-	class quat_t;
+	class editor_panel_animation_t;
 
-	class animation_sampler_t final
+	struct editor_command_animation_events_edit_payload_t
+	{
+		chunk_handle32_t previous_stream = {};
+		chunk_handle32_t post_stream	 = {};
+		u32				 previous_event	 = UINT32_MAX;
+		u32				 post_event		 = UINT32_MAX;
+	};
+
+	class editor_command_animation_events_edit_t final
 	{
 	public:
-		static void sample_animation(const animation_runtime_t* animation, f32 sample_time, const u64* bitmasks, span_t<animation_graph_bone_t> pose_bones);
+		editor_command_animation_events_edit_t()														 = delete;
+		~editor_command_animation_events_edit_t()														 = delete;
+		editor_command_animation_events_edit_t(const editor_command_animation_events_edit_t&)			 = delete;
+		editor_command_animation_events_edit_t& operator=(const editor_command_animation_events_edit_t&) = delete;
 
-	private:
-		static vec3f_t sample_channel(const animation_channel_v3_runtime_t& channel, f32 sample_time);
-		static quat_t  sample_channel(const animation_channel_q_runtime_t& channel, f32 sample_time);
-		static bool	   is_masked(u32 node_index, const u64* bitmasks);
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool begin(editor_panel_animation_t& viewer);
+		static bool submit(editor_panel_animation_t& viewer, const char* debug_name, bool notify);
+		static void cancel(editor_panel_animation_t& viewer);
 	};
 }

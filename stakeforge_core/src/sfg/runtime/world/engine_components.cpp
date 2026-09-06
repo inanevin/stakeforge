@@ -950,6 +950,13 @@ namespace sfg
 						 .size		   = sizeof(resource_handle_t),
 						 .type		   = reflected_value_type_e::u64},
 						{
+							.name		  = "mask",
+							.display_name = "Mask",
+							.offset		  = offsetof(component_animation_player_t, mask),
+							.size		  = sizeof(sid_t),
+							.type		  = reflected_value_type_e::u64,
+						},
+						{
 							.name			   = "speed_multiplier",
 							.display_name	   = "Speed Multiplier",
 							.offset			   = offsetof(component_animation_player_t, speed_multiplier),

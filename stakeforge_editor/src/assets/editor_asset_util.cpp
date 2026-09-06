@@ -38,6 +38,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/io/file_system.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/runtime/resources/animation_cook.hpp>
+#include <sfg/runtime/resources/animation_def.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/mesh_cook.hpp>
 #include <sfg/runtime/resources/mesh_def.hpp>
 #include <sfg/serialization/serialization.hpp>
@@ -243,6 +246,43 @@ namespace sfg
 	{
 		const editor_asset_node_t* node = editor_asset_manager_t::get().find_asset_node(guid);
 		return node != nullptr ? node->name.c_str() : nullptr;
+	}
+
+	bool editor_asset_util_t::load_animation_def(const editor_asset_t& asset, animation_def_t& out)
+	{
+		SFG_ASSERT(asset.asset_type == editor_asset_type_e::animation);
+
+		if (asset.source_type == editor_asset_source_type_e::embedded)
+		{
+			const nlohmann::json source = editor_asset_io_t::get_embedded_source_json(asset);
+
+			if (!reflection_registry_t::get().type_from_json(type_id_t<animation_def_t>::value, &out, nullptr, source))
+			{
+				SFG_ERR("failed to deserialize animation definition for asset {0}", asset.guid);
+				return false;
+			}
+
+			return true;
+		}
+
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::file_blob);
+
+		const string_t source_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+		istream_t	   stream	   = serializer_t::load_from_file_compressed(source_path.c_str());
+
+		if (stream.empty())
+		{
+			SFG_ERR("failed to read animation definition file: {0}", source_path.c_str());
+			return false;
+		}
+
+		if (!animation_cooker::deserialize_def_blob(stream, out))
+		{
+			SFG_ERR("failed to deserialize animation definition file: {0}", source_path.c_str());
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_asset_util_t::load_mesh_def(const editor_asset_t& asset, mesh_def_t& out)

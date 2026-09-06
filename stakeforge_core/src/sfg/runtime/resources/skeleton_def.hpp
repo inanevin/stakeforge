@@ -61,11 +61,18 @@ namespace sfg
 		vec3f_t			  preview_scale	   = vec3f_t::one;
 	};
 
+	struct skeleton_mask_def_t
+	{
+		vector_t<u32> joint_indices = {};
+		char		  name[256]		= {};
+	};
+
 	struct skeleton_def_t
 	{
 		vector_t<skeleton_joint_def_t> joints			  = {};
 		vector_t<u32>				   evaluation_order	  = {};
 		vector_t<skeleton_slot_def_t>  slots			  = {};
+		vector_t<skeleton_mask_def_t>  masks			  = {};
 		string_t					   name				  = {};
 		mat4x3_t					   skinning_transform = mat4x3_t::identity;
 		aabb_t						   local_bounds		  = {};
@@ -79,6 +86,7 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(skeleton_joint_def_t);
 	SFG_DEFINE_TYPE_ID(skeleton_slot_def_t);
+	SFG_DEFINE_TYPE_ID(skeleton_mask_def_t);
 	SFG_DEFINE_TYPE_ID(skeleton_def_t);
 
 	struct skeleton_joint_def_reflection_t
@@ -91,6 +99,11 @@ namespace sfg
 		skeleton_slot_def_reflection_t();
 	};
 
+	struct skeleton_mask_def_reflection_t
+	{
+		skeleton_mask_def_reflection_t();
+	};
+
 	struct skeleton_def_reflection_t
 	{
 		skeleton_def_reflection_t();
@@ -98,5 +111,6 @@ namespace sfg
 
 	inline skeleton_joint_def_reflection_t g_reflect_skeleton_joint_def;
 	inline skeleton_slot_def_reflection_t  g_reflect_skeleton_slot_def;
+	inline skeleton_mask_def_reflection_t  g_reflect_skeleton_mask_def;
 	inline skeleton_def_reflection_t	   g_reflect_skeleton_def;
 }

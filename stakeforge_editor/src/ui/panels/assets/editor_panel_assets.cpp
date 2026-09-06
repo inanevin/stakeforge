@@ -67,7 +67,6 @@ namespace sfg
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flow			 = ui::flow_e::row;
 		root_in.child_spacing	 = 0.0f;
-		root_in.child_margins	 = {0.0f, 0.0f, theme.margin_vertical, 0.0f};
 
 		_assets_left_pane = ui.allocate_widget();
 		ui.set_widget_debug_name(_assets_left_pane, "assets_left_pane");

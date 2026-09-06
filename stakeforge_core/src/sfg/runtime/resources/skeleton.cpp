@@ -40,6 +40,7 @@ namespace sfg
 		}
 
 		const u32 joint_count = static_cast<u32>(skeleton.joints.size());
+
 		SFG_ASSERT(joint_count != 0);
 
 		runtime->joint_count		= joint_count;
@@ -92,6 +93,31 @@ namespace sfg
 			}
 		}
 
+		runtime->mask_count = static_cast<u32>(skeleton.masks.size());
+
+		if (runtime->mask_count != 0)
+		{
+			runtime->masks = mem.allocate_bytes(sizeof(skeleton_mask_runtime_t) * runtime->mask_count, alignof(skeleton_mask_runtime_t));
+
+			skeleton_mask_runtime_t* masks = mem.get<skeleton_mask_runtime_t>(runtime->masks);
+
+			for (u32 i = 0; i < runtime->mask_count; ++i)
+			{
+				const skeleton_mask_def_t& mask = skeleton.masks[i];
+
+				masks[i] = {
+					.name_hash	 = TO_SID(static_cast<const char*>(mask.name)),
+					.joint_count = static_cast<u32>(mask.joint_indices.size()),
+				};
+
+				if (masks[i].joint_count != 0)
+				{
+					masks[i].joint_indices = mem.allocate<u32>(masks[i].joint_count);
+					SFG_MEMCPY(mem.get<u32>(masks[i].joint_indices), mask.joint_indices.data(), sizeof(u32) * masks[i].joint_count);
+				}
+			}
+		}
+
 		return true;
 	}
 
@@ -115,6 +141,19 @@ namespace sfg
 				mem.free(slots[i].debug_name);
 
 			mem.free(runtime->slots);
+		}
+
+		if (runtime->mask_count != 0)
+		{
+			skeleton_mask_runtime_t* masks = mem.get<skeleton_mask_runtime_t>(runtime->masks);
+
+			for (u32 i = 0; i < runtime->mask_count; ++i)
+			{
+				if (masks[i].joint_count != 0)
+					mem.free(masks[i].joint_indices);
+			}
+
+			mem.free(runtime->masks);
 		}
 
 		*runtime = {};

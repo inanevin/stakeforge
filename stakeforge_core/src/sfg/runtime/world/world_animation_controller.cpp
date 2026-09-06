@@ -254,7 +254,38 @@ namespace sfg
 					pose_bones[joint_index].parent_index = joints[joint_index].parent_index;
 				}
 
-				animation_sampler_t::sample_animation(animation, system_animation_player.sample_time, nullptr, {.data = pose_bones, .size = skeleton->joint_count});
+				animation_graph_mask_t mask		= {};
+				const u64*			   bitmasks = nullptr;
+
+				if (animation_player.mask != NULL_SID && skeleton->mask_count != 0)
+				{
+					const skeleton_mask_runtime_t* masks = resource_memory.get<skeleton_mask_runtime_t>(skeleton->masks);
+
+					for (u32 mask_index = 0; mask_index < skeleton->mask_count; ++mask_index)
+					{
+						const skeleton_mask_runtime_t& skeleton_mask = masks[mask_index];
+
+						if (skeleton_mask.name_hash != animation_player.mask)
+							continue;
+
+						if (skeleton_mask.joint_count != 0)
+						{
+							const u32* joint_indices = resource_memory.get<u32>(skeleton_mask.joint_indices);
+
+							for (u32 index = 0; index < skeleton_mask.joint_count; ++index)
+							{
+								const u32 joint_index = joint_indices[index];
+
+								mask.bitmasks[joint_index / 64] |= u64{1} << (joint_index % 64);
+							}
+						}
+
+						bitmasks = mask.bitmasks;
+						break;
+					}
+				}
+
+				animation_sampler_t::sample_animation(animation, system_animation_player.sample_time, bitmasks, {.data = pose_bones, .size = skeleton->joint_count});
 
 				animation_bone_t* bones = _bone_memory.get<animation_bone_t>(system_skinned_mesh_renderer.bones_handle);
 

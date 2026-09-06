@@ -28,7 +28,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_util.hpp"
+#include "commands/editor_command_animation_events.hpp"
+#include "editor_command_system.hpp"
 #include "editor_surface_controller.hpp"
+#include "ui/editor_action_menu_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -38,11 +42,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world.hpp"
 #include "world/editor_world_util.hpp"
 
+#include <sfg/data/frame_vector.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/input/input_mappings.hpp>
+#include <sfg/platform/common_window.hpp>
+#include <sfg/platform/process.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
+#include <sfg/math/rectf.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/animation.hpp>
+#include <sfg/runtime/resources/animation_cook.hpp>
 #include <sfg/runtime/resources/font.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
@@ -56,10 +67,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
-#include <cstddef>
-
 namespace sfg
 {
+#define ANIMATION_VIEWER_EVENT_GRANULARITY 0.01f
+#define ANIMATION_VIEWER_EVENT_SIZE		   6.0f
+#define ANIMATION_VIEWER_ADD_EVENT		   1
+#define ANIMATION_VIEWER_DUPLICATE_EVENT   2
+#define ANIMATION_VIEWER_DELETE_EVENT	   3
+
 #define ANIMATION_VIEWER_PANE_SPLIT_MIN				 0.45f
 #define ANIMATION_VIEWER_PANE_SPLIT_MAX				 0.85f
 #define ANIMATION_VIEWER_LEFT_PANE_SPLIT_MIN		 0.35f
@@ -85,6 +100,8 @@ namespace sfg
 		set_icon(ICON_ANIMATION);
 	}
 
+	editor_panel_animation_t::~editor_panel_animation_t() = default;
+
 	void editor_panel_animation_t::serialize(nlohmann::json& j) const
 	{
 		j							= nlohmann::json::object();
@@ -109,6 +126,10 @@ namespace sfg
 	void editor_panel_animation_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
 		editor_panel_t::init(ui, parent);
+
+		_commands = make_unique<editor_command_system_t>();
+		_commands->init({.listener_initial_capacity = 1, .global_instance = false});
+
 		_asset_deletion_listener = editor_asset_manager_t::get().add_asset_deletion_listener(on_asset_deletion, this);
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
@@ -118,7 +139,6 @@ namespace sfg
 		ui::layout_in_t& root_in = tree.in(_root);
 		root_in.flow			 = ui::flow_e::row;
 		root_in.child_spacing	 = 0.0f;
-		root_in.child_margins	 = {0.0f, 0.0f, theme.margin_vertical, 0.0f};
 
 		_left_pane = ui.allocate_widget();
 		ui.set_widget_debug_name(_left_pane, "animation_viewer_left_pane");
@@ -137,7 +157,6 @@ namespace sfg
 
 		ui::layout_in_t& left_top_in = tree.in(_left_pane_top);
 		left_top_in.flow			 = ui::flow_e::none;
-		left_top_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
 		left_top_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		left_top_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		left_top_in.size_value		 = {1.0f, _left_pane_split};
@@ -168,7 +187,6 @@ namespace sfg
 		ui::layout_in_t& left_bottom_in = tree.in(_left_pane_bottom);
 		left_bottom_in.flow				= ui::flow_e::row;
 		left_bottom_in.child_spacing	= 0.0f;
-		left_bottom_in.child_margins	= {theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
 		left_bottom_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		left_bottom_in.size_mode_y		= ui::axis_mode_e::fill;
 		left_bottom_in.size_value		= {1.0f, 1.0f};
@@ -190,14 +208,24 @@ namespace sfg
 		bottom_left_in.child_spacing	= 0.0f;
 		bottom_left_in.child_clip_mode	= ui::clip_mode_e::cpu_rect;
 
+		const ui::widget_id_t left_toolbar_wrapper = ui.allocate_widget();
+		ui.set_widget_debug_name(left_toolbar_wrapper, "animation_viewer_left_toolbar_wrapper");
+		tree.attach(_left_pane_bottom_left, left_toolbar_wrapper);
+
+		ui::layout_in_t& left_toolbar_wrapper_in = tree.in(left_toolbar_wrapper);
+		left_toolbar_wrapper_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		left_toolbar_wrapper_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		left_toolbar_wrapper_in.size_value		 = {1.0f, theme.item_area_height};
+		left_toolbar_wrapper_in.child_margins	 = {theme.margin_vertical, 0.0f, 0.0f, 0.0f};
+
 		_left_pane_bottom_left_toolbar = ui.allocate_widget();
 		ui.set_widget_debug_name(_left_pane_bottom_left_toolbar, "left_pane_bottom_left_toolbar");
-		tree.attach(_left_pane_bottom_left, _left_pane_bottom_left_toolbar);
+		tree.attach(left_toolbar_wrapper, _left_pane_bottom_left_toolbar);
 
 		ui::layout_in_t& bottom_left_toolbar_in = tree.in(_left_pane_bottom_left_toolbar);
 		bottom_left_toolbar_in.size_mode_x		= ui::axis_mode_e::parent_relative;
-		bottom_left_toolbar_in.size_mode_y		= ui::axis_mode_e::fixed;
-		bottom_left_toolbar_in.size_value		= {1.0f, theme.item_area_height};
+		bottom_left_toolbar_in.size_mode_y		= ui::axis_mode_e::parent_relative;
+		bottom_left_toolbar_in.size_value		= {1.0f, 1.0f};
 		bottom_left_toolbar_in.flow				= ui::flow_e::row;
 		bottom_left_toolbar_in.child_margins	= {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
@@ -211,8 +239,9 @@ namespace sfg
 							  .press_color		   = theme.color_frame_light,
 							  .icon_color		   = theme.color_accent2,
 							  .disabled_color	   = theme.color_text_disabled,
+							  .toggled_icon_color  = theme.color_text0,
 							  .icon				   = ICON_PLAY,
-							  .toggled_icon		   = ICON_PLAY,
+							  .toggled_icon		   = ICON_PAUSE,
 							  .tooltip			   = "Play",
 							  .on_clicked		   = on_play_pressed,
 							  .user_data		   = this,
@@ -222,6 +251,42 @@ namespace sfg
 							  .toggle_enabled	   = true,
 						  });
 
+		_reset_button.init(ui,
+						   _left_pane_bottom_left_toolbar,
+						   {
+							   .hover_color	   = theme.color_panel_light1,
+							   .press_color	   = theme.color_frame_light,
+							   .icon_color	   = theme.color_text0,
+							   .disabled_color = theme.color_text_disabled,
+							   .icon		   = ICON_RESET,
+							   .tooltip		   = "Reset",
+							   .on_clicked	   = on_reset_pressed,
+							   .user_data	   = this,
+							   .size		   = theme.item_area_height,
+							   .icon_size	   = theme.text_big_px_size,
+							   .rounding	   = theme.item_rounding,
+						   });
+
+		const ui::widget_id_t playback_buttons[] = {_play_button.get_root(), _reset_button.get_root()};
+
+		for (const ui::widget_id_t button : playback_buttons)
+		{
+			ui::layout_in_t& button_in = tree.in(button);
+			button_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
+			button_in.size_value.y	   = 1.0f;
+		}
+
+		_duration_label = ui.allocate_widget();
+		tree.attach(_left_pane_bottom_left_toolbar, _duration_label);
+
+		ui::layout_in_t& duration_in = tree.in(_duration_label);
+
+		duration_in.pos_mode_x = ui::pos_mode_e::relative_in_parent;
+		duration_in.pos_mode_y = ui::pos_mode_e::relative_in_parent;
+		duration_in.pos_value  = {1.0f, 0.5f};
+		duration_in.anchor_x   = ui::anchor_e::end;
+		duration_in.anchor_y   = ui::anchor_e::center;
+
 		_left_pane_bottom_left_divider = editor_dividers_t::add_divider_hor(ui, _left_pane_bottom_left, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 		ui.set_widget_debug_name(_left_pane_bottom_left_divider, "left_pane_bottom_left_divider");
 
@@ -230,13 +295,16 @@ namespace sfg
 		tree.attach(_left_pane_bottom_left, _left_pane_bottom_left_body);
 
 		ui::layout_in_t& bottom_left_body_in = tree.in(_left_pane_bottom_left_body);
-		bottom_left_body_in.flags |= ui::wf_scroll_y;
+		bottom_left_body_in.flags |= ui::wf_input | ui::wf_scroll_y;
 		bottom_left_body_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
 		bottom_left_body_in.size_mode_x		= ui::axis_mode_e::parent_relative;
 		bottom_left_body_in.size_mode_y		= ui::axis_mode_e::fill;
 		bottom_left_body_in.size_value		= {1.0f, 1.0f};
 		bottom_left_body_in.flow			= ui::flow_e::column;
 		bottom_left_body_in.child_spacing	= 0.0f;
+
+		paint.set_rect(_left_pane_bottom_left_body, {.fill_color_a = theme.color_frame, .fill_color_b = theme.color_frame});
+		ui.get_input().set_listener(_left_pane_bottom_left_body, {.on_wheel = on_timeline_wheel, .user_data = this});
 
 		const editor_split_border_t::config_t left_pane_bottom_split_config{
 			.on_drag   = on_left_pane_bottom_split_border_drag,
@@ -261,16 +329,26 @@ namespace sfg
 		bottom_right_in.flow			 = ui::flow_e::column;
 		bottom_right_in.child_spacing	 = 0.0f;
 
+		const ui::widget_id_t toolbar_wrapper = ui.allocate_widget();
+		ui.set_widget_debug_name(toolbar_wrapper, "animation_viewer_timeline_toolbar_wrapper");
+		tree.attach(_left_pane_bottom_right, toolbar_wrapper);
+
+		ui::layout_in_t& toolbar_wrapper_in = tree.in(toolbar_wrapper);
+		toolbar_wrapper_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		toolbar_wrapper_in.size_mode_y		= ui::axis_mode_e::fixed;
+		toolbar_wrapper_in.size_value		= {1.0f, theme.item_area_height};
+		toolbar_wrapper_in.child_margins	= {theme.margin_vertical, 0.0f, 0.0f, 0.0f};
+
 		_left_pane_bottom_right_toolbar = ui.allocate_widget();
 		ui.set_widget_debug_name(_left_pane_bottom_right_toolbar, "left_pane_bottom_right_toolbar");
-		tree.attach(_left_pane_bottom_right, _left_pane_bottom_right_toolbar);
+		tree.attach(toolbar_wrapper, _left_pane_bottom_right_toolbar);
 
 		ui::layout_in_t& bottom_right_toolbar_in = tree.in(_left_pane_bottom_right_toolbar);
-		bottom_right_toolbar_in.flags |= ui::wf_input | ui::wf_scroll_x;
+		bottom_right_toolbar_in.flags |= ui::wf_input | ui::wf_focusable | ui::wf_scroll_x;
 		bottom_right_toolbar_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
 		bottom_right_toolbar_in.size_mode_x		= ui::axis_mode_e::parent_relative;
-		bottom_right_toolbar_in.size_mode_y		= ui::axis_mode_e::fixed;
-		bottom_right_toolbar_in.size_value		= {1.0f, theme.item_area_height};
+		bottom_right_toolbar_in.size_mode_y		= ui::axis_mode_e::parent_relative;
+		bottom_right_toolbar_in.size_value		= {1.0f, 1.0f};
 		paint.set_custom(_left_pane_bottom_right_toolbar, draw_timeline_toolbar, this);
 
 		_timeline_toolbar_content = ui.allocate_widget();
@@ -290,13 +368,15 @@ namespace sfg
 		tree.attach(_left_pane_bottom_right, _left_pane_bottom_right_body);
 
 		ui::layout_in_t& bottom_right_body_in = tree.in(_left_pane_bottom_right_body);
-		bottom_right_body_in.flags |= ui::wf_input | ui::wf_scroll_x | ui::wf_scroll_y;
+		bottom_right_body_in.flags |= ui::wf_input | ui::wf_focusable | ui::wf_scroll_x | ui::wf_scroll_y;
 		bottom_right_body_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
 		bottom_right_body_in.size_mode_x	 = ui::axis_mode_e::parent_relative;
 		bottom_right_body_in.size_mode_y	 = ui::axis_mode_e::fill;
 		bottom_right_body_in.size_value		 = {1.0f, 1.0f};
 		bottom_right_body_in.flow			 = ui::flow_e::column;
 		bottom_right_body_in.child_spacing	 = 0.0f;
+
+		paint.set_rect(_left_pane_bottom_right_body, {.fill_color_a = theme.color_frame, .fill_color_b = theme.color_frame});
 
 		_timeline_body_content = ui.allocate_widget();
 		ui.set_widget_debug_name(_timeline_body_content, "animation_viewer_timeline_body_content");
@@ -329,6 +409,7 @@ namespace sfg
 		timeline_listener.on_drag_begin			= on_timeline_drag;
 		timeline_listener.on_drag				= on_timeline_drag;
 		timeline_listener.on_wheel				= on_timeline_wheel;
+		timeline_listener.on_key				= on_timeline_key;
 		ui.get_input().set_listener(_left_pane_bottom_right_body, timeline_listener);
 
 		ui::listener_bundle_t timeline_toolbar_listener = {};
@@ -336,7 +417,58 @@ namespace sfg
 		timeline_toolbar_listener.on_press				= on_timeline_press;
 		timeline_toolbar_listener.on_drag_begin			= on_timeline_drag;
 		timeline_toolbar_listener.on_drag				= on_timeline_drag;
+		timeline_toolbar_listener.on_key				= on_timeline_key;
+		timeline_toolbar_listener.on_wheel				= on_timeline_wheel;
 		ui.get_input().set_listener(_left_pane_bottom_right_toolbar, timeline_toolbar_listener);
+
+		_scrub_seconds_frame = ui.allocate_widget();
+		ui.set_widget_debug_name(_scrub_seconds_frame, "animation_scrub_time_tooltip");
+		tree.attach(_left_pane_bottom_right, _scrub_seconds_frame);
+		tree.draw_order(_scrub_seconds_frame) = tree.draw_order_const(_left_pane_bottom_right) + 3;
+
+		ui::layout_in_t& scrub_frame_in = tree.in(_scrub_seconds_frame);
+
+		scrub_frame_in.flags |= ui::wf_overlay;
+		scrub_frame_in.pos_mode_x	 = ui::pos_mode_e::offset_in_parent;
+		scrub_frame_in.pos_mode_y	 = ui::pos_mode_e::offset_in_parent;
+		scrub_frame_in.size_mode_x	 = ui::axis_mode_e::sum_children;
+		scrub_frame_in.size_mode_y	 = ui::axis_mode_e::fixed;
+		scrub_frame_in.size_value.y	 = theme.item_height;
+		scrub_frame_in.flow			 = ui::flow_e::row;
+		scrub_frame_in.child_margins = {0.0f, theme.margin_horizontal * 1.5f, 0.0f, theme.margin_horizontal * 1.5f};
+
+		ui::vg_rect_paint_t scrub_frame_rect{
+			.fill_color_a	   = theme.color_frame,
+			.fill_color_b	   = theme.color_frame,
+			.outline_color	   = theme.color_outline_light,
+			.rounding		   = theme.item_rounding,
+			.outline_thickness = theme.outline_thickness,
+		};
+
+		scrub_frame_rect.fill_color_a.w	 = 0.0f;
+		scrub_frame_rect.fill_color_b.w	 = 0.0f;
+		scrub_frame_rect.outline_color.w = 0.0f;
+		paint.set_rect(_scrub_seconds_frame, scrub_frame_rect);
+
+		_scrub_seconds_label = ui.allocate_widget();
+		tree.attach(_scrub_seconds_frame, _scrub_seconds_label);
+
+		ui::layout_in_t& scrub_label_in = tree.in(_scrub_seconds_label);
+
+		scrub_label_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
+		scrub_label_in.pos_value.y = 0.5f;
+		scrub_label_in.anchor_y	   = ui::anchor_e::center;
+
+		ui.set_widget_text(_scrub_seconds_label, "0.00 (s)");
+		paint.set_text(_scrub_seconds_label,
+					   ui.widget_text(_scrub_seconds_label),
+					   ui.widget_text_len(_scrub_seconds_label),
+					   {
+						   .font		= theme.font_default,
+						   .color		= {theme.color_text0.x, theme.color_text0.y, theme.color_text0.z, 0.0f},
+						   .point_size	= theme.text_default_px_size,
+						   .raster_mode = editor_text_rasterization_t::get_rasterization_type(),
+					   });
 
 		ui.set_pre_layout_tick(_left_pane_bottom, on_left_pane_bottom_scroll_sync, this);
 
@@ -380,7 +512,32 @@ namespace sfg
 								  .block_edits = _animation_guid == NULL_SID,
 							  });
 
+		editor_misc_widgets_t::make_section_label(ui, _right_pane, "Selected Event");
+
+		void* event_object = &_event_data;
+
+		_event_reflection.init(ui,
+							   _right_pane,
+							   {
+								   .callbacks = {.edit_begin = on_event_edit_begin, .edited = on_event_edited, .edit_submitted = on_event_edit_submitted, .user_data = this},
+								   .objects	  = {.data = &event_object, .size = 1},
+								   .type_id	  = type_id_t<animation_event_def_t>::value,
+							   });
+		tree.in(_event_reflection.get_root()).flags |= ui::wf_disabled;
+
+		editor_misc_widgets_t::add_spacer(ui, _right_pane, {0.0f, theme.item_spacing});
+		_save_changes_button.init(ui, _right_pane, {.text = "Save Changes", .width = {.mode = editor_widget_width_e::fixed, .value = theme.item_height * 6.0f}});
+
+		ui::layout_in_t& save_in = tree.in(_save_changes_button.get_root());
+
+		save_in.pos_mode_x	= ui::pos_mode_e::relative_in_parent;
+		save_in.pos_value.x = 0.5f;
+		save_in.anchor_x	= ui::anchor_e::center;
+		ui.get_input().set_listener(_save_changes_button.get_root(), {.on_click = on_save_changes_pressed, .user_data = this});
+		ui.get_input().set_listener(_root, {.on_key = on_timeline_key, .user_data = this});
+
 		rebuild_timeline(nullptr);
+		refresh_event_fields();
 
 		if (_animation_guid != NULL_SID)
 			set_animation(_animation_guid, _asset_name.c_str());
@@ -393,6 +550,14 @@ namespace sfg
 		editor_asset_manager_t::get().remove_asset_deletion_listener(_asset_deletion_listener);
 		_asset_deletion_listener = {};
 
+		if (_event_menu_open)
+			editor_action_menu_controller_t::find(*_ui)->close_action_menu();
+
+		editor_command_animation_events_edit_t::cancel(*this);
+		_commands->clear();
+		_event_reflection.uninit();
+		_save_changes_button.uninit();
+		_reset_button.uninit();
 		_data_reflection.uninit();
 		_world_view.uninit();
 		_ui->clear_pre_layout_tick(_left_pane_bottom);
@@ -411,12 +576,18 @@ namespace sfg
 			destroy_preview_world();
 
 		_preview_skeleton = {};
+		_animation		  = {};
+		_events.resize(0);
+		_joint_expanded.resize(0);
 		_joint_rows.resize(0);
 		_timeline_labels.resize(0);
 		_timeline_keyframes.resize(0);
 		_asset_name.resize(0);
 		_data		= {};
 		_is_playing = false;
+
+		_commands->uninit();
+		_commands.reset();
 
 		editor_panel_t::uninit();
 	}
@@ -428,6 +599,26 @@ namespace sfg
 			_world_view.set_edit_world({});
 			destroy_preview_world();
 		}
+
+		if (_event_menu_open)
+			editor_action_menu_controller_t::find(*_ui)->close_action_menu();
+
+		if (_ui != nullptr)
+		{
+			editor_command_animation_events_edit_t::cancel(*this);
+			_commands->clear();
+		}
+
+		_events.resize(0);
+		_animation			 = {};
+		_scrubbing			 = false;
+		_scrub_label_opacity = 0.0f;
+		_joint_expanded.resize(0);
+		_selected_event		   = UINT32_MAX;
+		_selected_joint		   = SKELETON_JOINT_NO_PARENT;
+		_timeline_cursor_frame = 0;
+		_cursor_time		   = 0.0f;
+		_duration			   = 0.0f;
 
 		_animation_guid = animation_guid;
 		set_sub_item_id(animation_guid);
@@ -445,7 +636,10 @@ namespace sfg
 			refresh_joint_rows();
 
 		if (_ui != nullptr)
+		{
 			refresh_data_reflection();
+			refresh_event_fields();
+		}
 
 		refresh_title(_asset_name.c_str(), "A: ");
 	}
@@ -464,27 +658,29 @@ namespace sfg
 
 		editor_world->install_camera(editor_world_camera_type_e::orbit);
 
-		editor_world_util_t::install_default_scene_light(world);
+		_environment_entity = editor_world_util_t::install_default_scene_dark(world);
 
 		_world_view.set_edit_world(_world);
 
 		world.add_resource(resource_type_e::animation, _animation_guid);
 		world.load_all_used_resources();
 
-		const animation_runtime_t* animation = resource_manager_t::get().find_runtime<animation_runtime_t>(_animation_guid);
+		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(_animation_guid);
 
-		if (animation != nullptr)
+		if (asset != nullptr && editor_asset_util_t::load_animation_def(*asset, _animation))
 		{
-			_data.target_mesh	  = animation->preview_mesh;
-			_data.target_skeleton = animation->preview_skeleton;
+			_events				  = std::move(_animation.events);
+			_data.target_mesh	  = _animation.preview_mesh;
+			_data.target_skeleton = _animation.preview_skeleton;
 		}
 		else
-		{
 			SFG_ERR("failed to load animation preview data: {0}", _animation_guid);
-		}
 
 		refresh_preview_skeleton();
 		create_display_entity();
+
+		if (const mesh_internals_t* internals = resource_manager_t::get().find_internals<mesh_internals_t>(_data.target_mesh))
+			editor_world->fit_camera_to_bounds(internals->local_bounds);
 	}
 
 	void editor_panel_animation_t::destroy_preview_world()
@@ -493,8 +689,9 @@ namespace sfg
 
 		editor_world_controller_t::get().destroy_world(_world);
 
-		_world			= {};
-		_display_entity = NULL_ENTITY_ID;
+		_world				= {};
+		_display_entity		= NULL_ENTITY_ID;
+		_environment_entity = NULL_ENTITY_ID;
 	}
 
 	void editor_panel_animation_t::create_display_entity()
@@ -511,15 +708,34 @@ namespace sfg
 		skinned_renderer.mesh			  = _data.target_mesh;
 		skinned_renderer.skeleton		  = _data.target_skeleton;
 		animation_player.animation		  = _animation_guid;
-		animation_player.scrub_ratio	  = animation != nullptr && animation->duration > 0.0f ? math::min(static_cast<f32>(_timeline_cursor_frame) / ANIMATION_VIEWER_TIMELINE_FRAME_RATE / animation->duration, 1.0f) : 0.0f;
+		animation_player.scrub_ratio	  = animation != nullptr && animation->duration > 0.0f ? math::min(_cursor_time / animation->duration, 1.0f) : 0.0f;
 		animation_player.speed_multiplier = _data.speed_multiplier;
 		animation_player.is_looping		  = _is_playing;
 		animation_player.is_scrub		  = !_is_playing;
 
+		const editor_asset_t* mesh_asset = editor_asset_manager_t::get().find_asset(_data.target_mesh);
+		mesh_def_t			  mesh_def	 = {};
+
+		if (mesh_asset != nullptr && mesh_asset->asset_type == editor_asset_type_e::mesh && editor_asset_util_t::load_mesh_def(*mesh_asset, mesh_def) && !mesh_def.preview_materials.empty())
+		{
+			for (const resource_handle_t material : mesh_def.preview_materials)
+				skinned_renderer.materials.push_back(material);
+		}
+		else
+		{
+			for (size_t material_index = 0; material_index < decltype(skinned_renderer.materials)::capacity; ++material_index)
+				skinned_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
+		}
+
 		world.scan_for_resources(_display_entity, true);
 
-		if (const mesh_internals_t* internals = resource_manager_t::get().find_internals<mesh_internals_t>(_data.target_mesh))
-			editor_world_controller_t::get().get_editor_world(_world)->fit_camera_to_bounds(internals->local_bounds);
+		const f32 spotlight_y = _preview_skeleton.joints.empty() ? 5.0f : _preview_skeleton.local_bounds.bounds_max.y * 2.0f;
+
+		world.set_entity_pos_local(_environment_entity, {0.0f, spotlight_y, 0.0f});
+
+		component_light_t& spotlight = ecs_helpers_t::table_get_as<component_light_t>(world.get_component_table(type_id_t<component_light_t>::value), _environment_entity);
+
+		spotlight.range = math::max(10.0f, spotlight_y * 2.0f);
 	}
 
 	void editor_panel_animation_t::clear_display_entity()
@@ -535,6 +751,8 @@ namespace sfg
 	void editor_panel_animation_t::refresh_preview_skeleton()
 	{
 		_preview_skeleton = {};
+		_joint_expanded.resize(0);
+		_selected_joint = SKELETON_JOINT_NO_PARENT;
 
 		if (_data.target_skeleton != NULL_RESOURCE_HANDLE)
 		{
@@ -556,79 +774,67 @@ namespace sfg
 	{
 		clear_joint_rows();
 
-		const animation_runtime_t* animation = _animation_guid == NULL_SID ? nullptr : resource_manager_t::get().find_runtime<animation_runtime_t>(_animation_guid);
+		const animation_def_t* animation   = _animation_guid == NULL_SID ? nullptr : &_animation;
+		const u32			   joint_count = static_cast<u32>(_preview_skeleton.joints.size());
 
-		rebuild_timeline(animation == nullptr ? nullptr : &animation->def);
+		rebuild_timeline(animation);
+		_joint_rows.resize(joint_count);
+		_joint_expanded.resize(joint_count, 1);
 
-		ui::layout_tree_t&	  tree	= _ui->get_tree();
-		ui::paint_layer_t&	  paint = _ui->get_paint();
-		const editor_theme_t& theme = editor_theme_t::get();
-
-		_joint_rows.reserve(_preview_skeleton.joints.size());
-		const u32 joint_count = static_cast<u32>(_preview_skeleton.joints.size());
-
-		for (u32 joint_index = 0; joint_index < joint_count; ++joint_index)
+		for (u32 index = 0; index < joint_count; ++index)
 		{
-			const skeleton_joint_def_t& joint = _preview_skeleton.joints[joint_index];
-			joint_row_t&				row	  = _joint_rows.emplace_back();
-			row.owner						  = this;
-			row.left_root					  = _ui->allocate_widget();
+			joint_row_t& row	= _joint_rows[index];
+			const u32	 parent = _preview_skeleton.joints[index].parent_index;
+
+			row.owner = this;
+
+			if (parent == SKELETON_JOINT_NO_PARENT)
+				continue;
+
+			row.next_sibling				= _joint_rows[parent].first_child;
+			_joint_rows[parent].first_child = index;
+		}
+
+		frame_vector_t<u32> pending = {};
+
+		pending.reserve(joint_count);
+
+		for (u32 index = joint_count; index != 0; --index)
+		{
+			if (_preview_skeleton.joints[index - 1].parent_index == SKELETON_JOINT_NO_PARENT)
+				pending.push_back(index - 1);
+		}
+
+		while (!pending.empty())
+		{
+			const u32 index = pending.back();
+
+			pending.pop_back();
+			create_joint_row(index);
+
+			joint_row_t& row = _joint_rows[index];
 
 			if (animation != nullptr)
-				append_joint_keyframes(animation->def, joint_index, row);
-
-			_ui->set_widget_debug_name(row.left_root, "joint_row_left");
-			tree.attach(_left_pane_bottom_left_body, row.left_root);
-
-			ui::layout_in_t& left_row_in = tree.in(row.left_root);
-			left_row_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
-			left_row_in.size_mode_y		 = ui::axis_mode_e::fixed;
-			left_row_in.size_value		 = {1.0f, theme.item_height};
-			left_row_in.child_clip_mode	 = ui::clip_mode_e::cpu_rect;
-			left_row_in.child_margins	 = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
-			left_row_in.flow			 = ui::flow_e::row;
-
-			const ui::widget_id_t joint_name = _ui->allocate_widget();
-			_ui->set_widget_debug_name(joint_name, "joint_name");
-			tree.attach(row.left_root, joint_name);
-
-			ui::layout_in_t& joint_name_in = tree.in(joint_name);
-			joint_name_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
-			joint_name_in.pos_value.y	   = 0.5f;
-			joint_name_in.anchor_y		   = ui::anchor_e::center;
-
-			_ui->set_widget_text(joint_name, joint.name.c_str());
-			paint.set_text(joint_name,
-						   _ui->widget_text(joint_name),
-						   _ui->widget_text_len(joint_name),
-						   {
-							   .font		= theme.font_default,
-							   .color		= theme.color_text0,
-							   .point_size	= theme.text_default_px_size,
-							   .spacing		= 0,
-							   .raster_mode = editor_text_rasterization_t::get_rasterization_type(),
-						   });
-
-			row.left_divider = editor_dividers_t::add_divider_hor(*_ui, _left_pane_bottom_left_body, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
-			_ui->set_widget_debug_name(row.left_divider, "joint_row_left_divider");
+				append_joint_keyframes(*animation, index, row);
 
 			row.right_root = _ui->allocate_widget();
-			_ui->set_widget_debug_name(row.right_root, "joint_row_right");
-			tree.attach(_left_pane_bottom_right_body, row.right_root);
+			_ui->get_tree().attach(_left_pane_bottom_right_body, row.right_root);
 
-			ui::layout_in_t& right_row_in = tree.in(row.right_root);
-			right_row_in.size_mode_x	  = ui::axis_mode_e::fixed;
-			right_row_in.size_mode_y	  = ui::axis_mode_e::fixed;
-			right_row_in.size_value		  = {_timeline_content_width, theme.item_height};
+			ui::layout_in_t& row_in = _ui->get_tree().in(row.right_root);
 
-			paint.set_custom(row.right_root, draw_timeline_joint_row, &row);
+			row_in.size_mode_x = ui::axis_mode_e::fixed;
+			row_in.size_mode_y = ui::axis_mode_e::fixed;
+			row_in.size_value  = {_timeline_content_width, editor_theme_t::get().item_height};
+			_ui->get_paint().set_custom(row.right_root, draw_timeline_joint_row, &row);
 
-			row.right_divider = editor_dividers_t::add_divider_hor(*_ui, _left_pane_bottom_right_body, theme.divider_thickness * 2.0f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
-			_ui->set_widget_debug_name(row.right_divider, "joint_row_right_divider");
+			if (!_joint_expanded[index])
+				continue;
 
-			ui::layout_in_t& right_divider_in = tree.in(row.right_divider);
-			right_divider_in.size_mode_x	  = ui::axis_mode_e::fixed;
-			right_divider_in.size_value.x	  = _timeline_content_width;
+			for (u32 child = row.first_child; child != SKELETON_JOINT_NO_PARENT; child = _joint_rows[child].next_sibling)
+			{
+				_joint_rows[child].depth = row.depth + 1;
+				pending.push_back(child);
+			}
 		}
 	}
 
@@ -636,14 +842,176 @@ namespace sfg
 	{
 		for (const joint_row_t& row : _joint_rows)
 		{
+			if (row.left_root == NULL_WIDGET)
+				continue;
+
 			_ui->deallocate_widget(row.left_root);
-			_ui->deallocate_widget(row.left_divider);
 			_ui->deallocate_widget(row.right_root);
-			_ui->deallocate_widget(row.right_divider);
 		}
 
 		_joint_rows.resize(0);
 		_timeline_keyframes.resize(0);
+	}
+
+	void editor_panel_animation_t::create_joint_row(u32 joint_index)
+	{
+		ui::layout_tree_t&	  tree	= _ui->get_tree();
+		ui::paint_layer_t&	  paint = _ui->get_paint();
+		const editor_theme_t& theme = editor_theme_t::get();
+		joint_row_t&		  row	= _joint_rows[joint_index];
+
+		row.left_root = _ui->allocate_widget();
+		_ui->set_widget_debug_name(row.left_root, "skeleton_joint_row");
+		tree.attach(_left_pane_bottom_left_body, row.left_root);
+		tree.draw_order(row.left_root) = tree.draw_order_const(_left_pane_bottom_left_body) + 1;
+
+		ui::layout_in_t& row_in = tree.in(row.left_root);
+
+		row_in.flags |= ui::wf_input | ui::wf_focusable;
+		row_in.size_mode_x	 = ui::axis_mode_e::parent_relative;
+		row_in.size_mode_y	 = ui::axis_mode_e::fixed;
+		row_in.size_value	 = {1.0f, theme.item_height};
+		row_in.flow			 = ui::flow_e::row;
+		row_in.child_spacing = theme.item_spacing * 0.5f;
+		row_in.child_margins = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal + static_cast<f32>(row.depth) * theme.indent_horizontal * 2.0f};
+
+		const ui::listener_bundle_t row_listener{
+			.on_click		 = on_joint_clicked,
+			.on_double_click = on_joint_double_clicked,
+			.on_wheel		 = on_timeline_wheel,
+			.user_data		 = this,
+		};
+
+		_ui->get_input().set_listener(row.left_root, row_listener);
+		update_joint_row_background(joint_index);
+
+		row.fold_icon = _ui->allocate_widget();
+		_ui->set_widget_debug_name(row.fold_icon, "skeleton_joint_fold");
+		tree.attach(row.left_root, row.fold_icon);
+
+		ui::layout_in_t& icon_in = tree.in(row.fold_icon);
+
+		icon_in.pos_mode_y	= ui::pos_mode_e::relative_in_parent;
+		icon_in.pos_value.y = 0.5f;
+		icon_in.anchor_y	= ui::anchor_e::center;
+		icon_in.size_mode_x = ui::axis_mode_e::fixed;
+		icon_in.size_mode_y = ui::axis_mode_e::fixed;
+		icon_in.size_value	= {theme.item_height, theme.item_height};
+
+		const ui::widget_id_t fold_icon_text = _ui->allocate_widget();
+		_ui->set_widget_debug_name(fold_icon_text, "skeleton_joint_fold_icon");
+		tree.attach(row.fold_icon, fold_icon_text);
+
+		ui::layout_in_t& icon_text_in = tree.in(fold_icon_text);
+
+		icon_text_in.pos_mode_x	 = ui::pos_mode_e::relative_in_parent;
+		icon_text_in.pos_mode_y	 = ui::pos_mode_e::relative_in_parent;
+		icon_text_in.pos_value	 = {0.5f, 0.5f};
+		icon_text_in.anchor_x	 = ui::anchor_e::center;
+		icon_text_in.anchor_y	 = ui::anchor_e::center;
+		icon_text_in.size_mode_x = ui::axis_mode_e::fixed;
+		icon_text_in.size_mode_y = ui::axis_mode_e::fixed;
+
+		_ui->set_widget_text(fold_icon_text, row.first_child == SKELETON_JOINT_NO_PARENT ? "" : _joint_expanded[joint_index] ? ICON_DD_DOWN : ICON_DD_RIGHT);
+		paint.set_text(fold_icon_text,
+					   _ui->widget_text(fold_icon_text),
+					   _ui->widget_text_len(fold_icon_text),
+					   {
+						   .font		= theme.font_icons,
+						   .color		= theme.color_text0,
+						   .point_size	= theme.icon_default_px_size,
+						   .raster_mode = editor_text_rasterization_t::get_rasterization_type(),
+					   });
+
+		const ui::widget_id_t label_id = _ui->allocate_widget();
+		_ui->set_widget_debug_name(label_id, "skeleton_joint_name");
+		tree.attach(row.left_root, label_id);
+
+		ui::layout_in_t& label_in = tree.in(label_id);
+
+		label_in.pos_mode_y	 = ui::pos_mode_e::relative_in_parent;
+		label_in.pos_value.y = 0.5f;
+		label_in.anchor_y	 = ui::anchor_e::center;
+		label_in.size_mode_x = ui::axis_mode_e::fill;
+		label_in.size_mode_y = ui::axis_mode_e::fixed;
+
+		const char* label = _preview_skeleton.joints[joint_index].name.c_str();
+
+		_ui->set_widget_text(label_id, label[0] == '\0' ? "Unnamed Joint" : label);
+		paint.set_text(label_id,
+					   _ui->widget_text(label_id),
+					   _ui->widget_text_len(label_id),
+					   {
+						   .font		= theme.font_default,
+						   .color		= theme.color_text0,
+						   .point_size	= theme.text_default_px_size,
+						   .raster_mode = editor_text_rasterization_t::get_rasterization_type(),
+					   });
+	}
+
+	void editor_panel_animation_t::update_joint_row_background(u32 joint_index)
+	{
+		const editor_theme_t&	  theme	   = editor_theme_t::get();
+		const joint_row_t&		  row	   = _joint_rows[joint_index];
+		const bool				  selected = joint_index == _selected_joint;
+		const ui::vg_rect_paint_t row_rect{
+			.fill_color_a  = selected ? theme.color_accent0 : vec4f_t::zero,
+			.fill_color_b  = selected ? theme.color_accent0_dim : vec4f_t::zero,
+			.rounding	   = theme.item_rounding,
+			.rounding_segs = 4,
+			.gradient	   = ui::vg_gradient_e::horizontal,
+		};
+
+		_ui->get_paint().set_rect(row.left_root, row_rect);
+		_ui->get_paint().set_hover_color(row.left_root, selected ? theme.color_accent0 : theme.color_panel_light);
+		_ui->get_paint().set_press_color(row.left_root, selected ? theme.color_accent0 : theme.color_light);
+	}
+
+	void editor_panel_animation_t::toggle_joint_fold(u32 joint_index)
+	{
+		if (_joint_rows[joint_index].first_child == SKELETON_JOINT_NO_PARENT)
+			return;
+
+		_joint_expanded[joint_index] = !_joint_expanded[joint_index];
+		refresh_joint_rows();
+		_ui->get_input().set_focus(_joint_rows[joint_index].left_root, false);
+	}
+
+	void editor_panel_animation_t::on_joint_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+		const auto				  row	= std::find_if(panel._joint_rows.begin(), panel._joint_rows.end(), [id](const joint_row_t& value) { return value.left_root == id; });
+		const u32				  index = static_cast<u32>(row - panel._joint_rows.begin());
+		const ui::layout_out_t&	  fold	= panel._ui->get_tree().out(row->fold_icon);
+		const rectf_t			  fold_bounds{fold.pos.x, fold.pos.y, fold.size.x, fold.size.y};
+
+		if (fold_bounds.contains(pos))
+		{
+			panel.toggle_joint_fold(index);
+			return;
+		}
+
+		panel._selected_joint = index;
+
+		for (u32 i = 0; i < panel._joint_rows.size(); ++i)
+		{
+			if (panel._joint_rows[i].left_root != NULL_WIDGET)
+				panel.update_joint_row_background(i);
+		}
+	}
+
+	void editor_panel_animation_t::on_joint_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+		const auto				  row	= std::find_if(panel._joint_rows.begin(), panel._joint_rows.end(), [id](const joint_row_t& value) { return value.left_root == id; });
+
+		panel.toggle_joint_fold(static_cast<u32>(row - panel._joint_rows.begin()));
 	}
 
 	void editor_panel_animation_t::rebuild_timeline(const animation_def_t* animation)
@@ -651,7 +1019,23 @@ namespace sfg
 		_timeline_labels.resize(0);
 		_timeline_keyframes.resize(0);
 
-		const f32 duration		= animation == nullptr ? 0.0f : animation->duration;
+		const f32			  duration			= animation == nullptr ? 0.0f : animation->duration;
+		const editor_theme_t& theme				= editor_theme_t::get();
+		char				  duration_text[32] = {};
+
+		_duration = duration;
+		std::snprintf(duration_text, sizeof(duration_text), "%.2f (s)", duration);
+		_ui->set_widget_text(_duration_label, duration_text);
+		_ui->get_paint().set_text(_duration_label,
+								  _ui->widget_text(_duration_label),
+								  _ui->widget_text_len(_duration_label),
+								  {
+									  .font		   = theme.font_default,
+									  .color	   = theme.color_text0,
+									  .point_size  = theme.text_default_px_size,
+									  .raster_mode = editor_text_rasterization_t::get_rasterization_type(),
+								  });
+
 		_timeline_frame_count	= math::max(1u, static_cast<u32>(math::ceil(duration * ANIMATION_VIEWER_TIMELINE_FRAME_RATE)) + 1u);
 		_timeline_content_width = ANIMATION_VIEWER_TIMELINE_PADDING * 2.0f + static_cast<f32>(_timeline_frame_count - 1u) * ANIMATION_VIEWER_TIMELINE_PIXELS_PER_FRAME;
 
@@ -662,8 +1046,9 @@ namespace sfg
 		{
 			timeline_label_t& label = _timeline_labels.emplace_back();
 			label.frame				= frame;
-			const int written		= std::snprintf(label.text, sizeof(label.text), "%u", frame);
-			label.text_length		= written > 0 ? static_cast<u8>(written) : 0;
+
+			const int written = std::snprintf(label.text, sizeof(label.text), "%u", frame);
+			label.text_length = written > 0 ? static_cast<u8>(written) : 0;
 		}
 
 		const u32 last_frame = _timeline_frame_count - 1u;
@@ -672,8 +1057,9 @@ namespace sfg
 		{
 			timeline_label_t& label = _timeline_labels.emplace_back();
 			label.frame				= last_frame;
-			const int written		= std::snprintf(label.text, sizeof(label.text), "%u", last_frame);
-			label.text_length		= written > 0 ? static_cast<u8>(written) : 0;
+
+			const int written = std::snprintf(label.text, sizeof(label.text), "%u", last_frame);
+			label.text_length = written > 0 ? static_cast<u8>(written) : 0;
 		}
 
 		if (animation != nullptr)
@@ -695,7 +1081,11 @@ namespace sfg
 		ui::layout_tree_t& tree							= _ui->get_tree();
 		tree.in(_timeline_toolbar_content).size_value.x = _timeline_content_width;
 		tree.in(_timeline_body_content).size_value.x	= _timeline_content_width;
+		const f32 cursor_time							= math::min(_cursor_time, _duration);
+
 		set_timeline_cursor_frame(math::min(_timeline_cursor_frame, last_frame));
+		_cursor_time = cursor_time;
+		update_animation_player();
 	}
 
 	void editor_panel_animation_t::append_joint_keyframes(const animation_def_t& animation, u32 joint_index, joint_row_t& row)
@@ -765,6 +1155,7 @@ namespace sfg
 	void editor_panel_animation_t::set_timeline_cursor_frame(u32 frame)
 	{
 		_timeline_cursor_frame = frame;
+		_cursor_time		   = math::min(static_cast<f32>(frame) / ANIMATION_VIEWER_TIMELINE_FRAME_RATE, _duration);
 
 		const int written			  = std::snprintf(_timeline_cursor_label, sizeof(_timeline_cursor_label), "%u", frame);
 		_timeline_cursor_label_length = written > 0 ? static_cast<u8>(written) : 0;
@@ -777,6 +1168,15 @@ namespace sfg
 		_is_playing = is_playing;
 		_play_button.set_toggled(is_playing);
 		update_animation_player();
+
+		if (_display_entity != NULL_ENTITY_ID)
+		{
+			world_t&							 world	= editor_world_controller_t::get().get_editor_world(_world)->get_world();
+			component_system_animation_player_t* player = ecs_helpers_t::table_find_as<component_system_animation_player_t>(world.get_component_table(type_id_t<component_system_animation_player_t>::value), _display_entity);
+
+			if (player != nullptr)
+				player->sample_time = _cursor_time;
+		}
 	}
 
 	void editor_panel_animation_t::update_animation_player()
@@ -789,7 +1189,7 @@ namespace sfg
 		const animation_runtime_t*	  animation		   = resource_manager_t::get().find_runtime<animation_runtime_t>(_animation_guid);
 
 		animation_player.animation		  = _animation_guid;
-		animation_player.scrub_ratio	  = animation != nullptr && animation->duration > 0.0f ? math::min(static_cast<f32>(_timeline_cursor_frame) / ANIMATION_VIEWER_TIMELINE_FRAME_RATE / animation->duration, 1.0f) : 0.0f;
+		animation_player.scrub_ratio	  = animation != nullptr && animation->duration > 0.0f ? math::min(_cursor_time / animation->duration, 1.0f) : 0.0f;
 		animation_player.speed_multiplier = _data.speed_multiplier;
 		animation_player.is_looping		  = _is_playing;
 		animation_player.is_scrub		  = !_is_playing;
@@ -853,7 +1253,7 @@ namespace sfg
 			canvas.add_line({x, out.pos.y + out.size.y - ANIMATION_VIEWER_TIMELINE_TICK_HEIGHT * scale}, {x, out.pos.y + out.size.y}, tick_paint, state, draw_order);
 		}
 
-		const f32 cursor_x	  = out.pos.x + (ANIMATION_VIEWER_TIMELINE_PADDING + static_cast<f32>(panel._timeline_cursor_frame) * ANIMATION_VIEWER_TIMELINE_PIXELS_PER_FRAME + in.scroll_offset.x) * scale;
+		const f32 cursor_x	  = out.pos.x + (ANIMATION_VIEWER_TIMELINE_PADDING + panel._cursor_time * ANIMATION_VIEWER_TIMELINE_FRAME_RATE * ANIMATION_VIEWER_TIMELINE_PIXELS_PER_FRAME + in.scroll_offset.x) * scale;
 		const f32 head_half	  = ANIMATION_VIEWER_TIMELINE_CURSOR_HEAD_WIDTH * 0.5f * scale;
 		const f32 head_bottom = out.pos.y + out.size.y;
 		const f32 head_top	  = head_bottom - ANIMATION_VIEWER_TIMELINE_CURSOR_HEAD_HEIGHT * scale;
@@ -866,6 +1266,27 @@ namespace sfg
 			.aa_thickness = theme.aa_thickness * scale,
 		};
 		canvas.add_rect({cursor_x - head_half, head_top}, {cursor_x + head_half, head_bottom}, head_paint, state, draw_order + 1);
+
+		const f32 event_y	 = out.pos.y + out.size.y * 0.5f;
+		const f32 event_size = ANIMATION_VIEWER_EVENT_SIZE * scale;
+
+		for (u32 index = 0; index < panel._events.size(); ++index)
+		{
+			const f32 x = out.pos.x + (ANIMATION_VIEWER_TIMELINE_PADDING + panel._events[index].time * ANIMATION_VIEWER_TIMELINE_FRAME_RATE * ANIMATION_VIEWER_TIMELINE_PIXELS_PER_FRAME + in.scroll_offset.x) * scale;
+
+			if (x + event_size < out.clip.x || x - event_size > out.clip.x + out.clip.z)
+				continue;
+
+			const vec4f_t color	  = index == panel._selected_event ? theme.color_accent0_light : theme.color_accent0;
+			const vec2f_t path[4] = {
+				{x, event_y - event_size},
+				{x + event_size, event_y},
+				{x, event_y + event_size},
+				{x - event_size, event_y},
+			};
+
+			canvas.add_convex({path, 4}, {.fill_color_a = color, .fill_color_b = color, .aa_thickness = theme.aa_thickness * scale}, state, draw_order + 3);
+		}
 
 		const font_runtime_t* font = resource_manager_t::get().find_runtime<font_runtime_t>(theme.font_default);
 
@@ -973,7 +1394,7 @@ namespace sfg
 		const ui::layout_in_t&			body_in = tree.in_const(panel._left_pane_bottom_right_body);
 		const editor_theme_t&			theme	= editor_theme_t::get();
 		const f32						scale	= ui::get_valid_scale(panel._ui->get_ui_scale());
-		const f32						x		= out.pos.x + (ANIMATION_VIEWER_TIMELINE_PADDING + static_cast<f32>(panel._timeline_cursor_frame) * ANIMATION_VIEWER_TIMELINE_PIXELS_PER_FRAME + body_in.scroll_offset.x) * scale;
+		const f32						x		= out.pos.x + (ANIMATION_VIEWER_TIMELINE_PADDING + panel._cursor_time * ANIMATION_VIEWER_TIMELINE_FRAME_RATE * ANIMATION_VIEWER_TIMELINE_PIXELS_PER_FRAME + body_in.scroll_offset.x) * scale;
 		const ui::vg_line_paint_t		line_paint{
 			.color		  = theme.color_accent_green,
 			.thickness	  = ANIMATION_VIEWER_TIMELINE_CURSOR_WIDTH * scale,
@@ -1066,6 +1487,40 @@ namespace sfg
 		if (tree.in_const(panel._left_pane_bottom_right_toolbar).scroll_offset.x != right_body_in.scroll_offset.x)
 			tree.in(panel._left_pane_bottom_right_toolbar).scroll_offset.x = right_body_in.scroll_offset.x;
 
+		if (panel._refresh_event_fields)
+			panel.refresh_event_fields();
+
+		const ui::widget_id_t pressed = ui.get_input().is_pressed(ui::mouse_button_e::left);
+
+		panel._scrubbing		   = panel._scrubbing && (pressed == panel._left_pane_bottom_right_toolbar || pressed == panel._left_pane_bottom_right_body);
+		panel._scrub_label_opacity = math::lerp(panel._scrub_label_opacity, panel._scrubbing ? 1.0f : 0.0f, 1.0f - std::exp(-14.0f * dt_seconds));
+
+		const editor_theme_t& theme	   = editor_theme_t::get();
+		const f32			  scale	   = ui::get_valid_scale(ui.get_ui_scale());
+		const f32			  cursor_x = ANIMATION_VIEWER_TIMELINE_PADDING + panel._cursor_time * ANIMATION_VIEWER_TIMELINE_FRAME_RATE * ANIMATION_VIEWER_TIMELINE_PIXELS_PER_FRAME + right_body_in.scroll_offset.x;
+
+		if (panel._scrubbing || panel._scrub_label_opacity > 0.001f)
+		{
+			char seconds_text[32] = {};
+
+			std::snprintf(seconds_text, sizeof(seconds_text), "%.2f (s)", panel._cursor_time);
+			ui.set_widget_text(panel._scrub_seconds_label, seconds_text);
+		}
+
+		ui.get_paint().def(panel._scrub_seconds_label).text.color.w = theme.color_text0.w * panel._scrub_label_opacity;
+
+		ui::vg_rect_paint_t& frame_rect = ui.get_paint().def(panel._scrub_seconds_frame).rect;
+
+		frame_rect.fill_color_a.w  = theme.color_frame.w * panel._scrub_label_opacity;
+		frame_rect.fill_color_b.w  = theme.color_frame.w * panel._scrub_label_opacity;
+		frame_rect.outline_color.w = theme.color_outline_light.w * panel._scrub_label_opacity;
+
+		ui::layout_in_t& frame_in		 = tree.in(panel._scrub_seconds_frame);
+		const f32		 available_width = tree.out(panel._left_pane_bottom_right).size.x / scale;
+		const f32		 frame_width	 = tree.out(panel._scrub_seconds_frame).size.x / scale;
+
+		frame_in.pos_value = {math::clamp(cursor_x + ANIMATION_VIEWER_TIMELINE_CURSOR_HEAD_WIDTH, 0.0f, math::max(0.0f, available_width - frame_width)), theme.item_area_height + theme.item_spacing};
+
 		if (!panel._is_playing || panel._display_entity == NULL_ENTITY_ID)
 			return;
 
@@ -1079,21 +1534,47 @@ namespace sfg
 		const f32 frame = math::round(system_animation_player->sample_time * ANIMATION_VIEWER_TIMELINE_FRAME_RATE);
 
 		panel.set_timeline_cursor_frame(static_cast<u32>(math::clamp(frame, 0.0f, static_cast<f32>(panel._timeline_frame_count - 1u))));
+		panel._cursor_time = system_animation_player->sample_time;
 	}
 
 	void editor_panel_animation_t::on_play_pressed(bool toggled, void* user_data)
 	{
-		static_cast<editor_panel_animation_t*>(user_data)->set_playing(true);
+		static_cast<editor_panel_animation_t*>(user_data)->set_playing(toggled);
 	}
 
 	void editor_panel_animation_t::on_timeline_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
-		if (btn != ui::mouse_button_e::left)
+		if (btn != ui::mouse_button_e::left && btn != ui::mouse_button_e::right)
 			return;
 
 		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+		const u32				  event = panel.get_event_at_position(pos);
+
+		router.set_focus(id, false);
+
+		if (btn == ui::mouse_button_e::right)
+		{
+			panel.set_playing(false);
+
+			if (event != UINT32_MAX)
+				panel.select_event(event);
+
+			panel.open_event_menu(pos, event != UINT32_MAX);
+			return;
+		}
+
+		panel.select_event(event);
 		panel.set_playing(false);
-		panel.set_timeline_cursor_from_position(pos);
+		panel._scrubbing = event == UINT32_MAX;
+
+		if (event != UINT32_MAX)
+		{
+			panel.set_timeline_cursor_frame(static_cast<u32>(math::round(panel._events[event].time * ANIMATION_VIEWER_TIMELINE_FRAME_RATE)));
+			panel._cursor_time = panel._events[event].time;
+			panel.update_animation_player();
+		}
+		else
+			panel.set_timeline_cursor_from_position(pos);
 	}
 
 	void editor_panel_animation_t::on_timeline_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data)
@@ -1102,6 +1583,7 @@ namespace sfg
 			return;
 
 		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+		panel._scrubbing				= true;
 		panel.set_playing(false);
 		panel.set_timeline_cursor_from_position(pos);
 	}
@@ -1110,6 +1592,339 @@ namespace sfg
 	{
 		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
 		panel._left_pane_bottom_scrollbar.scroll_y(delta);
+	}
+
+	bool editor_panel_animation_t::on_command_event(const window_event_t& ev)
+	{
+		if (ev.type != window_event_type_e::key || (ev.sub_type != window_event_sub_type_e::press && ev.sub_type != window_event_sub_type_e::repeat))
+			return false;
+
+		const bool ctrl = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+
+		if (!ctrl || (ev.button != static_cast<u16>(input_code::key_z) && ev.button != static_cast<u16>(input_code::key_r)))
+			return false;
+
+		_ui->get_input().set_focus(_left_pane_bottom_right_toolbar, false);
+		on_event_edit_submitted(this);
+
+		return _commands->on_window_event(ev);
+	}
+
+	void editor_panel_animation_t::apply_events(vector_t<animation_event_def_t>&& events, u32 selected_event)
+	{
+		if (_event_menu_open)
+			editor_action_menu_controller_t::find(*_ui)->close_action_menu();
+
+		_events				  = std::move(events);
+		_selected_event		  = selected_event;
+		_refresh_event_fields = true;
+	}
+
+	void editor_panel_animation_t::select_event(u32 event_index)
+	{
+		on_event_edit_submitted(this);
+		_selected_event		  = event_index;
+		_refresh_event_fields = true;
+	}
+
+	void editor_panel_animation_t::refresh_event_fields()
+	{
+		_event_data = _selected_event == UINT32_MAX ? animation_event_def_t{} : _events[_selected_event];
+
+		void* event_object = &_event_data;
+
+		_event_reflection.set_reflection({
+			.callbacks = {.edit_begin = on_event_edit_begin, .edited = on_event_edited, .edit_submitted = on_event_edit_submitted, .user_data = this},
+			.objects   = {.data = &event_object, .size = 1},
+			.type_id   = type_id_t<animation_event_def_t>::value,
+		});
+
+		if (_selected_event == UINT32_MAX)
+			_ui->get_tree().in(_event_reflection.get_root()).flags |= ui::wf_disabled;
+		else
+			_ui->get_tree().in(_event_reflection.get_root()).flags &= ~ui::wf_disabled;
+
+		if (_animation_guid == NULL_SID)
+			_ui->get_tree().in(_save_changes_button.get_root()).flags |= ui::wf_disabled;
+		else
+			_ui->get_tree().in(_save_changes_button.get_root()).flags &= ~ui::wf_disabled;
+
+		_play_button.set_disabled(_animation_guid == NULL_SID);
+		_reset_button.set_disabled(_animation_guid == NULL_SID);
+		_refresh_event_fields = false;
+	}
+
+	bool editor_panel_animation_t::is_event_time_available(f32 time, u32 ignored_event) const
+	{
+		const i32 tick = static_cast<i32>(math::round(time / ANIMATION_VIEWER_EVENT_GRANULARITY));
+
+		for (u32 index = 0; index < _events.size(); ++index)
+		{
+			if (index != ignored_event && static_cast<i32>(math::round(_events[index].time / ANIMATION_VIEWER_EVENT_GRANULARITY)) == tick)
+				return false;
+		}
+
+		return true;
+	}
+
+	u32 editor_panel_animation_t::get_event_at_position(const vec2f_t& position) const
+	{
+		const ui::layout_tree_t& tree = _ui->get_tree();
+		const ui::layout_out_t&	 out  = tree.out(_left_pane_bottom_right_toolbar);
+		const rectf_t			 bounds{out.pos.x, out.pos.y, out.size.x, out.size.y};
+
+		if (!bounds.contains(position))
+			return UINT32_MAX;
+
+		const f32 scale			   = ui::get_valid_scale(_ui->get_ui_scale());
+		const f32 scroll		   = tree.in_const(_left_pane_bottom_right_body).scroll_offset.x;
+		const f32 center_y		   = out.pos.y + out.size.y * 0.5f;
+		u32		  nearest		   = UINT32_MAX;
+		f32		  nearest_distance = (ANIMATION_VIEWER_EVENT_SIZE + 2.0f) * scale;
+
+		for (u32 index = 0; index < _events.size(); ++index)
+		{
+			const f32 x		   = out.pos.x + (ANIMATION_VIEWER_TIMELINE_PADDING + _events[index].time * ANIMATION_VIEWER_TIMELINE_FRAME_RATE * ANIMATION_VIEWER_TIMELINE_PIXELS_PER_FRAME + scroll) * scale;
+			const f32 distance = math::abs(position.x - x) + math::abs(position.y - center_y);
+
+			if (distance <= nearest_distance)
+			{
+				nearest_distance = distance;
+				nearest			 = index;
+			}
+		}
+
+		return nearest;
+	}
+
+	void editor_panel_animation_t::add_event()
+	{
+		on_event_edit_submitted(this);
+
+		if (!is_event_time_available(_cursor_time) || !editor_command_animation_events_edit_t::begin(*this))
+			return;
+
+		_events.push_back({.name = "Event", .time = _cursor_time});
+		_selected_event = static_cast<u32>(_events.size() - 1);
+		editor_command_animation_events_edit_t::submit(*this, "Add Animation Event", false);
+		_refresh_event_fields = true;
+	}
+
+	void editor_panel_animation_t::duplicate_event()
+	{
+		if (_selected_event == UINT32_MAX)
+			return;
+
+		on_event_edit_submitted(this);
+
+		const f32 original_time	 = _events[_selected_event].time;
+		f32		  duplicate_time = -1.0f;
+		const u32 max_offset	 = static_cast<u32>(_events.size()) + 1;
+
+		for (u32 offset = 1; offset <= max_offset; ++offset)
+		{
+			const f32 delta	 = static_cast<f32>(offset) * ANIMATION_VIEWER_EVENT_GRANULARITY;
+			const f32 after	 = original_time + delta;
+			const f32 before = original_time - delta;
+
+			if (after <= _duration && is_event_time_available(after))
+			{
+				duplicate_time = after;
+				break;
+			}
+
+			if (before >= 0.0f && is_event_time_available(before))
+			{
+				duplicate_time = before;
+				break;
+			}
+		}
+
+		if (duplicate_time < 0.0f || !editor_command_animation_events_edit_t::begin(*this))
+			return;
+
+		animation_event_def_t event = _events[_selected_event];
+
+		event.time = duplicate_time;
+		_events.push_back(event);
+		_selected_event = static_cast<u32>(_events.size() - 1);
+		editor_command_animation_events_edit_t::submit(*this, "Duplicate Animation Event", false);
+		_refresh_event_fields = true;
+	}
+
+	void editor_panel_animation_t::delete_event()
+	{
+		if (_selected_event == UINT32_MAX)
+			return;
+
+		on_event_edit_submitted(this);
+
+		if (!editor_command_animation_events_edit_t::begin(*this))
+			return;
+
+		_events.erase(_events.begin() + _selected_event);
+		_selected_event = UINT32_MAX;
+		editor_command_animation_events_edit_t::submit(*this, "Delete Animation Event", false);
+		_refresh_event_fields = true;
+	}
+
+	void editor_panel_animation_t::on_event_edit_begin(void* user_data)
+	{
+		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+
+		if (!panel._edit_previous_stream)
+			editor_command_animation_events_edit_t::begin(panel);
+	}
+
+	void editor_panel_animation_t::on_event_edited(void* user_data)
+	{
+		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+
+		if (!panel._edit_previous_stream)
+			return;
+
+		panel._event_data.time = math::clamp(panel._event_data.time, 0.0f, panel._duration);
+
+		if (!panel.is_event_time_available(panel._event_data.time, panel._selected_event))
+			panel._event_data.time = panel._events[panel._selected_event].time;
+
+		panel._events[panel._selected_event] = panel._event_data;
+	}
+
+	void editor_panel_animation_t::on_event_edit_submitted(void* user_data)
+	{
+		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+
+		if (!panel._edit_previous_stream)
+			return;
+
+		on_event_edited(user_data);
+		editor_command_animation_events_edit_t::submit(panel, "Edit Animation Event", false);
+	}
+
+	void editor_panel_animation_t::open_event_menu(const vec2f_t& position, bool on_event)
+	{
+		static const editor_action_menu_row_desc_t add_actions[] = {
+			{
+				.text	 = "Add Event",
+				.command = ANIMATION_VIEWER_ADD_EVENT,
+			},
+		};
+		static const editor_action_menu_row_desc_t event_actions[] = {
+			{
+				.text	  = "Duplicate",
+				.shortcut = "CTRL+D",
+				.command  = ANIMATION_VIEWER_DUPLICATE_EVENT,
+			},
+			{
+				.text	  = "Delete",
+				.shortcut = "DEL",
+				.command  = ANIMATION_VIEWER_DELETE_EVENT,
+			},
+		};
+
+		editor_action_menu_controller_t::find(*_ui)->request_action_menu({
+			.style			   = make_default_action_menu_style(editor_theme_t::get()),
+			.rows			   = on_event ? event_actions : add_actions,
+			.command_fn		   = on_event_menu_action,
+			.command_user_data = this,
+			.closed_fn		   = [](void* user_data) { static_cast<editor_panel_animation_t*>(user_data)->_event_menu_open = false; },
+			.closed_user_data  = this,
+			.pos			   = position,
+			.row_count		   = static_cast<u16>(on_event ? 2 : 1),
+		});
+		_event_menu_open = true;
+	}
+
+	void editor_panel_animation_t::on_event_menu_action(u16 action, void* user_data)
+	{
+		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+
+		switch (action)
+		{
+		case ANIMATION_VIEWER_ADD_EVENT:
+			panel.add_event();
+			break;
+		case ANIMATION_VIEWER_DUPLICATE_EVENT:
+			panel.duplicate_event();
+			break;
+		case ANIMATION_VIEWER_DELETE_EVENT:
+			panel.delete_event();
+			break;
+		}
+	}
+
+	void editor_panel_animation_t::on_timeline_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data)
+	{
+		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+
+		if (ev.action != ui::key_action_e::press || panel._selected_event == UINT32_MAX || router.is_popup_scope_active())
+			return;
+
+		const bool ctrl = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+
+		if (ev.key == static_cast<u16>(input_code::key_delete))
+			panel.delete_event();
+		else if (ev.key == static_cast<u16>(input_code::key_d) && ctrl)
+			panel.duplicate_event();
+	}
+
+	void editor_panel_animation_t::on_reset_pressed(bool toggled, void* user_data)
+	{
+		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+
+		panel.set_playing(false);
+		panel.set_timeline_cursor_frame(0);
+
+		if (panel._display_entity != NULL_ENTITY_ID)
+		{
+			world_t&							 world	= editor_world_controller_t::get().get_editor_world(panel._world)->get_world();
+			component_system_animation_player_t* player = ecs_helpers_t::table_find_as<component_system_animation_player_t>(world.get_component_table(type_id_t<component_system_animation_player_t>::value), panel._display_entity);
+
+			if (player != nullptr)
+				player->sample_time = 0.0f;
+		}
+	}
+
+	void editor_panel_animation_t::on_save_changes_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+
+		on_event_edit_submitted(&panel);
+
+		const editor_asset_t* asset		 = editor_asset_manager_t::get().find_asset(panel._animation_guid);
+		animation_def_t		  definition = {};
+
+		if (!editor_asset_util_t::load_animation_def(*asset, definition))
+			return;
+
+		definition.events			= panel._events;
+		definition.preview_mesh		= panel._data.target_mesh;
+		definition.preview_skeleton = panel._data.target_skeleton;
+
+		if (asset->source_type == editor_asset_source_type_e::file_blob)
+		{
+			ostream_t source = {};
+
+			if (!animation_cooker::serialize_def_blob(definition, source) || !editor_asset_manager_t::get().save_and_cook_file_asset_blob_async(panel._animation_guid, source))
+				SFG_ERR("failed to save and queue cooking for animation asset {0}", panel._animation_guid);
+
+			return;
+		}
+
+		nlohmann::json embedded_source = nlohmann::json::object();
+
+		if (!reflection_registry_t::get().type_to_json(type_id_t<animation_def_t>::value, &definition, nullptr, embedded_source))
+		{
+			SFG_ERR("failed to serialize animation definition for asset {0}", panel._animation_guid);
+			return;
+		}
+
+		if (!editor_asset_manager_t::get().save_and_cook_embedded_asset_async(panel._animation_guid, embedded_source))
+			SFG_ERR("failed to save and queue cooking for animation asset {0}", panel._animation_guid);
 	}
 
 	panel_animation_data_reflection_t::panel_animation_data_reflection_t()

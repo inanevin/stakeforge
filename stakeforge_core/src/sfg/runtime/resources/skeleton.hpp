@@ -10,7 +10,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('S', 'K', 'E', 'L');
-		static constexpr u32 WIRE_VERSION = 11;
+		static constexpr u32 WIRE_VERSION = 12;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
@@ -35,8 +35,16 @@ namespace sfg
 		u32				 slot_joint_index = SKELETON_JOINT_NO_PARENT;
 	};
 
+	struct skeleton_mask_runtime_t
+	{
+		sid_t			 name_hash	   = NULL_SID;
+		chunk_handle32_t joint_indices = {};
+		u32				 joint_count   = 0;
+	};
+
 	struct skeleton_runtime_t
 	{
+		chunk_handle32_t masks				= {};
 		chunk_handle32_t joints				= {};
 		chunk_handle32_t evaluation_order	= {};
 		chunk_handle32_t slots				= {};
@@ -44,6 +52,7 @@ namespace sfg
 		aabb_t			 local_bounds		= {};
 		u32				 root_joint_index	= SKELETON_JOINT_NO_PARENT;
 		u32				 joint_count		= 0;
+		u32				 mask_count			= 0;
 		u32				 slot_count			= 0;
 	};
 

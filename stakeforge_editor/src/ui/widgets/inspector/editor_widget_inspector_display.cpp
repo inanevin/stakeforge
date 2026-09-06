@@ -24,7 +24,9 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
-#include "ui/widgets/inspector/editor_widget_inspector.hpp"
+#include "editor_widget_inspector.hpp"
+#include "assets/editor_asset_io.hpp"
+#include "assets/editor_asset_manager.hpp"
 #include "world/editor_world_edit_context.hpp"
 #include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
@@ -33,13 +35,16 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_entities.hpp"
 #include "ui/widgets/editor_widget_entity_info.hpp"
 #include <sfg/data/frame_vector.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
+#include <sfg/runtime/resources/skeleton_def.hpp>
 #include <algorithm>
+#include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -127,8 +132,9 @@ namespace sfg
 		const bool		  prefab_referenced = _allow_prefab_blocks && is_selection_prefab_referenced();
 		const bool		  prefab_blocked	= _allow_prefab_blocks && is_selection_prefab_child();
 		const entity_id_t first_entity		= _display_entities.front();
-		_entity_info						= new editor_widget_entity_info_t();
-		_entity_info_fold					= new editor_widget_fold_t();
+
+		_entity_info	  = new editor_widget_entity_info_t();
+		_entity_info_fold = new editor_widget_fold_t();
 		_entity_info_fold->init(*_ui, _column, {.label = "Entity Info", .folded = false, .settings_button = !prefab_blocked});
 		_entity_info->init(*_ui, _entity_info_fold->get_body(), {.break_prefab = on_entity_info_break_prefab, .user_data = this, .world = _edit_world, .is_prefab = prefab_referenced, .block_edits = prefab_blocked});
 		_entity_info->set_name_submitted_callback(on_entity_info_name_submitted, this);
@@ -149,10 +155,12 @@ namespace sfg
 				continue;
 
 			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
+
 			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flag_no_ui))
 				continue;
 
 			bool common_component = true;
+
 			for (size_t i = 1; i < _display_entities.size(); ++i)
 			{
 				if (!ecs_t::table_has(component_table, _display_entities[i]))
@@ -172,6 +180,7 @@ namespace sfg
 			display.edit_user_data		 = new component_edit_callback_data_t{.panel = this, .component_type = component_table.type_desc.type_id};
 			display.type_id				 = component_table.type_desc.type_id;
 			display.objects.reserve(_display_entities.size());
+
 			for (entity_id_t entity : _display_entities)
 				display.objects.push_back(ecs_t::table_get(component_table, entity));
 
@@ -187,10 +196,12 @@ namespace sfg
 											  .edit_submitted = on_component_edit_submitted,
 											  .user_data	  = display.edit_user_data,
 										  },
-									  .objects	   = {.data = display.objects.data(), .size = display.objects.size()},
-									  .type_id	   = component_table.type_desc.type_id,
-									  .world	   = _edit_world,
-									  .block_edits = prefab_blocked,
+									  .objects					= {.data = display.objects.data(), .size = display.objects.size()},
+									  .type_id					= component_table.type_desc.type_id,
+									  .world					= _edit_world,
+									  .dropdown_items			= resolve_dropdown_items,
+									  .dropdown_items_user_data = display.edit_user_data,
+									  .block_edits				= prefab_blocked,
 								  });
 
 			if (!prefab_blocked)
@@ -209,6 +220,7 @@ namespace sfg
 	void editor_widget_inspector_t::refresh_component_reflection(sid_t component_type)
 	{
 		component_display_t* display = find_component_display(component_type);
+
 		if (display == nullptr)
 			return;
 
@@ -228,11 +240,85 @@ namespace sfg
 										   .edit_submitted = on_component_edit_submitted,
 										   .user_data	   = display->edit_user_data,
 									   },
-								   .objects		= {.data = display->objects.data(), .size = display->objects.size()},
-								   .type_id		= display->type_id,
-								   .world		= _edit_world,
-								   .block_edits = prefab_blocked,
+								   .objects					 = {.data = display->objects.data(), .size = display->objects.size()},
+								   .type_id					 = display->type_id,
+								   .world					 = _edit_world,
+								   .dropdown_items			 = resolve_dropdown_items,
+								   .dropdown_items_user_data = display->edit_user_data,
+								   .block_edits				 = prefab_blocked,
 							   });
+
+		if (component_type == type_id_t<component_skinned_mesh_renderer_t>::value)
+			refresh_component_reflection(type_id_t<component_animation_player_t>::value);
+	}
+
+	span_t<const editor_widget_reflection_dropdown_item_t> editor_widget_inspector_t::resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, u32 element_index, void* user_data)
+	{
+		component_edit_callback_data_t& data = *static_cast<component_edit_callback_data_t*>(user_data);
+
+		if (data.component_type != type_id_t<component_animation_player_t>::value || field_id != "mask"_hs)
+			return {};
+
+		editor_widget_inspector_t&	 panel = *data.panel;
+		world_t&					 world = editor_world_controller_t::get().get_editor_world(panel._edit_world)->get_world();
+		const ecs_component_table_t& table = world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
+
+		panel._mask_dropdown_names.resize(0);
+		panel._mask_dropdown_items.resize(0);
+		panel._mask_dropdown_items.push_back({.text = "None", .value = NULL_SID});
+
+		for (size_t entity_index = 0; entity_index < panel._display_entities.size(); ++entity_index)
+		{
+			const component_skinned_mesh_renderer_t* renderer = ecs_helpers_t::table_find_as_const<component_skinned_mesh_renderer_t>(table, panel._display_entities[entity_index]);
+			const editor_asset_t*					 asset	  = renderer == nullptr ? nullptr : editor_asset_manager_t::get().find_asset(renderer->skeleton);
+
+			if (asset == nullptr || asset->asset_type != editor_asset_type_e::skeleton || asset->embedded_source.empty())
+			{
+				panel._mask_dropdown_names.resize(0);
+				break;
+			}
+
+			skeleton_def_t		 skeleton = {};
+			const nlohmann::json source	  = editor_asset_io_t::get_embedded_source_json(*asset);
+
+			if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, source))
+			{
+				SFG_ERR("failed to read skeleton masks for inspector");
+				panel._mask_dropdown_names.resize(0);
+				break;
+			}
+
+			if (entity_index == 0)
+			{
+				panel._mask_dropdown_names.reserve(skeleton.masks.size());
+
+				for (const skeleton_mask_def_t& mask : skeleton.masks)
+					panel._mask_dropdown_names.emplace_back(mask.name);
+			}
+			else
+			{
+				for (auto name = panel._mask_dropdown_names.begin(); name != panel._mask_dropdown_names.end();)
+				{
+					const sid_t name_hash = TO_SID(name->c_str());
+					const auto	mask	  = std::find_if(skeleton.masks.begin(), skeleton.masks.end(), [name_hash](const skeleton_mask_def_t& value) { return TO_SID(static_cast<const char*>(value.name)) == name_hash; });
+
+					if (mask == skeleton.masks.end())
+						name = panel._mask_dropdown_names.erase(name);
+					else
+						++name;
+				}
+			}
+
+			if (panel._mask_dropdown_names.empty())
+				break;
+		}
+
+		panel._mask_dropdown_items.reserve(panel._mask_dropdown_names.size() + 1);
+
+		for (const string_t& name : panel._mask_dropdown_names)
+			panel._mask_dropdown_items.push_back({.text = name.c_str(), .value = TO_SID(name.c_str())});
+
+		return {.data = panel._mask_dropdown_items.data(), .size = panel._mask_dropdown_items.size()};
 	}
 
 	bool editor_widget_inspector_t::serialize_component_streams(sid_t component_type, span_t<const entity_id_t> entities, vector_t<ostream_t>& out_streams) const
@@ -395,7 +481,8 @@ namespace sfg
 		if (!_component_edit_active || _component_edit_type != component_type)
 			return;
 
-		vector_t<ostream_t> post_streams;
+		vector_t<ostream_t> post_streams = {};
+
 		if (serialize_component_streams(component_type, {.data = _component_edit_entities.data(), .size = _component_edit_entities.size()}, post_streams))
 		{
 			editor_command_component_edit_t::edit(_edit_world,
@@ -404,7 +491,11 @@ namespace sfg
 												  {.data = _component_edit_prev_streams.data(), .size = _component_edit_prev_streams.size()},
 												  {.data = post_streams.data(), .size = post_streams.size()});
 		}
+
 		clear_component_edit();
+
+		if (component_type == type_id_t<component_skinned_mesh_renderer_t>::value)
+			refresh_component_reflection(type_id_t<component_animation_player_t>::value);
 	}
 
 	void editor_widget_inspector_t::clear_component_edit()

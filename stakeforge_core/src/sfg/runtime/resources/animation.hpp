@@ -2,7 +2,6 @@
 #pragma once
 
 #include "animation_common.hpp"
-#include "animation_def.hpp"
 #include "common_resources.hpp"
 
 namespace sfg
@@ -27,14 +26,22 @@ namespace sfg
 		animation_interpolation_e			 interpolation	  = animation_interpolation_e::linear;
 	};
 
+	struct animation_event_t
+	{
+		sid_t name_hash = NULL_SID;
+		f32	  time		= 0.0f;
+	};
+
 	struct animation_runtime_t
 	{
-		animation_def_t						  def				= {};
+		const animation_event_t*			  events			= nullptr;
+		chunk_handle32_t					  data				= {};
 		const animation_channel_v3_runtime_t* position_channels = nullptr;
 		const animation_channel_q_runtime_t*  rotation_channels = nullptr;
 		const animation_channel_v3_runtime_t* scale_channels	= nullptr;
 		resource_handle_t					  preview_mesh		= NULL_RESOURCE_HANDLE;
 		resource_handle_t					  preview_skeleton	= NULL_RESOURCE_HANDLE;
+		u32									  event_count		= 0;
 		u32									  position_count	= 0;
 		u32									  rotation_count	= 0;
 		u32									  scale_count		= 0;
@@ -50,7 +57,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('A', 'N', 'I', 'M');
-		static constexpr u32 WIRE_VERSION = 5;
+		static constexpr u32 WIRE_VERSION = 6;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
