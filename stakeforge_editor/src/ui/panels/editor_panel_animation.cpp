@@ -464,7 +464,7 @@ namespace sfg
 
 		editor_world->install_camera(editor_world_camera_type_e::orbit);
 
-		editor_world_util_t::install_default_scene(world);
+		editor_world_util_t::install_default_scene_light(world);
 
 		_world_view.set_edit_world(_world);
 

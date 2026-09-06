@@ -139,6 +139,8 @@ namespace sfg
 		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 		_index_count_value = append_property_value_row("Indices");
 		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+		_triangle_count_value = append_property_value_row("Total Triangles");
+		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 		_primitive_count_value = append_property_value_row("Primitives");
 		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 		_vertex_stride_value = append_property_value_row("Vertex Stride");
@@ -189,7 +191,7 @@ namespace sfg
 
 		editor_world->install_camera(editor_world_camera_type_e::orbit);
 
-		editor_world_util_t::install_default_scene(editor_world->get_world());
+		_environment_entity = editor_world_util_t::install_default_scene_dark(editor_world->get_world());
 
 		_world_view.set_edit_world(_world);
 	}
@@ -201,8 +203,9 @@ namespace sfg
 
 		editor_world_controller_t::get().destroy_world(_world);
 
-		_world			= {};
-		_display_entity = NULL_ENTITY_ID;
+		_world				= {};
+		_display_entity		= NULL_ENTITY_ID;
+		_environment_entity = NULL_ENTITY_ID;
 	}
 
 	void editor_panel_mesh_viewer_t::clear_display_entity()
@@ -249,8 +252,15 @@ namespace sfg
 		{
 			const vec3f_t display_position{0.0f, -internals->local_bounds.bounds_min.y, 0.0f};
 			const aabb_t  display_bounds(internals->local_bounds.bounds_min + display_position, internals->local_bounds.bounds_max + display_position);
+			const f32	  spotlight_y = display_bounds.bounds_max.y * 2.0f;
 
 			world.set_entity_pos_local(_display_entity, display_position);
+			world.set_entity_pos_local(_environment_entity, {0.0f, spotlight_y, 0.0f});
+
+			component_light_t& light = ecs_helpers_t::table_get_as<component_light_t>(world.get_component_table(type_id_t<component_light_t>::value), _environment_entity);
+
+			light.range = math::max(10.0f, spotlight_y * 2.0f);
+
 			editor_world_controller_t::get().get_editor_world(_world)->fit_camera_to_bounds(display_bounds);
 		}
 	}
@@ -262,6 +272,7 @@ namespace sfg
 
 		_vertex_count_text	  = "-";
 		_index_count_text	  = "-";
+		_triangle_count_text  = "-";
 		_primitive_count_text = "-";
 		_vertex_stride_text	  = "-";
 		_is_skinned_text	  = "-";
@@ -272,6 +283,7 @@ namespace sfg
 			{
 				_vertex_count_text	  = std::to_string(internals->vertex_count);
 				_index_count_text	  = std::to_string(internals->index_count);
+				_triangle_count_text  = std::to_string(internals->index_count / 3);
 				_primitive_count_text = std::to_string(internals->primitive_count);
 				_vertex_stride_text	  = std::to_string(internals->vertex_stride);
 				_is_skinned_text	  = internals->is_skinned ? "true" : "false";
@@ -284,6 +296,7 @@ namespace sfg
 
 		_ui->set_widget_text(_vertex_count_value, _vertex_count_text.c_str());
 		_ui->set_widget_text(_index_count_value, _index_count_text.c_str());
+		_ui->set_widget_text(_triangle_count_value, _triangle_count_text.c_str());
 		_ui->set_widget_text(_primitive_count_value, _primitive_count_text.c_str());
 		_ui->set_widget_text(_vertex_stride_value, _vertex_stride_text.c_str());
 		_ui->set_widget_text(_is_skinned_value, _is_skinned_text.c_str());
@@ -294,6 +307,7 @@ namespace sfg
 			.font = theme.font_default, .color = _vertex_count_text == "Failed" ? theme.color_accent_warn : theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()};
 		paint.set_text(_vertex_count_value, _ui->widget_text(_vertex_count_value), _ui->widget_text_len(_vertex_count_value), value_paint);
 		paint.set_text(_index_count_value, _ui->widget_text(_index_count_value), _ui->widget_text_len(_index_count_value), value_paint);
+		paint.set_text(_triangle_count_value, _ui->widget_text(_triangle_count_value), _ui->widget_text_len(_triangle_count_value), value_paint);
 		paint.set_text(_primitive_count_value, _ui->widget_text(_primitive_count_value), _ui->widget_text_len(_primitive_count_value), value_paint);
 		paint.set_text(_vertex_stride_value, _ui->widget_text(_vertex_stride_value), _ui->widget_text_len(_vertex_stride_value), value_paint);
 		paint.set_text(_is_skinned_value, _ui->widget_text(_is_skinned_value), _ui->widget_text_len(_is_skinned_value), value_paint);

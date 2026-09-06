@@ -35,9 +35,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_WORLD_CAMERA_FLY_BASE_MOVE_SPEED	   12.0f
-#define EDITOR_WORLD_CAMERA_FLY_MOUSE_SENSITIVITY  0.2f
-#define EDITOR_WORLD_CAMERA_FLY_MIN_FOCUS_DISTANCE 1.0f
+#define EDITOR_WORLD_CAMERA_FLY_BASE_MOVE_SPEED	  12.0f
+#define EDITOR_WORLD_CAMERA_FLY_MOUSE_SENSITIVITY 0.2f
 
 	void editor_world_camera_fly_t::init(world_t& world)
 	{
@@ -72,6 +71,14 @@ namespace sfg
 
 	void editor_world_camera_fly_t::pass_input(world_t& world, const editor_world_camera_input_t& input)
 	{
+		if (is_focus_enabled())
+		{
+			const vec2f_t angles = get_camera_angles(world.get_entity_rot_local(_camera_entity));
+
+			_camera_pitch_degrees = angles.x;
+			_camera_yaw_degrees	  = angles.y;
+		}
+
 		cancel_focus();
 
 		if (input.reset)
@@ -84,6 +91,7 @@ namespace sfg
 
 		_direction_input += input.direction_delta;
 		_mouse_delta += input.mouse_delta;
+
 		if (input.set_move_speed)
 			_current_move_speed = input.move_speed;
 	}
@@ -95,18 +103,24 @@ namespace sfg
 
 		_camera_yaw_degrees -= _mouse_delta.x * EDITOR_WORLD_CAMERA_FLY_MOUSE_SENSITIVITY;
 		_camera_pitch_degrees -= _mouse_delta.y * EDITOR_WORLD_CAMERA_FLY_MOUSE_SENSITIVITY;
-		_camera_pitch_degrees = math::clamp(_camera_pitch_degrees, -89.0f, 89.0f);
-		_mouse_delta		  = vec2f_t::zero;
+
+		if (_mouse_delta.y != 0.0f)
+			_camera_pitch_degrees = math::clamp(_camera_pitch_degrees, -89.0f, 89.0f);
+
+		_mouse_delta = vec2f_t::zero;
 
 		const quat_t rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f);
 		world.set_entity_rot_local(_camera_entity, rotation);
 
 		vec3f_t move_dir = rotation.get_forward() * _direction_input.z + rotation.get_right() * _direction_input.x + vec3f_t::up * _direction_input.y;
+
 		if (move_dir.is_zero())
 			return;
 
 		move_dir.normalize();
+
 		const vec3f_t position = world.get_entity_pos_local(_camera_entity) + move_dir * (_current_move_speed * dt_seconds);
+
 		world.set_entity_pos_local(_camera_entity, position);
 	}
 
@@ -154,16 +168,19 @@ namespace sfg
 
 	void editor_world_camera_fly_t::fit_to_bounds(world_t& world, const aabb_t& bounds)
 	{
-		const component_camera_t& camera   = ecs_helpers_t::table_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), _camera_entity);
-		const quat_t			  rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f);
-		const vec3f_t			  half	   = bounds.bounds_half_extent;
-		const vec3f_t			  center   = (bounds.bounds_min + bounds.bounds_max) * 0.5f;
-		const f32				  radius   = math::max(half.x, math::max(half.y, half.z));
-		const f32				  distance = math::max(radius / math::sin(DEG_2_RAD * camera.fov_degrees * 0.5f), EDITOR_WORLD_CAMERA_FLY_MIN_FOCUS_DISTANCE);
+		vec3f_t target_position = vec3f_t::zero;
+		quat_t	target_rotation = quat_t::identity;
 
-		_direction_input = vec3f_t::zero;
-		_mouse_delta	 = vec2f_t::zero;
-		world.set_entity_rot_local(_camera_entity, rotation);
-		begin_focus(world, center - rotation.get_forward() * distance);
+		calculate_focus_target(world.get_entity_pos_local(_camera_entity), world.get_entity_rot_local(_camera_entity), bounds, target_position, target_rotation);
+
+		const vec2f_t angles = get_camera_angles(target_rotation);
+
+		_camera_pitch_degrees = angles.x;
+		_camera_yaw_degrees	  = angles.y;
+		_direction_input	  = vec3f_t::zero;
+		_mouse_delta		  = vec2f_t::zero;
+		// world.set_entity_pos_local(_camera_entity, center - rotation.get_forward() * distance);
+
+		begin_focus(world, target_position, target_rotation);
 	}
 }

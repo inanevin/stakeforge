@@ -39,6 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel.hpp"
 #include "ui/panels/editor_panel_factory.hpp"
 #include "ui/panels/editor_panel_world.hpp"
+#include "ui/panels/editor_panel_skeleton_viewer.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/panels/editor_secondary_base.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -248,7 +249,7 @@ namespace sfg
 		return false;
 	}
 
-	void editor_surface_controller_t::on_window_event(void*, const window_event_t& ev, void* user_data)
+	void editor_surface_controller_t::on_window_event(void* hwnd, const window_event_t& ev, void* user_data)
 	{
 		window_runtime_t&			 runtime		= *static_cast<window_runtime_t*>(user_data);
 		editor_app_t&				 app			= editor_app_t::get();
@@ -399,8 +400,23 @@ namespace sfg
 				return;
 			}
 
-			if (!modal_active && !popup_active && app.get_command_system().on_window_event(ev))
-				return;
+			if (!modal_active && !popup_active)
+			{
+				editor_panel_t* focused_panel = nullptr;
+
+				if (surface.type == editor_surface_type_e::primary)
+					focused_panel = surface.primary->get_dock_widget().get_focused_panel();
+				else if (surface.type == editor_surface_type_e::secondary)
+					focused_panel = surface.secondary->get_dock_widget().get_focused_panel();
+
+				if (focused_panel != nullptr && focused_panel->get_type() == editor_panel_type_e::skeleton_viewer)
+				{
+					if (static_cast<editor_panel_skeleton_viewer_t*>(focused_panel)->on_command_event(ev))
+						return;
+				}
+				else if (app.get_command_system().on_window_event(ev))
+					return;
+			}
 
 			if (ev.button == static_cast<u16>(input_code::key_f3) && ev.sub_type == window_event_sub_type_e::press)
 				app.set_debug_mode(!app.is_debug_mode_enabled());

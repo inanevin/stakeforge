@@ -29,6 +29,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world_camera.hpp"
 #include "world/editor_world_edit_context.hpp"
 #include "world/editor_world_gizmo.hpp"
+#include "world/editor_world_entity_gizmo.hpp"
 #include "world/editor_world_handle.hpp"
 #include "world/editor_world_input_controller.hpp"
 #include "world/editor_world_render_context.hpp"
@@ -125,6 +126,7 @@ namespace sfg
 		void						   update_gizmo_action(vec2f_t relative_position);
 		void						   end_gizmo_action();
 		void						   cancel_gizmo_action();
+		void						   set_gizmo_callbacks(const editor_gizmo_callbacks_t& callbacks);
 		void						   request_entity_pick(vec2f_t relative_position, bool incremental_selection);
 		void						   shoot_ray_from_camera(vec2f_t relative_position);
 		void						   begin_frame();
@@ -195,7 +197,19 @@ namespace sfg
 			return _view_rotation;
 		}
 
+		inline bool is_gizmo_editing_supported() const
+		{
+			return _custom_gizmo || _edit_context.get_edit_type() == editor_world_edit_type_e::full_control;
+		}
+
+		inline bool is_gizmo_scale_allowed() const
+		{
+			return _gizmo_callbacks.allow_scale;
+		}
+
 	private:
+		bool get_gizmo_input(editor_gizmo_input_t& input) const;
+		bool get_gizmo_view(world_render_view_t& view);
 		void publish_snapshot();
 		void consume_entity_pick_result();
 		void save_play_snapshot();
@@ -213,6 +227,9 @@ namespace sfg
 
 		editor_world_render_context_t _render_context = {};
 
+		editor_world_entity_gizmo_t _entity_gizmo	 = {};
+		editor_gizmo_callbacks_t	_gizmo_callbacks = {};
+
 		editor_world_gizmo_t			_gizmo										 = {};
 		editor_world_edit_context_t		_edit_context								 = {};
 		editor_world_input_controller_t _input_controller							 = {};
@@ -225,6 +242,7 @@ namespace sfg
 		quat_t							_view_rotation								 = quat_t::identity;
 		vec2u16_t						_render_resolution							 = vec2u16_t::zero;
 		bool							_object_id_readback_valid[BACK_BUFFER_COUNT] = {};
+		bool							_custom_gizmo								 = false;
 		u8								_producer_slot								 = 0;
 		u8								_consumer_slot								 = 0;
 		u8								_latest_snapshot_slot						 = UINT8_MAX;

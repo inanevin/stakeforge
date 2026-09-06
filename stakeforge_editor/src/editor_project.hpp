@@ -56,7 +56,6 @@ namespace sfg
 		bool			   world_view_snapping_enabled		= false;
 		bool			   world_view_grid_enabled			= false;
 		bool			   world_view_aabb_enabled			= false;
-		bool			   world_view_skeleton_enabled		= false;
 		bool			   world_view_physics_debug_enabled = false;
 		bool			   world_view_perf_metrics_enabled	= false;
 

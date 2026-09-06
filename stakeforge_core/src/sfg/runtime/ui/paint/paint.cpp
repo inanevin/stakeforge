@@ -339,21 +339,22 @@ namespace sfg::ui
 			const paint_def_t& pd		  = _defs[id];
 			const u32		   draw_order = tree.draw_order_const(id);
 			const widget_id_t  state_id	  = pd.state_source != NULL_WIDGET ? pd.state_source : id;
-			const layout_in_t& state_in	  = tree.in_const(state_id);
+			const bool		   disabled	  = tree.is_disabled(id) || (state_id != id && tree.is_disabled(state_id));
 
-			vec4f_t override_color = {0, 0, 0, 0};
+			vec4f_t override_color = vec4f_t::zero;
 			bool	has_override   = false;
-			if ((pd.state_flags & psf_has_disabled) && (state_in.flags & wf_disabled))
+
+			if ((pd.state_flags & psf_has_disabled) && disabled)
 			{
 				override_color = pd.disabled_color;
 				has_override   = true;
 			}
-			else if ((pd.state_flags & psf_has_press) && pressed_l == state_id)
+			else if (!disabled && (pd.state_flags & psf_has_press) && pressed_l == state_id)
 			{
 				override_color = pd.press_color;
 				has_override   = true;
 			}
-			else if ((pd.state_flags & psf_has_hover) && get_hovered == state_id)
+			else if (!disabled && (pd.state_flags & psf_has_hover) && get_hovered == state_id)
 			{
 				override_color = pd.hover_color;
 				has_override   = true;
@@ -362,24 +363,29 @@ namespace sfg::ui
 			if (pd.kind == paint_kind_e::rect)
 			{
 				vg_rect_paint_t paint = pd.rect;
+
 				if (has_override)
 				{
 					paint.fill_color_a = override_color;
 					paint.fill_color_b = override_color;
 					paint.gradient	   = vg_gradient_e::none;
 				}
-				if ((pd.state_flags & psf_has_focus) && get_focused == state_id)
+
+				if (!disabled && (pd.state_flags & psf_has_focus) && get_focused == state_id)
 				{
 					paint.outline_color = pd.focus_color;
+
 					if (paint.outline_thickness <= 0.0f)
 						paint.outline_thickness = 1.0f;
 				}
+
 				canvas.add_rect({o.pos.x, o.pos.y}, {o.pos.x + o.size.x, o.pos.y + o.size.y}, paint, pd.render_state, draw_order);
 			}
 			else if (pd.kind == paint_kind_e::text && pd.text_data != nullptr && pd.text_len > 0)
 			{
 				resource_manager_t&	  rm   = resource_manager_t::get();
 				const font_runtime_t* font = rm.find_runtime<font_runtime_t>(pd.text.font);
+
 				if (font != nullptr && font->face != nullptr)
 				{
 					vg_text_paint_t paint = {};

@@ -78,6 +78,7 @@ namespace sfg
 		rect.rounding_segs		 = 4;
 		paint.set_rect(_root, rect);
 		paint.set_focus_color(_root, theme.color_accent0);
+		paint.set_disabled_color(_root, theme.color_frame_dark);
 
 		ui::listener_bundle_t listener = {};
 		listener.user_data			   = this;
@@ -113,6 +114,7 @@ namespace sfg
 		label_in.pos_value.y	  = 0.5f;
 		label_in.anchor_y		  = ui::anchor_e::center;
 		paint.set_text(_label, nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		paint.set_disabled_color(_label, theme.color_text_disabled);
 
 		_overlay = ui.allocate_widget();
 		ui.set_widget_debug_name(_overlay, "input_field_overlay");
@@ -936,32 +938,39 @@ namespace sfg
 	void editor_input_field_t::draw_slider(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
 	{
 		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
+
 		if (!field._config.field.is_slider)
 			return;
 
 		const f32 range = field._config.max_value - field._config.min_value;
+
 		if (range <= 0.0f)
 			return;
 
-		const editor_theme_t&	theme = editor_theme_t::get();
-		const ui::layout_out_t& out	  = field._ui->get_tree().out(id);
-		const f32				t	  = math::clamp((field._number_value - field._config.min_value) / range, 0.0f, 1.0f);
-		ui::vg_rect_paint_t		rect  = {};
-		rect.fill_color_a			  = theme.color_accent0;
-		rect.fill_color_b			  = theme.color_accent0_dim;
-		rect.gradient				  = ui::vg_gradient_e::horizontal;
-		rect.rounding				  = theme.item_rounding;
-		rect.rounding_segs			  = 4;
-		rect.aa_thickness			  = theme.aa_thickness;
-		ui::ui_render_state_t state	  = {};
-		state.pipeline				  = paint.get_pipelines().default_pipeline;
+		const editor_theme_t&	theme	 = editor_theme_t::get();
+		const ui::layout_out_t& out		 = field._ui->get_tree().out(id);
+		const f32				t		 = math::clamp((field._number_value - field._config.min_value) / range, 0.0f, 1.0f);
+		const bool				disabled = field._ui->get_tree().is_disabled(id);
+
+		ui::vg_rect_paint_t rect = {};
+		rect.fill_color_a		 = disabled ? theme.color_panel_light1 : theme.color_accent0;
+		rect.fill_color_b		 = disabled ? theme.color_panel_light1 : theme.color_accent0_dim;
+		rect.gradient			 = ui::vg_gradient_e::horizontal;
+		rect.rounding			 = theme.item_rounding;
+		rect.rounding_segs		 = 4;
+		rect.aa_thickness		 = theme.aa_thickness;
+
+		ui::ui_render_state_t state = {};
+		state.pipeline				= paint.get_pipelines().default_pipeline;
+
 		canvas.add_rect({out.pos.x, out.pos.y}, {out.pos.x + out.size.x * t, out.pos.y + out.size.y}, rect, state, field._ui->get_tree().draw_order_const(id));
 	}
 
 	void editor_input_field_t::draw_overlay(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
 	{
 		editor_input_field_t& field = *static_cast<editor_input_field_t*>(user_data);
-		if (field._ui->get_input().get_focused() != field._root)
+
+		if (field._ui->get_input().get_focused() != field._root || field._ui->get_tree().is_disabled(id))
 			return;
 
 		const editor_theme_t&	theme	   = editor_theme_t::get();

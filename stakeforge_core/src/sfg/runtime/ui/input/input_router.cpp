@@ -140,21 +140,26 @@ namespace sfg::ui
 	void input_router_t::clear_popup_scope()
 	{
 		const popup_scope_t scope = _popup_scope;
+
 		if (scope.active && _focused != NULL_WIDGET && is_in_popup_scope(_focused))
 		{
 			_popup_scope = {};
+
 			if (scope.previous_focus != NULL_WIDGET && _tree != nullptr && _tree->is_alive(scope.previous_focus))
 			{
 				const layout_in_t& in = _tree->in_const(scope.previous_focus);
-				if (is_widget_visible(*_tree, scope.previous_focus) && (in.flags & wf_input) != 0 && (in.flags & wf_focusable) != 0 && (in.flags & wf_disabled) == 0)
+
+				if (is_widget_visible(*_tree, scope.previous_focus) && (in.flags & wf_input) != 0 && (in.flags & wf_focusable) != 0 && !_tree->is_disabled(scope.previous_focus))
 				{
 					set_focus(scope.previous_focus, false);
 					return;
 				}
 			}
+
 			set_focus(NULL_WIDGET, false);
 			return;
 		}
+
 		_popup_scope = {};
 	}
 
@@ -170,18 +175,22 @@ namespace sfg::ui
 		{
 			const widget_id_t  id = dfs.data[i];
 			const layout_in_t& in = tree.in_const(id);
+
 			if ((in.flags & wf_visible) == 0)
 			{
 				i += dfs_descendants.data[i];
 				continue;
 			}
+
 			if (id == tree.get_root())
 				continue;
 
 			const layout_out_t& out		 = tree.out(id);
-			const bool			disabled = (in.flags & wf_disabled) != 0;
+			const bool			disabled = tree.is_disabled(id);
+
 			if (in.flags & wf_input)
 				_hit_order.push_back(id);
+
 			if ((in.flags & wf_input) && (in.flags & wf_focusable) && !disabled && out.clip.z > 0.0f && out.clip.w > 0.0f)
 				_focus_order.push_back(id);
 		}
@@ -198,15 +207,19 @@ namespace sfg::ui
 		for (widget_id_t id : _hit_order)
 		{
 			const layout_out_t& out = _tree->out(id);
+
 			if (out.clip.z <= 0.0f || out.clip.w <= 0.0f)
 				continue;
+
 			if (point_in_rect(out.clip, pos))
 			{
-				if (_tree->in_const(id).flags & wf_disabled)
+				if (_tree->is_disabled(id))
 					return NULL_WIDGET;
+
 				return id;
 			}
 		}
+
 		return NULL_WIDGET;
 	}
 
@@ -244,15 +257,20 @@ namespace sfg::ui
 			return NULL_WIDGET;
 
 		widget_id_t cur = id;
+
 		while (cur != NULL_WIDGET && _tree->is_alive(cur))
 		{
-			if (!is_widget_visible(*_tree, cur))
+			if (!is_widget_visible(*_tree, cur) || _tree->is_disabled(cur))
 				return NULL_WIDGET;
+
 			const layout_in_t& in = _tree->in_const(cur);
-			if ((in.flags & wf_input) != 0 && (in.flags & wf_focusable) != 0 && (in.flags & wf_disabled) == 0)
+
+			if ((in.flags & wf_input) != 0 && (in.flags & wf_focusable) != 0)
 				return cur;
+
 			cur = _tree->node(cur).parent;
 		}
+
 		return NULL_WIDGET;
 	}
 
@@ -312,38 +330,47 @@ namespace sfg::ui
 		}
 	}
 
-	void input_router_t::sanitize_state(const layout_tree_t& tree)
+	void input_router_t::refresh_state(const layout_tree_t& tree)
 	{
 		if (_hovered != NULL_WIDGET && (!tree.is_alive(_hovered) || !is_widget_visible(tree, _hovered)))
 			_hovered = NULL_WIDGET;
+		else if (_hovered != NULL_WIDGET && tree.is_disabled(_hovered))
+			fire_hover_change(NULL_WIDGET);
+
 		if (_focused != NULL_WIDGET && (!tree.is_alive(_focused) || !is_widget_visible(tree, _focused)))
 			_focused = NULL_WIDGET;
+		else if (_focused != NULL_WIDGET && tree.is_disabled(_focused))
+			set_focus(NULL_WIDGET, false);
 
 		for (u32 i = 0; i < static_cast<u32>(mouse_button_e::count); ++i)
 		{
-			if (_pressed[i] != NULL_WIDGET && (!tree.is_alive(_pressed[i]) || !is_widget_visible(tree, _pressed[i])))
+			if (_pressed[i] != NULL_WIDGET && (!tree.is_alive(_pressed[i]) || !is_widget_visible(tree, _pressed[i]) || tree.is_disabled(_pressed[i])))
 			{
 				_pressed[i]		  = NULL_WIDGET;
 				_pressed_state[i] = {};
 			}
-			if (_last_click[i].target != NULL_WIDGET && (!tree.is_alive(_last_click[i].target) || !is_widget_visible(tree, _last_click[i].target)))
+
+			if (_last_click[i].target != NULL_WIDGET && (!tree.is_alive(_last_click[i].target) || !is_widget_visible(tree, _last_click[i].target) || tree.is_disabled(_last_click[i].target)))
 				_last_click[i] = {};
 		}
 
 		if (_popup_scope.active)
 		{
-			if (_popup_scope.owner_root != NULL_WIDGET && (!tree.is_alive(_popup_scope.owner_root) || !is_widget_visible(tree, _popup_scope.owner_root)))
+			if (_popup_scope.owner_root != NULL_WIDGET && (!tree.is_alive(_popup_scope.owner_root) || !is_widget_visible(tree, _popup_scope.owner_root) || tree.is_disabled(_popup_scope.owner_root)))
 			{
 				clear_popup_scope();
+
 				return;
 			}
 
 			for (u32 i = 0; i < _popup_scope.popup_root_count; ++i)
 			{
 				const widget_id_t root = _popup_scope.popup_roots[i];
-				if (root != NULL_WIDGET && (!tree.is_alive(root) || !is_widget_visible(tree, root)))
+
+				if (root != NULL_WIDGET && !tree.is_alive(root))
 				{
 					clear_popup_scope();
+
 					return;
 				}
 			}
@@ -355,7 +382,7 @@ namespace sfg::ui
 		_tree = &tree;
 		_accum_time += dt_seconds;
 
-		sanitize_state(tree);
+		refresh_state(tree);
 		const widget_id_t target = hit_test(_mouse);
 		if (target != _hovered)
 			fire_hover_change(target);
@@ -390,7 +417,7 @@ namespace sfg::ui
 	void input_router_t::prepare_layout(const layout_tree_t& tree)
 	{
 		_tree = &tree;
-		sanitize_state(tree);
+		refresh_state(tree);
 	}
 
 	void input_router_t::finalize_frame(const layout_tree_t& tree)
@@ -402,27 +429,39 @@ namespace sfg::ui
 	void input_router_t::on_mouse_move(const vec2f_t& pos)
 	{
 		_mouse = pos;
+
 		if (_tree == nullptr)
 			return;
+
+		refresh_state(*_tree);
+
 		const widget_id_t target = hit_test(_mouse);
+
 		fire_hover_change(target);
 	}
 
 	void input_router_t::on_mouse_button(mouse_button_e btn, bool pressed)
 	{
+		if (_tree != nullptr)
+			refresh_state(*_tree);
+
 		const u32 b = static_cast<u32>(btn);
 
 		if (pressed)
 		{
 			widget_id_t target = _hovered;
+
 			if (_popup_scope.active)
 			{
 				const widget_id_t raw_target = raw_hit_test(_mouse);
+
 				if (!is_in_popup_scope(raw_target))
 				{
 					const popup_outside_press_policy_e outside_press_policy = _popup_scope.outside_press_policy;
+
 					if (_popup_scope.on_outside_press)
 						_popup_scope.on_outside_press(*this, _mouse, btn, _popup_scope.user_data);
+
 					if (outside_press_policy == popup_outside_press_policy_e::consume)
 					{
 						_pressed[b]		  = NULL_WIDGET;
@@ -430,8 +469,10 @@ namespace sfg::ui
 						fire_hover_change(hit_test(_mouse));
 						return;
 					}
+
 					if (_tree != nullptr)
 						rebuild_hit_test(*_tree);
+
 					target = hit_test(_mouse);
 					fire_hover_change(target);
 				}
@@ -439,14 +480,20 @@ namespace sfg::ui
 
 			set_focus(find_focus_target(target), false);
 
+			if (target != NULL_WIDGET && (!_tree->is_alive(target) || _tree->is_disabled(target)))
+				target = NULL_WIDGET;
+
 			_pressed[b]		  = target;
 			_pressed_state[b] = {target, _mouse, 0.0f, false};
+
 			if (target != NULL_WIDGET)
 			{
 				auto it = _listeners.find(target);
+
 				if (it != _listeners.end() && it->second.on_press)
 					it->second.on_press(*this, target, _mouse, btn, it->second.user_data);
 			}
+
 			return;
 		}
 
@@ -460,34 +507,42 @@ namespace sfg::ui
 		auto					lit			 = _listeners.find(target);
 		const bool				has_listener = lit != _listeners.end();
 		const listener_bundle_t listener	 = has_listener ? lit->second : listener_bundle_t{};
+
 		if (listener.on_release)
 			listener.on_release(*this, target, _mouse, btn, listener.user_data);
-		if (_tree != nullptr && !_tree->is_alive(target))
+
+		if (_tree != nullptr && (!_tree->is_alive(target) || _tree->is_disabled(target)))
 			return;
 
 		if (ps.dragging)
 		{
 			if (listener.on_drag_end)
 				listener.on_drag_end(*this, target, _mouse, _mouse - ps.press_pos, listener.user_data);
+
 			return;
 		}
 
 		const widget_id_t under = hit_test(_mouse);
+
 		if (under != target || ps.held_seconds > _config.click_max_seconds)
 			return;
 
 		if (listener.on_click)
 			listener.on_click(*this, target, _mouse, btn, listener.user_data);
-		if (_tree != nullptr && !_tree->is_alive(target))
+
+		if (_tree != nullptr && (!_tree->is_alive(target) || _tree->is_disabled(target)))
 			return;
 
 		click_record_t& rec	  = _last_click[b];
 		const f32		since = _accum_time - rec.t_seconds;
+
 		if (rec.target == target && since <= _config.double_click_max_seconds)
 		{
 			lit = _listeners.find(target);
+
 			if (lit != _listeners.end() && lit->second.on_double_click)
 				lit->second.on_double_click(*this, target, _mouse, btn, lit->second.user_data);
+
 			rec = {NULL_WIDGET, 0.0f};
 		}
 		else
@@ -500,23 +555,33 @@ namespace sfg::ui
 	{
 		if (_tree == nullptr)
 			return;
+
+		refresh_state(*_tree);
+
 		widget_id_t cur = _hovered;
+
 		while (cur != NULL_WIDGET)
 		{
-			if (!is_widget_visible(*_tree, cur))
+			if (!is_widget_visible(*_tree, cur) || _tree->is_disabled(cur))
 				return;
+
 			auto it = _listeners.find(cur);
+
 			if (it != _listeners.end() && it->second.on_wheel)
 			{
 				it->second.on_wheel(*this, cur, delta, it->second.user_data);
 				return;
 			}
+
 			cur = _tree->node(cur).parent;
 		}
 	}
 
 	void input_router_t::on_key(const key_event_t& ev)
 	{
+		if (_tree != nullptr)
+			refresh_state(*_tree);
+
 		if (ev.action == key_action_e::press || ev.action == key_action_e::repeat)
 		{
 			if (ev.key == static_cast<u16>(input_code::key_tab))
@@ -525,13 +590,16 @@ namespace sfg::ui
 					prev_focus();
 				else
 					next_focus();
+
 				return;
 			}
+
 			if (ev.key == static_cast<u16>(input_code::key_down))
 			{
 				next_focus();
 				return;
 			}
+
 			if (ev.key == static_cast<u16>(input_code::key_up))
 			{
 				prev_focus();
@@ -541,38 +609,48 @@ namespace sfg::ui
 
 		if (_focused == NULL_WIDGET)
 			return;
-		if (_tree == nullptr || !is_widget_visible(*_tree, _focused))
+
+		if (_tree == nullptr || !is_widget_visible(*_tree, _focused) || _tree->is_disabled(_focused))
 			return;
 
 		widget_id_t cur = _focused;
+
 		while (cur != NULL_WIDGET)
 		{
 			auto it = _listeners.find(cur);
+
 			if (it != _listeners.end() && it->second.on_key)
 			{
 				it->second.on_key(*this, cur, ev, it->second.user_data);
 				return;
 			}
+
 			cur = _tree->node(cur).parent;
 		}
 	}
 
 	void input_router_t::set_focus(widget_id_t id, bool from_nav)
 	{
-		if (id != NULL_WIDGET && _tree != nullptr && !is_widget_visible(*_tree, id))
+		if (id != NULL_WIDGET && _tree != nullptr && (!is_widget_visible(*_tree, id) || _tree->is_disabled(id)))
 			id = NULL_WIDGET;
+
 		if (_focused == id)
 			return;
+
 		if (_focused != NULL_WIDGET)
 		{
 			auto it = _listeners.find(_focused);
+
 			if (it != _listeners.end() && it->second.on_focus_lose)
 				it->second.on_focus_lose(*this, _focused, from_nav, it->second.user_data);
 		}
+
 		_focused = id;
+
 		if (_focused != NULL_WIDGET)
 		{
 			auto it = _listeners.find(_focused);
+
 			if (it != _listeners.end() && it->second.on_focus_gain)
 				it->second.on_focus_gain(*this, _focused, from_nav, it->second.user_data);
 		}
@@ -591,8 +669,10 @@ namespace sfg::ui
 	{
 		if (_focus_order.empty())
 			return;
+
 		size_t idx	 = 0;
 		bool   found = false;
+
 		if (_focused != NULL_WIDGET)
 		{
 			for (size_t i = 0; i < _focus_order.size(); ++i)
@@ -607,10 +687,12 @@ namespace sfg::ui
 		}
 
 		const size_t start = found ? idx : 0;
+
 		for (size_t i = 0; i < _focus_order.size(); ++i)
 		{
 			const widget_id_t candidate = _focus_order[(start + i) % _focus_order.size()];
-			if (!_popup_scope.active || is_in_popup_scope(candidate))
+
+			if (!_tree->is_disabled(candidate) && (!_popup_scope.active || is_in_popup_scope(candidate)))
 			{
 				set_focus(candidate, true);
 				return;
@@ -622,8 +704,10 @@ namespace sfg::ui
 	{
 		if (_focus_order.empty())
 			return;
+
 		size_t idx	 = _focus_order.size() - 1;
 		bool   found = false;
+
 		if (_focused != NULL_WIDGET)
 		{
 			for (size_t i = 0; i < _focus_order.size(); ++i)
@@ -638,10 +722,12 @@ namespace sfg::ui
 		}
 
 		const size_t start = found ? idx : _focus_order.size() - 1;
+
 		for (size_t i = 0; i < _focus_order.size(); ++i)
 		{
 			const widget_id_t candidate = _focus_order[(start + _focus_order.size() - i) % _focus_order.size()];
-			if (!_popup_scope.active || is_in_popup_scope(candidate))
+
+			if (!_tree->is_disabled(candidate) && (!_popup_scope.active || is_in_popup_scope(candidate)))
 			{
 				set_focus(candidate, true);
 				return;

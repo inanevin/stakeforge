@@ -179,6 +179,22 @@ namespace sfg::ui
 		_layout_dirty	= true;
 	}
 
+	bool layout_tree_t::is_disabled(widget_id_t id) const
+	{
+		SFG_ASSERT(id < _max_widgets && _nodes[id].alive);
+
+		if (_disabled_cache_valid && !_layout_dirty && !_topology_dirty)
+			return _nodes[id].disabled;
+
+		for (widget_id_t current = id; current != NULL_WIDGET; current = _nodes[current].parent)
+		{
+			if ((_layout_ins[current].flags & wf_disabled) != 0)
+				return true;
+		}
+
+		return false;
+	}
+
 	layout_in_t& layout_tree_t::in(widget_id_t id)
 	{
 		SFG_ASSERT(id < _max_widgets && _nodes[id].alive);
@@ -526,7 +542,8 @@ namespace sfg::ui
 		if (_topology_dirty)
 			flatten();
 
-		_layout_dirty = false;
+		_layout_dirty		  = false;
+		_disabled_cache_valid = false;
 
 		layout_in_t&  ri = _layout_ins[_root];
 		layout_out_t& ro = _layout_outs[_root];
@@ -552,11 +569,13 @@ namespace sfg::ui
 
 				if (cb.fn)
 					cb.fn(*this, id, cb.user_data);
+
 				continue;
 			}
 
 			if (id != _root && in.size_mode_x == axis_mode_e::fixed)
 				out.size.x = in.size_value.x * scale;
+
 			if (id != _root && in.size_mode_y == axis_mode_e::fixed)
 				out.size.y = in.size_value.y * scale;
 		}
@@ -570,6 +589,7 @@ namespace sfg::ui
 
 			const bool dx = in.size_mode_x == axis_mode_e::sum_children || in.size_mode_x == axis_mode_e::max_children;
 			const bool dy = in.size_mode_y == axis_mode_e::sum_children || in.size_mode_y == axis_mode_e::max_children;
+
 			if (!dx && !dy)
 				continue;
 
@@ -577,11 +597,13 @@ namespace sfg::ui
 			f32			total_y = 0.0f;
 			u32			counted = 0;
 			widget_id_t c		= n.first_child;
+
 			while (c != NULL_WIDGET)
 			{
 				const layout_in_t&	cin	 = _layout_ins[c];
 				const layout_out_t& cout = _layout_outs[c];
 				const widget_id_t	next = _nodes[c].next_sibling;
+
 				if ((cin.flags & wf_overlay) || !(cin.flags & wf_visible))
 				{
 					c = next;
@@ -608,6 +630,7 @@ namespace sfg::ui
 
 			if (dx)
 				out.size.x = total_x + mw;
+
 			if (dy)
 				out.size.y = total_y + mh;
 		}
@@ -625,7 +648,7 @@ namespace sfg::ui
 
 			if ((in.flags & (wf_scroll_x | wf_scroll_y)) == 0)
 			{
-				out.max_scroll = {};
+				out.max_scroll = vec2f_t::zero;
 
 				if (in.scroll_offset != vec2f_t::zero)
 				{
@@ -647,11 +670,13 @@ namespace sfg::ui
 			f32			  max_y	  = inner_y + inner_h;
 
 			widget_id_t c = n.first_child;
+
 			while (c != NULL_WIDGET)
 			{
 				const layout_in_t&	cin	 = _layout_ins[c];
 				const layout_out_t& cout = _layout_outs[c];
 				const widget_id_t	next = _nodes[c].next_sibling;
+
 				if ((cin.flags & wf_overlay) || !(cin.flags & wf_visible))
 				{
 					c = next;
@@ -685,9 +710,12 @@ namespace sfg::ui
 		{
 			const layout_in_t& in  = _layout_ins[id];
 			layout_out_t&	   out = _layout_outs[id];
-			const tree_node_t& n   = _nodes[id];
+			tree_node_t&	   n   = _nodes[id];
+
+			n.disabled = (in.flags & wf_disabled) != 0 || (n.parent != NULL_WIDGET && _nodes[n.parent].disabled);
 
 			const vec4f_t bbox = {out.pos.x, out.pos.y, out.size.x, out.size.y};
+
 			if (id == _root)
 			{
 				out.clip = bbox;
@@ -698,6 +726,7 @@ namespace sfg::ui
 			out.clip				 = intersect_clip_rect(pout.clip, bbox);
 		}
 
-		_last_solve_scale = scale;
+		_disabled_cache_valid = true;
+		_last_solve_scale	  = scale;
 	}
 }

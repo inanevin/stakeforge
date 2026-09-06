@@ -109,6 +109,7 @@ namespace sfg
 		rect.rounding			 = theme.item_rounding;
 		rect.rounding_segs		 = 4;
 		_ui->get_paint().set_rect(_root, rect);
+		_ui->get_paint().set_disabled_color(_root, theme.color_frame_dark);
 	}
 
 	void editor_widget_thumbnail_t::set_texture_frame()
@@ -116,8 +117,8 @@ namespace sfg
 		const editor_theme_t& theme = editor_theme_t::get();
 
 		ui::vg_rect_paint_t rect = {};
-		rect.fill_color_a		 = theme.color_frame;
-		rect.fill_color_b		 = theme.color_frame;
+		rect.fill_color_a		 = vec4f_t::one;
+		rect.fill_color_b		 = vec4f_t::one;
 		rect.rounding			 = theme.item_rounding;
 		rect.rounding_segs		 = 4;
 
@@ -125,7 +126,10 @@ namespace sfg
 		state.pipeline				= "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
 		state.constants[0].handle	= _thumbnail;
 		state.constants[0].type		= ui::ui_resource_type_e::texture;
+
 		_ui->get_paint().set_rect(_root, rect, state);
+		_ui->get_paint().set_disabled_color(_root, theme.color_text_disabled);
+
 		_ui->clear_pre_layout_tick(_root);
 		_tick_counter = 0;
 		_ticking	  = false;

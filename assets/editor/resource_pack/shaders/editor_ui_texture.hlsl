@@ -18,6 +18,7 @@ struct VSOutput
 {
 	float4 pos : SV_POSITION;
 	float2 uv  : TEXCOORD0;
+	float4 color : COLOR0;
 };
 
 VSOutput VSMain(VSInput IN)
@@ -26,11 +27,12 @@ VSOutput VSMain(VSInput IN)
 	VSOutput OUT;
 	OUT.pos = mul(proj.projection, float4(IN.pos, 0.0f, 1.0f));
 	OUT.uv  = IN.uv;
+	OUT.color = IN.color;
 	return OUT;
 }
 
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
 	Texture2D source_texture = sfg_get_texture<Texture2D>(sfg_constant_obj0);
-	return source_texture.Sample(samp_linear, IN.uv);
+	return source_texture.Sample(samp_linear, IN.uv) * IN.color;
 }

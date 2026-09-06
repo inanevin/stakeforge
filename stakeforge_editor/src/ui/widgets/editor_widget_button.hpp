@@ -53,7 +53,7 @@ namespace sfg
 
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_button_config_t& config);
 		void uninit();
-		void set_text(const char* text);
+		void set_text(const char* text, const vec4f_t& color = vec4f_t::zero);
 
 		inline ui::widget_id_t get_root() const
 		{

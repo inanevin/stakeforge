@@ -51,6 +51,7 @@ namespace sfg
 		vec4f_t						  press_color			= {};
 		vec4f_t						  icon_color			= {1.0f, 1.0f, 1.0f, 1.0f};
 		vec4f_t						  disabled_color		= {1.0f, 1.0f, 1.0f, 1.0f};
+		vec4f_t						  toggled_icon_color	= vec4f_t::zero; // zero alpha keeps icon_color
 		const char*					  icon					= nullptr;
 		const char*					  toggled_icon			= nullptr;
 		const char*					  tooltip				= nullptr;

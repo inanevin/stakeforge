@@ -584,7 +584,7 @@ namespace sfg
 		editor_world->install_camera(editor_world_camera_type_e::fly);
 		world_t& world = editor_world->get_world();
 
-		editor_world_util_t::install_default_scene(world);
+		editor_world_util_t::install_default_scene_light(world);
 	}
 
 	bool editor_world_controller_t::load_main_world(sid_t asset_guid)

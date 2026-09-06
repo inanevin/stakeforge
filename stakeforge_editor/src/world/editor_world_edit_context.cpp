@@ -77,7 +77,6 @@ namespace sfg
 
 		_grid_enabled			= false;
 		_bounding_boxes_enabled = false;
-		_skeletons_enabled		= false;
 		_physics_debug_enabled	= false;
 		_shoot_rays_enabled		= false;
 		_do_step				= false;

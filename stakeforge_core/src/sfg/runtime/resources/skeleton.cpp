@@ -42,12 +42,13 @@ namespace sfg
 		const u32 joint_count = static_cast<u32>(skeleton.joints.size());
 		SFG_ASSERT(joint_count != 0);
 
-		runtime->joint_count	  = joint_count;
-		runtime->slot_count		  = static_cast<u32>(skeleton.slots.size());
+		runtime->joint_count		= joint_count;
+		runtime->slot_count			= static_cast<u32>(skeleton.slots.size());
 		runtime->skinning_transform = skeleton.skinning_transform;
-		runtime->root_joint_index = skeleton.root_joint_index;
-		runtime->joints			  = mem.allocate_bytes(sizeof(skeleton_joint_runtime_t) * joint_count, alignof(skeleton_joint_runtime_t));
-		runtime->evaluation_order = mem.allocate<u32>(joint_count);
+		runtime->local_bounds		= skeleton.local_bounds;
+		runtime->root_joint_index	= skeleton.root_joint_index;
+		runtime->joints				= mem.allocate_bytes(sizeof(skeleton_joint_runtime_t) * joint_count, alignof(skeleton_joint_runtime_t));
+		runtime->evaluation_order	= mem.allocate<u32>(joint_count);
 
 		if (runtime->slot_count != 0)
 			runtime->slots = mem.allocate_bytes(sizeof(skeleton_slot_runtime_t) * runtime->slot_count, alignof(skeleton_slot_runtime_t));

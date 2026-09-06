@@ -37,6 +37,10 @@ namespace sfg
 	{
 		chunk_handle32_t previous_stream = {};
 		chunk_handle32_t post_stream	 = {};
+		u32				 previous_joint	 = UINT32_MAX;
+		u32				 previous_slot	 = UINT32_MAX;
+		u32				 post_joint		 = UINT32_MAX;
+		u32				 post_slot		 = UINT32_MAX;
 	};
 
 	class editor_command_skeleton_edit_t final

@@ -22,40 +22,57 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
-#include <sfg/data/span.hpp>
+#include "world/editor_world_gizmo.hpp"
+#include <sfg/data/vector.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
-	class world_debug_draw_t;
 	class world_t;
-	class mat4x3_t;
-	struct component_system_transform_t;
-	struct vec2u16_t;
-	struct world_render_snapshot_t;
-	enum class debug_draw_depth_e : u8;
+	class editor_world_edit_context_t;
 
-	class editor_world_util_t final
+	class editor_world_entity_gizmo_t final
 	{
 	public:
-		editor_world_util_t() = delete;
+		editor_world_entity_gizmo_t()											   = default;
+		~editor_world_entity_gizmo_t()											   = default;
+		editor_world_entity_gizmo_t(const editor_world_entity_gizmo_t&)			   = delete;
+		editor_world_entity_gizmo_t& operator=(const editor_world_entity_gizmo_t&) = delete;
 
 		// -----------------------------------------------------------------------------
-		// impl
+		// lifetime
 		// -----------------------------------------------------------------------------
 
-		static entity_id_t install_default_scene_light(world_t& world);
-		static entity_id_t install_default_scene_dark(world_t& world, f32 spotlight_y = 5.0f);
-		static void		   draw_component_icons(world_t& world, entity_id_t editor_camera_entity);
-		static void		   draw_selection_gizmos(world_t& world, span_t<const entity_id_t> selected_entities, const vec2u16_t& render_resolution);
-		static void		   draw_bounding_boxes(world_t& world, const world_render_snapshot_t& snapshot, entity_id_t editor_camera_entity);
-		static void		   draw_transform_axes(world_debug_draw_t& debug_draw, const mat4x3_t& transform, f32 axis_length, f32 thickness_px, debug_draw_depth_e depth);
+		void init(world_t& world, const editor_world_edit_context_t& context);
+		void uninit();
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		editor_gizmo_callbacks_t get_callbacks();
 
 	private:
-		static void draw_constraint_gizmos(world_t& world, entity_id_t entity, const component_system_transform_t& transform, world_debug_draw_t& debug_draw);
+		bool get_target(editor_gizmo_target_t& target) const;
+		bool begin();
+		void update(const mat4x3_t& delta);
+		void commit();
+		void cancel();
+		void clear_action();
+
+	private:
+		vector_t<mat4x3_t>				   _initial_absolute		= {};
+		vector_t<mat4x3_t>				   _initial_parent_inverse	= {};
+		vector_t<quat_t>				   _initial_local_rotations = {};
+		vector_t<vec3f_t>				   _initial_local_positions = {};
+		vector_t<vec3f_t>				   _initial_local_scales	= {};
+		vector_t<entity_id_t>			   _entities				= {};
+		world_t*						   _world					= nullptr;
+		const editor_world_edit_context_t* _context					= nullptr;
 	};
 }

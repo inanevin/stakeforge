@@ -27,23 +27,18 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include "world/editor_world_handle.hpp"
-#include <sfg/data/vector.hpp>
+#include "world/editor_transform.hpp"
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec2u16.hpp>
-#include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
 	class color_t;
-	class world_t;
 	class world_debug_draw_t;
-	class editor_world_edit_context_t;
 	struct world_ray_t;
-	enum class editor_transform_control_type_e : u8;
-	enum class editor_transform_locality_e : u8;
+	struct world_render_view_t;
 
 	enum class editor_gizmo_axis_e : u8
 	{
@@ -55,6 +50,38 @@ namespace sfg
 		yz,
 		zx,
 		invalid,
+	};
+
+	struct editor_gizmo_target_t
+	{
+		quat_t	rotation	  = quat_t::identity;
+		quat_t	prev_rotation = quat_t::identity;
+		vec3f_t position	  = vec3f_t::zero;
+		vec3f_t prev_position = vec3f_t::zero;
+		u32		generation	  = 0;
+	};
+
+	struct editor_gizmo_callbacks_t
+	{
+		bool (*get_target)(void* user_data, editor_gizmo_target_t& target) = nullptr;
+		bool (*begin)(void* user_data)									   = nullptr;
+		void (*update)(void* user_data, const mat4x3_t& delta)			   = nullptr;
+		void (*commit)(void* user_data)									   = nullptr;
+		void (*cancel)(void* user_data)									   = nullptr;
+		void* user_data													   = nullptr;
+		bool  allow_scale												   = true;
+	};
+
+	struct editor_gizmo_input_t
+	{
+		editor_gizmo_target_t			target		   = {};
+		const world_render_view_t*		view		   = nullptr;
+		vec2u16_t						resolution	   = vec2u16_t::zero;
+		f32								snap_translate = 0.0f;
+		f32								snap_rotate	   = 0.0f;
+		f32								snap_scale	   = 0.0f;
+		editor_transform_control_type_e control_type   = editor_transform_control_type_e::invalid;
+		editor_transform_locality_e		locality	   = editor_transform_locality_e::world;
 	};
 
 	class editor_world_gizmo_t final
@@ -78,19 +105,18 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init();
-		void uninit(world_t& world);
+		void uninit();
 
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void update_hover(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, vec2f_t relative_position);
+		void update_hover(const editor_gizmo_input_t& input, vec2f_t relative_position);
 		void clear_hover();
-		bool begin_action(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, vec2f_t relative_position);
-		void update_action(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, vec2f_t relative_position);
-		void end_action(world_t& world, const editor_world_edit_context_t& context);
-		void cancel_action(world_t& world);
+		bool begin_action(const editor_gizmo_input_t& input, const editor_gizmo_callbacks_t& callbacks, vec2f_t relative_position);
+		void update_action(const editor_gizmo_input_t& input, vec2f_t relative_position);
+		void end_action(const editor_gizmo_input_t& input);
+		void cancel_action();
 		void draw_rotation_visualization(world_debug_draw_t& debug_draw, const color_t& line_color, const color_t& text_color, f32 text_size_px) const;
 
 		// -----------------------------------------------------------------------------
@@ -116,23 +142,16 @@ namespace sfg
 		struct frame_t;
 		struct hit_t;
 
-		bool  calculate_frame(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, frame_t& out_frame) const;
+		bool  calculate_frame(const editor_gizmo_input_t& input, frame_t& out_frame) const;
 		hit_t pick(const frame_t& frame, editor_transform_control_type_e control_type, vec2f_t relative_position) const;
 		bool  project_point(const frame_t& frame, const vec3f_t& point, vec2f_t& out_position) const;
 		bool  calculate_axis_parameter(const world_ray_t& ray, const vec3f_t& pivot, const vec3f_t& axis, f32& out_parameter) const;
 		bool  calculate_rotation_direction(const world_ray_t& ray, const vec3f_t& pivot, const vec3f_t& axis, vec3f_t& out_direction) const;
 		bool  calculate_plane_point(const world_ray_t& ray, const vec3f_t& pivot, const vec3f_t& normal, vec3f_t& out_point) const;
-		void  collect_action_entities(world_t& world, const editor_world_edit_context_t& context);
-		void  apply_delta(world_t& world, const mat4x3_t& delta);
 		void  clear_action();
 
 	private:
-		vector_t<mat4x3_t>				_initial_absolute;
-		vector_t<mat4x3_t>				_initial_parent_inverse;
-		vector_t<quat_t>				_initial_local_rotations;
-		vector_t<vec3f_t>				_initial_local_positions;
-		vector_t<vec3f_t>				_initial_local_scales;
-		vector_t<entity_id_t>			_entities;
+		editor_gizmo_callbacks_t		_callbacks					= {};
 		quat_t							_orientation				= quat_t::identity;
 		vec3f_t							_initial_rotation_direction = vec3f_t::zero;
 		vec3f_t							_initial_plane_point		= vec3f_t::zero;
@@ -144,7 +163,6 @@ namespace sfg
 		vec2f_t							_initial_mouse_pixels		= vec2f_t::zero;
 		vec2f_t							_rotation_screen_tangent	= vec2f_t::zero;
 		vec2f_t							_axis_screen_direction		= vec2f_t::zero;
-		editor_world_handle_t			_world						= {};
 		f32								_initial_axis_parameter		= 0.0f;
 		f32								_axis_pixels_per_world		= 0.0f;
 		f32								_world_scale				= 0.0f;
@@ -152,7 +170,7 @@ namespace sfg
 		f32								_snap_translate				= 0.0f;
 		f32								_snap_rotate				= 0.0f;
 		f32								_snap_scale					= 0.0f;
-		u32								_selection_generation		= 0;
+		u32								_target_generation			= 0;
 		editor_transform_control_type_e _control_type				= {};
 		editor_transform_locality_e		_locality					= {};
 		editor_gizmo_axis_e				_hovered_axis				= editor_gizmo_axis_e::invalid;

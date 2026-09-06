@@ -181,7 +181,7 @@ namespace sfg::ui
 		bool		is_in_subtree(widget_id_t id, widget_id_t root) const;
 		bool		is_widget_visible(const layout_tree_t& tree, widget_id_t id) const;
 		void		fire_hover_change(widget_id_t new_hover);
-		void		sanitize_state(const layout_tree_t& tree);
+		void		refresh_state(const layout_tree_t& tree);
 
 	private:
 		struct press_state_t

@@ -76,11 +76,14 @@ namespace sfg
 	{
 		if (is_focus_enabled())
 		{
-			const quat_t rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f);
+			const quat_t  rotation = world.get_entity_rot_local(_camera_entity);
+			const vec2f_t angles   = get_camera_angles(rotation);
 
-			_target			   = world.get_entity_pos_local(_camera_entity) + rotation.get_forward() * _distance;
-			_distance_target   = _distance;
-			_distance_velocity = 0.0f;
+			_camera_pitch_degrees = angles.x;
+			_camera_yaw_degrees	  = angles.y;
+			_target				  = world.get_entity_pos_local(_camera_entity) + rotation.get_forward() * _distance;
+			_distance_target	  = _distance;
+			_distance_velocity	  = 0.0f;
 		}
 
 		cancel_focus();
@@ -94,23 +97,29 @@ namespace sfg
 		}
 
 		_mouse_delta += input.mouse_delta;
+
 		if (input.wheel_delta != 0.0f)
 			_distance_target = math::clamp(_distance_target - input.wheel_delta * _distance_target * EDITOR_WORLD_CAMERA_ORBIT_WHEEL_STEP, EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE, EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE);
 	}
 
 	void editor_world_camera_orbit_t::fit_to_bounds(world_t& world, const aabb_t& bounds)
 	{
-		const component_camera_t& camera   = ecs_helpers_t::table_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), _camera_entity);
-		const vec3f_t			  half	   = bounds.bounds_half_extent;
-		const f32				  rad	   = math::max(half.x, math::max(half.y, half.z));
-		const quat_t			  rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f);
+		vec3f_t target_position = vec3f_t::zero;
+		quat_t	target_rotation = quat_t::identity;
 
-		_target			   = (bounds.bounds_min + bounds.bounds_max) * 0.5f;
-		_distance		   = math::clamp(rad / math::sin(DEG_2_RAD * camera.fov_degrees * 0.5f), EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE, EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE);
-		_distance_target   = _distance;
-		_distance_velocity = 0.0f;
-		_mouse_delta	   = vec2f_t::zero;
-		begin_focus(world, _target - rotation.get_forward() * _distance);
+		calculate_focus_target(world.get_entity_pos_local(_camera_entity), world.get_entity_rot_local(_camera_entity), bounds, target_position, target_rotation);
+
+		const vec2f_t angles = get_camera_angles(target_rotation);
+
+		_camera_pitch_degrees = angles.x;
+		_camera_yaw_degrees	  = angles.y;
+		_target				  = (bounds.bounds_min + bounds.bounds_max) * 0.5f;
+		_distance			  = vec3f_t::distance(_target, target_position);
+		_distance_target	  = _distance;
+		_distance_velocity	  = 0.0f;
+		_mouse_delta		  = vec2f_t::zero;
+
+		begin_focus(world, target_position, target_rotation);
 	}
 
 	void editor_world_camera_orbit_t::tick(world_t& world, f32 dt_seconds)
@@ -120,8 +129,11 @@ namespace sfg
 
 		_camera_yaw_degrees -= _mouse_delta.x * EDITOR_WORLD_CAMERA_ORBIT_MOUSE_SENSITIVITY;
 		_camera_pitch_degrees -= _mouse_delta.y * EDITOR_WORLD_CAMERA_ORBIT_MOUSE_SENSITIVITY;
-		_camera_pitch_degrees = math::clamp(_camera_pitch_degrees, -89.0f, 89.0f);
-		_mouse_delta		  = vec2f_t::zero;
+
+		if (_mouse_delta.y != 0.0f)
+			_camera_pitch_degrees = math::clamp(_camera_pitch_degrees, -89.0f, 89.0f);
+
+		_mouse_delta = vec2f_t::zero;
 
 		_distance = easing_t::smooth_damp(_distance, _distance_target, &_distance_velocity, EDITOR_WORLD_CAMERA_ORBIT_ZOOM_SMOOTH_TIME, EDITOR_WORLD_CAMERA_ORBIT_ZOOM_MAX_SPEED, dt_seconds);
 

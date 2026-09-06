@@ -36,11 +36,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec2u16.hpp>
-#include <sfg/runtime/animation/animation_bone.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/resources/physics_collision_mesh.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
-#include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
@@ -49,24 +47,21 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
-#define EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS		 0.06f
-#define EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH		 0.5f
-#define EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH	 0.12f
-#define EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS	 0.05f
-#define EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS		 0.4f
-#define EDITOR_CONSTRAINT_GIZMO_CONE_LENGTH			 0.65f
-#define EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT		 999999.0f
-#define EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS		 0.05f
-#define EDITOR_WORLD_SKELETON_JOINT_RADIUS_RATIO	 0.02f
-#define EDITOR_WORLD_SKELETON_AXIS_LENGTH_RATIO		 0.06f
-#define EDITOR_WORLD_SKELETON_SLOT_HALF_EXTENT_SCALE 1.5f
-#define EDITOR_WORLD_COMPONENT_ICON_SIZE_PX			 42.0f
-#define EDITOR_WORLD_COMPONENT_ICON_GAP_PX			 4.0f
-#define EDITOR_WORLD_ICON_AUDIO						 "editor/resource_pack/textures/icon_audio.png"_hs
-#define EDITOR_WORLD_ICON_BULB						 "editor/resource_pack/textures/icon_bulb.png"_hs
-#define EDITOR_WORLD_ICON_CAMERA					 "editor/resource_pack/textures/icon_camera.png"_hs
-#define EDITOR_WORLD_ICON_CONSTRAINT				 "editor/resource_pack/textures/icon_constraint.png"_hs
-#define EDITOR_WORLD_ICON_PROBE						 "editor/resource_pack/textures/icon_probe.png"_hs
+#define EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS	  0.06f
+#define EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH	  0.5f
+#define EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH 0.12f
+#define EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS 0.05f
+#define EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS	  0.4f
+#define EDITOR_CONSTRAINT_GIZMO_CONE_LENGTH		  0.65f
+#define EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT	  999999.0f
+#define EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS	  0.05f
+#define EDITOR_WORLD_COMPONENT_ICON_SIZE_PX		  42.0f
+#define EDITOR_WORLD_COMPONENT_ICON_GAP_PX		  4.0f
+#define EDITOR_WORLD_ICON_AUDIO					  "editor/resource_pack/textures/icon_audio.png"_hs
+#define EDITOR_WORLD_ICON_BULB					  "editor/resource_pack/textures/icon_bulb.png"_hs
+#define EDITOR_WORLD_ICON_CAMERA				  "editor/resource_pack/textures/icon_camera.png"_hs
+#define EDITOR_WORLD_ICON_CONSTRAINT			  "editor/resource_pack/textures/icon_constraint.png"_hs
+#define EDITOR_WORLD_ICON_PROBE					  "editor/resource_pack/textures/icon_probe.png"_hs
 
 	namespace
 	{
@@ -138,7 +133,7 @@ namespace sfg
 		}
 	}
 
-	entity_id_t editor_world_util_t::install_default_scene(world_t& world)
+	entity_id_t editor_world_util_t::install_default_scene_light(world_t& world)
 	{
 		const entity_id_t environment = world.create_entity("environment");
 		world.set_entity_rot_local(environment, quat_t::from_euler(-32.0f, 0.0f, 0.0f));
@@ -170,101 +165,55 @@ namespace sfg
 		return environment;
 	}
 
-	void editor_world_util_t::draw_skeletons(world_t& world)
+	entity_id_t editor_world_util_t::install_default_scene_dark(world_t& world, f32 spotlight_y)
 	{
-		const ecs_component_table_t&	transform_table					   = world.get_component_table(type_id_t<component_system_transform_t>::value);
-		const ecs_component_table_t&	alive_table						   = world.get_component_table(type_id_t<component_alive_t>::value);
-		const ecs_component_table_t&	disabled_table					   = world.get_component_table(type_id_t<component_disabled_t>::value);
-		const ecs_component_table_t&	skinned_mesh_renderer_table		   = world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
-		const ecs_component_table_t&	system_skinned_mesh_renderer_table = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
-		const ecs_component_table_ref_t table_refs[]					   = {
-			transform_table.ref(),
-			alive_table.ref(),
-			skinned_mesh_renderer_table.ref(),
-			system_skinned_mesh_renderer_table.ref(),
-			!disabled_table.ref(),
+		const entity_id_t environment = world.create_entity("environment");
+
+		world.set_entity_pos_local(environment, {0.0f, spotlight_y, 0.0f});
+		world.set_entity_rot_local(environment, quat_t::from_euler(-90.0f, 0.0f, 0.0f));
+
+		component_light_t& light = ecs_helpers_t::table_add_or_get_as<component_light_t>(world.get_component_table(type_id_t<component_light_t>::value), environment);
+
+		light.intensity	   = 25.0f;
+		light.range		   = math::max(10.0f, spotlight_y * 2.0f);
+		light.type		   = light_type_e::spot;
+		light.cast_shadows = 1;
+
+		component_environment_t& environment_component = ecs_helpers_t::table_add_or_get_as<component_environment_t>(world.get_component_table(type_id_t<component_environment_t>::value), environment);
+
+		environment_component.skybox_material = DEFAULT_GRADIENT_DARK_SKYBOX_MATERIAL_ASSET_GUID;
+		environment_component.ambient_color	  = {0.368139f, 0.368139f, 0.368139f, 1.0f};
+		environment_component.intensity		  = 1.0f;
+
+		component_fog_t& fog = ecs_helpers_t::table_add_or_get_as<component_fog_t>(world.get_component_table(type_id_t<component_fog_t>::value), environment);
+
+		fog = {
+			.color			= {0.015199f, 0.015199f, 0.015199f, 1.0f},
+			.intensity		= 5.0f,
+			.density		= 0.01f,
+			.start_distance = 15.0f,
+			.end_distance	= 100.0f,
+			.height			= 0.0f,
+			.height_falloff = 0.1f,
+			.max_opacity	= 1.0f,
+			.type			= fog_type_e::linear,
 		};
 
-		resource_manager_t&		 resource_manager = resource_manager_t::get();
-		chunk_allocator_t&		 resource_memory  = resource_manager.get_memory();
-		world_debug_draw_t&		 debug_draw		  = world.get_debug_draw();
-		const editor_theme_t&	 theme			  = editor_theme_t::get();
-		frame_vector_t<mat4x3_t> joint_transforms = {};
+		world.scan_for_resources(environment, true);
 
-		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
-		{
-			const component_system_transform_t&				transform					 = ecs_helpers_t::row_get<component_system_transform_t>(row, 0);
-			const component_skinned_mesh_renderer_t&		skinned_mesh_renderer		 = ecs_helpers_t::row_get<component_skinned_mesh_renderer_t>(row, 2);
-			const component_system_skinned_mesh_renderer_t& system_skinned_mesh_renderer = ecs_helpers_t::row_get<component_system_skinned_mesh_renderer_t>(row, 3);
-			const skeleton_runtime_t*						skeleton					 = resource_manager.find_runtime<skeleton_runtime_t>(skinned_mesh_renderer.skeleton);
+		const entity_id_t		   ground		 = world.create_entity("ground");
+		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), ground);
 
-			if (skeleton == nullptr)
-				continue;
+		mesh_renderer.mesh = DEFAULT_MESH_PLANE_GUID;
+		mesh_renderer.materials.push_back(DEFAULT_GRID_DARK_MATERIAL_ASSET_GUID);
 
-			const skeleton_joint_runtime_t*		 joints = resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
-			const span_t<const animation_bone_t> bones	= world.get_animation_controller().get_bones(system_skinned_mesh_renderer.bones_handle);
+		component_transform_t& transform = ecs_helpers_t::table_add_or_get_as<component_transform_t>(world.get_component_table(type_id_t<component_transform_t>::value), ground);
 
-			joint_transforms.resize(skeleton->joint_count);
+		transform.scale = vec3f_t(50, 1, 50);
 
-			for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
-				joint_transforms[joint_index] = transform.abs_mat * bones.data[joint_index].bone_transform * joints[joint_index].bind_global;
+		world.scan_for_resources(ground, true);
 
-			vec3f_t bounds_min = joint_transforms[0].get_translation();
-			vec3f_t bounds_max = bounds_min;
-
-			for (u32 joint_index = 1; joint_index < skeleton->joint_count; ++joint_index)
-			{
-				const vec3f_t position = joint_transforms[joint_index].get_translation();
-
-				bounds_min = vec3f_t::min(bounds_min, position);
-				bounds_max = vec3f_t::max(bounds_max, position);
-			}
-
-			const vec3f_t dimensions   = bounds_max - bounds_min;
-			const f32	  visual_scale = math::max(math::max(dimensions.x, dimensions.y), math::max(dimensions.z, 1.0f));
-			const f32	  joint_radius = visual_scale * EDITOR_WORLD_SKELETON_JOINT_RADIUS_RATIO;
-			const f32	  axis_length  = visual_scale * EDITOR_WORLD_SKELETON_AXIS_LENGTH_RATIO;
-
-			for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
-			{
-				const skeleton_joint_runtime_t& joint			= joints[joint_index];
-				const mat4x3_t&					joint_transform = joint_transforms[joint_index];
-				const vec3f_t					position		= joint_transform.get_translation();
-				const char*						joint_name		= resource_memory.get_text(joint.name);
-
-				if (joint.parent_index != SKELETON_JOINT_NO_PARENT)
-				{
-					const vec3f_t parent_position = joint_transforms[joint.parent_index].get_translation();
-					const vec3f_t line_inset	  = (position - parent_position) * 0.25f;
-
-					debug_draw.draw_line(parent_position + line_inset, position - line_inset, color_t::white, 4.0f, debug_draw_depth_e::depth_tested);
-				}
-
-				draw_transform_axes(debug_draw, joint_transform, axis_length, 3.0f, debug_draw_depth_e::depth_tested);
-				debug_draw.draw_text_3d(position, joint_name, color_t::white, theme.text_small_px_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
-			}
-
-			if (skeleton->slot_count != 0)
-			{
-				const skeleton_slot_runtime_t* slots = resource_memory.get<skeleton_slot_runtime_t>(skeleton->slots);
-
-				for (u32 slot_index = 0; slot_index < skeleton->slot_count; ++slot_index)
-				{
-					const skeleton_slot_runtime_t& slot = slots[slot_index];
-
-					if (slot.slot_joint_index == SKELETON_JOINT_NO_PARENT)
-						continue;
-
-					SFG_ASSERT(slot.slot_joint_index < skeleton->joint_count);
-
-					const mat4x3_t slot_local_transform = mat4x3_t::transform(slot.local_position, slot.local_rotation, vec3f_t::one);
-					const mat4x3_t slot_transform		= joint_transforms[slot.slot_joint_index] * slot_local_transform;
-					const char*	   slot_name			= resource_memory.get_text(slot.debug_name);
-
-					draw_skeleton_slot(debug_draw, slot_transform, slot_name, joint_radius * EDITOR_WORLD_SKELETON_SLOT_HALF_EXTENT_SCALE, axis_length, theme.text_small_px_size);
-				}
-			}
-		}
+		return environment;
 	}
 
 	void editor_world_util_t::draw_bounding_boxes(world_t& world, const world_render_snapshot_t& snapshot, entity_id_t editor_camera_entity)
@@ -604,19 +553,6 @@ namespace sfg
 			const vec3f_t axis = transform.get_column(axis_index).normalized();
 			debug_draw.draw_line(position, position + axis * axis_length, axis_colors[axis_index], thickness_px, depth);
 		}
-	}
-
-	void editor_world_util_t::draw_skeleton_slot(world_debug_draw_t& debug_draw, const mat4x3_t& transform, const char* name, f32 half_extent, f32 axis_length, f32 text_size)
-	{
-		const editor_theme_t& theme		 = editor_theme_t::get();
-		const color_t		  slot_color = {theme.color_accent2.x, theme.color_accent2.y, theme.color_accent2.z, theme.color_accent2.w};
-		const vec3f_t		  extents(half_extent, half_extent, half_extent);
-		const vec3f_t		  position	   = transform.get_translation();
-		const char*			  display_name = name[0] == '\0' ? "Unnamed Slot" : name;
-
-		debug_draw.draw_box(transform, extents, slot_color, 4.0f, debug_draw_depth_e::depth_tested);
-		draw_transform_axes(debug_draw, transform, axis_length, 3.0f, debug_draw_depth_e::depth_tested);
-		debug_draw.draw_text_3d(position, display_name, slot_color, text_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
 	}
 
 	void editor_world_util_t::draw_constraint_gizmos(world_t& world, entity_id_t entity, const component_system_transform_t& transform, world_debug_draw_t& debug_draw)

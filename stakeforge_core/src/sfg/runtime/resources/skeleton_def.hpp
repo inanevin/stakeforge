@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
+#include <sfg/math/aabb.hpp>
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
@@ -57,6 +58,7 @@ namespace sfg
 		u32				  slot_joint_index = SKELETON_JOINT_NO_PARENT;
 		vec3f_t			  local_position   = vec3f_t::zero;
 		quat_t			  local_rotation   = quat_t::identity;
+		vec3f_t			  preview_scale	   = vec3f_t::one;
 	};
 
 	struct skeleton_def_t
@@ -66,7 +68,9 @@ namespace sfg
 		vector_t<skeleton_slot_def_t>  slots			  = {};
 		string_t					   name				  = {};
 		mat4x3_t					   skinning_transform = mat4x3_t::identity;
+		aabb_t						   local_bounds		  = {};
 		resource_handle_t			   preview_mesh		  = NULL_RESOURCE_HANDLE;
+		resource_handle_t			   preview_animation  = NULL_RESOURCE_HANDLE;
 		u32							   root_joint_index	  = UINT32_MAX;
 
 		bool build_evaluation_order();

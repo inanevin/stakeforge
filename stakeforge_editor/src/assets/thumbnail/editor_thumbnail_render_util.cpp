@@ -65,7 +65,7 @@ namespace sfg
 	{
 		world_t& world = *thumbnail_world.world;
 
-		thumbnail_world.environment_entity = editor_world_util_t::install_default_scene(world);
+		thumbnail_world.environment_entity = editor_world_util_t::install_default_scene_light(world);
 
 		thumbnail_world.camera_entity = world.create_entity("thumbnail_camera");
 		component_camera_t& camera	  = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), thumbnail_world.camera_entity);

@@ -134,8 +134,10 @@ namespace sfg
 		paint.set_hover_color(_root, toggled ? _config.toggled_hover_color : _config.hover_color);
 		paint.set_press_color(_root, _config.press_color);
 
+		const vec4f_t icon_color = toggled && _config.toggled_icon_color.w != 0.0f ? _config.toggled_icon_color : _config.icon_color;
+
 		_ui->set_widget_text(_icon, get_icon());
-		paint.set_text(_icon, _ui->widget_text(_icon), _ui->widget_text_len(_icon), {.font = theme.font_icons, .color = _config.icon_color, .point_size = _config.icon_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		paint.set_text(_icon, _ui->widget_text(_icon), _ui->widget_text_len(_icon), {.font = theme.font_icons, .color = icon_color, .point_size = _config.icon_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		paint.set_disabled_color(_icon, _config.disabled_color);
 		paint.set_state_source(_icon, _root);
 	}

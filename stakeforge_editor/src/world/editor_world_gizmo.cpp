@@ -26,20 +26,11 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "world/editor_world_gizmo.hpp"
-#include "commands/editor_command_component_edit.hpp"
-#include "world/editor_world_edit_context.hpp"
 #include <sfg/data/char_util.hpp>
-#include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
-#include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
-#include <sfg/data/frame_vector.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/render/render_view.hpp>
 #include <sfg/runtime/render/world_render_view.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
-#include <sfg/runtime/world/engine_components.hpp>
-#include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/runtime/world/world_util.hpp>
 
@@ -78,62 +69,27 @@ namespace sfg
 		editor_gizmo_axis_e axis			   = editor_gizmo_axis_e::invalid;
 	};
 
-	void editor_world_gizmo_t::init()
+	void editor_world_gizmo_t::uninit()
 	{
-		_initial_absolute.reserve(256);
-		_initial_parent_inverse.reserve(256);
-		_initial_local_rotations.reserve(256);
-		_initial_local_positions.reserve(256);
-		_initial_local_scales.reserve(256);
-		_entities.reserve(256);
-	}
-
-	void editor_world_gizmo_t::uninit(world_t& world)
-	{
-		if (_action_active)
-			cancel_action(world);
-
+		cancel_action();
 		clear_hover();
-		_initial_absolute.resize(0);
-		_initial_parent_inverse.resize(0);
-		_initial_local_rotations.resize(0);
-		_initial_local_positions.resize(0);
-		_initial_local_scales.resize(0);
-		_entities.resize(0);
 	}
 
-	bool editor_world_gizmo_t::calculate_frame(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, frame_t& out_frame) const
+	bool editor_world_gizmo_t::calculate_frame(const editor_gizmo_input_t& input, frame_t& out_frame) const
 	{
-		const entity_id_t anchor = context.get_mutable_entity_anchor(world);
+		const world_render_view_t& camera	  = *input.view;
+		const vec2u16_t			   resolution = input.resolution;
 
-		if (anchor == NULL_ENTITY_ID || camera_entity == NULL_ENTITY_ID || context.get_transform_control_type() == editor_transform_control_type_e::invalid)
+		if (input.control_type == editor_transform_control_type_e::invalid || resolution.x == 0 || resolution.y == 0)
 			return false;
 
-		vec3f_t camera_position = vec3f_t::zero;
-		quat_t	camera_rotation = quat_t::identity;
-		vec3f_t camera_scale	= vec3f_t::one;
-		world.calculate_transform_direct(camera_entity).decompose(camera_position, camera_rotation, camera_scale);
+		out_frame.view.calculate(camera, resolution, 1.0f);
+		out_frame.camera_forward = camera.rot.get_forward();
+		out_frame.camera_right	 = camera.rot.get_right();
+		out_frame.camera_up		 = camera.rot.get_up();
+		out_frame.pivot			 = input.target.position;
 
-		const component_camera_t& camera	 = ecs_helpers_t::table_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), camera_entity);
-		const world_render_view_t world_view = {
-			.pos		 = camera_position,
-			.rot		 = camera_rotation,
-			.prev_pos	 = camera_position,
-			.prev_rot	 = camera_rotation,
-			.near_plane	 = camera.near_plane,
-			.far_plane	 = camera.far_plane,
-			.fov_degrees = camera.fov_degrees,
-		};
-		out_frame.view.calculate(world_view, resolution, 1.0f);
-		out_frame.camera_forward = camera_rotation.get_forward();
-		out_frame.camera_right	 = camera_rotation.get_right();
-		out_frame.camera_up		 = camera_rotation.get_up();
-
-		vec3f_t anchor_scale	= vec3f_t::one;
-		quat_t	anchor_rotation = quat_t::identity;
-		world.calculate_transform_direct(anchor).decompose(out_frame.pivot, anchor_rotation, anchor_scale);
-
-		const quat_t orientation	= context.get_transform_locality() == editor_transform_locality_e::local ? anchor_rotation : quat_t::identity;
+		const quat_t orientation	= input.locality == editor_transform_locality_e::local ? input.target.rotation : quat_t::identity;
 		const quat_t axis_models[3] = {
 			quat_t::angle_axis(-90.0f, {0.0f, 0.0f, 1.0f}),
 			quat_t::identity,
@@ -325,13 +281,13 @@ namespace sfg
 		return true;
 	}
 
-	void editor_world_gizmo_t::update_hover(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, vec2f_t relative_position)
+	void editor_world_gizmo_t::update_hover(const editor_gizmo_input_t& input, vec2f_t relative_position)
 	{
 		if (_action_active)
 			return;
 
 		frame_t frame = {};
-		_hovered_axis = calculate_frame(world, context, camera_entity, resolution, frame) ? pick(frame, context.get_transform_control_type(), relative_position).axis : editor_gizmo_axis_e::invalid;
+		_hovered_axis = calculate_frame(input, frame) ? pick(frame, input.control_type, relative_position).axis : editor_gizmo_axis_e::invalid;
 	}
 
 	void editor_world_gizmo_t::clear_hover()
@@ -340,15 +296,17 @@ namespace sfg
 			_hovered_axis = editor_gizmo_axis_e::invalid;
 	}
 
-	bool editor_world_gizmo_t::begin_action(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, vec2f_t relative_position)
+	bool editor_world_gizmo_t::begin_action(const editor_gizmo_input_t& input, const editor_gizmo_callbacks_t& callbacks, vec2f_t relative_position)
 	{
 		SFG_ASSERT(!_action_active);
-		frame_t frame = {};
 
-		if (!calculate_frame(world, context, camera_entity, resolution, frame))
+		const vec2u16_t resolution = input.resolution;
+		frame_t			frame	   = {};
+
+		if (!calculate_frame(input, frame))
 			return false;
 
-		const hit_t hit = pick(frame, context.get_transform_control_type(), relative_position);
+		const hit_t hit = pick(frame, input.control_type, relative_position);
 
 		if (hit.axis == editor_gizmo_axis_e::invalid)
 			return false;
@@ -357,14 +315,13 @@ namespace sfg
 		const bool axis_handle	= handle_index < 3;
 		const bool plane_handle = hit.axis >= editor_gizmo_axis_e::xy && hit.axis <= editor_gizmo_axis_e::zx;
 
-		_active_axis		  = hit.axis;
-		_hovered_axis		  = hit.axis;
-		_control_type		  = context.get_transform_control_type();
-		_locality			  = context.get_transform_locality();
-		_selection_generation = context.get_selection_generation();
-		_world				  = context.get_world();
-		_pivot				  = frame.pivot;
-		_axis_world			  = axis_handle ? frame.axes[handle_index] : vec3f_t::zero;
+		_active_axis	   = hit.axis;
+		_hovered_axis	   = hit.axis;
+		_control_type	   = input.control_type;
+		_locality		   = input.locality;
+		_target_generation = input.target.generation;
+		_pivot			   = frame.pivot;
+		_axis_world		   = axis_handle ? frame.axes[handle_index] : vec3f_t::zero;
 
 		if (plane_handle)
 		{
@@ -390,13 +347,9 @@ namespace sfg
 		_initial_rotation_direction = hit.rotation_direction;
 		_rotation_screen_tangent	= hit.rotation_tangent;
 
-		if (context.get_transform_snapping() == editor_transform_snapping_e::default_)
-		{
-			const editor_world_view_settings_t& settings = context.get_world_view_settings();
-			_snap_translate								 = settings.snap_translate;
-			_snap_rotate								 = settings.snap_rotate;
-			_snap_scale									 = settings.snap_scale * 0.01f;
-		}
+		_snap_translate = input.snap_translate;
+		_snap_rotate	= input.snap_rotate;
+		_snap_scale		= input.snap_scale;
 
 		if (axis_handle)
 		{
@@ -422,57 +375,38 @@ namespace sfg
 			}
 		}
 
-		collect_action_entities(world, context);
-		SFG_ASSERT(!_entities.empty());
+		if (!callbacks.begin(callbacks.user_data))
+		{
+			clear_action();
+			return false;
+		}
+
+		_callbacks	   = callbacks;
 		_action_active = true;
 		return true;
 	}
 
-	void editor_world_gizmo_t::collect_action_entities(world_t& world, const editor_world_edit_context_t& context)
-	{
-		_initial_absolute.resize(0);
-		_initial_parent_inverse.resize(0);
-		_initial_local_rotations.resize(0);
-		_initial_local_positions.resize(0);
-		_initial_local_scales.resize(0);
-		_entities.resize(0);
-
-		const span_t<const entity_id_t> selected = context.get_selected_entities();
-		_entities.resize(selected.size);
-		_entities.resize(context.collect_selected_mutable_root_entities(world, {.data = _entities.data(), .size = _entities.size()}));
-
-		for (entity_id_t entity : _entities)
-		{
-			const entity_id_t parent = world.get_entity_parent(entity);
-
-			_initial_local_rotations.push_back(world.get_entity_rot_local(entity));
-			_initial_local_positions.push_back(world.get_entity_pos_local(entity));
-			_initial_local_scales.push_back(world.get_entity_scale_local(entity));
-			_initial_absolute.push_back(world.calculate_transform_direct(entity));
-			_initial_parent_inverse.push_back(parent == NULL_ENTITY_ID ? mat4x3_t::identity : world.calculate_transform_direct(parent).inverse());
-		}
-	}
-
-	void editor_world_gizmo_t::update_action(world_t& world, const editor_world_edit_context_t& context, entity_id_t camera_entity, vec2u16_t resolution, vec2f_t relative_position)
+	void editor_world_gizmo_t::update_action(const editor_gizmo_input_t& input, vec2f_t relative_position)
 	{
 		if (!_action_active)
 			return;
 
-		if (_selection_generation != context.get_selection_generation() || _control_type != context.get_transform_control_type() || _locality != context.get_transform_locality())
+		if (_target_generation != input.target.generation || _control_type != input.control_type || _locality != input.locality)
 		{
-			cancel_action(world);
+			cancel_action();
 			return;
 		}
 
 		frame_t frame = {};
 
-		if (!calculate_frame(world, context, camera_entity, resolution, frame))
+		if (!calculate_frame(input, frame))
 		{
-			cancel_action(world);
+			cancel_action();
 			return;
 		}
 
-		const vec2f_t mouse_pixels = {
+		const vec2u16_t resolution	 = input.resolution;
+		const vec2f_t	mouse_pixels = {
 			relative_position.x * static_cast<f32>(resolution.x),
 			relative_position.y * static_cast<f32>(resolution.y),
 		};
@@ -534,6 +468,9 @@ namespace sfg
 
 			if (_snap_rotate > 0.0f)
 				angle_degrees = math::round(angle_degrees / _snap_rotate) * _snap_rotate;
+
+			if (mouse_delta == vec2f_t::zero)
+				angle_degrees = 0.0f;
 
 			_rotation_angle_degrees		   = angle_degrees;
 			const mat4x3_t pivot_to_origin = mat4x3_t::translation(-_pivot);
@@ -597,7 +534,7 @@ namespace sfg
 			break;
 		}
 
-		apply_delta(world, delta);
+		_callbacks.update(_callbacks.user_data, delta);
 	}
 
 	void editor_world_gizmo_t::draw_rotation_visualization(world_debug_draw_t& debug_draw, const color_t& line_color, const color_t& text_color, f32 text_size_px) const
@@ -619,112 +556,36 @@ namespace sfg
 		debug_draw.draw_text_3d(current_endpoint, rotation_text, text_color, text_size_px, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_left, {6.0f, -6.0f});
 	}
 
-	void editor_world_gizmo_t::apply_delta(world_t& world, const mat4x3_t& delta)
-	{
-		for (size_t i = 0; i < _entities.size(); ++i)
-		{
-			vec3f_t position = vec3f_t::zero;
-			quat_t	rotation = quat_t::identity;
-			vec3f_t scale	 = vec3f_t::one;
-			(_initial_parent_inverse[i] * delta * _initial_absolute[i]).decompose(position, rotation, scale);
-
-			world.set_entity_pos_local(_entities[i], position);
-			world.set_entity_rot_local(_entities[i], rotation);
-			world.set_entity_scale_local(_entities[i], scale);
-			world.mark_entity_teleported(_entities[i]);
-		}
-
-		world.update_world_transforms(false);
-	}
-
-	void editor_world_gizmo_t::end_action(world_t& world, const editor_world_edit_context_t& context)
+	void editor_world_gizmo_t::end_action(const editor_gizmo_input_t& input)
 	{
 		if (!_action_active)
 			return;
 
-		if (_selection_generation != context.get_selection_generation() || _control_type != context.get_transform_control_type() || _locality != context.get_transform_locality())
+		if (_target_generation != input.target.generation || _control_type != input.control_type || _locality != input.locality)
 		{
-			cancel_action(world);
+			cancel_action();
 			return;
 		}
 
-		frame_vector_t<ostream_t> previous_streams = {};
-		frame_vector_t<ostream_t> post_streams	   = {};
-		previous_streams.reserve(_entities.size());
-		post_streams.reserve(_entities.size());
-
-		for (size_t i = 0; i < _entities.size(); ++i)
-		{
-			component_transform_t previous = {
-				.pos   = _initial_local_positions[i],
-				.rot   = _initial_local_rotations[i],
-				.scale = _initial_local_scales[i],
-			};
-
-			ostream_t previous_stream = {};
-
-			if (!reflection_registry_t::get().type_to_stream(type_id_t<component_transform_t>::value, &previous, nullptr, previous_stream))
-			{
-				SFG_ERR("failed to serialize previous gizmo transform for entity {0}", _entities[i]);
-				cancel_action(world);
-				return;
-			}
-
-			component_transform_t current = {
-				.pos   = world.get_entity_pos_local(_entities[i]),
-				.rot   = world.get_entity_rot_local(_entities[i]),
-				.scale = world.get_entity_scale_local(_entities[i]),
-			};
-
-			ostream_t post_stream = {};
-
-			if (!reflection_registry_t::get().type_to_stream(type_id_t<component_transform_t>::value, &current, nullptr, post_stream))
-			{
-				SFG_ERR("failed to serialize current gizmo transform for entity {0}", _entities[i]);
-				cancel_action(world);
-				return;
-			}
-
-			previous_streams.push_back(std::move(previous_stream));
-			post_streams.push_back(std::move(post_stream));
-		}
-
-		if (!editor_command_component_edit_t::edit(
-				_world, {.data = _entities.data(), .size = _entities.size()}, type_id_t<component_transform_t>::value, {.data = previous_streams.data(), .size = previous_streams.size()}, {.data = post_streams.data(), .size = post_streams.size()}))
-		{
-			cancel_action(world);
-			return;
-		}
-
+		const editor_gizmo_callbacks_t callbacks = _callbacks;
 		clear_action();
+		callbacks.commit(callbacks.user_data);
 	}
 
-	void editor_world_gizmo_t::cancel_action(world_t& world)
+	void editor_world_gizmo_t::cancel_action()
 	{
 		if (!_action_active)
 			return;
 
-		for (size_t i = 0; i < _entities.size(); ++i)
-		{
-			world.set_entity_pos_local(_entities[i], _initial_local_positions[i]);
-			world.set_entity_rot_local(_entities[i], _initial_local_rotations[i]);
-			world.set_entity_scale_local(_entities[i], _initial_local_scales[i]);
-			world.mark_entity_teleported(_entities[i]);
-		}
-
-		world.update_world_transforms(false);
-		_hovered_axis = editor_gizmo_axis_e::invalid;
+		const editor_gizmo_callbacks_t callbacks = _callbacks;
+		_hovered_axis							 = editor_gizmo_axis_e::invalid;
 		clear_action();
+		callbacks.cancel(callbacks.user_data);
 	}
 
 	void editor_world_gizmo_t::clear_action()
 	{
-		_initial_absolute.resize(0);
-		_initial_parent_inverse.resize(0);
-		_initial_local_rotations.resize(0);
-		_initial_local_positions.resize(0);
-		_initial_local_scales.resize(0);
-		_entities.resize(0);
+		_callbacks = {};
 
 		_orientation				= quat_t::identity;
 		_initial_rotation_direction = vec3f_t::zero;
@@ -737,7 +598,6 @@ namespace sfg
 		_initial_mouse_pixels		= vec2f_t::zero;
 		_rotation_screen_tangent	= vec2f_t::zero;
 		_axis_screen_direction		= vec2f_t::zero;
-		_world						= {};
 
 		_initial_axis_parameter = 0.0f;
 		_axis_pixels_per_world	= 0.0f;
@@ -747,10 +607,10 @@ namespace sfg
 		_snap_rotate			= 0.0f;
 		_snap_scale				= 0.0f;
 
-		_selection_generation = 0;
-		_control_type		  = editor_transform_control_type_e::invalid;
-		_locality			  = editor_transform_locality_e::invalid;
-		_active_axis		  = editor_gizmo_axis_e::invalid;
+		_target_generation = 0;
+		_control_type	   = editor_transform_control_type_e::invalid;
+		_locality		   = editor_transform_locality_e::invalid;
+		_active_axis	   = editor_gizmo_axis_e::invalid;
 
 		_axis_parameter_valid = false;
 		_rotation_plane_valid = false;

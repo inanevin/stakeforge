@@ -271,15 +271,6 @@ namespace sfg
 		button_config.on_clicked   = on_bounding_boxes_toggled;
 		_bounding_boxes_button.init(ui, _view_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _bounding_boxes_button);
-		editor_dividers_t::add_divider_ver(ui, _view_frame, theme.border_thickness * 0.5f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
-
-		button_config.icon		   = ICON_ANIMATION;
-		button_config.toggled_icon = ICON_ANIMATION;
-		button_config.tooltip	   = "Skeletons";
-		button_config.toggled	   = project_settings.world_view_skeleton_enabled;
-		button_config.on_clicked   = on_skeletons_toggled;
-		_skeletons_button.init(ui, _view_frame, button_config);
-		set_icon_button_parent_relative_height(tree, _skeletons_button);
 
 		_view_spacer = editor_misc_widgets_t::add_spacer(ui, _top_left_row, {theme.item_height, theme.item_height});
 
@@ -389,7 +380,6 @@ namespace sfg
 
 		_shoot_rays_button.uninit();
 		_physics_debug_button.uninit();
-		_skeletons_button.uninit();
 		_bounding_boxes_button.uninit();
 		_grid_button.uninit();
 		_snapping_button.uninit();
@@ -430,16 +420,21 @@ namespace sfg
 		_edit_world = world;
 		_edit_type	= edit_type;
 
-		const bool full_control = _edit_type == editor_world_edit_type_e::full_control;
+		const bool			  full_control	= _edit_type == editor_world_edit_type_e::full_control;
+		const editor_world_t* editor_world	= _edit_world.is_null() ? nullptr : editor_world_controller_t::get().get_editor_world(_edit_world);
+		const bool			  gizmo_control = editor_world != nullptr && editor_world->is_gizmo_editing_supported();
+		const bool			  allow_scale	= editor_world != nullptr && editor_world->is_gizmo_scale_allowed();
 
 		ui::layout_tree_t& tree = _ui->get_tree();
 		tree.set_visible(_root, _edit_type != editor_world_edit_type_e::view_only);
 		tree.set_visible(_global_frame, full_control);
-		tree.set_visible(_controls_frame, full_control);
+		tree.set_visible(_controls_frame, gizmo_control);
 		tree.set_visible(_physics_frame, full_control);
 		tree.set_visible(_global_spacer, full_control);
-		tree.set_visible(_controls_spacer, full_control);
-		tree.set_visible(_view_spacer, full_control);
+		tree.set_visible(_controls_spacer, gizmo_control);
+		tree.set_visible(_view_spacer, gizmo_control);
+		tree.set_visible(_transform_buttons[2].get_root(), allow_scale);
+		tree.set_visible(tree.node(_transform_buttons[2].get_root()).next_sibling, allow_scale);
 
 		if (!_edit_world.is_null() && _edit_type != editor_world_edit_type_e::view_only)
 		{
@@ -449,7 +444,6 @@ namespace sfg
 			context.set_transform_snapping(project_settings.world_view_snapping_enabled ? editor_transform_snapping_e::default_ : editor_transform_snapping_e::none);
 			context.set_grid_enabled(project_settings.world_view_grid_enabled);
 			context.set_bounding_boxes_enabled(project_settings.world_view_aabb_enabled);
-			context.set_skeletons_enabled(project_settings.world_view_skeleton_enabled);
 			context.set_physics_debug_enabled(project_settings.world_view_physics_debug_enabled);
 
 			refresh();
@@ -458,7 +452,9 @@ namespace sfg
 
 	void editor_widget_world_view_toolbars_t::set_transform_control_type(editor_transform_control_type_e type)
 	{
-		editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().set_transform_control_type(type);
+		editor_world_t& world = *editor_world_controller_t::get().get_editor_world(_edit_world);
+		world.cancel_gizmo_action();
+		world.get_edit_context().set_transform_control_type(type);
 		refresh();
 	}
 
@@ -483,16 +479,16 @@ namespace sfg
 
 		_grid_button.set_toggled(context.is_grid_enabled());
 		_bounding_boxes_button.set_toggled(context.is_bounding_boxes_enabled());
-		_skeletons_button.set_toggled(context.is_skeletons_enabled());
-
-		if (_edit_type != editor_world_edit_type_e::full_control)
-			return;
 
 		for (size_t i = 0; i < 3; ++i)
 			_transform_buttons[i].set_toggled(_transform_button_data[i].type == context.get_transform_control_type());
 
 		_locality_button.set_toggled(context.get_transform_locality() == editor_transform_locality_e::world);
 		_snapping_button.set_toggled(context.get_transform_snapping() == editor_transform_snapping_e::default_);
+
+		if (_edit_type != editor_world_edit_type_e::full_control)
+			return;
+
 		_physics_debug_button.set_toggled(context.is_physics_debug_enabled());
 		_shoot_rays_button.set_toggled(context.is_shoot_rays_enabled());
 	}
@@ -505,7 +501,6 @@ namespace sfg
 		project.settings.world_view_snapping_enabled	  = context.get_transform_snapping() == editor_transform_snapping_e::default_;
 		project.settings.world_view_grid_enabled		  = context.is_grid_enabled();
 		project.settings.world_view_aabb_enabled		  = context.is_bounding_boxes_enabled();
-		project.settings.world_view_skeleton_enabled	  = context.is_skeletons_enabled();
 		project.settings.world_view_physics_debug_enabled = context.is_physics_debug_enabled();
 
 		if (!project.save(project._runtime.path.c_str()))
@@ -589,13 +584,6 @@ namespace sfg
 	{
 		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
 		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().set_bounding_boxes_enabled(toggled);
-		toolbar.save_project_settings();
-	}
-
-	void editor_widget_world_view_toolbars_t::on_skeletons_toggled(bool toggled, void* user_data)
-	{
-		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
-		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().set_skeletons_enabled(toggled);
 		toolbar.save_project_settings();
 	}
 

@@ -109,6 +109,7 @@ namespace sfg
 		u32	   command_max_count		 = 1024;
 		u32	   listener_initial_capacity = 256;
 		size_t aux_data_budget_bytes	 = 4ull * 1024ull * 1024ull;
+		bool   global_instance			 = true;
 	};
 
 	using editor_command_listener_fn = void (*)(editor_command_system_t& system, const editor_command_t& command, void* user_data);

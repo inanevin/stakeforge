@@ -265,7 +265,7 @@ namespace sfg
 		editor_world_t* const editor_world	  = controller.get_editor_world(_world);
 
 		editor_world->install_camera(editor_world_camera_type_e::orbit);
-		editor_world_util_t::install_default_scene(editor_world->get_world());
+		editor_world_util_t::install_default_scene_light(editor_world->get_world());
 		_world_view.set_edit_world(_world);
 	}
 
@@ -330,12 +330,12 @@ namespace sfg
 			if (part.joint_index >= _joint_globals.size())
 				continue;
 
-			vec3f_t	  capsule_position = vec3f_t::zero;
-			quat_t	  capsule_rotation = quat_t::identity;
-			vec3f_t	  capsule_scale = vec3f_t::one;
+			vec3f_t capsule_position = vec3f_t::zero;
+			quat_t	capsule_rotation = quat_t::identity;
+			vec3f_t capsule_scale	 = vec3f_t::one;
 			(_joint_globals[part.joint_index] * mat4x3_t::transform(part.local_position, part.local_rotation, vec3f_t::one)).decompose(capsule_position, capsule_rotation, capsule_scale);
 			const f32	  shape_scale = math::max(math::max(math::abs(capsule_scale.x), math::abs(capsule_scale.y)), math::abs(capsule_scale.z));
-			const f32	  extent   = (part.radius + part.half_height) * shape_scale;
+			const f32	  extent	  = (part.radius + part.half_height) * shape_scale;
 			const vec3f_t margin(extent, extent, extent);
 			bounds_min = vec3f_t::min(bounds_min, capsule_position - margin);
 			bounds_max = vec3f_t::max(bounds_max, capsule_position + margin);

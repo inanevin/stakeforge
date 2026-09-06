@@ -116,6 +116,7 @@ namespace sfg::ui
 		u32			draw_order	 = 0;
 		u8			depth		 = 0;
 		u8			alive		 = 0;
+		bool		disabled	 = false;
 	};
 
 	inline vec4f_t intersect_clip_rect(const vec4f_t& a, const vec4f_t& b)
@@ -167,6 +168,7 @@ namespace sfg::ui
 		const layout_out_t& out(widget_id_t id) const;
 		vec4f_t				bounds(widget_id_t id) const;
 		bool				is_alive(widget_id_t id) const;
+		bool				is_disabled(widget_id_t id) const;
 		void				set_visible(widget_id_t id, bool vis);
 		void				set_visible(widget_id_t id, bool vis, bool input);
 		void				set_topology_mutation_allowed(bool allowed);
@@ -231,5 +233,6 @@ namespace sfg::ui
 		bool						 _topology_dirty			= true;
 		bool						 _layout_dirty				= true;
 		bool						 _topology_mutation_allowed = true;
+		bool						 _disabled_cache_valid		= false;
 	};
 }

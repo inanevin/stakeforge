@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "commands/editor_command_skeleton.hpp"
-#include "assets/editor_asset_manager.hpp"
 #include "editor_command_system.hpp"
 #include "ui/panels/editor_panel_skeleton_viewer.hpp"
 
@@ -43,28 +42,19 @@ namespace sfg
 {
 	namespace
 	{
-		bool save_and_cook_skeleton_async(editor_panel_skeleton_viewer_t& viewer)
-		{
-			nlohmann::json	embedded_source = nlohmann::json::object();
-			skeleton_def_t& skeleton		= viewer.get_skeleton_def();
-
-			if (!reflection_registry_t::get().type_to_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, embedded_source))
-			{
-				SFG_ERR("failed to serialize skeleton definition for asset {0}", viewer.get_skeleton_guid());
-				return false;
-			}
-
-			return editor_asset_manager_t::get().save_and_cook_embedded_asset_async(viewer.get_skeleton_guid(), embedded_source);
-		}
-
-		chunk_handle32_t skeleton_to_aux(editor_command_system_t& system, const skeleton_def_t& skeleton)
+		chunk_handle32_t slots_to_aux(editor_command_system_t& system, const skeleton_def_t& skeleton)
 		{
 			ostream_t stream = {};
 
-			if (!reflection_registry_t::get().type_to_stream(type_id_t<skeleton_def_t>::value, const_cast<skeleton_def_t*>(&skeleton), nullptr, stream))
+			stream << static_cast<u32>(skeleton.slots.size());
+
+			for (const skeleton_slot_def_t& slot : skeleton.slots)
 			{
-				SFG_ERR("failed to serialize skeleton");
-				return {};
+				if (!reflection_registry_t::get().type_to_stream(type_id_t<skeleton_slot_def_t>::value, const_cast<skeleton_slot_def_t*>(&slot), nullptr, stream))
+				{
+					SFG_ERR("failed to serialize skeleton slot");
+					return {};
+				}
 			}
 
 			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(stream.get_size(), alignof(u8));
@@ -73,18 +63,27 @@ namespace sfg
 			return handle;
 		}
 
-		bool skeleton_from_aux(editor_command_system_t& system, editor_panel_skeleton_viewer_t& viewer, chunk_handle32_t handle)
+		bool slots_from_aux(editor_command_system_t& system, editor_panel_skeleton_viewer_t& viewer, chunk_handle32_t handle, u32 selected_joint, u32 selected_slot)
 		{
-			skeleton_def_t skeleton = {};
-			istream_t	   stream(system.get_aux_data().get<u8>(handle), handle.size);
+			istream_t stream(system.get_aux_data().get<u8>(handle), handle.size);
+			u32		  count = 0;
 
-			if (!reflection_registry_t::get().type_from_stream(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, stream))
+			stream >> count;
+
+			vector_t<skeleton_slot_def_t> slots = {};
+			slots.resize(count);
+
+			for (skeleton_slot_def_t& slot : slots)
 			{
-				SFG_ERR("failed to deserialize skeleton");
-				return false;
+				if (!reflection_registry_t::get().type_from_stream(type_id_t<skeleton_slot_def_t>::value, &slot, nullptr, stream))
+				{
+					SFG_ERR("failed to deserialize skeleton slot");
+					return false;
+				}
 			}
 
-			viewer.apply_skeleton_def(std::move(skeleton));
+			viewer.apply_slots(std::move(slots), selected_joint, selected_slot);
+
 			return true;
 		}
 
@@ -93,10 +92,11 @@ namespace sfg
 			const editor_command_skeleton_edit_payload_t& payload = system.get_payload_as<editor_command_skeleton_edit_payload_t>(command);
 			editor_panel_skeleton_viewer_t&				  viewer  = *static_cast<editor_panel_skeleton_viewer_t*>(command.user_data);
 
-			if (!skeleton_from_aux(system, viewer, payload.previous_stream))
+			if (!slots_from_aux(system, viewer, payload.previous_stream, payload.previous_joint, payload.previous_slot))
 				return false;
 
-			save_and_cook_skeleton_async(viewer);
+			// save_and_cook_skeleton_async(viewer);
+
 			return true;
 		}
 
@@ -105,10 +105,11 @@ namespace sfg
 			const editor_command_skeleton_edit_payload_t& payload = system.get_payload_as<editor_command_skeleton_edit_payload_t>(command);
 			editor_panel_skeleton_viewer_t&				  viewer  = *static_cast<editor_panel_skeleton_viewer_t*>(command.user_data);
 
-			if (!skeleton_from_aux(system, viewer, payload.post_stream))
+			if (!slots_from_aux(system, viewer, payload.post_stream, payload.post_joint, payload.post_slot))
 				return false;
 
-			save_and_cook_skeleton_async(viewer);
+			// save_and_cook_skeleton_async(viewer);
+
 			return true;
 		}
 
@@ -127,13 +128,16 @@ namespace sfg
 	{
 		SFG_ASSERT(!viewer._edit_previous_stream);
 
-		editor_command_system_t& command_system = editor_command_system_t::get();
-		const chunk_handle32_t	 stream			= skeleton_to_aux(command_system, viewer.get_skeleton_def());
+		editor_command_system_t& command_system = *viewer._commands;
+		const chunk_handle32_t	 stream			= slots_to_aux(command_system, viewer.get_skeleton_def());
 
 		if (!stream)
 			return false;
 
 		viewer._edit_previous_stream = stream;
+		viewer._edit_previous_joint	 = viewer._selected_joint_index;
+		viewer._edit_previous_slot	 = viewer._selected_slot_index;
+
 		return true;
 	}
 
@@ -141,14 +145,15 @@ namespace sfg
 	{
 		SFG_ASSERT(viewer._edit_previous_stream);
 
-		editor_command_system_t& command_system = editor_command_system_t::get();
-		const chunk_handle32_t	 post_stream	= skeleton_to_aux(command_system, viewer.get_skeleton_def());
+		editor_command_system_t& command_system = *viewer._commands;
+		const chunk_handle32_t	 post_stream	= slots_to_aux(command_system, viewer.get_skeleton_def());
 
 		if (!post_stream)
 		{
-			skeleton_from_aux(command_system, viewer, viewer._edit_previous_stream);
+			slots_from_aux(command_system, viewer, viewer._edit_previous_stream, viewer._edit_previous_joint, viewer._edit_previous_slot);
 			command_system.get_aux_data().free(viewer._edit_previous_stream);
 			viewer._edit_previous_stream = {};
+
 			return false;
 		}
 
@@ -159,13 +164,19 @@ namespace sfg
 			command_system.get_aux_data().free(viewer._edit_previous_stream);
 			command_system.get_aux_data().free(post_stream);
 			viewer._edit_previous_stream = {};
+
 			return true;
 		}
 
 		const editor_command_skeleton_edit_payload_t payload{
 			.previous_stream = viewer._edit_previous_stream,
 			.post_stream	 = post_stream,
+			.previous_joint	 = viewer._edit_previous_joint,
+			.previous_slot	 = viewer._edit_previous_slot,
+			.post_joint		 = viewer._selected_joint_index,
+			.post_slot		 = viewer._selected_slot_index,
 		};
+
 		const editor_command_issue_desc_t desc{
 			.undo		= skeleton_edit_undo,
 			.redo		= skeleton_edit_redo,
@@ -176,20 +187,23 @@ namespace sfg
 			.run_redo	= false,
 			.notify		= notify,
 		};
+
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
 
 		if (handle.is_null())
 		{
-			skeleton_from_aux(command_system, viewer, viewer._edit_previous_stream);
+			slots_from_aux(command_system, viewer, viewer._edit_previous_stream, viewer._edit_previous_joint, viewer._edit_previous_slot);
 			command_system.get_aux_data().free(viewer._edit_previous_stream);
 			command_system.get_aux_data().free(post_stream);
 			viewer._edit_previous_stream = {};
 			SFG_ERR("failed to issue skeleton edit command");
+
 			return false;
 		}
 
 		viewer._edit_previous_stream = {};
-		save_and_cook_skeleton_async(viewer);
+		// save_and_cook_skeleton_async(viewer);
+
 		return true;
 	}
 
@@ -198,7 +212,7 @@ namespace sfg
 		if (!viewer._edit_previous_stream)
 			return;
 
-		editor_command_system_t::get().get_aux_data().free(viewer._edit_previous_stream);
+		viewer._commands->get_aux_data().free(viewer._edit_previous_stream);
 		viewer._edit_previous_stream = {};
 	}
 }

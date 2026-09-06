@@ -50,12 +50,15 @@ namespace sfg
 			paint.set_focus_color(id, theme.color_accent0);
 		}
 
-		void set_label_text(ui::ui_context& ui, ui::widget_id_t id, const char* text)
+		void set_label_text(ui::ui_context& ui, ui::widget_id_t id, const char* text, const vec4f_t& color)
 		{
 			const editor_theme_t& theme = editor_theme_t::get();
+
 			ui.set_widget_text(id, text != nullptr ? text : "");
-			ui.get_paint().set_text(
-				id, ui.widget_text(id), ui.widget_text_len(id), {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+			ui.get_paint().set_text(id,
+									ui.widget_text(id),
+									ui.widget_text_len(id),
+									{.font = theme.font_default, .color = color.w == 0.0f ? theme.color_text0 : color, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 		}
 	}
 
@@ -76,24 +79,33 @@ namespace sfg
 			tree.draw_order(_root) = tree.draw_order_const(parent) + 1;
 
 		ui::layout_in_t& root_in = tree.in(_root);
-		root_in.flags			 = ui::wf_visible | ui::wf_input;
+
+		root_in.flags = ui::wf_visible | ui::wf_input;
+
 		apply_editor_widget_width(root_in, config.width);
+
 		root_in.size_mode_y	 = ui::axis_mode_e::fixed;
 		root_in.size_value.y = theme.item_height;
+
 		style_button(paint, _root);
+		paint.set_disabled_color(_root, theme.color_frame_dark);
 
 		_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_label, "button_label");
 		tree.attach(_root, _label);
-		tree.draw_order(_label) = tree.draw_order_const(_root) + 1;
+		tree.draw_order(_label) = tree.draw_order_const(_root);
 
 		ui::layout_in_t& label_in = tree.in(_label);
-		label_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
-		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
-		label_in.pos_value		  = {0.5f, 0.5f};
-		label_in.anchor_x		  = ui::anchor_e::center;
-		label_in.anchor_y		  = ui::anchor_e::center;
-		set_label_text(ui, _label, config.text);
+
+		label_in.pos_mode_x = ui::pos_mode_e::relative_in_parent;
+		label_in.pos_mode_y = ui::pos_mode_e::relative_in_parent;
+		label_in.pos_value	= {0.5f, 0.5f};
+		label_in.anchor_x	= ui::anchor_e::center;
+		label_in.anchor_y	= ui::anchor_e::center;
+
+		set_label_text(ui, _label, config.text, theme.color_text0);
+		paint.set_disabled_color(_label, theme.color_text_disabled);
+		paint.set_state_source(_label, _root);
 	}
 
 	void editor_widget_button_t::uninit()
@@ -106,9 +118,10 @@ namespace sfg
 		_config = {};
 	}
 
-	void editor_widget_button_t::set_text(const char* text)
+	void editor_widget_button_t::set_text(const char* text, const vec4f_t& color)
 	{
 		_config.text = text;
-		set_label_text(*_ui, _label, text);
+
+		set_label_text(*_ui, _label, text, color);
 	}
 }

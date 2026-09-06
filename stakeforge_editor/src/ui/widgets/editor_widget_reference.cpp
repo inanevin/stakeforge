@@ -107,6 +107,7 @@ namespace sfg
 		paint.set_hover_color(_frame, theme.color_panel);
 		paint.set_press_color(_frame, theme.color_frame_light);
 		paint.set_focus_color(_frame, theme.color_accent0);
+		paint.set_disabled_color(_frame, theme.color_frame_dark);
 
 		ui::listener_bundle_t root_listener = {};
 		root_listener.user_data				= this;
@@ -133,6 +134,7 @@ namespace sfg
 		thumbnail_rect.fill_color_b		   = theme.color_frame;
 		thumbnail_rect.rounding			   = theme.item_rounding;
 		paint.set_rect(_thumbnail, thumbnail_rect);
+		paint.set_disabled_color(_thumbnail, theme.color_frame_dark);
 
 		_thumbnail_widget = new editor_widget_thumbnail_t();
 		_thumbnail_widget->init(ui, _thumbnail, {});
@@ -148,6 +150,7 @@ namespace sfg
 		tree.draw_order(_label)	  = tree.draw_order_const(_frame) + 1;
 
 		paint.set_text(_label, nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		paint.set_disabled_color(_label, theme.color_text_disabled);
 
 		_show_button = editor_icon_widgets_t::add_naked_icon_button(ui, _root, ICON_EYE, theme.item_height * 0.75f, theme.color_text1, theme.color_accent1, theme.color_accent1_dim, theme.color_text_disabled);
 		ui.set_widget_debug_name(_show_button, "reference_show_button");

@@ -115,8 +115,10 @@ namespace sfg
 	void editor_widget_reflection_t::uninit()
 	{
 		clear_widgets();
+
 		if (_blocker != NULL_WIDGET)
 			_ui->deallocate_widget(_blocker);
+
 		_ui->deallocate_widget(_root);
 
 		_objects.resize(0);
@@ -159,6 +161,7 @@ namespace sfg
 		set_block_edits(config.block_edits);
 
 		const reflected_type_t* type = reflection_registry_t::get().find_type(_type_id);
+
 		if (type == nullptr)
 			return;
 
@@ -822,8 +825,9 @@ namespace sfg
 	void editor_widget_reflection_t::create_object(
 		ui::widget_id_t parent, sid_t type_id, const reflected_field_t* field, span_t<void*> objects, editor_world_handle_t world, bool track_row, bool sub_item, bool removable_item, f32 indentation, container_user_data_t* container_data, u32 element_index)
 	{
-		frame_vector_t<u8*> fields;
+		frame_vector_t<u8*> fields = {};
 		fields.reserve(objects.size);
+
 		for (size_t i = 0; i < objects.size; ++i)
 			fields.push_back(static_cast<u8*>(objects.data[i]));
 
@@ -850,12 +854,15 @@ namespace sfg
 					   .sub_item	 = sub_item,
 				   });
 		install_tooltip(fold->get_root(), field->tooltip);
+
 		if (removable_item)
 		{
 			install_tooltip(fold->get_remove_button(), "Remove Element");
+
 			if (container_data != nullptr)
 				install_container_element_remove_listener(fold->get_remove_button(), container_data, element_index);
 		}
+
 		_fold_labels.push_back(fold);
 		_field_folds.push_back({.fold = fold, .type_id = type_id, .field_id = field->field_identifier});
 		create_fields(fold->get_body(), objects, field->sub_type_id, world, false, true, indentation + editor_theme_t::get().margin_horizontal, false, element_index);

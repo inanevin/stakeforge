@@ -28,11 +28,14 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_split_border.hpp"
-#include "ui/widgets/editor_widget_reflection.hpp"
+#include "ui/widgets/editor_widgets_scrollbar.hpp"
 #include "ui/widgets/editor_widget_reference.hpp"
 #include "ui/widgets/editor_widget_world_view.hpp"
+#include "ui/widgets/editor_widgets_vec_fields.hpp"
+#include "ui/widgets/editor_widget_button.hpp"
 #include "world/editor_world_handle.hpp"
 
+#include <sfg/data/unique.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -45,14 +48,16 @@ namespace sfg
 {
 	class editor_asset_manager_t;
 	class editor_command_skeleton_edit_t;
+	class editor_command_system_t;
 	class world_t;
 	struct editor_asset_deletion_listener_tag_t;
+	struct editor_gizmo_target_t;
 
 	class editor_panel_skeleton_viewer_t final : public editor_panel_t
 	{
 	public:
 		editor_panel_skeleton_viewer_t();
-		~editor_panel_skeleton_viewer_t() override										 = default;
+		~editor_panel_skeleton_viewer_t() override;
 		editor_panel_skeleton_viewer_t(const editor_panel_skeleton_viewer_t&)			 = delete;
 		editor_panel_skeleton_viewer_t& operator=(const editor_panel_skeleton_viewer_t&) = delete;
 
@@ -70,7 +75,8 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void set_skeleton(sid_t skeleton_guid, const char* asset_name);
-		void apply_skeleton_def(skeleton_def_t&& skeleton);
+		void apply_slots(vector_t<skeleton_slot_def_t>&& slots, u32 selected_joint, u32 selected_slot);
+		bool on_command_event(const window_event_t& ev);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -89,39 +95,108 @@ namespace sfg
 	private:
 		friend class editor_command_skeleton_edit_t;
 
+		struct joint_row_t
+		{
+			ui::widget_id_t root		   = NULL_WIDGET;
+			ui::widget_id_t fold_icon	   = NULL_WIDGET;
+			ui::widget_id_t fold_icon_text = NULL_WIDGET;
+			ui::widget_id_t label		   = NULL_WIDGET;
+			u32				joint_index	   = SKELETON_JOINT_NO_PARENT;
+			u32				slot_index	   = UINT32_MAX;
+			u32				first_child	   = SKELETON_JOINT_NO_PARENT;
+			u32				next_sibling   = SKELETON_JOINT_NO_PARENT;
+			u32				depth		   = 0;
+			bool			expanded	   = true;
+			bool			visible		   = true;
+		};
+
+		struct slot_preview_t
+		{
+			resource_handle_t mesh	 = NULL_RESOURCE_HANDLE;
+			entity_id_t		  entity = NULL_ENTITY_ID;
+		};
+
+		void init_animation_controls();
+		void update_animation_player(bool reset);
+		void refresh_animation_controls();
+		void refresh_preview_animation_reference();
+		void refresh_slot_entities();
+		void update_slot_entity_transforms(world_t& world);
+		void init_slot_fields();
+		void refresh_slot_fields();
+		void select_row(u32 row_index);
+		void add_slot();
+		void duplicate_slot();
+		void rename_slot();
+		void delete_slot();
+		void open_row_menu(const vec2f_t& pos);
+		void refresh_joint_visibility();
+		bool get_joint_world_transform(u32 joint_index, mat4x3_t& transform) const;
+		bool get_slot_gizmo_target(editor_gizmo_target_t& target);
+		bool begin_slot_gizmo();
+		void update_slot_gizmo(const mat4x3_t& delta);
+		void commit_slot_gizmo();
+		void cancel_slot_gizmo();
+		void init_joint_hierarchy();
+		void refresh_joint_hierarchy();
+		void create_joint_row(u32 joint_index);
+		void update_joint_row_background(u32 joint_index);
+		void toggle_joint_fold(u32 joint_index);
+
 		void			create_preview_world();
+		void			update_preview_environment();
 		void			destroy_preview_world();
 		void			create_display_entity();
 		void			clear_display_entity();
-		void			refresh_slot_entities();
-		void			update_slot_entity_transforms(world_t& world);
+		void			draw_skeleton(world_t& world) const;
 		void			refresh_preview_mesh_reference();
 		void			refresh_info();
-		void			refresh_reflection();
 		void			apply_pane_split();
-		void			on_edit_begin();
-		void			on_edit_submitted();
 		ui::widget_id_t append_property_value_row(const char* label);
 		ui::widget_id_t append_value_label(ui::widget_id_t parent);
 
-		static span_t<const editor_widget_reflection_dropdown_item_t> resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, u32 element_index, void* user_data);
-		static void													  on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data);
-		static void													  on_edit_begin(void* user_data);
-		static void													  on_reflection_edited(void* user_data);
-		static void													  on_edit_submitted(void* user_data);
-		static void													  on_preview_mesh_edited(void* user_data);
-		static void													  on_world_tick(world_t& world, f32 delta_time, void* user_data);
-		static void													  on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_preview_animation_edited(void* user_data);
+		static void on_animation_play_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_animation_reset_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_save_changes_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_hierarchy_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
+		static void on_slot_rename_submitted(const char* value, void* user_data);
+		static void on_row_menu_action(u16 action, void* user_data);
+		static void on_slot_preview_mesh_edited(void* user_data);
+		static void on_slot_fields_edited(void* user_data);
+		static void on_slot_fields_edit_submitted(void* user_data);
+		static void on_slot_fields_edit_begin(void* user_data);
+		static void on_joint_row_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_joint_row_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data);
+		static void on_preview_mesh_edited(void* user_data);
+		static void on_world_tick(world_t& world, f32 delta_time, void* user_data);
+		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 
 	private:
-		editor_widget_world_view_t								 _world_view			  = {};
-		editor_widget_reflection_t								 _skeleton_reflection	  = {};
-		editor_widget_reference_t								 _preview_mesh_reference  = {};
-		editor_split_border_t									 _split_border			  = {};
-		skeleton_def_t											 _skeleton				  = {};
-		vector_t<entity_id_t>									 _slot_entities			  = {};
-		vector_t<editor_widget_reflection_dropdown_item_t>		 _joint_dropdown_items	  = {};
-		vector_t<editor_widget_reflection_fold_state_t>			 _fold_states			  = {};
+		editor_widget_world_view_t		  _world_view				   = {};
+		editor_widget_reference_t		  _preview_animation_reference = {};
+		editor_widget_button_t			  _animation_play_button	   = {};
+		editor_widget_button_t			  _animation_reset_button	   = {};
+		editor_widget_button_t			  _save_changes_button		   = {};
+		editor_vec3_field_t				  _slot_position_field		   = {};
+		editor_vec3_field_t				  _slot_preview_scale_field	   = {};
+		editor_quat_field_t				  _slot_rotation_field		   = {};
+		editor_widget_reference_t		  _slot_preview_mesh_reference = {};
+		editor_scrollbar_t				  _joint_scrollbar			   = {};
+		editor_widget_reference_t		  _preview_mesh_reference	   = {};
+		editor_split_border_t			  _split_border				   = {};
+		skeleton_def_t					  _skeleton					   = {};
+		unique_t<editor_command_system_t> _commands					   = {};
+		vector_t<joint_row_t>			  _joint_rows				   = {};
+		vector_t<slot_preview_t>		  _slot_previews			   = {};
+		mat4x3_t						  _slot_initial_absolute	   = mat4x3_t::identity;
+		mat4x3_t						  _slot_parent_transform	   = mat4x3_t::identity;
+		quat_t							  _slot_parent_rotation		   = quat_t::identity;
+		quat_t							  _slot_initial_rotation	   = quat_t::identity;
+		vec3f_t							  _slot_initial_position	   = vec3f_t::zero;
+		vec3f_t							  _slot_initial_preview_scale  = vec3f_t::one;
+
 		string_t												 _asset_name			  = {};
 		string_t												 _joint_count_text		  = {};
 		string_t												 _root_joint_text		  = {};
@@ -129,14 +204,27 @@ namespace sfg
 		pool_handle_t<u32, editor_asset_deletion_listener_tag_t> _asset_deletion_listener = {};
 		chunk_handle32_t										 _edit_previous_stream	  = {};
 		resource_handle_t										 _preview_mesh			  = NULL_RESOURCE_HANDLE;
+		resource_handle_t										 _preview_animation		  = NULL_RESOURCE_HANDLE;
+		resource_handle_t										 _slot_preview_mesh		  = NULL_RESOURCE_HANDLE;
 		sid_t													 _skeleton_guid			  = 0;
 		entity_id_t												 _display_entity		  = NULL_ENTITY_ID;
+		entity_id_t												 _environment_entity	  = NULL_ENTITY_ID;
 		u32														 _root_joint_index		  = UINT32_MAX;
+		u32														 _rename_slot_index		  = UINT32_MAX;
+		u32														 _selected_slot_index	  = UINT32_MAX;
+		u32														 _slot_generation		  = 0;
+		u32														 _edit_previous_joint	  = SKELETON_JOINT_NO_PARENT;
+		u32														 _edit_previous_slot	  = UINT32_MAX;
+		u32														 _selected_joint_index	  = SKELETON_JOINT_NO_PARENT;
+		ui::widget_id_t											 _joint_list_area		  = NULL_WIDGET;
 		ui::widget_id_t											 _left_pane				  = NULL_WIDGET;
 		ui::widget_id_t											 _right_pane			  = NULL_WIDGET;
 		ui::widget_id_t											 _joint_count_value		  = NULL_WIDGET;
 		ui::widget_id_t											 _root_joint_value		  = NULL_WIDGET;
 		f32														 _pane_split			  = 0.72f;
-		bool													 _edit_active			  = false;
+		bool													 _is_animation_playing	  = false;
+		bool													 _slot_fields_edit_active = false;
+		bool													 _slot_gizmo_active		  = false;
+		bool													 _row_menu_open			  = false;
 	};
 }

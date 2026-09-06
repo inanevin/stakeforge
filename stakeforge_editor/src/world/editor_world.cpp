@@ -269,7 +269,9 @@ namespace sfg
 		_edit_context.init(edit_type);
 		_edit_context.set_world(handle);
 		_input_controller.init(*this, handle);
-		_gizmo.init();
+		_entity_gizmo.init(_world, _edit_context);
+		_gizmo_callbacks		 = _entity_gizmo.get_callbacks();
+		_custom_gizmo			 = false;
 		_tick_callback			 = tick_callback;
 		_tick_callback_user_data = tick_callback_user_data;
 
@@ -315,7 +317,10 @@ namespace sfg
 
 		_play_snapshot.shrink(0);
 
-		_gizmo.uninit(_world);
+		_gizmo.uninit();
+		_entity_gizmo.uninit();
+		_gizmo_callbacks = {};
+		_custom_gizmo	 = false;
 		uninstall_camera();
 
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
@@ -429,13 +434,68 @@ namespace sfg
 			_camera->fit_to_bounds(_world, bounds);
 	}
 
+	void editor_world_t::set_gizmo_callbacks(const editor_gizmo_callbacks_t& callbacks)
+	{
+		cancel_gizmo_action();
+		clear_gizmo_hover();
+
+		_custom_gizmo	 = callbacks.get_target != nullptr;
+		_gizmo_callbacks = _custom_gizmo ? callbacks : _entity_gizmo.get_callbacks();
+
+		if (!_gizmo_callbacks.allow_scale && _edit_context.get_transform_control_type() == editor_transform_control_type_e::scale)
+			_edit_context.set_transform_control_type(editor_transform_control_type_e::move);
+	}
+
+	bool editor_world_t::get_gizmo_input(editor_gizmo_input_t& input) const
+	{
+		if (!is_gizmo_editing_supported() || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+			return false;
+
+		input.control_type = _edit_context.get_transform_control_type();
+		input.locality	   = _edit_context.get_transform_locality();
+		input.resolution   = _render_resolution;
+
+		if (input.control_type == editor_transform_control_type_e::invalid || (input.control_type == editor_transform_control_type_e::scale && !_gizmo_callbacks.allow_scale))
+			return false;
+
+		if (_edit_context.get_transform_snapping() == editor_transform_snapping_e::default_)
+		{
+			const editor_world_view_settings_t& settings = _edit_context.get_world_view_settings();
+			input.snap_translate						 = settings.snap_translate;
+			input.snap_rotate							 = settings.snap_rotate;
+			input.snap_scale							 = settings.snap_scale * 0.01f;
+		}
+
+		return _gizmo_callbacks.get_target(_gizmo_callbacks.user_data, input.target);
+	}
+
+	bool editor_world_t::get_gizmo_view(world_render_view_t& view)
+	{
+		if (_camera == nullptr)
+			return false;
+
+		const entity_id_t camera_entity = _camera->get_entity();
+		vec3f_t			  scale			= vec3f_t::one;
+		_world.calculate_transform_direct(camera_entity).decompose(view.pos, view.rot, scale);
+
+		const component_camera_t& camera = ecs_helpers_t::table_get_as_const<component_camera_t>(_world.get_component_table(type_id_t<component_camera_t>::value), camera_entity);
+		view.prev_pos					 = view.pos;
+		view.prev_rot					 = view.rot;
+		view.near_plane					 = camera.near_plane;
+		view.far_plane					 = camera.far_plane;
+		view.fov_degrees				 = camera.fov_degrees;
+		return true;
+	}
+
 	void editor_world_t::update_gizmo_hover(vec2f_t relative_position)
 	{
-		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
-			return;
+		world_render_view_t	 view  = {};
+		editor_gizmo_input_t input = {.view = &view};
 
-		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
-		_gizmo.update_hover(_world, _edit_context, camera_entity, _render_resolution, relative_position);
+		if (get_gizmo_input(input) && get_gizmo_view(view))
+			_gizmo.update_hover(input, relative_position);
+		else
+			_gizmo.clear_hover();
 	}
 
 	void editor_world_t::clear_gizmo_hover()
@@ -445,33 +505,42 @@ namespace sfg
 
 	bool editor_world_t::begin_gizmo_action(vec2f_t relative_position)
 	{
-		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+		world_render_view_t	 view  = {};
+		editor_gizmo_input_t input = {.view = &view};
+
+		if (!get_gizmo_input(input) || !get_gizmo_view(view))
 			return false;
 
-		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
-		return _gizmo.begin_action(_world, _edit_context, camera_entity, _render_resolution, relative_position);
+		return _gizmo.begin_action(input, _gizmo_callbacks, relative_position);
 	}
 
 	void editor_world_t::update_gizmo_action(vec2f_t relative_position)
 	{
-		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
-			return;
+		world_render_view_t	 view  = {};
+		editor_gizmo_input_t input = {.view = &view};
 
-		const entity_id_t camera_entity = _camera != nullptr ? _camera->get_entity() : NULL_ENTITY_ID;
-		_gizmo.update_action(_world, _edit_context, camera_entity, _render_resolution, relative_position);
+		if (!get_gizmo_input(input) || !get_gizmo_view(view))
+		{
+			_gizmo.cancel_action();
+			return;
+		}
+
+		_gizmo.update_action(input, relative_position);
 	}
 
 	void editor_world_t::end_gizmo_action()
 	{
-		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
-			return;
+		editor_gizmo_input_t input = {};
 
-		_gizmo.end_action(_world, _edit_context);
+		if (get_gizmo_input(input))
+			_gizmo.end_action(input);
+		else
+			_gizmo.cancel_action();
 	}
 
 	void editor_world_t::cancel_gizmo_action()
 	{
-		_gizmo.cancel_action(_world);
+		_gizmo.cancel_action();
 	}
 
 	void editor_world_t::request_entity_pick(vec2f_t relative_position, bool incremental_selection)
@@ -720,9 +789,6 @@ namespace sfg
 				editor_world_util_t::draw_selection_gizmos(_world, selected, _render_resolution);
 		}
 
-		if (_edit_context.is_skeletons_enabled())
-			editor_world_util_t::draw_skeletons(_world);
-
 		if (_edit_context.is_bounding_boxes_enabled() && _latest_snapshot_slot != UINT8_MAX)
 			editor_world_util_t::draw_bounding_boxes(_world, _snapshot_slots[_latest_snapshot_slot], editor_camera_entity);
 	}
@@ -750,27 +816,21 @@ namespace sfg
 		data.gizmo		= {};
 		data.world_view = _edit_context.get_world_view();
 
-		const bool		  gizmo_enabled = _edit_context.get_edit_type() == editor_world_edit_type_e::full_control && _play_mode != editor_play_mode_e::play && _play_mode != editor_play_mode_e::play_paused;
-		const entity_id_t anchor		= gizmo_enabled ? _edit_context.get_mutable_entity_anchor(_world) : NULL_ENTITY_ID;
+		editor_gizmo_input_t gizmo_input = {};
 
-		if (anchor != NULL_ENTITY_ID)
+		if (get_gizmo_input(gizmo_input))
 		{
-			const ecs_component_table_t&		transform_table = _world.get_component_table(type_id_t<component_system_transform_t>::value);
-			const component_system_transform_t& transform		= ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, anchor);
-			const bool							local			= _edit_context.get_transform_locality() == editor_transform_locality_e::local;
-			data.gizmo											= {
-				.prev_rotation = local ? transform.prev_abs_rot : quat_t::identity,
-				.rotation	   = local ? transform.abs_rot : quat_t::identity,
-				.prev_position = transform.prev_abs_pos,
-				.position	   = transform.abs_pos,
-				.control_type  = _edit_context.get_transform_control_type(),
+			const editor_gizmo_target_t& target = gizmo_input.target;
+			const bool					 local	= gizmo_input.locality == editor_transform_locality_e::local;
+			data.gizmo							= {
+				.prev_rotation = local ? target.prev_rotation : quat_t::identity,
+				.rotation	   = local ? target.rotation : quat_t::identity,
+				.prev_position = target.prev_position,
+				.position	   = target.position,
+				.control_type  = gizmo_input.control_type,
+				.hovered_axis  = _gizmo.get_hovered_axis(),
+				.active_axis   = _gizmo.get_active_axis(),
 			};
-		}
-
-		if (gizmo_enabled)
-		{
-			data.gizmo.hovered_axis = _gizmo.get_hovered_axis();
-			data.gizmo.active_axis	= _gizmo.get_active_axis();
 		}
 
 		data.selected_entities.resize(0);

@@ -231,7 +231,7 @@ namespace sfg
 			cancel_gizmo_action();
 			context.set_transform_control_type(editor_transform_control_type_e::rotate);
 		}
-		else if (key == static_cast<u16>(input_code::key_alpha3))
+		else if (key == static_cast<u16>(input_code::key_alpha3) && _world->is_gizmo_scale_allowed())
 		{
 			cancel_gizmo_action();
 			context.set_transform_control_type(editor_transform_control_type_e::scale);

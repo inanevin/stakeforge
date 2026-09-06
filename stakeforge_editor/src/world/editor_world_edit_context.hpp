@@ -27,6 +27,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include "world/editor_world_handle.hpp"
+#include "world/editor_transform.hpp"
 #include "world/editor_world_view_settings.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
@@ -53,28 +54,6 @@ namespace sfg
 	{
 		entity,
 		folder,
-	};
-
-	enum class editor_transform_control_type_e : u8
-	{
-		invalid,
-		move,
-		rotate,
-		scale,
-	};
-
-	enum class editor_transform_locality_e : u8
-	{
-		invalid,
-		local,
-		world,
-	};
-
-	enum class editor_transform_snapping_e : u8
-	{
-		invalid,
-		none,
-		default_,
 	};
 
 	enum class editor_world_view_e : u8
@@ -237,16 +216,6 @@ namespace sfg
 		inline bool is_bounding_boxes_enabled() const
 		{
 			return _bounding_boxes_enabled;
-		}
-
-		inline void set_skeletons_enabled(bool enabled)
-		{
-			_skeletons_enabled = enabled;
-		}
-
-		inline bool is_skeletons_enabled() const
-		{
-			return _skeletons_enabled;
 		}
 
 		inline void set_physics_debug_enabled(bool enabled)
@@ -437,7 +406,6 @@ namespace sfg
 		editor_play_mode_e															  _play_mode			  = editor_play_mode_e::none;
 		bool																		  _grid_enabled			  = false;
 		bool																		  _bounding_boxes_enabled = false;
-		bool																		  _skeletons_enabled	  = false;
 		editor_world_view_settings_t												  _world_view_settings	  = {};
 		bool																		  _physics_debug_enabled  = false;
 		bool																		  _shoot_rays_enabled	  = false;

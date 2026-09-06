@@ -37,8 +37,10 @@ namespace sfg
 		SFG_ASSERT(config.command_max_count != 0);
 		SFG_ASSERT(config.aux_data_budget_bytes != 0);
 
-		s_instance = this;
-		_config	   = config;
+		if (config.global_instance)
+			s_instance = this;
+
+		_config = config;
 		_commands.reserve(config.command_max_count);
 		_listeners.reserve(config.listener_initial_capacity);
 		_history.reserve(config.command_max_count);
@@ -61,7 +63,9 @@ namespace sfg
 		_next_sequence	   = 1;
 		_generation		   = 0;
 		_entity_generation = 0;
-		s_instance		   = nullptr;
+
+		if (s_instance == this)
+			s_instance = nullptr;
 	}
 
 	void editor_command_system_t::clear()

@@ -24,7 +24,7 @@ OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISE
 OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include "ui/panels/editor_panel_skeleton_viewer.hpp"
+#include "editor_panel_skeleton_viewer.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
@@ -33,6 +33,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "editor_command_system.hpp"
 #include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
+#include "ui/editor_action_menu_controller.hpp"
+#include "ui/editor_popup_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
@@ -41,9 +43,15 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "world/editor_world.hpp"
 #include "world/editor_world_util.hpp"
 
-#include <sfg/common/hashing.hpp>
+#include <sfg/data/frame_vector.hpp>
+#include <sfg/data/char_util.hpp>
+#include <sfg/input/input_mappings.hpp>
+#include <sfg/platform/common_window.hpp>
+#include <sfg/platform/process.hpp>
 #include <sfg/io/assert.hpp>
+#include <sfg/io/log.hpp>
 #include <sfg/math/math.hpp>
+#include <sfg/math/rectf.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
@@ -53,11 +61,17 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
+#define SKELETON_VIEWER_ADD_SLOT	   1
+#define SKELETON_VIEWER_DUPLICATE_SLOT 2
+#define SKELETON_VIEWER_DELETE_SLOT	   3
+#define SKELETON_VIEWER_RENAME_SLOT	   4
+
 #define SKELETON_VIEWER_PANE_SPLIT_MIN				0.45f
 #define SKELETON_VIEWER_PANE_SPLIT_MAX				0.85f
 #define SKELETON_VIEWER_SPLIT_BORDER_THICKNESS_MULT 2.0f
@@ -68,6 +82,8 @@ namespace sfg
 		refresh_title();
 		set_icon(ICON_ANIMATION);
 	}
+
+	editor_panel_skeleton_viewer_t::~editor_panel_skeleton_viewer_t() = default;
 
 	void editor_panel_skeleton_viewer_t::serialize(nlohmann::json& j) const
 	{
@@ -89,6 +105,10 @@ namespace sfg
 	void editor_panel_skeleton_viewer_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
 		editor_panel_t::init(ui, parent);
+
+		_commands = make_unique<editor_command_system_t>();
+		_commands->init({.listener_initial_capacity = 1, .global_instance = false});
+
 		_asset_deletion_listener = editor_asset_manager_t::get().add_asset_deletion_listener(on_asset_deletion, this);
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
@@ -143,6 +163,7 @@ namespace sfg
 		editor_misc_widgets_t::make_section_label(ui, _right_pane, "Skeleton");
 
 		_joint_count_value = append_property_value_row("Joints");
+		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
 		const editor_property_row_t preview_mesh_row   = editor_misc_widgets_t::make_property_row_with_label(ui, _right_pane, "Preview Mesh");
 		u64*						preview_mesh_field = &_preview_mesh;
@@ -166,26 +187,45 @@ namespace sfg
 		preview_mesh_in.anchor_y		 = ui::anchor_e::center;
 
 		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
-		_root_joint_value = append_property_value_row("Root Joint");
 
-		void* skeleton_object = &_skeleton;
-		_skeleton_reflection.init(ui,
-								  _right_pane,
-								  {
-									  .fold_states = &_fold_states,
-									  .callbacks =
+		const editor_property_row_t preview_animation_row	= editor_misc_widgets_t::make_property_row_with_label(ui, _right_pane, "Preview Animation");
+		u64*						preview_animation_field = &_preview_animation;
+
+		_preview_animation_reference.init(ui,
+										  preview_animation_row.right,
 										  {
-											  .edit_begin	  = on_edit_begin,
-											  .edited		  = on_reflection_edited,
-											  .edit_submitted = on_edit_submitted,
-											  .user_data	  = this,
-										  },
-									  .objects					= {.data = &skeleton_object, .size = 1},
-									  .type_id					= type_id_t<skeleton_def_t>::value,
-									  .dropdown_items			= resolve_dropdown_items,
-									  .dropdown_items_user_data = this,
-									  .block_edits				= _skeleton_guid == NULL_SID,
-								  });
+											  .callbacks  = {.edited = on_preview_animation_edited, .user_data = this},
+											  .fields	  = {.data = &preview_animation_field, .size = 1},
+											  .asset_type = editor_asset_type_e::animation,
+										  });
+
+		ui::layout_in_t& preview_animation_in = tree.in(_preview_animation_reference.get_root());
+		preview_animation_in.size_mode_x	  = ui::axis_mode_e::fill;
+		preview_animation_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
+		preview_animation_in.pos_value.y	  = 0.5f;
+		preview_animation_in.anchor_y		  = ui::anchor_e::center;
+
+		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+		_root_joint_value = append_property_value_row("Root Joint");
+		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
+		init_animation_controls();
+		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
+		editor_misc_widgets_t::make_section_label(ui, _right_pane, "Selected Slot");
+		init_slot_fields();
+		init_joint_hierarchy();
+
+		editor_misc_widgets_t::add_spacer(ui, _right_pane, {0.0f, theme.item_spacing});
+		_save_changes_button.init(ui, _right_pane, {.text = "Save Changes", .width = {.mode = editor_widget_width_e::fixed, .value = theme.item_height * 6.0f}});
+
+		ui::layout_in_t& save_in = tree.in(_save_changes_button.get_root());
+
+		save_in.pos_mode_x	= ui::pos_mode_e::relative_in_parent;
+		save_in.pos_value.x = 0.5f;
+		save_in.anchor_x	= ui::anchor_e::center;
+		save_in.flags |= ui::wf_disabled;
+		ui.get_input().set_listener(_save_changes_button.get_root(), {.on_click = on_save_changes_pressed, .user_data = this});
 
 		create_preview_world();
 
@@ -193,8 +233,9 @@ namespace sfg
 			set_skeleton(_skeleton_guid, _asset_name.c_str());
 		else
 		{
+			update_preview_environment();
 			refresh_info();
-			refresh_reflection();
+			refresh_joint_hierarchy();
 		}
 
 		apply_pane_split();
@@ -202,38 +243,81 @@ namespace sfg
 
 	void editor_panel_skeleton_viewer_t::uninit()
 	{
+		if (_rename_slot_index != UINT32_MAX)
+		{
+			editor_popup_controller_t::find(*_ui)->close_popup();
+			_rename_slot_index = UINT32_MAX;
+		}
+
+		if (_row_menu_open)
+			editor_action_menu_controller_t::find(*_ui)->close_action_menu();
+
+		editor_world_controller_t::get().get_editor_world(_world)->set_gizmo_callbacks({});
 		editor_command_skeleton_edit_t::cancel(*this);
-		editor_command_system_t::get().clear_user_data(this);
-		_edit_active = false;
+		_commands->clear();
+		_slot_fields_edit_active = false;
+
+		_slot_preview_mesh_reference.uninit();
+		_slot_position_field.uninit();
+		_slot_preview_scale_field.uninit();
+		_slot_rotation_field.uninit();
 
 		editor_asset_manager_t::get().remove_asset_deletion_listener(_asset_deletion_listener);
 
 		_asset_deletion_listener = {};
-		_skeleton_reflection.uninit();
+		_joint_scrollbar.uninit();
 		_preview_mesh_reference.uninit();
+		_preview_animation_reference.uninit();
+		_animation_play_button.uninit();
+		_animation_reset_button.uninit();
+		_save_changes_button.uninit();
 		_world_view.uninit();
 		_split_border.uninit();
 		_ui->deallocate_widget(_left_pane);
 		_ui->deallocate_widget(_right_pane);
 		destroy_preview_world();
 
-		_joint_dropdown_items.resize(0);
-		_fold_states.resize(0);
-		_skeleton = {};
+		_joint_rows.resize(0);
+		_selected_joint_index = SKELETON_JOINT_NO_PARENT;
+		_selected_slot_index  = UINT32_MAX;
+		_joint_list_area	  = NULL_WIDGET;
+		_skeleton			  = {};
+
+		_commands->uninit();
+		_commands.reset();
 
 		editor_panel_t::uninit();
 	}
 
 	void editor_panel_skeleton_viewer_t::set_skeleton(sid_t skeleton_guid, const char* asset_name)
 	{
-		if (_skeleton_guid != skeleton_guid)
+		if (!_world.is_null())
+			editor_world_controller_t::get().get_editor_world(_world)->cancel_gizmo_action();
+
+		if (_rename_slot_index != UINT32_MAX)
 		{
-			editor_command_skeleton_edit_t::cancel(*this);
-			editor_command_system_t::get().clear_user_data(this);
-			_edit_active = false;
+			editor_popup_controller_t::find(*_ui)->close_popup();
+			_rename_slot_index = UINT32_MAX;
 		}
 
+		if (_row_menu_open)
+			editor_action_menu_controller_t::find(*_ui)->close_action_menu();
+
+		_selected_joint_index = SKELETON_JOINT_NO_PARENT;
+		_selected_slot_index  = UINT32_MAX;
+		++_slot_generation;
+
+		editor_command_skeleton_edit_t::cancel(*this);
+		_commands->clear();
+		_slot_fields_edit_active = false;
+
 		_skeleton_guid = skeleton_guid;
+
+		if (skeleton_guid != NULL_SID)
+			_ui->get_tree().in(_save_changes_button.get_root()).flags &= ~ui::wf_disabled;
+		else
+			_ui->get_tree().in(_save_changes_button.get_root()).flags |= ui::wf_disabled;
+
 		set_sub_item_id(skeleton_guid);
 		_asset_name		  = asset_name;
 		_skeleton		  = {};
@@ -252,25 +336,64 @@ namespace sfg
 			}
 		}
 
-		_preview_mesh	  = _skeleton.preview_mesh;
-		_root_joint_index = _skeleton.is_evaluation_order_valid() ? _skeleton.root_joint_index : UINT32_MAX;
+		_preview_mesh		  = _skeleton.preview_mesh;
+		_preview_animation	  = _skeleton.preview_animation;
+		_is_animation_playing = false;
+		_root_joint_index	  = _skeleton.is_evaluation_order_valid() ? _skeleton.root_joint_index : UINT32_MAX;
 
 		refresh_preview_mesh_reference();
+		refresh_preview_animation_reference();
+		update_preview_environment();
 		create_display_entity();
-		refresh_slot_entities();
+
+		if (const mesh_internals_t* internals = resource_manager_t::get().find_internals<mesh_internals_t>(_preview_mesh))
+			editor_world_controller_t::get().get_editor_world(_world)->fit_camera_to_bounds(internals->local_bounds);
+
 		refresh_info();
-		refresh_reflection();
+		refresh_joint_hierarchy();
 		refresh_title(_asset_name.c_str(), "S: ");
 	}
 
-	void editor_panel_skeleton_viewer_t::apply_skeleton_def(skeleton_def_t&& skeleton)
+	bool editor_panel_skeleton_viewer_t::on_command_event(const window_event_t& ev)
 	{
-		_skeleton		  = std::move(skeleton);
-		_root_joint_index = _skeleton.is_evaluation_order_valid() ? _skeleton.root_joint_index : UINT32_MAX;
+		if (ev.type != window_event_type_e::key || (ev.sub_type != window_event_sub_type_e::press && ev.sub_type != window_event_sub_type_e::repeat))
+			return false;
 
-		refresh_slot_entities();
+		const bool ctrl = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+
+		if (!ctrl || (ev.button != static_cast<u16>(input_code::key_z) && ev.button != static_cast<u16>(input_code::key_r)))
+			return false;
+
+		editor_world_controller_t::get().get_editor_world(_world)->end_gizmo_action();
+
+		if (_slot_position_field.is_editing() || _slot_rotation_field.is_editing() || _slot_preview_scale_field.is_editing())
+			_ui->get_input().set_focus(_joint_list_area, false);
+
+		on_slot_fields_edit_submitted(this);
+
+		return _commands->on_window_event(ev);
+	}
+
+	void editor_panel_skeleton_viewer_t::apply_slots(vector_t<skeleton_slot_def_t>&& slots, u32 selected_joint, u32 selected_slot)
+	{
+		if (_rename_slot_index != UINT32_MAX)
+		{
+			editor_popup_controller_t::find(*_ui)->close_popup();
+			_rename_slot_index = UINT32_MAX;
+		}
+
+		if (_row_menu_open)
+			editor_action_menu_controller_t::find(*_ui)->close_action_menu();
+
+		editor_world_controller_t::get().get_editor_world(_world)->cancel_gizmo_action();
+		_selected_joint_index = selected_joint;
+		_selected_slot_index  = selected_slot;
+		++_slot_generation;
+
+		_skeleton.slots = std::move(slots);
+
 		refresh_info();
-		refresh_reflection();
+		refresh_joint_hierarchy();
 	}
 
 	void editor_panel_skeleton_viewer_t::create_preview_world()
@@ -283,9 +406,37 @@ namespace sfg
 
 		editor_world->install_camera(editor_world_camera_type_e::fly);
 
-		editor_world_util_t::install_default_scene(editor_world->get_world());
-
+		editor_world->set_gizmo_callbacks({
+			.get_target	 = [](void* user_data, editor_gizmo_target_t& target) { return static_cast<editor_panel_skeleton_viewer_t*>(user_data)->get_slot_gizmo_target(target); },
+			.begin		 = [](void* user_data) { return static_cast<editor_panel_skeleton_viewer_t*>(user_data)->begin_slot_gizmo(); },
+			.update		 = [](void* user_data, const mat4x3_t& delta) { static_cast<editor_panel_skeleton_viewer_t*>(user_data)->update_slot_gizmo(delta); },
+			.commit		 = [](void* user_data) { static_cast<editor_panel_skeleton_viewer_t*>(user_data)->commit_slot_gizmo(); },
+			.cancel		 = [](void* user_data) { static_cast<editor_panel_skeleton_viewer_t*>(user_data)->cancel_slot_gizmo(); },
+			.user_data	 = this,
+			.allow_scale = true,
+		});
 		_world_view.set_edit_world(_world);
+	}
+
+	void editor_panel_skeleton_viewer_t::update_preview_environment()
+	{
+		if (_world.is_null())
+			return;
+
+		world_t&  world		  = editor_world_controller_t::get().get_editor_world(_world)->get_world();
+		const f32 spotlight_y = _skeleton.joints.empty() ? 5.0f : _skeleton.local_bounds.bounds_max.y * 2.0f;
+
+		if (_environment_entity == NULL_ENTITY_ID)
+		{
+			_environment_entity = editor_world_util_t::install_default_scene_dark(world, spotlight_y);
+			return;
+		}
+
+		world.set_entity_pos_local(_environment_entity, {0.0f, spotlight_y, 0.0f});
+
+		component_light_t& light = ecs_helpers_t::table_get_as<component_light_t>(world.get_component_table(type_id_t<component_light_t>::value), _environment_entity);
+
+		light.range = math::max(10.0f, spotlight_y * 2.0f);
 	}
 
 	void editor_panel_skeleton_viewer_t::destroy_preview_world()
@@ -295,9 +446,10 @@ namespace sfg
 
 		editor_world_controller_t::get().destroy_world(_world);
 
-		_world			= {};
-		_display_entity = NULL_ENTITY_ID;
-		_slot_entities.resize(0);
+		_world				= {};
+		_display_entity		= NULL_ENTITY_ID;
+		_environment_entity = NULL_ENTITY_ID;
+		_slot_previews.resize(0);
 	}
 
 	void editor_panel_skeleton_viewer_t::create_display_entity()
@@ -305,6 +457,8 @@ namespace sfg
 		if (_world.is_null())
 			return;
 
+		editor_world_controller_t::get().get_editor_world(_world)->cancel_gizmo_action();
+		++_slot_generation;
 		clear_display_entity();
 
 		world_t& world = editor_world_controller_t::get().get_editor_world(_world)->get_world();
@@ -330,10 +484,8 @@ namespace sfg
 				skinned_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
 		}
 
+		update_animation_player(true);
 		world.scan_for_resources(_display_entity, true);
-
-		if (const mesh_internals_t* internals = resource_manager_t::get().find_internals<mesh_internals_t>(_preview_mesh))
-			editor_world_controller_t::get().get_editor_world(_world)->fit_camera_to_bounds(internals->local_bounds);
 	}
 
 	void editor_panel_skeleton_viewer_t::clear_display_entity()
@@ -347,55 +499,8 @@ namespace sfg
 		_display_entity = NULL_ENTITY_ID;
 	}
 
-	void editor_panel_skeleton_viewer_t::refresh_slot_entities()
+	void editor_panel_skeleton_viewer_t::draw_skeleton(world_t& world) const
 	{
-		if (_world.is_null())
-			return;
-
-		world_t& world = editor_world_controller_t::get().get_editor_world(_world)->get_world();
-
-		for (const entity_id_t entity : _slot_entities)
-			world.destroy_entity(entity);
-
-		_slot_entities.resize(0);
-		_slot_entities.reserve(_skeleton.slots.size());
-
-		for (const skeleton_slot_def_t& slot : _skeleton.slots)
-		{
-			const entity_id_t entity = world.create_entity("skeleton_viewer_slot");
-
-			_slot_entities.push_back(entity);
-
-			if (slot.preview_mesh == NULL_RESOURCE_HANDLE)
-				continue;
-
-			component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), entity);
-
-			mesh_renderer.mesh = slot.preview_mesh;
-
-			const editor_asset_t* mesh_asset = editor_asset_manager_t::get().find_asset(slot.preview_mesh);
-			mesh_def_t			  mesh_def	 = {};
-
-			if (mesh_asset != nullptr && mesh_asset->asset_type == editor_asset_type_e::mesh && editor_asset_util_t::load_mesh_def(*mesh_asset, mesh_def) && !mesh_def.preview_materials.empty())
-			{
-				for (const resource_handle_t material : mesh_def.preview_materials)
-					mesh_renderer.materials.push_back(material);
-			}
-			else
-			{
-				for (size_t i = 0; i < decltype(mesh_renderer.materials)::capacity; ++i)
-					mesh_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
-			}
-
-			world.scan_for_resources(entity, true);
-		}
-	}
-
-	void editor_panel_skeleton_viewer_t::update_slot_entity_transforms(world_t& world)
-	{
-		if (_slot_entities.empty())
-			return;
-
 		const ecs_component_table_t&					system_skinned_table = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
 		const component_system_skinned_mesh_renderer_t* system_skinned		 = ecs_helpers_t::table_find_as_const<component_system_skinned_mesh_renderer_t>(system_skinned_table, _display_entity);
 
@@ -411,31 +516,193 @@ namespace sfg
 		const skeleton_joint_runtime_t*		 joints			= resource_manager.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
 		const span_t<const animation_bone_t> bones			= world.get_animation_controller().get_bones(system_skinned->bones_handle);
 		const mat4x3_t						 mesh_transform = world.calculate_transform_direct(_display_entity);
+		world_debug_draw_t&					 debug_draw		= world.get_debug_draw();
 
-		SFG_ASSERT(_slot_entities.size() == _skeleton.slots.size());
-
-		for (size_t slot_index = 0; slot_index < _skeleton.slots.size(); ++slot_index)
+		for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
 		{
-			const skeleton_slot_def_t& slot = _skeleton.slots[slot_index];
+			const skeleton_joint_runtime_t& joint = joints[joint_index];
 
-			if (slot.slot_joint_index == SKELETON_JOINT_NO_PARENT)
+			if (joint.parent_index == SKELETON_JOINT_NO_PARENT)
 				continue;
 
-			SFG_ASSERT(slot.slot_joint_index < skeleton->joint_count);
+			const vec3f_t position		  = mesh_transform * (bones.data[joint_index].bone_transform * joint.bind_global.get_translation());
+			const vec3f_t parent_position = mesh_transform * (bones.data[joint.parent_index].bone_transform * joints[joint.parent_index].bind_global.get_translation());
 
-			const u32	   joint_index			= slot.slot_joint_index;
-			const mat4x3_t joint_transform		= bones.data[joint_index].bone_transform * joints[joint_index].bind_global;
-			const mat4x3_t slot_local_transform = mat4x3_t::transform(slot.local_position, slot.local_rotation, vec3f_t::one);
-			const mat4x3_t slot_transform		= mesh_transform * joint_transform * slot_local_transform;
-			vec3f_t		   position				= vec3f_t::zero;
-			quat_t		   rotation				= quat_t::identity;
-			vec3f_t		   scale				= vec3f_t::one;
-
-			slot_transform.decompose(position, rotation, scale);
-			world.teleport_entity(_slot_entities[slot_index], position, rotation, vec3f_t::one);
+			debug_draw.draw_line(parent_position, position, color_t::white, 2.0f, debug_draw_depth_e::always_visible);
 		}
 
-		world.update_world_transforms(false);
+		if (_selected_joint_index != SKELETON_JOINT_NO_PARENT)
+		{
+			const mat4x3_t transform = mesh_transform * bones.data[_selected_joint_index].bone_transform * joints[_selected_joint_index].bind_global;
+			const f32	   length	 = math::max(0.05f, (_skeleton.local_bounds.bounds_max - _skeleton.local_bounds.bounds_min).magnitude() * 0.08f);
+
+			editor_world_util_t::draw_transform_axes(debug_draw, transform, length, 2.0f, debug_draw_depth_e::always_visible);
+		}
+	}
+
+	void editor_panel_skeleton_viewer_t::init_animation_controls()
+	{
+		const editor_theme_t& theme	   = editor_theme_t::get();
+		const ui::widget_id_t controls = _ui->allocate_widget();
+
+		_ui->set_widget_debug_name(controls, "skeleton_animation_controls");
+		_ui->get_tree().attach(_right_pane, controls);
+
+		ui::layout_in_t& in = _ui->get_tree().in(controls);
+
+		in.flow			 = ui::flow_e::row;
+		in.child_spacing = theme.item_spacing;
+		in.size_mode_x	 = ui::axis_mode_e::parent_relative;
+		in.size_mode_y	 = ui::axis_mode_e::fixed;
+		in.size_value	 = {1.0f, theme.item_area_height};
+
+		_animation_play_button.init(*_ui, controls, {.text = "Play"});
+		_animation_reset_button.init(*_ui, controls, {.text = "Reset"});
+
+		const ui::widget_id_t buttons[] = {_animation_play_button.get_root(), _animation_reset_button.get_root()};
+
+		for (const ui::widget_id_t button : buttons)
+		{
+			ui::layout_in_t& button_in = _ui->get_tree().in(button);
+
+			button_in.size_mode_x = ui::axis_mode_e::fill;
+			button_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
+			button_in.pos_value.y = 0.5f;
+			button_in.anchor_y	  = ui::anchor_e::center;
+		}
+
+		_ui->get_input().set_listener(_animation_play_button.get_root(), {.on_click = on_animation_play_pressed, .user_data = this});
+		_ui->get_input().set_listener(_animation_reset_button.get_root(), {.on_click = on_animation_reset_pressed, .user_data = this});
+
+		refresh_animation_controls();
+	}
+
+	void editor_panel_skeleton_viewer_t::refresh_animation_controls()
+	{
+		const bool disabled = _preview_animation == NULL_RESOURCE_HANDLE || _display_entity == NULL_ENTITY_ID;
+
+		_animation_play_button.set_text(_is_animation_playing ? "Pause" : "Play", _is_animation_playing ? editor_theme_t::get().color_text0 : editor_theme_t::get().color_accent2);
+
+		const ui::widget_id_t buttons[] = {_animation_play_button.get_root(), _animation_reset_button.get_root()};
+
+		for (const ui::widget_id_t button : buttons)
+		{
+			if (disabled)
+				_ui->get_tree().in(button).flags |= ui::wf_disabled;
+			else
+				_ui->get_tree().in(button).flags &= ~ui::wf_disabled;
+		}
+	}
+
+	void editor_panel_skeleton_viewer_t::update_animation_player(bool reset)
+	{
+		if (_display_entity == NULL_ENTITY_ID)
+		{
+			refresh_animation_controls();
+			return;
+		}
+
+		world_t&			   world   = editor_world_controller_t::get().get_editor_world(_world)->get_world();
+		ecs_component_table_t& players = world.get_component_table(type_id_t<component_animation_player_t>::value);
+
+		if (_preview_animation == NULL_RESOURCE_HANDLE)
+		{
+			if (ecs_t::table_has(players, _display_entity))
+				ecs_t::table_remove(players, _display_entity);
+		}
+		else
+		{
+			component_animation_player_t& player = ecs_helpers_t::table_add_or_get_as<component_animation_player_t>(players, _display_entity);
+
+			player.animation		= _preview_animation;
+			player.speed_multiplier = _is_animation_playing ? 1.0f : 0.0f;
+			player.is_looping		= true;
+			player.is_scrub			= false;
+
+			if (reset)
+			{
+				component_system_animation_player_t* system_player = ecs_helpers_t::table_find_as<component_system_animation_player_t>(world.get_component_table(type_id_t<component_system_animation_player_t>::value), _display_entity);
+
+				if (system_player != nullptr)
+					system_player->sample_time = 0.0f;
+			}
+		}
+
+		refresh_animation_controls();
+	}
+
+	void editor_panel_skeleton_viewer_t::refresh_preview_animation_reference()
+	{
+		u64* field = &_preview_animation;
+
+		_preview_animation_reference.set_reference({
+			.callbacks	= {.edited = on_preview_animation_edited, .user_data = this},
+			.fields		= {.data = &field, .size = 1},
+			.asset_type = editor_asset_type_e::animation,
+		});
+	}
+
+	void editor_panel_skeleton_viewer_t::on_preview_animation_edited(void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+		editor_world_t&					world  = *editor_world_controller_t::get().get_editor_world(viewer._world);
+
+		world.cancel_gizmo_action();
+		++viewer._slot_generation;
+		viewer._skeleton.preview_animation = viewer._preview_animation;
+		viewer._is_animation_playing	   = false;
+		viewer.update_animation_player(true);
+
+		if (viewer._display_entity != NULL_ENTITY_ID)
+			world.get_world().scan_for_resources(viewer._display_entity, true);
+	}
+
+	void editor_panel_skeleton_viewer_t::on_animation_play_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		editor_world_controller_t::get().get_editor_world(viewer._world)->cancel_gizmo_action();
+		++viewer._slot_generation;
+		viewer._is_animation_playing = !viewer._is_animation_playing;
+		viewer.update_animation_player(false);
+	}
+
+	void editor_panel_skeleton_viewer_t::on_animation_reset_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		editor_world_controller_t::get().get_editor_world(viewer._world)->cancel_gizmo_action();
+		++viewer._slot_generation;
+		viewer._is_animation_playing = false;
+		viewer.update_animation_player(true);
+	}
+
+	void editor_panel_skeleton_viewer_t::on_save_changes_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		editor_world_controller_t::get().get_editor_world(viewer._world)->end_gizmo_action();
+		on_slot_fields_edit_submitted(&viewer);
+
+		nlohmann::json embedded_source = nlohmann::json::object();
+
+		if (!reflection_registry_t::get().type_to_json(type_id_t<skeleton_def_t>::value, &viewer._skeleton, nullptr, embedded_source))
+		{
+			SFG_ERR("failed to serialize skeleton definition for asset {0}", viewer._skeleton_guid);
+			return;
+		}
+
+		if (!editor_asset_manager_t::get().save_and_cook_embedded_asset_async(viewer._skeleton_guid, embedded_source))
+			SFG_ERR("failed to save and queue cooking for skeleton asset {0}", viewer._skeleton_guid);
 	}
 
 	void editor_panel_skeleton_viewer_t::refresh_preview_mesh_reference()
@@ -493,42 +760,886 @@ namespace sfg
 		paint.set_text(_root_joint_value, _ui->widget_text(_root_joint_value), _ui->widget_text_len(_root_joint_value), value_paint);
 	}
 
-	void editor_panel_skeleton_viewer_t::refresh_reflection()
+	void editor_panel_skeleton_viewer_t::refresh_slot_entities()
+	{
+		world_t&	 world		= editor_world_controller_t::get().get_editor_world(_world)->get_world();
+		const size_t slot_count = _skeleton.slots.size();
+
+		for (size_t i = slot_count; i < _slot_previews.size(); ++i)
+		{
+			if (_slot_previews[i].entity != NULL_ENTITY_ID)
+				world.destroy_entity(_slot_previews[i].entity);
+		}
+
+		_slot_previews.resize(slot_count);
+
+		for (size_t i = 0; i < slot_count; ++i)
+		{
+			const skeleton_slot_def_t& slot	   = _skeleton.slots[i];
+			slot_preview_t&			   preview = _slot_previews[i];
+
+			if (preview.mesh == slot.preview_mesh)
+				continue;
+
+			if (preview.entity != NULL_ENTITY_ID)
+				world.destroy_entity(preview.entity);
+
+			preview = {.mesh = slot.preview_mesh};
+
+			if (slot.preview_mesh == NULL_RESOURCE_HANDLE)
+				continue;
+
+			preview.entity = world.create_entity("skeleton_viewer_slot");
+
+			component_mesh_renderer_t& renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), preview.entity);
+			const editor_asset_t*	   asset	= editor_asset_manager_t::get().find_asset(slot.preview_mesh);
+			mesh_def_t				   mesh_def = {};
+
+			renderer.mesh = slot.preview_mesh;
+
+			if (asset != nullptr && asset->asset_type == editor_asset_type_e::mesh && editor_asset_util_t::load_mesh_def(*asset, mesh_def) && !mesh_def.preview_materials.empty())
+			{
+				for (const resource_handle_t material : mesh_def.preview_materials)
+					renderer.materials.push_back(material);
+			}
+			else
+			{
+				for (size_t material_index = 0; material_index < decltype(renderer.materials)::capacity; ++material_index)
+					renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
+			}
+
+			world.scan_for_resources(preview.entity, true);
+		}
+
+		update_slot_entity_transforms(world);
+	}
+
+	void editor_panel_skeleton_viewer_t::update_slot_entity_transforms(world_t& world)
+	{
+		if (_slot_previews.empty())
+			return;
+
+		const component_system_skinned_mesh_renderer_t* skinned = ecs_helpers_t::table_find_as_const<component_system_skinned_mesh_renderer_t>(world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value), _display_entity);
+
+		if (skinned == nullptr || !skinned->final_bones_calculated)
+			return;
+
+		resource_manager_t&		  resources = resource_manager_t::get();
+		const skeleton_runtime_t* skeleton	= resources.find_runtime<skeleton_runtime_t>(skinned->skeleton);
+
+		if (skeleton == nullptr)
+			return;
+
+		const skeleton_joint_runtime_t*		 joints			= resources.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
+		const span_t<const animation_bone_t> bones			= world.get_animation_controller().get_bones(skinned->bones_handle);
+		const mat4x3_t						 mesh_transform = world.calculate_transform_direct(_display_entity);
+		bool								 updated		= false;
+
+		for (size_t i = 0; i < _slot_previews.size(); ++i)
+		{
+			const skeleton_slot_def_t& slot	   = _skeleton.slots[i];
+			const slot_preview_t&	   preview = _slot_previews[i];
+
+			if (preview.entity == NULL_ENTITY_ID || slot.slot_joint_index == SKELETON_JOINT_NO_PARENT)
+				continue;
+
+			const mat4x3_t parent	= mesh_transform * bones.data[slot.slot_joint_index].bone_transform * joints[slot.slot_joint_index].bind_global;
+			vec3f_t		   position = vec3f_t::zero;
+			quat_t		   rotation = quat_t::identity;
+			vec3f_t		   scale	= vec3f_t::one;
+
+			parent.decompose(position, rotation, scale);
+			world.teleport_entity(preview.entity, parent * slot.local_position, (rotation * slot.local_rotation).normalized(), slot.preview_scale);
+			updated = true;
+		}
+
+		if (updated)
+			world.update_world_transforms(false);
+	}
+
+	void editor_panel_skeleton_viewer_t::on_slot_preview_mesh_edited(void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		if (viewer._selected_slot_index == UINT32_MAX)
+		{
+			viewer.refresh_slot_fields();
+
+			return;
+		}
+
+		viewer._skeleton.slots[viewer._selected_slot_index].preview_mesh = viewer._slot_preview_mesh;
+		viewer.refresh_slot_entities();
+	}
+
+	void editor_panel_skeleton_viewer_t::init_slot_fields()
+	{
+		const editor_theme_t&		theme			 = editor_theme_t::get();
+		const editor_property_row_t preview_mesh_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_pane, "Preview Mesh");
+		u64*						mesh_field		 = &_slot_preview_mesh;
+
+		_slot_preview_mesh_reference.init(*_ui,
+										  preview_mesh_row.right,
+										  {
+											  .callbacks  = {.edit_begin = on_slot_fields_edit_begin, .edited = on_slot_preview_mesh_edited, .edit_submitted = on_slot_fields_edit_submitted, .user_data = this},
+											  .fields	  = {.data = &mesh_field, .size = 1},
+											  .asset_type = editor_asset_type_e::mesh,
+										  });
+
+		editor_dividers_t::add_divider_hor(*_ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
+		const editor_widget_callbacks_t callbacks{
+			.edit_begin		= on_slot_fields_edit_begin,
+			.edited			= on_slot_fields_edited,
+			.edit_submitted = on_slot_fields_edit_submitted,
+			.user_data		= this,
+		};
+
+		const editor_property_row_t preview_scale_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_pane, "Preview Scale");
+
+		_slot_preview_scale_field.init(*_ui, preview_scale_row.right, {.callbacks = callbacks});
+		editor_dividers_t::add_divider_hor(*_ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
+		const editor_property_row_t position_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_pane, "Local Position");
+
+		_slot_position_field.init(*_ui, position_row.right, {.callbacks = callbacks});
+		editor_dividers_t::add_divider_hor(*_ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
+		const editor_property_row_t rotation_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, _right_pane, "Local Rotation");
+
+		_slot_rotation_field.init(*_ui, rotation_row.right, {.callbacks = callbacks});
+
+		const ui::widget_id_t fields[] = {_slot_preview_mesh_reference.get_root(), _slot_preview_scale_field.get_root(), _slot_position_field.get_root(), _slot_rotation_field.get_root()};
+
+		for (const ui::widget_id_t field : fields)
+		{
+			ui::layout_in_t& in = _ui->get_tree().in(field);
+
+			in.size_mode_x = ui::axis_mode_e::fill;
+			in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
+			in.pos_value.y = 0.5f;
+			in.anchor_y	   = ui::anchor_e::center;
+		}
+
+		refresh_slot_fields();
+	}
+
+	void editor_panel_skeleton_viewer_t::refresh_slot_fields()
+	{
+		const bool				enabled = _selected_slot_index != UINT32_MAX;
+		const resource_handle_t mesh	= enabled ? _skeleton.slots[_selected_slot_index].preview_mesh : NULL_RESOURCE_HANDLE;
+
+		if (_slot_preview_mesh != mesh)
+		{
+			_slot_preview_mesh = mesh;
+
+			u64* mesh_field = &_slot_preview_mesh;
+
+			_slot_preview_mesh_reference.set_reference({
+				.callbacks	= {.edit_begin = on_slot_fields_edit_begin, .edited = on_slot_preview_mesh_edited, .edit_submitted = on_slot_fields_edit_submitted, .user_data = this},
+				.fields		= {.data = &mesh_field, .size = 1},
+				.asset_type = editor_asset_type_e::mesh,
+			});
+		}
+
+		ui::layout_tree_t&	  tree	   = _ui->get_tree();
+		const ui::widget_id_t fields[] = {_slot_preview_mesh_reference.get_root(), _slot_preview_scale_field.get_root(), _slot_position_field.get_root(), _slot_rotation_field.get_root()};
+
+		for (const ui::widget_id_t field : fields)
+		{
+			if (enabled)
+				tree.in(field).flags &= ~ui::wf_disabled;
+			else
+				tree.in(field).flags |= ui::wf_disabled;
+		}
+
+		_slot_position_field.set_value(enabled ? _skeleton.slots[_selected_slot_index].local_position : vec3f_t::zero);
+		_slot_preview_scale_field.set_value(enabled ? _skeleton.slots[_selected_slot_index].preview_scale : vec3f_t::one);
+		_slot_rotation_field.set_value(enabled ? _skeleton.slots[_selected_slot_index].local_rotation : quat_t::identity);
+	}
+
+	void editor_panel_skeleton_viewer_t::select_row(u32 row_index)
+	{
+		editor_world_controller_t::get().get_editor_world(_world)->cancel_gizmo_action();
+
+		on_slot_fields_edit_submitted(this);
+
+		const joint_row_t& row = _joint_rows[row_index];
+
+		_selected_joint_index = row.slot_index == UINT32_MAX ? row.joint_index : SKELETON_JOINT_NO_PARENT;
+		_selected_slot_index  = row.slot_index;
+		++_slot_generation;
+
+		for (u32 i = 0; i < _joint_rows.size(); ++i)
+			update_joint_row_background(i);
+
+		refresh_slot_fields();
+		_ui->get_input().set_focus(row.root, false);
+	}
+
+	void editor_panel_skeleton_viewer_t::add_slot()
+	{
+		SFG_ASSERT(_selected_joint_index != SKELETON_JOINT_NO_PARENT);
+
+		on_slot_fields_edit_submitted(this);
+
+		if (!editor_command_skeleton_edit_t::begin(*this))
+			return;
+
+		const skeleton_slot_def_t slot{
+			.slot_name		  = "Slot",
+			.slot_joint_index = _selected_joint_index,
+		};
+
+		_joint_rows[_selected_joint_index].expanded = true;
+		_skeleton.slots.push_back(slot);
+		_selected_slot_index  = static_cast<u32>(_skeleton.slots.size() - 1);
+		_selected_joint_index = SKELETON_JOINT_NO_PARENT;
+		++_slot_generation;
+
+		refresh_joint_hierarchy();
+		editor_command_skeleton_edit_t::submit(*this, "Skeleton Add Slot", false);
+	}
+
+	void editor_panel_skeleton_viewer_t::duplicate_slot()
+	{
+		SFG_ASSERT(_selected_slot_index != UINT32_MAX);
+
+		editor_world_controller_t::get().get_editor_world(_world)->cancel_gizmo_action();
+		on_slot_fields_edit_submitted(this);
+
+		if (!editor_command_skeleton_edit_t::begin(*this))
+			return;
+
+		skeleton_slot_def_t slot = _skeleton.slots[_selected_slot_index];
+		char*				name = slot.slot_name + std::strlen(slot.slot_name);
+		char* const			end	 = slot.slot_name + sizeof(slot.slot_name);
+
+		char_util::append(name, end, " Copy");
+		*name = '\0';
+		_skeleton.slots.push_back(slot);
+		_selected_slot_index = static_cast<u32>(_skeleton.slots.size() - 1);
+		++_slot_generation;
+
+		refresh_joint_hierarchy();
+		editor_command_skeleton_edit_t::submit(*this, "Skeleton Duplicate Slot", false);
+	}
+
+	void editor_panel_skeleton_viewer_t::delete_slot()
+	{
+		SFG_ASSERT(_selected_slot_index != UINT32_MAX);
+
+		editor_world_controller_t::get().get_editor_world(_world)->cancel_gizmo_action();
+		on_slot_fields_edit_submitted(this);
+
+		if (!editor_command_skeleton_edit_t::begin(*this))
+			return;
+
+		const slot_preview_t& preview = _slot_previews[_selected_slot_index];
+
+		if (preview.entity != NULL_ENTITY_ID)
+			editor_world_controller_t::get().get_editor_world(_world)->get_world().destroy_entity(preview.entity);
+
+		_slot_previews.erase(_slot_previews.begin() + _selected_slot_index);
+		_selected_joint_index = _skeleton.slots[_selected_slot_index].slot_joint_index;
+		_skeleton.slots.erase(_skeleton.slots.begin() + _selected_slot_index);
+		_selected_slot_index = UINT32_MAX;
+		++_slot_generation;
+
+		refresh_joint_hierarchy();
+		editor_command_skeleton_edit_t::submit(*this, "Skeleton Delete Slot", false);
+	}
+
+	void editor_panel_skeleton_viewer_t::rename_slot()
+	{
+		SFG_ASSERT(_selected_slot_index != UINT32_MAX);
+
+		editor_action_menu_controller_t::find(*_ui)->close_action_menu();
+
+		const joint_row_t&		row		  = _joint_rows[_skeleton.joints.size() + _selected_slot_index];
+		const ui::layout_out_t& row_out	  = _ui->get_tree().out(row.root);
+		const ui::layout_out_t& label_out = _ui->get_tree().out(row.label);
+
+		_rename_slot_index = _selected_slot_index;
+		editor_popup_controller_t::find(*_ui)->request_input_popup({
+			.submitted	 = on_slot_rename_submitted,
+			.cancelled	 = [](void* user_data) { static_cast<editor_panel_skeleton_viewer_t*>(user_data)->_rename_slot_index = UINT32_MAX; },
+			.user_data	 = this,
+			.text		 = _skeleton.slots[_rename_slot_index].slot_name,
+			.placeholder = "Slot Name",
+			.pos		 = {label_out.pos.x, row_out.pos.y},
+			.width		 = row_out.pos.x + row_out.size.x - label_out.pos.x,
+		});
+	}
+
+	void editor_panel_skeleton_viewer_t::on_slot_rename_submitted(const char* value, void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer	   = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+		const u32						slot_index = viewer._rename_slot_index;
+
+		viewer._rename_slot_index = UINT32_MAX;
+
+		if (value[0] == '\0')
+			return;
+
+		on_slot_fields_edit_submitted(&viewer);
+
+		if (!editor_command_skeleton_edit_t::begin(viewer))
+			return;
+
+		skeleton_slot_def_t& slot	= viewer._skeleton.slots[slot_index];
+		char*				 name	= slot.slot_name;
+		const size_t		 length = math::min(std::strlen(value), sizeof(slot.slot_name) - 1);
+
+		char_util::append(name, slot.slot_name + sizeof(slot.slot_name), value, length);
+		viewer._ui->set_widget_text(viewer._joint_rows[viewer._skeleton.joints.size() + slot_index].label, slot.slot_name);
+		editor_command_skeleton_edit_t::submit(viewer, "Skeleton Rename Slot", false);
+	}
+
+	void editor_panel_skeleton_viewer_t::open_row_menu(const vec2f_t& pos)
+	{
+		static const editor_action_menu_row_desc_t joint_actions[] = {
+			{
+				.text	 = "Add Slot",
+				.command = SKELETON_VIEWER_ADD_SLOT,
+			},
+		};
+		static const editor_action_menu_row_desc_t slot_actions[] = {
+			{
+				.text	 = "Rename",
+				.command = SKELETON_VIEWER_RENAME_SLOT,
+			},
+			{
+				.text	  = "Duplicate",
+				.shortcut = "CTRL+D",
+				.command  = SKELETON_VIEWER_DUPLICATE_SLOT,
+			},
+			{
+				.text	  = "Delete",
+				.shortcut = "DEL",
+				.command  = SKELETON_VIEWER_DELETE_SLOT,
+			},
+		};
+		const bool is_slot = _selected_slot_index != UINT32_MAX;
+
+		editor_action_menu_controller_t::find(*_ui)->request_action_menu({
+			.style			   = make_default_action_menu_style(editor_theme_t::get()),
+			.rows			   = is_slot ? slot_actions : joint_actions,
+			.command_fn		   = on_row_menu_action,
+			.command_user_data = this,
+			.closed_fn		   = [](void* user_data) { static_cast<editor_panel_skeleton_viewer_t*>(user_data)->_row_menu_open = false; },
+			.closed_user_data  = this,
+			.pos			   = pos,
+			.row_count		   = static_cast<u16>(is_slot ? 3 : 1),
+		});
+		_row_menu_open = true;
+	}
+
+	void editor_panel_skeleton_viewer_t::on_row_menu_action(u16 action, void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		switch (action)
+		{
+		case SKELETON_VIEWER_ADD_SLOT:
+			viewer.add_slot();
+			break;
+		case SKELETON_VIEWER_RENAME_SLOT:
+			viewer.rename_slot();
+			break;
+		case SKELETON_VIEWER_DUPLICATE_SLOT:
+			viewer.duplicate_slot();
+			break;
+		case SKELETON_VIEWER_DELETE_SLOT:
+			viewer.delete_slot();
+			break;
+		}
+	}
+
+	void editor_panel_skeleton_viewer_t::on_hierarchy_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		if (ev.action != ui::key_action_e::press || viewer._selected_slot_index == UINT32_MAX || router.is_popup_scope_active())
+			return;
+
+		const bool ctrl = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+
+		if (ev.key == static_cast<u16>(input_code::key_delete))
+			viewer.delete_slot();
+		else if (ev.key == static_cast<u16>(input_code::key_d) && ctrl)
+			viewer.duplicate_slot();
+	}
+
+	void editor_panel_skeleton_viewer_t::refresh_joint_visibility()
+	{
+		for (const u32 index : _skeleton.evaluation_order)
+		{
+			joint_row_t& row		  = _joint_rows[index];
+			const u32	 parent_index = _skeleton.joints[index].parent_index;
+
+			row.visible = parent_index == SKELETON_JOINT_NO_PARENT || (_joint_rows[parent_index].visible && _joint_rows[parent_index].expanded);
+			_ui->get_tree().set_visible(row.root, row.visible);
+		}
+
+		for (u32 i = 0; i < _skeleton.slots.size(); ++i)
+		{
+			joint_row_t& row = _joint_rows[_skeleton.joints.size() + i];
+
+			row.visible = row.joint_index == SKELETON_JOINT_NO_PARENT || (_joint_rows[row.joint_index].visible && _joint_rows[row.joint_index].expanded);
+			_ui->get_tree().set_visible(row.root, row.visible);
+		}
+	}
+
+	bool editor_panel_skeleton_viewer_t::get_joint_world_transform(u32 joint_index, mat4x3_t& transform) const
+	{
+		if (joint_index == SKELETON_JOINT_NO_PARENT)
+			return false;
+
+		world_t&										world	= editor_world_controller_t::get().get_editor_world(_world)->get_world();
+		const component_system_skinned_mesh_renderer_t* skinned = ecs_helpers_t::table_find_as_const<component_system_skinned_mesh_renderer_t>(world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value), _display_entity);
+
+		if (skinned == nullptr || !skinned->final_bones_calculated)
+			return false;
+
+		resource_manager_t&		  resources = resource_manager_t::get();
+		const skeleton_runtime_t* skeleton	= resources.find_runtime<skeleton_runtime_t>(skinned->skeleton);
+
+		if (skeleton == nullptr)
+			return false;
+
+		const skeleton_joint_runtime_t*		 joints = resources.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
+		const span_t<const animation_bone_t> bones	= world.get_animation_controller().get_bones(skinned->bones_handle);
+
+		transform = world.calculate_transform_direct(_display_entity) * bones.data[joint_index].bone_transform * joints[joint_index].bind_global;
+
+		return true;
+	}
+
+	bool editor_panel_skeleton_viewer_t::get_slot_gizmo_target(editor_gizmo_target_t& target)
+	{
+		if (_selected_slot_index == UINT32_MAX)
+			return false;
+
+		const skeleton_slot_def_t& slot	  = _skeleton.slots[_selected_slot_index];
+		mat4x3_t				   parent = mat4x3_t::identity;
+
+		if (!get_joint_world_transform(slot.slot_joint_index, parent))
+			return false;
+
+		vec3f_t position = vec3f_t::zero;
+		quat_t	rotation = quat_t::identity;
+		vec3f_t scale	 = vec3f_t::one;
+
+		parent.decompose(position, rotation, scale);
+		target.position		 = parent * slot.local_position;
+		target.rotation		 = (rotation * slot.local_rotation).normalized();
+		target.prev_position = target.position;
+		target.prev_rotation = target.rotation;
+		target.generation	 = _slot_generation;
+
+		return true;
+	}
+
+	bool editor_panel_skeleton_viewer_t::begin_slot_gizmo()
+	{
+		if (_slot_position_field.is_editing() || _slot_rotation_field.is_editing() || _slot_preview_scale_field.is_editing())
+			return false;
+
+		const skeleton_slot_def_t& slot = _skeleton.slots[_selected_slot_index];
+
+		if (!get_joint_world_transform(slot.slot_joint_index, _slot_parent_transform))
+			return false;
+
+		vec3f_t position = vec3f_t::zero;
+		vec3f_t scale	 = vec3f_t::one;
+
+		_slot_parent_transform.decompose(position, _slot_parent_rotation, scale);
+		_slot_initial_position		= slot.local_position;
+		_slot_initial_rotation		= slot.local_rotation;
+		_slot_initial_preview_scale = slot.preview_scale;
+		_slot_initial_absolute		= mat4x3_t::transform(_slot_parent_transform * slot.local_position, (_slot_parent_rotation * slot.local_rotation).normalized(), vec3f_t::one);
+		on_slot_fields_edit_submitted(this);
+		_slot_gizmo_active = editor_command_skeleton_edit_t::begin(*this);
+
+		return _slot_gizmo_active;
+	}
+
+	void editor_panel_skeleton_viewer_t::update_slot_gizmo(const mat4x3_t& delta)
+	{
+		SFG_ASSERT(_slot_gizmo_active);
+
+		skeleton_slot_def_t&				  slot	   = _skeleton.slots[_selected_slot_index];
+		const mat4x3_t						  absolute = delta * _slot_initial_absolute;
+		const editor_transform_control_type_e control  = editor_world_controller_t::get().get_editor_world(_world)->get_edit_context().get_transform_control_type();
+
+		bool identity_delta = true;
+
+		for (u32 i = 0; i < 12; ++i)
+			identity_delta &= delta[i] == mat4x3_t::identity[i];
+
+		if (identity_delta)
+		{
+			slot.local_position = _slot_initial_position;
+			slot.local_rotation = _slot_initial_rotation;
+			slot.preview_scale	= _slot_initial_preview_scale;
+		}
+		else if (control == editor_transform_control_type_e::move)
+			slot.local_position = _slot_parent_transform.to_linear3x3().inversed() * (absolute.get_translation() - _slot_parent_transform.get_translation());
+		else
+		{
+			vec3f_t position = vec3f_t::zero;
+			quat_t	rotation = quat_t::identity;
+			vec3f_t scale	 = vec3f_t::one;
+
+			absolute.decompose(position, rotation, scale);
+
+			if (control == editor_transform_control_type_e::scale)
+				slot.preview_scale = _slot_initial_preview_scale * scale;
+			else
+				slot.local_rotation = (_slot_parent_rotation.inverse() * rotation).normalized();
+		}
+
+		refresh_slot_fields();
+	}
+
+	void editor_panel_skeleton_viewer_t::commit_slot_gizmo()
+	{
+		_slot_gizmo_active = false;
+		editor_command_skeleton_edit_t::submit(*this, "Skeleton Transform Slot", false);
+		refresh_slot_fields();
+	}
+
+	void editor_panel_skeleton_viewer_t::cancel_slot_gizmo()
+	{
+		SFG_ASSERT(_slot_gizmo_active);
+
+		skeleton_slot_def_t& slot = _skeleton.slots[_selected_slot_index];
+
+		slot.local_position = _slot_initial_position;
+		slot.local_rotation = _slot_initial_rotation;
+		slot.preview_scale	= _slot_initial_preview_scale;
+		_slot_gizmo_active	= false;
+		editor_command_skeleton_edit_t::cancel(*this);
+		refresh_slot_fields();
+	}
+
+	void editor_panel_skeleton_viewer_t::on_slot_fields_edit_begin(void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		editor_world_controller_t::get().get_editor_world(viewer._world)->cancel_gizmo_action();
+		++viewer._slot_generation;
+
+		if (viewer._selected_slot_index != UINT32_MAX && !viewer._slot_fields_edit_active)
+			viewer._slot_fields_edit_active = editor_command_skeleton_edit_t::begin(viewer);
+	}
+
+	void editor_panel_skeleton_viewer_t::on_slot_fields_edit_submitted(void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		if (!viewer._slot_fields_edit_active)
+			return;
+
+		viewer._slot_fields_edit_active = false;
+		editor_command_skeleton_edit_t::submit(viewer, "Skeleton Edit Slot Property", false);
+	}
+
+	void editor_panel_skeleton_viewer_t::on_slot_fields_edited(void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+		skeleton_slot_def_t&			slot   = viewer._skeleton.slots[viewer._selected_slot_index];
+
+		slot.local_position = viewer._slot_position_field.get_value();
+		slot.local_rotation = viewer._slot_rotation_field.get_value();
+		slot.preview_scale	= viewer._slot_preview_scale_field.get_value();
+	}
+
+	void editor_panel_skeleton_viewer_t::init_joint_hierarchy()
+	{
+		ui::layout_tree_t&	  tree	= _ui->get_tree();
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		_joint_list_area = _ui->allocate_widget();
+		_ui->set_widget_debug_name(_joint_list_area, "skeleton_joint_hierarchy");
+		tree.attach(_right_pane, _joint_list_area);
+
+		ui::layout_in_t& list_in = tree.in(_joint_list_area);
+
+		list_in.flags |= ui::wf_input | ui::wf_scroll_y;
+		list_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
+		list_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		list_in.size_mode_y		= ui::axis_mode_e::fill;
+		list_in.size_value		= {1.0f, 1.0f};
+		list_in.flow			= ui::flow_e::column;
+		list_in.child_margins	= {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, 0.0f};
+
+		const ui::vg_rect_paint_t list_rect{
+			.fill_color_a = theme.color_frame,
+			.fill_color_b = theme.color_frame,
+		};
+
+		_ui->get_paint().set_rect(_joint_list_area, list_rect);
+		_joint_scrollbar.init(*_ui, {.target = _joint_list_area, .axes = editor_scrollbar_axis_y});
+		_ui->get_input().set_listener(_right_pane, {.on_key = on_hierarchy_key, .user_data = this});
+	}
+
+	void editor_panel_skeleton_viewer_t::refresh_joint_hierarchy()
 	{
 		if (_ui == nullptr)
 			return;
 
-		_joint_dropdown_items.resize(0);
-		_joint_dropdown_items.reserve(_skeleton.joints.size() + 1);
-		_joint_dropdown_items.push_back({.text = "None", .value = SKELETON_JOINT_NO_PARENT});
+		refresh_slot_entities();
 
-		for (u32 joint_index = 0; joint_index < _skeleton.joints.size(); ++joint_index)
+		frame_vector_t<u8> expanded = {};
+
+		expanded.reserve(_joint_rows.size());
+
+		for (const joint_row_t& row : _joint_rows)
 		{
-			const skeleton_joint_def_t& joint = _skeleton.joints[joint_index];
-
-			_joint_dropdown_items.push_back({
-				.text  = joint.name.empty() ? "Unnamed Joint" : joint.name.c_str(),
-				.value = joint_index,
-			});
+			expanded.push_back(row.expanded);
+			_ui->deallocate_widget(row.root);
 		}
 
-		void* skeleton_object = &_skeleton;
-		_skeleton_reflection.save_fold_states();
-		_skeleton_reflection.set_reflection({
-			.fold_states = &_fold_states,
-			.callbacks =
-				{
-					.edit_begin		= on_edit_begin,
-					.edited			= on_reflection_edited,
-					.edit_submitted = on_edit_submitted,
-					.user_data		= this,
-				},
-			.objects				  = {.data = &skeleton_object, .size = 1},
-			.type_id				  = type_id_t<skeleton_def_t>::value,
-			.dropdown_items			  = resolve_dropdown_items,
-			.dropdown_items_user_data = this,
-			.block_edits			  = _skeleton_guid == NULL_SID,
-		});
+		_joint_rows.resize(0);
+		refresh_slot_fields();
+
+		if (_root_joint_index == SKELETON_JOINT_NO_PARENT)
+			return;
+
+		const u32 joint_count = static_cast<u32>(_skeleton.joints.size());
+		const u32 row_count	  = joint_count + static_cast<u32>(_skeleton.slots.size());
+
+		_joint_rows.resize(row_count);
+
+		for (u32 row_index = 0; row_index < row_count; ++row_index)
+		{
+			joint_row_t& row		  = _joint_rows[row_index];
+			const bool	 is_slot	  = row_index >= joint_count;
+			const u32	 parent_index = is_slot ? _skeleton.slots[row_index - joint_count].slot_joint_index : _skeleton.joints[row_index].parent_index;
+
+			row.joint_index = is_slot ? parent_index : row_index;
+			row.slot_index	= is_slot ? row_index - joint_count : UINT32_MAX;
+			row.expanded	= is_slot || row_index >= expanded.size() || expanded[row_index] != 0;
+
+			if (parent_index == SKELETON_JOINT_NO_PARENT)
+				continue;
+
+			row.next_sibling					  = _joint_rows[parent_index].first_child;
+			_joint_rows[parent_index].first_child = row_index;
+		}
+
+		frame_vector_t<u32> pending = {};
+
+		pending.reserve(row_count);
+
+		for (u32 row_index = row_count; row_index != 0; --row_index)
+		{
+			const joint_row_t& row			= _joint_rows[row_index - 1];
+			const u32		   parent_index = row.slot_index == UINT32_MAX ? _skeleton.joints[row.joint_index].parent_index : row.joint_index;
+
+			if (parent_index == SKELETON_JOINT_NO_PARENT)
+				pending.push_back(row_index - 1);
+		}
+
+		while (!pending.empty())
+		{
+			const u32 row_index = pending.back();
+
+			pending.pop_back();
+			create_joint_row(row_index);
+
+			for (u32 child_index = _joint_rows[row_index].first_child; child_index != SKELETON_JOINT_NO_PARENT; child_index = _joint_rows[child_index].next_sibling)
+			{
+				_joint_rows[child_index].depth = _joint_rows[row_index].depth + 1;
+				pending.push_back(child_index);
+			}
+		}
+
+		refresh_joint_visibility();
+
+		if (_selected_slot_index != UINT32_MAX)
+			_ui->get_input().set_focus(_joint_rows[joint_count + _selected_slot_index].root, false);
+		else if (_selected_joint_index != SKELETON_JOINT_NO_PARENT)
+			_ui->get_input().set_focus(_joint_rows[_selected_joint_index].root, false);
+	}
+
+	void editor_panel_skeleton_viewer_t::create_joint_row(u32 joint_index)
+	{
+		ui::layout_tree_t&	  tree	  = _ui->get_tree();
+		ui::paint_layer_t&	  paint	  = _ui->get_paint();
+		const editor_theme_t& theme	  = editor_theme_t::get();
+		joint_row_t&		  row	  = _joint_rows[joint_index];
+		const bool			  is_slot = row.slot_index != UINT32_MAX;
+
+		row.root = _ui->allocate_widget();
+		_ui->set_widget_debug_name(row.root, "skeleton_joint_row");
+		tree.attach(_joint_list_area, row.root);
+		tree.draw_order(row.root) = tree.draw_order_const(_joint_list_area) + 1;
+
+		ui::layout_in_t& row_in = tree.in(row.root);
+
+		row_in.flags |= ui::wf_input | ui::wf_focusable;
+		row_in.size_mode_x	 = ui::axis_mode_e::parent_relative;
+		row_in.size_mode_y	 = ui::axis_mode_e::fixed;
+		row_in.size_value	 = {1.0f, theme.item_height};
+		row_in.flow			 = ui::flow_e::row;
+		row_in.child_spacing = theme.item_spacing * 0.5f;
+		row_in.child_margins = {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal + static_cast<f32>(row.depth) * theme.indent_horizontal * 2.0f};
+
+		const ui::listener_bundle_t row_listener{
+			.on_click		 = on_joint_row_clicked,
+			.on_double_click = on_joint_row_double_clicked,
+			.user_data		 = this,
+		};
+
+		_ui->get_input().set_listener(row.root, row_listener);
+		update_joint_row_background(joint_index);
+
+		row.fold_icon = _ui->allocate_widget();
+		_ui->set_widget_debug_name(row.fold_icon, "skeleton_joint_fold");
+		tree.attach(row.root, row.fold_icon);
+
+		ui::layout_in_t& icon_in = tree.in(row.fold_icon);
+
+		icon_in.pos_mode_y	= ui::pos_mode_e::relative_in_parent;
+		icon_in.pos_value.y = 0.5f;
+		icon_in.anchor_y	= ui::anchor_e::center;
+		icon_in.size_mode_x = ui::axis_mode_e::fixed;
+		icon_in.size_mode_y = ui::axis_mode_e::fixed;
+		icon_in.size_value	= {theme.item_height, theme.item_height};
+
+		row.fold_icon_text = _ui->allocate_widget();
+		_ui->set_widget_debug_name(row.fold_icon_text, "skeleton_joint_fold_icon");
+		tree.attach(row.fold_icon, row.fold_icon_text);
+
+		ui::layout_in_t& icon_text_in = tree.in(row.fold_icon_text);
+
+		icon_text_in.pos_mode_x	 = ui::pos_mode_e::relative_in_parent;
+		icon_text_in.pos_mode_y	 = ui::pos_mode_e::relative_in_parent;
+		icon_text_in.pos_value	 = {0.5f, 0.5f};
+		icon_text_in.anchor_x	 = ui::anchor_e::center;
+		icon_text_in.anchor_y	 = ui::anchor_e::center;
+		icon_text_in.size_mode_x = ui::axis_mode_e::fixed;
+		icon_text_in.size_mode_y = ui::axis_mode_e::fixed;
+
+		_ui->set_widget_text(row.fold_icon_text, is_slot ? ICON_CUBE : row.first_child == SKELETON_JOINT_NO_PARENT ? "" : row.expanded ? ICON_DD_DOWN : ICON_DD_RIGHT);
+		paint.set_text(row.fold_icon_text,
+					   _ui->widget_text(row.fold_icon_text),
+					   _ui->widget_text_len(row.fold_icon_text),
+					   {
+						   .font		= theme.font_icons,
+						   .color		= is_slot ? theme.color_accent_green : theme.color_text0,
+						   .point_size	= theme.icon_default_px_size,
+						   .raster_mode = editor_text_rasterization_t::get_rasterization_type(),
+					   });
+
+		row.label = _ui->allocate_widget();
+		_ui->set_widget_debug_name(row.label, "skeleton_joint_name");
+		tree.attach(row.root, row.label);
+
+		ui::layout_in_t& label_in = tree.in(row.label);
+
+		label_in.pos_mode_y	 = ui::pos_mode_e::relative_in_parent;
+		label_in.pos_value.y = 0.5f;
+		label_in.anchor_y	 = ui::anchor_e::center;
+		label_in.size_mode_x = ui::axis_mode_e::fill;
+		label_in.size_mode_y = ui::axis_mode_e::fixed;
+
+		const char* label = is_slot ? _skeleton.slots[row.slot_index].slot_name : _skeleton.joints[row.joint_index].name.c_str();
+
+		_ui->set_widget_text(row.label, label[0] == '\0' ? (is_slot ? "Slot" : "Unnamed Joint") : label);
+		paint.set_text(row.label,
+					   _ui->widget_text(row.label),
+					   _ui->widget_text_len(row.label),
+					   {
+						   .font		= theme.font_default,
+						   .color		= theme.color_text0,
+						   .point_size	= theme.text_default_px_size,
+						   .raster_mode = editor_text_rasterization_t::get_rasterization_type(),
+					   });
+	}
+
+	void editor_panel_skeleton_viewer_t::update_joint_row_background(u32 joint_index)
+	{
+		const editor_theme_t&	  theme	   = editor_theme_t::get();
+		const joint_row_t&		  row	   = _joint_rows[joint_index];
+		const bool				  selected = row.slot_index == UINT32_MAX ? row.joint_index == _selected_joint_index : row.slot_index == _selected_slot_index;
+		const ui::vg_rect_paint_t row_rect{
+			.fill_color_a  = selected ? theme.color_accent0 : vec4f_t::zero,
+			.fill_color_b  = selected ? theme.color_accent0_dim : vec4f_t::zero,
+			.rounding	   = theme.item_rounding,
+			.rounding_segs = 4,
+			.gradient	   = ui::vg_gradient_e::horizontal,
+		};
+
+		_ui->get_paint().set_rect(row.root, row_rect);
+		_ui->get_paint().set_hover_color(row.root, selected ? theme.color_accent0 : theme.color_panel_light);
+		_ui->get_paint().set_press_color(row.root, selected ? theme.color_accent0 : theme.color_light);
+	}
+
+	void editor_panel_skeleton_viewer_t::toggle_joint_fold(u32 joint_index)
+	{
+		joint_row_t& row = _joint_rows[joint_index];
+
+		if (row.first_child == SKELETON_JOINT_NO_PARENT)
+			return;
+
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		row.expanded = !row.expanded;
+		_ui->set_widget_text(row.fold_icon_text, row.expanded ? ICON_DD_DOWN : ICON_DD_RIGHT);
+		_ui->get_paint().set_text(row.fold_icon_text,
+								  _ui->widget_text(row.fold_icon_text),
+								  _ui->widget_text_len(row.fold_icon_text),
+								  {
+									  .font		   = theme.font_icons,
+									  .color	   = theme.color_text0,
+									  .point_size  = theme.icon_default_px_size,
+									  .raster_mode = editor_text_rasterization_t::get_rasterization_type(),
+								  });
+
+		refresh_joint_visibility();
+	}
+
+	void editor_panel_skeleton_viewer_t::on_joint_row_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left && button != ui::mouse_button_e::right)
+			return;
+
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+		const auto						row	   = std::find_if(viewer._joint_rows.begin(), viewer._joint_rows.end(), [id](const joint_row_t& value) { return value.root == id; });
+
+		SFG_ASSERT(row != viewer._joint_rows.end());
+
+		const ui::layout_out_t& fold = viewer._ui->get_tree().out(row->fold_icon);
+		const rectf_t			fold_bounds{fold.pos.x, fold.pos.y, fold.size.x, fold.size.y};
+
+		if (button == ui::mouse_button_e::left && row->first_child != SKELETON_JOINT_NO_PARENT && fold_bounds.contains(pos))
+		{
+			viewer.toggle_joint_fold(static_cast<u32>(row - viewer._joint_rows.begin()));
+
+			return;
+		}
+
+		viewer.select_row(static_cast<u32>(row - viewer._joint_rows.begin()));
+
+		if (button == ui::mouse_button_e::right)
+			viewer.open_row_menu(pos);
+	}
+
+	void editor_panel_skeleton_viewer_t::on_joint_row_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+		const auto						row	   = std::find_if(viewer._joint_rows.begin(), viewer._joint_rows.end(), [id](const joint_row_t& value) { return value.root == id; });
+
+		SFG_ASSERT(row != viewer._joint_rows.end());
+
+		viewer.toggle_joint_fold(static_cast<u32>(row - viewer._joint_rows.begin()));
 	}
 
 	void editor_panel_skeleton_viewer_t::apply_pane_split()
@@ -537,34 +1648,7 @@ namespace sfg
 			_ui->get_tree().in(_left_pane).size_value.x = _pane_split;
 	}
 
-	void editor_panel_skeleton_viewer_t::on_edit_begin()
-	{
-		if (_edit_active)
-			return;
-
-		_edit_active = editor_command_skeleton_edit_t::begin(*this);
-	}
-
-	void editor_panel_skeleton_viewer_t::on_edit_submitted()
-	{
-		if (!_edit_active)
-			return;
-
-		editor_command_skeleton_edit_t::submit(*this, "Skeleton Edit Property", false);
-		_edit_active = false;
-	}
-
-	span_t<const editor_widget_reflection_dropdown_item_t> editor_panel_skeleton_viewer_t::resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, u32 element_index, void* user_data)
-	{
-		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
-
-		if (field_id == "slot_joint_index"_hs)
-			return {.data = viewer._joint_dropdown_items.data(), .size = viewer._joint_dropdown_items.size()};
-
-		return {};
-	}
-
-	void editor_panel_skeleton_viewer_t::on_asset_deletion(editor_asset_manager_t&, span_t<const sid_t> asset_ids, void* user_data)
+	void editor_panel_skeleton_viewer_t::on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data)
 	{
 		editor_panel_skeleton_viewer_t& panel			 = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
 		bool							skeleton_deleted = false;
@@ -581,14 +1665,33 @@ namespace sfg
 		if (!skeleton_deleted)
 			return;
 
-		editor_world_controller_t::get().get_editor_world(panel._world)->get_world().unload_all_used_resources();
+		editor_world_t& editor_world = *editor_world_controller_t::get().get_editor_world(panel._world);
 
-		panel._skeleton_guid = NULL_SID;
-		panel._skeleton		 = {};
-		panel._joint_dropdown_items.resize(0);
+		if (panel._rename_slot_index != UINT32_MAX)
+		{
+			editor_popup_controller_t::find(*panel._ui)->close_popup();
+			panel._rename_slot_index = UINT32_MAX;
+		}
+
+		if (panel._row_menu_open)
+			editor_action_menu_controller_t::find(*panel._ui)->close_action_menu();
+
+		editor_world.cancel_gizmo_action();
+		editor_command_skeleton_edit_t::cancel(panel);
+		panel._commands->clear();
+		panel._slot_fields_edit_active = false;
+
+		editor_world.get_world().unload_all_used_resources();
+		panel._selected_joint_index = SKELETON_JOINT_NO_PARENT;
+		panel._selected_slot_index	= UINT32_MAX;
+		++panel._slot_generation;
+
+		panel._skeleton_guid	= NULL_SID;
+		panel._skeleton			= {};
 		panel._root_joint_index = UINT32_MAX;
 		panel._asset_name.resize(0);
 		panel.set_sub_item_id(NULL_SID);
+		panel.refresh_slot_fields();
 
 		editor_surface_controller_t::get().request_close_panel(&panel);
 	}
@@ -630,29 +1733,20 @@ namespace sfg
 		return label;
 	}
 
-	void editor_panel_skeleton_viewer_t::on_edit_begin(void* user_data)
-	{
-		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->on_edit_begin();
-	}
-
-	void editor_panel_skeleton_viewer_t::on_reflection_edited(void* user_data)
-	{
-		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->refresh_slot_entities();
-	}
-
-	void editor_panel_skeleton_viewer_t::on_edit_submitted(void* user_data)
-	{
-		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->on_edit_submitted();
-	}
-
 	void editor_panel_skeleton_viewer_t::on_preview_mesh_edited(void* user_data)
 	{
-		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->create_display_entity();
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		viewer._skeleton.preview_mesh = viewer._preview_mesh;
+		viewer.create_display_entity();
 	}
 
 	void editor_panel_skeleton_viewer_t::on_world_tick(world_t& world, f32 delta_time, void* user_data)
 	{
-		static_cast<editor_panel_skeleton_viewer_t*>(user_data)->update_slot_entity_transforms(world);
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		viewer.update_slot_entity_transforms(world);
+		viewer.draw_skeleton(world);
 	}
 
 	void editor_panel_skeleton_viewer_t::on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data)

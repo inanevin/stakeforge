@@ -977,6 +977,19 @@ namespace sfg
 				const u32 correction_joint_index = skeleton.root_joint_index != SKELETON_JOINT_NO_PARENT ? skeleton.root_joint_index : skeleton.evaluation_order.front();
 				out_bind_correction				 = bind_globals[correction_joint_index] * skeleton.joints[correction_joint_index].inverse_bind;
 				skeleton.skinning_transform		 = out_bind_correction.inverse();
+
+				vec3f_t bounds_min = skeleton.skinning_transform * bind_globals[skeleton.root_joint_index].get_translation();
+				vec3f_t bounds_max = bounds_min;
+
+				for (const mat4x3_t& bind_global : bind_globals)
+				{
+					const vec3f_t position = skeleton.skinning_transform * bind_global.get_translation();
+
+					bounds_min = vec3f_t::min(bounds_min, position);
+					bounds_max = vec3f_t::max(bounds_max, position);
+				}
+
+				skeleton.local_bounds = aabb_t(bounds_min, bounds_max);
 			}
 
 			nlohmann::json embedded_source = nlohmann::json::object();

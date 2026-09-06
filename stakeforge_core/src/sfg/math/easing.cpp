@@ -97,7 +97,10 @@ namespace sfg
 	{
 		if (alpha < 0.5f)
 			return lerp(start, end, 2.0f * alpha * alpha);
-		return lerp(start, end, 1.0f - math::fast_pow(-2.0f * alpha + 2.0f, 2.0f) / 2.0f);
+
+		const f32 remaining = 1.0f - alpha;
+
+		return lerp(start, end, 1.0f - 2.0f * remaining * remaining);
 	}
 
 	f32 easing_t::cubic(f32 start, f32 end, f32 alpha)
