@@ -55,6 +55,8 @@ namespace sfg
 			return "Skeleton Viewer";
 		case editor_panel_type_e::ragdoll_viewer:
 			return "Ragdoll Viewer";
+		case editor_panel_type_e::animation_library:
+			return "Animation Library";
 		case editor_panel_type_e::animation_graph:
 			return "Animation Graph";
 		default:

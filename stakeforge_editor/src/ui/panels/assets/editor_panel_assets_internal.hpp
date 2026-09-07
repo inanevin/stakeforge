@@ -46,6 +46,7 @@ namespace sfg
 
 	enum assets_action_menu_command_e : u16
 	{
+		assets_action_menu_create_animation_library			 = 47,
 		assets_action_menu_create_folder					 = 1,
 		assets_action_menu_delete							 = 2,
 		assets_action_menu_duplicate						 = 3,

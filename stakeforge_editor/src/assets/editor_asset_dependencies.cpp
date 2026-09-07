@@ -32,6 +32,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/animation_graph_def.hpp>
+#include <sfg/runtime/resources/animation_library_def.hpp>
 #include <sfg/runtime/resources/material_def.hpp>
 #include <sfg/runtime/resources/ragdoll_def.hpp>
 #include <sfg/runtime/resources/shader_data_definition.hpp>
@@ -174,6 +175,15 @@ namespace sfg
 			for (const material_sampler_value_t& sampler : material.samplers)
 				append_dependency(sampler.sampler, resource_type_e::texture_sampler, out_dependencies);
 
+			break;
+		}
+		case editor_asset_type_e::animation_library: {
+			animation_library_def_t library = {};
+
+			if (!reflection_registry_t::get().type_from_json(type_id_t<animation_library_def_t>::value, &library, nullptr, embedded_source))
+				return false;
+
+			append_dependency(library.skeleton, resource_type_e::skeleton, out_dependencies);
 			break;
 		}
 		case editor_asset_type_e::animation_graph: {

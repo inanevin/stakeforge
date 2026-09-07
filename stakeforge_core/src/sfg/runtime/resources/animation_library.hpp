@@ -22,32 +22,34 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
+#include "common_resources.hpp"
 
 namespace sfg
 {
-	enum class editor_panel_type_e : u8
+	struct animation_library_runtime_t
 	{
-		entities,
-		assets,
-		log,
-		world,
-		inspector,
-		animation,
-		resources,
-		project_settings,
-		mesh_viewer,
-		skeleton_viewer,
-		ragdoll_viewer,
-		animation_graph,
-		animation_library,
-		max,
+		resource_handle_t skeleton = NULL_RESOURCE_HANDLE;
 	};
 
-	const char*			editor_panel_type_to_string(editor_panel_type_e type);
-	editor_panel_type_e editor_panel_type_from_string(const char* value);
+	struct animation_library_internals_t
+	{
+		u32 reserved = 0;
+	};
+
+	class animation_library_loader_t final
+	{
+	public:
+		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('A', 'L', 'I', 'B');
+		static constexpr u32 WIRE_VERSION = 1;
+
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
+		static void unload(resource_entry_t& entry, resource_context_t& ctx);
+	};
+
+	extern const resource_type_desc_t animation_library_resource_desc;
 }

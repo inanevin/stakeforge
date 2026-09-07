@@ -13,6 +13,7 @@
 
 #include "animation.hpp"
 #include "animation_graph.hpp"
+#include "animation_library.hpp"
 #include "audio.hpp"
 #include "font.hpp"
 #include "material.hpp"
@@ -101,6 +102,7 @@ namespace sfg
 		&sprite_resource_desc,
 		&curve_resource_desc,
 		&ragdoll_resource_desc,
+		&animation_library_resource_desc,
 	};
 
 	const char* resource_state_to_string(resource_state_e state)
@@ -142,6 +144,8 @@ namespace sfg
 			return "Physical Material";
 		case resource_type_e::prefab:
 			return "Prefab";
+		case resource_type_e::animation_library:
+			return "Animation Library";
 		case resource_type_e::animation_graph:
 			return "Animation Graph";
 		case resource_type_e::cubemap:
@@ -197,6 +201,10 @@ namespace sfg
 					{.name = "sprite", .display_name = "Sprite"},
 					{.name = "curve", .display_name = "Curve"},
 					{.name = "ragdoll", .display_name = "Ragdoll"},
+					{
+						.name		  = "animation_library",
+						.display_name = "Animation Library",
+					},
 				},
 			.type_id   = type_id_t<resource_type_e>::value,
 			.size	   = sizeof(resource_type_e),

@@ -57,6 +57,7 @@ namespace sfg
 		sprite,
 		curve,
 		ragdoll,
+		animation_library,
 		world,
 		count,
 	};

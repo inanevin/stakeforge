@@ -46,6 +46,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/animation_def.hpp>
 #include <sfg/runtime/resources/animation_graph_cook.hpp>
 #include <sfg/runtime/resources/animation_graph_def.hpp>
+#include <sfg/runtime/resources/animation_library_cook.hpp>
+#include <sfg/runtime/resources/animation_library_def.hpp>
 #include <sfg/runtime/resources/audio_cook.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/runtime/resources/material_cook.hpp>
@@ -151,6 +153,8 @@ namespace sfg
 			return cook_texture_sampler(asset, asset_name);
 		case editor_asset_type_e::physical_material:
 			return cook_physical_material(asset, asset_name);
+		case editor_asset_type_e::animation_library:
+			return cook_animation_library(asset, asset_name);
 		case editor_asset_type_e::animation_graph:
 			return cook_animation_graph(asset, asset_name);
 		case editor_asset_type_e::cubemap:
@@ -182,6 +186,7 @@ namespace sfg
 		case editor_asset_type_e::ragdoll:
 		case editor_asset_type_e::texture_sampler:
 		case editor_asset_type_e::physical_material:
+		case editor_asset_type_e::animation_library:
 		case editor_asset_type_e::animation_graph:
 		case editor_asset_type_e::cubemap:
 		case editor_asset_type_e::font:
@@ -361,6 +366,32 @@ namespace sfg
 		if (!curve_cooker::cook_from_def(def, header, stream))
 		{
 			SFG_ERR("failed to cook curve asset {0}", asset.guid);
+			return false;
+		}
+
+		return save_cooked_asset(asset, header, stream, asset_name);
+	}
+
+	bool editor_asset_cooker_t::cook_animation_library(const editor_asset_t& asset, const char* asset_name)
+	{
+		SFG_ASSERT(asset.asset_type == editor_asset_type_e::animation_library);
+		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
+
+		animation_library_def_t def				= {};
+		const nlohmann::json	embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<animation_library_def_t>::value, &def, nullptr, embedded_source))
+		{
+			SFG_ERR("failed to deserialize animation library definition for asset {0}", asset.guid);
+			return false;
+		}
+
+		resource_header_t header = {};
+		ostream_t		  stream = {};
+
+		if (!animation_library_cooker::cook_from_def(def, header, stream))
+		{
+			SFG_ERR("failed to cook animation library asset {0}", asset.guid);
 			return false;
 		}
 

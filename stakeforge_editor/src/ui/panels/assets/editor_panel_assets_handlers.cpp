@@ -184,6 +184,7 @@ namespace sfg
 			panel._create_folder_popup_pending = true;
 			return;
 		case assets_action_menu_create_world:
+		case assets_action_menu_create_animation_library:
 		case assets_action_menu_create_animation_graph:
 		case assets_action_menu_create_lit_shader:
 		case assets_action_menu_create_unlit_shader:

@@ -22,32 +22,37 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
-#pragma once
+#include "animation_library_def.hpp"
+#include "resource_type.hpp"
 
-#include <sfg/common/size_definitions.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
-	enum class editor_panel_type_e : u8
+	animation_library_def_reflection_t::animation_library_def_reflection_t()
 	{
-		entities,
-		assets,
-		log,
-		world,
-		inspector,
-		animation,
-		resources,
-		project_settings,
-		mesh_viewer,
-		skeleton_viewer,
-		ragdoll_viewer,
-		animation_graph,
-		animation_library,
-		max,
-	};
+		reflection_registry_t& registry = reflection_registry_t::get();
 
-	const char*			editor_panel_type_to_string(editor_panel_type_e type);
-	editor_panel_type_e editor_panel_type_from_string(const char* value);
+		registry.register_type({
+			.name		  = "animation_library_def_t",
+			.display_name = "Animation library",
+			.fields =
+				{
+					{
+						.name		  = "skeleton",
+						.display_name = "Skeleton",
+						.sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SKELETON,
+						.offset		  = offsetof(animation_library_def_t, skeleton),
+						.size		  = sizeof(resource_handle_t),
+						.type		  = reflected_value_type_e::u64,
+					},
+				},
+			.type_id   = type_id_t<animation_library_def_t>::value,
+			.size	   = sizeof(animation_library_def_t),
+			.alignment = alignof(animation_library_def_t),
+		});
+	}
 }

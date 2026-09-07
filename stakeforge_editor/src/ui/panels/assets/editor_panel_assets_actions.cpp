@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/editor_panel_mesh_viewer.hpp"
 #include "ui/panels/editor_panel_skeleton_viewer.hpp"
+#include "ui/panels/editor_panel_animation_library.hpp"
 #include "ui/panels/editor_panel_ragdoll_viewer.hpp"
 #include "ui/panels/animation_graph/editor_panel_animation_graph.hpp"
 #include "assets/editor_asset_creator.hpp"
@@ -527,14 +528,23 @@ namespace sfg
 		else if (asset->asset_type == editor_asset_type_e::mesh)
 		{
 			editor_panel_t* panel = editor_surface_controller_t::get().create_panel_instance(editor_panel_type_e::mesh_viewer, {}, true, asset->guid);
+
 			if (panel != nullptr)
 				static_cast<editor_panel_mesh_viewer_t*>(panel)->set_mesh(asset->guid, asset_node.name.c_str());
 		}
 		else if (asset->asset_type == editor_asset_type_e::skeleton)
 		{
 			editor_panel_t* panel = editor_surface_controller_t::get().create_panel_instance(editor_panel_type_e::skeleton_viewer, {}, true, asset->guid);
+
 			if (panel != nullptr)
 				static_cast<editor_panel_skeleton_viewer_t*>(panel)->set_skeleton(asset->guid, asset_node.name.c_str());
+		}
+		else if (asset->asset_type == editor_asset_type_e::animation_library)
+		{
+			editor_panel_t* panel = editor_surface_controller_t::get().create_panel_instance(editor_panel_type_e::animation_library, {}, true, asset->guid);
+
+			if (panel != nullptr)
+				static_cast<editor_panel_animation_library_t*>(panel)->set_library(asset->guid, asset_node.name.c_str());
 		}
 		else if (asset->asset_type == editor_asset_type_e::ragdoll)
 		{
@@ -650,6 +660,7 @@ namespace sfg
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 
 		const char* text = "";
+
 		switch (command)
 		{
 		case assets_action_menu_create_world:
@@ -657,6 +668,9 @@ namespace sfg
 			break;
 		case assets_action_menu_create_animation_graph:
 			text = "animation_graph";
+			break;
+		case assets_action_menu_create_animation_library:
+			text = "animation_library";
 			break;
 		case assets_action_menu_create_lit_shader:
 			text = "lit_shader";
@@ -861,6 +875,9 @@ namespace sfg
 			return true;
 		case assets_action_menu_create_animation_graph:
 			out_desc.asset_type = editor_asset_type_e::animation_graph;
+			return true;
+		case assets_action_menu_create_animation_library:
+			out_desc.asset_type = editor_asset_type_e::animation_library;
 			return true;
 		case assets_action_menu_create_lit_shader:
 			out_desc.asset_type = editor_asset_type_e::shader;

@@ -71,6 +71,7 @@ namespace sfg
 		animation_graph_select_node,
 		animation_graph_set_display_mode,
 		animation_graph_edit,
+		animation_library_edit,
 		skeleton_edit,
 		animation_events_edit,
 		ragdoll_edit,

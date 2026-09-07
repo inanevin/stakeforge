@@ -22,32 +22,19 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-
 namespace sfg
 {
-	enum class editor_panel_type_e : u8
-	{
-		entities,
-		assets,
-		log,
-		world,
-		inspector,
-		animation,
-		resources,
-		project_settings,
-		mesh_viewer,
-		skeleton_viewer,
-		ragdoll_viewer,
-		animation_graph,
-		animation_library,
-		max,
-	};
+	class ostream_t;
+	struct animation_library_def_t;
+	struct resource_header_t;
 
-	const char*			editor_panel_type_to_string(editor_panel_type_e type);
-	editor_panel_type_e editor_panel_type_from_string(const char* value);
+	namespace animation_library_cooker
+	{
+		bool cook_from_def(const animation_library_def_t& def, resource_header_t& out_header, ostream_t& stream);
+	}
 }

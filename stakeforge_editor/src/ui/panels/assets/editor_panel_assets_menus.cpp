@@ -40,6 +40,10 @@ namespace sfg
 	{
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_ANIMATION_ROWS[] = {
 			{.text = "Animation Graph", .command = assets_action_menu_create_animation_graph},
+			{
+				.text	 = "Animation Library",
+				.command = assets_action_menu_create_animation_library,
+			},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GRAPHICS_ROWS[] = {

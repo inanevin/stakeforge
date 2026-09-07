@@ -41,6 +41,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/animation_graph_def.hpp>
+#include <sfg/runtime/resources/animation_library_def.hpp>
 #include <sfg/runtime/resources/curve_def.hpp>
 #include <sfg/runtime/resources/ragdoll_def.hpp>
 #include <sfg/runtime/resources/shader_cook.hpp>
@@ -286,6 +287,32 @@ namespace sfg
 			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
+		bool create_animation_library_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
+		{
+			animation_library_def_t definition		= {};
+			nlohmann::json			embedded_source = nlohmann::json::object();
+
+			if (!reflection_registry_t::get().type_to_json(type_id_t<animation_library_def_t>::value, &definition, nullptr, embedded_source))
+			{
+				SFG_ERR("failed to serialize initial animation library definition");
+				return false;
+			}
+
+			embedded_source["schema"] = "sfg.schema.animation_library";
+
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &embedded_source,
+				.parent_path	 = parent_path,
+				.name			 = desc.name,
+				.guid			 = desc.guid,
+				.asset_type		 = editor_asset_type_e::animation_library,
+				.sub_type		 = desc.sub_type,
+				.allow_overwrite = desc.allow_overwrite,
+			};
+
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
+		}
+
 		bool create_ragdoll_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			ragdoll_def_t  definition	   = {};
@@ -361,52 +388,76 @@ namespace sfg
 		{
 		case editor_asset_type_e::shader:
 			result = create_shader_asset(desc, parent_path, &asset, &asset_path);
+
 			if (result)
 			{
 				shader_data_definition_t definition = {};
 				result								= editor_asset_cooker_t::cook_shader(asset, desc.name, &definition);
+
 				if (result)
 				{
 					editor_asset_io_t::set_embedded_source_json(asset, definition);
 					result = editor_asset_io_t::write_asset(asset_path.c_str(), asset);
 				}
 			}
+
 			break;
 		case editor_asset_type_e::material:
 			result = create_material_asset(desc, parent_path, &asset, &asset_path);
+
 			if (result)
 				result = editor_asset_cooker_t::cook_material(asset, desc.name);
+
 			break;
 		case editor_asset_type_e::texture_sampler:
 			result = create_texture_sampler_asset(desc, parent_path, &asset, &asset_path);
+
 			if (result)
 				result = editor_asset_cooker_t::cook_texture_sampler(asset, desc.name);
+
 			break;
 		case editor_asset_type_e::physical_material:
 			result = create_physical_material_asset(desc, parent_path, &asset, &asset_path);
+
 			if (result)
 				result = editor_asset_cooker_t::cook_physical_material(asset, desc.name);
+
 			break;
 		case editor_asset_type_e::curve:
 			result = create_curve_asset(desc, parent_path, &asset, &asset_path);
+
 			if (result)
 				result = editor_asset_cooker_t::cook_curve(asset, desc.name);
+
 			break;
 		case editor_asset_type_e::animation_graph:
 			result = create_animation_graph_asset(desc, parent_path, &asset, &asset_path);
+
 			if (result)
 				result = editor_asset_cooker_t::cook_animation_graph(asset, desc.name);
+
+			break;
+		case editor_asset_type_e::animation_library:
+			result = create_animation_library_asset(desc, parent_path, &asset, &asset_path);
+
+			if (result)
+				result = editor_asset_cooker_t::cook_animation_library(asset, desc.name);
+
 			break;
 		case editor_asset_type_e::ragdoll:
 			result = create_ragdoll_asset(desc, parent_path, &asset, &asset_path);
+
 			break;
 		case editor_asset_type_e::prefab:
 			result = create_prefab_asset(desc, parent_path, &asset, &asset_path);
+
 			if (result)
 				result = editor_asset_cooker_t::cook_prefab(asset, desc.name);
+
 			break;
 		case editor_asset_type_e::world:
 			result = create_world_asset(desc, parent_path, &asset, &asset_path);
+
 			break;
 		default:
 			SFG_ASSERT(false);
@@ -415,6 +466,7 @@ namespace sfg
 
 		if (result && out_asset != nullptr)
 			*out_asset = asset;
+
 		return result;
 	}
 

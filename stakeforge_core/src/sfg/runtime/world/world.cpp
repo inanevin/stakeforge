@@ -85,6 +85,7 @@ namespace sfg
 		_logic_helper.init(*this);
 
 		_animation_controller.init(*this, config.render_bone_max_count, config.animation_graph_budget_bytes);
+		_animation_processor.init(*this);
 
 		_audio_controller.init(*this);
 
@@ -112,6 +113,7 @@ namespace sfg
 
 		_audio_controller.uninit();
 
+		_animation_processor.uninit();
 		_animation_controller.uninit();
 
 		if (_physics_world.is_init())
@@ -281,6 +283,7 @@ namespace sfg
 
 		const f32 scaled_dt = dt * _time_scale;
 
+		_animation_processor.tick(scaled_dt);
 		_animation_controller.tick_logic(scaled_dt);
 	}
 

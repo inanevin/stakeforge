@@ -1,0 +1,113 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+   1. Redistributions of source code must retain the above copyright notice, this
+	  list of conditions and the following disclaimer.
+
+   2. Redistributions in binary form must reproduce the above copyright notice,
+	  this list of conditions and the following disclaimer in the documentation
+	  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+OF THE POSSIBILITY OF SUCH DAMAGE.
+
+*/
+
+#pragma once
+
+#include "editor_panel.hpp"
+#include "ui/widgets/editor_split_border.hpp"
+#include "ui/widgets/editor_widget_button.hpp"
+#include "ui/widgets/editor_widget_reference.hpp"
+#include "ui/widgets/editor_widget_world_view.hpp"
+#include "ui/widgets/editor_widgets_scrollbar.hpp"
+
+#include <sfg/data/unique.hpp>
+#include <sfg/runtime/resources/animation_library_def.hpp>
+
+namespace sfg
+{
+	class editor_asset_manager_t;
+	class editor_command_system_t;
+	struct editor_asset_deletion_listener_tag_t;
+
+	class editor_panel_animation_library_t final : public editor_panel_t
+	{
+	public:
+		editor_panel_animation_library_t();
+		~editor_panel_animation_library_t() override;
+		editor_panel_animation_library_t(const editor_panel_animation_library_t& other)			   = delete;
+		editor_panel_animation_library_t& operator=(const editor_panel_animation_library_t& other) = delete;
+
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		void serialize(nlohmann::json& j) const override;
+		void deserialize(const nlohmann::json& j) override;
+		void init(ui::ui_context& ui, ui::widget_id_t parent) override;
+		void uninit() override;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		void set_library(sid_t library_guid, const char* asset_name);
+		void apply_edits(const animation_library_def_t& definition);
+		bool on_command_event(const window_event_t& ev);
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		const animation_library_def_t& get_library_def() const
+		{
+			return _library;
+		}
+
+	private:
+		void create_preview_world();
+		void refresh_scene();
+		void refresh_skeleton_reference();
+		void refresh_skeleton_overlay();
+		void apply_pane_splits();
+
+		static void on_skeleton_edited(void* user_data);
+		static void on_save_changes_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_asset_deletion(editor_asset_manager_t& manager, span_t<const sid_t> asset_ids, void* user_data);
+
+	private:
+		editor_widget_world_view_t								 _world_view			   = {};
+		editor_widget_reference_t								 _skeleton_reference	   = {};
+		editor_widget_button_t									 _save_changes_button	   = {};
+		editor_scrollbar_t										 _right_scrollbar		   = {};
+		editor_split_border_t									 _left_split_border		   = {};
+		editor_split_border_t									 _right_split_border	   = {};
+		unique_t<editor_command_system_t>						 _commands				   = {};
+		string_t												 _asset_name			   = {};
+		animation_library_def_t									 _library				   = {};
+		resource_handle_t										 _skeleton_reference_value = NULL_RESOURCE_HANDLE;
+		sid_t													 _library_guid			   = NULL_SID;
+		editor_world_handle_t									 _world					   = {};
+		pool_handle_t<u32, editor_asset_deletion_listener_tag_t> _asset_deletion_listener  = {};
+		ui::widget_id_t											 _left_pane				   = NULL_WIDGET;
+		ui::widget_id_t											 _mid_pane				   = NULL_WIDGET;
+		ui::widget_id_t											 _right_pane			   = NULL_WIDGET;
+		ui::widget_id_t											 _missing_skeleton_frame   = NULL_WIDGET;
+		f32														 _left_split			   = 0.2f;
+		f32														 _right_split			   = 0.75f;
+	};
+}

@@ -69,6 +69,9 @@ namespace sfg
 		case editor_asset_type_e::prefab:
 			j = "prefab";
 			break;
+		case editor_asset_type_e::animation_library:
+			j = "animation_library";
+			break;
 		case editor_asset_type_e::animation_graph:
 			j = "animation_graph";
 			break;
@@ -122,6 +125,8 @@ namespace sfg
 			t = editor_asset_type_e::physical_material;
 		else if (s == "prefab")
 			t = editor_asset_type_e::prefab;
+		else if (s == "animation_library")
+			t = editor_asset_type_e::animation_library;
 		else if (s == "animation_graph")
 			t = editor_asset_type_e::animation_graph;
 		else if (s == "cubemap" || s == "hdr_skybox")
@@ -166,6 +171,8 @@ namespace sfg
 			return editor_asset_type_e::physical_material;
 		case resource_type_e::prefab:
 			return editor_asset_type_e::prefab;
+		case resource_type_e::animation_library:
+			return editor_asset_type_e::animation_library;
 		case resource_type_e::animation_graph:
 			return editor_asset_type_e::animation_graph;
 		case resource_type_e::cubemap:

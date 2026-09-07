@@ -40,6 +40,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/panels/editor_panel_factory.hpp"
 #include "ui/panels/editor_panel_world.hpp"
 #include "ui/panels/editor_panel_skeleton_viewer.hpp"
+#include "ui/panels/editor_panel_animation_library.hpp"
 #include "ui/panels/editor_panel_animation.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/panels/editor_secondary_base.hpp"
@@ -413,6 +414,11 @@ namespace sfg
 				if (focused_panel != nullptr && focused_panel->get_type() == editor_panel_type_e::skeleton_viewer)
 				{
 					if (static_cast<editor_panel_skeleton_viewer_t*>(focused_panel)->on_command_event(ev))
+						return;
+				}
+				else if (focused_panel != nullptr && focused_panel->get_type() == editor_panel_type_e::animation_library)
+				{
+					if (static_cast<editor_panel_animation_library_t*>(focused_panel)->on_command_event(ev))
 						return;
 				}
 				else if (focused_panel != nullptr && focused_panel->get_type() == editor_panel_type_e::animation)

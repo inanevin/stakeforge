@@ -22,32 +22,43 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
-#pragma once
+#include "animation_library_cook.hpp"
+#include "animation_library.hpp"
+#include "animation_library_def.hpp"
 
-#include <sfg/common/size_definitions.hpp>
+#include <sfg/common/hashing.hpp>
+#include <sfg/data/ostream.hpp>
+#include <sfg/io/log.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
-	enum class editor_panel_type_e : u8
+	bool animation_library_cooker::cook_from_def(const animation_library_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
-		entities,
-		assets,
-		log,
-		world,
-		inspector,
-		animation,
-		resources,
-		project_settings,
-		mesh_viewer,
-		skeleton_viewer,
-		ragdoll_viewer,
-		animation_graph,
-		animation_library,
-		max,
-	};
+		ostream_t def_stream = {};
 
-	const char*			editor_panel_type_to_string(editor_panel_type_e type);
-	editor_panel_type_e editor_panel_type_from_string(const char* value);
+		if (!reflection_registry_t::get().type_to_stream(type_id_t<animation_library_def_t>::value, const_cast<animation_library_def_t*>(&def), nullptr, def_stream))
+		{
+			SFG_ERR("failed to serialize animation library definition");
+			return false;
+		}
+
+		out_header = {
+			.type			  = resource_type_e::animation_library,
+			.magic			  = animation_library_loader_t::WIRE_MAGIC,
+			.version		  = animation_library_loader_t::WIRE_VERSION,
+			.source_tick	  = hashing_t::hash_u64(def_stream.get_raw(), def_stream.get_size()),
+			.dependency_count = def.skeleton == NULL_RESOURCE_HANDLE ? 0u : 1u,
+		};
+
+		if (def.skeleton != NULL_RESOURCE_HANDLE)
+			stream << resource_dependency_t{.handle = def.skeleton, .type = resource_type_e::skeleton};
+
+		stream.write_raw(def_stream.get_raw(), def_stream.get_size());
+
+		return true;
+	}
 }

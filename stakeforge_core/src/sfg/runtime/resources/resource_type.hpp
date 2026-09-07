@@ -50,6 +50,8 @@ namespace sfg
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_CURVE				   "reflection_resource_subtype_curve"_hs
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_RAGDOLL				   "reflection_resource_subtype_ragdoll"_hs
 
+#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_LIBRARY "reflection_resource_subtype_animation_library"_hs
+
 	enum class resource_type_e : u8
 	{
 		invalid,
@@ -70,6 +72,7 @@ namespace sfg
 		sprite,
 		curve,
 		ragdoll,
+		animation_library,
 		count,
 	};
 
@@ -79,38 +82,58 @@ namespace sfg
 	{
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_AUDIO)
 			return resource_type_e::audio;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_FONT)
 			return resource_type_e::font;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MESH)
 			return resource_type_e::mesh;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SKELETON)
 			return resource_type_e::skeleton;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION)
 			return resource_type_e::animation;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MATERIAL)
 			return resource_type_e::material;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SHADER)
 			return resource_type_e::shader;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_TEXTURE)
 			return resource_type_e::texture;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_TEXTURE_SAMPLER)
 			return resource_type_e::texture_sampler;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICAL_MATERIAL)
 			return resource_type_e::physical_material;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PREFAB)
 			return resource_type_e::prefab;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_GRAPH)
 			return resource_type_e::animation_graph;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_CUBEMAP)
 			return resource_type_e::cubemap;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICS_COLLISION_MESH)
 			return resource_type_e::physics_collision_mesh;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SPRITE)
 			return resource_type_e::sprite;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_CURVE)
 			return resource_type_e::curve;
+
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_RAGDOLL)
 			return resource_type_e::ragdoll;
+
+		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_LIBRARY)
+			return resource_type_e::animation_library;
+
 		return resource_type_e::invalid;
 	}
 

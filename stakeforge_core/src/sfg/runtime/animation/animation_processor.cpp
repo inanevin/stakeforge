@@ -22,32 +22,24 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
-#pragma once
-
-#include <sfg/common/size_definitions.hpp>
+#include "animation_processor.hpp"
 
 namespace sfg
 {
-	enum class editor_panel_type_e : u8
+	void animation_processor_t::init(world_t& world)
 	{
-		entities,
-		assets,
-		log,
-		world,
-		inspector,
-		animation,
-		resources,
-		project_settings,
-		mesh_viewer,
-		skeleton_viewer,
-		ragdoll_viewer,
-		animation_graph,
-		animation_library,
-		max,
-	};
+		_world = &world;
+	}
 
-	const char*			editor_panel_type_to_string(editor_panel_type_e type);
-	editor_panel_type_e editor_panel_type_from_string(const char* value);
+	void animation_processor_t::uninit()
+	{
+		_world = nullptr;
+	}
+
+	void animation_processor_t::tick(f32 dt)
+	{
+	}
 }

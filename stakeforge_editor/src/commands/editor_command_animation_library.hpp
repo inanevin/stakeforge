@@ -22,32 +22,29 @@ DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
 OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
 OF THE POSSIBILITY OF SUCH DAMAGE.
+
 */
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-
 namespace sfg
 {
-	enum class editor_panel_type_e : u8
-	{
-		entities,
-		assets,
-		log,
-		world,
-		inspector,
-		animation,
-		resources,
-		project_settings,
-		mesh_viewer,
-		skeleton_viewer,
-		ragdoll_viewer,
-		animation_graph,
-		animation_library,
-		max,
-	};
+	class editor_command_system_t;
+	class editor_panel_animation_library_t;
+	struct animation_library_def_t;
 
-	const char*			editor_panel_type_to_string(editor_panel_type_e type);
-	editor_panel_type_e editor_panel_type_from_string(const char* value);
+	class editor_command_animation_library_edit_t final
+	{
+	public:
+		editor_command_animation_library_edit_t()																 = delete;
+		~editor_command_animation_library_edit_t()																 = delete;
+		editor_command_animation_library_edit_t(const editor_command_animation_library_edit_t& other)			 = delete;
+		editor_command_animation_library_edit_t& operator=(const editor_command_animation_library_edit_t& other) = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static bool submit(editor_command_system_t& system, editor_panel_animation_library_t& panel, const animation_library_def_t& definition, const char* debug_name);
+	};
 }

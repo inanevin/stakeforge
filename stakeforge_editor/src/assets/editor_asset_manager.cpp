@@ -130,6 +130,7 @@ namespace sfg
 		register_descriptor({.display_name = "Physical Material", .color = EDITOR_ASSET_COLOR(214.0f, 65.0f, 57.0f), .asset_type = editor_asset_type_e::physical_material});
 		register_descriptor({.display_name = "Prefab", .color = EDITOR_ASSET_COLOR(107.0f, 210.0f, 132.0f), .asset_type = editor_asset_type_e::prefab});
 		register_descriptor({.display_name = "Animation Graph", .color = EDITOR_ASSET_COLOR(245.0f, 118.0f, 182.0f), .asset_type = editor_asset_type_e::animation_graph});
+		register_descriptor({.display_name = "Animation Library", .color = EDITOR_ASSET_COLOR(245.0f, 118.0f, 182.0f), .asset_type = editor_asset_type_e::animation_library});
 		register_descriptor({.extensions = {"hdr"}, .display_name = "Cubemap", .color = EDITOR_ASSET_COLOR(87.0f, 175.0f, 142.0f), .asset_type = editor_asset_type_e::cubemap});
 		register_descriptor({.display_name = "Physics Collision Mesh", .color = EDITOR_ASSET_COLOR(214.0f, 96.0f, 57.0f), .asset_type = editor_asset_type_e::physics_collision_mesh});
 		register_descriptor({.display_name = "Sprite", .color = EDITOR_ASSET_COLOR(212.0f, 85.0f, 169.0f), .asset_type = editor_asset_type_e::sprite});
