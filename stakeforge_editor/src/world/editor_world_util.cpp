@@ -39,7 +39,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/resources/physics_collision_mesh.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world.hpp>
@@ -138,13 +138,13 @@ namespace sfg
 		const entity_id_t environment = world.create_entity("environment");
 		world.set_entity_rot_local(environment, quat_t::from_euler(-32.0f, 0.0f, 0.0f));
 
-		component_light_t& light = ecs_helpers_t::table_add_or_get_as<component_light_t>(world.get_component_table(type_id_t<component_light_t>::value), environment);
+		component_light_t& light = world.get_component_table(type_id_t<component_light_t>::value).add_or_get_as<component_light_t>(environment);
 		light.intensity			 = 4.5f;
 		light.range				 = 10.0f;
 		light.type				 = light_type_e::directional;
 		light.cast_shadows		 = 1;
 
-		component_environment_t& environment_component = ecs_helpers_t::table_add_or_get_as<component_environment_t>(world.get_component_table(type_id_t<component_environment_t>::value), environment);
+		component_environment_t& environment_component = world.get_component_table(type_id_t<component_environment_t>::value).add_or_get_as<component_environment_t>(environment);
 		environment_component.skybox_material		   = DEFAULT_GRADIENT_SKYBOX_MATERIAL_ASSET_GUID;
 		environment_component.ambient_color			   = color_t::white;
 		environment_component.intensity				   = 1.0f;
@@ -153,11 +153,11 @@ namespace sfg
 
 		const entity_id_t ground = world.create_entity("ground");
 
-		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), ground);
+		component_mesh_renderer_t& mesh_renderer = world.get_component_table(type_id_t<component_mesh_renderer_t>::value).add_or_get_as<component_mesh_renderer_t>(ground);
 		mesh_renderer.mesh						 = DEFAULT_MESH_PLANE_GUID;
 		mesh_renderer.materials.push_back(DEFAULT_GRID_MATERIAL_ASSET_GUID);
 
-		component_transform_t& transform = ecs_helpers_t::table_add_or_get_as<component_transform_t>(world.get_component_table(type_id_t<component_transform_t>::value), ground);
+		component_transform_t& transform = world.get_component_table(type_id_t<component_transform_t>::value).add_or_get_as<component_transform_t>(ground);
 		transform.scale					 = vec3f_t(50, 1, 50);
 
 		world.scan_for_resources(ground, true);
@@ -172,20 +172,20 @@ namespace sfg
 		world.set_entity_pos_local(environment, {0.0f, spotlight_y, 0.0f});
 		world.set_entity_rot_local(environment, quat_t::from_euler(-90.0f, 0.0f, 0.0f));
 
-		component_light_t& light = ecs_helpers_t::table_add_or_get_as<component_light_t>(world.get_component_table(type_id_t<component_light_t>::value), environment);
+		component_light_t& light = world.get_component_table(type_id_t<component_light_t>::value).add_or_get_as<component_light_t>(environment);
 
 		light.intensity	   = 25.0f;
 		light.range		   = math::max(10.0f, spotlight_y * 2.0f);
 		light.type		   = light_type_e::spot;
 		light.cast_shadows = 1;
 
-		component_environment_t& environment_component = ecs_helpers_t::table_add_or_get_as<component_environment_t>(world.get_component_table(type_id_t<component_environment_t>::value), environment);
+		component_environment_t& environment_component = world.get_component_table(type_id_t<component_environment_t>::value).add_or_get_as<component_environment_t>(environment);
 
 		environment_component.skybox_material = DEFAULT_GRADIENT_DARK_SKYBOX_MATERIAL_ASSET_GUID;
 		environment_component.ambient_color	  = {0.368139f, 0.368139f, 0.368139f, 1.0f};
 		environment_component.intensity		  = 1.0f;
 
-		component_fog_t& fog = ecs_helpers_t::table_add_or_get_as<component_fog_t>(world.get_component_table(type_id_t<component_fog_t>::value), environment);
+		component_fog_t& fog = world.get_component_table(type_id_t<component_fog_t>::value).add_or_get_as<component_fog_t>(environment);
 
 		fog = {
 			.color			= {0.015199f, 0.015199f, 0.015199f, 1.0f},
@@ -202,12 +202,12 @@ namespace sfg
 		world.scan_for_resources(environment, true);
 
 		const entity_id_t		   ground		 = world.create_entity("ground");
-		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), ground);
+		component_mesh_renderer_t& mesh_renderer = world.get_component_table(type_id_t<component_mesh_renderer_t>::value).add_or_get_as<component_mesh_renderer_t>(ground);
 
 		mesh_renderer.mesh = DEFAULT_MESH_PLANE_GUID;
 		mesh_renderer.materials.push_back(DEFAULT_GRID_DARK_MATERIAL_ASSET_GUID);
 
-		component_transform_t& transform = ecs_helpers_t::table_add_or_get_as<component_transform_t>(world.get_component_table(type_id_t<component_transform_t>::value), ground);
+		component_transform_t& transform = world.get_component_table(type_id_t<component_transform_t>::value).add_or_get_as<component_transform_t>(ground);
 
 		transform.scale = vec3f_t(50, 1, 50);
 
@@ -293,24 +293,24 @@ namespace sfg
 			if (row.id == editor_camera_entity)
 				continue;
 
-			const component_system_transform_t& transform  = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
+			const component_system_transform_t& transform  = row.get<component_system_transform_t>(1);
 			resource_handle_t					icons[5]   = {};
 			u32									icon_count = 0;
 
-			if (ecs_t::table_has(audio_source_table, row.id) || ecs_t::table_has(audio_listener_table, row.id))
+			if (audio_source_table.has(row.id) || audio_listener_table.has(row.id))
 				icons[icon_count++] = EDITOR_WORLD_ICON_AUDIO;
 
-			if (ecs_t::table_has(light_table, row.id))
+			if (light_table.has(row.id))
 				icons[icon_count++] = EDITOR_WORLD_ICON_BULB;
 
-			if (ecs_t::table_has(camera_table, row.id))
+			if (camera_table.has(row.id))
 				icons[icon_count++] = EDITOR_WORLD_ICON_CAMERA;
 
 			bool has_constraint = false;
 
 			for (const ecs_component_table_t* table : constraint_tables)
 			{
-				if (!ecs_t::table_has(*table, row.id))
+				if (!table->has(row.id))
 					continue;
 
 				has_constraint = true;
@@ -320,7 +320,7 @@ namespace sfg
 			if (has_constraint)
 				icons[icon_count++] = EDITOR_WORLD_ICON_CONSTRAINT;
 
-			if (ecs_t::table_has(reflection_probe_table, row.id))
+			if (reflection_probe_table.has(row.id))
 				icons[icon_count++] = EDITOR_WORLD_ICON_PROBE;
 
 			if (icon_count == 0)
@@ -362,13 +362,13 @@ namespace sfg
 		for (size_t i = 0; i < selected_entities.size; ++i)
 		{
 			const entity_id_t					entity		   = selected_entities.data[i];
-			const component_system_transform_t& transform	   = ecs_helpers_t::table_get_as_const<component_system_transform_t>(system_transform_table, entity);
-			const component_camera_t*			camera		   = ecs_helpers_t::table_find_as_const<component_camera_t>(camera_table, entity);
-			const component_compound_shape_t*	compound_shape = ecs_helpers_t::table_find_as_const<component_compound_shape_t>(compound_shape_table, entity);
+			const component_system_transform_t& transform	   = system_transform_table.get_as_const<component_system_transform_t>(entity);
+			const component_camera_t*			camera		   = camera_table.find_as_const<component_camera_t>(entity);
+			const component_compound_shape_t*	compound_shape = compound_shape_table.find_as_const<component_compound_shape_t>(entity);
 
 			if (compound_shape != nullptr)
 			{
-				const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, entity);
+				const component_hierarchy_t& hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(entity);
 
 				if (hierarchy.parent != NULL_ENTITY_ID && std::find(compound_parents.begin(), compound_parents.end(), hierarchy.parent) == compound_parents.end())
 					compound_parents.push_back(hierarchy.parent);
@@ -390,7 +390,7 @@ namespace sfg
 										debug_draw_depth_e::always_visible);
 			}
 
-			const component_audio_source_t* audio_source = ecs_helpers_t::table_find_as_const<component_audio_source_t>(audio_source_table, entity);
+			const component_audio_source_t* audio_source = audio_source_table.find_as_const<component_audio_source_t>(entity);
 
 			if (audio_source != nullptr && audio_source->spatialized != 0)
 			{
@@ -401,7 +401,7 @@ namespace sfg
 					debug_draw.draw_sphere(transform.abs_pos, audio_source->max_distance, debug_color, 2.0f, debug_draw_depth_e::always_visible, 24);
 			}
 
-			const component_physical_t* physical = ecs_helpers_t::table_find_as_const<component_physical_t>(physical_table, entity);
+			const component_physical_t* physical = physical_table.find_as_const<component_physical_t>(entity);
 
 			if (physical != nullptr)
 			{
@@ -413,7 +413,7 @@ namespace sfg
 					compound_parents.push_back(entity);
 			}
 
-			const component_character_mover_t* character_mover = ecs_helpers_t::table_find_as_const<component_character_mover_t>(character_mover_table, entity);
+			const component_character_mover_t* character_mover = character_mover_table.find_as_const<component_character_mover_t>(entity);
 
 			if (character_mover != nullptr)
 			{
@@ -424,7 +424,7 @@ namespace sfg
 
 			draw_constraint_gizmos(world, entity, transform, debug_draw);
 
-			const component_particle_emitter_t* particle_emitter = ecs_helpers_t::table_find_as_const<component_particle_emitter_t>(particle_emitter_table, entity);
+			const component_particle_emitter_t* particle_emitter = particle_emitter_table.find_as_const<component_particle_emitter_t>(entity);
 
 			if (particle_emitter != nullptr)
 			{
@@ -464,7 +464,7 @@ namespace sfg
 				}
 			}
 
-			const component_reflection_probe_t* reflection_probe = ecs_helpers_t::table_find_as_const<component_reflection_probe_t>(reflection_probe_table, entity);
+			const component_reflection_probe_t* reflection_probe = reflection_probe_table.find_as_const<component_reflection_probe_t>(entity);
 
 			if (reflection_probe != nullptr && !reflection_probe->is_global)
 			{
@@ -474,7 +474,7 @@ namespace sfg
 				debug_draw.draw_box(box_transform, half_extents, debug_color, 2.0f, debug_draw_depth_e::always_visible);
 			}
 
-			const component_light_t* light = ecs_helpers_t::table_find_as_const<component_light_t>(light_table, entity);
+			const component_light_t* light = light_table.find_as_const<component_light_t>(entity);
 
 			if (light == nullptr)
 				continue;
@@ -508,24 +508,24 @@ namespace sfg
 
 		for (entity_id_t parent : compound_parents)
 		{
-			const component_physical_t* physical = ecs_helpers_t::table_find_as_const<component_physical_t>(physical_table, parent);
+			const component_physical_t* physical = physical_table.find_as_const<component_physical_t>(parent);
 
 			if (physical == nullptr || physical->shape != physics_shape_type_e::compound)
 				continue;
 
-			const component_system_transform_t& parent_transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(system_transform_table, parent);
-			const component_hierarchy_t&		parent_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, parent);
+			const component_system_transform_t& parent_transform = system_transform_table.get_as_const<component_system_transform_t>(parent);
+			const component_hierarchy_t&		parent_hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(parent);
 			const quat_t						body_rotation	 = parent_transform.abs_rot * physical->local_rotation;
 			const vec3f_t						body_position	 = parent_transform.abs_pos + parent_transform.abs_rot * (physical->local_position * parent_transform.abs_scale);
 
 			for (entity_id_t child = parent_hierarchy.first_child; child != NULL_ENTITY_ID;)
 			{
-				const component_hierarchy_t&	  child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
-				const component_compound_shape_t* compound_shape  = ecs_helpers_t::table_find_as_const<component_compound_shape_t>(compound_shape_table, child);
+				const component_hierarchy_t&	  child_hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(child);
+				const component_compound_shape_t* compound_shape  = compound_shape_table.find_as_const<component_compound_shape_t>(child);
 
 				if (compound_shape != nullptr)
 				{
-					const component_transform_t& child_transform = ecs_helpers_t::table_get_as_const<component_transform_t>(transform_table, child);
+					const component_transform_t& child_transform = transform_table.get_as_const<component_transform_t>(child);
 					const vec3f_t				 child_position	 = (child_transform.pos + child_transform.rot * (compound_shape->local_position * child_transform.scale)) * parent_transform.abs_scale;
 					const quat_t				 shape_rotation	 = body_rotation * child_transform.rot * compound_shape->local_rotation;
 					const vec3f_t				 shape_position	 = body_position + body_rotation * child_position;
@@ -587,7 +587,7 @@ namespace sfg
 			if (target_entity == NULL_ENTITY_ID || target_entity == entity)
 				return nullptr;
 
-			return ecs_helpers_t::table_find_as_const<component_system_transform_t>(transform_table, target_entity);
+			return transform_table.find_as_const<component_system_transform_t>(target_entity);
 		};
 
 		auto draw_anchor_pair = [&debug_draw](const vec3f_t& local_point, const vec3f_t& target_point, const color_t& color) {
@@ -614,7 +614,7 @@ namespace sfg
 			debug_draw.draw_line(point, point + end_direction * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible);
 		};
 
-		if (const component_fixed_constraint_t* component = ecs_helpers_t::table_find_as_const<component_fixed_constraint_t>(fixed_table, entity))
+		if (const component_fixed_constraint_t* component = fixed_table.find_as_const<component_fixed_constraint_t>(entity))
 		{
 			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
 			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
@@ -628,7 +628,7 @@ namespace sfg
 			draw_frame(target_point, target_frame, color);
 		}
 
-		if (const component_distance_constraint_t* component = ecs_helpers_t::table_find_as_const<component_distance_constraint_t>(distance_table, entity))
+		if (const component_distance_constraint_t* component = distance_table.find_as_const<component_distance_constraint_t>(entity))
 		{
 			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
 			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
@@ -644,7 +644,7 @@ namespace sfg
 				debug_draw.draw_sphere(local_point, component->max_distance, limit_color, 2.0f, debug_draw_depth_e::always_visible, 24);
 		}
 
-		if (const component_point_constraint_t* component = ecs_helpers_t::table_find_as_const<component_point_constraint_t>(point_table, entity))
+		if (const component_point_constraint_t* component = point_table.find_as_const<component_point_constraint_t>(entity))
 		{
 			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
 			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
@@ -654,7 +654,7 @@ namespace sfg
 			draw_anchor_pair(local_point, target_point, color);
 		}
 
-		if (const component_hinge_constraint_t* component = ecs_helpers_t::table_find_as_const<component_hinge_constraint_t>(hinge_table, entity))
+		if (const component_hinge_constraint_t* component = hinge_table.find_as_const<component_hinge_constraint_t>(entity))
 		{
 			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
 			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
@@ -673,7 +673,7 @@ namespace sfg
 			draw_angular_limit(local_point, local_axis, local_normal, component->limit_min_degrees, component->limit_max_degrees, limit_color);
 		}
 
-		if (const component_cone_constraint_t* component = ecs_helpers_t::table_find_as_const<component_cone_constraint_t>(cone_table, entity))
+		if (const component_cone_constraint_t* component = cone_table.find_as_const<component_cone_constraint_t>(entity))
 		{
 			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
 			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
@@ -688,7 +688,7 @@ namespace sfg
 			debug_draw.draw_arrow(target_point, target_point + target_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, secondary_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
 		}
 
-		if (const component_slider_constraint_t* component = ecs_helpers_t::table_find_as_const<component_slider_constraint_t>(slider_table, entity))
+		if (const component_slider_constraint_t* component = slider_table.find_as_const<component_slider_constraint_t>(entity))
 		{
 			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
 			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
@@ -722,7 +722,7 @@ namespace sfg
 			}
 		}
 
-		if (const component_swing_twist_constraint_t* component = ecs_helpers_t::table_find_as_const<component_swing_twist_constraint_t>(swing_twist_table, entity))
+		if (const component_swing_twist_constraint_t* component = swing_twist_table.find_as_const<component_swing_twist_constraint_t>(entity))
 		{
 			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
 			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
@@ -741,7 +741,7 @@ namespace sfg
 			draw_angular_limit(local_point, local_axis, local_plane, component->twist_min_angle_degrees, component->twist_max_angle_degrees, limit_color);
 		}
 
-		if (const component_six_dof_constraint_t* component = ecs_helpers_t::table_find_as_const<component_six_dof_constraint_t>(six_dof_table, entity))
+		if (const component_six_dof_constraint_t* component = six_dof_table.find_as_const<component_six_dof_constraint_t>(entity))
 		{
 			const component_system_transform_t* target_transform   = find_target_transform(component->target_entity);
 			const color_t&						color			   = component->enabled != 0 ? enabled_color : disabled_color;
@@ -774,7 +774,7 @@ namespace sfg
 			}
 		}
 
-		if (const component_pulley_constraint_t* component = ecs_helpers_t::table_find_as_const<component_pulley_constraint_t>(pulley_table, entity))
+		if (const component_pulley_constraint_t* component = pulley_table.find_as_const<component_pulley_constraint_t>(entity))
 		{
 			const component_system_transform_t* target_transform   = find_target_transform(component->target_entity);
 			const color_t&						color			   = component->enabled != 0 ? enabled_color : disabled_color;
@@ -792,7 +792,7 @@ namespace sfg
 			debug_draw.draw_line(target_fixed_point, target_point, color, 2.0f, debug_draw_depth_e::always_visible);
 		}
 
-		if (const component_vehicle_constraint_t* component = ecs_helpers_t::table_find_as_const<component_vehicle_constraint_t>(vehicle_table, entity))
+		if (const component_vehicle_constraint_t* component = vehicle_table.find_as_const<component_vehicle_constraint_t>(entity))
 		{
 			const color_t& color   = component->enabled != 0 ? enabled_color : disabled_color;
 			const vec3f_t  up	   = (transform.abs_rot * component->up).normalized();

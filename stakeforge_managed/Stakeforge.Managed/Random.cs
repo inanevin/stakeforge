@@ -11,6 +11,7 @@ public struct RandomState
         State = seed;
     }
 
+    // Chris Wellons, lowbias32 - https://nullprogram.com/blog/2018/07/31/
     public uint NextUInt()
     {
         State ^= State >> 16;

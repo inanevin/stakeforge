@@ -137,18 +137,20 @@ namespace sfg
 
 			for (u32 i = 0; i < payload.count; ++i)
 			{
-				if (!ecs_t::table_has(table, entities[i]))
+				if (!table.has(entities[i]))
 				{
 					SFG_ERR("component {0} missing on entity {1}", payload.component_type, entities[i]);
 					return false;
 				}
 
-				void* component = ecs_t::table_get(table, entities[i]);
-				if (table.type_desc.size != 0)
-					reflection_registry_t::get().initialize_type(table.type_desc.type_id, component);
+				void* component = table.get(entities[i]);
+
+				if (table.get_type_desc().size != 0)
+					reflection_registry_t::get().initialize_type(table.get_type_desc().type_id, component);
 
 				istream_t stream(streams[i] ? system.get_aux_data().get<u8>(streams[i]) : nullptr, streams[i].size);
-				if (!reflection_registry_t::get().type_from_stream(table.type_desc.type_id, component, nullptr, stream))
+
+				if (!reflection_registry_t::get().type_from_stream(table.get_type_desc().type_id, component, nullptr, stream))
 				{
 					SFG_ERR("failed to apply component edit {0} for entity {1}", payload.component_type, entities[i]);
 					return false;

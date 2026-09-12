@@ -46,7 +46,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/texture.hpp>
 #include <sfg/runtime/resources/shader.hpp>
 #include <sfg/runtime/world/ecs.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 
@@ -198,13 +197,14 @@ namespace sfg
 		u32 push_render_object(frame_hash_map_t<entity_id_t, u32>& entity_to_render_id, world_render_snapshot_t& snapshot, entity_id_t id, const ecs_component_table_t& transform_table)
 		{
 			auto it = entity_to_render_id.find(id);
+
 			if (it != entity_to_render_id.end())
 				return it->second;
 
 			const u32 emplaced_id	= static_cast<u32>(snapshot.entities.size());
 			entity_to_render_id[id] = emplaced_id;
 
-			const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, id);
+			const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(id);
 
 			world_render_entity_t& entity = snapshot.entities.emplace_back();
 			entity.entity_id			  = id;
@@ -286,8 +286,8 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_system_transform_t& transform = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
-				const component_camera_t&			cam		  = ecs_helpers_t::row_get<component_camera_t>(row, 2);
+				const component_system_transform_t& transform = row.get<component_system_transform_t>(1);
+				const component_camera_t&			cam		  = row.get<component_camera_t>(2);
 
 				if (min_prio_entity == NULL_ENTITY_ID || cam.priority < min_prio)
 				{
@@ -304,12 +304,12 @@ namespace sfg
 
 			if (min_prio_entity != NULL_ENTITY_ID)
 			{
-				component_camera_t&			  cam	= ecs_helpers_t::table_get_as<component_camera_t>(camera_table, min_prio_entity);
-				component_system_transform_t& trans = ecs_helpers_t::table_get_as<component_system_transform_t>(transform_table, min_prio_entity);
+				component_camera_t&			  cam	= camera_table.get_as<component_camera_t>(min_prio_entity);
+				component_system_transform_t& trans = transform_table.get_as<component_system_transform_t>(min_prio_entity);
 				snapshot.main_view					= {.pos = trans.abs_pos, .rot = trans.abs_rot, .prev_pos = trans.prev_abs_pos, .prev_rot = trans.prev_abs_rot, .near_plane = cam.near_plane, .far_plane = cam.far_plane, .fov_degrees = cam.fov_degrees};
 
 				const entity_id_t				post_process_entity = min_prio == -1 ? min_post_process_entity : min_prio_entity;
-				const component_post_process_t* post_process		= post_process_entity == NULL_ENTITY_ID ? nullptr : ecs_helpers_t::table_find_as_const<component_post_process_t>(post_process_table, post_process_entity);
+				const component_post_process_t* post_process		= post_process_entity == NULL_ENTITY_ID ? nullptr : post_process_table.find_as_const<component_post_process_t>(post_process_entity);
 
 				if (post_process != nullptr)
 				{
@@ -362,7 +362,7 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_environment_t& environment = ecs_helpers_t::row_get<component_environment_t>(row, 1);
+				const component_environment_t& environment = row.get<component_environment_t>(1);
 				snapshot.environment.intensity			   = environment.intensity;
 				snapshot.environment.ambient_color		   = environment.ambient_color.to_vector();
 				snapshot.environment.debug_cluster_heatmap = environment.debug_cluster_heatmap;
@@ -403,7 +403,7 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_fog_t& fog = ecs_helpers_t::row_get<component_fog_t>(row, 1);
+				const component_fog_t& fog = row.get<component_fog_t>(1);
 
 				snapshot.fog = {
 					.color			= fog.color.to_vector(),
@@ -431,8 +431,8 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_system_transform_t& transform = ecs_helpers_t::row_get<component_system_transform_t>(row, 0);
-				const component_light_t&			light	  = ecs_helpers_t::row_get<component_light_t>(row, 2);
+				const component_system_transform_t& transform = row.get<component_system_transform_t>(0);
+				const component_light_t&			light	  = row.get<component_light_t>(2);
 
 				snapshot.lights.push_back({
 					.prev_rot			  = transform.prev_abs_rot,
@@ -470,8 +470,8 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_system_transform_t& transform		 = ecs_helpers_t::row_get<component_system_transform_t>(row, 0);
-				const component_reflection_probe_t& reflection_probe = ecs_helpers_t::row_get<component_reflection_probe_t>(row, 2);
+				const component_system_transform_t& transform		 = row.get<component_system_transform_t>(0);
+				const component_reflection_probe_t& reflection_probe = row.get<component_reflection_probe_t>(2);
 
 				snapshot.reflection_probes.push_back({
 					.prev_rot				= transform.prev_abs_rot,
@@ -493,7 +493,7 @@ namespace sfg
 					.capture_type			= static_cast<world_render_reflection_probe_capture_type_e>(reflection_probe.capture_type),
 					.capture_mode			= static_cast<world_render_reflection_probe_capture_mode_e>(reflection_probe.capture_mode),
 					.is_global				= reflection_probe.is_global ? static_cast<u8>(1) : static_cast<u8>(0),
-					.disabled				= ecs_t::table_has(disabled_table, row.id) ? static_cast<u8>(1) : static_cast<u8>(0),
+					.disabled				= disabled_table.has(row.id) ? static_cast<u8>(1) : static_cast<u8>(0),
 				});
 			}
 		}
@@ -509,12 +509,14 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_system_transform_t& transform	  = ecs_helpers_t::row_get<component_system_transform_t>(row, 0);
-				const component_mesh_renderer_t&	mesh_renderer = ecs_helpers_t::row_get<component_mesh_renderer_t>(row, 2);
+				const component_system_transform_t& transform	  = row.get<component_system_transform_t>(0);
+				const component_mesh_renderer_t&	mesh_renderer = row.get<component_mesh_renderer_t>(2);
+
 				if (mesh_renderer.mesh == NULL_RESOURCE_HANDLE)
 					continue;
 
 				const resource_entry_t* entry = rm.find_entry(mesh_renderer.mesh);
+
 				if (entry == nullptr)
 					continue;
 
@@ -522,9 +524,9 @@ namespace sfg
 				const mesh_internals_t*			mesh_internals = rm_aux.get<mesh_internals_t>(entry->internals);
 				const mesh_primitive_runtime_t* primitives	   = rm_aux.get<mesh_primitive_runtime_t>(mesh_runtime->primitives);
 
-				const render_resource_handle_t vtx = mesh_internals->vertex_buffer;
-				const render_resource_handle_t idx = mesh_internals->index_buffer;
-				const u8 renderable_flags = ecs_t::table_has(view_model_table, row.id) ? world_renderable_flag_view_model : world_renderable_flag_none;
+				const render_resource_handle_t vtx				= mesh_internals->vertex_buffer;
+				const render_resource_handle_t idx				= mesh_internals->index_buffer;
+				const u8					   renderable_flags = view_model_table.has(row.id) ? world_renderable_flag_view_model : world_renderable_flag_none;
 
 				for (u32 i = 0; i < mesh_runtime->primitive_count; i++)
 				{
@@ -536,6 +538,7 @@ namespace sfg
 					const resource_handle_t mat_handle = mesh_renderer.materials[prim.material_index];
 
 					const u32 draw_material_index = push_material_from_guid(material_guid_to_index, snapshot, mat_handle);
+
 					if (draw_material_index == UINT32_MAX)
 						continue;
 
@@ -582,9 +585,9 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_system_transform_t&				transform					 = ecs_helpers_t::row_get<component_system_transform_t>(row, 0);
-				const component_skinned_mesh_renderer_t&		skinned_mesh_renderer		 = ecs_helpers_t::row_get<component_skinned_mesh_renderer_t>(row, 2);
-				const component_system_skinned_mesh_renderer_t& system_skinned_mesh_renderer = ecs_helpers_t::row_get<component_system_skinned_mesh_renderer_t>(row, 3);
+				const component_system_transform_t&				transform					 = row.get<component_system_transform_t>(0);
+				const component_skinned_mesh_renderer_t&		skinned_mesh_renderer		 = row.get<component_skinned_mesh_renderer_t>(2);
+				const component_system_skinned_mesh_renderer_t& system_skinned_mesh_renderer = row.get<component_system_skinned_mesh_renderer_t>(3);
 
 				if (skinned_mesh_renderer.mesh == NULL_RESOURCE_HANDLE || skinned_mesh_renderer.skeleton == NULL_RESOURCE_HANDLE)
 					continue;
@@ -593,6 +596,7 @@ namespace sfg
 					continue;
 
 				const resource_entry_t* entry = rm.find_entry(skinned_mesh_renderer.mesh);
+
 				if (entry == nullptr)
 					continue;
 
@@ -600,9 +604,8 @@ namespace sfg
 				const mesh_internals_t*			  mesh_internals	   = rm_aux.get<mesh_internals_t>(entry->internals);
 				const mesh_primitive_runtime_t*	  primitives		   = rm_aux.get<mesh_primitive_runtime_t>(mesh_runtime->primitives);
 				const ecs_component_table_t&	  system_ragdoll_table = world.get_component_table(type_id_t<component_system_ragdoll_t>::value);
-				const component_system_ragdoll_t* system_ragdoll	   = ecs_helpers_t::table_find_as_const<component_system_ragdoll_t>(system_ragdoll_table, row.id);
-				const u8 renderable_flags = (system_ragdoll != nullptr ? world_renderable_flag_world_space_aabb : world_renderable_flag_none) |
-									(ecs_t::table_has(view_model_table, row.id) ? world_renderable_flag_view_model : world_renderable_flag_none);
+				const component_system_ragdoll_t* system_ragdoll	   = system_ragdoll_table.find_as_const<component_system_ragdoll_t>(row.id);
+				const u8 renderable_flags = (system_ragdoll != nullptr ? world_renderable_flag_world_space_aabb : world_renderable_flag_none) | (view_model_table.has(row.id) ? world_renderable_flag_view_model : world_renderable_flag_none);
 
 				const render_resource_handle_t		 vertex_buffer = mesh_internals->vertex_buffer;
 				const render_resource_handle_t		 index_buffer  = mesh_internals->index_buffer;
@@ -630,6 +633,7 @@ namespace sfg
 					const resource_handle_t mat_handle = skinned_mesh_renderer.materials[prim.material_index];
 
 					const u32 draw_material_index = push_material_from_guid(material_guid_to_index, snapshot, mat_handle);
+
 					if (draw_material_index == UINT32_MAX)
 						continue;
 
@@ -676,8 +680,8 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_sprite_renderer_t&		  sprite		   = ecs_helpers_t::row_get<component_sprite_renderer_t>(row, 2);
-				const component_system_sprite_renderer_t& system_sprite	   = ecs_helpers_t::row_get<component_system_sprite_renderer_t>(row, 3);
+				const component_sprite_renderer_t&		  sprite		   = row.get<component_sprite_renderer_t>(2);
+				const component_system_sprite_renderer_t& system_sprite	   = row.get<component_system_sprite_renderer_t>(3);
 				const material_runtime_t*				  material_runtime = rm.find_runtime<material_runtime_t>(sprite.material);
 
 				if (material_runtime == nullptr)
@@ -735,9 +739,9 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_system_transform_t&		   transform	  = ecs_helpers_t::row_get<component_system_transform_t>(row, 0);
-				const component_particle_emitter_t&		   emitter		  = ecs_helpers_t::row_get<component_particle_emitter_t>(row, 2);
-				const component_system_particle_emitter_t& system_emitter = ecs_helpers_t::row_get<component_system_particle_emitter_t>(row, 3);
+				const component_system_transform_t&		   transform	  = row.get<component_system_transform_t>(0);
+				const component_particle_emitter_t&		   emitter		  = row.get<component_particle_emitter_t>(2);
+				const component_system_particle_emitter_t& system_emitter = row.get<component_system_particle_emitter_t>(3);
 				const particle_emitter_runtime_t&		   runtime		  = emitter_runtimes.data[system_emitter.runtime_index];
 
 				if (runtime.particles.empty())

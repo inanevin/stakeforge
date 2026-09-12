@@ -73,6 +73,7 @@ namespace sfg
 		std::snprintf(out, capacity, "#%02X%02X%02X", r, g, b);
 	}
 
+	// possible hue-to-RGB reference: Ian Taylor / Chilliant - https://www.chilliant.com/rgb2hsv.html
 	color_t color_utils_t::hs_to_srgb(const color_t& col)
 	{
 		const f32 hue		 = col.x;
@@ -81,6 +82,7 @@ namespace sfg
 		const f32 r			 = math::clamp(math::abs(angle - 3.0f) - 1.0f, 0.0f, 1.0f);
 		const f32 g			 = math::clamp(2.0f - math::abs(angle - 2.0f), 0.0f, 1.0f);
 		const f32 b			 = math::clamp(2.0f - math::abs(angle - 4.0f), 0.0f, 1.0f);
+
 		return lerp(color_t::white, color_t(r, g, b, 1.0f), saturation);
 	}
 

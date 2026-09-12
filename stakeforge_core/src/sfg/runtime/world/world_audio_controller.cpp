@@ -35,7 +35,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/audio.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/world/ecs.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
 
 namespace sfg
 {
@@ -99,7 +98,7 @@ namespace sfg
 	{
 		const ecs_component_table_t& system_table = _world->get_component_table(type_id_t<component_system_audio_source_t>::value);
 
-		if (!ecs_t::table_has(system_table, entity))
+		if (!system_table.has(entity))
 			return;
 
 		destroy_voice(entity);
@@ -138,7 +137,7 @@ namespace sfg
 		SFG_ASSERT(_is_playing);
 
 		ecs_component_table_t&			 system_table = _world->get_component_table(type_id_t<component_system_audio_source_t>::value);
-		component_system_audio_source_t* system		  = ecs_helpers_t::table_find_as<component_system_audio_source_t>(system_table, entity);
+		component_system_audio_source_t* system		  = system_table.find_as<component_system_audio_source_t>(entity);
 
 		if (system == nullptr || !audio_engine_t::get().is_voice_valid(system->voice))
 			return create_voice(entity, true);
@@ -159,7 +158,7 @@ namespace sfg
 		SFG_ASSERT(_is_playing);
 
 		ecs_component_table_t&			 system_table = _world->get_component_table(type_id_t<component_system_audio_source_t>::value);
-		component_system_audio_source_t* system		  = ecs_helpers_t::table_find_as<component_system_audio_source_t>(system_table, entity);
+		component_system_audio_source_t* system		  = system_table.find_as<component_system_audio_source_t>(entity);
 
 		if (system == nullptr)
 		{
@@ -176,7 +175,7 @@ namespace sfg
 		SFG_ASSERT(_is_playing);
 
 		ecs_component_table_t&			 system_table = _world->get_component_table(type_id_t<component_system_audio_source_t>::value);
-		component_system_audio_source_t* system		  = ecs_helpers_t::table_find_as<component_system_audio_source_t>(system_table, entity);
+		component_system_audio_source_t* system		  = system_table.find_as<component_system_audio_source_t>(entity);
 
 		if (system == nullptr)
 		{
@@ -226,7 +225,7 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 		{
-			component_system_audio_source_t& system = ecs_helpers_t::table_get_as<component_system_audio_source_t>(system_table, row.id);
+			component_system_audio_source_t& system = system_table.get_as<component_system_audio_source_t>(row.id);
 
 			if (audio_engine_t::get().is_voice_valid(system.voice) && audio_engine_t::get().is_voice_playing(system.voice))
 			{
@@ -245,7 +244,7 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 		{
-			component_system_audio_source_t& system = ecs_helpers_t::table_get_as<component_system_audio_source_t>(system_table, row.id);
+			component_system_audio_source_t& system = system_table.get_as<component_system_audio_source_t>(row.id);
 
 			if (system.resume_after_pause && audio_engine_t::get().is_voice_valid(system.voice) && !audio_engine_t::get().is_voice_at_end(system.voice))
 				audio_engine_t::get().start_voice(system.voice);
@@ -260,14 +259,14 @@ namespace sfg
 		const ecs_component_table_t& transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
 
 		ecs_component_table_t&				system_table = _world->get_component_table(type_id_t<component_system_audio_source_t>::value);
-		const component_audio_source_t&		source		 = ecs_helpers_t::table_get_as_const<component_audio_source_t>(source_table, entity);
-		const component_system_transform_t& transform	 = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
+		const component_audio_source_t&		source		 = source_table.get_as_const<component_audio_source_t>(entity);
+		const component_system_transform_t& transform	 = transform_table.get_as_const<component_system_transform_t>(entity);
 		const audio_runtime_t*				audio		 = resource_manager_t::get().find_runtime<audio_runtime_t>(source.audio);
 
 		if (audio == nullptr)
 			return false;
 
-		component_system_audio_source_t& system = ecs_helpers_t::table_add_or_get_as<component_system_audio_source_t>(system_table, entity);
+		component_system_audio_source_t& system = system_table.add_or_get_as<component_system_audio_source_t>(entity);
 
 		if (audio_engine_t::get().is_voice_valid(system.voice))
 			audio_engine_t::get().destroy_voice(system.voice);
@@ -312,12 +311,12 @@ namespace sfg
 	void world_audio_controller_t::destroy_voice(entity_id_t entity)
 	{
 		ecs_component_table_t&				   system_table = _world->get_component_table(type_id_t<component_system_audio_source_t>::value);
-		const component_system_audio_source_t& system		= ecs_helpers_t::table_get_as_const<component_system_audio_source_t>(system_table, entity);
+		const component_system_audio_source_t& system		= system_table.get_as_const<component_system_audio_source_t>(entity);
 
 		if (audio_engine_t::get().is_voice_valid(system.voice))
 			audio_engine_t::get().destroy_voice(system.voice);
 
-		ecs_t::table_remove(system_table, entity);
+		system_table.remove(entity);
 	}
 
 	void world_audio_controller_t::sync_sources(f32 delta_time)
@@ -343,7 +342,7 @@ namespace sfg
 
 			for (const entity_id_t entity : entities)
 			{
-				const component_audio_source_t& source = ecs_helpers_t::table_get_as_const<component_audio_source_t>(source_table, entity);
+				const component_audio_source_t& source = source_table.get_as_const<component_audio_source_t>(entity);
 				create_voice(entity, source.play_on_start != 0);
 			}
 		}
@@ -388,9 +387,9 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 		{
-			const component_audio_source_t&		source	  = ecs_helpers_t::row_get<component_audio_source_t>(row, 2);
-			const component_system_transform_t& transform = ecs_helpers_t::row_get<component_system_transform_t>(row, 3);
-			component_system_audio_source_t&	system	  = ecs_helpers_t::row_get_mutable<component_system_audio_source_t>(row, 4);
+			const component_audio_source_t&		source	  = row.get<component_audio_source_t>(2);
+			const component_system_transform_t& transform = row.get<component_system_transform_t>(3);
+			component_system_audio_source_t&	system	  = row.get_mutable<component_system_audio_source_t>(4);
 
 			if (system.audio != source.audio || system.bus != source.bus || !audio_engine_t::get().is_voice_valid(system.voice))
 			{
@@ -435,13 +434,13 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 		{
-			const component_audio_listener_t& listener = ecs_helpers_t::row_get<component_audio_listener_t>(row, 2);
+			const component_audio_listener_t& listener = row.get<component_audio_listener_t>(2);
 
 			if (selected_listener != nullptr && listener.priority <= selected_listener->priority)
 				continue;
 
 			selected_listener  = &listener;
-			selected_transform = &ecs_helpers_t::row_get<component_system_transform_t>(row, 3);
+			selected_transform = &row.get<component_system_transform_t>(3);
 		}
 
 		if (selected_listener == nullptr)

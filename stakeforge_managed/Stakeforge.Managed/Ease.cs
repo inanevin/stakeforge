@@ -68,6 +68,7 @@ public static class Ease
         return Math.Abs(amount) < 0.001f ? 0.0f : Lerp(start, end, (float)Math.FastPow(2.0f, 10.0f * amount - 10.0f));
     }
 
+    // Robert Penner - https://robertpenner.com/easing/
     public static float Bounce(float start, float end, float amount)
     {
         if (amount < 1.0f / 2.75f)

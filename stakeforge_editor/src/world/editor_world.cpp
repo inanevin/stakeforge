@@ -47,7 +47,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/engine/engine_threads.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world_snapshot_producer.hpp>
@@ -478,7 +478,7 @@ namespace sfg
 		vec3f_t			  scale			= vec3f_t::one;
 		_world.calculate_transform_direct(camera_entity).decompose(view.pos, view.rot, scale);
 
-		const component_camera_t& camera = ecs_helpers_t::table_get_as_const<component_camera_t>(_world.get_component_table(type_id_t<component_camera_t>::value), camera_entity);
+		const component_camera_t& camera = _world.get_component_table(type_id_t<component_camera_t>::value).get_as_const<component_camera_t>(camera_entity);
 		view.prev_pos					 = view.pos;
 		view.prev_rot					 = view.rot;
 		view.near_plane					 = camera.near_plane;
@@ -577,7 +577,7 @@ namespace sfg
 		quat_t			  camera_rotation = _world.get_entity_rot_local(camera_entity);
 		vec3f_t			  camera_scale	  = _world.get_entity_scale_local(camera_entity);
 
-		const component_camera_t& camera	 = ecs_helpers_t::table_get_as<component_camera_t>(_world.get_component_table(type_id_t<component_camera_t>::value), camera_entity);
+		const component_camera_t& camera	 = _world.get_component_table(type_id_t<component_camera_t>::value).get_as<component_camera_t>(camera_entity);
 		const world_render_view_t world_view = {
 			.pos		 = camera_position,
 			.rot		 = camera_rotation,
@@ -601,7 +601,8 @@ namespace sfg
 		if (!physics.raycast_closest({.origin = ray.origin, .direction = ray.direction, .distance = camera.far_plane}, hit))
 			return;
 
-		const component_physical_t* body = ecs_helpers_t::table_find_as_const<component_physical_t>(_world.get_component_table(type_id_t<component_physical_t>::value), hit.entity);
+		const component_physical_t* body = _world.get_component_table(type_id_t<component_physical_t>::value).find_as_const<component_physical_t>(hit.entity);
+
 		if (body == nullptr || body->motion_type != physics_motion_type_e::dynamic_body)
 			return;
 
@@ -841,7 +842,7 @@ namespace sfg
 
 		for (size_t i = 0; i < data.selected_entities.size(); ++i)
 		{
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, data.selected_entities[i]);
+			const component_hierarchy_t& hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(data.selected_entities[i]);
 			entity_id_t					 child	   = hierarchy.first_child;
 
 			while (child != NULL_ENTITY_ID)
@@ -849,7 +850,7 @@ namespace sfg
 				if (std::find(data.selected_entities.begin(), data.selected_entities.end(), child) == data.selected_entities.end())
 					data.selected_entities.push_back(child);
 
-				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
+				const component_hierarchy_t& child_hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(child);
 				child										 = child_hierarchy.next_sibling;
 			}
 		}

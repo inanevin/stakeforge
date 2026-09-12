@@ -39,7 +39,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/resources/skeleton_def.hpp>
@@ -151,10 +150,10 @@ namespace sfg
 
 		for (const ecs_component_table_t& component_table : world.get_component_tables())
 		{
-			if (!ecs_t::table_has(component_table, first_entity))
+			if (!component_table.has(first_entity))
 				continue;
 
-			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
+			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.get_type_desc().type_id);
 
 			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flag_no_ui))
 				continue;
@@ -163,7 +162,7 @@ namespace sfg
 
 			for (size_t i = 1; i < _display_entities.size(); ++i)
 			{
-				if (!ecs_t::table_has(component_table, _display_entities[i]))
+				if (!component_table.has(_display_entities[i]))
 				{
 					common_component = false;
 					break;
@@ -177,12 +176,12 @@ namespace sfg
 			component_display_t& display = _component_displays.back();
 			display.fold				 = new editor_widget_fold_t();
 			display.reflect				 = new editor_widget_reflection_t();
-			display.edit_user_data		 = new component_edit_callback_data_t{.panel = this, .component_type = component_table.type_desc.type_id};
-			display.type_id				 = component_table.type_desc.type_id;
+			display.edit_user_data		 = new component_edit_callback_data_t{.panel = this, .component_type = component_table.get_type_desc().type_id};
+			display.type_id				 = component_table.get_type_desc().type_id;
 			display.objects.reserve(_display_entities.size());
 
 			for (entity_id_t entity : _display_entities)
-				display.objects.push_back(ecs_t::table_get(component_table, entity));
+				display.objects.push_back(component_table.get(entity));
 
 			component_display_state_t* state = find_component_display_state(display.type_id);
 			display.fold->init(*_ui, _column, {.label = reflected_type->display_name != nullptr ? reflected_type->display_name : reflected_type->name, .folded = state != nullptr && state->folded, .settings_button = !prefab_blocked});
@@ -197,7 +196,7 @@ namespace sfg
 											  .user_data	  = display.edit_user_data,
 										  },
 									  .objects					= {.data = display.objects.data(), .size = display.objects.size()},
-									  .type_id					= component_table.type_desc.type_id,
+									  .type_id					= component_table.get_type_desc().type_id,
 									  .world					= _edit_world,
 									  .dropdown_items			= resolve_dropdown_items,
 									  .dropdown_items_user_data = display.edit_user_data,
@@ -269,7 +268,7 @@ namespace sfg
 
 		for (size_t entity_index = 0; entity_index < panel._display_entities.size(); ++entity_index)
 		{
-			const component_skinned_mesh_renderer_t* renderer = ecs_helpers_t::table_find_as_const<component_skinned_mesh_renderer_t>(table, panel._display_entities[entity_index]);
+			const component_skinned_mesh_renderer_t* renderer = table.find_as_const<component_skinned_mesh_renderer_t>(panel._display_entities[entity_index]);
 			const editor_asset_t*					 asset	  = renderer == nullptr ? nullptr : editor_asset_manager_t::get().find_asset(renderer->skeleton);
 
 			if (asset == nullptr || asset->asset_type != editor_asset_type_e::skeleton || asset->embedded_source.empty())
@@ -324,6 +323,7 @@ namespace sfg
 	bool editor_widget_inspector_t::serialize_component_streams(sid_t component_type, span_t<const entity_id_t> entities, vector_t<ostream_t>& out_streams) const
 	{
 		out_streams.resize(0);
+
 		if (_edit_world.is_null() || entities.size == 0)
 			return false;
 
@@ -331,22 +331,26 @@ namespace sfg
 		ecs_component_table_t& table = world.get_component_table(component_type);
 
 		out_streams.reserve(entities.size);
+
 		for (size_t i = 0; i < entities.size; ++i)
 		{
-			if (!ecs_t::table_has(table, entities.data[i]))
+			if (!table.has(entities.data[i]))
 			{
 				out_streams.resize(0);
 				return false;
 			}
 
-			ostream_t stream;
-			if (!reflection_registry_t::get().type_to_stream(table.type_desc.type_id, ecs_t::table_get(table, entities.data[i]), nullptr, stream))
+			ostream_t stream = {};
+
+			if (!reflection_registry_t::get().type_to_stream(table.get_type_desc().type_id, table.get(entities.data[i]), nullptr, stream))
 			{
 				out_streams.resize(0);
 				return false;
 			}
+
 			out_streams.push_back(std::move(stream));
 		}
+
 		return true;
 	}
 
@@ -367,11 +371,13 @@ namespace sfg
 	{
 		world_t&					 world		  = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
 		const ecs_component_table_t& prefab_table = world.get_component_table(type_id_t<component_prefab_reference_t>::value);
+
 		for (entity_id_t entity : _display_entities)
 		{
-			if (ecs_t::table_has(prefab_table, entity))
+			if (prefab_table.has(entity))
 				return true;
 		}
+
 		return false;
 	}
 
@@ -391,17 +397,18 @@ namespace sfg
 	{
 		world_t&					 world		  = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
 		const ecs_component_table_t& prefab_table = world.get_component_table(type_id_t<component_prefab_reference_t>::value);
-		frame_vector_t<entity_id_t>	 roots;
+		frame_vector_t<entity_id_t>	 roots		  = {};
 		roots.reserve(_display_entities.size());
 
 		for (entity_id_t entity : _display_entities)
 		{
-			if (!ecs_t::table_has(prefab_table, entity))
+			if (!prefab_table.has(entity))
 				continue;
 
 			for (entity_id_t current = entity; current != NULL_ENTITY_ID; current = world.get_entity_parent(current))
 			{
-				const component_prefab_reference_t* ref = ecs_helpers_t::table_find_as_const<component_prefab_reference_t>(prefab_table, current);
+				const component_prefab_reference_t* ref = prefab_table.find_as_const<component_prefab_reference_t>(current);
+
 				if (ref != nullptr && ref->is_root)
 				{
 					if (std::find(roots.begin(), roots.end(), current) == roots.end())

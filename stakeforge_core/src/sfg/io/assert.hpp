@@ -26,6 +26,9 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
+#include <cstdio>
+#include <cstdlib>
+
 namespace sfg
 {
 
@@ -45,6 +48,18 @@ namespace sfg
 #else
 #define SFG_ASSERT(x, ...)
 #endif
+
+#define SFG_FAIL(condition, message)                                                                                                                                                                                                                               \
+	do                                                                                                                                                                                                                                                             \
+	{                                                                                                                                                                                                                                                              \
+		if (!(condition))                                                                                                                                                                                                                                          \
+		{                                                                                                                                                                                                                                                          \
+			SFG_ASSERT(condition, message);                                                                                                                                                                                                                        \
+			std::fprintf(stderr, "Fatal: %s\nFile: %s:%d\n", (message), __FILE__, __LINE__);                                                                                                                                                                       \
+			std::fflush(stderr);                                                                                                                                                                                                                                   \
+			std::exit(EXIT_FAILURE);                                                                                                                                                                                                                               \
+		}                                                                                                                                                                                                                                                          \
+	} while (0)
 
 #define SFG_NOTIMPLEMENTED static_assert(false, "Implementation missing!")
 

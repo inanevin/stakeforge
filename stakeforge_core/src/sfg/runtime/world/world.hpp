@@ -8,7 +8,7 @@
 #include <sfg/memory/text_allocator.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/resources/resource_type.hpp>
-#include <sfg/runtime/world/ecs_component_type.hpp>
+#include <sfg/runtime/world/ecs_table.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/animation/animation_processor.hpp>
 #include <sfg/runtime/world/world_animation_controller.hpp>
@@ -158,7 +158,28 @@ namespace sfg
 		void								   begin_component_query();
 		void								   end_component_query();
 		bool								   is_alive(entity_id_t id) const;
-		inline bool							   is_component_query_active() const
+
+		template <typename T> const ecs_component_table_t& get_component_table() const
+		{
+			return get_component_table(type_id_t<T>::value);
+		}
+
+		template <typename T> ecs_component_table_t& get_component_table()
+		{
+			return get_component_table(type_id_t<T>::value);
+		}
+
+		template <typename T> const ecs_component_table_t* find_component_table() const
+		{
+			return find_component_table(type_id_t<T>::value);
+		}
+
+		template <typename T> ecs_component_table_t* find_component_table()
+		{
+			return find_component_table(type_id_t<T>::value);
+		}
+
+		inline bool is_component_query_active() const
 		{
 			return _active_component_query_count != 0;
 		}

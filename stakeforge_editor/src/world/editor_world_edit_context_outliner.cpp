@@ -31,7 +31,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/world/ecs.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -62,6 +61,7 @@ namespace sfg
 		for (auto it = _folders.begin_handle(); it != _folders.end_handle(); ++it)
 		{
 			const editor_world_folder_handle_t handle = *it;
+
 			if (_folders.get(handle).parent_handle.is_null())
 				append_folder_items(world, tables, handle, 0);
 		}
@@ -74,7 +74,8 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::row_get<component_hierarchy_t>(row, 1);
+			const component_hierarchy_t& hierarchy = row.get<component_hierarchy_t>(1);
+
 			if (hierarchy.parent != NULL_ENTITY_ID)
 				continue;
 
@@ -154,11 +155,11 @@ namespace sfg
 		if (id == _editor_camera_entity)
 			return;
 
-		const component_hierarchy_t& hierarchy		  = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*tables.hierarchy, id);
-		const component_name_t&		 name			  = ecs_helpers_t::table_get_as_const<component_name_t>(*tables.name, id);
+		const component_hierarchy_t& hierarchy		  = tables.hierarchy->get_as_const<component_hierarchy_t>(id);
+		const component_name_t&		 name			  = tables.name->get_as_const<component_name_t>(id);
 		const entity_guid_t			 guid			  = world.get_entity_guid(id);
-		const bool					 disabled		  = ecs_t::table_has(*tables.disabled, id);
-		const bool					 prefab_reference = ecs_t::table_has(*tables.prefab, id);
+		const bool					 disabled		  = tables.disabled->has(id);
+		const bool					 prefab_reference = tables.prefab->has(id);
 
 		_outliner_items.push_back({
 			.name				  = name.text,
@@ -172,13 +173,15 @@ namespace sfg
 			.disabled			  = disabled,
 			.has_prefab_reference = prefab_reference,
 		});
+
 		if (hierarchy.first_child == NULL_ENTITY_ID)
 			return;
 
 		entity_id_t child = hierarchy.first_child;
+
 		while (child != NULL_ENTITY_ID)
 		{
-			const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*tables.hierarchy, child);
+			const component_hierarchy_t& child_hierarchy = tables.hierarchy->get_as_const<component_hierarchy_t>(child);
 			append_entity_items(world, tables, child, static_cast<u16>(depth + 1));
 			child = child_hierarchy.next_sibling;
 		}

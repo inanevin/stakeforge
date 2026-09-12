@@ -175,6 +175,7 @@ float slope_bias(float NoL)
 
 bool outside(float2 uv) { return any(uv < 0.0f) || any(uv > 1.0f); }
 
+// William T. Reeves, David H. Salesin, Robert L. Cook, PCF - https://graphics.pixar.com/library/ShadowMaps/paper.pdf
 float pcf_cascade(int radius, Texture2DArray shadow_map, SamplerComparisonState smp, float2 uv, int slice, float compare_depth, float2 texel)
 {
      // PCF kernel (square)
@@ -196,6 +197,7 @@ float pcf_cascade(int radius, Texture2DArray shadow_map, SamplerComparisonState 
     return accum / max(taps, 1.0f);
 }
 
+// William T. Reeves, David H. Salesin, Robert L. Cook, PCF - https://graphics.pixar.com/library/ShadowMaps/paper.pdf
 float pcf(int radius, Texture2D shadow_map, SamplerComparisonState smp, float2 uv, float compare_depth, float2 texel)
 {
      // PCF kernel (square)
@@ -434,6 +436,7 @@ uint find_reflection_probe(
 	return local_probe_index != SFG_INVALID_GPU_INDEX ? local_probe_index : global_probe_index;
 }
 
+// Christophe Schlick, Fresnel approximation (roughness variant here) - https://onlinelibrary.wiley.com/doi/10.1111/1467-8659.1330233
 float3 fresnel_schlick_roughness(float cos_theta, float3 f0, float roughness)
 {
 	const float3 grazing = max((1.0 - roughness).xxx, f0);
@@ -441,6 +444,7 @@ float3 fresnel_schlick_roughness(float cos_theta, float3 f0, float roughness)
 	return f0 + (grazing - f0) * pow(1.0 - saturate(cos_theta), 5.0);
 }
 
+// Ravi Ramamoorthi and Pat Hanrahan, irradiance SH - https://graphics.stanford.edu/papers/envmap/
 float3 evaluate_reflection_probe_diffuse(gpu_reflection_probe probe, float3 normal)
 {
 	if (probe.diffuse_sh_buffer_index == SFG_INVALID_GPU_INDEX || probe.diffuse_sh_coefficient_offset == SFG_INVALID_GPU_INDEX)

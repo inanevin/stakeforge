@@ -35,6 +35,7 @@ static const float PI = 3.14159265359;
 
 SamplerState smp_linear : static_sampler_linear;
 
+// Holger Dammertz, Hammersley sampling - https://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 float radical_inverse_vdc(uint bits)
 {
     bits = (bits << 16u) | (bits >> 16u);
@@ -68,6 +69,7 @@ float3 cubemap_direction(uint face, float2 uv)
     return normalize(float3(-p.x, -p.y, -1.0));
 }
 
+// GGX sampling and prefilter reference: Joey de Vries - https://learnopengl.com/PBR/IBL/Specular-IBL
 float3 importance_sample_ggx(float2 xi, float3 normal, float roughness)
 {
     const float alpha = roughness * roughness;

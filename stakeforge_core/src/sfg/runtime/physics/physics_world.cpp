@@ -39,7 +39,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/world/ecs.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world.hpp>
@@ -341,7 +340,7 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 			{
-				const component_system_ragdoll_t& system_ragdoll = ecs_helpers_t::row_get<component_system_ragdoll_t>(row, 0);
+				const component_system_ragdoll_t& system_ragdoll = row.get<component_system_ragdoll_t>(0);
 				bool							  recreate		 = resource_type == resource_type_e::ragdoll && system_ragdoll.ragdoll_resource == resource_id;
 				recreate |= resource_type == resource_type_e::skeleton && system_ragdoll.skeleton == resource_id;
 
@@ -390,7 +389,7 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = physics_refs, .size = std::size(physics_refs)}))
 			{
-				component_system_physics_t& system_physics = ecs_helpers_t::row_get_mutable<component_system_physics_t>(row, 0);
+				component_system_physics_t& system_physics = row.get_mutable<component_system_physics_t>(0);
 				const entity_id_t			entity		   = row.id;
 
 				if (system_physics.character != 0)
@@ -405,8 +404,8 @@ namespace sfg
 			{
 			}
 
-			ecs_t::table_clear(system_physics_table);
-			ecs_t::table_clear(system_ragdoll_table);
+			system_physics_table.clear();
+			system_ragdoll_table.clear();
 			_contact_events.resize(0);
 			_contact_sensors.clear();
 			_sync_entities.resize(0);
@@ -434,7 +433,7 @@ namespace sfg
 				return false;
 
 			const ecs_component_table_t&	  system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
-			const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+			const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 
 			if (system_physics == nullptr)
 			{
@@ -464,7 +463,7 @@ namespace sfg
 				return false;
 
 			const ecs_component_table_t&   tags_table  = _world->get_component_table(type_id_t<component_entity_tags_t>::value);
-			const component_entity_tags_t* entity_tags = ecs_helpers_t::table_find_as_const<component_entity_tags_t>(tags_table, entity);
+			const component_entity_tags_t* entity_tags = tags_table.find_as_const<component_entity_tags_t>(entity);
 			const u64					   tags		   = entity_tags != nullptr ? entity_tags->tags : 0;
 
 			if (filter.required_any_tags.bits != 0 && (tags & filter.required_any_tags.bits) == 0)
@@ -528,12 +527,12 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 			{
-				const component_system_physics_t& phy = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
+				const component_system_physics_t& phy = row.get<component_system_physics_t>(0);
 
 				if (phy.motion_type == static_cast<u8>(physics_motion_type_e::dynamic_body))
 					continue;
 
-				const component_system_transform_t& transform	  = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
+				const component_system_transform_t& transform	  = row.get<component_system_transform_t>(1);
 				quat_t								body_rotation = transform.abs_rot * phy.local_rotation;
 				vec3f_t								body_position = transform.abs_pos + transform.abs_rot * (phy.local_position * transform.abs_scale);
 
@@ -550,7 +549,7 @@ namespace sfg
 				return false;
 
 			const ecs_component_table_t&			 skinned_table = _world->get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
-			const component_skinned_mesh_renderer_t& skinned	   = ecs_helpers_t::table_get_as_const<component_skinned_mesh_renderer_t>(skinned_table, entity);
+			const component_skinned_mesh_renderer_t& skinned	   = skinned_table.get_as_const<component_skinned_mesh_renderer_t>(entity);
 
 			if (skinned.skeleton != resource->target_skeleton)
 			{
@@ -569,9 +568,9 @@ namespace sfg
 			const ragdoll_part_runtime_t*					resource_parts		   = resource_memory.get<ragdoll_part_runtime_t>(resource->parts);
 			const skeleton_joint_runtime_t*					joints				   = resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
 			const ecs_component_table_t&					system_transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
-			const component_system_transform_t&				transform			   = ecs_helpers_t::table_get_as_const<component_system_transform_t>(system_transform_table, entity);
+			const component_system_transform_t&				transform			   = system_transform_table.get_as_const<component_system_transform_t>(entity);
 			const ecs_component_table_t&					system_skinned_table   = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
-			const component_system_skinned_mesh_renderer_t& system_skinned		   = ecs_helpers_t::table_get_as_const<component_system_skinned_mesh_renderer_t>(system_skinned_table, entity);
+			const component_system_skinned_mesh_renderer_t& system_skinned		   = system_skinned_table.get_as_const<component_system_skinned_mesh_renderer_t>(entity);
 			const span_t<const animation_bone_t>			current_bones		   = _world->get_animation_controller().get_bones(system_skinned.bones_handle);
 
 			mat4x3_t*			   frozen_local_pose		= nullptr;
@@ -610,9 +609,9 @@ namespace sfg
 				joint_world.decompose(joint_position, joint_rotation, joint_scale);
 				const f32 shape_scale = math::max(math::max(math::abs(joint_scale.x), math::abs(joint_scale.y)), math::abs(joint_scale.z));
 
-				JPH::RagdollSettings::Part&					  part	  = settings->mParts[part_index];
-				JPH::Ref<JPH::CapsuleShapeSettings>			  capsule = new JPH::CapsuleShapeSettings(math::max(source_part.half_height * shape_scale, 0.001f), math::max(source_part.radius * shape_scale, 0.001f));
-				JPH::Ref<JPH::RotatedTranslatedShapeSettings> shape = new JPH::RotatedTranslatedShapeSettings(physics_world_util_t::to_jolt(source_part.local_position * joint_scale), physics_world_util_t::to_jolt(source_part.local_rotation), capsule);
+				JPH::RagdollSettings::Part&					  part		   = settings->mParts[part_index];
+				JPH::Ref<JPH::CapsuleShapeSettings>			  capsule	   = new JPH::CapsuleShapeSettings(math::max(source_part.half_height * shape_scale, 0.001f), math::max(source_part.radius * shape_scale, 0.001f));
+				JPH::Ref<JPH::RotatedTranslatedShapeSettings> shape		   = new JPH::RotatedTranslatedShapeSettings(physics_world_util_t::to_jolt(source_part.local_position * joint_scale), physics_world_util_t::to_jolt(source_part.local_rotation), capsule);
 				const JPH::ShapeSettings::ShapeResult		  shape_result = shape->Create();
 
 				if (shape_result.HasError())
@@ -701,7 +700,7 @@ namespace sfg
 			joint_global_pose[resource_parts[0].joint_index].decompose(root_position, root_rotation, root_scale);
 
 			ecs_component_table_t&		system_ragdoll_table = _world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
-			component_system_ragdoll_t& system_ragdoll		 = ecs_helpers_t::table_add_or_get_as<component_system_ragdoll_t>(system_ragdoll_table, entity);
+			component_system_ragdoll_t& system_ragdoll		 = system_ragdoll_table.add_or_get_as<component_system_ragdoll_t>(entity);
 			const JPH::AABox			initial_bounds		 = ragdoll->GetWorldSpaceBounds();
 			system_ragdoll									 = {
 				.ragdoll		  = ragdoll,
@@ -725,7 +724,7 @@ namespace sfg
 		void destroy_ragdoll(entity_id_t entity, bool reset_animation = true)
 		{
 			ecs_component_table_t&		system_ragdoll_table = _world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
-			component_system_ragdoll_t& system_ragdoll		 = ecs_helpers_t::table_get_as<component_system_ragdoll_t>(system_ragdoll_table, entity);
+			component_system_ragdoll_t& system_ragdoll		 = system_ragdoll_table.get_as<component_system_ragdoll_t>(entity);
 
 			const u32 body_count = static_cast<u32>(system_ragdoll.ragdoll->GetBodyCount());
 
@@ -739,7 +738,7 @@ namespace sfg
 			system_ragdoll.ragdoll->Release();
 			_ragdoll_pose_memory.free(system_ragdoll.joint_global_pose);
 			_ragdoll_pose_memory.free(system_ragdoll.frozen_local_pose);
-			ecs_t::table_remove(system_ragdoll_table, entity);
+			system_ragdoll_table.remove(entity);
 
 			if (reset_animation)
 				_world->get_animation_controller().reset_pose_after_ragdoll(entity);
@@ -760,11 +759,11 @@ namespace sfg
 
 				for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 				{
-					const component_system_ragdoll_t&		 system_ragdoll = ecs_helpers_t::row_get<component_system_ragdoll_t>(row, 0);
-					const component_ragdoll_t*				 component		= ecs_helpers_t::table_find_as_const<component_ragdoll_t>(ragdoll_table, row.id);
-					const component_skinned_mesh_renderer_t* skinned		= ecs_helpers_t::table_find_as_const<component_skinned_mesh_renderer_t>(skinned_table, row.id);
+					const component_system_ragdoll_t&		 system_ragdoll = row.get<component_system_ragdoll_t>(0);
+					const component_ragdoll_t*				 component		= ragdoll_table.find_as_const<component_ragdoll_t>(row.id);
+					const component_skinned_mesh_renderer_t* skinned		= skinned_table.find_as_const<component_skinned_mesh_renderer_t>(row.id);
 
-					if (component == nullptr || skinned == nullptr || ecs_t::table_has(disabled_table, row.id) || component->ragdoll != system_ragdoll.ragdoll_resource || component->collision_layer != system_ragdoll.collision_layer ||
+					if (component == nullptr || skinned == nullptr || disabled_table.has(row.id) || component->ragdoll != system_ragdoll.ragdoll_resource || component->collision_layer != system_ragdoll.collision_layer ||
 						skinned->skeleton != system_ragdoll.skeleton)
 						entities.push_back(row.id);
 				}
@@ -783,10 +782,10 @@ namespace sfg
 
 				for (entity_id_t entity : entities)
 				{
-					if (ecs_t::table_has(system_physics_table, entity))
+					if (system_physics_table.has(entity))
 						destroy_entity_physics(entity);
 
-					const component_ragdoll_t& component = ecs_helpers_t::table_get_as_const<component_ragdoll_t>(ragdoll_table, entity);
+					const component_ragdoll_t& component = ragdoll_table.get_as_const<component_ragdoll_t>(entity);
 					create_ragdoll(entity, component);
 				}
 			}
@@ -803,9 +802,10 @@ namespace sfg
 			_world->calculate_transform_direct(entity);
 
 			const ecs_component_table_t&		transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
-			const component_system_transform_t& transform		= ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
+			const component_system_transform_t& transform		= transform_table.get_as_const<component_system_transform_t>(entity);
 
 			JPH::RefConst<JPH::Shape> shape = physics_world_util_t::create_shape(*_world, entity, physical, transform.abs_scale);
+
 			if (shape == nullptr)
 				return false;
 
@@ -814,12 +814,9 @@ namespace sfg
 			JPH::BodyCreationSettings settings(
 				shape, physics_world_util_t::to_jolt_position(body_position), physics_world_util_t::to_jolt(body_rotation), physics_world_util_t::to_jolt(motion_type), physics_world_util_t::make_object_layer(physical.collision_layer, motion_type));
 
-			settings.mIsSensor = physical.is_sensor != 0;
-			settings.mUserData = entity;
-			settings.mCollideKinematicVsNonDynamic =
-				_config.kinematic_sensors_collide_with_non_dynamic &&
-				motion_type == physics_motion_type_e::kinematic_body &&
-				physical.is_sensor != 0;
+			settings.mIsSensor					   = physical.is_sensor != 0;
+			settings.mUserData					   = entity;
+			settings.mCollideKinematicVsNonDynamic = _config.kinematic_sensors_collide_with_non_dynamic && motion_type == physics_motion_type_e::kinematic_body && physical.is_sensor != 0;
 
 			if (motion_type != physics_motion_type_e::static_body)
 			{
@@ -889,7 +886,7 @@ namespace sfg
 			system_physics.motion_type = static_cast<u8>(physics_motion_type_e::kinematic_body);
 
 			const ecs_component_table_t&		transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
-			const component_system_transform_t& transform		= ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
+			const component_system_transform_t& transform		= transform_table.get_as_const<component_system_transform_t>(entity);
 
 			JPH::CapsuleShapeSettings		shape_settings(math::max(mover.half_height, 0.001f), math::max(mover.radius, 0.001f));
 			JPH::ShapeSettings::ShapeResult shape_result = shape_settings.Create();
@@ -941,7 +938,7 @@ namespace sfg
 		void create_entity_physics(entity_id_t entity, const component_physical_t* physical, const component_character_mover_t* mover)
 		{
 			ecs_component_table_t&		system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
-			component_system_physics_t& phy					 = ecs_helpers_t::table_add_or_get_as<component_system_physics_t>(system_physics_table, entity);
+			component_system_physics_t& phy					 = system_physics_table.add_or_get_as<component_system_physics_t>(entity);
 
 			if (physical != nullptr)
 			{
@@ -955,7 +952,7 @@ namespace sfg
 		void destroy_entity_physics(entity_id_t entity)
 		{
 			ecs_component_table_t&		system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
-			component_system_physics_t* system_physics		 = ecs_helpers_t::table_find_as<component_system_physics_t>(system_physics_table, entity);
+			component_system_physics_t* system_physics		 = system_physics_table.find_as<component_system_physics_t>(entity);
 			SFG_ASSERT(system_physics != nullptr);
 
 			if (system_physics->body_id != UINT32_MAX && system_physics->character == 0)
@@ -966,7 +963,7 @@ namespace sfg
 				destroy_character(entity, *system_physics);
 			}
 
-			ecs_t::table_remove(system_physics_table, entity);
+			system_physics_table.remove(entity);
 		}
 
 		void create_constraint(entity_id_t entity)
@@ -979,7 +976,7 @@ namespace sfg
 			SFG_ASSERT(system_constraints.active_mask != 0);
 
 			ecs_component_table_t&			system_constraints_table = _world->get_component_table(type_id_t<component_system_constraints_t>::value);
-			component_system_constraints_t& stored_constraints		 = ecs_helpers_t::table_add_or_get_as<component_system_constraints_t>(system_constraints_table, entity);
+			component_system_constraints_t& stored_constraints		 = system_constraints_table.add_or_get_as<component_system_constraints_t>(entity);
 
 			stored_constraints = system_constraints;
 		}
@@ -987,11 +984,11 @@ namespace sfg
 		void destroy_constraint(entity_id_t entity)
 		{
 			ecs_component_table_t&			system_constraints_table = _world->get_component_table(type_id_t<component_system_constraints_t>::value);
-			component_system_constraints_t* system_constraints		 = ecs_helpers_t::table_find_as<component_system_constraints_t>(system_constraints_table, entity);
+			component_system_constraints_t* system_constraints		 = system_constraints_table.find_as<component_system_constraints_t>(entity);
 			SFG_ASSERT(system_constraints != nullptr);
 
 			physics_world_util_t::destroy_constraints(*_system, *system_constraints);
-			ecs_t::table_remove(system_constraints_table, entity);
+			system_constraints_table.remove(entity);
 		}
 
 		void destroy_body_constraints(entity_id_t entity)
@@ -1002,7 +999,7 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 			{
-				const component_system_constraints_t& system_constraints = ecs_helpers_t::row_get<component_system_constraints_t>(row, 0);
+				const component_system_constraints_t& system_constraints = row.get<component_system_constraints_t>(0);
 
 				if (row.id == entity)
 				{
@@ -1075,7 +1072,7 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 			{
-				const component_system_constraints_t& system_constraints = ecs_helpers_t::row_get<component_system_constraints_t>(row, 0);
+				const component_system_constraints_t& system_constraints = row.get<component_system_constraints_t>(0);
 
 				physics_world_util_t::sync_constraint_properties(*_world, *_system, row.id, system_constraints);
 			}
@@ -1139,7 +1136,7 @@ namespace sfg
 
 				for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 				{
-					const component_physical_t& rb = ecs_helpers_t::row_get<component_physical_t>(row, 0);
+					const component_physical_t& rb = row.get<component_physical_t>(0);
 					create_entity_physics(row.id, &rb, nullptr);
 				}
 			}
@@ -1150,7 +1147,7 @@ namespace sfg
 
 				for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 				{
-					const component_character_mover_t& mover = ecs_helpers_t::row_get<component_character_mover_t>(row, 0);
+					const component_character_mover_t& mover = row.get<component_character_mover_t>(0);
 					create_entity_physics(row.id, nullptr, &mover);
 				}
 			}
@@ -1167,12 +1164,12 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 			{
-				component_system_physics_t& system_physics = ecs_helpers_t::row_get_mutable<component_system_physics_t>(row, 0);
+				component_system_physics_t& system_physics = row.get_mutable<component_system_physics_t>(0);
 
 				if (system_physics.character == nullptr)
 					continue;
 
-				const component_character_mover_t& mover	 = ecs_helpers_t::row_get<component_character_mover_t>(row, 1);
+				const component_character_mover_t& mover	 = row.get<component_character_mover_t>(1);
 				JPH::CharacterVirtual&			   character = *system_physics.character;
 
 				character.UpdateGroundVelocity();
@@ -1239,7 +1236,7 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = absolute_refs, .size = std::size(absolute_refs)}))
 			{
-				const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
+				const component_system_physics_t& system_physics = row.get<component_system_physics_t>(0);
 
 				if (system_physics.motion_type == static_cast<u8>(physics_motion_type_e::static_body))
 					continue;
@@ -1248,9 +1245,9 @@ namespace sfg
 				JPH::Quat  body_rotation = JPH::Quat::sIdentity();
 				body_interface.GetPositionAndRotation(JPH::BodyID(system_physics.body_id), body_position, body_rotation);
 
-				component_system_transform_t& system_transform = ecs_helpers_t::row_get_mutable<component_system_transform_t>(row, 1);
-				const quat_t					 entity_rotation  = physics_world_util_t::from_jolt(body_rotation) * system_physics.local_rotation.inverse();
-				const vec3f_t				 entity_position  = physics_world_util_t::from_jolt(body_position) - entity_rotation * (system_physics.local_position * system_transform.abs_scale);
+				component_system_transform_t& system_transform = row.get_mutable<component_system_transform_t>(1);
+				const quat_t				  entity_rotation  = physics_world_util_t::from_jolt(body_rotation) * system_physics.local_rotation.inverse();
+				const vec3f_t				  entity_position  = physics_world_util_t::from_jolt(body_position) - entity_rotation * (system_physics.local_position * system_transform.abs_scale);
 
 				system_transform.abs_pos = entity_position;
 				system_transform.abs_rot = entity_rotation;
@@ -1273,8 +1270,8 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 			{
-				component_system_ragdoll_t&	  system_ragdoll   = ecs_helpers_t::row_get_mutable<component_system_ragdoll_t>(row, 0);
-				component_system_transform_t& system_transform = ecs_helpers_t::row_get_mutable<component_system_transform_t>(row, 1);
+				component_system_ragdoll_t&	  system_ragdoll   = row.get_mutable<component_system_ragdoll_t>(0);
+				component_system_transform_t& system_transform = row.get_mutable<component_system_transform_t>(1);
 				const ragdoll_runtime_t*	  resource		   = resource_manager.find_runtime<ragdoll_runtime_t>(system_ragdoll.ragdoll_resource);
 				const skeleton_runtime_t*	  skeleton		   = resource_manager.find_runtime<skeleton_runtime_t>(system_ragdoll.skeleton);
 
@@ -1330,13 +1327,13 @@ namespace sfg
 					const u32 joint_index = parts[part_index].joint_index;
 
 					vec3f_t preserved_position = vec3f_t::zero;
-					quat_t  preserved_rotation = quat_t::identity;
-					vec3f_t preserved_scale    = vec3f_t::one;
+					quat_t	preserved_rotation = quat_t::identity;
+					vec3f_t preserved_scale	   = vec3f_t::one;
 					joint_globals[joint_index].decompose(preserved_position, preserved_rotation, preserved_scale);
 
 					vec3f_t joint_position = vec3f_t::zero;
-					quat_t  joint_rotation = quat_t::identity;
-					vec3f_t rigid_scale    = vec3f_t::one;
+					quat_t	joint_rotation = quat_t::identity;
+					vec3f_t rigid_scale	   = vec3f_t::one;
 					(inverse_entity_world_rigid * part_world[part_index]).decompose(joint_position, joint_rotation, rigid_scale);
 
 					joint_globals[joint_index] = mat4x3_t::transform(joint_position, joint_rotation, preserved_scale);
@@ -1431,7 +1428,7 @@ namespace sfg
 			SFG_ASSERT(entity != NULL_ENTITY_ID);
 
 			const ecs_component_table_t&	  system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
-			const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+			const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 			const body_lookup_t&			  lookup			   = _body_lookup[result.mBodyID.GetIndex()];
 
 			const vec3f_t delta = ray.direction.normalized() * ray.distance;
@@ -1448,7 +1445,7 @@ namespace sfg
 			else
 			{
 				const ecs_component_table_t&	  system_ragdoll_table = _world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
-				const component_system_ragdoll_t& system_ragdoll	   = ecs_helpers_t::table_get_as_const<component_system_ragdoll_t>(system_ragdoll_table, entity);
+				const component_system_ragdoll_t& system_ragdoll	   = system_ragdoll_table.get_as_const<component_system_ragdoll_t>(entity);
 				const ragdoll_runtime_t*		  ragdoll_resource	   = resource_manager_t::get().find_runtime<ragdoll_runtime_t>(system_ragdoll.ragdoll_resource);
 				SFG_ASSERT(ragdoll_resource != nullptr);
 
@@ -1556,7 +1553,7 @@ namespace sfg
 			SFG_ASSERT(entity != NULL_ENTITY_ID);
 
 			const ecs_component_table_t&	  system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
-			const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+			const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 			const body_lookup_t&			  lookup			   = _body_lookup[result.mBodyID2.GetIndex()];
 
 			hit.position	 = sphere.origin + physics_world_util_t::from_jolt(result.mContactPointOn2);
@@ -1573,7 +1570,7 @@ namespace sfg
 			else
 			{
 				const ecs_component_table_t&	  system_ragdoll_table = _world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
-				const component_system_ragdoll_t& system_ragdoll	   = ecs_helpers_t::table_get_as_const<component_system_ragdoll_t>(system_ragdoll_table, entity);
+				const component_system_ragdoll_t& system_ragdoll	   = system_ragdoll_table.get_as_const<component_system_ragdoll_t>(entity);
 				const ragdoll_runtime_t*		  ragdoll_resource	   = resource_manager_t::get().find_runtime<ragdoll_runtime_t>(system_ragdoll.ragdoll_resource);
 				SFG_ASSERT(ragdoll_resource != nullptr);
 
@@ -1717,19 +1714,19 @@ namespace sfg
 	{
 		const ecs_component_table_t& system_ragdoll_table = _impl->_world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
 
-		if (ecs_t::table_has(system_ragdoll_table, entity))
+		if (system_ragdoll_table.has(entity))
 			_impl->destroy_ragdoll(entity, false);
 
 		const ecs_component_table_t& system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
 
-		if (ecs_t::table_has(system_physics_table, entity))
+		if (system_physics_table.has(entity))
 			_impl->destroy_entity_physics(entity);
 	}
 
 	void physics_world_t::destroy_body(entity_id_t entity)
 	{
 		const ecs_component_table_t& system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		component_system_physics_t*	 sys				  = ecs_helpers_t::table_find_as<component_system_physics_t>(system_physics_table, entity);
+		component_system_physics_t*	 sys				  = system_physics_table.find_as<component_system_physics_t>(entity);
 
 		if (!sys)
 		{
@@ -1742,7 +1739,7 @@ namespace sfg
 	span_t<const mat4x3_t> physics_world_t::get_ragdoll_joint_globals(entity_id_t entity) const
 	{
 		const ecs_component_table_t&	  system_ragdoll_table = _impl->_world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
-		const component_system_ragdoll_t& system_ragdoll	   = ecs_helpers_t::table_get_as_const<component_system_ragdoll_t>(system_ragdoll_table, entity);
+		const component_system_ragdoll_t& system_ragdoll	   = system_ragdoll_table.get_as_const<component_system_ragdoll_t>(entity);
 
 		return {
 			.data = _impl->_ragdoll_pose_memory.get<mat4x3_t>(system_ragdoll.joint_global_pose),
@@ -1753,7 +1750,7 @@ namespace sfg
 	bool physics_world_t::set_body_linear_velocity(entity_id_t entity, const vec3f_t& velocity)
 	{
 		const ecs_component_table_t&	  system_ragdoll_table = _impl->_world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
-		const component_system_ragdoll_t* system_ragdoll		 = ecs_helpers_t::table_find_as_const<component_system_ragdoll_t>(system_ragdoll_table, entity);
+		const component_system_ragdoll_t* system_ragdoll	   = system_ragdoll_table.find_as_const<component_system_ragdoll_t>(entity);
 
 		if (system_ragdoll != nullptr && system_ragdoll->ragdoll != nullptr)
 		{
@@ -1762,7 +1759,7 @@ namespace sfg
 		}
 
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 
 		if (system_physics == nullptr || system_physics->character != nullptr || system_physics->body_id == UINT32_MAX)
 			return false;
@@ -1780,7 +1777,7 @@ namespace sfg
 	void physics_world_t::set_body_angular_velocity(entity_id_t entity, const vec3f_t& velocity)
 	{
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 		SFG_ASSERT(system_physics != nullptr);
 		SFG_ASSERT(system_physics->character != nullptr || system_physics->body_id != UINT32_MAX);
 
@@ -1796,7 +1793,7 @@ namespace sfg
 	void physics_world_t::add_body_force(entity_id_t entity, const vec3f_t& force)
 	{
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 		SFG_ASSERT(system_physics != nullptr);
 		SFG_ASSERT(system_physics->character != nullptr || system_physics->body_id != UINT32_MAX);
 
@@ -1806,7 +1803,7 @@ namespace sfg
 	bool physics_world_t::add_body_impulse(entity_id_t entity, const vec3f_t& impulse)
 	{
 		const ecs_component_table_t&	  system_ragdoll_table = _impl->_world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
-		const component_system_ragdoll_t* system_ragdoll		 = ecs_helpers_t::table_find_as_const<component_system_ragdoll_t>(system_ragdoll_table, entity);
+		const component_system_ragdoll_t* system_ragdoll	   = system_ragdoll_table.find_as_const<component_system_ragdoll_t>(entity);
 
 		if (system_ragdoll != nullptr && system_ragdoll->ragdoll != nullptr)
 		{
@@ -1815,7 +1812,7 @@ namespace sfg
 		}
 
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 
 		if (system_physics == nullptr || system_physics->character != nullptr || system_physics->body_id == UINT32_MAX)
 			return false;
@@ -1827,7 +1824,7 @@ namespace sfg
 	void physics_world_t::wake_body(entity_id_t entity)
 	{
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 		SFG_ASSERT(system_physics != nullptr);
 		SFG_ASSERT(system_physics->character != nullptr || system_physics->body_id != UINT32_MAX);
 
@@ -1837,7 +1834,7 @@ namespace sfg
 	bool physics_world_t::get_body_state(entity_id_t entity, physics_body_state_t& out_state) const
 	{
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 
 		if (system_physics == nullptr || system_physics->character != 0 || system_physics->body_id == UINT32_MAX)
 			return false;
@@ -1860,7 +1857,7 @@ namespace sfg
 	bool physics_world_t::is_body(entity_id_t entity) const
 	{
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 
 		return system_physics != nullptr && system_physics->character == nullptr && system_physics->body_id != UINT32_MAX;
 	}
@@ -1917,7 +1914,7 @@ namespace sfg
 	void physics_world_t::set_character_velocity(entity_id_t entity, const vec3f_t& velocity)
 	{
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 		SFG_ASSERT(system_physics != nullptr && system_physics->character != 0);
 
 		system_physics->character->SetLinearVelocity(physics_world_util_t::to_jolt(velocity));
@@ -1926,7 +1923,7 @@ namespace sfg
 	void physics_world_t::add_character_velocity(entity_id_t entity, const vec3f_t& velocity)
 	{
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 		SFG_ASSERT(system_physics != nullptr && system_physics->character != 0);
 
 		JPH::CharacterVirtual* character = system_physics->character;
@@ -1936,7 +1933,7 @@ namespace sfg
 	void physics_world_t::jump_character(entity_id_t entity, f32 speed)
 	{
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 		SFG_ASSERT(system_physics != nullptr && system_physics->character != 0);
 		JPH::CharacterVirtual* character = system_physics->character;
 
@@ -1952,7 +1949,7 @@ namespace sfg
 	void physics_world_t::teleport_character(entity_id_t entity, const vec3f_t& position)
 	{
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 		SFG_ASSERT(system_physics != nullptr && system_physics->character != 0);
 
 		system_physics->character->SetPosition(physics_world_util_t::to_jolt_position(position));
@@ -1962,7 +1959,7 @@ namespace sfg
 	bool physics_world_t::get_character_state(entity_id_t entity, character_mover_state_t& out_state) const
 	{
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 
 		if (system_physics == nullptr || system_physics->character == 0)
 			return false;
@@ -1990,7 +1987,7 @@ namespace sfg
 	bool physics_world_t::is_character(entity_id_t entity) const
 	{
 		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 
 		return system_physics != nullptr && system_physics->character != nullptr;
 	}
@@ -2016,18 +2013,18 @@ namespace sfg
 	{
 		_impl->_config.kinematic_sensors_collide_with_non_dynamic = enabled;
 
-		const ecs_component_table_t& system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const ecs_component_table_ref_t refs[] = {system_physics_table.ref()};
+		const ecs_component_table_t&	system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
+		const ecs_component_table_ref_t refs[]				 = {system_physics_table.ref()};
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 		{
-			const component_system_physics_t& system_physics = ecs_helpers_t::row_get<component_system_physics_t>(row, 0);
-			if (system_physics.character != nullptr ||
-				system_physics.body_id == UINT32_MAX ||
-				system_physics.motion_type != static_cast<u8>(physics_motion_type_e::kinematic_body))
+			const component_system_physics_t& system_physics = row.get<component_system_physics_t>(0);
+
+			if (system_physics.character != nullptr || system_physics.body_id == UINT32_MAX || system_physics.motion_type != static_cast<u8>(physics_motion_type_e::kinematic_body))
 				continue;
 
 			JPH::BodyLockWrite lock(_impl->_system->GetBodyLockInterface(), JPH::BodyID(system_physics.body_id));
+
 			if (!lock.Succeeded())
 				continue;
 

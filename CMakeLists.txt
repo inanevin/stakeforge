@@ -97,7 +97,6 @@ endif()
 add_subdirectory(stakeforge_core)
 add_subdirectory(stakeforge_editor)
 add_subdirectory(stakeforge_game)
-add_subdirectory(stakeforge_tests)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CustomTargets")

@@ -32,7 +32,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/world/ecs.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -98,12 +97,12 @@ namespace sfg
 	bool editor_world_edit_context_t::is_entity_child_insertion_allowed(const world_t& world, entity_id_t entity) const
 	{
 		const ecs_component_table_t& prefab_table = world.get_component_table(type_id_t<component_prefab_reference_t>::value);
-		return ecs_helpers_t::table_find_as_const<component_prefab_reference_t>(prefab_table, entity) == nullptr;
+		return prefab_table.find_as_const<component_prefab_reference_t>(entity) == nullptr;
 	}
 
 	bool editor_world_edit_context_t::is_entity_mutation_allowed(const ecs_component_table_t& prefab_table, entity_id_t entity) const
 	{
-		const component_prefab_reference_t* prefab = ecs_helpers_t::table_find_as_const<component_prefab_reference_t>(prefab_table, entity);
+		const component_prefab_reference_t* prefab = prefab_table.find_as_const<component_prefab_reference_t>(entity);
 		return prefab == nullptr || prefab->is_root;
 	}
 

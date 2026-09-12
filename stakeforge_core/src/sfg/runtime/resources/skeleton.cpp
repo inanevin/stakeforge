@@ -105,16 +105,19 @@ namespace sfg
 			{
 				const skeleton_mask_def_t& mask = skeleton.masks[i];
 
-				masks[i] = {
-					.name_hash	 = TO_SID(static_cast<const char*>(mask.name)),
-					.joint_count = static_cast<u32>(mask.joint_indices.size()),
-				};
+				skeleton_mask_t value = {};
 
-				if (masks[i].joint_count != 0)
+				for (u32 joint : mask.joint_indices)
 				{
-					masks[i].joint_indices = mem.allocate<u32>(masks[i].joint_count);
-					SFG_MEMCPY(mem.get<u32>(masks[i].joint_indices), mask.joint_indices.data(), sizeof(u32) * masks[i].joint_count);
+					const u32 index = joint / 64;
+					const u32 mod	= joint % 64;
+					value.masks[index] |= 1llu << mod;
 				}
+
+				masks[i] = {
+					.value	   = value,
+					.name_hash = TO_SID(static_cast<const char*>(mask.name)),
+				};
 			}
 		}
 
@@ -145,14 +148,6 @@ namespace sfg
 
 		if (runtime->mask_count != 0)
 		{
-			skeleton_mask_runtime_t* masks = mem.get<skeleton_mask_runtime_t>(runtime->masks);
-
-			for (u32 i = 0; i < runtime->mask_count; ++i)
-			{
-				if (masks[i].joint_count != 0)
-					mem.free(masks[i].joint_indices);
-			}
-
 			mem.free(runtime->masks);
 		}
 

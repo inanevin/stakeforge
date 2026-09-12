@@ -33,7 +33,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world.hpp>
@@ -82,7 +82,7 @@ namespace sfg
 		if (anchor == NULL_ENTITY_ID)
 			return false;
 
-		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(_world->get_component_table(type_id_t<component_system_transform_t>::value), anchor);
+		const component_system_transform_t& transform = _world->get_component_table(type_id_t<component_system_transform_t>::value).get_as_const<component_system_transform_t>(anchor);
 		vec3f_t								scale	  = vec3f_t::one;
 		_world->calculate_transform_direct(anchor).decompose(target.position, target.rotation, scale);
 		target.prev_position = transform.prev_abs_pos;

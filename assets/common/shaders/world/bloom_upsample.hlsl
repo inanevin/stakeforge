@@ -30,6 +30,7 @@
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 // Upsample mip L -> L-1 with a 3x3 tent filter (COD/SIGGRAPH 2014)
+// Jorge Jimenez - https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
 
 #include "layout_defines.hlsl"
 #include "normal.hlsl"

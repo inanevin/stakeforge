@@ -34,7 +34,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 
@@ -104,10 +104,11 @@ namespace sfg
 			world_t&								  world	  = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
 
 			const entity_id_t entity = world.create_entity(get_primitive_name(payload.primitive), payload.guid);
+
 			if (payload.parent != NULL_ENTITY_ID)
 				world.attach_to(entity, payload.parent);
 
-			component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), entity);
+			component_mesh_renderer_t& mesh_renderer = world.get_component_table(type_id_t<component_mesh_renderer_t>::value).add_or_get_as<component_mesh_renderer_t>(entity);
 			mesh_renderer.mesh						 = get_primitive_mesh(payload.primitive);
 			mesh_renderer.materials.resize(0);
 			mesh_renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
@@ -115,13 +116,16 @@ namespace sfg
 
 			payload.guid   = world.get_entity_guid(entity);
 			payload.entity = entity;
+
 			if (payload.folder_guid != 0)
 			{
 				editor_world_edit_context_t&	   metadata = editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context();
 				const editor_world_folder_handle_t folder	= metadata.get_folder_handle(payload.folder_guid);
+
 				if (!folder.is_null())
 					metadata.assign_entities_to_folder(folder, {.data = &payload.guid, .size = 1});
 			}
+
 			editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context().apply_entity_selection({.data = &payload.entity, .size = 1}, payload.entity);
 			return true;
 		}

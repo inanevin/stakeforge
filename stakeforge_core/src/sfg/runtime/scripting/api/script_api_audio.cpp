@@ -44,7 +44,7 @@ namespace sfg
 
 		const ecs_component_table_t& source_table = world->get_component_table(type_id_t<component_audio_source_t>::value);
 
-		if (!ecs_t::table_has(source_table, entity))
+		if (!source_table.has(entity))
 			return 0;
 
 		return world->get_audio_controller().play(entity) ? 1 : 0;
@@ -59,7 +59,7 @@ namespace sfg
 
 		const ecs_component_table_t& system_source_table = world->get_component_table(type_id_t<component_system_audio_source_t>::value);
 
-		if (!ecs_t::table_has(system_source_table, entity))
+		if (!system_source_table.has(entity))
 			return 0;
 
 		world->get_audio_controller().pause(entity);
@@ -75,7 +75,7 @@ namespace sfg
 
 		const ecs_component_table_t& system_source_table = world->get_component_table(type_id_t<component_system_audio_source_t>::value);
 
-		if (!ecs_t::table_has(system_source_table, entity))
+		if (!system_source_table.has(entity))
 			return 0;
 
 		world->get_audio_controller().stop(entity);

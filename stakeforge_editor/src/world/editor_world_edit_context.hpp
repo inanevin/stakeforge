@@ -42,7 +42,7 @@ namespace sfg
 {
 	class editor_world_edit_context_t;
 	class world_t;
-	struct ecs_component_table_t;
+	class ecs_component_table_t;
 	struct editor_world_folder_tag_t;
 	struct editor_selection_listener_tag_t;
 

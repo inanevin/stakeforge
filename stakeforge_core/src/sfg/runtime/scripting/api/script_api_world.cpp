@@ -35,7 +35,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/ecs.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
@@ -359,7 +358,7 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = &table_ref, .size = 1}))
 		{
-			const component_name_t& entity_name = ecs_helpers_t::row_get<component_name_t>(row, 0);
+			const component_name_t& entity_name = row.get<component_name_t>(0);
 
 			if (std::strcmp(entity_name.text, name) == 0)
 				return row.id;
@@ -383,7 +382,7 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = &table_ref, .size = 1}))
 		{
-			const component_name_t& entity_name = ecs_helpers_t::row_get<component_name_t>(row, 0);
+			const component_name_t& entity_name = row.get<component_name_t>(0);
 
 			if (std::strcmp(entity_name.text, name) != 0)
 				continue;
@@ -462,7 +461,7 @@ namespace sfg
 		if (table == nullptr)
 			return 0;
 
-		return ecs_t::table_has(*table, entity) ? 1 : 0;
+		return table->has(entity) ? 1 : 0;
 	}
 
 	u8 api_world_get_component(const world_t* world, entity_id_t entity, sid_t component_type, void* out_component, u32 component_size)
@@ -474,14 +473,14 @@ namespace sfg
 
 		const ecs_component_table_t* table = world->find_component_table(component_type);
 
-		if (table == nullptr || table->type_desc.size != component_size || !ecs_t::table_has(*table, entity))
+		if (table == nullptr || table->get_type_desc().size != component_size || !table->has(entity))
 			return 0;
 
 		if (component_size == 0)
 			return 1;
 
 		SFG_ASSERT(out_component != nullptr);
-		const void* component = ecs_t::table_get(*table, entity);
+		const void* component = table->get(entity);
 
 		SFG_ASSERT(component != nullptr);
 		SFG_MEMCPY(out_component, component, component_size);
@@ -497,10 +496,10 @@ namespace sfg
 
 		ecs_component_table_t* table = world->find_component_table(component_type);
 
-		if (table == nullptr || table->type_desc.size != component_size || ecs_t::table_has(*table, entity))
+		if (table == nullptr || table->get_type_desc().size != component_size || table->has(entity))
 			return 0;
 
-		void* added_component = ecs_t::table_add(*table, entity);
+		void* added_component = table->add(entity);
 
 		if (component_size != 0)
 		{
@@ -521,14 +520,14 @@ namespace sfg
 
 		ecs_component_table_t* table = world->find_component_table(component_type);
 
-		if (table == nullptr || table->type_desc.size != component_size || !ecs_t::table_has(*table, entity))
+		if (table == nullptr || table->get_type_desc().size != component_size || !table->has(entity))
 			return 0;
 
 		if (component_size == 0)
 			return 1;
 
 		SFG_ASSERT(component != nullptr);
-		void* stored_component = ecs_t::table_get(*table, entity);
+		void* stored_component = table->get(entity);
 
 		SFG_ASSERT(stored_component != nullptr);
 		SFG_MEMCPY(stored_component, component, component_size);
@@ -544,10 +543,10 @@ namespace sfg
 
 		ecs_component_table_t* table = world->find_component_table(component_type);
 
-		if (table == nullptr || !ecs_t::table_has(*table, entity))
+		if (table == nullptr || !table->has(entity))
 			return 0;
 
-		ecs_t::table_remove(*table, entity);
+		table->remove(entity);
 		return 1;
 	}
 
@@ -563,7 +562,7 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = &table_ref, .size = 1}))
 		{
-			const component_entity_tags_t& entity_tags = ecs_helpers_t::row_get<component_entity_tags_t>(row, 0);
+			const component_entity_tags_t& entity_tags = row.get<component_entity_tags_t>(0);
 
 			if ((entity_tags.tags & tag) == tag)
 				return row.id;
@@ -586,7 +585,7 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = &table_ref, .size = 1}))
 		{
-			const component_entity_tags_t& entity_tags = ecs_helpers_t::row_get<component_entity_tags_t>(row, 0);
+			const component_entity_tags_t& entity_tags = row.get<component_entity_tags_t>(0);
 
 			if ((entity_tags.tags & tag) != tag)
 				continue;
@@ -609,12 +608,12 @@ namespace sfg
 			return 0;
 
 		ecs_component_table_t&	 tags_table	 = world->get_component_table(type_id_t<component_entity_tags_t>::value);
-		component_entity_tags_t* entity_tags = ecs_helpers_t::table_find_as<component_entity_tags_t>(tags_table, entity);
+		component_entity_tags_t* entity_tags = tags_table.find_as<component_entity_tags_t>(entity);
 
 		if (enabled != 0)
 		{
 			if (entity_tags == nullptr)
-				entity_tags = &ecs_helpers_t::table_add_or_get_as<component_entity_tags_t>(tags_table, entity);
+				entity_tags = &tags_table.add_or_get_as<component_entity_tags_t>(entity);
 
 			entity_tags->tags |= tag;
 			return 1;
@@ -626,7 +625,7 @@ namespace sfg
 		entity_tags->tags &= ~tag;
 
 		if (entity_tags->tags == 0)
-			ecs_t::table_remove(tags_table, entity);
+			tags_table.remove(entity);
 
 		return 1;
 	}
@@ -640,8 +639,8 @@ namespace sfg
 
 		ecs_component_table_t& disabled_table = world->get_component_table(type_id_t<component_disabled_t>::value);
 
-		if (!ecs_t::table_has(disabled_table, entity))
-			ecs_t::table_add(disabled_table, entity);
+		if (!disabled_table.has(entity))
+			disabled_table.add(entity);
 
 		return 1;
 	}
@@ -655,8 +654,8 @@ namespace sfg
 
 		ecs_component_table_t& disabled_table = world->get_component_table(type_id_t<component_disabled_t>::value);
 
-		if (ecs_t::table_has(disabled_table, entity))
-			ecs_t::table_remove(disabled_table, entity);
+		if (disabled_table.has(entity))
+			disabled_table.remove(entity);
 
 		return 1;
 	}
@@ -742,7 +741,7 @@ namespace sfg
 				continue;
 			}
 
-			if (table->type_desc.size != component.size)
+			if (table->get_type_desc().size != component.size)
 				return 0;
 
 			table_refs[table_count] = {
@@ -1014,17 +1013,17 @@ namespace sfg
 		if (world->is_component_query_active() || entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		ecs_component_table_t& table = world->get_component_table(type_id_t<component_view_model_t>::value);
-		const bool			  has_marker = ecs_t::table_has(table, entity);
+		ecs_component_table_t& table	  = world->get_component_table(type_id_t<component_view_model_t>::value);
+		const bool			   has_marker = table.has(entity);
 
 		if (enabled != 0)
 		{
 			if (!has_marker)
-				ecs_t::table_add(table, entity);
+				table.add(entity);
 		}
 		else if (has_marker)
 		{
-			ecs_t::table_remove(table, entity);
+			table.remove(entity);
 		}
 
 		return 1;
@@ -1108,7 +1107,7 @@ namespace sfg
 			.get_elapsed_time				 = api_world_get_elapsed_time,
 			.get_real_elapsed_time			 = api_world_get_real_elapsed_time,
 			.set_view_model					 = api_world_set_view_model,
-			.get_entity_name					 = api_world_get_entity_name,
+			.get_entity_name				 = api_world_get_entity_name,
 		};
 
 		return api;

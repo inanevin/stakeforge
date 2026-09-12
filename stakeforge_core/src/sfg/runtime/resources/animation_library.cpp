@@ -30,6 +30,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "resource_file_system.hpp"
 #include "resource_manager.hpp"
 
+#include <sfg/common/hashing.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/log.hpp>
@@ -56,16 +57,120 @@ namespace sfg
 			return false;
 		}
 
-		animation_library_runtime_t& runtime = *ctx.resource_manager.get_memory().get<animation_library_runtime_t>(entry.runtime);
+		chunk_allocator_t&			 memory	 = ctx.resource_manager.get_memory();
+		animation_library_runtime_t& runtime = *memory.get<animation_library_runtime_t>(entry.runtime);
 
-		runtime = {.skeleton = def.skeleton};
+		runtime = {
+			.skeleton	 = def.skeleton,
+			.layer_count = static_cast<u32>(def.layers.size()),
+		};
+
+		if (runtime.layer_count == 0)
+		{
+			SFG_ERR("animation library has no layers: {0}", entry.hash);
+			return false;
+		}
+
+		for (const animation_library_layer_def_t& layer : def.layers)
+		{
+			runtime.state_count += static_cast<u32>(layer.states.size());
+
+			for (const animation_library_state_def_t& state : layer.states)
+				runtime.clip_count += static_cast<u32>(state.clip_count);
+		}
+
+		runtime.layers = memory.allocate_bytes(sizeof(animation_library_layer_runtime_t) * runtime.layer_count, alignof(animation_library_layer_runtime_t));
+
+		if (runtime.state_count != 0)
+			runtime.states = memory.allocate_bytes(sizeof(animation_library_state_runtime_t) * runtime.state_count, alignof(animation_library_state_runtime_t));
+
+		if (runtime.clip_count != 0)
+			runtime.clips = memory.allocate_bytes(sizeof(animation_library_clip_runtime_t) * runtime.clip_count, alignof(animation_library_clip_runtime_t));
+
+		animation_library_layer_runtime_t* layers	   = memory.get<animation_library_layer_runtime_t>(runtime.layers);
+		animation_library_state_runtime_t* states	   = runtime.state_count != 0 ? memory.get<animation_library_state_runtime_t>(runtime.states) : nullptr;
+		animation_library_clip_runtime_t*  clips	   = runtime.clip_count != 0 ? memory.get<animation_library_clip_runtime_t>(runtime.clips) : nullptr;
+		u32								   state_index = 0;
+		u32								   clip_index  = 0;
+
+		for (u32 layer_index = 0; layer_index < runtime.layer_count; ++layer_index)
+		{
+			const animation_library_layer_def_t& source_layer = def.layers[layer_index];
+			const u32							 state_count  = static_cast<u32>(source_layer.states.size());
+			const chunk_handle32_t				 layer_handle{
+				.head = runtime.layers.head + static_cast<u32>(sizeof(animation_library_layer_runtime_t)) * layer_index,
+				.size = sizeof(animation_library_layer_runtime_t),
+			};
+
+			layers[layer_index] = {
+				.name_hash		= TO_SID(static_cast<const char*>(source_layer.name)),
+				.mask_name_hash = source_layer.use_mask ? TO_SID(static_cast<const char*>(source_layer.mask_name)) : NULL_SID,
+				.states =
+					{
+						.head = runtime.states.head + static_cast<u32>(sizeof(animation_library_state_runtime_t)) * state_index,
+						.size = static_cast<u32>(sizeof(animation_library_state_runtime_t)) * state_count,
+					},
+				.state_count		  = state_count,
+				.default_active_state = source_layer.default_active_state,
+				.weight				  = source_layer.weight,
+				.use_mask			  = source_layer.use_mask,
+			};
+
+			for (const animation_library_state_def_t& source_state : source_layer.states)
+			{
+				const u32			   clip_count = static_cast<u32>(source_state.clip_count);
+				const chunk_handle32_t state_handle{
+					.head = runtime.states.head + static_cast<u32>(sizeof(animation_library_state_runtime_t)) * state_index,
+					.size = sizeof(animation_library_state_runtime_t),
+				};
+
+				states[state_index] = {
+					.name_hash	 = TO_SID(static_cast<const char*>(source_state.name)),
+					.blend_value = source_state.blend_value,
+					.layer		 = layer_handle,
+					.clips =
+						{
+							.head = runtime.clips.head + static_cast<u32>(sizeof(animation_library_clip_runtime_t)) * clip_index,
+							.size = static_cast<u32>(sizeof(animation_library_clip_runtime_t)) * clip_count,
+						},
+					.clip_count = clip_count,
+					.blend_type = source_state.blend_type,
+				};
+
+				for (u32 source_clip_index = 0; source_clip_index < clip_count; ++source_clip_index)
+				{
+					const animation_library_clip_def_t& source_clip = source_state.clips[source_clip_index];
+
+					clips[clip_index] = {
+						.animation_clip = source_clip.animation_clip,
+						.weight_value	= source_clip.weight_value,
+						.state			= state_handle,
+					};
+
+					++clip_index;
+				}
+
+				++state_index;
+			}
+		}
 
 		return true;
 	}
 
 	void animation_library_loader_t::unload(resource_entry_t& entry, resource_context_t& ctx)
 	{
-		*ctx.resource_manager.get_memory().get<animation_library_runtime_t>(entry.runtime) = {};
+		chunk_allocator_t&			 memory	 = ctx.resource_manager.get_memory();
+		animation_library_runtime_t& runtime = *memory.get<animation_library_runtime_t>(entry.runtime);
+
+		if (runtime.clip_count != 0)
+			memory.free(runtime.clips);
+
+		if (runtime.state_count != 0)
+			memory.free(runtime.states);
+
+		memory.free(runtime.layers);
+
+		runtime = {};
 	}
 
 	const resource_type_desc_t animation_library_resource_desc = {

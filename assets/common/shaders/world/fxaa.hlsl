@@ -69,6 +69,8 @@ float get_luma(float3 color)
 	return sqrt(max(dot(color, float3(0.2126, 0.7152, 0.0722)), 0.0));
 }
 
+// Timothy Lottes / NVIDIA - https://developer.download.nvidia.com/assets/gamedev/files/sdk/11/FXAA_WhitePaper.pdf
+// reference: Matt DesLauriers (credits Armin Ronacher / Geeks3D) - https://github.com/mattdesl/glsl-fxaa/blob/master/fxaa.glsl
 float4 PSMain(vs_output input) : SV_TARGET
 {
 	const render_pass_data rp_data = sfg_get_cbv<render_pass_data>(sfg_constant_rp0);

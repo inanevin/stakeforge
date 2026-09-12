@@ -29,14 +29,55 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "resource_handle.hpp"
 #include <sfg/common/type_id.hpp>
+#include <sfg/math/vec2f.hpp>
+#include <sfg/data/vector.hpp>
 
 namespace sfg
 {
-	struct animation_library_def_t
+#define MAX_ANIMATION_LIBRARY_STATE_CLIPS 8
+
+	enum class animation_library_blend_type_e : u8
 	{
-		resource_handle_t skeleton = NULL_RESOURCE_HANDLE;
+		no_blend,
+		blend_1d,
+		blend_2d,
 	};
 
+	struct animation_library_clip_def_t
+	{
+		resource_handle_t animation_clip = NULL_RESOURCE_HANDLE;
+		vec2f_t			  weight_value	 = vec2f_t::zero;
+	};
+
+	struct animation_library_state_def_t
+	{
+		char						   name[256]								= {};
+		animation_library_clip_def_t   clips[MAX_ANIMATION_LIBRARY_STATE_CLIPS] = {};
+		vec2f_t						   blend_value								= vec2f_t::zero;
+		size_t						   clip_count								= 0;
+		animation_library_blend_type_e blend_type								= animation_library_blend_type_e::no_blend;
+	};
+
+	struct animation_library_layer_def_t
+	{
+		char									name[256]	   = {};
+		char									mask_name[256] = {};
+		vector_t<animation_library_state_def_t> states;
+		u32										default_active_state = UINT32_MAX;
+		float									weight				 = 1.0f;
+		bool									use_mask			 = false;
+	};
+
+	struct animation_library_def_t
+	{
+		resource_handle_t						skeleton = NULL_RESOURCE_HANDLE;
+		vector_t<animation_library_layer_def_t> layers	 = {};
+	};
+
+	SFG_DEFINE_TYPE_ID(animation_library_blend_type_e);
+	SFG_DEFINE_TYPE_ID(animation_library_clip_def_t);
+	SFG_DEFINE_TYPE_ID(animation_library_state_def_t);
+	SFG_DEFINE_TYPE_ID(animation_library_layer_def_t);
 	SFG_DEFINE_TYPE_ID(animation_library_def_t);
 
 	struct animation_library_def_reflection_t

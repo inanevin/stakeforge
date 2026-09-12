@@ -31,6 +31,7 @@
 
 static const float PI = 3.14159265359;
 
+// GGX: Bruce Walter, Stephen R. Marschner, Hongsong Li, Kenneth E. Torrance - https://www.cs.cornell.edu/~srm/publications/EGSR07-btdf.pdf
 float distribution_ggx(float NdotH, float roughness)
 {
     float a  = max(roughness * roughness, 1e-4); // α
@@ -56,6 +57,7 @@ float geometry_smith(float NdotV, float NdotL, float roughness)
            geometry_schlick_ggx(NdotL, roughness);
 }
 
+// Christophe Schlick, Fresnel approximation - https://onlinelibrary.wiley.com/doi/10.1111/1467-8659.1330233
 float3 fresnel_schlick(float cosTheta, float3 F0)
 {
     float c = saturate(cosTheta);
@@ -63,6 +65,7 @@ float3 fresnel_schlick(float cosTheta, float3 F0)
 }
 
 // Cook–Torrance BRDF (direct light)
+// Robert L. Cook and Kenneth E. Torrance - https://doi.org/10.1145/357290.357293
 float3 calculate_pbr(
     float3 V,          // from surface to camera (normalized)
     float3 N,          // world normal (normalized)

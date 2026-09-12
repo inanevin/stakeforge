@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/runtime/world/ecs_component_type.hpp>
+#include <sfg/io/assert.hpp>
 
 #include <cstddef>
 #include <limits>
@@ -36,6 +36,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	template <typename T> struct type_id_t;
+
 	using entity_id_t	= u32;
 	using entity_guid_t = u64;
 
@@ -48,57 +50,13 @@ namespace sfg
 	static inline constexpr u32			ECS_INNER_JOIN_MAX_TABLES = 16;
 	static inline constexpr u32			ECS_INVALID_INDEX		  = UINT32_MAX;
 
-	struct ecs_node_t
-	{
-		u64	  mask;
-		void* child;
-	};
-
-	static_assert(std::is_trivial_v<ecs_node_t>);
-	static_assert(alignof(ecs_node_t) == 8);
-
 	enum ecs_component_table_flags_e : u8
 	{
 		ecs_component_table_flags_excluded = 1 << 0,
 		ecs_component_table_flags_optional = 1 << 1,
 	};
 
-	struct ecs_component_table_t;
-
-	struct ecs_component_table_ref_t
-	{
-		const ecs_component_table_t* table = nullptr;
-		u8							 flags = 0;
-
-		ecs_component_table_ref_t optional() const
-		{
-			return {.table = table, .flags = static_cast<u8>(flags | ecs_component_table_flags_optional)};
-		}
-
-		ecs_component_table_ref_t excluded() const
-		{
-			return {.table = table, .flags = static_cast<u8>(flags | ecs_component_table_flags_excluded)};
-		}
-
-		ecs_component_table_ref_t operator!() const
-		{
-			return excluded();
-		}
-	};
-
-	struct ecs_component_table_t
-	{
-		ecs_component_type_desc_t type_desc					 = {};
-		ecs_node_t*				  l0_nodes					 = nullptr;
-		size_t					  component_struct_stride	 = 0;
-		size_t					  component_struct_alignment = 0;
-		sid_t					  component_type_id			 = 0;
-
-		ecs_component_table_ref_t ref() const
-		{
-			return {.table = this, .flags = 0};
-		}
-	};
+	class ecs_component_table_t;
 
 	struct ecs_query_row_t
 	{
@@ -107,5 +65,56 @@ namespace sfg
 		entity_id_t id											  = NULL_ENTITY_ID;
 		u32			component_count								  = 0;
 		u32			component_presence_mask						  = 0;
+
+		// -----------------------------------------------------------------------------
+		// row
+		// -----------------------------------------------------------------------------
+
+		u32 get_index(sid_t type) const
+		{
+			for (u32 i = 0; i < component_count; i++)
+			{
+				if (component_type_ids[i] == type)
+					return i;
+			}
+
+			return ECS_INVALID_INDEX;
+		}
+
+		template <typename T> const T& get() const
+		{
+			const u32 idx = get_index(type_id_t<T>::value);
+
+			SFG_ASSERT(idx < ECS_INNER_JOIN_MAX_TABLES);
+
+			const T* ptr = reinterpret_cast<const T*>(components[idx]);
+
+			return *ptr;
+		}
+
+		template <typename T> const T& get(u32 index) const
+		{
+			const T* ptr = reinterpret_cast<const T*>(components[index]);
+
+			return *ptr;
+		}
+
+		template <typename T> T& get_mutable() const
+		{
+			const u32 idx = get_index(type_id_t<T>::value);
+
+			SFG_ASSERT(idx < ECS_INNER_JOIN_MAX_TABLES);
+
+			T* ptr = reinterpret_cast<T*>(components[idx]);
+
+			return *ptr;
+		}
+
+		template <typename T> T& get_mutable(u32 index) const
+		{
+			T* ptr = reinterpret_cast<T*>(components[index]);
+
+			return *ptr;
+		}
 	};
 }

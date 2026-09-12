@@ -28,6 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
+#include <sfg/data/bitmask.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/runtime/resources/material_limits.hpp>
 #include <sfg/runtime/resources/shader_limits.hpp>

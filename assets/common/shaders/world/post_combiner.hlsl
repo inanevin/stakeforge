@@ -74,6 +74,7 @@ float3 adjust_saturation(float3 color, float saturation)
 	return lerp(luminance.xxx, color, saturation);
 }
 
+// Stephen Hill, RRTAndODTFit curve - https://github.com/TheRealMJP/BakingLab/blob/master/BakingLab/ACES.hlsl
 float3 aces_fitted(float3 color)
 {
 	float3 a = color * (color + 0.0245786) - 0.000090537;
@@ -81,6 +82,7 @@ float3 aces_fitted(float3 color)
 	return saturate(a / b);
 }
 
+// Erik Reinhard, Michael Stark, Peter Shirley, James Ferwerda - https://www-old.cs.utah.edu/docs/techreports/2002/pdf/UUCS-02-001.pdf
 float3 reinhard_extended(float3 color, float white_point)
 {
 	float white_squared = white_point * white_point;

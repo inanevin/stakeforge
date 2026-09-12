@@ -3,6 +3,8 @@ using System.Text;
 
 namespace SFG;
 
+// FNV-1a: Glenn Fowler, Landon Curt Noll, Kiem-Phong Vo - https://github.com/lcn2/fnv/blob/master/hash_64a.c
+// StringId uses a different offset basis.
 public static class Hash
 {
     public const ulong FnvOffset = 14695981039346656037UL;

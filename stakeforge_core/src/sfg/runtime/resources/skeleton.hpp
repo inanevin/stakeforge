@@ -37,9 +37,8 @@ namespace sfg
 
 	struct skeleton_mask_runtime_t
 	{
-		sid_t			 name_hash	   = NULL_SID;
-		chunk_handle32_t joint_indices = {};
-		u32				 joint_count   = 0;
+		skeleton_mask_t value	  = {};
+		sid_t			name_hash = NULL_SID;
 	};
 
 	struct skeleton_runtime_t

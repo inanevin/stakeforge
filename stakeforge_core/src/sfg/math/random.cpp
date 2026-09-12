@@ -60,6 +60,7 @@ namespace sfg
 		return dist(rng());
 	}
 
+	// Chris Wellons, lowbias32 - https://nullprogram.com/blog/2018/07/31/
 	u32 random_t::next_u32(u32& state)
 	{
 		state ^= state >> 16;
@@ -67,6 +68,7 @@ namespace sfg
 		state ^= state >> 15;
 		state *= 0x846ca68bu;
 		state ^= state >> 16;
+
 		return state;
 	}
 

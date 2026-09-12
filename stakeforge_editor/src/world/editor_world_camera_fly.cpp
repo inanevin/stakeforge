@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/aabb.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -43,12 +43,12 @@ namespace sfg
 		_camera_entity = world.create_entity("editor camera");
 		world.set_entity_pos_local(_camera_entity, vec3f_t(0.0f, 0.0f, 2.5f));
 
-		component_camera_t& camera = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), _camera_entity);
+		component_camera_t& camera = world.get_component_table(type_id_t<component_camera_t>::value).add_or_get_as<component_camera_t>(_camera_entity);
 		camera.priority			   = -1;
 		camera.near_plane		   = 0.05f;
-		ecs_helpers_t::table_add_or_get_as<component_post_process_t>(world.get_component_table(type_id_t<component_post_process_t>::value), _camera_entity);
+		world.get_component_table(type_id_t<component_post_process_t>::value).add_or_get_as<component_post_process_t>(_camera_entity);
 
-		ecs_t::table_add(world.get_component_table(type_id_t<component_no_serialize_t>::value), _camera_entity);
+		world.get_component_table(type_id_t<component_no_serialize_t>::value).add(_camera_entity);
 
 		const vec3f_t euler	  = quat_t::to_euler(world.get_entity_rot_local(_camera_entity));
 		_camera_pitch_degrees = euler.x;

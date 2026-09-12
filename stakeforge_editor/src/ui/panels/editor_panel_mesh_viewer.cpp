@@ -42,7 +42,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/memory/memory.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/world.hpp>
@@ -227,7 +227,7 @@ namespace sfg
 
 		world_t& world							 = editor_world_controller_t::get().get_editor_world(_world)->get_world();
 		_display_entity							 = world.create_entity("mesh_viewer_mesh");
-		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), _display_entity);
+		component_mesh_renderer_t& mesh_renderer = world.get_component_table(type_id_t<component_mesh_renderer_t>::value).add_or_get_as<component_mesh_renderer_t>(_display_entity);
 		mesh_renderer.mesh						 = _mesh_guid;
 
 		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(_mesh_guid);
@@ -257,7 +257,7 @@ namespace sfg
 			world.set_entity_pos_local(_display_entity, display_position);
 			world.set_entity_pos_local(_environment_entity, {0.0f, spotlight_y, 0.0f});
 
-			component_light_t& light = ecs_helpers_t::table_get_as<component_light_t>(world.get_component_table(type_id_t<component_light_t>::value), _environment_entity);
+			component_light_t& light = world.get_component_table(type_id_t<component_light_t>::value).get_as<component_light_t>(_environment_entity);
 
 			light.range = math::max(10.0f, spotlight_y * 2.0f);
 

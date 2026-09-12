@@ -34,7 +34,7 @@ EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "ui/widgets/editor_widgets_misc.hpp"
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 
 namespace sfg
@@ -292,7 +292,7 @@ namespace sfg
 
 		for (entity_id_t entity : _entities)
 		{
-			component_name_t& name = ecs_helpers_t::table_get_as<component_name_t>(*name_table, entity);
+			component_name_t& name = name_table->get_as<component_name_t>(entity);
 			name_values.push_back(reinterpret_cast<u8*>(name.text));
 		}
 
@@ -325,7 +325,7 @@ namespace sfg
 
 		for (entity_id_t entity : _entities)
 		{
-			component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*transform_table, entity);
+			component_transform_t& transform = transform_table->get_as<component_transform_t>(entity);
 
 			if (refresh_position)
 				position_values.push_back(&transform.pos);
@@ -412,9 +412,10 @@ namespace sfg
 			return;
 
 		ecs_component_table_t* transform_table = _world->find_component_table(type_id_t<component_transform_t>::value);
+
 		for (entity_id_t entity : _entities)
 		{
-			const component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*transform_table, entity);
+			const component_transform_t& transform = transform_table->get_as<component_transform_t>(entity);
 			_world->set_entity_pos_local(entity, transform.pos);
 		}
 	}
@@ -425,9 +426,10 @@ namespace sfg
 			return;
 
 		ecs_component_table_t* transform_table = _world->find_component_table(type_id_t<component_transform_t>::value);
+
 		for (entity_id_t entity : _entities)
 		{
-			const component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*transform_table, entity);
+			const component_transform_t& transform = transform_table->get_as<component_transform_t>(entity);
 			_world->set_entity_rot_local(entity, transform.rot);
 		}
 	}
@@ -438,9 +440,10 @@ namespace sfg
 			return;
 
 		ecs_component_table_t* transform_table = _world->find_component_table(type_id_t<component_transform_t>::value);
+
 		for (entity_id_t entity : _entities)
 		{
-			const component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*transform_table, entity);
+			const component_transform_t& transform = transform_table->get_as<component_transform_t>(entity);
 			_world->set_entity_scale_local(entity, transform.scale);
 		}
 	}

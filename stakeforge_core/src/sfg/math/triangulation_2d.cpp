@@ -31,6 +31,8 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace sfg
 {
+	// Adrian Bowyer - https://doi.org/10.1093/comjnl/24.2.162
+	// David Watson - https://doi.org/10.1093/comjnl/24.2.167
 	bool math::triangulate_2d(span_t<const vec2f_t> points, vector_t<triangle_indices_t>& out_triangles)
 	{
 		struct edge_t
@@ -72,6 +74,7 @@ namespace sfg
 		const u32	  super_first	= static_cast<u32>(points.size);
 
 		vector_t<vec2f_t> working_points = {};
+
 		working_points.reserve(points.size + 3);
 
 		for (const vec2f_t& point : points)
@@ -82,6 +85,7 @@ namespace sfg
 		working_points.push_back({bounds_center.x + bounds_span * 20.0f, bounds_center.y - bounds_span});
 
 		vector_t<triangle_indices_t> triangles = {};
+
 		triangles.reserve(points.size * 2 + 1);
 		triangles.push_back({.indices = {super_first, super_first + 1, super_first + 2}});
 
@@ -89,6 +93,7 @@ namespace sfg
 		{
 			vector_t<u8>	 bad_triangles(triangles.size(), 0);
 			vector_t<edge_t> boundary_edges = {};
+
 			boundary_edges.reserve(triangles.size() * 3);
 
 			for (u32 triangle_index = 0; triangle_index < triangles.size(); ++triangle_index)

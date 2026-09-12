@@ -100,7 +100,6 @@ namespace sfg
 			return vec4f_t(m[idx * 3], m[idx * 3 + 1], m[idx * 3 + 2], 0.0f);
 		}
 
-		// Matrix ? Matrix (composition)
 		inline mat4x3_t operator*(const mat4x3_t& other) const
 		{
 			mat4x3_t result;

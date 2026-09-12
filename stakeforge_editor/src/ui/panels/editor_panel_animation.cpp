@@ -60,7 +60,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/ui/input/input_router.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/ui/vg/vg_canvas.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world.hpp>
@@ -701,8 +701,8 @@ namespace sfg
 		world_t& world	= editor_world_controller_t::get().get_editor_world(_world)->get_world();
 		_display_entity = world.create_entity("animation_viewer_mesh");
 
-		component_skinned_mesh_renderer_t& skinned_renderer = ecs_helpers_t::table_add_or_get_as<component_skinned_mesh_renderer_t>(world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value), _display_entity);
-		component_animation_player_t&	   animation_player = ecs_helpers_t::table_add_or_get_as<component_animation_player_t>(world.get_component_table(type_id_t<component_animation_player_t>::value), _display_entity);
+		component_skinned_mesh_renderer_t& skinned_renderer = world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value).add_or_get_as<component_skinned_mesh_renderer_t>(_display_entity);
+		component_animation_player_t&	   animation_player = world.get_component_table(type_id_t<component_animation_player_t>::value).add_or_get_as<component_animation_player_t>(_display_entity);
 		const animation_runtime_t*		   animation		= resource_manager_t::get().find_runtime<animation_runtime_t>(_animation_guid);
 
 		skinned_renderer.mesh			  = _data.target_mesh;
@@ -733,7 +733,7 @@ namespace sfg
 
 		world.set_entity_pos_local(_environment_entity, {0.0f, spotlight_y, 0.0f});
 
-		component_light_t& spotlight = ecs_helpers_t::table_get_as<component_light_t>(world.get_component_table(type_id_t<component_light_t>::value), _environment_entity);
+		component_light_t& spotlight = world.get_component_table(type_id_t<component_light_t>::value).get_as<component_light_t>(_environment_entity);
 
 		spotlight.range = math::max(10.0f, spotlight_y * 2.0f);
 	}
@@ -1172,7 +1172,7 @@ namespace sfg
 		if (_display_entity != NULL_ENTITY_ID)
 		{
 			world_t&							 world	= editor_world_controller_t::get().get_editor_world(_world)->get_world();
-			component_system_animation_player_t* player = ecs_helpers_t::table_find_as<component_system_animation_player_t>(world.get_component_table(type_id_t<component_system_animation_player_t>::value), _display_entity);
+			component_system_animation_player_t* player = world.get_component_table(type_id_t<component_system_animation_player_t>::value).find_as<component_system_animation_player_t>(_display_entity);
 
 			if (player != nullptr)
 				player->sample_time = _cursor_time;
@@ -1185,7 +1185,7 @@ namespace sfg
 			return;
 
 		world_t&					  world			   = editor_world_controller_t::get().get_editor_world(_world)->get_world();
-		component_animation_player_t& animation_player = ecs_helpers_t::table_get_as<component_animation_player_t>(world.get_component_table(type_id_t<component_animation_player_t>::value), _display_entity);
+		component_animation_player_t& animation_player = world.get_component_table(type_id_t<component_animation_player_t>::value).get_as<component_animation_player_t>(_display_entity);
 		const animation_runtime_t*	  animation		   = resource_manager_t::get().find_runtime<animation_runtime_t>(_animation_guid);
 
 		animation_player.animation		  = _animation_guid;
@@ -1436,7 +1436,7 @@ namespace sfg
 	{
 		editor_panel_animation_t&				 panel			  = *static_cast<editor_panel_animation_t*>(user_data);
 		world_t&								 world			  = editor_world_controller_t::get().get_editor_world(panel._world)->get_world();
-		const component_skinned_mesh_renderer_t& skinned_renderer = ecs_helpers_t::table_get_as_const<component_skinned_mesh_renderer_t>(world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value), panel._display_entity);
+		const component_skinned_mesh_renderer_t& skinned_renderer = world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value).get_as_const<component_skinned_mesh_renderer_t>(panel._display_entity);
 
 		if (skinned_renderer.mesh != panel._data.target_mesh || skinned_renderer.skeleton != panel._data.target_skeleton)
 		{
@@ -1525,7 +1525,7 @@ namespace sfg
 			return;
 
 		const world_t&							   world				   = editor_world_controller_t::get().get_editor_world(panel._world)->get_world();
-		const component_system_animation_player_t* system_animation_player = ecs_helpers_t::table_find_as_const<component_system_animation_player_t>(world.get_component_table(type_id_t<component_system_animation_player_t>::value), panel._display_entity);
+		const component_system_animation_player_t* system_animation_player = world.get_component_table(type_id_t<component_system_animation_player_t>::value).find_as_const<component_system_animation_player_t>(panel._display_entity);
 		const animation_runtime_t*				   animation			   = resource_manager_t::get().find_runtime<animation_runtime_t>(panel._animation_guid);
 
 		if (system_animation_player == nullptr || animation == nullptr || animation->duration <= 0.0f)
@@ -1879,7 +1879,7 @@ namespace sfg
 		if (panel._display_entity != NULL_ENTITY_ID)
 		{
 			world_t&							 world	= editor_world_controller_t::get().get_editor_world(panel._world)->get_world();
-			component_system_animation_player_t* player = ecs_helpers_t::table_find_as<component_system_animation_player_t>(world.get_component_table(type_id_t<component_system_animation_player_t>::value), panel._display_entity);
+			component_system_animation_player_t* player = world.get_component_table(type_id_t<component_system_animation_player_t>::value).find_as<component_system_animation_player_t>(panel._display_entity);
 
 			if (player != nullptr)
 				player->sample_time = 0.0f;

@@ -43,7 +43,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_type.hpp>
 #include <sfg/runtime/resources/texture.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 
@@ -68,13 +68,13 @@ namespace sfg
 		thumbnail_world.environment_entity = editor_world_util_t::install_default_scene_light(world);
 
 		thumbnail_world.camera_entity = world.create_entity("thumbnail_camera");
-		component_camera_t& camera	  = ecs_helpers_t::table_add_or_get_as<component_camera_t>(world.get_component_table(type_id_t<component_camera_t>::value), thumbnail_world.camera_entity);
+		component_camera_t& camera	  = world.get_component_table(type_id_t<component_camera_t>::value).add_or_get_as<component_camera_t>(thumbnail_world.camera_entity);
 		camera.priority				  = -1;
 		camera.fov_degrees			  = EDITOR_THUMBNAIL_CAMERA_FOV;
 		camera.near_plane			  = 0.01f;
 		camera.far_plane			  = 250.0f;
 
-		ecs_helpers_t::table_add_or_get_as<component_post_process_t>(world.get_component_table(type_id_t<component_post_process_t>::value), thumbnail_world.camera_entity);
+		world.get_component_table(type_id_t<component_post_process_t>::value).add_or_get_as<component_post_process_t>(thumbnail_world.camera_entity);
 
 		setup_camera_for_asset(thumbnail_world);
 	}
@@ -145,7 +145,7 @@ namespace sfg
 				return;
 
 			const mesh_internals_t*				runtime	   = resource_manager_t::get().find_internals<mesh_internals_t>(mesh);
-			const component_system_transform_t& transform  = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
+			const component_system_transform_t& transform  = transform_table.get_as_const<component_system_transform_t>(entity);
 			const vec3f_t&						bounds_min = runtime->local_bounds.bounds_min;
 			const vec3f_t&						bounds_max = runtime->local_bounds.bounds_max;
 
@@ -160,21 +160,21 @@ namespace sfg
 		};
 
 		const auto scan = [&](const auto& self, entity_id_t current) -> void {
-			const component_mesh_renderer_t* mesh_renderer = ecs_helpers_t::table_find_as_const<component_mesh_renderer_t>(mesh_renderer_table, current);
+			const component_mesh_renderer_t* mesh_renderer = mesh_renderer_table.find_as_const<component_mesh_renderer_t>(current);
 
 			if (mesh_renderer != nullptr)
 				add_mesh(current, mesh_renderer->mesh);
 
-			const component_skinned_mesh_renderer_t* skinned_mesh_renderer = ecs_helpers_t::table_find_as_const<component_skinned_mesh_renderer_t>(skinned_mesh_renderer_table, current);
+			const component_skinned_mesh_renderer_t* skinned_mesh_renderer = skinned_mesh_renderer_table.find_as_const<component_skinned_mesh_renderer_t>(current);
 
 			if (skinned_mesh_renderer != nullptr)
 				add_mesh(current, skinned_mesh_renderer->mesh);
 
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, current);
+			const component_hierarchy_t& hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(current);
 
 			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
 			{
-				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
+				const component_hierarchy_t& child_hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(child);
 				const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
 				self(self, child);
 				child = next_child;
@@ -198,7 +198,7 @@ namespace sfg
 
 		if (asset->sub_type == static_cast<u8>(editor_material_type_e::skybox))
 		{
-			component_environment_t& environment = ecs_helpers_t::table_get_as<component_environment_t>(world.get_component_table(type_id_t<component_environment_t>::value), thumbnail_world.environment_entity);
+			component_environment_t& environment = world.get_component_table(type_id_t<component_environment_t>::value).get_as<component_environment_t>(thumbnail_world.environment_entity);
 			environment.skybox_material			 = asset_guid;
 			environment.intensity				 = 1.0f;
 
@@ -210,13 +210,13 @@ namespace sfg
 
 		thumbnail_world.display_entity = world.create_entity("thumbnail_material");
 
-		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), thumbnail_world.display_entity);
+		component_mesh_renderer_t& mesh_renderer = world.get_component_table(type_id_t<component_mesh_renderer_t>::value).add_or_get_as<component_mesh_renderer_t>(thumbnail_world.display_entity);
 		mesh_renderer.mesh						 = DEFAULT_MESH_SPHERE_GUID;
 		mesh_renderer.materials.push_back(is_post_process ? DEFAULT_OPAQUE_MATERIAL_ASSET_GUID : asset_guid);
 
 		if (is_post_process)
 		{
-			component_post_process_t& post_process = ecs_helpers_t::table_get_as<component_post_process_t>(world.get_component_table(type_id_t<component_post_process_t>::value), thumbnail_world.camera_entity);
+			component_post_process_t& post_process = world.get_component_table(type_id_t<component_post_process_t>::value).get_as<component_post_process_t>(thumbnail_world.camera_entity);
 			post_process.after_tonemap.push_back({.material = asset_guid});
 
 			world.scan_for_resources(thumbnail_world.camera_entity, true);
@@ -231,7 +231,7 @@ namespace sfg
 		world_t& world				   = *thumbnail_world.world;
 		thumbnail_world.display_entity = world.create_entity("thumbnail_mesh");
 
-		component_mesh_renderer_t& mesh_renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), thumbnail_world.display_entity);
+		component_mesh_renderer_t& mesh_renderer = world.get_component_table(type_id_t<component_mesh_renderer_t>::value).add_or_get_as<component_mesh_renderer_t>(thumbnail_world.display_entity);
 		mesh_renderer.mesh						 = asset_guid;
 
 		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(asset_guid);

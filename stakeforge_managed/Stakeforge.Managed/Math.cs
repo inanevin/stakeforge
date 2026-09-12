@@ -62,6 +62,7 @@ public static class Math
         return value == 0 ? 0 : (uint)BitOperations.Log2(value);
     }
 
+    // Martin Ankerl - https://martin.ankerl.com/2012/01/25/optimized-approximative-pow-in-c-and-cpp/
     public static double FastPow(double value, double exponent)
     {
         long bits = BitConverter.DoubleToInt64Bits(value);

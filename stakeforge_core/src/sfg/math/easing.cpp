@@ -116,6 +116,7 @@ namespace sfg
 		return lerp(start, end, math::fast_pow(2.0f, 10.0f * alpha - 10.0f));
 	}
 
+	// Robert Penner - https://robertpenner.com/easing/
 	f32 easing_t::bounce(f32 start, f32 end, f32 alpha)
 	{
 		if (alpha < (1.0f / 2.75f))
@@ -125,16 +126,19 @@ namespace sfg
 		else if (alpha < (2.0f / 2.75f))
 		{
 			alpha -= (1.5f / 2.75f);
+
 			return lerp(start, end, 7.5625f * alpha * alpha + 0.75f);
 		}
 		else if (alpha < (2.5f / 2.75f))
 		{
 			alpha -= (2.25f / 2.75f);
+
 			return lerp(start, end, 7.5625f * alpha * alpha + 0.9375f);
 		}
 		else
 		{
 			alpha -= (2.625f / 2.75f);
+
 			return lerp(start, end, 7.5625f * alpha * alpha + 0.984375f);
 		}
 	}

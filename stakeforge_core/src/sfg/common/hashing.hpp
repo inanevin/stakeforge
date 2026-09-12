@@ -31,6 +31,8 @@ namespace sfg
 {
 	constexpr sid_t operator"" _hs(const char* str, size_t len) noexcept;
 
+	// FNV-1a: Glenn Fowler, Landon Curt Noll, Kiem-Phong Vo - https://github.com/lcn2/fnv/blob/master/hash_64a.c
+	// SID hashing uses a different offset basis.
 	class hashing_t
 	{
 	public:

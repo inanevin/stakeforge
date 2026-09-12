@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world_logic_helper.hpp"
 #include "ecs.hpp"
-#include "ecs_helpers.hpp"
 #include "engine_components.hpp"
 #include "system_components.hpp"
 #include "world.hpp"
@@ -80,10 +79,10 @@ namespace sfg
 
 			for (const entity_id_t entity : create_entities)
 			{
-				const component_destroyer_t& destroyer = ecs_helpers_t::table_get_as_const<component_destroyer_t>(destroyer_table, entity);
+				const component_destroyer_t& destroyer = destroyer_table.get_as_const<component_destroyer_t>(entity);
 				const f32					 end_time  = destroyer.randomize_duration ? destroyer.min_duration + random_t::random_01() * (destroyer.max_duration - destroyer.min_duration) : destroyer.destroy_duration;
 
-				component_system_destroyer_t& system_destroyer = ecs_helpers_t::table_add_or_get_as<component_system_destroyer_t>(system_destroyer_table, entity);
+				component_system_destroyer_t& system_destroyer = system_destroyer_table.add_or_get_as<component_system_destroyer_t>(entity);
 				system_destroyer.timer						   = 0.0f;
 				system_destroyer.end_time					   = end_time;
 			}
@@ -101,7 +100,7 @@ namespace sfg
 				destroy_entities.push_back(row.id);
 
 			for (const entity_id_t entity : destroy_entities)
-				ecs_t::table_remove(system_destroyer_table, entity);
+				system_destroyer_table.remove(entity);
 		}
 
 		{
@@ -116,7 +115,7 @@ namespace sfg
 				destroy_entities.push_back(row.id);
 
 			for (const entity_id_t entity : destroy_entities)
-				ecs_t::table_remove(system_destroyer_table, entity);
+				system_destroyer_table.remove(entity);
 		}
 
 		// tick destroyers
@@ -128,7 +127,7 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = tick_refs, .size = std::size(tick_refs)}))
 		{
-			component_system_destroyer_t& system_destroyer = ecs_helpers_t::row_get_mutable<component_system_destroyer_t>(row, 1);
+			component_system_destroyer_t& system_destroyer = row.get_mutable<component_system_destroyer_t>(1);
 			system_destroyer.timer += dt;
 
 			if (system_destroyer.timer >= system_destroyer.end_time)
@@ -166,8 +165,8 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = existing_refs, .size = std::size(existing_refs)}))
 		{
-			const component_sprite_renderer_t&	sprite		  = ecs_helpers_t::row_get<component_sprite_renderer_t>(row, 1);
-			component_system_sprite_renderer_t& system_sprite = ecs_helpers_t::row_get_mutable<component_system_sprite_renderer_t>(row, 2);
+			const component_sprite_renderer_t&	sprite		  = row.get<component_sprite_renderer_t>(1);
+			component_system_sprite_renderer_t& system_sprite = row.get_mutable<component_system_sprite_renderer_t>(2);
 			const resource_entry_t*				sprite_entry  = resource_manager.find_entry(sprite.sprite);
 
 			if (sprite_entry == nullptr || sprite_entry->type != resource_type_e::sprite || sprite_entry->state != resource_state_e::ready)
@@ -207,7 +206,7 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = create_refs, .size = std::size(create_refs)}))
 		{
-			const component_sprite_renderer_t& sprite		= ecs_helpers_t::row_get<component_sprite_renderer_t>(row, 1);
+			const component_sprite_renderer_t& sprite		= row.get<component_sprite_renderer_t>(1);
 			const resource_entry_t*			   sprite_entry = resource_manager.find_entry(sprite.sprite);
 
 			if (sprite_entry == nullptr || sprite_entry->type != resource_type_e::sprite || sprite_entry->state != resource_state_e::ready)
@@ -259,10 +258,10 @@ namespace sfg
 		}
 
 		for (const entity_id_t entity : destroy_sprites)
-			ecs_t::table_remove(system_sprite_renderer_table, entity);
+			system_sprite_renderer_table.remove(entity);
 
 		for (const sprite_create_t& create : create_sprites)
-			ecs_helpers_t::table_add_or_get_as<component_system_sprite_renderer_t>(system_sprite_renderer_table, create.id) = create.renderer;
+			system_sprite_renderer_table.add_or_get_as<component_system_sprite_renderer_t>(create.id) = create.renderer;
 	}
 
 	void world_logic_helper_t::sync_reflection_probes(u64 tick_count)
@@ -278,7 +277,7 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
-			component_reflection_probe_t& reflection_probe = ecs_helpers_t::row_get_mutable<component_reflection_probe_t>(row, 1);
+			component_reflection_probe_t& reflection_probe = row.get_mutable<component_reflection_probe_t>(1);
 
 			if (reflection_probe.capture_mode != reflection_probe_capture_mode_e::realtime)
 				continue;
@@ -307,7 +306,7 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
-			const component_camera_t& camera = ecs_helpers_t::row_get<component_camera_t>(row, 1);
+			const component_camera_t& camera = row.get<component_camera_t>(1);
 
 			if (main_camera_entity == NULL_ENTITY_ID || camera.priority < min_priority)
 			{

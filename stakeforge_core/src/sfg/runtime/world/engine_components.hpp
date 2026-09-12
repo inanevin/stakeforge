@@ -295,6 +295,22 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_animation_graph_t);
 
+	struct component_animation_library_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_animation_library";
+
+		resource_handle_t animation_library		   = NULL_RESOURCE_HANDLE;
+		f32				  throttle_begin_distance  = 20.0f;
+		f32				  throttle_full_distance   = 100.0f;
+		f32				  cull_angle_limit		   = 100.0f;
+		u32				  tick_blanks			   = 0;
+		u32				  max_throttle_tick_blanks = 30;
+		bool			  use_throttle			   = false;
+		bool			  use_cull				   = false;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_animation_library_t);
+
 	struct component_audio_source_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_audio_source";

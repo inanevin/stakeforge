@@ -59,7 +59,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world.hpp>
@@ -505,7 +505,7 @@ namespace sfg
 
 		world.set_entity_pos_local(_environment_entity, {0.0f, spotlight_y, 0.0f});
 
-		component_light_t& light = ecs_helpers_t::table_get_as<component_light_t>(world.get_component_table(type_id_t<component_light_t>::value), _environment_entity);
+		component_light_t& light = world.get_component_table(type_id_t<component_light_t>::value).get_as<component_light_t>(_environment_entity);
 
 		light.range = math::max(10.0f, spotlight_y * 2.0f);
 	}
@@ -536,7 +536,7 @@ namespace sfg
 
 		_display_entity = world.create_entity("skeleton_viewer_mesh");
 
-		component_skinned_mesh_renderer_t& skinned_renderer = ecs_helpers_t::table_add_or_get_as<component_skinned_mesh_renderer_t>(world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value), _display_entity);
+		component_skinned_mesh_renderer_t& skinned_renderer = world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value).add_or_get_as<component_skinned_mesh_renderer_t>(_display_entity);
 
 		skinned_renderer.mesh	  = _preview_mesh;
 		skinned_renderer.skeleton = _skeleton_guid;
@@ -573,7 +573,7 @@ namespace sfg
 	void editor_panel_skeleton_viewer_t::draw_skeleton(world_t& world) const
 	{
 		const ecs_component_table_t&					system_skinned_table = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
-		const component_system_skinned_mesh_renderer_t* system_skinned		 = ecs_helpers_t::table_find_as_const<component_system_skinned_mesh_renderer_t>(system_skinned_table, _display_entity);
+		const component_system_skinned_mesh_renderer_t* system_skinned		 = system_skinned_table.find_as_const<component_system_skinned_mesh_renderer_t>(_display_entity);
 
 		if (system_skinned == nullptr || !system_skinned->final_bones_calculated)
 			return;
@@ -699,12 +699,12 @@ namespace sfg
 
 		if (_preview_animation == NULL_RESOURCE_HANDLE)
 		{
-			if (ecs_t::table_has(players, _display_entity))
-				ecs_t::table_remove(players, _display_entity);
+			if (players.has(_display_entity))
+				players.remove(_display_entity);
 		}
 		else
 		{
-			component_animation_player_t& player = ecs_helpers_t::table_add_or_get_as<component_animation_player_t>(players, _display_entity);
+			component_animation_player_t& player = players.add_or_get_as<component_animation_player_t>(_display_entity);
 
 			player.animation		= _preview_animation;
 			player.mask				= _active_mask == UINT32_MAX ? NULL_SID : TO_SID(static_cast<const char*>(_skeleton.masks[_active_mask].name));
@@ -714,7 +714,7 @@ namespace sfg
 
 			if (reset)
 			{
-				component_system_animation_player_t* system_player = ecs_helpers_t::table_find_as<component_system_animation_player_t>(world.get_component_table(type_id_t<component_system_animation_player_t>::value), _display_entity);
+				component_system_animation_player_t* system_player = world.get_component_table(type_id_t<component_system_animation_player_t>::value).find_as<component_system_animation_player_t>(_display_entity);
 
 				if (system_player != nullptr)
 					system_player->sample_time = 0.0f;
@@ -880,7 +880,7 @@ namespace sfg
 
 			preview.entity = world.create_entity("skeleton_viewer_slot");
 
-			component_mesh_renderer_t& renderer = ecs_helpers_t::table_add_or_get_as<component_mesh_renderer_t>(world.get_component_table(type_id_t<component_mesh_renderer_t>::value), preview.entity);
+			component_mesh_renderer_t& renderer = world.get_component_table(type_id_t<component_mesh_renderer_t>::value).add_or_get_as<component_mesh_renderer_t>(preview.entity);
 			const editor_asset_t*	   asset	= editor_asset_manager_t::get().find_asset(slot.preview_mesh);
 			mesh_def_t				   mesh_def = {};
 
@@ -908,7 +908,7 @@ namespace sfg
 		if (_slot_previews.empty())
 			return;
 
-		const component_system_skinned_mesh_renderer_t* skinned = ecs_helpers_t::table_find_as_const<component_system_skinned_mesh_renderer_t>(world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value), _display_entity);
+		const component_system_skinned_mesh_renderer_t* skinned = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value).find_as_const<component_system_skinned_mesh_renderer_t>(_display_entity);
 
 		if (skinned == nullptr || !skinned->final_bones_calculated)
 			return;
@@ -1584,7 +1584,7 @@ namespace sfg
 			return false;
 
 		world_t&										world	= editor_world_controller_t::get().get_editor_world(_world)->get_world();
-		const component_system_skinned_mesh_renderer_t* skinned = ecs_helpers_t::table_find_as_const<component_system_skinned_mesh_renderer_t>(world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value), _display_entity);
+		const component_system_skinned_mesh_renderer_t* skinned = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value).find_as_const<component_system_skinned_mesh_renderer_t>(_display_entity);
 
 		if (skinned == nullptr || !skinned->final_bones_calculated)
 			return false;

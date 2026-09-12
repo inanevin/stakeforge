@@ -156,6 +156,16 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_system_animation_graph_t);
 
+	struct component_system_animation_library_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_animation_library";
+
+		resource_handle_t animation_library = NULL_RESOURCE_HANDLE;
+		chunk_handle32_t  lib_alloc			= {};
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_animation_library_t);
+
 	struct component_system_audio_source_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_audio_source";

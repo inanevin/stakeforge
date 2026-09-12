@@ -129,7 +129,7 @@ namespace sfg
 
 		for (const ecs_component_table_t& component_table : component_tables)
 		{
-			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.type_desc.type_id);
+			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.get_type_desc().type_id);
 
 			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flag_no_ui))
 				continue;
@@ -152,7 +152,7 @@ namespace sfg
 				category_storage = &_add_component_categories.back();
 			}
 
-			_add_component_types.push_back(component_table.type_desc.type_id);
+			_add_component_types.push_back(component_table.get_type_desc().type_id);
 			category_storage->rows.push_back({.text = reflected_type->display_name != nullptr ? reflected_type->display_name : reflected_type->name, .command = static_cast<u16>(_add_component_types.size())});
 		}
 
@@ -232,10 +232,12 @@ namespace sfg
 
 		world_t&			   world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
 		ecs_component_table_t* table = world.find_component_table(type_id);
-		if (table == nullptr || !ecs_t::table_has(*table, _display_entities.front()))
+
+		if (table == nullptr || !table->has(_display_entities.front()))
 			return;
 
-		const void* component = ecs_t::table_get(*table, _display_entities.front());
+		const void* component = table->get(_display_entities.front());
+
 		if (reflection_registry_t::get().find_type(type_id) == nullptr)
 			return;
 

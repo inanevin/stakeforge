@@ -37,7 +37,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/input/input_mappings.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 
 namespace sfg
@@ -864,8 +864,8 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
-			const component_guid_t& guid = ecs_helpers_t::row_get<component_guid_t>(row, 1);
-			const component_name_t& name = ecs_helpers_t::row_get<component_name_t>(row, 2);
+			const component_guid_t& guid = row.get<component_guid_t>(1);
+			const component_name_t& name = row.get<component_name_t>(2);
 			_asset_items.push_back({.name = name.text, .guid = static_cast<sid_t>(guid.guid)});
 		}
 	}

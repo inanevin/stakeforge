@@ -41,7 +41,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/scripting/script_component_schema.hpp>
 #include <sfg/runtime/scripting/script_runtime.hpp>
 #include <sfg/runtime/world/ecs.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
@@ -77,7 +76,7 @@ namespace sfg
 			if (!is_component && !is_tag_component && !is_system_component)
 				continue;
 
-			add_component_table(ecs_helpers_t::make_component_desc(type.type_id, is_tag_component ? 0 : type.size, is_tag_component ? 1 : type.alignment, is_tag_component ? ecs_component_type_flags_tag : ecs_component_type_flags_none, type.name));
+			add_component_table(ecs_component_table_t::make_component_desc(type.type_id, is_tag_component ? 0 : type.size, is_tag_component ? 1 : type.alignment, is_tag_component ? ecs_component_type_flags_tag : ecs_component_type_flags_none, type.name));
 		}
 
 		refresh_component_table_cache();
@@ -85,7 +84,7 @@ namespace sfg
 		_logic_helper.init(*this);
 
 		_animation_controller.init(*this, config.render_bone_max_count, config.animation_graph_budget_bytes);
-		_animation_processor.init(*this);
+		_animation_processor.init(*this, 1000, 1000);
 
 		_audio_controller.init(*this);
 
@@ -126,7 +125,7 @@ namespace sfg
 		_debug_draw.uninit();
 
 		for (ecs_component_table_t& table : _component_tables)
-			ecs_t::table_uninit(table);
+			table.uninit();
 
 		_used_resources.resize(0);
 		_component_tables.resize(0);
@@ -237,7 +236,7 @@ namespace sfg
 		_debug_draw.begin_frame();
 
 		for (ecs_component_table_t& table : _component_tables)
-			ecs_t::table_clear(table);
+			table.clear();
 
 		_text_allocations.resize(0);
 		_text_allocation_free_list.resize(0);
@@ -531,8 +530,8 @@ namespace sfg
 
 		const ecs_component_table_t&		camera_table	= get_component_table(type_id_t<component_camera_t>::value);
 		const ecs_component_table_t&		transform_table = get_component_table(type_id_t<component_system_transform_t>::value);
-		const component_camera_t&			camera			= ecs_helpers_t::table_get_as_const<component_camera_t>(camera_table, _main_camera_entity);
-		const component_system_transform_t& transform		= ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, _main_camera_entity);
+		const component_camera_t&			camera			= camera_table.get_as_const<component_camera_t>(_main_camera_entity);
+		const component_system_transform_t& transform		= transform_table.get_as_const<component_system_transform_t>(_main_camera_entity);
 		const world_render_view_t			render_view{
 			.pos		 = transform.abs_pos,
 			.rot		 = transform.abs_rot,
@@ -568,6 +567,7 @@ namespace sfg
 	entity_id_t world_t::create_entity(const char* name, entity_guid_t guid)
 	{
 		entity_id_t id = NULL_ENTITY_ID;
+
 		if (!_entity_free_list.empty())
 		{
 			id = _entity_free_list.back();
@@ -589,14 +589,14 @@ namespace sfg
 			SFG_ASSERT(find_by_guid(guid) == NULL_ENTITY_ID);
 		}
 
-		ecs_t::table_add(*_engine_components.alive_table, id);
-		ecs_helpers_t::table_add_or_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
+		_engine_components.alive_table->add(id);
+		_engine_components.hierarchy_table->add_or_get_as<component_hierarchy_t>(id);
 
-		component_guid_t& guid_component = ecs_helpers_t::table_add_or_get_as<component_guid_t>(*_engine_components.guid_table, id);
+		component_guid_t& guid_component = _engine_components.guid_table->add_or_get_as<component_guid_t>(id);
 		guid_component.guid				 = guid;
 
-		ecs_helpers_t::table_add_or_get_as<component_transform_t>(*_engine_components.transform_table, id);
-		component_name_t& name_component = ecs_helpers_t::table_add_or_get_as<component_name_t>(*_engine_components.name_table, id);
+		_engine_components.transform_table->add_or_get_as<component_transform_t>(id);
+		component_name_t& name_component = _engine_components.name_table->add_or_get_as<component_name_t>(id);
 
 		if (name == nullptr)
 			name_component.text[0] = '\0';
@@ -609,7 +609,7 @@ namespace sfg
 			name_component.text[copy_len] = '\0';
 		}
 
-		component_system_transform_t& system_transform = ecs_helpers_t::table_add_or_get_as<component_system_transform_t>(*_system_components.transform_table, id);
+		component_system_transform_t& system_transform = _system_components.transform_table->add_or_get_as<component_system_transform_t>(id);
 		system_transform.snap_interpolation			   = true;
 
 		return id;
@@ -628,14 +628,14 @@ namespace sfg
 		_audio_controller.destroy_entity(id);
 		_canvas_controller.destroy_entity(id);
 
-		component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
+		component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(id);
 		SFG_ASSERT(hierarchy.first_child == NULL_ENTITY_ID);
 
 		detach(id);
 
 		for (ecs_component_table_t& t : _component_tables)
 		{
-			ecs_t::table_remove(t, id);
+			t.remove(id);
 		}
 
 		_entity_free_list.push_back(id);
@@ -645,10 +645,11 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
+		const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(id);
+
 		for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
 		{
-			const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
+			const component_hierarchy_t& child_hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(child);
 			const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
 			destroy_entity_tree(child);
 			child = next_child;
@@ -661,7 +662,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		component_name_t& name_component = ecs_helpers_t::table_get_as<component_name_t>(*_engine_components.name_table, id);
+		component_name_t& name_component = _engine_components.name_table->get_as<component_name_t>(id);
 
 		if (name == nullptr)
 			name_component.text[0] = '\0';
@@ -678,7 +679,7 @@ namespace sfg
 	entity_id_t world_t::get_entity_parent(entity_id_t id) const
 	{
 		SFG_ASSERT(is_alive(id));
-		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
+		const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as_const<component_hierarchy_t>(id);
 		return hierarchy.parent;
 	}
 
@@ -688,7 +689,7 @@ namespace sfg
 			return NULL_ENTITY_GUID;
 
 		SFG_ASSERT(is_alive(id));
-		const component_guid_t& guid = ecs_helpers_t::table_get_as_const<component_guid_t>(*_engine_components.guid_table, id);
+		const component_guid_t& guid = _engine_components.guid_table->get_as_const<component_guid_t>(id);
 		return guid.guid;
 	}
 
@@ -704,7 +705,8 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
-			const component_guid_t& g = ecs_helpers_t::row_get<component_guid_t>(row, 1);
+			const component_guid_t& g = row.get<component_guid_t>(1);
+
 			if (g.guid == guid)
 				return row.id;
 		}
@@ -721,18 +723,19 @@ namespace sfg
 		for (entity_id_t current = parent; current != NULL_ENTITY_ID;)
 		{
 			SFG_ASSERT(current != id);
-			const component_hierarchy_t& current_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, current);
+			const component_hierarchy_t& current_hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(current);
 			current										   = current_hierarchy.parent;
 		}
 
-		component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
+		component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(id);
+
 		if (hierarchy.parent == parent)
 			return;
 
 		detach(id);
 
-		component_hierarchy_t& parent_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, parent);
-		component_hierarchy_t& child_hierarchy	= ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
+		component_hierarchy_t& parent_hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(parent);
+		component_hierarchy_t& child_hierarchy	= _engine_components.hierarchy_table->get_as<component_hierarchy_t>(id);
 
 		child_hierarchy.parent		 = parent;
 		child_hierarchy.prev_sibling = NULL_ENTITY_ID;
@@ -745,9 +748,11 @@ namespace sfg
 		}
 
 		entity_id_t last_child = parent_hierarchy.first_child;
+
 		while (true)
 		{
-			component_hierarchy_t& last_child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, last_child);
+			component_hierarchy_t& last_child_hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(last_child);
+
 			if (last_child_hierarchy.next_sibling == NULL_ENTITY_ID)
 			{
 				last_child_hierarchy.next_sibling = id;
@@ -763,27 +768,28 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		component_hierarchy_t& hierarchy	= ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
+		component_hierarchy_t& hierarchy	= _engine_components.hierarchy_table->get_as<component_hierarchy_t>(id);
 		const entity_id_t	   parent		= hierarchy.parent;
 		const entity_id_t	   next_sibling = hierarchy.next_sibling;
 		const entity_id_t	   prev_sibling = hierarchy.prev_sibling;
 
 		if (parent != NULL_ENTITY_ID)
 		{
-			component_hierarchy_t& parent_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, parent);
+			component_hierarchy_t& parent_hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(parent);
+
 			if (parent_hierarchy.first_child == id)
 				parent_hierarchy.first_child = next_sibling;
 		}
 
 		if (prev_sibling != NULL_ENTITY_ID)
 		{
-			component_hierarchy_t& prev_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, prev_sibling);
+			component_hierarchy_t& prev_hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(prev_sibling);
 			prev_hierarchy.next_sibling			  = next_sibling;
 		}
 
 		if (next_sibling != NULL_ENTITY_ID)
 		{
-			component_hierarchy_t& next_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, next_sibling);
+			component_hierarchy_t& next_hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(next_sibling);
 			next_hierarchy.prev_sibling			  = prev_sibling;
 		}
 
@@ -796,7 +802,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, id);
+		component_transform_t& transform = _engine_components.transform_table->get_as<component_transform_t>(id);
 		transform.pos					 = pos;
 	}
 
@@ -804,7 +810,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, id);
+		component_transform_t& transform = _engine_components.transform_table->get_as<component_transform_t>(id);
 		transform.rot					 = rot;
 	}
 
@@ -812,7 +818,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, id);
+		component_transform_t& transform = _engine_components.transform_table->get_as<component_transform_t>(id);
 		transform.scale					 = scale;
 	}
 
@@ -824,7 +830,7 @@ namespace sfg
 		const quat_t  local_rot	  = abs_rot_to_local(id, rot);
 		const vec3f_t local_scale = abs_scale_to_local(id, scale);
 
-		component_transform_t& transform = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, id);
+		component_transform_t& transform = _engine_components.transform_table->get_as<component_transform_t>(id);
 		transform.pos					 = local_pos;
 		transform.rot					 = local_rot;
 		transform.scale					 = local_scale;
@@ -842,7 +848,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_transform_t& transform = ecs_helpers_t::table_get_as_const<component_transform_t>(*_engine_components.transform_table, id);
+		const component_transform_t& transform = _engine_components.transform_table->get_as_const<component_transform_t>(id);
 		return transform.pos;
 	}
 
@@ -850,7 +856,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_transform_t& transform = ecs_helpers_t::table_get_as_const<component_transform_t>(*_engine_components.transform_table, id);
+		const component_transform_t& transform = _engine_components.transform_table->get_as_const<component_transform_t>(id);
 		return transform.rot;
 	}
 
@@ -858,7 +864,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_transform_t& transform = ecs_helpers_t::table_get_as_const<component_transform_t>(*_engine_components.transform_table, id);
+		const component_transform_t& transform = _engine_components.transform_table->get_as_const<component_transform_t>(id);
 		return transform.scale;
 	}
 
@@ -866,7 +872,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(*_system_components.transform_table, id);
+		const component_system_transform_t& transform = _system_components.transform_table->get_as_const<component_system_transform_t>(id);
 		return transform.abs_pos;
 	}
 
@@ -874,7 +880,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(*_system_components.transform_table, id);
+		const component_system_transform_t& transform = _system_components.transform_table->get_as_const<component_system_transform_t>(id);
 		return transform.abs_rot;
 	}
 
@@ -882,7 +888,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(*_system_components.transform_table, id);
+		const component_system_transform_t& transform = _system_components.transform_table->get_as_const<component_system_transform_t>(id);
 		return transform.abs_scale;
 	}
 
@@ -890,7 +896,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(*_system_components.transform_table, id);
+		const component_system_transform_t& transform = _system_components.transform_table->get_as_const<component_system_transform_t>(id);
 		return transform.prev_abs_pos;
 	}
 
@@ -898,7 +904,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(*_system_components.transform_table, id);
+		const component_system_transform_t& transform = _system_components.transform_table->get_as_const<component_system_transform_t>(id);
 		return transform.prev_abs_rot;
 	}
 
@@ -906,7 +912,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(*_system_components.transform_table, id);
+		const component_system_transform_t& transform = _system_components.transform_table->get_as_const<component_system_transform_t>(id);
 		return transform.prev_abs_scale;
 	}
 
@@ -945,8 +951,8 @@ namespace sfg
 		SFG_ASSERT(is_alive(id));
 
 		const mat4x3_t				  parent_abs_mat   = calculate_parent_transform_direct(id);
-		const component_transform_t&  transform		   = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, id);
-		component_system_transform_t& system_transform = ecs_helpers_t::table_get_as<component_system_transform_t>(*_system_components.transform_table, id);
+		const component_transform_t&  transform		   = _engine_components.transform_table->get_as<component_transform_t>(id);
+		component_system_transform_t& system_transform = _system_components.transform_table->get_as<component_system_transform_t>(id);
 
 		system_transform.abs_mat = parent_abs_mat * mat4x3_t::transform(transform.pos, transform.rot, transform.scale);
 		system_transform.abs_mat.decompose(system_transform.abs_pos, system_transform.abs_rot, system_transform.abs_scale);
@@ -965,7 +971,7 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::row_get<component_hierarchy_t>(row, 1);
+			const component_hierarchy_t& hierarchy = row.get<component_hierarchy_t>(1);
 
 			if (hierarchy.parent != NULL_ENTITY_ID)
 				continue;
@@ -1071,14 +1077,15 @@ namespace sfg
 		const auto scan = [&](const auto& self, entity_id_t current) -> void {
 			for (ecs_component_table_t& component_table : _component_tables)
 			{
-				if (!ecs_t::table_has(component_table, current))
+				if (!component_table.has(current))
 					continue;
 
-				const reflected_type_t* type = registry.find_type(component_table.component_type_id);
+				const reflected_type_t* type = registry.find_type(component_table.get_type_id());
+
 				if (type == nullptr || type->fields.start == type->fields.end)
 					continue;
 
-				void* component = ecs_t::table_get(component_table, current);
+				void* component = component_table.get(current);
 				SFG_ASSERT(component != nullptr);
 
 				scan_reflected_object(scan_reflected_object, *type, static_cast<u8*>(component));
@@ -1087,10 +1094,11 @@ namespace sfg
 			if (omit_children)
 				return;
 
-			const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, current);
+			const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(current);
+
 			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
 			{
-				const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
+				const component_hierarchy_t& child_hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(child);
 				const entity_id_t			 next_child		 = child_hierarchy.next_sibling;
 				self(self, child);
 				child = next_child;
@@ -1139,8 +1147,8 @@ namespace sfg
 
 	void world_t::update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation)
 	{
-		const component_transform_t&  transform		   = ecs_helpers_t::table_get_as<component_transform_t>(*_engine_components.transform_table, id);
-		component_system_transform_t& system_transform = ecs_helpers_t::table_get_as<component_system_transform_t>(*_system_components.transform_table, id);
+		const component_transform_t&  transform		   = _engine_components.transform_table->get_as<component_transform_t>(id);
+		component_system_transform_t& system_transform = _system_components.transform_table->get_as<component_system_transform_t>(id);
 
 		if (advance_interpolation)
 		{
@@ -1166,7 +1174,7 @@ namespace sfg
 
 		for (entity_id_t child = own_hierarchy.first_child; child != NULL_ENTITY_ID;)
 		{
-			const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
+			const component_hierarchy_t& child_hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(child);
 			update_entity_transform(child, child_hierarchy, system_transform.abs_pos, system_transform.abs_rot, system_transform.abs_scale, system_transform.abs_mat, advance_interpolation);
 			child = child_hierarchy.next_sibling;
 		}
@@ -1174,13 +1182,14 @@ namespace sfg
 
 	void world_t::set_entity_snap_interpolation_recursive(entity_id_t id)
 	{
-		component_system_transform_t& system_transform = ecs_helpers_t::table_get_as<component_system_transform_t>(*_system_components.transform_table, id);
+		component_system_transform_t& system_transform = _system_components.transform_table->get_as<component_system_transform_t>(id);
 		system_transform.snap_interpolation			   = true;
 
-		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
+		const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(id);
+
 		for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
 		{
-			const component_hierarchy_t& child_hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, child);
+			const component_hierarchy_t& child_hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(child);
 			set_entity_snap_interpolation_recursive(child);
 			child = child_hierarchy.next_sibling;
 		}
@@ -1188,7 +1197,8 @@ namespace sfg
 
 	mat4x3_t world_t::calculate_parent_transform_direct(entity_id_t id)
 	{
-		const component_hierarchy_t& hierarchy = ecs_helpers_t::table_get_as<component_hierarchy_t>(*_engine_components.hierarchy_table, id);
+		const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(id);
+
 		if (hierarchy.parent == NULL_ENTITY_ID)
 			return mat4x3_t::identity;
 
@@ -1201,7 +1211,7 @@ namespace sfg
 		SFG_ASSERT(!is_component_query_active());
 
 		ecs_component_table_t& table = _component_tables.emplace_back();
-		ecs_t::table_init(table, desc);
+		table.init(desc);
 		return table;
 	}
 
@@ -1213,10 +1223,10 @@ namespace sfg
 
 		for (sid_t type_id : delta.removed)
 		{
-			const auto table_it = std::find_if(_component_tables.begin(), _component_tables.end(), [type_id](const ecs_component_table_t& table) { return table.component_type_id == type_id; });
+			const auto table_it = std::find_if(_component_tables.begin(), _component_tables.end(), [type_id](const ecs_component_table_t& table) { return table.get_type_id() == type_id; });
 			SFG_ASSERT(table_it != _component_tables.end());
 
-			ecs_t::table_uninit(*table_it);
+			table_it->uninit();
 			_component_tables.erase(table_it);
 		}
 
@@ -1234,8 +1244,8 @@ namespace sfg
 			const reflected_type_t* reflected_type	= reflection_registry_t::get().find_type(type_id);
 			SFG_ASSERT(reflected_type != nullptr);
 
-			const ecs_component_type_desc_t type_desc = ecs_helpers_t::make_component_desc(candidate_component->type_id, candidate_component->size, candidate_component->alignment, ecs_component_type_flags_none, reflected_type->name);
-			ecs_t::table_init(candidate_table, type_desc);
+			const ecs_component_type_desc_t type_desc = ecs_component_table_t::make_component_desc(candidate_component->type_id, candidate_component->size, candidate_component->alignment, ecs_component_type_flags_none, reflected_type->name);
+			candidate_table.init(type_desc);
 
 			const ecs_component_table_ref_t table_refs[] = {
 				current_table->ref(),
@@ -1244,7 +1254,7 @@ namespace sfg
 			// replace data
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				void* candidate_data = ecs_t::table_add(candidate_table, row.id);
+				void* candidate_data = candidate_table.add(row.id);
 
 				SFG_MEMSET(candidate_data, 0, candidate_component->size);
 
@@ -1262,8 +1272,8 @@ namespace sfg
 				}
 			}
 
-			ecs_t::table_uninit(*current_table);
-			*current_table = candidate_table;
+			current_table->uninit();
+			*current_table = std::move(candidate_table);
 		}
 
 		for (sid_t type_id : delta.added)
@@ -1274,7 +1284,7 @@ namespace sfg
 			SFG_ASSERT(component != nullptr);
 			SFG_ASSERT(reflected_type != nullptr);
 
-			add_component_table(ecs_helpers_t::make_component_desc(component->type_id, component->size, component->alignment, ecs_component_type_flags_none, reflected_type->name));
+			add_component_table(ecs_component_table_t::make_component_desc(component->type_id, component->size, component->alignment, ecs_component_type_flags_none, reflected_type->name));
 		}
 
 		for (const script_component_desc_t& component : candidate_schema.get_components())
@@ -1285,7 +1295,7 @@ namespace sfg
 			SFG_ASSERT(reflected_type != nullptr);
 			SFG_ASSERT(table != nullptr);
 
-			table->type_desc = ecs_helpers_t::make_component_desc(component.type_id, component.size, component.alignment, ecs_component_type_flags_none, reflected_type->name);
+			table->set_type_desc(ecs_component_table_t::make_component_desc(component.type_id, component.size, component.alignment, ecs_component_type_flags_none, reflected_type->name));
 		}
 
 		refresh_component_table_cache();
@@ -1319,7 +1329,7 @@ namespace sfg
 	{
 		for (const ecs_component_table_t& table : _component_tables)
 		{
-			if (table.type_desc.type_id == type_id)
+			if (table.get_type_desc().type_id == type_id)
 				return &table;
 		}
 
@@ -1330,7 +1340,7 @@ namespace sfg
 	{
 		for (ecs_component_table_t& table : _component_tables)
 		{
-			if (table.type_desc.type_id == type_id)
+			if (table.get_type_desc().type_id == type_id)
 				return &table;
 		}
 
@@ -1341,7 +1351,7 @@ namespace sfg
 	{
 		for (const ecs_component_table_t& table : _component_tables)
 		{
-			if (table.type_desc.type_id == type_id)
+			if (table.get_type_desc().type_id == type_id)
 				return table;
 		}
 
@@ -1353,7 +1363,7 @@ namespace sfg
 	{
 		for (ecs_component_table_t& table : _component_tables)
 		{
-			if (table.type_desc.type_id == type_id)
+			if (table.get_type_desc().type_id == type_id)
 				return table;
 		}
 
@@ -1370,7 +1380,7 @@ namespace sfg
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_name_t& name = ecs_helpers_t::table_get_as_const<component_name_t>(*_engine_components.name_table, id);
+		const component_name_t& name = _engine_components.name_table->get_as_const<component_name_t>(id);
 		return name.text;
 	}
 
@@ -1385,7 +1395,7 @@ namespace sfg
 
 	bool world_t::is_alive(entity_id_t id) const
 	{
-		return ecs_t::table_has(*_engine_components.alive_table, id);
+		return _engine_components.alive_table->has(id);
 	}
 
 	u32 world_t::allocate_text(const char* text)

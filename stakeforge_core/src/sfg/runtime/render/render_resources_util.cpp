@@ -83,6 +83,8 @@ namespace sfg
 		return texture;
 	}
 
+	// BRDF integration reference: Joey de Vries - https://learnopengl.com/PBR/IBL/Specular-IBL
+	// Holger Dammertz, Hammersley sampling - https://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 	render_resource_handle_t render_resources_util_t::create_brdf_lut(render_resources_t& resources, render_resource_handle_t& out_staging)
 	{
 		const vec2u16_t size		= {RENDER_RESOURCES_BRDF_LUT_SIZE, RENDER_RESOURCES_BRDF_LUT_SIZE};
@@ -105,11 +107,12 @@ namespace sfg
 				for (u32 sample_index = 0; sample_index < RENDER_RESOURCES_BRDF_LUT_SAMPLE_COUNT; ++sample_index)
 				{
 					u32 bits = sample_index;
-					bits	 = (bits << 16) | (bits >> 16);
-					bits	 = ((bits & 0x55555555u) << 1) | ((bits & 0xAAAAAAAAu) >> 1);
-					bits	 = ((bits & 0x33333333u) << 2) | ((bits & 0xCCCCCCCCu) >> 2);
-					bits	 = ((bits & 0x0F0F0F0Fu) << 4) | ((bits & 0xF0F0F0F0u) >> 4);
-					bits	 = ((bits & 0x00FF00FFu) << 8) | ((bits & 0xFF00FF00u) >> 8);
+
+					bits = (bits << 16) | (bits >> 16);
+					bits = ((bits & 0x55555555u) << 1) | ((bits & 0xAAAAAAAAu) >> 1);
+					bits = ((bits & 0x33333333u) << 2) | ((bits & 0xCCCCCCCCu) >> 2);
+					bits = ((bits & 0x0F0F0F0Fu) << 4) | ((bits & 0xF0F0F0F0u) >> 4);
+					bits = ((bits & 0x00FF00FFu) << 8) | ((bits & 0xFF00FF00u) >> 8);
 
 					const f32 xi_x		= static_cast<f32>(sample_index) / RENDER_RESOURCES_BRDF_LUT_SAMPLE_COUNT;
 					const f32 xi_y		= static_cast<f32>(bits) * 2.3283064365386963e-10f;

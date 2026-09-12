@@ -43,7 +43,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/world/ecs.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 
@@ -282,15 +281,15 @@ namespace sfg
 				if (entity == NULL_ENTITY_ID)
 					continue;
 
-				const bool disabled = ecs_t::table_has(disabled_table, entity);
+				const bool disabled = disabled_table.has(entity);
 
 				if (disabled == state.disabled)
 					continue;
 
 				if (state.disabled)
-					ecs_t::table_add(disabled_table, entity);
+					disabled_table.add(entity);
 				else
-					ecs_t::table_remove(disabled_table, entity);
+					disabled_table.remove(entity);
 
 				changed = true;
 			}
@@ -345,7 +344,7 @@ namespace sfg
 
 		for (const entity_id_t entity : entities)
 		{
-			const bool disabled		   = ecs_t::table_has(disabled_table, entity);
+			const bool disabled		   = disabled_table.has(entity);
 			const bool target_disabled = !selection_states.find(entity)->second;
 
 			if (disabled == target_disabled)
@@ -357,9 +356,9 @@ namespace sfg
 			});
 
 			if (target_disabled)
-				ecs_t::table_add(disabled_table, entity);
+				disabled_table.add(entity);
 			else
-				ecs_t::table_remove(disabled_table, entity);
+				disabled_table.remove(entity);
 		}
 
 		_show_alone_active = true;
@@ -517,12 +516,12 @@ namespace sfg
 		for (size_t entity_index = 0; entity_index < selected.size; ++entity_index)
 		{
 			const entity_id_t					entity	  = selected.data[entity_index];
-			const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
+			const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(entity);
 			resource_handle_t					mesh	  = NULL_RESOURCE_HANDLE;
 
-			if (const component_mesh_renderer_t* renderer = ecs_helpers_t::table_find_as_const<component_mesh_renderer_t>(mesh_renderer_table, entity))
+			if (const component_mesh_renderer_t* renderer = mesh_renderer_table.find_as_const<component_mesh_renderer_t>(entity))
 				mesh = renderer->mesh;
-			else if (const component_skinned_mesh_renderer_t* renderer = ecs_helpers_t::table_find_as_const<component_skinned_mesh_renderer_t>(skinned_renderer_table, entity))
+			else if (const component_skinned_mesh_renderer_t* renderer = skinned_renderer_table.find_as_const<component_skinned_mesh_renderer_t>(entity))
 				mesh = renderer->mesh;
 
 			const mesh_internals_t* mesh_internals = mesh == NULL_RESOURCE_HANDLE ? nullptr : resource_manager.find_internals<mesh_internals_t>(mesh);
@@ -588,10 +587,10 @@ namespace sfg
 
 		for (const entity_id_t entity : mutable_entities)
 		{
-			if (ecs_t::table_has(disabled_table, entity))
-				ecs_t::table_remove(disabled_table, entity);
+			if (disabled_table.has(entity))
+				disabled_table.remove(entity);
 			else
-				ecs_t::table_add(disabled_table, entity);
+				disabled_table.add(entity);
 		}
 
 		if (!mutable_entities.empty())

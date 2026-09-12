@@ -29,12 +29,14 @@
 //  OF THE POSSIBILITY OF SUCH DAMAGE.
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+// Krzysztof Narkowicz - https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
 float2 oct_encode(float3 n) {
     n /= (abs(n.x) + abs(n.y) + abs(n.z) + 1e-8);
     float2 enc = (n.z >= 0.0) ? n.xy : ((1.0 - abs(n.yx)) * (float2(n.x >= 0 ? 1 : -1, n.y >= 0 ? 1 : -1)));
     return enc * 0.5 + 0.5;
 }
 
+// Rune Stubbe's optimized decode - https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
 float3 oct_decode(float2 e) {
     // [0,1] -> [-1,1]
     float2 f = e * 2.0 - 1.0;

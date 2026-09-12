@@ -25,6 +25,12 @@ namespace sfg
 
 #define MAX_DEBUG_NAME_SIZE 128
 #define MAX_SKELETON_BONES	192
+	static_assert(MAX_SKELETON_BONES != 0);
+
+	struct skeleton_mask_t
+	{
+		u64 masks[(MAX_SKELETON_BONES + 63) / 64] = {0};
+	};
 
 	inline constexpr u32 make_resource_wire_magic(char c0, char c1, char c2, char c3)
 	{

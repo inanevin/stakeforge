@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world_canvas_controller.hpp"
 #include "ecs.hpp"
-#include "ecs_helpers.hpp"
 #include "engine_components.hpp"
 #include "system_components.hpp"
 #include "world.hpp"
@@ -212,7 +211,7 @@ namespace sfg
 		runtime_t* find_runtime(entity_id_t entity)
 		{
 			const ecs_component_table_t&	 system_table = world->get_component_table(type_id_t<component_system_canvas_t>::value);
-			const component_system_canvas_t* system		  = ecs_helpers_t::table_find_as_const<component_system_canvas_t>(system_table, entity);
+			const component_system_canvas_t* system		  = system_table.find_as_const<component_system_canvas_t>(entity);
 
 			if (system == nullptr)
 				return nullptr;
@@ -270,14 +269,14 @@ namespace sfg
 			});
 
 			ecs_component_table_t&	   system_table = world->get_component_table(type_id_t<component_system_canvas_t>::value);
-			component_system_canvas_t& system		= ecs_helpers_t::table_add_or_get_as<component_system_canvas_t>(system_table, entity);
+			component_system_canvas_t& system		= system_table.add_or_get_as<component_system_canvas_t>(entity);
 			system.runtime_index					= static_cast<u32>(runtimes.size() - 1);
 		}
 
 		void destroy_canvas(entity_id_t entity)
 		{
 			ecs_component_table_t&	   system_table	 = world->get_component_table(type_id_t<component_system_canvas_t>::value);
-			component_system_canvas_t& system		 = ecs_helpers_t::table_get_as<component_system_canvas_t>(system_table, entity);
+			component_system_canvas_t& system		 = system_table.get_as<component_system_canvas_t>(entity);
 			const u32				   runtime_index = system.runtime_index;
 			runtime_t&				   runtime		 = *runtimes[runtime_index];
 
@@ -292,12 +291,12 @@ namespace sfg
 			{
 				runtimes[runtime_index] = std::move(runtimes[last_index]);
 
-				component_system_canvas_t& moved_system = ecs_helpers_t::table_get_as<component_system_canvas_t>(system_table, runtimes[runtime_index]->entity);
+				component_system_canvas_t& moved_system = system_table.get_as<component_system_canvas_t>(runtimes[runtime_index]->entity);
 				moved_system.runtime_index				= runtime_index;
 			}
 
 			runtimes.pop_back();
-			ecs_t::table_remove(system_table, entity);
+			system_table.remove(entity);
 		}
 
 		vec2f_t map_position(const vec2f_t& position) const
@@ -365,7 +364,7 @@ namespace sfg
 		while (!_impl->runtimes.empty())
 			_impl->destroy_canvas(_impl->runtimes.back()->entity);
 
-		SFG_ASSERT(ecs_t::is_table_empty(system_table));
+		SFG_ASSERT(system_table.is_empty());
 	}
 
 	void world_canvas_controller_t::clear_widgets()
@@ -378,7 +377,7 @@ namespace sfg
 	{
 		const ecs_component_table_t& system_table = _impl->world->get_component_table(type_id_t<component_system_canvas_t>::value);
 
-		if (!ecs_t::table_has(system_table, entity))
+		if (!system_table.has(entity))
 			return;
 
 		_impl->destroy_canvas(entity);
@@ -420,8 +419,8 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_system_canvas_t& system	   = ecs_helpers_t::row_get<component_system_canvas_t>(row, 0);
-				const component_canvas_t&		 component = ecs_helpers_t::row_get<component_canvas_t>(row, 1);
+				const component_system_canvas_t& system	   = row.get<component_system_canvas_t>(0);
+				const component_canvas_t&		 component = row.get<component_canvas_t>(1);
 
 				if (!_impl->runtimes[system.runtime_index]->is_config_equal(component))
 					destroy_entities.push_back(row.id);
@@ -446,7 +445,7 @@ namespace sfg
 
 		for (const entity_id_t entity : create_entities)
 		{
-			const component_canvas_t& component = ecs_helpers_t::table_get_as_const<component_canvas_t>(canvas_table, entity);
+			const component_canvas_t& component = canvas_table.get_as_const<component_canvas_t>(entity);
 			_impl->create_canvas(entity, component);
 		}
 	}

@@ -38,6 +38,7 @@ static const uint COEFFICIENT_COUNT = 9;
 SamplerState smp_linear : static_sampler_linear;
 groupshared float3 coefficient_sums[THREAD_COUNT * COEFFICIENT_COUNT];
 
+// Holger Dammertz, Hammersley sampling - https://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
 float radical_inverse_vdc(uint bits)
 {
     bits = (bits << 16u) | (bits >> 16u);
@@ -48,6 +49,7 @@ float radical_inverse_vdc(uint bits)
     return float(bits) * 2.3283064365386963e-10;
 }
 
+// Ravi Ramamoorthi and Pat Hanrahan, irradiance SH - https://graphics.stanford.edu/papers/envmap/
 [numthreads(THREAD_COUNT, 1, 1)]
 void CSMain(uint thread_index : SV_GroupIndex)
 {

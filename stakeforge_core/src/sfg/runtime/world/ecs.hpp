@@ -28,7 +28,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma once
 
 #include <sfg/data/span.hpp>
-#include <sfg/runtime/world/ecs_component_type.hpp>
+#include <sfg/runtime/world/ecs_table.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
@@ -139,19 +139,6 @@ namespace sfg
 		ecs_t() = delete;
 
 		// -----------------------------------------------------------------------------
-		// table
-		// -----------------------------------------------------------------------------
-
-		static void	 table_init(ecs_component_table_t& table, const ecs_component_type_desc_t& type_desc);
-		static void	 table_uninit(ecs_component_table_t& table);
-		static void	 table_clear(ecs_component_table_t& table);
-		static bool	 is_table_empty(const ecs_component_table_t& table);
-		static bool	 table_has(const ecs_component_table_t& table, entity_id_t id);
-		static void* table_get(const ecs_component_table_t& table, entity_id_t id);
-		static void* table_add(ecs_component_table_t& table, entity_id_t id);
-		static void	 table_remove(ecs_component_table_t& table, entity_id_t id);
-
-		// -----------------------------------------------------------------------------
 		// query
 		// -----------------------------------------------------------------------------
 
@@ -162,10 +149,8 @@ namespace sfg
 		static bool					   inner_join_next(ecs_query_cursor_t& cursor);
 
 	private:
-		static void		   table_calculate_indices(entity_id_t id, u32& l0_out, u32& l1_out, u32& bit_out);
 		static bool		   advance_table_entity_index(const ecs_component_table_t& table, entity_id_t& index);
 		static void*	   offset(void* ptr, size_t byte_offset);
-		static size_t	   align_up(size_t value, size_t alignment);
 		static entity_id_t align_down_to_chunk(entity_id_t value);
 		static entity_id_t align_up_to_chunk(entity_id_t value);
 		static u32		   popcount(u64 value);

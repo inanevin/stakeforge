@@ -27,7 +27,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world_debug_draw.hpp"
 #include "ecs.hpp"
-#include "ecs_helpers.hpp"
 #include "engine_components.hpp"
 #include "system_components.hpp"
 #include "world.hpp"
@@ -690,8 +689,8 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_system_transform_t& transform		 = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
-				const component_mesh_renderer_t&	mesh_renderer	 = ecs_helpers_t::row_get<component_mesh_renderer_t>(row, 2);
+				const component_system_transform_t& transform		 = row.get<component_system_transform_t>(1);
+				const component_mesh_renderer_t&	mesh_renderer	 = row.get<component_mesh_renderer_t>(2);
 				const bool							missing_mesh	 = resource_manager.find_entry(mesh_renderer.mesh) == nullptr;
 				bool								missing_material = mesh_renderer.materials.empty();
 
@@ -719,8 +718,8 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_system_transform_t& transform		 = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
-				const component_sprite_renderer_t&	sprite_renderer	 = ecs_helpers_t::row_get<component_sprite_renderer_t>(row, 2);
+				const component_system_transform_t& transform		 = row.get<component_system_transform_t>(1);
+				const component_sprite_renderer_t&	sprite_renderer	 = row.get<component_sprite_renderer_t>(2);
 				const bool							missing_sprite	 = resource_manager.find_entry(sprite_renderer.sprite) == nullptr;
 				const bool							missing_material = resource_manager.find_entry(sprite_renderer.material) == nullptr;
 
@@ -739,8 +738,8 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_system_transform_t& transform		 = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
-				const component_particle_emitter_t& emitter			 = ecs_helpers_t::row_get<component_particle_emitter_t>(row, 2);
+				const component_system_transform_t& transform		 = row.get<component_system_transform_t>(1);
+				const component_particle_emitter_t& emitter			 = row.get<component_particle_emitter_t>(2);
 				const bool							missing_material = resource_manager.find_entry(emitter.material) == nullptr;
 
 				if (missing_material)
@@ -758,8 +757,8 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				const component_system_transform_t&		 transform			   = ecs_helpers_t::row_get<component_system_transform_t>(row, 1);
-				const component_skinned_mesh_renderer_t& skinned_mesh_renderer = ecs_helpers_t::row_get<component_skinned_mesh_renderer_t>(row, 2);
+				const component_system_transform_t&		 transform			   = row.get<component_system_transform_t>(1);
+				const component_skinned_mesh_renderer_t& skinned_mesh_renderer = row.get<component_skinned_mesh_renderer_t>(2);
 				const bool								 missing_mesh		   = resource_manager.find_entry(skinned_mesh_renderer.mesh) == nullptr;
 				const bool								 missing_skeleton	   = resource_manager.find_entry(skinned_mesh_renderer.skeleton) == nullptr;
 				bool									 missing_material	   = skinned_mesh_renderer.materials.empty();

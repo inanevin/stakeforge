@@ -31,7 +31,7 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sfg/math/math.hpp>
 #include <sfg/runtime/resources/physics_collision_mesh.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
-#include <sfg/runtime/world/ecs_helpers.hpp>
+#include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 
@@ -244,19 +244,19 @@ namespace sfg
 		const ecs_component_table_t&	 hierarchy_table	   = world.get_component_table(type_id_t<component_hierarchy_t>::value);
 		const ecs_component_table_t&	 transform_table	   = world.get_component_table(type_id_t<component_transform_t>::value);
 		const ecs_component_table_t&	 compound_shape_table  = world.get_component_table(type_id_t<component_compound_shape_t>::value);
-		const component_hierarchy_t&	 hierarchy			   = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, entity);
+		const component_hierarchy_t&	 hierarchy			   = hierarchy_table.get_as_const<component_hierarchy_t>(entity);
 		JPH::StaticCompoundShapeSettings settings			   = {};
 		u32								 shape_count		   = 0;
 		bool							 shape_creation_failed = false;
 
 		for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
 		{
-			const component_hierarchy_t&	  child_hierarchy = ecs_helpers_t::table_get_as_const<component_hierarchy_t>(hierarchy_table, child);
-			const component_compound_shape_t* compound_shape  = ecs_helpers_t::table_find_as_const<component_compound_shape_t>(compound_shape_table, child);
+			const component_hierarchy_t&	  child_hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(child);
+			const component_compound_shape_t* compound_shape  = compound_shape_table.find_as_const<component_compound_shape_t>(child);
 
 			if (compound_shape != nullptr && compound_shape->shape != physics_shape_type_e::compound)
 			{
-				const component_transform_t& transform	 = ecs_helpers_t::table_get_as_const<component_transform_t>(transform_table, child);
+				const component_transform_t& transform	 = transform_table.get_as_const<component_transform_t>(child);
 				const vec3f_t				 child_scale = scale * transform.scale;
 				JPH::RefConst<JPH::Shape>	 child_shape =
 					create_shape_from_properties(child, physical.motion_type, compound_shape->shape, compound_shape->half_extent, compound_shape->radius, compound_shape->half_height, compound_shape->collision_mesh, child_scale);
@@ -301,12 +301,12 @@ namespace sfg
 	{
 		const ecs_component_table_t&	  system_physics_table = world.get_component_table(type_id_t<component_system_physics_t>::value);
 		const ecs_component_table_t&	  transform_table	   = world.get_component_table(type_id_t<component_system_transform_t>::value);
-		const component_system_physics_t* system_physics	   = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 		SFG_ASSERT(system_physics != nullptr && system_physics->body_id != UINT32_MAX);
 
 		world.calculate_transform_direct(entity);
 		out_context = {
-			.transform = &ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity),
+			.transform = &transform_table.get_as_const<component_system_transform_t>(entity),
 			.body_id   = system_physics->body_id,
 			.entity	   = entity,
 		};
@@ -319,13 +319,13 @@ namespace sfg
 		if (target_entity == NULL_ENTITY_ID || target_entity == entity)
 			return false;
 
-		const component_system_physics_t* target_physics = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, target_entity);
+		const component_system_physics_t* target_physics = system_physics_table.find_as_const<component_system_physics_t>(target_entity);
 
 		if (target_physics == nullptr || target_physics->body_id == UINT32_MAX)
 			return false;
 
 		world.calculate_transform_direct(target_entity);
-		out_context.target_transform = &ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, target_entity);
+		out_context.target_transform = &transform_table.get_as_const<component_system_transform_t>(target_entity);
 		out_context.target_body_id	 = target_physics->body_id;
 		out_context.target_entity	 = target_entity;
 		return true;
@@ -369,13 +369,13 @@ namespace sfg
 	void physics_world_util_t::wake_constraint_bodies(world_t& world, JPH::PhysicsSystem& system, entity_id_t entity, const system_constraint_slot_t& slot)
 	{
 		const ecs_component_table_t&	  system_physics_table = world.get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t& system_physics	   = ecs_helpers_t::table_get_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t& system_physics	   = system_physics_table.get_as_const<component_system_physics_t>(entity);
 		JPH::BodyID						  body_ids[2]		   = {JPH::BodyID(system_physics.body_id), JPH::BodyID()};
 		i32								  body_count		   = 1;
 
 		if (slot.target_entity != NULL_ENTITY_ID)
 		{
-			const component_system_physics_t& target_physics = ecs_helpers_t::table_get_as_const<component_system_physics_t>(system_physics_table, slot.target_entity);
+			const component_system_physics_t& target_physics = system_physics_table.get_as_const<component_system_physics_t>(slot.target_entity);
 			body_ids[body_count++]							 = JPH::BodyID(target_physics.body_id);
 		}
 
@@ -620,7 +620,7 @@ namespace sfg
 	bool physics_world_util_t::create_vehicle_constraint(world_t& world, JPH::PhysicsSystem& system, entity_id_t entity, const component_vehicle_constraint_t& component, component_system_constraints_t& system_constraints)
 	{
 		const ecs_component_table_t&	  system_physics_table		  = world.get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics			  = ecs_helpers_t::table_find_as_const<component_system_physics_t>(system_physics_table, entity);
+		const component_system_physics_t* system_physics			  = system_physics_table.find_as_const<component_system_physics_t>(entity);
 		const i32						  wheel_count				  = static_cast<i32>(component.wheels.size());
 		f32								  engine_torque_ratio_sum	  = 0.0f;
 		bool							  differential_settings_valid = !component.differentials.empty() && component.differential_limited_slip_ratio > 1.0f;
@@ -723,61 +723,61 @@ namespace sfg
 		bool						 creation_succeeded = true;
 		bool						 constraint_found	= false;
 
-		if (const component_fixed_constraint_t* component = ecs_helpers_t::table_find_as_const<component_fixed_constraint_t>(fixed_table, entity))
+		if (const component_fixed_constraint_t* component = fixed_table.find_as_const<component_fixed_constraint_t>(entity))
 		{
 			constraint_found = true;
 			creation_succeeded &= create_fixed_constraint(world, system, entity, *component, system_constraints);
 		}
 
-		if (const component_distance_constraint_t* component = ecs_helpers_t::table_find_as_const<component_distance_constraint_t>(distance_table, entity))
+		if (const component_distance_constraint_t* component = distance_table.find_as_const<component_distance_constraint_t>(entity))
 		{
 			constraint_found = true;
 			creation_succeeded &= create_distance_constraint(world, system, entity, *component, system_constraints);
 		}
 
-		if (const component_point_constraint_t* component = ecs_helpers_t::table_find_as_const<component_point_constraint_t>(point_table, entity))
+		if (const component_point_constraint_t* component = point_table.find_as_const<component_point_constraint_t>(entity))
 		{
 			constraint_found = true;
 			creation_succeeded &= create_point_constraint(world, system, entity, *component, system_constraints);
 		}
 
-		if (const component_hinge_constraint_t* component = ecs_helpers_t::table_find_as_const<component_hinge_constraint_t>(hinge_table, entity))
+		if (const component_hinge_constraint_t* component = hinge_table.find_as_const<component_hinge_constraint_t>(entity))
 		{
 			constraint_found = true;
 			creation_succeeded &= create_hinge_constraint(world, system, entity, *component, system_constraints);
 		}
 
-		if (const component_cone_constraint_t* component = ecs_helpers_t::table_find_as_const<component_cone_constraint_t>(cone_table, entity))
+		if (const component_cone_constraint_t* component = cone_table.find_as_const<component_cone_constraint_t>(entity))
 		{
 			constraint_found = true;
 			creation_succeeded &= create_cone_constraint(world, system, entity, *component, system_constraints);
 		}
 
-		if (const component_slider_constraint_t* component = ecs_helpers_t::table_find_as_const<component_slider_constraint_t>(slider_table, entity))
+		if (const component_slider_constraint_t* component = slider_table.find_as_const<component_slider_constraint_t>(entity))
 		{
 			constraint_found = true;
 			creation_succeeded &= create_slider_constraint(world, system, entity, *component, system_constraints);
 		}
 
-		if (const component_swing_twist_constraint_t* component = ecs_helpers_t::table_find_as_const<component_swing_twist_constraint_t>(swing_twist_table, entity))
+		if (const component_swing_twist_constraint_t* component = swing_twist_table.find_as_const<component_swing_twist_constraint_t>(entity))
 		{
 			constraint_found = true;
 			creation_succeeded &= create_swing_twist_constraint(world, system, entity, *component, system_constraints);
 		}
 
-		if (const component_six_dof_constraint_t* component = ecs_helpers_t::table_find_as_const<component_six_dof_constraint_t>(six_dof_table, entity))
+		if (const component_six_dof_constraint_t* component = six_dof_table.find_as_const<component_six_dof_constraint_t>(entity))
 		{
 			constraint_found = true;
 			creation_succeeded &= create_six_dof_constraint(world, system, entity, *component, system_constraints);
 		}
 
-		if (const component_pulley_constraint_t* component = ecs_helpers_t::table_find_as_const<component_pulley_constraint_t>(pulley_table, entity))
+		if (const component_pulley_constraint_t* component = pulley_table.find_as_const<component_pulley_constraint_t>(entity))
 		{
 			constraint_found = true;
 			creation_succeeded &= create_pulley_constraint(world, system, entity, *component, system_constraints);
 		}
 
-		if (const component_vehicle_constraint_t* component = ecs_helpers_t::table_find_as_const<component_vehicle_constraint_t>(vehicle_table, entity))
+		if (const component_vehicle_constraint_t* component = vehicle_table.find_as_const<component_vehicle_constraint_t>(entity))
 		{
 			constraint_found = true;
 			creation_succeeded &= create_vehicle_constraint(world, system, entity, *component, system_constraints);
@@ -827,7 +827,7 @@ namespace sfg
 			{
 			case system_constraint_type_e::fixed: {
 				const ecs_component_table_t&		table	  = world.get_component_table(type_id_t<component_fixed_constraint_t>::value);
-				const component_fixed_constraint_t* component = ecs_helpers_t::table_find_as_const<component_fixed_constraint_t>(table, entity);
+				const component_fixed_constraint_t* component = table.find_as_const<component_fixed_constraint_t>(entity);
 
 				if (component != nullptr && slot.constraint->GetEnabled() != (component->enabled != 0))
 					slot.constraint->SetEnabled(component->enabled != 0);
@@ -835,7 +835,7 @@ namespace sfg
 			}
 			case system_constraint_type_e::distance: {
 				const ecs_component_table_t&		   table	 = world.get_component_table(type_id_t<component_distance_constraint_t>::value);
-				const component_distance_constraint_t* component = ecs_helpers_t::table_find_as_const<component_distance_constraint_t>(table, entity);
+				const component_distance_constraint_t* component = table.find_as_const<component_distance_constraint_t>(entity);
 
 				if (component == nullptr)
 					break;
@@ -858,7 +858,7 @@ namespace sfg
 			}
 			case system_constraint_type_e::point: {
 				const ecs_component_table_t&		table	  = world.get_component_table(type_id_t<component_point_constraint_t>::value);
-				const component_point_constraint_t* component = ecs_helpers_t::table_find_as_const<component_point_constraint_t>(table, entity);
+				const component_point_constraint_t* component = table.find_as_const<component_point_constraint_t>(entity);
 
 				if (component == nullptr)
 					break;
@@ -871,7 +871,7 @@ namespace sfg
 
 				world.calculate_transform_direct(entity);
 
-				const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
+				const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(entity);
 				constraint.SetPoint1(JPH::EConstraintSpace::WorldSpace, to_jolt_position(transform.abs_mat * component->local_point));
 
 				if (slot.target_entity == NULL_ENTITY_ID)
@@ -882,14 +882,15 @@ namespace sfg
 				{
 					world.calculate_transform_direct(slot.target_entity);
 
-					const component_system_transform_t& target_transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, slot.target_entity);
+					const component_system_transform_t& target_transform = transform_table.get_as_const<component_system_transform_t>(slot.target_entity);
 					constraint.SetPoint2(JPH::EConstraintSpace::WorldSpace, to_jolt_position(target_transform.abs_mat * component->target_point));
 				}
+
 				break;
 			}
 			case system_constraint_type_e::hinge: {
 				const ecs_component_table_t&		table	  = world.get_component_table(type_id_t<component_hinge_constraint_t>::value);
-				const component_hinge_constraint_t* component = ecs_helpers_t::table_find_as_const<component_hinge_constraint_t>(table, entity);
+				const component_hinge_constraint_t* component = table.find_as_const<component_hinge_constraint_t>(entity);
 
 				if (component == nullptr)
 					break;
@@ -957,7 +958,7 @@ namespace sfg
 			}
 			case system_constraint_type_e::cone: {
 				const ecs_component_table_t&	   table	 = world.get_component_table(type_id_t<component_cone_constraint_t>::value);
-				const component_cone_constraint_t* component = ecs_helpers_t::table_find_as_const<component_cone_constraint_t>(table, entity);
+				const component_cone_constraint_t* component = table.find_as_const<component_cone_constraint_t>(entity);
 
 				if (component == nullptr)
 					break;
@@ -974,7 +975,7 @@ namespace sfg
 			}
 			case system_constraint_type_e::slider: {
 				const ecs_component_table_t&		 table	   = world.get_component_table(type_id_t<component_slider_constraint_t>::value);
-				const component_slider_constraint_t* component = ecs_helpers_t::table_find_as_const<component_slider_constraint_t>(table, entity);
+				const component_slider_constraint_t* component = table.find_as_const<component_slider_constraint_t>(entity);
 
 				if (component == nullptr)
 					break;
@@ -1038,7 +1039,7 @@ namespace sfg
 			}
 			case system_constraint_type_e::swing_twist: {
 				const ecs_component_table_t&			  table		= world.get_component_table(type_id_t<component_swing_twist_constraint_t>::value);
-				const component_swing_twist_constraint_t* component = ecs_helpers_t::table_find_as_const<component_swing_twist_constraint_t>(table, entity);
+				const component_swing_twist_constraint_t* component = table.find_as_const<component_swing_twist_constraint_t>(entity);
 
 				if (component == nullptr)
 					break;
@@ -1070,7 +1071,7 @@ namespace sfg
 			}
 			case system_constraint_type_e::six_dof: {
 				const ecs_component_table_t&		  table		= world.get_component_table(type_id_t<component_six_dof_constraint_t>::value);
-				const component_six_dof_constraint_t* component = ecs_helpers_t::table_find_as_const<component_six_dof_constraint_t>(table, entity);
+				const component_six_dof_constraint_t* component = table.find_as_const<component_six_dof_constraint_t>(entity);
 
 				if (component == nullptr)
 					break;
@@ -1108,11 +1109,12 @@ namespace sfg
 					if (constraint.GetMaxFriction(rotation_axis) != rotation_friction[axis_index])
 						constraint.SetMaxFriction(rotation_axis, rotation_friction[axis_index]);
 				}
+
 				break;
 			}
 			case system_constraint_type_e::pulley: {
 				const ecs_component_table_t&		 table	   = world.get_component_table(type_id_t<component_pulley_constraint_t>::value);
-				const component_pulley_constraint_t* component = ecs_helpers_t::table_find_as_const<component_pulley_constraint_t>(table, entity);
+				const component_pulley_constraint_t* component = table.find_as_const<component_pulley_constraint_t>(entity);
 
 				if (component == nullptr)
 					break;
@@ -1130,7 +1132,7 @@ namespace sfg
 			}
 			case system_constraint_type_e::vehicle: {
 				const ecs_component_table_t&		  table		= world.get_component_table(type_id_t<component_vehicle_constraint_t>::value);
-				const component_vehicle_constraint_t* component = ecs_helpers_t::table_find_as_const<component_vehicle_constraint_t>(table, entity);
+				const component_vehicle_constraint_t* component = table.find_as_const<component_vehicle_constraint_t>(entity);
 
 				if (component == nullptr)
 					break;

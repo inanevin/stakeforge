@@ -29,6 +29,9 @@
 //  OF THE POSSIBILITY OF SUCH DAMAGE.
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+// Jorge Jimenez, Call of Duty bloom; Brian Karis, Karis averaging.
+// reference: https://learnopengl.com/Guest-Articles/2022/Phys.-Based-Bloom
+
 #include "layout_defines.hlsl"
 #include "normal.hlsl"
 #include "depth.hlsl"

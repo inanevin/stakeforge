@@ -34,10 +34,13 @@ namespace sfg
 {
 	ecs_query_range_t::ecs_query_range_t(span_t<const ecs_component_table_ref_t> in_table_refs)
 	{
+		SFG_ASSERT(in_table_refs.size <= ECS_INNER_JOIN_MAX_TABLES);
+
 		if (in_table_refs.size > ECS_INNER_JOIN_MAX_TABLES)
 			return;
 
 		table_count = static_cast<u32>(in_table_refs.size);
+
 		for (u32 i = 0; i < table_count; ++i)
 			table_refs[i] = in_table_refs.data[i];
 	}
@@ -86,6 +89,9 @@ namespace sfg
 		cursor			   = {};
 		cursor.table_count = static_cast<u32>(tables.size);
 
+		SFG_ASSERT(cursor.table_count != 0);
+		SFG_ASSERT(cursor.table_count <= ECS_INNER_JOIN_MAX_TABLES);
+
 		if (cursor.table_count == 0 || cursor.table_count > ECS_INNER_JOIN_MAX_TABLES)
 			return;
 
@@ -93,16 +99,21 @@ namespace sfg
 		{
 			cursor.table_refs[i] = tables.data[i];
 
+			SFG_ASSERT(cursor.table_refs[i].table != nullptr);
+
 			if (cursor.table_refs[i].table == nullptr)
 				return;
 
-			const bool optional	  = (cursor.table_refs[i].flags & ecs_component_table_flags_optional) != 0;
-			const bool excluded	  = (cursor.table_refs[i].flags & ecs_component_table_flags_excluded) != 0;
+			const bool optional = (cursor.table_refs[i].flags & ecs_component_table_flags_optional) != 0;
+			const bool excluded = (cursor.table_refs[i].flags & ecs_component_table_flags_excluded) != 0;
+
 			cursor.is_required[i] = !optional && !excluded;
 
 			if (cursor.is_required[i])
 				cursor.required_count++;
 		}
+
+		SFG_ASSERT(cursor.required_count != 0);
 
 		if (cursor.required_count == 0)
 			return;
@@ -110,7 +121,7 @@ namespace sfg
 		cursor.current.component_count = cursor.table_count;
 
 		for (u32 i = 0; i < cursor.table_count; ++i)
-			cursor.current.component_type_ids[i] = cursor.table_refs[i].table->component_type_id;
+			cursor.current.component_type_ids[i] = cursor.table_refs[i].table->_component_type_id;
 
 		cursor.done = false;
 	}
@@ -152,14 +163,14 @@ namespace sfg
 
 					cursor.current.component_presence_mask |= 1u << i;
 
-					if (cursor.table_refs[i].table->component_struct_stride == 0)
+					if (cursor.table_refs[i].table->_component_struct_stride == 0)
 					{
 						cursor.current.components[i] = nullptr;
 						continue;
 					}
 
 					const u32 prefix			 = popcount(l1_node->mask & (bitmask - 1ull));
-					cursor.current.components[i] = offset(l1_node->child, prefix * cursor.table_refs[i].table->component_struct_stride);
+					cursor.current.components[i] = offset(l1_node->child, prefix * cursor.table_refs[i].table->_component_struct_stride);
 				}
 
 				if (cursor.pending_bits == 0)
@@ -206,14 +217,14 @@ namespace sfg
 			u32 l0	= 0;
 			u32 l1	= 0;
 			u32 bit = 0;
-			table_calculate_indices(cursor.entity_index, l0, l1, bit);
+			ecs_component_table_t::calculate_indices(cursor.entity_index, l0, l1, bit);
 
 			u64 include_mask = ~0ull;
 			u64 exclude_mask = 0ull;
 
 			for (u32 i = 0; i < cursor.table_count; ++i)
 			{
-				const ecs_node_t* l0_node = cursor.table_refs[i].table->l0_nodes + l0;
+				const ecs_node_t* l0_node = cursor.table_refs[i].table->_l0_nodes + l0;
 				const ecs_node_t* l1_node = l0_node->child == nullptr ? nullptr : reinterpret_cast<const ecs_node_t*>(l0_node->child) + l1;
 
 				cursor.l1_nodes[i] = l1_node;
@@ -231,6 +242,7 @@ namespace sfg
 					}
 
 					include_mask &= l1_node->mask;
+
 					if (include_mask == 0)
 						break;
 				}
@@ -263,10 +275,13 @@ namespace sfg
 
 	ecs_query_chunk_range_t::ecs_query_chunk_range_t(span_t<const ecs_component_table_ref_t> in_table_refs)
 	{
+		SFG_ASSERT(in_table_refs.size <= ECS_INNER_JOIN_MAX_TABLES);
+
 		if (in_table_refs.size > ECS_INNER_JOIN_MAX_TABLES)
 			return;
 
 		table_count = static_cast<u32>(in_table_refs.size);
+
 		for (u32 i = 0; i < table_count; ++i)
 			table_refs[i] = in_table_refs.data[i];
 	}
@@ -278,8 +293,8 @@ namespace sfg
 
 	ecs_query_chunk_range_t::iterator_t ecs_query_chunk_range_t::iterator_t::make_end()
 	{
-		iterator_t it;
-		it.done = true;
+		iterator_t it = {};
+		it.done		  = true;
 		return it;
 	}
 
@@ -320,32 +335,45 @@ namespace sfg
 		table_index	 = 0;
 		same_count	 = 0;
 		current		 = {};
+
+		SFG_ASSERT(table_count != 0);
+		SFG_ASSERT(table_count <= ECS_INNER_JOIN_MAX_TABLES);
+
 		if (table_count == 0 || table_count > ECS_INNER_JOIN_MAX_TABLES)
 			return;
 
 		required_count = 0;
+
 		for (u32 i = 0; i < table_count; ++i)
 		{
+			SFG_ASSERT(table_refs.data[i].table != nullptr);
+
 			if (table_refs.data[i].table == nullptr)
 				return;
 
 			const bool optional = (table_refs.data[i].flags & ecs_component_table_flags_optional) != 0;
 			const bool excluded = (table_refs.data[i].flags & ecs_component_table_flags_excluded) != 0;
-			is_required[i]		= !optional && !excluded;
+
+			is_required[i] = !optional && !excluded;
+
 			if (is_required[i])
 				required_count++;
 		}
+
+		SFG_ASSERT(required_count != 0);
 
 		if (required_count == 0)
 			return;
 
 		current.table_count = table_count;
+
 		for (u32 i = 0; i < table_count; ++i)
 		{
-			current.component_type_ids[i] = table_refs.data[i].table->component_type_id;
-			current.component_strides[i]  = static_cast<u32>(table_refs.data[i].table->component_struct_stride);
+			current.component_type_ids[i] = table_refs.data[i].table->_component_type_id;
+			current.component_strides[i]  = static_cast<u32>(table_refs.data[i].table->_component_struct_stride);
 			current.table_flags[i]		  = table_refs.data[i].flags;
 		}
+
 		done = false;
 	}
 
@@ -369,6 +397,7 @@ namespace sfg
 			}
 
 			const entity_id_t prev = entity_index;
+
 			if (!ecs_t::advance_table_entity_index(*table_refs.data[table_index].table, entity_index))
 				return false;
 
@@ -378,20 +407,21 @@ namespace sfg
 				same_count = 1;
 
 			table_index = (table_index + 1) % table_count;
+
 			if (same_count < required_count)
 				continue;
 
 			u32 l0	= 0;
 			u32 l1	= 0;
 			u32 bit = 0;
-			ecs_t::table_calculate_indices(entity_index, l0, l1, bit);
+			ecs_component_table_t::calculate_indices(entity_index, l0, l1, bit);
 
 			u64 include_mask = ~0ull;
 			u64 exclude_mask = 0ull;
 
 			for (u32 i = 0; i < table_count; ++i)
 			{
-				const ecs_node_t* l0_node = table_refs.data[i].table->l0_nodes + l0;
+				const ecs_node_t* l0_node = table_refs.data[i].table->_l0_nodes + l0;
 				const ecs_node_t* l1_node = l0_node->child == nullptr ? nullptr : reinterpret_cast<const ecs_node_t*>(l0_node->child) + l1;
 
 				l1_nodes[i]			   = l1_node;
@@ -411,6 +441,7 @@ namespace sfg
 					}
 
 					include_mask &= l1_node->mask;
+
 					if (include_mask == 0)
 						break;
 				}
@@ -421,6 +452,7 @@ namespace sfg
 			}
 
 			const u64 match_bits = include_mask & ~exclude_mask;
+
 			if (match_bits == 0)
 			{
 				entity_index += ECS_L1_SPAN;
@@ -440,6 +472,7 @@ namespace sfg
 	ecs_query_chunk_range_t::iterator_t ecs_query_chunk_range_t::begin()
 	{
 		iterator_t it{{.data = table_refs, .size = table_count}};
+
 		if (!it.advance())
 			return iterator_t::make_end();
 		return it;
@@ -450,210 +483,12 @@ namespace sfg
 		return iterator_t::make_end();
 	}
 
-	void ecs_t::table_init(ecs_component_table_t& table, const ecs_component_type_desc_t& type_desc)
-	{
-		SFG_ASSERT(table.l0_nodes == nullptr);
-		SFG_ASSERT(type_desc.type_id != 0);
-		SFG_ASSERT(type_desc.alignment != 0);
-
-		table.l0_nodes = reinterpret_cast<ecs_node_t*>(SFG_ALIGNED_MALLOC(alignof(ecs_node_t), sizeof(ecs_node_t) * ECS_L0_SIZE));
-		SFG_MEMSET(table.l0_nodes, 0, sizeof(ecs_node_t) * ECS_L0_SIZE);
-		table.type_desc					 = type_desc;
-		table.component_type_id			 = type_desc.type_id;
-		table.component_struct_alignment = type_desc.alignment;
-		table.component_struct_stride	 = align_up(type_desc.size, type_desc.alignment);
-	}
-
-	void ecs_t::table_uninit(ecs_component_table_t& table)
-	{
-		SFG_ASSERT(table.l0_nodes != nullptr);
-
-		for (u32 i = 0; i < ECS_L0_SIZE; i++)
-		{
-			ecs_node_t* node = table.l0_nodes + i;
-			if (node->mask == 0)
-				continue;
-
-			ecs_node_t* l1_nodes = reinterpret_cast<ecs_node_t*>(node->child);
-			for (u32 k = 0; k < ECS_L1_SPAN; ++k)
-			{
-				if (l1_nodes[k].child != nullptr)
-					SFG_ALIGNED_FREE(l1_nodes[k].child);
-			}
-
-			SFG_ALIGNED_FREE(node->child);
-		}
-
-		SFG_ALIGNED_FREE(table.l0_nodes);
-		table = {};
-	}
-
-	void ecs_t::table_clear(ecs_component_table_t& table)
-	{
-		const ecs_component_type_desc_t type_desc = table.type_desc;
-		table_uninit(table);
-		table_init(table, type_desc);
-	}
-
-	bool ecs_t::is_table_empty(const ecs_component_table_t& table)
-	{
-		SFG_ASSERT(table.l0_nodes != nullptr);
-
-		for (u32 i = 0; i < ECS_L0_SIZE; ++i)
-		{
-			const ecs_node_t* l0_node = table.l0_nodes + i;
-			if (l0_node->mask != 0)
-				return false;
-		}
-
-		return true;
-	}
-
-	bool ecs_t::table_has(const ecs_component_table_t& table, entity_id_t id)
-	{
-		SFG_ASSERT(table.l0_nodes != nullptr);
-		SFG_ASSERT(id < ECS_MAX_ENTITIES);
-
-		u32 l0	= 0;
-		u32 l1	= 0;
-		u32 bit = 0;
-		table_calculate_indices(id, l0, l1, bit);
-
-		const ecs_node_t* l0_node = table.l0_nodes + l0;
-		if ((l0_node->mask & (1llu << l1)) == 0)
-			return false;
-
-		const ecs_node_t* l1_node = reinterpret_cast<const ecs_node_t*>(l0_node->child) + l1;
-		return (l1_node->mask & (1llu << bit)) != 0;
-	}
-
-	void* ecs_t::table_get(const ecs_component_table_t& table, entity_id_t id)
-	{
-		SFG_ASSERT(table.l0_nodes != nullptr);
-		SFG_ASSERT(id < ECS_MAX_ENTITIES);
-
-		if (table.component_struct_stride == 0)
-			return nullptr;
-
-		u32 l0	= 0;
-		u32 l1	= 0;
-		u32 bit = 0;
-		table_calculate_indices(id, l0, l1, bit);
-
-		const ecs_node_t* l0_node = table.l0_nodes + l0;
-		if ((l0_node->mask & (1llu << l1)) == 0)
-			return nullptr;
-
-		const ecs_node_t* l1_node = reinterpret_cast<const ecs_node_t*>(l0_node->child) + l1;
-		const u64		  bitmask = 1ull << bit;
-		if ((l1_node->mask & bitmask) == 0)
-			return nullptr;
-
-		const u32 prefix = popcount(l1_node->mask & (bitmask - 1ull));
-		return offset(l1_node->child, prefix * table.component_struct_stride);
-	}
-
-	void* ecs_t::table_add(ecs_component_table_t& table, entity_id_t id)
-	{
-		SFG_ASSERT(table.l0_nodes != nullptr);
-		SFG_ASSERT(id < ECS_MAX_ENTITIES);
-
-		u32 l0	= 0;
-		u32 l1	= 0;
-		u32 bit = 0;
-		table_calculate_indices(id, l0, l1, bit);
-
-		ecs_node_t* l0_node = table.l0_nodes + l0;
-		if (l0_node->mask == 0)
-		{
-			const size_t alignment = std::max(alignof(ecs_node_t), static_cast<size_t>(8));
-			l0_node->child		   = SFG_ALIGNED_MALLOC(alignment, sizeof(ecs_node_t) * ECS_L1_SPAN);
-			SFG_MEMSET(l0_node->child, 0, sizeof(ecs_node_t) * ECS_L1_SPAN);
-		}
-
-		l0_node->mask |= 1llu << l1;
-
-		ecs_node_t* l1_node = reinterpret_cast<ecs_node_t*>(l0_node->child) + l1;
-		const u64	bitmask = 1llu << bit;
-
-		if (table.component_struct_stride == 0)
-		{
-			l1_node->mask |= bitmask;
-			return nullptr;
-		}
-
-		if (l1_node->mask == 0)
-		{
-			const size_t alignment = std::max(table.component_struct_alignment, static_cast<size_t>(8));
-			l1_node->child		   = SFG_ALIGNED_MALLOC(alignment, table.component_struct_stride * ECS_L1_SPAN);
-		}
-
-		const u32 prefix = popcount(l1_node->mask & (bitmask - 1ull));
-		if ((l1_node->mask & bitmask) != 0)
-			return offset(l1_node->child, table.component_struct_stride * prefix);
-
-		const u32 count = popcount(l1_node->mask);
-		if (count > prefix)
-		{
-			void* base = l1_node->child;
-			SFG_MEMMOVE(offset(base, (prefix + 1) * table.component_struct_stride), offset(base, prefix * table.component_struct_stride), (count - prefix) * table.component_struct_stride);
-		}
-
-		l1_node->mask |= bitmask;
-		return offset(l1_node->child, table.component_struct_stride * prefix);
-	}
-
-	void ecs_t::table_remove(ecs_component_table_t& table, entity_id_t id)
-	{
-		SFG_ASSERT(table.l0_nodes != nullptr);
-		SFG_ASSERT(id < ECS_MAX_ENTITIES);
-
-		u32 l0	= 0;
-		u32 l1	= 0;
-		u32 bit = 0;
-		table_calculate_indices(id, l0, l1, bit);
-
-		ecs_node_t* l0_node = table.l0_nodes + l0;
-		if (l0_node->mask == 0)
-			return;
-
-		const u64	bitmask = 1llu << bit;
-		ecs_node_t* l1_node = reinterpret_cast<ecs_node_t*>(l0_node->child) + l1;
-
-		if ((l1_node->mask & bitmask) == 0)
-			return;
-
-		if (table.component_struct_stride > 0)
-		{
-			const u32 prefix = popcount(l1_node->mask & (bitmask - 1ull));
-			const u32 count	 = popcount(l1_node->mask);
-
-			if (prefix + 1 < count)
-			{
-				void* base = l1_node->child;
-				SFG_MEMMOVE(offset(base, prefix * table.component_struct_stride), offset(base, (prefix + 1) * table.component_struct_stride), (count - prefix - 1) * table.component_struct_stride);
-			}
-		}
-
-		l1_node->mask &= ~bitmask;
-
-		if (l1_node->mask == 0)
-		{
-			SFG_ALIGNED_FREE(l1_node->child);
-			l1_node->child = nullptr;
-
-			l0_node->mask &= ~(1llu << l1);
-
-			if (l0_node->mask == 0)
-			{
-				SFG_ALIGNED_FREE(l0_node->child);
-				l0_node->child = nullptr;
-			}
-		}
-	}
-
 	void ecs_t::inner_join(span_t<const ecs_component_table_ref_t> table_refs, inner_join_fn fn)
 	{
+		SFG_ASSERT(table_refs.size != 0);
+		SFG_ASSERT(table_refs.size <= ECS_INNER_JOIN_MAX_TABLES);
+		SFG_ASSERT(fn != nullptr);
+
 		if (table_refs.size == 0 || table_refs.size > ECS_INNER_JOIN_MAX_TABLES || fn == nullptr)
 			return;
 
@@ -663,6 +498,8 @@ namespace sfg
 
 		for (u32 i = 0; i < table_count; ++i)
 		{
+			SFG_ASSERT(table_refs.data[i].table != nullptr);
+
 			if (table_refs.data[i].table == nullptr)
 				return;
 
@@ -670,9 +507,12 @@ namespace sfg
 			const bool excluded = (table_refs.data[i].flags & ecs_component_table_flags_excluded) != 0;
 
 			is_required[i] = !optional && !excluded;
+
 			if (is_required[i])
 				required_count++;
 		}
+
+		SFG_ASSERT(required_count != 0);
 
 		if (required_count == 0)
 			return;
@@ -688,10 +528,12 @@ namespace sfg
 			{
 				if (is_required[table_index])
 					break;
+
 				table_index = (table_index + 1) % table_count;
 			}
 
 			const entity_id_t prev = entity_index;
+
 			if (!advance_table_entity_index(*table_refs.data[table_index].table, entity_index))
 				break;
 
@@ -708,7 +550,7 @@ namespace sfg
 			u32 l0	= 0;
 			u32 l1	= 0;
 			u32 bit = 0;
-			table_calculate_indices(entity_index, l0, l1, bit);
+			ecs_component_table_t::calculate_indices(entity_index, l0, l1, bit);
 
 			const ecs_node_t* l1_nodes[ECS_INNER_JOIN_MAX_TABLES] = {};
 			u64				  include_mask						  = ~0ull;
@@ -716,7 +558,7 @@ namespace sfg
 
 			for (u32 i = 0; i < table_count; i++)
 			{
-				const ecs_node_t* l0_node = table_refs.data[i].table->l0_nodes + l0;
+				const ecs_node_t* l0_node = table_refs.data[i].table->_l0_nodes + l0;
 				const ecs_node_t* l1_node = l0_node->child == nullptr ? nullptr : reinterpret_cast<const ecs_node_t*>(l0_node->child) + l1;
 
 				l1_nodes[i] = l1_node;
@@ -734,6 +576,7 @@ namespace sfg
 					}
 
 					include_mask &= l1_node->mask;
+
 					if (include_mask == 0)
 						break;
 				}
@@ -744,6 +587,7 @@ namespace sfg
 			}
 
 			u64 bits = include_mask & ~exclude_mask;
+
 			while (bits != 0)
 			{
 				const u32 bit_index = countr_zero(bits);
@@ -761,14 +605,15 @@ namespace sfg
 					}
 
 					const u64 bitmask = 1ull << bit_index;
-					if (table_refs.data[i].table->component_struct_stride == 0 || (l1_node->mask & bitmask) == 0)
+
+					if (table_refs.data[i].table->_component_struct_stride == 0 || (l1_node->mask & bitmask) == 0)
 					{
 						row_ptrs[i] = nullptr;
 						continue;
 					}
 
 					const u32 prefix = popcount(l1_node->mask & (bitmask - 1ull));
-					row_ptrs[i]		 = offset(l1_node->child, prefix * table_refs.data[i].table->component_struct_stride);
+					row_ptrs[i]		 = offset(l1_node->child, prefix * table_refs.data[i].table->_component_struct_stride);
 				}
 
 				fn(entity_index + bit_index, row_ptrs, table_count);
@@ -789,14 +634,6 @@ namespace sfg
 		return ecs_query_chunk_range_t{tables};
 	}
 
-	void ecs_t::table_calculate_indices(entity_id_t id, u32& l0_out, u32& l1_out, u32& bit_out)
-	{
-		const u32 within = id % ECS_L0_SPAN;
-		l0_out			 = id / ECS_L0_SPAN;
-		l1_out			 = within / ECS_L1_SPAN;
-		bit_out			 = within % ECS_L1_SPAN;
-	}
-
 	bool ecs_t::advance_table_entity_index(const ecs_component_table_t& table, entity_id_t& index)
 	{
 		index = align_down_to_chunk(index);
@@ -806,9 +643,9 @@ namespace sfg
 			u32 l0	= 0;
 			u32 l1	= 0;
 			u32 bit = 0;
-			table_calculate_indices(index, l0, l1, bit);
+			ecs_component_table_t::calculate_indices(index, l0, l1, bit);
 
-			const ecs_node_t* l0_node = table.l0_nodes + l0;
+			const ecs_node_t* l0_node = table._l0_nodes + l0;
 			const u64		  m0	  = l0_node->mask;
 
 			if (m0 == 0)
@@ -819,6 +656,7 @@ namespace sfg
 
 			const u64 keep = ~0ull << l1;
 			const u64 cand = m0 & keep;
+
 			if (cand == 0)
 			{
 				index = align_up_to_chunk((l0 + 1u) * ECS_L0_SPAN);
@@ -836,11 +674,6 @@ namespace sfg
 	void* ecs_t::offset(void* ptr, size_t byte_offset)
 	{
 		return reinterpret_cast<u8*>(ptr) + byte_offset;
-	}
-
-	size_t ecs_t::align_up(size_t value, size_t alignment)
-	{
-		return (value + alignment - 1) & ~(alignment - 1);
 	}
 
 	entity_id_t ecs_t::align_down_to_chunk(entity_id_t value)

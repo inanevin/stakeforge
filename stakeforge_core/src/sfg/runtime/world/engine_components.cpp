@@ -910,6 +910,112 @@ namespace sfg
 			});
 		}
 
+		void register_component_animation_library_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name			 = "component_animation_library",
+				.display_name	 = "Animation Library",
+				.category		 = "Animation",
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_animation_library_t*>(ptr), component_animation_library_t{}); },
+				.fields =
+					{
+						{
+							.name		  = "animation_library",
+							.display_name = "Animation Library",
+							.tooltip	  = "Animation library resource used for animation evaluation.",
+							.sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_LIBRARY,
+							.offset		  = offsetof(component_animation_library_t, animation_library),
+							.size		  = sizeof(resource_handle_t),
+							.type		  = reflected_value_type_e::u64,
+						},
+						{
+							.name			   = "tick_blanks",
+							.display_name	   = "Tick Blanks",
+							.tooltip		   = "Number of frames skipped between animation evaluations; zero evaluates every frame.",
+							.offset			   = offsetof(component_animation_library_t, tick_blanks),
+							.size			   = sizeof(u32),
+							.flags			   = reflected_field_flag_clamped,
+							.min_clamp		   = 0.0f,
+							.max_clamp		   = 120.0f,
+							.clamp_granularity = 1.0f,
+							.type			   = reflected_value_type_e::u32,
+						},
+						{
+							.name		  = "use_cull",
+							.display_name = "Use Cull",
+							.tooltip	  = "Skips animation evaluation when the entity is outside the main camera cull angle.",
+							.offset		  = offsetof(component_animation_library_t, use_cull),
+							.size		  = sizeof(bool),
+							.type		  = reflected_value_type_e::boolean,
+						},
+						{
+							.ui_definition	   = {.dependency_field = "use_cull"_hs, .dependency_value = 1, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+							.name			   = "cull_angle_limit",
+							.display_name	   = "Cull Angle Limit",
+							.tooltip		   = "Maximum angle in degrees between the main camera forward direction and the entity before animation evaluation is skipped.",
+							.offset			   = offsetof(component_animation_library_t, cull_angle_limit),
+							.size			   = sizeof(f32),
+							.flags			   = reflected_field_flag_clamped,
+							.min_clamp		   = 30.0f,
+							.max_clamp		   = 150.0f,
+							.clamp_granularity = 1.0f,
+							.type			   = reflected_value_type_e::f32,
+						},
+						{
+							.name		  = "use_throttle",
+							.display_name = "Use Throttle",
+							.tooltip	  = "Reduces animation evaluation frequency as the entity moves away from the main camera.",
+							.offset		  = offsetof(component_animation_library_t, use_throttle),
+							.size		  = sizeof(bool),
+							.type		  = reflected_value_type_e::boolean,
+						},
+						{
+							.ui_definition	   = {.dependency_field = "use_throttle"_hs, .dependency_value = 1, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+							.name			   = "max_throttle_tick_blanks",
+							.display_name	   = "Max Throttle Tick Blanks",
+							.tooltip		   = "Maximum number of frames skipped between animation evaluations at or beyond the full throttle distance.",
+							.offset			   = offsetof(component_animation_library_t, max_throttle_tick_blanks),
+							.size			   = sizeof(u32),
+							.flags			   = reflected_field_flag_clamped,
+							.min_clamp		   = 0.0f,
+							.max_clamp		   = 120.0f,
+							.clamp_granularity = 1.0f,
+							.type			   = reflected_value_type_e::u32,
+						},
+						{
+							.ui_definition	   = {.dependency_field = "use_throttle"_hs, .dependency_value = 1, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+							.name			   = "throttle_begin_distance",
+							.display_name	   = "Throttle Begin Distance",
+							.tooltip		   = "Distance from the main camera where animation evaluation throttling begins.",
+							.offset			   = offsetof(component_animation_library_t, throttle_begin_distance),
+							.size			   = sizeof(f32),
+							.flags			   = reflected_field_flag_clamped,
+							.min_clamp		   = 0.0f,
+							.max_clamp		   = 100000.0f,
+							.clamp_granularity = 1.0f,
+							.type			   = reflected_value_type_e::f32,
+						},
+						{
+							.ui_definition	   = {.dependency_field = "use_throttle"_hs, .dependency_value = 1, .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+							.name			   = "throttle_full_distance",
+							.display_name	   = "Throttle Full Distance",
+							.tooltip		   = "Distance from the main camera where the maximum throttle tick blanks is reached.",
+							.offset			   = offsetof(component_animation_library_t, throttle_full_distance),
+							.size			   = sizeof(f32),
+							.flags			   = reflected_field_flag_clamped,
+							.min_clamp		   = 0.0f,
+							.max_clamp		   = 100000.0f,
+							.clamp_granularity = 1.0f,
+							.type			   = reflected_value_type_e::f32,
+						},
+					},
+				.type_id   = type_id_t<component_animation_library_t>::value,
+				.size	   = sizeof(component_animation_library_t),
+				.alignment = alignof(component_animation_library_t),
+				.flags	   = reflected_type_flag_component,
+			});
+		}
+
 		void register_component_ragdoll_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -3681,6 +3787,7 @@ namespace sfg
 		register_component_ragdoll_reflection(registry);
 		register_component_animation_player_reflection(registry);
 		register_component_animation_graph_reflection(registry);
+		register_component_animation_library_reflection(registry);
 		register_audio_component_reflection(registry);
 		register_component_camera_reflection(registry);
 		register_component_light_reflection(registry);

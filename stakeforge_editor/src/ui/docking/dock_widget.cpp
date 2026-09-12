@@ -478,7 +478,8 @@ namespace sfg
 		const dock_node_handle_t empty_handle	= find_node_handle(node);
 		dock_node_handle_t		 parent_handle	= {};
 		bool					 empty_negative = false;
-		SFG_ASSERT(find_parent_split(empty_handle, parent_handle, empty_negative));
+		const bool				 split_found	= find_parent_split(empty_handle, parent_handle, empty_negative);
+		SFG_ASSERT(split_found);
 
 		dock_node_t&			 parent			= _dock_nodes.get(parent_handle);
 		const dock_node_handle_t sibling_handle = empty_negative ? parent.split_positive : parent.split_negative;

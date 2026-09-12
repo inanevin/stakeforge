@@ -26,7 +26,6 @@ OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "world_particle_simulation.hpp"
 #include "ecs.hpp"
-#include "ecs_helpers.hpp"
 #include "engine_components.hpp"
 #include "system_components.hpp"
 #include "world.hpp"
@@ -82,7 +81,7 @@ namespace sfg
 	void world_particle_simulation_t::destroy_entity(entity_id_t entity)
 	{
 		const ecs_component_table_t&			   system_table = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
-		const component_system_particle_emitter_t* system		= ecs_helpers_t::table_find_as_const<component_system_particle_emitter_t>(system_table, entity);
+		const component_system_particle_emitter_t* system		= system_table.find_as_const<component_system_particle_emitter_t>(entity);
 
 		if (system != nullptr && system->runtime_index < _emitters.size() && _emitters[system->runtime_index].entity == entity)
 			remove_runtime(system->runtime_index);
@@ -112,8 +111,8 @@ namespace sfg
 
 		for (particle_emitter_runtime_t& runtime : _emitters)
 		{
-			const component_particle_emitter_t& emitter	  = ecs_helpers_t::table_get_as_const<component_particle_emitter_t>(emitter_table, runtime.entity);
-			const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, runtime.entity);
+			const component_particle_emitter_t& emitter	  = emitter_table.get_as_const<component_particle_emitter_t>(runtime.entity);
+			const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(runtime.entity);
 
 			update_bounds(runtime, emitter, transform);
 		}
@@ -122,7 +121,7 @@ namespace sfg
 	void world_particle_simulation_t::play(entity_id_t entity)
 	{
 		const ecs_component_table_t&			   system_table = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
-		const component_system_particle_emitter_t& system		= ecs_helpers_t::table_get_as_const<component_system_particle_emitter_t>(system_table, entity);
+		const component_system_particle_emitter_t& system		= system_table.get_as_const<component_system_particle_emitter_t>(entity);
 		particle_emitter_runtime_t&				   runtime		= _emitters[system.runtime_index];
 
 		runtime.playing = 1;
@@ -131,7 +130,7 @@ namespace sfg
 	void world_particle_simulation_t::stop(entity_id_t entity, bool clear_particles)
 	{
 		const ecs_component_table_t&			   system_table = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
-		const component_system_particle_emitter_t& system		= ecs_helpers_t::table_get_as_const<component_system_particle_emitter_t>(system_table, entity);
+		const component_system_particle_emitter_t& system		= system_table.get_as_const<component_system_particle_emitter_t>(entity);
 		particle_emitter_runtime_t&				   runtime		= _emitters[system.runtime_index];
 
 		runtime.playing = 0;
@@ -146,7 +145,7 @@ namespace sfg
 	void world_particle_simulation_t::restart(entity_id_t entity)
 	{
 		const ecs_component_table_t&			   system_table = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
-		const component_system_particle_emitter_t& system		= ecs_helpers_t::table_get_as_const<component_system_particle_emitter_t>(system_table, entity);
+		const component_system_particle_emitter_t& system		= system_table.get_as_const<component_system_particle_emitter_t>(entity);
 		particle_emitter_runtime_t&				   runtime		= _emitters[system.runtime_index];
 
 		_particle_count -= static_cast<u32>(runtime.particles.size());
@@ -162,7 +161,7 @@ namespace sfg
 	const particle_emitter_runtime_t* world_particle_simulation_t::find_runtime(entity_id_t entity) const
 	{
 		const ecs_component_table_t&			   system_table = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
-		const component_system_particle_emitter_t* system		= ecs_helpers_t::table_find_as_const<component_system_particle_emitter_t>(system_table, entity);
+		const component_system_particle_emitter_t* system		= system_table.find_as_const<component_system_particle_emitter_t>(entity);
 
 		if (system == nullptr || system->runtime_index >= _emitters.size() || _emitters[system->runtime_index].entity != entity)
 			return nullptr;
@@ -228,8 +227,8 @@ namespace sfg
 
 		for (particle_emitter_runtime_t& runtime : _emitters)
 		{
-			const component_particle_emitter_t& emitter	  = ecs_helpers_t::table_get_as_const<component_particle_emitter_t>(emitter_table, runtime.entity);
-			const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, runtime.entity);
+			const component_particle_emitter_t& emitter	  = emitter_table.get_as_const<component_particle_emitter_t>(runtime.entity);
+			const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(runtime.entity);
 
 			reset_runtime(runtime, emitter, transform);
 			update_bounds(runtime, emitter, transform);
@@ -247,12 +246,12 @@ namespace sfg
 		if (runtime_index != last_index)
 		{
 			_emitters[runtime_index]						  = std::move(_emitters[last_index]);
-			component_system_particle_emitter_t& moved_system = ecs_helpers_t::table_get_as<component_system_particle_emitter_t>(system_table, _emitters[runtime_index].entity);
+			component_system_particle_emitter_t& moved_system = system_table.get_as<component_system_particle_emitter_t>(_emitters[runtime_index].entity);
 			moved_system.runtime_index						  = runtime_index;
 		}
 
 		_emitters.pop_back();
-		ecs_t::table_remove(system_table, removed_entity);
+		system_table.remove(removed_entity);
 	}
 
 	void world_particle_simulation_t::sync_emitters()
@@ -280,12 +279,12 @@ namespace sfg
 
 			for (const entity_id_t entity : create_entities)
 			{
-				const component_particle_emitter_t& emitter	  = ecs_helpers_t::table_get_as_const<component_particle_emitter_t>(emitter_table, entity);
-				const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, entity);
+				const component_particle_emitter_t& emitter	  = emitter_table.get_as_const<component_particle_emitter_t>(entity);
+				const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(entity);
 
 				create_runtime(entity, emitter, transform);
 
-				component_system_particle_emitter_t& system = ecs_helpers_t::table_add_or_get_as<component_system_particle_emitter_t>(system_table, entity);
+				component_system_particle_emitter_t& system = system_table.add_or_get_as<component_system_particle_emitter_t>(entity);
 				system.runtime_index						= static_cast<u32>(_emitters.size() - 1);
 			}
 		}
@@ -304,7 +303,7 @@ namespace sfg
 
 			for (const entity_id_t entity : destroy_entities)
 			{
-				const component_system_particle_emitter_t& system = ecs_helpers_t::table_get_as_const<component_system_particle_emitter_t>(system_table, entity);
+				const component_system_particle_emitter_t& system = system_table.get_as_const<component_system_particle_emitter_t>(entity);
 				remove_runtime(system.runtime_index);
 			}
 		}
@@ -323,7 +322,7 @@ namespace sfg
 
 			for (const entity_id_t entity : destroy_entities)
 			{
-				const component_system_particle_emitter_t& system = ecs_helpers_t::table_get_as_const<component_system_particle_emitter_t>(system_table, entity);
+				const component_system_particle_emitter_t& system = system_table.get_as_const<component_system_particle_emitter_t>(entity);
 				remove_runtime(system.runtime_index);
 			}
 		}
@@ -338,8 +337,8 @@ namespace sfg
 
 		for (particle_emitter_runtime_t& runtime : _emitters)
 		{
-			const component_particle_emitter_t& emitter	  = ecs_helpers_t::table_get_as_const<component_particle_emitter_t>(emitter_table, runtime.entity);
-			const component_system_transform_t& transform = ecs_helpers_t::table_get_as_const<component_system_transform_t>(transform_table, runtime.entity);
+			const component_particle_emitter_t& emitter	  = emitter_table.get_as_const<component_particle_emitter_t>(runtime.entity);
+			const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(runtime.entity);
 
 			simulate_emitter(runtime, emitter, transform, delta_time);
 		}
