@@ -10,9 +10,9 @@
 
 Stakeforge is my on-going engine project, successor to [Lina Engine](https://github.com/inanevin/LinaEngine). This is a project I develop & maintain in my personal time. PRs, discussions & contributions are always welcome. A stable release is planned for the last quarter of 2026.
 
-This is **Stakeforge 2**. Still a performance oriented C++ engine, now extended with a proper editor, asset workflows and scripting to make building games with it a little more comfortable :)
+This is new architecture of Stakeforge. Still a performance oriented C++ engine, now extended with a proper editor, asset workflows and scripting to make building games with it a little more comfortable :)
 
-> Looking for the original compact engine? [Stakeforge 1 is preserved here](https://github.com/inanevin/stakeforge/releases/tag/v1.0.0), with its simpler, code-first approach to making games.
+> [original compact engine Stakeforge 1 is preserved here](https://github.com/inanevin/stakeforge/releases/tag/v1.0.0), with its simpler, code-first approach to making games.
 
 <div align="center">
 
