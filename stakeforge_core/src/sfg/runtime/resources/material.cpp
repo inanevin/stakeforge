@@ -109,6 +109,12 @@ namespace sfg
 
 		stream >> material;
 
+		if (material.shader == NULL_RESOURCE_HANDLE)
+		{
+			SFG_ERR("material has no shader: {0}", entry.hash);
+			return false;
+		}
+
 		if (material.parameters.size() > SFG_MATERIAL_MAX_PARAMS)
 		{
 			SFG_ERR("material has too many parameters: {0} / {1}", material.parameters.size(), SFG_MATERIAL_MAX_PARAMS);

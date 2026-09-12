@@ -45,11 +45,23 @@ namespace sfg
 		payload >> runtime->type;
 		payload >> runtime->compile_variant_count;
 
+		if (runtime->compile_variant_count == 0)
+		{
+			SFG_ERR("shader has no compile variants: {0}", entry.hash);
+			return false;
+		}
+
 		for (u8 i = 0; i < runtime->compile_variant_count; i++)
 		{
 			shader_runtime_compile_variant_t& v = runtime->compile_variants[i];
 
 			payload >> v.stage_count;
+
+			if (v.stage_count == 0)
+			{
+				SFG_ERR("shader compile variant has no stages: {0}", entry.hash);
+				return false;
+			}
 
 			for (u8 j = 0; j < v.stage_count; j++)
 			{
@@ -64,6 +76,12 @@ namespace sfg
 		}
 
 		payload >> runtime->pso_variant_count;
+
+		if (runtime->pso_variant_count == 0)
+		{
+			SFG_ERR("shader has no pipeline variants: {0}", entry.hash);
+			return false;
+		}
 
 		for (u8 i = 0; i < runtime->pso_variant_count; i++)
 		{

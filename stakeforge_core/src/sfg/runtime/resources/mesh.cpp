@@ -36,12 +36,19 @@ namespace sfg
 			clear_mesh_runtime_cpu_data(runtime);
 		}
 
-		template <typename def_primitive_t, typename vertex_t> void build_mesh_data(const vector_t<def_primitive_t>& def_primitives, chunk_allocator_t& mem, mesh_runtime_t& runtime, mesh_internals_t& internals)
+		template <typename def_primitive_t, typename vertex_t> bool build_mesh_data(const vector_t<def_primitive_t>& def_primitives, chunk_allocator_t& mem, mesh_runtime_t& runtime, mesh_internals_t& internals)
 		{
 			size_t vertex_count = 0;
 			size_t index_count	= 0;
+
 			for (const def_primitive_t& primitive : def_primitives)
 			{
+				if (primitive.vertices.empty() || primitive.indices.empty())
+				{
+					SFG_ERR("mesh primitive has no geometry");
+					return false;
+				}
+
 				vertex_count += primitive.vertices.size();
 				index_count += primitive.indices.size();
 			}
@@ -58,6 +65,7 @@ namespace sfg
 			mesh_primitive_runtime_t* primitive_dst = mem.get<mesh_primitive_runtime_t>(runtime.primitives);
 			u32						  start_vertex	= 0;
 			u32						  start_index	= 0;
+
 			for (u32 i = 0; i < primitive_count; ++i)
 			{
 				const def_primitive_t& primitive = def_primitives[i];
@@ -91,6 +99,8 @@ namespace sfg
 			internals.vertex_count	  = runtime.vertex_count;
 			internals.index_count	  = runtime.index_count;
 			internals.vertex_stride	  = runtime.vertex_stride;
+
+			return true;
 		}
 
 		bool load_mesh_def(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
@@ -102,6 +112,7 @@ namespace sfg
 			*internals					 = {};
 
 			mesh_def_t mesh = {};
+
 			if (!reflection_registry_t::get().type_from_stream(type_id_t<mesh_def_t>::value, &mesh, nullptr, stream))
 			{
 				SFG_ERR("failed to deserialize mesh definition: {0}", entry.hash);
@@ -113,16 +124,23 @@ namespace sfg
 
 			const bool has_static  = !mesh.static_primitives.empty();
 			const bool has_skinned = !mesh.skinned_primitives.empty();
-			SFG_ASSERT(has_static || has_skinned);
-			SFG_ASSERT(!has_static || !has_skinned);
+
+			if (has_static == has_skinned)
+			{
+				SFG_ERR("mesh must contain either static or skinned primitives: {0}", entry.hash);
+				return false;
+			}
 
 			if (has_static)
 			{
-				build_mesh_data<primitive_static_def_t, vertex_static_t>(mesh.static_primitives, mem, *runtime, *internals);
+				if (!build_mesh_data<primitive_static_def_t, vertex_static_t>(mesh.static_primitives, mem, *runtime, *internals))
+					return false;
 			}
 			else if (has_skinned)
 			{
-				build_mesh_data<primitive_skinned_def_t, vertex_skinned_t>(mesh.skinned_primitives, mem, *runtime, *internals);
+				if (!build_mesh_data<primitive_skinned_def_t, vertex_skinned_t>(mesh.skinned_primitives, mem, *runtime, *internals))
+					return false;
+
 				runtime->is_skinned	  = 1;
 				internals->is_skinned = 1;
 			}
@@ -146,6 +164,7 @@ namespace sfg
 			render_resources_t::get().enqueue_data_upload({.data = mem.get<u8>(runtime->index_data), .resource = internals->index_buffer, .data_size = runtime->index_data_size});
 
 			free_mesh_cpu_data(mem, *runtime);
+
 			return true;
 		}
 	}

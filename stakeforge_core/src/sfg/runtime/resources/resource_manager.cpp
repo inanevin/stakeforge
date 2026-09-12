@@ -99,27 +99,32 @@ namespace sfg
 	{
 		SFG_ASSERT(is_main_thread());
 
-		auto	   it	  = _entries.find(hash);
-		const bool exists = it != _entries.end();
+		auto it = _entries.find(hash);
 
-		if (exists)
+		if (it != _entries.end())
 		{
+			if (it->second.type != type)
+			{
+				SFG_ERR("resource is already loaded with a different type: {0}", hash);
+				return resource_state_e::failed;
+			}
+
+			if (it->second.state != resource_state_e::ready)
+			{
+				SFG_ERR("resource load is already in progress: {0}", hash);
+				return resource_state_e::failed;
+			}
+
 			it->second.ref_count++;
 			_generation++;
-			return it->second.state;
+			return resource_state_e::ready;
 		}
 
 		const resource_type_desc_t* desc = find_resource_type_desc(type);
 
-		if (desc == nullptr)
+		if (desc == nullptr || desc->load == nullptr)
 		{
-			SFG_WARN("failed loading resource, type description not found! {0}", static_cast<u8>(type));
-			return resource_state_e::failed;
-		}
-
-		if (desc->load == nullptr)
-		{
-			SFG_WARN("failed loading resource, load not found! {0}", static_cast<u8>(type));
+			SFG_ERR("resource type has no file loader: {0}", static_cast<u8>(type));
 			return resource_state_e::failed;
 		}
 
@@ -127,84 +132,91 @@ namespace sfg
 
 		if (!_resource_file_system->read_resource(hash, 0, sizeof(resource_header_t), header_stream))
 		{
-			SFG_WARN("failed reading resource header: {0}", hash);
+			SFG_ERR("failed reading resource header: {0}", hash);
 			return resource_state_e::failed;
 		}
 
-		istream_t		  header_data = {};
-		resource_header_t header	  = {};
+		istream_t		  header_data(header_stream.get_raw(), header_stream.get_size());
+		resource_header_t header = {};
 
-		header_data.open(header_stream.get_raw(), header_stream.get_size());
 		header.deserialize(header_data);
+
 		if (header.type != type)
 		{
-			SFG_ERR("deserialized resource type does not match the requested resource type :( header: {0} res: {1}, hash: {2}", resource_type_to_string(header.type), resource_type_to_string(type), hash);
+			SFG_ERR("resource type does not match the requested type: {0}, expected {1}, got {2}", hash, resource_type_to_string(type), resource_type_to_string(header.type));
 			return resource_state_e::failed;
 		}
 
-		SFG_ASSERT(header.type == type);
+		if (header.magic != desc->wire_magic || header.version != desc->wire_version)
+		{
+			SFG_ERR("resource format is incompatible and needs recooking: {0}", hash);
+			return resource_state_e::failed;
+		}
 
-		const char*		   debug_name	  = header.debug_name;
 		const size_t	   payload_offset = sizeof(resource_header_t) + static_cast<size_t>(header.dependency_count) * sizeof(resource_dependency_t);
 		resource_context_t ctx{*this};
+		resource_entry_t   entry{
+			.hash		  = hash,
+			.source_ticks = header.source_tick,
+			.runtime	  = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment),
+			.internals	  = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment),
+			.debug_name	  = _memory.allocate_text(header.debug_name),
+			.ref_count	  = 1,
+			.type		  = type,
+		};
 
-		resource_entry_t entry = {};
-		entry.type			   = type;
-		entry.ref_count		   = 1;
-		entry.hash			   = hash;
-		entry.source_ticks	   = header.source_tick;
-		entry.runtime		   = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
-		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
-		entry.state			   = resource_state_e::failed;
-		entry.debug_name	   = _memory.allocate_text(debug_name);
+		_entries.emplace(hash, entry);
 
 		if (header.dependency_count != 0)
 		{
-			entry.dependencies	   = _memory.allocate<resource_dependency_t>(header.dependency_count);
-			entry.dependency_count = header.dependency_count;
+			entry.dependencies = _memory.allocate<resource_dependency_t>(header.dependency_count);
 
 			ostream_t dependency_stream = {};
 
 			if (!_resource_file_system->read_resource(hash, sizeof(resource_header_t), payload_offset - sizeof(resource_header_t), dependency_stream))
 			{
-				SFG_WARN("failed reading resource dependencies for {0}", header.debug_name);
+				SFG_ERR("failed reading resource dependencies: {0}", hash);
 				free_entry(entry);
+				_entries.erase(hash);
 				return resource_state_e::failed;
 			}
 
-			istream_t dependency_data = {};
+			istream_t			   dependency_data(dependency_stream.get_raw(), dependency_stream.get_size());
+			resource_dependency_t* dependencies = _memory.get<resource_dependency_t>(entry.dependencies);
 
-			dependency_data.open(dependency_stream.get_raw(), dependency_stream.get_size());
-			resource_dependency_t* deps = _memory.get<resource_dependency_t>(entry.dependencies);
-
-			for (u32 i = 0; i < header.dependency_count; i++)
+			for (u32 i = 0; i < header.dependency_count; ++i)
 			{
-				dependency_data >> deps[i];
+				dependency_data >> dependencies[i];
 
-				if (load_resource(deps[i].handle, deps[i].type) == resource_state_e::failed)
-					SFG_WARN("failed loading dependency for {0}", header.debug_name);
+				if (load_resource(dependencies[i].handle, dependencies[i].type) == resource_state_e::failed)
+				{
+					SFG_ERR("failed loading dependency {0} for resource {1}", dependencies[i].handle, hash);
+					unload_dependencies(entry);
+					free_entry(entry);
+					_entries.erase(hash);
+					return resource_state_e::failed;
+				}
+
+				++entry.dependency_count;
 			}
 		}
 
-		auto [entry_it, inserted] = _entries.emplace(hash, entry);
-
-		SFG_ASSERT(inserted);
-		resource_entry_t& loaded_entry = entry_it->second;
-
-		if (!desc->load(loaded_entry, ctx, *_resource_file_system, payload_offset))
+		if (!desc->load(entry, ctx, *_resource_file_system, payload_offset))
 		{
-			SFG_WARN("failed loading resource: {0} {1}", debug_name, hash);
-			unload_dependencies(loaded_entry);
-			free_entry(loaded_entry);
-			_entries.erase(entry_it);
+			SFG_ERR("failed loading resource: {0} {1}", header.debug_name, hash);
+			unload_dependencies(entry);
+			free_entry(entry);
+			_entries.erase(hash);
 			return resource_state_e::failed;
 		}
 
-		loaded_entry.state = resource_state_e::ready;
+		entry.state					= resource_state_e::ready;
+		_entries.find(hash)->second = entry;
 		_generation++;
-		SFG_TRACE("loaded resource: {0}", debug_name);
 
-		return _entries.find(hash)->second.state;
+		SFG_TRACE("loaded resource: {0}", header.debug_name);
+
+		return resource_state_e::ready;
 	}
 
 	resource_state_e resource_manager_t::reload_resource(sid_t hash)
@@ -515,54 +527,62 @@ namespace sfg
 	{
 		SFG_ASSERT(is_main_thread());
 
-		auto	   it	  = _entries.find(hash);
-		const bool exists = it != _entries.end();
-		if (exists)
+		auto it = _entries.find(hash);
+
+		if (it != _entries.end())
 		{
+			if (it->second.type != type)
+			{
+				SFG_ERR("resource is already loaded with a different type: {0}", hash);
+				return resource_state_e::failed;
+			}
+
+			if (it->second.state != resource_state_e::ready)
+			{
+				SFG_ERR("resource load is already in progress: {0}", hash);
+				return resource_state_e::failed;
+			}
+
 			it->second.ref_count++;
 			_generation++;
-			return it->second.state;
+			return resource_state_e::ready;
 		}
 
 		const resource_type_desc_t* desc = find_resource_type_desc(type);
-		if (desc == nullptr)
+
+		if (desc == nullptr || desc->runtime_load == nullptr)
 		{
-			SFG_WARN("failed loading runtime resource, type description not found! {0}", static_cast<u8>(type));
+			SFG_ERR("resource type has no runtime loader: {0}", static_cast<u8>(type));
 			return resource_state_e::failed;
 		}
 
-		if (desc->runtime_load == nullptr)
-		{
-			SFG_WARN("failed loading runtime resource, runtime load not found! {0}", static_cast<u8>(type));
-			return resource_state_e::failed;
-		}
-
-		resource_entry_t entry = {};
-		entry.type			   = type;
-		entry.ref_count		   = 1;
-		entry.hash			   = hash;
-		entry.runtime		   = _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment);
-		entry.internals		   = _memory.allocate_bytes(desc->internals_size, desc->internals_alignment);
-		entry.state			   = resource_state_e::failed;
-		entry.debug_name	   = _memory.allocate_text("runtime_resource");
-
-		auto [entry_it, inserted] = _entries.emplace(hash, entry);
-		SFG_ASSERT(inserted);
-		resource_entry_t&  loaded_entry = entry_it->second;
+		resource_entry_t entry{
+			.hash		= hash,
+			.runtime	= _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment),
+			.internals	= _memory.allocate_bytes(desc->internals_size, desc->internals_alignment),
+			.debug_name = _memory.allocate_text("runtime_resource"),
+			.ref_count	= 1,
+			.type		= type,
+		};
 		resource_context_t ctx{*this};
 
-		if (!desc->runtime_load(loaded_entry, ctx, stream))
+		_entries.emplace(hash, entry);
+
+		if (!desc->runtime_load(entry, ctx, stream))
 		{
-			SFG_WARN("failed loading runtime resource: {0}", hash);
-			free_entry(loaded_entry);
-			_entries.erase(entry_it);
+			SFG_ERR("failed loading runtime resource: {0}", hash);
+			free_entry(entry);
+			_entries.erase(hash);
 			return resource_state_e::failed;
 		}
 
-		loaded_entry.state = resource_state_e::ready;
+		entry.state					= resource_state_e::ready;
+		_entries.find(hash)->second = entry;
 		_generation++;
+
 		SFG_TRACE("loaded runtime resource: {0}", hash);
-		return _entries.find(hash)->second.state;
+
+		return resource_state_e::ready;
 	}
 
 	void resource_manager_t::unload_resource(sid_t hash, bool force)

@@ -75,7 +75,10 @@ namespace sfg
 			storage_size = (ALIGN_UP(storage_size, alignof(animation_event_t))) + definition.events.size() * sizeof(animation_event_t);
 
 		if (storage_size == 0)
-			return true;
+		{
+			SFG_ERR("animation has no channels or events: {0}", entry.hash);
+			return false;
+		}
 
 		runtime->data = memory.allocate_bytes(storage_size, alignof(std::max_align_t));
 

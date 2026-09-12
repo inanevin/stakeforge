@@ -28,6 +28,12 @@ namespace sfg
 
 		stream >> prefab_source;
 
+		if (prefab_source.empty())
+		{
+			SFG_ERR("prefab has no source: {0}", entry.hash);
+			return false;
+		}
+
 		chunk_allocator_t& mem = ctx.resource_manager.get_memory();
 		out_source			   = mem.allocate_text(prefab_source.c_str());
 

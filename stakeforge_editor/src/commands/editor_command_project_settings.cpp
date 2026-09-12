@@ -2,26 +2,21 @@
 This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
 Copyright [2025-] Inan Evin
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
 
-   1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
 
-   2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-OF THE POSSIBILITY OF SUCH DAMAGE.
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
 
 */
 #include "commands/editor_command_project_settings.hpp"
@@ -132,12 +127,7 @@ namespace sfg
 		editor_settings_t::get().configurable.normalize();
 
 		const physics_runtime_config_t physics_config = project.settings.project_settings.physics.make_runtime_config(project.settings.project_settings.world_physics_rate, project.settings.project_settings.max_sim_steps);
-		editor_world_controller_t::get().update_physics_settings(
-			physics_config.collision_masks,
-			physics_config.active_collision_layers,
-			physics_config.physics_rate,
-			physics_config.max_sub_steps,
-			physics_config.kinematic_sensors_collide_with_non_dynamic);
+		editor_world_controller_t::get().update_physics_settings(physics_config.collision_masks, physics_config.active_collision_layers, physics_config.physics_rate, physics_config.max_sub_steps, physics_config.kinematic_sensors_collide_with_non_dynamic);
 	}
 
 	bool editor_command_project_settings_t::edit(const editor_command_project_settings_data_t& previous, const editor_command_project_settings_data_t& post)

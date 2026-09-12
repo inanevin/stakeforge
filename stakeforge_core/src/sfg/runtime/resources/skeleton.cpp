@@ -41,7 +41,11 @@ namespace sfg
 
 		const u32 joint_count = static_cast<u32>(skeleton.joints.size());
 
-		SFG_ASSERT(joint_count != 0);
+		if (joint_count == 0)
+		{
+			SFG_ERR("skeleton has no joints: {0}", entry.hash);
+			return false;
+		}
 
 		runtime->joint_count		= joint_count;
 		runtime->slot_count			= static_cast<u32>(skeleton.slots.size());

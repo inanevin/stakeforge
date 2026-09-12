@@ -2,26 +2,21 @@
 This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
 Copyright [2025-] Inan Evin
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
 
-   1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
 
-   2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-OF THE POSSIBILITY OF SUCH DAMAGE.
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
 
 */
 
@@ -47,15 +42,50 @@ namespace sfg
 		}
 
 		out_header = {
-			.type			  = resource_type_e::animation_library,
-			.magic			  = animation_library_loader_t::WIRE_MAGIC,
-			.version		  = animation_library_loader_t::WIRE_VERSION,
-			.source_tick	  = hashing_t::hash_u64(def_stream.get_raw(), def_stream.get_size()),
-			.dependency_count = def.skeleton == NULL_RESOURCE_HANDLE ? 0u : 1u,
+			.type		 = resource_type_e::animation_library,
+			.magic		 = animation_library_loader_t::WIRE_MAGIC,
+			.version	 = animation_library_loader_t::WIRE_VERSION,
+			.source_tick = hashing_t::hash_u64(def_stream.get_raw(), def_stream.get_size()),
 		};
 
+		size_t dependency_capacity = 1;
+
+		for (const animation_library_layer_def_t& layer : def.layers)
+		{
+			for (const animation_library_state_def_t& state : layer.states)
+				dependency_capacity += state.clip_count;
+		}
+
+		vector_t<resource_dependency_t> dependencies = {};
+
+		dependencies.reserve(dependency_capacity);
+
 		if (def.skeleton != NULL_RESOURCE_HANDLE)
-			stream << resource_dependency_t{.handle = def.skeleton, .type = resource_type_e::skeleton};
+			dependencies.push_back({.handle = def.skeleton, .type = resource_type_e::skeleton});
+
+		for (const animation_library_layer_def_t& layer : def.layers)
+		{
+			for (const animation_library_state_def_t& state : layer.states)
+			{
+				for (u32 clip_index = 0; clip_index < state.clip_count; ++clip_index)
+				{
+					const resource_handle_t clip = state.clips[clip_index].animation_clip;
+
+					if (clip == NULL_RESOURCE_HANDLE)
+						continue;
+
+					const auto it = std::find_if(dependencies.begin(), dependencies.end(), [clip](const resource_dependency_t& dependency) { return dependency.handle == clip && dependency.type == resource_type_e::animation; });
+
+					if (it == dependencies.end())
+						dependencies.push_back({.handle = clip, .type = resource_type_e::animation});
+				}
+			}
+		}
+
+		out_header.dependency_count = static_cast<u32>(dependencies.size());
+
+		for (const resource_dependency_t& dependency : dependencies)
+			stream << dependency;
 
 		stream.write_raw(def_stream.get_raw(), def_stream.get_size());
 

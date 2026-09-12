@@ -2,26 +2,21 @@
 This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
 Copyright [2025-] Inan Evin
 
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
 
-   1. Redistributions of source code must retain the above copyright notice, this
-	  list of conditions and the following disclaimer.
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
 
-   2. Redistributions in binary form must reproduce the above copyright notice,
-	  this list of conditions and the following disclaimer in the documentation
-	  and/or other materials provided with the distribution.
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
-INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
-OF THE POSSIBILITY OF SUCH DAMAGE.
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
 
 */
 
@@ -55,6 +50,12 @@ namespace sfg
 				return false;
 			}
 
+			if (def.vertices.empty() || def.indices.empty())
+			{
+				SFG_ERR("physics collision mesh has no geometry: {0}", entry.hash);
+				return false;
+			}
+
 			chunk_allocator_t&				  memory  = ctx.resource_manager.get_memory();
 			physics_collision_mesh_runtime_t* runtime = memory.get<physics_collision_mesh_runtime_t>(entry.runtime);
 			*runtime								  = {};
@@ -65,18 +66,21 @@ namespace sfg
 			SFG_MEMCPY(memory.get<vec3f_t>(runtime->vertices), def.vertices.data(), def.vertices.size() * sizeof(vec3f_t));
 			SFG_MEMCPY(memory.get<primitive_index>(runtime->indices), def.indices.data(), def.indices.size() * sizeof(primitive_index));
 
-			JPH::VertexList vertices;
+			JPH::VertexList vertices = {};
 			vertices.reserve(runtime->vertex_count);
+
 			for (const vec3f_t& vertex : def.vertices)
 				vertices.emplace_back(vertex.x, vertex.y, vertex.z);
 
-			JPH::IndexedTriangleList triangles;
+			JPH::IndexedTriangleList triangles = {};
 			triangles.reserve(runtime->index_count / 3);
+
 			for (u32 i = 0; i < runtime->index_count; i += 3)
 				triangles.emplace_back(def.indices[i], def.indices[i + 1], def.indices[i + 2]);
 
 			JPH::MeshShapeSettings			settings(vertices, triangles);
 			JPH::ShapeSettings::ShapeResult result = settings.Create();
+
 			if (result.HasError())
 			{
 				SFG_ERR("failed to create physics collision mesh shape: {0}", result.GetError().c_str());
@@ -88,8 +92,10 @@ namespace sfg
 
 			JPH::Shape* shape = result.Get().GetPtr();
 			shape->AddRef();
+
 			runtime->mesh_shape							  = memory.allocate<JPH::Shape*>(1);
 			*memory.get<JPH::Shape*>(runtime->mesh_shape) = shape;
+
 			return true;
 		}
 	}
