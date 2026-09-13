@@ -22,6 +22,9 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/math/vec3f.hpp>
+#include <sfg/math/quat.hpp>
+
 namespace sfg
 {
 #define MAX_ANIMATION_LIBRARY_LAYERS	  6
@@ -34,4 +37,9 @@ namespace sfg
 		blend_2d,
 	};
 
+	struct decomposed_bone_t
+	{
+		vec3f_t position = vec3f_t::zero;
+		quat_t	rotation = quat_t::identity;
+	};
 }

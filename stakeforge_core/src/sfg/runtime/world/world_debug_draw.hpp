@@ -23,7 +23,6 @@ in GAME-LINKING-EXCEPTION.md.
 #pragma once
 
 #include <sfg/data/span.hpp>
-#include <sfg/data/unique.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/vec2f.hpp>
@@ -182,7 +181,7 @@ namespace sfg
 		vector_t<text_command_t>		  _text_commands;
 		vector_t<texture_command_t>		  _texture_commands;
 		vector_t<char>					  _text_bytes;
-		unique_t<ui::vg_canvas_t>		  _text_canvas;
+		ui::vg_canvas_t*				  _text_canvas			  = nullptr;
 		world_debug_draw_config_t		  _config				  = {};
 		u32								  _dropped_line_count	  = 0;
 		u32								  _dropped_triangle_count = 0;

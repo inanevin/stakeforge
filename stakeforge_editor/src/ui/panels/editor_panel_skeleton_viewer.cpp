@@ -1070,7 +1070,7 @@ namespace sfg
 			return;
 
 		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
-		const auto						item   = std::find_if(viewer._mask_items.begin(), viewer._mask_items.end(), [id](const unique_t<mask_item_t>& value) { return value->edit_button.get_root() == id; });
+		const auto						item   = std::find_if(viewer._mask_items.begin(), viewer._mask_items.end(), [id](const mask_item_t* value) { return value->edit_button.get_root() == id; });
 
 		SFG_ASSERT(item != viewer._mask_items.end());
 
@@ -1100,7 +1100,7 @@ namespace sfg
 			return;
 
 		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
-		const auto						item   = std::find_if(viewer._mask_items.begin(), viewer._mask_items.end(), [id](const unique_t<mask_item_t>& value) { return value->remove_button.get_root() == id; });
+		const auto						item   = std::find_if(viewer._mask_items.begin(), viewer._mask_items.end(), [id](const mask_item_t* value) { return value->remove_button.get_root() == id; });
 
 		SFG_ASSERT(item != viewer._mask_items.end());
 
@@ -1129,7 +1129,7 @@ namespace sfg
 	{
 		mask_item_t&					item   = *static_cast<mask_item_t*>(user_data);
 		editor_panel_skeleton_viewer_t& viewer = *item.viewer;
-		const auto						active = std::find_if(viewer._mask_items.begin(), viewer._mask_items.end(), [&item](const unique_t<mask_item_t>& value) { return value.get() == &item; });
+		const auto						active = std::find_if(viewer._mask_items.begin(), viewer._mask_items.end(), [&item](const mask_item_t* value) { return value == &item; });
 
 		viewer._ui->get_input().set_focus(viewer._right_content, false);
 		viewer._active_mask = is_toggled ? static_cast<u32>(active - viewer._mask_items.begin()) : UINT32_MAX;
@@ -1160,13 +1160,15 @@ namespace sfg
 
 	void editor_panel_skeleton_viewer_t::clear_mask_items()
 	{
-		for (const unique_t<mask_item_t>& item : _mask_items)
+		for (mask_item_t* item : _mask_items)
 		{
 			item->name_field.uninit();
 			item->activate_button.uninit();
 			item->edit_button.uninit();
 			item->remove_button.uninit();
 			_ui->deallocate_widget(item->root);
+
+			delete item;
 		}
 
 		_mask_items.resize(0);
@@ -1183,17 +1185,18 @@ namespace sfg
 
 		for (skeleton_mask_def_t& mask : _skeleton.masks)
 		{
-			unique_t<mask_item_t> item = make_unique<mask_item_t>();
+			mask_item_t* item = new mask_item_t{};
 
 			item->root = _ui->allocate_widget();
 			_ui->set_widget_debug_name(item->root, "skeleton_mask");
 			tree.attach(_mask_list, item->root);
 
 			ui::layout_in_t& in = tree.in(item->root);
-			in.size_mode_x		= ui::axis_mode_e::parent_relative;
-			in.size_mode_y		= ui::axis_mode_e::fixed;
-			in.size_value		= {1.0f, theme.item_area_height * 2.0f};
-			in.flow				= ui::flow_e::column;
+
+			in.size_mode_x = ui::axis_mode_e::parent_relative;
+			in.size_mode_y = ui::axis_mode_e::fixed;
+			in.size_value  = {1.0f, theme.item_area_height * 2.0f};
+			in.flow		   = ui::flow_e::column;
 			_ui->get_paint().set_rect(item->root, {.fill_color_a = theme.color_frame, .fill_color_b = theme.color_frame});
 
 			const editor_property_row_t name_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, item->root, "Name");
@@ -1224,7 +1227,7 @@ namespace sfg
 										   .text				= "Activate",
 										   .toggled_text		= "Activate",
 										   .on_toggle			= on_mask_activate_toggled,
-										   .user_data			= item.get(),
+										   .user_data			= item,
 									   });
 
 			item->edit_button.init(*_ui, edit_row.right, {.text = "Edit"});
@@ -1238,13 +1241,14 @@ namespace sfg
 			for (const ui::widget_id_t control : controls)
 			{
 				ui::layout_in_t& control_in = tree.in(control);
-				control_in.size_mode_x		= ui::axis_mode_e::fill;
-				control_in.pos_mode_y		= ui::pos_mode_e::relative_in_parent;
-				control_in.pos_value.y		= 0.5f;
-				control_in.anchor_y			= ui::anchor_e::center;
+
+				control_in.size_mode_x = ui::axis_mode_e::fill;
+				control_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
+				control_in.pos_value.y = 0.5f;
+				control_in.anchor_y	   = ui::anchor_e::center;
 			}
 
-			_mask_items.push_back(std::move(item));
+			_mask_items.push_back(item);
 		}
 
 		refresh_mask_backgrounds();

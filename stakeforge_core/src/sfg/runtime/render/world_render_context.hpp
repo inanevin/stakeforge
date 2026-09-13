@@ -23,7 +23,6 @@ in GAME-LINKING-EXCEPTION.md.
 #pragma once
 
 #include <sfg/common/size_definitions.hpp>
-#include <sfg/data/unique.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/mat4x4.hpp>
 #include <sfg/math/vec2f.hpp>
@@ -997,8 +996,8 @@ namespace sfg
 		gfx_handle_t					  _ssao_noise_texture		= {};
 		gfx_handle_t					  _ssao_noise_staging		= {};
 		gpu_index_t						  _ssao_noise_texture_index = NULL_GPU_INDEX;
-		unique_t<ui::ui_renderer_t>		  _canvas_before_renderer	= {};
-		unique_t<ui::ui_renderer_t>		  _canvas_after_renderer	= {};
+		ui::ui_renderer_t*				  _canvas_before_renderer	= nullptr;
+		ui::ui_renderer_t*				  _canvas_after_renderer	= nullptr;
 		u8								  _post_process_hdr_scratch = 0;
 		u8								  _post_process_ldr_scratch = 0;
 	};

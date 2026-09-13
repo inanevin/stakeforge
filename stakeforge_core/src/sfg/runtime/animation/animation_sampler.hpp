@@ -31,13 +31,16 @@ namespace sfg
 	struct animation_runtime_t;
 	struct animation_channel_v3_runtime_t;
 	struct animation_channel_q_runtime_t;
+	struct skeleton_mask_t;
 	struct vec3f_t;
+	struct decomposed_bone_t;
 	class quat_t;
 
 	class animation_sampler_t final
 	{
 	public:
 		static void sample_animation(const animation_runtime_t* animation, f32 sample_time, const u64* bitmasks, span_t<animation_graph_bone_t> pose_bones);
+		static void sample_animation(const animation_runtime_t* animation, f32 sample_time, const skeleton_mask_t& mask, skeleton_mask_t& out_written_bones, decomposed_bone_t* bones, f32 weight);
 
 	private:
 		static vec3f_t sample_channel(const animation_channel_v3_runtime_t& channel, f32 sample_time);

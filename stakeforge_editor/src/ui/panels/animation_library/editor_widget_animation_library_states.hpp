@@ -22,7 +22,6 @@ in GAME-LINKING-EXCEPTION.md.
 #pragma once
 
 #include "ui/widgets/editor_widget_button.hpp"
-#include <sfg/data/unique.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/runtime/animation/common_animation.hpp>
 
@@ -94,14 +93,14 @@ namespace sfg
 		static void draw_diamond(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 
 	private:
-		vector_t<unique_t<state_controls_t>> _controls								 = {};
-		vector_t<state_ui_t>				 _state_ui[MAX_ANIMATION_LIBRARY_LAYERS] = {};
-		editor_widget_button_t				 _add_state								 = {};
-		editor_widget_button_t				 _clear_states							 = {};
-		editor_panel_animation_library_t*	 _panel									 = nullptr;
-		ui::ui_context*						 _ui									 = nullptr;
-		u32									 _layer									 = UINT32_MAX;
-		ui::widget_id_t						 _root									 = NULL_WIDGET;
-		ui::widget_id_t						 _list									 = NULL_WIDGET;
+		vector_t<state_controls_t*>		  _controls								  = {};
+		vector_t<state_ui_t>			  _state_ui[MAX_ANIMATION_LIBRARY_LAYERS] = {};
+		editor_widget_button_t			  _add_state							  = {};
+		editor_widget_button_t			  _clear_states							  = {};
+		editor_panel_animation_library_t* _panel								  = nullptr;
+		ui::ui_context*					  _ui									  = nullptr;
+		u32								  _layer								  = UINT32_MAX;
+		ui::widget_id_t					  _root									  = NULL_WIDGET;
+		ui::widget_id_t					  _list									  = NULL_WIDGET;
 	};
 }

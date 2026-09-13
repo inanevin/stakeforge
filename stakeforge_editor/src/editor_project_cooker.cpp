@@ -57,22 +57,28 @@ namespace sfg
 
 	void editor_project_cooker_t::init()
 	{
-		_cook_options	= make_unique<editor_project_cook_options_t>();
-		_package_meta	= make_unique<project_package_meta_t>();
-		_options_modal	= make_unique<editor_modal_project_cooker_t>();
-		_progress_modal = make_unique<editor_modal_progress_bar_t>();
-		_work_handle	= {};
-		_cook_state		= cook_state_e::idle;
+		_cook_options	= new editor_project_cook_options_t{};
+		_package_meta	= new project_package_meta_t{};
+		_options_modal	= new editor_modal_project_cooker_t{};
+		_progress_modal = new editor_modal_progress_bar_t{};
+
+		_work_handle = {};
+		_cook_state	 = cook_state_e::idle;
 	}
 
 	void editor_project_cooker_t::uninit()
 	{
 		SFG_ASSERT(_work_handle.is_null());
 
-		_progress_modal.reset();
-		_options_modal.reset();
-		_package_meta.reset();
-		_cook_options.reset();
+		delete _progress_modal;
+		delete _options_modal;
+		delete _package_meta;
+		delete _cook_options;
+
+		_progress_modal = nullptr;
+		_options_modal	= nullptr;
+		_package_meta	= nullptr;
+		_cook_options	= nullptr;
 
 		_cook_failure_reason.resize(0);
 		_release_script_output_directory.resize(0);

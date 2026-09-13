@@ -29,7 +29,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "ui/widgets/editor_widget_world_view.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
 
-#include <sfg/data/unique.hpp>
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/runtime/resources/animation_library_def.hpp>
 
@@ -110,8 +109,8 @@ namespace sfg
 		static void on_asset_deletion(editor_asset_manager_t& manager, span_t<const sid_t> asset_ids, void* user_data);
 
 	private:
-		unique_t<layer_controls_t[]>							 _layer_controls											 = {};
-		unique_t<editor_widget_animation_library_states_t>		 _states_widget												 = {};
+		layer_controls_t*										 _layer_controls											 = nullptr;
+		editor_widget_animation_library_states_t*				 _states_widget												 = nullptr;
 		vector_t<string_t>										 _mask_names												 = {};
 		vector_t<editor_dropdown_item_t>						 _mask_items												 = {};
 		editor_scrollbar_t										 _left_scrollbar											 = {};

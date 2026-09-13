@@ -31,7 +31,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "ui/widgets/editor_widgets_icon_button.hpp"
 #include "world/editor_world_handle.hpp"
 
-#include <sfg/data/unique.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -182,30 +181,30 @@ namespace sfg
 		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 
 	private:
-		editor_widget_world_view_t		_world_view					 = {};
-		editor_widget_reference_t		_preview_animation_reference = {};
-		editor_icon_button_t			_animation_play_button		 = {};
-		editor_icon_button_t			_animation_reset_button		 = {};
-		editor_widget_button_t			_save_changes_button		 = {};
-		editor_widget_button_t			_make_mask_button			 = {};
-		vector_t<unique_t<mask_item_t>> _mask_items					 = {};
-		vector_t<u32>					_selected_joints			 = {};
-		editor_vec3_field_t				_slot_position_field		 = {};
-		editor_vec3_field_t				_slot_preview_scale_field	 = {};
-		editor_quat_field_t				_slot_rotation_field		 = {};
-		editor_widget_reference_t		_slot_preview_mesh_reference = {};
-		editor_scrollbar_t				_right_scrollbar			 = {};
-		editor_widget_reference_t		_preview_mesh_reference		 = {};
-		editor_split_border_t			_split_border				 = {};
-		skeleton_def_t					_skeleton					 = {};
-		vector_t<joint_row_t>			_joint_rows					 = {};
-		vector_t<slot_preview_t>		_slot_previews				 = {};
-		mat4x3_t						_slot_initial_absolute		 = mat4x3_t::identity;
-		mat4x3_t						_slot_parent_transform		 = mat4x3_t::identity;
-		quat_t							_slot_parent_rotation		 = quat_t::identity;
-		quat_t							_slot_initial_rotation		 = quat_t::identity;
-		vec3f_t							_slot_initial_position		 = vec3f_t::zero;
-		vec3f_t							_slot_initial_preview_scale	 = vec3f_t::one;
+		editor_widget_world_view_t _world_view					= {};
+		editor_widget_reference_t  _preview_animation_reference = {};
+		editor_icon_button_t	   _animation_play_button		= {};
+		editor_icon_button_t	   _animation_reset_button		= {};
+		editor_widget_button_t	   _save_changes_button			= {};
+		editor_widget_button_t	   _make_mask_button			= {};
+		vector_t<mask_item_t*>	   _mask_items					= {};
+		vector_t<u32>			   _selected_joints				= {};
+		editor_vec3_field_t		   _slot_position_field			= {};
+		editor_vec3_field_t		   _slot_preview_scale_field	= {};
+		editor_quat_field_t		   _slot_rotation_field			= {};
+		editor_widget_reference_t  _slot_preview_mesh_reference = {};
+		editor_scrollbar_t		   _right_scrollbar				= {};
+		editor_widget_reference_t  _preview_mesh_reference		= {};
+		editor_split_border_t	   _split_border				= {};
+		skeleton_def_t			   _skeleton					= {};
+		vector_t<joint_row_t>	   _joint_rows					= {};
+		vector_t<slot_preview_t>   _slot_previews				= {};
+		mat4x3_t				   _slot_initial_absolute		= mat4x3_t::identity;
+		mat4x3_t				   _slot_parent_transform		= mat4x3_t::identity;
+		quat_t					   _slot_parent_rotation		= quat_t::identity;
+		quat_t					   _slot_initial_rotation		= quat_t::identity;
+		vec3f_t					   _slot_initial_position		= vec3f_t::zero;
+		vec3f_t					   _slot_initial_preview_scale	= vec3f_t::one;
 
 		string_t												 _asset_name			  = {};
 		string_t												 _joint_count_text		  = {};

@@ -24,7 +24,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
-#include <sfg/data/unique.hpp>
 #include <sfg/memory/pool_handle.hpp>
 
 namespace sfg
@@ -81,11 +80,11 @@ namespace sfg
 		string_t									 _cook_failure_reason			  = {};
 		string_t									 _release_script_output_directory = {};
 		string_t									 _target_path					  = {};
-		unique_t<editor_project_cook_options_t>		 _cook_options;
-		unique_t<project_package_meta_t>			 _package_meta;
-		unique_t<editor_modal_project_cooker_t>		 _options_modal;
-		unique_t<editor_modal_progress_bar_t>		 _progress_modal;
-		pool_handle_t<u32, editor_work_handle_tag_t> _work_handle = {};
-		cook_state_e								 _cook_state  = cook_state_e::idle;
+		editor_project_cook_options_t*				 _cook_options					  = nullptr;
+		project_package_meta_t*						 _package_meta					  = nullptr;
+		editor_modal_project_cooker_t*				 _options_modal					  = nullptr;
+		editor_modal_progress_bar_t*				 _progress_modal				  = nullptr;
+		pool_handle_t<u32, editor_work_handle_tag_t> _work_handle					  = {};
+		cook_state_e								 _cook_state					  = cook_state_e::idle;
 	};
 }

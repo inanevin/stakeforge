@@ -143,7 +143,7 @@ namespace sfg
 
 	void editor_widget_animation_library_states_t::clear_controls()
 	{
-		for (const auto& controls : _controls)
+		for (state_controls_t* controls : _controls)
 		{
 			for (u32 i = 0; i < controls->clip_count; ++i)
 			{
@@ -165,6 +165,8 @@ namespace sfg
 			controls->add_clip.uninit();
 			controls->clear_clips.uninit();
 			controls->fold.uninit();
+
+			delete controls;
 		}
 
 		_controls.resize(0);
@@ -240,7 +242,7 @@ namespace sfg
 
 	void editor_widget_animation_library_states_t::create_state(u32 index)
 	{
-		_controls.push_back(make_unique<state_controls_t>());
+		_controls.push_back(new state_controls_t{});
 
 		state_controls_t&				controls = *_controls.back();
 		animation_library_state_def_t&	state	 = _panel->_library.layers[_layer].states[index];

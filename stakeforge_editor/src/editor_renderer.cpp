@@ -107,13 +107,16 @@ namespace sfg
 		for (surface_render_target_t& t : _render_targets)
 		{
 			t.ui_renderer->uninit();
-			t.ui_renderer.reset();
+			delete t.ui_renderer;
+			t.ui_renderer = nullptr;
+
 			backend.destroy_swapchain(t.swapchain);
 		}
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; i++)
 		{
 			per_frame_data_t& pfd = _pfd[i];
+
 			backend.destroy_resource(pfd.global_buffer);
 			backend.destroy_command_buffer(pfd.cmd_gfx);
 			backend.destroy_command_buffer(pfd.cmd_gfx_prepare);
@@ -158,7 +161,8 @@ namespace sfg
 			.flags	   = flags,
 		});
 
-		unique_t<ui::ui_renderer_t> ui_renderer = make_unique<ui::ui_renderer_t>();
+		ui::ui_renderer_t* ui_renderer = new ui::ui_renderer_t{};
+
 		ui_renderer->init({
 			.vertex_buffer_max_bytes = ui->get_snapshot_vertex_max_bytes(),
 			.index_buffer_max_bytes	 = ui->get_snapshot_index_max_bytes(),
@@ -167,7 +171,7 @@ namespace sfg
 		_render_targets.push_back({
 			.swapchain	 = swapchain,
 			.ui			 = ui,
-			.ui_renderer = std::move(ui_renderer),
+			.ui_renderer = ui_renderer,
 			.size		 = size,
 			.minimized	 = false,
 			.visible	 = true,
@@ -196,13 +200,15 @@ namespace sfg
 	void editor_renderer_t::destroy_swapchain(gfx_handle_t swapchain)
 	{
 		gfx_backend& backend = gfx_backend::get();
+
 		if (swapchain.is_null())
 			return;
 
 		auto it = std::find_if(_render_targets.begin(), _render_targets.end(), [swapchain](const surface_render_target_t& t) -> bool { return t.swapchain == swapchain; });
 
 		it->ui_renderer->uninit();
-		it->ui_renderer.reset();
+		delete it->ui_renderer;
+		it->ui_renderer = nullptr;
 
 		backend.destroy_swapchain(swapchain);
 		_render_targets.erase(it);
@@ -240,6 +246,7 @@ namespace sfg
 
 		frame_vector_t<rt_t>		 render_targets = {};
 		frame_vector_t<gfx_handle_t> present_list	= {};
+
 		for (const surface_render_target_t& t : _render_targets)
 		{
 			if (t.minimized || !t.visible)
@@ -250,7 +257,7 @@ namespace sfg
 			render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
 
 			backend.get_back_buffer_index(t.swapchain);
-			render_targets.push_back({t.swapchain, t.ui_renderer.get(), t.ui != nullptr ? t.ui->acquire_render_snapshot() : nullptr, t.size});
+			render_targets.push_back({t.swapchain, t.ui_renderer, t.ui != nullptr ? t.ui->acquire_render_snapshot() : nullptr, t.size});
 			present_list.push_back(t.swapchain);
 		}
 

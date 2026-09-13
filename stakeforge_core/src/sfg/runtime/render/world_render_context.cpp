@@ -72,8 +72,14 @@ namespace sfg
 		other._post_process_hdr_scratch = 0;
 		_post_process_ldr_scratch		= other._post_process_ldr_scratch;
 		other._post_process_ldr_scratch = 0;
-		_canvas_before_renderer			= std::move(other._canvas_before_renderer);
-		_canvas_after_renderer			= std::move(other._canvas_after_renderer);
+
+		delete _canvas_before_renderer;
+		delete _canvas_after_renderer;
+
+		_canvas_before_renderer		  = other._canvas_before_renderer;
+		_canvas_after_renderer		  = other._canvas_after_renderer;
+		other._canvas_before_renderer = nullptr;
+		other._canvas_after_renderer  = nullptr;
 
 		_shadow_context		= static_cast<world_render_shadow_context_t&&>(other._shadow_context);
 		_reflection_context = static_cast<world_render_reflection_context_t&&>(other._reflection_context);
@@ -215,6 +221,7 @@ namespace sfg
 		debug_text_index_desc.set_name("world_debug_text_indices");
 
 		gfx_backend& backend = gfx_backend::get();
+
 		if (config.enable_ssao != 0)
 		{
 			const vec2u16_t						noise_size		= {8, 8};
@@ -223,6 +230,7 @@ namespace sfg
 			u8*									noise_data		= static_cast<u8*>(SFG_MALLOC(noise_data_size));
 			std::mt19937						random(1337);
 			std::uniform_real_distribution<f32> distribution(0.0f, 1.0f);
+
 			for (u32 y = 0; y < noise_size.y; ++y)
 			{
 				for (u32 x = 0; x < noise_size.x; ++x)
@@ -451,12 +459,13 @@ namespace sfg
 			_shaders.bloom_upsample	  = render_resources.get_shader_hw(sh->psos[0]);
 		}
 
-		_canvas_before_renderer = make_unique<ui::ui_renderer_t>();
+		_canvas_before_renderer = new ui::ui_renderer_t{};
 		_canvas_before_renderer->init({
 			.vertex_buffer_max_bytes = config.canvas_vertex_max_bytes,
 			.index_buffer_max_bytes	 = config.canvas_index_max_bytes,
 		});
-		_canvas_after_renderer = make_unique<ui::ui_renderer_t>();
+
+		_canvas_after_renderer = new ui::ui_renderer_t{};
 		_canvas_after_renderer->init({
 			.vertex_buffer_max_bytes = config.canvas_vertex_max_bytes,
 			.index_buffer_max_bytes	 = config.canvas_index_max_bytes,
@@ -470,9 +479,12 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
 		_canvas_before_renderer->uninit();
-		_canvas_before_renderer.reset();
+		delete _canvas_before_renderer;
+		_canvas_before_renderer = nullptr;
+
 		_canvas_after_renderer->uninit();
-		_canvas_after_renderer.reset();
+		delete _canvas_after_renderer;
+		_canvas_after_renderer = nullptr;
 
 		destroy_texture();
 		_shadow_context.uninit();

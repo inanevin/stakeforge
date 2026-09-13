@@ -21,8 +21,10 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #include "animation_sampler.hpp"
+#include "common_animation.hpp"
 
 #include <sfg/io/assert.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/runtime/resources/animation.hpp>
 
 namespace sfg
@@ -123,6 +125,47 @@ namespace sfg
 
 			animation_graph_bone_t& pose_bone = pose_bones.data[node_index];
 			pose_bone.local_matrix			  = mat4x3_t::transform(sampled_bone.position, sampled_bone.rotation, sampled_bone.scale);
+		}
+	}
+
+	void animation_sampler_t::sample_animation(const animation_runtime_t* animation, f32 sample_time, const skeleton_mask_t& mask, skeleton_mask_t& out_written_bones, decomposed_bone_t* bones, f32 weight)
+	{
+		SFG_ASSERT(animation != nullptr);
+		SFG_ASSERT(bones != nullptr);
+
+		if (math::almost_equal(weight, 0.0f))
+			return;
+
+		const bool full_weight = math::almost_equal(weight, 1.0f);
+
+		for (u32 channel_index = 0; channel_index < animation->position_count; ++channel_index)
+		{
+			const animation_channel_v3_runtime_t& channel	 = animation->position_channels[channel_index];
+			const u32							  node_index = static_cast<u32>(channel.node_index);
+
+			if (is_masked(node_index, mask.masks))
+				continue;
+
+			decomposed_bone_t& bone		= bones[node_index];
+			const vec3f_t	   position = sample_channel(channel, sample_time);
+
+			bone.position = full_weight ? position : vec3f_t::lerp(bone.position, position, weight);
+			out_written_bones.masks[node_index / 64] |= 1llu << (node_index % 64);
+		}
+
+		for (u32 channel_index = 0; channel_index < animation->rotation_count; ++channel_index)
+		{
+			const animation_channel_q_runtime_t& channel	= animation->rotation_channels[channel_index];
+			const u32							 node_index = static_cast<u32>(channel.node_index);
+
+			if (is_masked(node_index, mask.masks))
+				continue;
+
+			decomposed_bone_t& bone		= bones[node_index];
+			const quat_t	   rotation = sample_channel(channel, sample_time);
+
+			bone.rotation = full_weight ? rotation : quat_t::slerp(bone.rotation, rotation, weight);
+			out_written_bones.masks[node_index / 64] |= 1llu << (node_index % 64);
 		}
 	}
 

@@ -23,7 +23,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/span.hpp>
-#include <sfg/data/unique.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/gfx/common/semaphore_data.hpp>
@@ -66,12 +65,12 @@ namespace sfg
 
 		struct surface_render_target_t
 		{
-			gfx_handle_t				swapchain = {};
-			ui::ui_context*				ui		  = nullptr;
-			unique_t<ui::ui_renderer_t> ui_renderer;
-			vec2u16_t					size	  = {};
-			bool						minimized = false;
-			bool						visible	  = true;
+			gfx_handle_t	   swapchain   = {};
+			ui::ui_context*	   ui		   = nullptr;
+			ui::ui_renderer_t* ui_renderer = nullptr;
+			vec2u16_t		   size		   = {};
+			bool			   minimized   = false;
+			bool			   visible	   = true;
 		};
 
 	public:

@@ -99,8 +99,8 @@ namespace sfg
 	{
 		editor_panel_t::init(ui, parent);
 
-		_layer_controls = make_unique<layer_controls_t[]>(MAX_ANIMATION_LIBRARY_LAYERS);
-		_states_widget	= make_unique<editor_widget_animation_library_states_t>();
+		_layer_controls = new layer_controls_t[MAX_ANIMATION_LIBRARY_LAYERS]{};
+		_states_widget	= new editor_widget_animation_library_states_t{};
 
 		_asset_deletion_listener = editor_asset_manager_t::get().add_asset_deletion_listener(on_asset_deletion, this);
 
@@ -294,8 +294,12 @@ namespace sfg
 		finish_edit();
 		clear_layer_controls();
 		_states_widget->uninit();
-		_states_widget.reset();
-		_layer_controls.reset();
+		delete _states_widget;
+		_states_widget = nullptr;
+
+		delete[] _layer_controls;
+		_layer_controls = nullptr;
+
 		_add_layer_button.uninit();
 		_left_scrollbar.uninit();
 

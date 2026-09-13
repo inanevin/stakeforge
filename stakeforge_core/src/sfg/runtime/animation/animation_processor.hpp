@@ -40,21 +40,19 @@ namespace sfg
 	struct animator_state_tag_t
 	{
 	};
-	struct animator_pose_tag_t
-	{
-	};
+
 	struct animator_library_tag_t
 	{
 	};
 
 	typedef pool_handle_t<u32, animator_state_tag_t>   animator_state_handle_t;
-	typedef pool_handle_t<u32, animator_pose_tag_t>	   animator_pose_handle_t;
 	typedef pool_handle_t<u32, animator_library_tag_t> animator_library_handle_t;
 
 	struct animator_clip_t
 	{
 		resource_handle_t clip_handle	 = NULL_RESOURCE_HANDLE;
 		vec2f_t			  blend_position = vec2f_t::zero;
+		f32				  speed			 = 1.0f;
 		f32				  duration		 = 0.0f;
 		f32				  start_time	 = 0.0f;
 	};
@@ -77,7 +75,7 @@ namespace sfg
 		u32							   layer_index			= 0;
 		u32							   clip_count			= 0;
 		f32							   speed				= 0.0f;
-		f32							   current_time			= 0.0f;
+		f32							   current_phase		= 0.0f;
 		animation_library_blend_type_e blend_type			= animation_library_blend_type_e::no_blend;
 		bool						   loop					= false;
 	};
@@ -126,6 +124,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void tick(f32 dt);
+		void calculate_skinning_matrices(f32 dt);
 
 		void					switch_layer_state(animator_library_handle_t library, u32 layer_index, animator_state_handle_t state, f32 transition_duration);
 		animator_state_handle_t find_state_handle(animator_library_handle_t library, sid_t name_hash, u32 layer = UINT32_MAX);
@@ -133,15 +132,15 @@ namespace sfg
 	private:
 		void alloc_for_entity(entity_id_t id);
 		void dealloc_for_entity(entity_id_t id);
-		void process_state(animator_state_t& state, animator_pose_t& write_pose, const skeleton_mask_t& mask, f32 weight, f32 dt, bool sample_animation);
-		void blend_poses(const animator_pose_t& pose, animator_pose_t& target, f32 weight);
+		void process_state(decomposed_bone_t* decomposed, animator_state_t& state, const skeleton_mask_t& mask, f32 weight, f32 dt, bool sample_animation);
+		u32	 get_count_for_lib_alloc(u32 skeleton_joint_count);
 
 	private:
-		world_t*															_world	  = nullptr;
-		chunk_allocator_t													_aux	  = {};
-		chunk_allocator_t													_bone_aux = {};
+		world_t*															_world			   = nullptr;
+		chunk_allocator_t													_aux			   = {};
+		chunk_allocator_t													_bone_aux		   = {};
+		chunk_allocator_t													_decomposition_aux = {};
 		dynamic_gen_pool_t<animator_state_t, u32, animator_state_tag_t>		_states;
 		dynamic_gen_pool_t<animator_library_t, u32, animator_library_tag_t> _libraries;
-		dynamic_gen_pool_t<animator_pose_t, u32, animator_pose_tag_t>		_poses;
 	};
 }

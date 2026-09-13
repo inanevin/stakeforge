@@ -27,6 +27,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/resources/animation_library.hpp>
 #include <sfg/runtime/resources/skeleton.hpp>
+#include <sfg/runtime/resources/animation.hpp>
+#include <sfg/runtime/animation/animation_sampler.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
@@ -38,7 +40,9 @@ namespace sfg
 	{
 		_world = &world;
 		_aux.init(aux_size);
-		_bone_aux.init(max_library_support * (MAX_SKELETON_BONES * 3 + 1));
+
+		_bone_aux.init(max_library_support * get_count_for_lib_alloc(MAX_SKELETON_BONES) * sizeof(mat4x3_t));
+		_decomposition_aux.init(max_library_support * sizeof(decomposed_bone_t) * MAX_SKELETON_BONES);
 
 		_states.reserve(1000);
 		_libraries.reserve(max_library_support);
@@ -52,10 +56,10 @@ namespace sfg
 
 	void animation_processor_t::tick(f32 dt)
 	{
-		ecs_component_table_t& table_lib		   = _world->get_component_table(type_id_t<component_animation_library_t>::value);
-		ecs_component_table_t& table_sys_lib	   = _world->get_component_table(type_id_t<component_system_animation_library_t>::value);
-		ecs_component_table_t& table_disabled	   = _world->get_component_table(type_id_t<component_disabled_t>::value);
-		ecs_component_table_t& table_sys_transform = _world->get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& table_lib			 = _world->get_component_table(type_id_t<component_animation_library_t>::value);
+		const ecs_component_table_t& table_sys_lib		 = _world->get_component_table(type_id_t<component_system_animation_library_t>::value);
+		const ecs_component_table_t& table_disabled		 = _world->get_component_table(type_id_t<component_disabled_t>::value);
+		const ecs_component_table_t& table_sys_transform = _world->get_component_table(type_id_t<component_system_transform_t>::value);
 
 		// allocate & deallocate system animation library
 		{
@@ -117,16 +121,17 @@ namespace sfg
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 		{
-			const component_animation_library_t&		lib				 = row.get<component_animation_library_t>();
-			const component_system_animation_library_t& sys_lib			 = row.get<component_system_animation_library_t>();
-			const vec3f_t								pos				 = _world->get_entity_pos_abs(row.id);
-			const vec3f_t								cam_to_pos		 = (pos - cam_pos).normalized();
-			const float									dot				 = vec3f_t::dot(cam_to_pos, cam_fw);
-			const bool									sample_animation = dot < math::cos(lib.cull_angle_limit * DEG_2_RAD);
-
-			animator_pose_t layer_poses[MAX_ANIMATION_LIBRARY_LAYERS] = {};
+			const component_animation_library_t&  lib			   = row.get<component_animation_library_t>();
+			component_system_animation_library_t& sys_lib		   = row.get_mutable<component_system_animation_library_t>();
+			const vec3f_t						  pos			   = _world->get_entity_pos_abs(row.id);
+			const vec3f_t						  cam_to_pos	   = (pos - cam_pos).normalized();
+			const float							  dot			   = vec3f_t::dot(cam_to_pos, cam_fw);
+			const bool							  sample_animation = dot < math::cos(lib.cull_angle_limit * DEG_2_RAD);
+			sys_lib.sample_this_frame							   = sample_animation;
 
 			animator_library_t& anim_lib = _libraries.get({sys_lib.lib_alloc.index, sys_lib.lib_alloc.generation});
+
+			decomposed_bone_t* decomposed = _decomposition_aux.get<decomposed_bone_t>(sys_lib.decompose_alloc);
 
 			for (u32 i = 0; i < anim_lib.layer_count; i++)
 			{
@@ -135,12 +140,13 @@ namespace sfg
 					continue;
 
 				animator_state_t& active_state = _states.get(layer.active_state);
-				animator_pose_t&  pose		   = layer_poses[i];
+
+				f32 layer_weight = i == 0 ? 1.0f : layer.weight;
 
 				if (layer.current_switch.active)
 				{
-					process_state(active_state, pose, layer.mask, 1.0f, dt, sample_animation);
-					process_state(_states.get(layer.current_switch.target_state), pose, layer.mask, layer.current_switch.current_time / layer.current_switch.duration, dt, sample_animation);
+					process_state(decomposed, active_state, layer.mask, layer_weight, dt, sample_animation);
+					process_state(decomposed, _states.get(layer.current_switch.target_state), layer.mask, layer.current_switch.current_time / layer.current_switch.duration, dt, sample_animation);
 
 					layer.current_switch.current_time += dt;
 
@@ -153,28 +159,56 @@ namespace sfg
 					continue;
 				}
 
-				process_state(active_state, pose, layer.mask, 1.0f, dt, sample_animation);
+				process_state(decomposed, active_state, layer.mask, layer_weight, dt, sample_animation);
 			}
+		}
+	}
 
-			if (!sample_animation)
+	void animation_processor_t::calculate_skinning_matrices(f32 dt)
+	{
+		const ecs_component_table_t& table_lib			 = _world->get_component_table(type_id_t<component_animation_library_t>::value);
+		const ecs_component_table_t& table_sys_lib		 = _world->get_component_table(type_id_t<component_system_animation_library_t>::value);
+		const ecs_component_table_t& table_disabled		 = _world->get_component_table(type_id_t<component_disabled_t>::value);
+		const ecs_component_table_t& table_sys_transform = _world->get_component_table(type_id_t<component_system_transform_t>::value);
+
+		ecs_component_table_ref_t refs[] = {table_lib.ref(), table_sys_lib.ref(), !table_disabled.ref()};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+		{
+			const component_animation_library_t&  lib	  = row.get<component_animation_library_t>();
+			component_system_animation_library_t& sys_lib = row.get_mutable<component_system_animation_library_t>();
+
+			if (!sys_lib.sample_this_frame)
 				continue;
 
-			for (u32 i = 1; i < anim_lib.layer_count; i++)
-			{
-				animator_layer_t& layer = anim_lib.layers[i];
-				if (layer.active_state.is_null())
-					continue;
+			decomposed_bone_t* decomposed = _decomposition_aux.get<decomposed_bone_t>(sys_lib.decompose_alloc);
+			mat4x3_t*		   matrices	  = _bone_aux.get<mat4x3_t>(sys_lib.bone_alloc);
+			const u32		   jc		  = sys_lib.joint_count;
 
-				blend_poses(layer_poses[i - 1], layer_poses[i], layer.weight);
+			const mat4x3_t& skinning = matrices[0];
+
+			const u32* eval_order	  = _bone_aux.get<u32>(sys_lib.evaluation_order);
+			const u32* parent_indices = _bone_aux.get<u32>(sys_lib.parent_indices);
+
+			for (u32 i = 0; i < jc; ++i)
+			{
+				const u32 joint_index  = eval_order[i];
+				const u32 parent_index = parent_indices[joint_index];
+
+				if (parent_index != SKELETON_JOINT_NO_PARENT)
+					matrices[1 + jc * 2 + joint_index] = matrices[1 + jc * 2 + parent_index] * mat4x3_t::transform(decomposed[joint_index].position, decomposed[joint_index].rotation, vec3f_t::one);
 			}
 
-			const animator_pose_t& final_pose = layer_poses[anim_lib.layer_count - 1];
+			for (u32 i = 0; i < jc; i++)
+			{
+				matrices[1 + jc + i] = skinning * matrices[1 + jc * 2 + i] * matrices[1 + i]; // skinning * skel space abs * inv_binds
+			}
 		}
 	}
 
 	void animation_processor_t::switch_layer_state(animator_library_handle_t library, u32 layer_index, animator_state_handle_t state, f32 transition_duration)
 	{
-		if (_libraries.is_valid(library))
+		if (!_libraries.is_valid(library))
 		{
 			SFG_ERR("library handle is not valid!");
 			return;
@@ -194,7 +228,7 @@ namespace sfg
 			return;
 		}
 
-		_states.get(state).current_time = 0.0f;
+		_states.get(state).current_phase = 0.0f;
 
 		animator_layer_t& layer = lib.layers[layer_index];
 		if (math::almost_equal(transition_duration, 0.0f))
@@ -212,7 +246,7 @@ namespace sfg
 
 	animator_state_handle_t animation_processor_t::find_state_handle(animator_library_handle_t library, sid_t name_hash, u32 layer_index)
 	{
-		if (_libraries.is_valid(library))
+		if (!_libraries.is_valid(library))
 		{
 			SFG_ERR("library handle is not valid!");
 			return {};
@@ -228,18 +262,24 @@ namespace sfg
 				return {};
 			}
 
-			const animator_state_handle_t* states = _aux.get<animator_state_handle_t>(lib.layers[layer_index].state_handles);
-			for (u32 j = 0; j < lib.layers[layer_index].state_count; j++)
+			animator_layer_t& layer = lib.layers[layer_index];
+
+			const animator_state_handle_t* states = layer.state_count == 0 ? nullptr : _aux.get<animator_state_handle_t>(layer.state_handles);
+			for (u32 j = 0; j < layer.state_count; j++)
 			{
 				const animator_state_t& state = _states.get(states[j]);
 				if (state.name_hash == name_hash)
 					return states[j];
 			}
+
+			return {};
 		}
 
 		for (u32 i = 0; i < lib.layer_count; i++)
 		{
-			const animator_state_handle_t* states = _aux.get<animator_state_handle_t>(lib.layers[i].state_handles);
+			animator_layer_t& layer = lib.layers[i];
+
+			const animator_state_handle_t* states = layer.state_count == 0 ? nullptr : _aux.get<animator_state_handle_t>(layer.state_handles);
 			for (u32 j = 0; j < lib.layers[i].state_count; j++)
 			{
 				const animator_state_t& state = _states.get(states[j]);
@@ -254,16 +294,9 @@ namespace sfg
 
 	void animation_processor_t::alloc_for_entity(entity_id_t id)
 	{
-		const component_animation_library_t&  comp_lib = _world->get_component_table<component_animation_library_t>().get_as<component_animation_library_t>(id);
-		component_system_animation_library_t& sys	   = _world->get_component_table<component_system_animation_library_t>().get_as<component_system_animation_library_t>(id);
-		resource_manager_t&					  rm	   = resource_manager_t::get();
-
-		const animator_library_handle_t handle = _libraries.add();
-		sys.lib_alloc						   = {handle.index, handle.generation};
-
-		animator_library_t& anim_lib = _libraries.get(handle);
-
-		const animation_library_runtime_t* res_lib = rm.find_runtime<animation_library_runtime_t>(comp_lib.animation_library);
+		const component_animation_library_t& comp_lib = _world->get_component_table<component_animation_library_t>().get_as<component_animation_library_t>(id);
+		resource_manager_t&					 rm		  = resource_manager_t::get();
+		const animation_library_runtime_t*	 res_lib  = rm.find_runtime<animation_library_runtime_t>(comp_lib.animation_library);
 
 		if (res_lib == nullptr)
 		{
@@ -281,20 +314,56 @@ namespace sfg
 			return;
 		}
 
-		const u32 skeleton_joint_count = res_skeleton->joint_count;
-		const u32 total_space		   = 1 + skeleton_joint_count * 3; // skinning matrix + final skinned + inverse binds + local manipulate
-		sys.bone_alloc				   = _bone_aux.allocate<mat4x3_t>(total_space);
+		component_system_animation_library_t& sys = _world->get_component_table<component_system_animation_library_t>().add_or_get_as<component_system_animation_library_t>(id);
 
-		mat4x3_t* const matrices = _bone_aux.get<mat4x3_t>(sys.bone_alloc);
-		matrices[0]				 = res_skeleton->skinning_transform;
+		const animator_library_handle_t handle = _libraries.add();
+		sys.lib_alloc						   = {handle.index, handle.generation};
+		sys.animation_library				   = comp_lib.animation_library;
+
+		animator_library_t& anim_lib = _libraries.get(handle);
+
+		const u32 skeleton_joint_count = res_skeleton->joint_count;
+		sys.bone_alloc				   = _bone_aux.allocate<mat4x3_t>(get_count_for_lib_alloc(skeleton_joint_count));
+		sys.decompose_alloc			   = _decomposition_aux.allocate<decomposed_bone_t>(skeleton_joint_count);
+		sys.joint_count				   = skeleton_joint_count;
+		sys.evaluation_order		   = _bone_aux.allocate<u32>(skeleton_joint_count);
+		sys.parent_indices			   = _bone_aux.allocate<u32>(skeleton_joint_count);
+
+		u32* const				 eval_order		= _bone_aux.get<u32>(sys.evaluation_order);
+		u32* const				 parent_indices = _bone_aux.get<u32>(sys.parent_indices);
+		const u32*				 res_eval		= rm.get_memory().get<u32>(res_skeleton->evaluation_order);
+		mat4x3_t* const			 matrices		= _bone_aux.get<mat4x3_t>(sys.bone_alloc);
+		decomposed_bone_t* const decomposed		= _decomposition_aux.get<decomposed_bone_t>(sys.decompose_alloc);
+
+		matrices[0] = res_skeleton->skinning_transform;
 
 		const skeleton_joint_runtime_t* joints = rm.get_memory().get<skeleton_joint_runtime_t>(res_skeleton->joints);
+		vec3f_t							scale;
+
+		// write joint space abs transforms to last storage slot.
+		for (u32 i = 0; i < skeleton_joint_count; ++i)
+		{
+			eval_order[i]	  = res_eval[i];
+			parent_indices[i] = joints[i].parent_index;
+
+			const u32 joint_index  = eval_order[i];
+			const u32 parent_index = joints[joint_index].parent_index;
+
+			if (parent_index != SKELETON_JOINT_NO_PARENT)
+				matrices[1 + skeleton_joint_count * 2 + joint_index] = matrices[1 + skeleton_joint_count * 2 + parent_index] * joints[joint_index].local;
+		}
 
 		for (u32 i = 0; i < skeleton_joint_count; i++)
 		{
-			// inverse binds && locals
-			matrices[1 + skeleton_joint_count + i]	   = joints[i].inverse_bind;
-			matrices[1 + skeleton_joint_count * 2 + i] = joints[i].local;
+			const mat4x3_t& local = joints[i].local;
+
+			// first slot is inverse binds
+			matrices[1 + i] = joints[i].inverse_bind;
+
+			// second slot is final skinning results, empty now
+
+			decomposed_bone_t& decomp = decomposed[i];
+			local.decompose(decomp.position, decomp.rotation, scale);
 		}
 
 		const animation_library_layer_runtime_t* res_layers			= res_lib->layers;
@@ -347,14 +416,14 @@ namespace sfg
 
 				if (res_state.triangle_count != 0)
 				{
-					state.delaunay_triangles = _aux.allocate<vec2f_t>(res_state.triangle_count * 3);
+					state.delaunay_triangles = _aux.allocate<animation_library_state_delaunay_triangle_t>(res_state.triangle_count * 3);
 					state.triangle_count	 = res_state.triangle_count;
 
 					animation_library_state_delaunay_triangle_t*	   state_tris = _aux.get<animation_library_state_delaunay_triangle_t>(state.delaunay_triangles);
 					const animation_library_state_delaunay_triangle_t* tris		  = rm.get_memory().get<animation_library_state_delaunay_triangle_t>(res_state.delaunay_triangles);
 					for (u32 t = 0; t < res_state.triangle_count; t++)
 					{
-						state_tris[i] = tris[i];
+						state_tris[t] = tris[t];
 					}
 				}
 				for (u32 k = 0; k < res_state.clip_count; k++)
@@ -377,14 +446,22 @@ namespace sfg
 
 	void animation_processor_t::dealloc_for_entity(entity_id_t id)
 	{
-		const component_animation_library_t&		lib = _world->get_component_table<component_animation_library_t>().get_as<component_animation_library_t>(id);
-		const component_system_animation_library_t& sys = _world->get_component_table<component_system_animation_library_t>().get_as<component_system_animation_library_t>(id);
+		component_system_animation_library_t& sys = _world->get_component_table<component_system_animation_library_t>().get_as<component_system_animation_library_t>(id);
 
 		const animator_library_handle_t lib_handle = {sys.lib_alloc.index, sys.lib_alloc.generation};
 		const animator_library_t&		anim_lib   = _libraries.get(lib_handle);
 
 		if (sys.bone_alloc)
 			_bone_aux.free(sys.bone_alloc);
+		if (sys.decompose_alloc)
+			_decomposition_aux.free(sys.decompose_alloc);
+		if (sys.parent_indices)
+			_bone_aux.free(sys.parent_indices);
+		if (sys.evaluation_order)
+			_bone_aux.free(sys.evaluation_order);
+
+		sys = {};
+		_world->get_component_table<component_system_animation_library_t>().remove(id);
 
 		for (u32 i = 0; i < anim_lib.layer_count; i++)
 		{
@@ -399,21 +476,37 @@ namespace sfg
 
 				_states.remove(state_handles[j]);
 			}
-			_aux.free(layer.state_handles);
+
+			if (layer.state_handles)
+				_aux.free(layer.state_handles);
 		}
+
+		_libraries.remove(lib_handle);
 	}
 
-	void animation_processor_t::process_state(animator_state_t& state, animator_pose_t& write_pose, const skeleton_mask_t& mask, f32 weight, f32 dt, bool sample_animation)
+	void animation_processor_t::process_state(decomposed_bone_t* decomposed, animator_state_t& state, const skeleton_mask_t& mask, f32 weight, f32 dt, bool sample_animation)
 	{
 		if (state.clip_count == 0)
 			return;
+
+		skeleton_mask_t out_written_bones = {};
 
 		// state processing accesses resource memory for sampling
 		// TODO: think of an alternative more local memory access.
 
 		if (state.blend_type == animation_library_blend_type_e::no_blend || state.clip_count == 1)
 		{
-			// sample clip 0
+			state.current_phase += dt / (state.clips[0].duration / (state.clips[0].speed * state.speed));
+			state.current_phase = state.loop ? math::fmodf(state.current_phase, 1.0f) : math::min(state.current_phase, 1.0f);
+
+			if (sample_animation)
+			{
+				const animation_runtime_t* rt = resource_manager_t::get().find_runtime<animation_runtime_t>(state.clips[0].clip_handle);
+				if (rt == nullptr)
+					return;
+
+				animation_sampler_t::sample_animation(rt, state.current_phase * state.clips[0].duration, mask, out_written_bones, decomposed, 1.0f);
+			}
 		}
 		else if (state.blend_type == animation_library_blend_type_e::blend_1d)
 		{
@@ -450,16 +543,60 @@ namespace sfg
 			if (lower_idx == UINT32_MAX)
 			{
 				// sample_clip higher_idx at full
+				animator_clip_t& clip = state.clips[higher_idx];
+				state.current_phase += dt / (clip.duration / (clip.speed * state.speed));
+				state.current_phase = state.loop ? math::fmodf(state.current_phase, 1.0f) : math::min(state.current_phase, 1.0f);
+
+				if (sample_animation)
+				{
+					const animation_runtime_t* rt = resource_manager_t::get().find_runtime<animation_runtime_t>(clip.clip_handle);
+					if (rt == nullptr)
+						return;
+					const f32 sample_time = state.current_phase * clip.duration;
+					animation_sampler_t::sample_animation(rt, state.current_phase * clip.duration, mask, out_written_bones, decomposed, 1.0f);
+				}
 			}
 			else if (higher_idx == UINT32_MAX)
 			{
 				// sample_clip lower_idx at full
+				animator_clip_t& clip = state.clips[lower_idx];
+				state.current_phase += dt / (clip.duration / (clip.speed * state.speed));
+				state.current_phase = state.loop ? math::fmodf(state.current_phase, 1.0f) : math::min(state.current_phase, 1.0f);
+
+				if (sample_animation)
+				{
+					const animation_runtime_t* rt = resource_manager_t::get().find_runtime<animation_runtime_t>(clip.clip_handle);
+					if (rt == nullptr)
+						return;
+					const f32 sample_time = state.current_phase * clip.duration;
+					animation_sampler_t::sample_animation(rt, state.current_phase * clip.duration, mask, out_written_bones, decomposed, 1.0f);
+				}
 			}
 			else
 			{
-				const float mult		 = 1.0f / (lower_diff + higher_diff);
-				const float higher_blend = higher_diff * mult;
-				// sample both, blend higher in 1.0f - higher_blend
+				const float		 mult		  = 1.0f / (lower_diff + higher_diff);
+				const float		 higher_blend = higher_diff * mult;
+				const float		 lower_blend  = 1.0f - higher_blend;
+				animator_clip_t& low		  = state.clips[lower_idx];
+				animator_clip_t& high		  = state.clips[higher_idx];
+
+				const f32 dur = (low.duration / low.speed) * lower_blend + (high.duration / high.speed) * higher_blend;
+
+				state.current_phase += dt / (dur / state.speed);
+				state.current_phase = state.loop ? math::fmodf(state.current_phase, 1.0f) : math::min(state.current_phase, 1.0f);
+
+				if (sample_animation)
+				{
+					const animation_runtime_t* clip_rt_low	= resource_manager_t::get().find_runtime<animation_runtime_t>(low.clip_handle);
+					const animation_runtime_t* clip_rt_high = resource_manager_t::get().find_runtime<animation_runtime_t>(high.clip_handle);
+					if (clip_rt_low == nullptr || clip_rt_high == nullptr)
+						return;
+
+					const f32 sample_time = state.current_phase * (low.duration * lower_blend + high.duration * higher_blend);
+
+					animation_sampler_t::sample_animation(clip_rt_low, state.current_phase * low.duration, mask, out_written_bones, decomposed, 1.0f);
+					animation_sampler_t::sample_animation(clip_rt_high, state.current_phase * high.duration, mask, out_written_bones, decomposed, higher_blend);
+				}
 			}
 		}
 		else if (state.clip_count > 3)
@@ -479,14 +616,39 @@ namespace sfg
 				const float eps = 0.0001f;
 				if (weight0 > eps && weight1 > eps && weight2 > eps)
 				{
-					// sample tri clips & blend.
+					animator_clip_t& clip0 = state.clips[tri.clip_index0];
+					animator_clip_t& clip1 = state.clips[tri.clip_index1];
+					animator_clip_t& clip2 = state.clips[tri.clip_index2];
+
+					const f32 weighted_dur = (clip0.duration) * weight0 + (clip1.duration) * weight1 + (clip2.duration) * weight2;
+					const f32 duration	   = (clip0.duration / clip0.speed) * weight0 + (clip1.duration / clip1.speed) * weight1 + (clip2.duration / clip2.speed) * weight2;
+					state.current_phase += dt / (duration / state.speed);
+					state.current_phase = state.loop ? math::fmodf(state.current_phase, 1.0f) : math::min(state.current_phase, 1.0f);
+
+					if (sample_animation)
+					{
+						const animation_runtime_t* clip_rt0 = resource_manager_t::get().find_runtime<animation_runtime_t>(clip0.clip_handle);
+						const animation_runtime_t* clip_rt1 = resource_manager_t::get().find_runtime<animation_runtime_t>(clip1.clip_handle);
+						const animation_runtime_t* clip_rt2 = resource_manager_t::get().find_runtime<animation_runtime_t>(clip2.clip_handle);
+						if (clip_rt0 == nullptr || clip_rt1 == nullptr || clip_rt2 == nullptr)
+							return;
+
+						const f32 sample_time = state.current_phase * weighted_dur;
+
+						animation_sampler_t::sample_animation(clip_rt0, state.current_phase * clip0.duration, mask, out_written_bones, decomposed, 1.0f);
+						animation_sampler_t::sample_animation(clip_rt1, state.current_phase * clip1.duration, mask, out_written_bones, decomposed, weight1);
+						animation_sampler_t::sample_animation(clip_rt2, state.current_phase * clip2.duration, mask, out_written_bones, decomposed, weight2);
+					}
+
 					break;
 				}
 			}
 		}
 	}
 
-	void animation_processor_t::blend_poses(const animator_pose_t& pose, animator_pose_t& target, f32 weight)
+	u32 animation_processor_t::get_count_for_lib_alloc(u32 skeleton_joint_count)
 	{
+		// skinning transform + final + inverse binds + local storage
+		return (1 + skeleton_joint_count * 3);
 	}
 }

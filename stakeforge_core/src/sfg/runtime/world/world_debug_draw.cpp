@@ -68,7 +68,7 @@ namespace sfg
 
 		if (config.text_vertex_max_count > 0)
 		{
-			_text_canvas = make_unique<ui::vg_canvas_t>();
+			_text_canvas = new ui::vg_canvas_t{};
 			_text_canvas->init({
 				.vertex_pool_budget_bytes		= config.text_vertex_max_count * sizeof(ui::vg_vertex_t),
 				.index_pool_budget_bytes		= config.text_index_max_count * sizeof(ui::vg_index_t),
@@ -103,7 +103,8 @@ namespace sfg
 		if (_text_canvas)
 		{
 			_text_canvas->uninit();
-			_text_canvas.reset();
+			delete _text_canvas;
+			_text_canvas = nullptr;
 		}
 
 		_config = {};

@@ -40,9 +40,12 @@ namespace sfg
 
 	struct animation_library_state_delaunay_triangle_t
 	{
-		vec2f_t v0	  = vec2f_t::zero;
-		vec2f_t coef1 = vec2f_t::zero;
-		vec2f_t coef2 = vec2f_t::zero;
+		vec2f_t v0			= vec2f_t::zero;
+		vec2f_t coeff1		= vec2f_t::zero;
+		vec2f_t coeff2		= vec2f_t::zero;
+		u32		clip_index0 = 0;
+		u32		clip_index1 = 0;
+		u32		clip_index2 = 0;
 	};
 
 	struct animation_library_state_runtime_t
