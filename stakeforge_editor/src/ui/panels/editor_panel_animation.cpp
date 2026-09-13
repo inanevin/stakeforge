@@ -122,9 +122,6 @@ namespace sfg
 	{
 		editor_panel_t::init(ui, parent);
 
-		_commands = make_unique<editor_command_system_t>();
-		_commands->init({.listener_initial_capacity = 1, .global_instance = false});
-
 		_asset_deletion_listener = editor_asset_manager_t::get().add_asset_deletion_listener(on_asset_deletion, this);
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
@@ -549,7 +546,7 @@ namespace sfg
 			editor_action_menu_controller_t::find(*_ui)->close_action_menu();
 
 		editor_command_animation_events_edit_t::cancel(*this);
-		_commands->clear();
+		editor_command_system_t::get().clear_user_data(this);
 		_event_reflection.uninit();
 		_save_changes_button.uninit();
 		_reset_button.uninit();
@@ -581,9 +578,6 @@ namespace sfg
 		_data		= {};
 		_is_playing = false;
 
-		_commands->uninit();
-		_commands.reset();
-
 		editor_panel_t::uninit();
 	}
 
@@ -601,7 +595,7 @@ namespace sfg
 		if (_ui != nullptr)
 		{
 			editor_command_animation_events_edit_t::cancel(*this);
-			_commands->clear();
+			editor_command_system_t::get().clear_user_data(this);
 		}
 
 		_events.resize(0);
@@ -1587,22 +1581,6 @@ namespace sfg
 	{
 		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
 		panel._left_pane_bottom_scrollbar.scroll_y(delta);
-	}
-
-	bool editor_panel_animation_t::on_command_event(const window_event_t& ev)
-	{
-		if (ev.type != window_event_type_e::key || (ev.sub_type != window_event_sub_type_e::press && ev.sub_type != window_event_sub_type_e::repeat))
-			return false;
-
-		const bool ctrl = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
-
-		if (!ctrl || (ev.button != static_cast<u16>(input_code::key_z) && ev.button != static_cast<u16>(input_code::key_r)))
-			return false;
-
-		_ui->get_input().set_focus(_left_pane_bottom_right_toolbar, false);
-		on_event_edit_submitted(this);
-
-		return _commands->on_window_event(ev);
 	}
 
 	void editor_panel_animation_t::apply_events(vector_t<animation_event_def_t>&& events, u32 selected_event)

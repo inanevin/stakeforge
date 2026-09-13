@@ -26,10 +26,12 @@ in GAME-LINKING-EXCEPTION.md.
 #include "resource_manager.hpp"
 
 #include <sfg/common/hashing.hpp>
+#include <sfg/math/vec2f.hpp>
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/vendor/delfrrr/delaunator.hpp>
 
 namespace sfg
 {
@@ -57,7 +59,7 @@ namespace sfg
 
 		runtime = {
 			.skeleton	 = def.skeleton,
-			.layer_count = static_cast<u32>(def.layers.size()),
+			.layer_count = static_cast<u32>(def.layer_count),
 		};
 
 		if (runtime.layer_count == 0)
@@ -66,86 +68,128 @@ namespace sfg
 			return false;
 		}
 
-		for (const animation_library_layer_def_t& layer : def.layers)
-		{
-			runtime.state_count += static_cast<u32>(layer.states.size());
-
-			for (const animation_library_state_def_t& state : layer.states)
-				runtime.clip_count += static_cast<u32>(state.clip_count);
-		}
-
-		runtime.layers = memory.allocate_bytes(sizeof(animation_library_layer_runtime_t) * runtime.layer_count, alignof(animation_library_layer_runtime_t));
-
-		if (runtime.state_count != 0)
-			runtime.states = memory.allocate_bytes(sizeof(animation_library_state_runtime_t) * runtime.state_count, alignof(animation_library_state_runtime_t));
-
-		if (runtime.clip_count != 0)
-			runtime.clips = memory.allocate_bytes(sizeof(animation_library_clip_runtime_t) * runtime.clip_count, alignof(animation_library_clip_runtime_t));
-
-		animation_library_layer_runtime_t* layers	   = memory.get<animation_library_layer_runtime_t>(runtime.layers);
-		animation_library_state_runtime_t* states	   = runtime.state_count != 0 ? memory.get<animation_library_state_runtime_t>(runtime.states) : nullptr;
-		animation_library_clip_runtime_t*  clips	   = runtime.clip_count != 0 ? memory.get<animation_library_clip_runtime_t>(runtime.clips) : nullptr;
-		u32								   state_index = 0;
-		u32								   clip_index  = 0;
-
 		for (u32 layer_index = 0; layer_index < runtime.layer_count; ++layer_index)
 		{
 			const animation_library_layer_def_t& source_layer = def.layers[layer_index];
 			const u32							 state_count  = static_cast<u32>(source_layer.states.size());
 			const chunk_handle32_t				 layer_handle{
-				.head = runtime.layers.head + static_cast<u32>(sizeof(animation_library_layer_runtime_t)) * layer_index,
+				.head = entry.runtime.head + static_cast<u32>(offsetof(animation_library_runtime_t, layers)) + static_cast<u32>(sizeof(animation_library_layer_runtime_t)) * layer_index,
 				.size = sizeof(animation_library_layer_runtime_t),
 			};
 
-			layers[layer_index] = {
-				.name_hash		= TO_SID(static_cast<const char*>(source_layer.name)),
-				.mask_name_hash = source_layer.use_mask ? TO_SID(static_cast<const char*>(source_layer.mask_name)) : NULL_SID,
-				.states =
-					{
-						.head = runtime.states.head + static_cast<u32>(sizeof(animation_library_state_runtime_t)) * state_index,
-						.size = static_cast<u32>(sizeof(animation_library_state_runtime_t)) * state_count,
-					},
+			animation_library_layer_runtime_t& layer = runtime.layers[layer_index];
+
+			layer = {
+				.name_hash			  = TO_SID(static_cast<const char*>(source_layer.name)),
+				.mask				  = source_layer.mask,
 				.state_count		  = state_count,
 				.default_active_state = source_layer.default_active_state,
 				.weight				  = source_layer.weight,
-				.use_mask			  = source_layer.use_mask,
 			};
 
-			for (const animation_library_state_def_t& source_state : source_layer.states)
+			if (state_count == 0)
+				continue;
+
+			layer.states = memory.allocate_bytes(sizeof(animation_library_state_runtime_t) * state_count, alignof(animation_library_state_runtime_t));
+
+			animation_library_state_runtime_t* states = memory.get<animation_library_state_runtime_t>(layer.states);
+
+			for (u32 state_index = 0; state_index < state_count; ++state_index)
 			{
-				const u32			   clip_count = static_cast<u32>(source_state.clip_count);
-				const chunk_handle32_t state_handle{
-					.head = runtime.states.head + static_cast<u32>(sizeof(animation_library_state_runtime_t)) * state_index,
+				const animation_library_state_def_t& source_state = source_layer.states[state_index];
+				const u32							 clip_count	  = static_cast<u32>(source_state.clip_count);
+				const chunk_handle32_t				 state_handle{
+					.head = layer.states.head + static_cast<u32>(sizeof(animation_library_state_runtime_t)) * state_index,
 					.size = sizeof(animation_library_state_runtime_t),
 				};
 
-				states[state_index] = {
-					.name_hash	 = TO_SID(static_cast<const char*>(source_state.name)),
-					.blend_value = source_state.blend_value,
-					.layer		 = layer_handle,
-					.clips =
-						{
-							.head = runtime.clips.head + static_cast<u32>(sizeof(animation_library_clip_runtime_t)) * clip_index,
-							.size = static_cast<u32>(sizeof(animation_library_clip_runtime_t)) * clip_count,
-						},
-					.clip_count = clip_count,
-					.blend_type = source_state.blend_type,
+				animation_library_state_runtime_t& target_state = states[state_index];
+
+				target_state = {
+					.name_hash			 = TO_SID(static_cast<const char*>(source_state.name)),
+					.initial_blend_value = source_state.blend_value,
+					.layer				 = layer_handle,
+					.clip_count			 = clip_count,
+					.speed				 = source_state.speed,
+					.blend_type			 = source_state.blend_type,
+					.loop				 = source_state.loop,
 				};
 
-				for (u32 source_clip_index = 0; source_clip_index < clip_count; ++source_clip_index)
+				for (u32 clip = 0; clip < clip_count; ++clip)
 				{
-					const animation_library_clip_def_t& source_clip = source_state.clips[source_clip_index];
+					const animation_library_clip_def_t& source_clip = source_state.clips[clip];
 
-					clips[clip_index] = {
+					target_state.clips[clip] = {
 						.animation_clip = source_clip.animation_clip,
-						.weight_value	= source_clip.weight_value,
+						.weight_value	= source_clip.blend_position,
 						.state			= state_handle,
+						.start_time		= source_clip.start_time,
+						.duration		= source_clip.duration,
+						.playback_speed = source_clip.playback_speed,
 					};
-
-					++clip_index;
 				}
 
-				++state_index;
+				if (target_state.blend_type == animation_library_blend_type_e::blend_1d)
+					std::sort(target_state.clips, target_state.clips + target_state.clip_count, [](const animation_library_clip_runtime_t& a, const animation_library_clip_runtime_t& b) -> bool { return a.weight_value.x < b.weight_value.x; });
+				else if (target_state.blend_type == animation_library_blend_type_e::blend_2d)
+				{
+					// delaunay triangulation for barycentric
+					vector_t<double> triangle_points = {};
+
+					for (const animation_library_clip_def_t& clip_def : source_state.clips)
+					{
+						triangle_points.push_back(clip_def.blend_position.x);
+						triangle_points.push_back(clip_def.blend_position.y);
+					}
+
+					delaunator::Delaunator						 d(triangle_points);
+					animation_library_state_delaunay_triangle_t* tris = nullptr;
+
+					if (!d.triangles.empty())
+					{
+						target_state.delaunay_triangles = memory.allocate<animation_library_state_delaunay_triangle_t>(d.triangles.size());
+						tris							= memory.get<animation_library_state_delaunay_triangle_t>(target_state.delaunay_triangles);
+						target_state.triangle_count		= static_cast<u32>(d.triangles.size());
+					}
+
+					auto find_clip_idx = [&](const vec2f_t& p) -> u32 {
+						u32 idx = 0;
+
+						for (const animation_library_clip_def_t& clip_def : source_state.clips)
+						{
+							if (p.equals(clip_def.blend_position))
+								return idx;
+							idx++;
+						}
+
+						return UINT32_MAX;
+					};
+
+					for (size_t i = 0; i < d.triangles.size(); i++)
+					{
+						const float x0 = d.coords[2 * d.triangles[i]];
+						const float y0 = d.coords[2 * d.triangles[i] + 1];
+						const float x1 = d.coords[2 * d.triangles[i + 1]];
+						const float y1 = d.coords[2 * d.triangles[i + 1] + 1];
+						const float x2 = d.coords[2 * d.triangles[i + 2]];
+						const float y2 = d.coords[2 * d.triangles[i + 2] + 1];
+
+						const vec2f_t								 v1	 = {x1, y1};
+						const vec2f_t								 v2	 = {x2, y2};
+						animation_library_state_delaunay_triangle_t& tri = tris[i];
+						tri.v0											 = {x0, y0};
+
+						tri.clip_index0 = find_clip_idx(tri.v0);
+						tri.clip_index1 = find_clip_idx(v1);
+						tri.clip_index2 = find_clip_idx(v2);
+
+						const vec2f_t edge0	  = v1 - v2;
+						const vec2f_t edge1	  = v2 - tri.v0;
+						const f32	  inv_det = 1.0f / (edge0.x * edge1.y - edge0.y * edge1.x);
+						tri.coeff1			  = {edge1.y * inv_det, -edge1.x * inv_det};
+						tri.coeff2			  = {-edge0.y * inv_det, edge0.x * inv_det};
+					}
+				}
 			}
 		}
 
@@ -157,13 +201,13 @@ namespace sfg
 		chunk_allocator_t&			 memory	 = ctx.resource_manager.get_memory();
 		animation_library_runtime_t& runtime = *memory.get<animation_library_runtime_t>(entry.runtime);
 
-		if (runtime.clip_count != 0)
-			memory.free(runtime.clips);
+		for (u32 layer_index = 0; layer_index < runtime.layer_count; ++layer_index)
+		{
+			const animation_library_layer_runtime_t& layer = runtime.layers[layer_index];
 
-		if (runtime.state_count != 0)
-			memory.free(runtime.states);
-
-		memory.free(runtime.layers);
+			if (layer.state_count != 0)
+				memory.free(layer.states);
+		}
 
 		runtime = {};
 	}

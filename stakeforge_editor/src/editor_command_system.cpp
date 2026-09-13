@@ -32,14 +32,14 @@ namespace sfg
 		SFG_ASSERT(config.command_max_count != 0);
 		SFG_ASSERT(config.aux_data_budget_bytes != 0);
 
-		if (config.global_instance)
-			s_instance = this;
+		s_instance = this;
+		_config	   = config;
 
-		_config = config;
 		_commands.reserve(config.command_max_count);
 		_listeners.reserve(config.listener_initial_capacity);
 		_history.reserve(config.command_max_count);
 		_aux_data.init(config.aux_data_budget_bytes);
+
 		_cursor			   = 0;
 		_next_sequence	   = 1;
 		_generation		   = 0;

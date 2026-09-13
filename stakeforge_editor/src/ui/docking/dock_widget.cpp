@@ -223,25 +223,6 @@ namespace sfg
 		return nullptr;
 	}
 
-	editor_panel_t* dock_widget_t::get_focused_panel() const
-	{
-		const ui::layout_tree_t& tree = _ui->get_tree();
-
-		for (ui::widget_id_t widget = _ui->get_input().get_focused(); widget != NULL_WIDGET; widget = tree.node(widget).parent)
-		{
-			for (const dock_node_t& node : _dock_nodes)
-			{
-				for (editor_panel_t* panel : node.panels)
-				{
-					if (panel->get_root() == widget)
-						return panel;
-				}
-			}
-		}
-
-		return nullptr;
-	}
-
 	bool dock_widget_t::select_panel(editor_panel_t* panel)
 	{
 		for (dock_node_t& node : _dock_nodes)

@@ -22,12 +22,15 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/math/mat4x3.hpp>
+#include <sfg/math/vec2f.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/memory/pool_handle.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
+#include <sfg/runtime/animation/common_animation.hpp>
 
 namespace sfg
 {
@@ -43,47 +46,64 @@ namespace sfg
 	struct animator_library_tag_t
 	{
 	};
-	struct animator_layer_tag_t
-	{
-	};
 
 	typedef pool_handle_t<u32, animator_state_tag_t>   animator_state_handle_t;
 	typedef pool_handle_t<u32, animator_pose_tag_t>	   animator_pose_handle_t;
-	typedef pool_handle_t<u32, animator_layer_tag_t>   animator_layer_handle_t;
 	typedef pool_handle_t<u32, animator_library_tag_t> animator_library_handle_t;
+
+	struct animator_clip_t
+	{
+		resource_handle_t clip_handle	 = NULL_RESOURCE_HANDLE;
+		vec2f_t			  blend_position = vec2f_t::zero;
+		f32				  duration		 = 0.0f;
+		f32				  start_time	 = 0.0f;
+	};
 
 	struct animator_state_switch_t
 	{
 		animator_state_handle_t target_state = {};
 		float					duration	 = 0.0f;
+		float					current_time = 0.0f;
 		bool					active		 = false;
-	};
-
-	struct animator_library_t
-	{
-		resource_handle_t		skeleton_handle = NULL_RESOURCE_HANDLE;
-		animator_state_switch_t current_switch	= {};
-		animator_layer_handle_t first_layer		= {};
-		u32						layer_count		= 0;
 	};
 
 	struct animator_state_t
 	{
-		animator_layer_handle_t layer	   = {};
-		animator_state_handle_t next_state = {};
+		animator_clip_t				   clips[MAX_ANIMATION_LIBRARY_STATE_CLIPS];
+		chunk_handle32_t			   delaunay_triangles	= {};
+		vec2f_t						   blend_position_value = vec2f_t::zero;
+		sid_t						   name_hash			= NULL_SID;
+		u32							   triangle_count		= 0;
+		u32							   layer_index			= 0;
+		u32							   clip_count			= 0;
+		f32							   speed				= 0.0f;
+		f32							   current_time			= 0.0f;
+		animation_library_blend_type_e blend_type			= animation_library_blend_type_e::no_blend;
+		bool						   loop					= false;
 	};
 
 	struct animator_pose_t
 	{
+		mat4x3_t		bone[MAX_SKELETON_BONES];
+		skeleton_mask_t write_mask = {};
 	};
 
 	struct animator_layer_t
 	{
-		animator_layer_handle_t next_layer	 = {};
-		skeleton_mask_t			mask		 = {};
-		animator_state_handle_t active_state = {};
-		animator_state_handle_t first_state	 = {};
-		u32						state_count	 = 0;
+		animator_state_switch_t current_switch = {};
+		sid_t					name_hash	   = NULL_SID;
+		skeleton_mask_t			mask		   = {};
+		chunk_handle32_t		state_handles  = {};
+		animator_state_handle_t active_state   = {};
+		u32						state_count	   = 0;
+		f32						weight		   = 0.0f;
+	};
+
+	struct animator_library_t
+	{
+		resource_handle_t skeleton_handle = NULL_RESOURCE_HANDLE;
+		animator_layer_t  layers[6]		  = {};
+		u32				  layer_count	  = 0;
 	};
 
 	class animation_processor_t final
@@ -107,15 +127,21 @@ namespace sfg
 
 		void tick(f32 dt);
 
+		void					switch_layer_state(animator_library_handle_t library, u32 layer_index, animator_state_handle_t state, f32 transition_duration);
+		animator_state_handle_t find_state_handle(animator_library_handle_t library, sid_t name_hash, u32 layer = UINT32_MAX);
+
 	private:
 		void alloc_for_entity(entity_id_t id);
 		void dealloc_for_entity(entity_id_t id);
+		void process_state(animator_state_t& state, animator_pose_t& write_pose, const skeleton_mask_t& mask, f32 weight, f32 dt, bool sample_animation);
+		void blend_poses(const animator_pose_t& pose, animator_pose_t& target, f32 weight);
 
 	private:
-		world_t*														  _world = nullptr;
-		chunk_allocator_t												  _aux	 = {};
-		dynamic_gen_pool_t<animator_state_t, u32, animator_state_tag_t>	  _states;
-		dynamic_gen_pool_t<animator_state_t, u32, animator_library_tag_t> _libraries;
-		dynamic_gen_pool_t<animator_pose_t, u32, animator_pose_tag_t>	  _poses;
+		world_t*															_world	  = nullptr;
+		chunk_allocator_t													_aux	  = {};
+		chunk_allocator_t													_bone_aux = {};
+		dynamic_gen_pool_t<animator_state_t, u32, animator_state_tag_t>		_states;
+		dynamic_gen_pool_t<animator_library_t, u32, animator_library_tag_t> _libraries;
+		dynamic_gen_pool_t<animator_pose_t, u32, animator_pose_tag_t>		_poses;
 	};
 }

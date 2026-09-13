@@ -34,7 +34,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/data/span.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
-#include <sfg/data/unique.hpp>
 #include <sfg/memory/chunk_handle.hpp>
 #include <sfg/runtime/resources/animation_def.hpp>
 #include <sfg/memory/pool_handle.hpp>
@@ -46,7 +45,6 @@ namespace sfg
 {
 	class editor_asset_manager_t;
 	class editor_command_animation_events_edit_t;
-	class editor_command_system_t;
 	struct animation_def_t;
 	struct editor_asset_deletion_listener_tag_t;
 
@@ -96,7 +94,6 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void set_animation(sid_t animation_guid, const char* asset_name);
-		bool on_command_event(const window_event_t& ev);
 		void apply_events(vector_t<animation_event_def_t>&& events, u32 selected_event);
 
 		friend class editor_command_animation_events_edit_t;
@@ -191,7 +188,6 @@ namespace sfg
 		vector_t<u32>											 _timeline_keyframes			 = {};
 		vector_t<animation_event_def_t>							 _events						 = {};
 		vector_t<u8>											 _joint_expanded				 = {};
-		unique_t<editor_command_system_t>						 _commands						 = {};
 		chunk_handle32_t										 _edit_previous_stream			 = {};
 		string_t												 _asset_name					 = {};
 		panel_animation_data_t									 _data							 = {};

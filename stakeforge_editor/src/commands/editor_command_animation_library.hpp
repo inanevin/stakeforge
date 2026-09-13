@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/size_definitions.hpp>
+
 namespace sfg
 {
 	class editor_command_system_t;
@@ -40,6 +42,8 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		static bool submit(editor_command_system_t& system, editor_panel_animation_library_t& panel, const animation_library_def_t& definition, const char* debug_name);
+		static bool begin(editor_panel_animation_library_t& panel);
+		static bool submit(editor_panel_animation_library_t& panel, const char* debug_name);
+		static bool select(editor_panel_animation_library_t& panel, u32 selected_layer, u32 selected_state = UINT32_MAX, u32 selected_clip = UINT32_MAX);
 	};
 }

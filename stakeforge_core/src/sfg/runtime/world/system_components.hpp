@@ -156,7 +156,8 @@ namespace sfg
 		static inline constexpr const char* DEBUG_NAME = "component_system_animation_library";
 
 		resource_handle_t animation_library = NULL_RESOURCE_HANDLE;
-		chunk_handle32_t  lib_alloc			= {};
+		chunk_handle32_t  bone_alloc		= {};
+		pool_handle32	  lib_alloc			= {};
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_animation_library_t);

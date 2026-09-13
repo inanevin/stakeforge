@@ -113,9 +113,6 @@ namespace sfg
 	{
 		editor_panel_t::init(ui, parent);
 
-		_commands = make_unique<editor_command_system_t>();
-		_commands->init({.listener_initial_capacity = 1, .global_instance = false});
-
 		_asset_deletion_listener = editor_asset_manager_t::get().add_asset_deletion_listener(on_asset_deletion, this);
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
@@ -289,7 +286,7 @@ namespace sfg
 
 		editor_world_controller_t::get().get_editor_world(_world)->set_gizmo_callbacks({});
 		editor_command_skeleton_edit_t::cancel(*this);
-		_commands->clear();
+		editor_command_system_t::get().clear_user_data(this);
 		_slot_fields_edit_active = false;
 		_mask_name_edit_active	 = false;
 		_editing_mask			 = UINT32_MAX;
@@ -325,9 +322,6 @@ namespace sfg
 		_joint_list_area	  = NULL_WIDGET;
 		_skeleton			  = {};
 
-		_commands->uninit();
-		_commands.reset();
-
 		editor_panel_t::uninit();
 	}
 
@@ -353,7 +347,7 @@ namespace sfg
 		++_slot_generation;
 
 		editor_command_skeleton_edit_t::cancel(*this);
-		_commands->clear();
+		editor_command_system_t::get().clear_user_data(this);
 		_slot_fields_edit_active = false;
 		_mask_name_edit_active	 = false;
 		_editing_mask			 = UINT32_MAX;
@@ -403,27 +397,6 @@ namespace sfg
 		refresh_joint_hierarchy();
 		refresh_mask_items();
 		refresh_title(_asset_name.c_str(), "S: ");
-	}
-
-	bool editor_panel_skeleton_viewer_t::on_command_event(const window_event_t& ev)
-	{
-		if (ev.type != window_event_type_e::key || (ev.sub_type != window_event_sub_type_e::press && ev.sub_type != window_event_sub_type_e::repeat))
-			return false;
-
-		const bool ctrl = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
-
-		if (!ctrl || (ev.button != static_cast<u16>(input_code::key_z) && ev.button != static_cast<u16>(input_code::key_r)))
-			return false;
-
-		editor_world_controller_t::get().get_editor_world(_world)->end_gizmo_action();
-
-		if (_slot_position_field.is_editing() || _slot_rotation_field.is_editing() || _slot_preview_scale_field.is_editing() || _mask_name_edit_active)
-			_ui->get_input().set_focus(_joint_list_area, false);
-
-		on_slot_fields_edit_submitted(this);
-		finish_mask_edit();
-
-		return _commands->on_window_event(ev);
 	}
 
 	void editor_panel_skeleton_viewer_t::apply_edits(vector_t<skeleton_slot_def_t>&& slots, vector_t<skeleton_mask_def_t>&& masks, u32 selected_joint, u32 selected_slot)
@@ -2066,7 +2039,7 @@ namespace sfg
 
 		editor_world.cancel_gizmo_action();
 		editor_command_skeleton_edit_t::cancel(panel);
-		panel._commands->clear();
+		editor_command_system_t::get().clear_user_data(&panel);
 		panel._slot_fields_edit_active = false;
 
 		editor_world.get_world().unload_all_used_resources();

@@ -34,9 +34,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "ui/panels/editor_panel.hpp"
 #include "ui/panels/editor_panel_factory.hpp"
 #include "ui/panels/editor_panel_world.hpp"
-#include "ui/panels/editor_panel_skeleton_viewer.hpp"
-#include "ui/panels/editor_panel_animation_library.hpp"
-#include "ui/panels/editor_panel_animation.hpp"
 #include "ui/panels/editor_primary_base.hpp"
 #include "ui/panels/editor_secondary_base.hpp"
 #include "ui/panels/editor_theme.hpp"
@@ -399,29 +396,10 @@ namespace sfg
 
 			if (!modal_active && !popup_active)
 			{
-				editor_panel_t* focused_panel = nullptr;
+				if (ctrl && (ev.button == static_cast<u16>(input_code::key_z) || ev.button == static_cast<u16>(input_code::key_r)) && (ev.sub_type == window_event_sub_type_e::press || ev.sub_type == window_event_sub_type_e::repeat))
+					ui.get_input().set_focus(NULL_WIDGET, false);
 
-				if (surface.type == editor_surface_type_e::primary)
-					focused_panel = surface.primary->get_dock_widget().get_focused_panel();
-				else if (surface.type == editor_surface_type_e::secondary)
-					focused_panel = surface.secondary->get_dock_widget().get_focused_panel();
-
-				if (focused_panel != nullptr && focused_panel->get_type() == editor_panel_type_e::skeleton_viewer)
-				{
-					if (static_cast<editor_panel_skeleton_viewer_t*>(focused_panel)->on_command_event(ev))
-						return;
-				}
-				else if (focused_panel != nullptr && focused_panel->get_type() == editor_panel_type_e::animation_library)
-				{
-					if (static_cast<editor_panel_animation_library_t*>(focused_panel)->on_command_event(ev))
-						return;
-				}
-				else if (focused_panel != nullptr && focused_panel->get_type() == editor_panel_type_e::animation)
-				{
-					if (static_cast<editor_panel_animation_t*>(focused_panel)->on_command_event(ev))
-						return;
-				}
-				else if (app.get_command_system().on_window_event(ev))
+				if (app.get_command_system().on_window_event(ev))
 					return;
 			}
 

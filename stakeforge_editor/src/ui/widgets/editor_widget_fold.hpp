@@ -34,9 +34,15 @@ namespace sfg
 {
 	struct editor_widget_fold_config_t
 	{
-		const char* label			= nullptr;
-		bool		folded			= false;
-		bool		settings_button = false;
+		ui::vg_rect_paint_t background						  = {};
+		const char*			label							  = nullptr;
+		void (*on_pressed)(void* user_data)					  = nullptr;
+		void (*on_fold_changed)(bool folded, void* user_data) = nullptr;
+		void* user_data										  = nullptr;
+		bool  folded										  = false;
+		bool  settings_button								  = false;
+		bool  background_frame								  = false;
+		bool  header_frame									  = true;
 	};
 
 	class editor_widget_fold_t final
@@ -50,6 +56,7 @@ namespace sfg
 		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_fold_config_t& config);
 		void uninit();
 		void set_fold(bool folded);
+		void set_text(const char* text);
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -75,14 +82,19 @@ namespace sfg
 		void refresh();
 
 		static void on_header_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_background_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 
 	private:
-		ui::ui_context* _ui				 = nullptr;
-		ui::widget_id_t _root			 = NULL_WIDGET;
-		ui::widget_id_t _header			 = NULL_WIDGET;
-		ui::widget_id_t _icon			 = NULL_WIDGET;
-		ui::widget_id_t _body			 = NULL_WIDGET;
-		ui::widget_id_t _settings_button = NULL_WIDGET;
-		bool			_folded			 = false;
+		ui::ui_context* _ui									   = nullptr;
+		void (*_on_pressed)(void* user_data)				   = nullptr;
+		void (*_on_fold_changed)(bool folded, void* user_data) = nullptr;
+		void*			_user_data							   = nullptr;
+		ui::widget_id_t _root								   = NULL_WIDGET;
+		ui::widget_id_t _header								   = NULL_WIDGET;
+		ui::widget_id_t _icon								   = NULL_WIDGET;
+		ui::widget_id_t _label								   = NULL_WIDGET;
+		ui::widget_id_t _body								   = NULL_WIDGET;
+		ui::widget_id_t _settings_button					   = NULL_WIDGET;
+		bool			_folded								   = false;
 	};
 }

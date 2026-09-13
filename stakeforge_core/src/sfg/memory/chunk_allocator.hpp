@@ -49,7 +49,6 @@ namespace sfg
 		template <typename T> inline chunk_handle32_t allocate(size_t count)
 		{
 			static_assert(std::is_trivially_copyable_v<T>, "chunk_allocator_t typed allocation only supports trivially copyable types");
-			static_assert(std::is_trivially_default_constructible_v<T>, "chunk_allocator_t typed allocation only supports trivially default constructible types");
 			static_assert(std::is_trivially_destructible_v<T>, "chunk_allocator_t typed allocation only supports trivially destructible types");
 
 			SFG_ASSERT(count != 0);

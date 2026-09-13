@@ -35,7 +35,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "ui/panels/editor_panel_mesh_viewer.hpp"
 #include "ui/panels/editor_panel_skeleton_viewer.hpp"
-#include "ui/panels/editor_panel_animation_library.hpp"
+#include "ui/panels/animation_library/editor_panel_animation_library.hpp"
 #include "ui/panels/editor_panel_ragdoll_viewer.hpp"
 #include "ui/panels/animation_graph/editor_panel_animation_graph.hpp"
 #include "assets/editor_asset_creator.hpp"

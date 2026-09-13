@@ -167,6 +167,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/nhlohmann/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/util/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/syoyo/*.h
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/miniaudio/*.h
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/delfrrr/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/um/*.h
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/um/*.inl
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/sfg_api.hpp

@@ -149,7 +149,7 @@ namespace sfg
 	{
 		SFG_ASSERT(!viewer._edit_previous_stream);
 
-		editor_command_system_t& command_system = *viewer._commands;
+		editor_command_system_t& command_system = editor_command_system_t::get();
 		const chunk_handle32_t	 stream			= edits_to_aux(command_system, viewer.get_skeleton_def());
 
 		if (!stream)
@@ -166,7 +166,7 @@ namespace sfg
 	{
 		SFG_ASSERT(viewer._edit_previous_stream);
 
-		editor_command_system_t& command_system = *viewer._commands;
+		editor_command_system_t& command_system = editor_command_system_t::get();
 		const chunk_handle32_t	 post_stream	= edits_to_aux(command_system, viewer.get_skeleton_def());
 
 		if (!post_stream)
@@ -233,7 +233,7 @@ namespace sfg
 		if (!viewer._edit_previous_stream)
 			return;
 
-		viewer._commands->get_aux_data().free(viewer._edit_previous_stream);
+		editor_command_system_t::get().get_aux_data().free(viewer._edit_previous_stream);
 		viewer._edit_previous_stream = {};
 	}
 }

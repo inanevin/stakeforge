@@ -93,7 +93,6 @@ namespace sfg
 			return _root;
 		}
 		editor_panel_t* find_panel(editor_panel_type_e type, sid_t sub_item_id = 0) const;
-		editor_panel_t* get_focused_panel() const;
 		bool			select_panel(editor_panel_t* panel);
 
 	private:
