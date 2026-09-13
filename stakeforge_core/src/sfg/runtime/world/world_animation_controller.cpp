@@ -39,9 +39,9 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	void world_animation_controller_t::init(world_t& world, u32 bone_max_count, u32 animation_graph_budget_bytes)
+	void world_animation_controller_t::init(world_t& world, u32 bone_max_count, u32 animation_processor_budget)
 	{
-		_animation_graph_storage.init(animation_graph_budget_bytes);
+		_animation_graph_storage.init(animation_processor_budget);
 		_bone_memory.init(sizeof(animation_bone_t) * bone_max_count * 2);
 
 		_world					  = &world;

@@ -41,7 +41,7 @@ namespace sfg
 		_world = &world;
 		_aux.init(aux_size);
 
-		_bone_aux.init(max_library_support * get_count_for_lib_alloc(MAX_SKELETON_BONES) * sizeof(mat4x3_t));
+		_bone_aux.init(max_library_support * (get_count_for_lib_alloc(MAX_SKELETON_BONES) * sizeof(mat4x3_t) + sizeof(u32) * MAX_SKELETON_BONES * 4));
 		_decomposition_aux.init(max_library_support * sizeof(decomposed_bone_t) * MAX_SKELETON_BONES);
 
 		_states.reserve(1000);
@@ -50,8 +50,21 @@ namespace sfg
 
 	void animation_processor_t::uninit()
 	{
-		_world = nullptr;
+		_states.clear();
+		_libraries.clear();
+		_decomposition_aux.uninit();
+		_bone_aux.uninit();
 		_aux.uninit();
+
+		_world = nullptr;
+	}
+
+	void animation_processor_t::destroy_entity(entity_id_t id)
+	{
+		const ecs_component_table_t& system_table = _world->get_component_table<component_system_animation_library_t>();
+
+		if (system_table.has(id))
+			dealloc_for_entity(id);
 	}
 
 	void animation_processor_t::tick(f32 dt)
@@ -108,26 +121,38 @@ namespace sfg
 
 		const entity_id_t ent_main_camera = _world->get_main_camera_entity();
 
-		if (ent_main_camera == NULL_ENTITY_ID)
-			return;
-
-		const component_camera_t& comp_camera = _world->get_component_table<component_camera_t>().get_as<component_camera_t>(ent_main_camera);
-
-		const float	  fov	  = comp_camera.fov_degrees;
-		const vec3f_t cam_pos = _world->get_entity_pos_abs(ent_main_camera);
-		const vec3f_t cam_fw  = _world->get_entity_rot_abs(ent_main_camera).get_forward().normalized();
+		const vec3f_t cam_pos = ent_main_camera == NULL_ENTITY_ID ? vec3f_t::zero : _world->get_entity_pos_abs(ent_main_camera);
+		const vec3f_t cam_fw  = ent_main_camera == NULL_ENTITY_ID ? vec3f_t::zero : _world->get_entity_rot_abs(ent_main_camera).get_forward().normalized();
 
 		ecs_component_table_ref_t refs[] = {table_lib.ref(), table_sys_lib.ref(), !table_disabled.ref()};
 
+		static u32 throttle_frames = 0;
+
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 		{
-			const component_animation_library_t&  lib			   = row.get<component_animation_library_t>();
-			component_system_animation_library_t& sys_lib		   = row.get_mutable<component_system_animation_library_t>();
-			const vec3f_t						  pos			   = _world->get_entity_pos_abs(row.id);
-			const vec3f_t						  cam_to_pos	   = (pos - cam_pos).normalized();
-			const float							  dot			   = vec3f_t::dot(cam_to_pos, cam_fw);
-			const bool							  sample_animation = dot < math::cos(lib.cull_angle_limit * DEG_2_RAD);
-			sys_lib.sample_this_frame							   = sample_animation;
+			const component_animation_library_t&  lib		  = row.get<component_animation_library_t>();
+			component_system_animation_library_t& sys_lib	  = row.get_mutable<component_system_animation_library_t>();
+			const vec3f_t						  pos		  = _world->get_entity_pos_abs(row.id);
+			bool								  skip_sample = ent_main_camera == NULL_ENTITY_ID;
+
+			if (ent_main_camera != NULL_ENTITY_ID && lib.use_cull)
+			{
+				const vec3f_t cam_to_pos = (pos - cam_pos).normalized();
+				const float	  dot		 = vec3f_t::dot(cam_to_pos, cam_fw);
+				if (dot < math::cos(lib.cull_angle_limit * DEG_2_RAD))
+					skip_sample = true;
+			}
+
+			if (lib.use_throttle && ent_main_camera != NULL_ENTITY_ID)
+			{
+				const f32 dist_sqr = (pos - cam_pos).magnitude_sqr();
+				const f32 mapped   = math::remap(dist_sqr, lib.throttle_begin_distance * lib.throttle_begin_distance, lib.throttle_full_distance * lib.throttle_full_distance, 0.0f, 1.0f);
+				const u32 blanks   = static_cast<u32>(math::lerp(1.0f, static_cast<f32>(lib.max_throttle_tick_blanks), mapped));
+				if (throttle_frames % blanks != 0)
+					skip_sample = true;
+			}
+
+			sys_lib.sample_this_frame = !skip_sample;
 
 			animator_library_t& anim_lib = _libraries.get({sys_lib.lib_alloc.index, sys_lib.lib_alloc.generation});
 
@@ -145,23 +170,26 @@ namespace sfg
 
 				if (layer.current_switch.active)
 				{
-					process_state(decomposed, active_state, layer.mask, layer_weight, dt, sample_animation);
-					process_state(decomposed, _states.get(layer.current_switch.target_state), layer.mask, layer.current_switch.current_time / layer.current_switch.duration, dt, sample_animation);
+					process_state(decomposed, active_state, layer.mask, layer_weight, dt, !skip_sample);
+					process_state(decomposed, _states.get(layer.current_switch.target_state), layer.mask, (layer.current_switch.current_time / layer.current_switch.duration), dt, !skip_sample);
 
 					layer.current_switch.current_time += dt;
 
 					if (layer.current_switch.current_time >= layer.current_switch.duration)
 					{
-						switch_layer_state({sys_lib.lib_alloc.index, sys_lib.lib_alloc.generation}, 0, layer.current_switch.target_state, 0.0f);
-						layer.current_switch = {};
+						_states.get(layer.active_state).current_phase = 0.0f;
+						layer.active_state							  = layer.current_switch.target_state;
+						layer.current_switch						  = {};
 					}
 
 					continue;
 				}
 
-				process_state(decomposed, active_state, layer.mask, layer_weight, dt, sample_animation);
+				process_state(decomposed, active_state, layer.mask, layer_weight, dt, !skip_sample);
 			}
 		}
+
+		throttle_frames++;
 	}
 
 	void animation_processor_t::calculate_skinning_matrices(f32 dt)
@@ -228,13 +256,18 @@ namespace sfg
 			return;
 		}
 
-		_states.get(state).current_phase = 0.0f;
-
 		animator_layer_t& layer = lib.layers[layer_index];
+
+		if (layer.current_switch.active)
+		{
+			_states.get(layer.current_switch.target_state).current_phase = 0.0f;
+		}
+
 		if (math::almost_equal(transition_duration, 0.0f))
 		{
-			layer.active_state			= state;
-			layer.current_switch.active = false;
+			_states.get(layer.active_state).current_phase = 0.0f;
+			layer.active_state							  = state;
+			layer.current_switch.active					  = false;
 			return;
 		}
 
@@ -416,7 +449,7 @@ namespace sfg
 
 				if (res_state.triangle_count != 0)
 				{
-					state.delaunay_triangles = _aux.allocate<animation_library_state_delaunay_triangle_t>(res_state.triangle_count * 3);
+					state.delaunay_triangles = _aux.allocate<animation_library_state_delaunay_triangle_t>(res_state.triangle_count);
 					state.triangle_count	 = res_state.triangle_count;
 
 					animation_library_state_delaunay_triangle_t*	   state_tris = _aux.get<animation_library_state_delaunay_triangle_t>(state.delaunay_triangles);
@@ -434,11 +467,14 @@ namespace sfg
 					state.clips[k].clip_handle	  = res_clip.animation_clip;
 					state.clips[k].duration		  = res_clip.duration;
 					state.clips[k].start_time	  = res_clip.start_time;
+					state.clips[k].speed		  = res_clip.playback_speed;
 				}
 
 				_aux.get<animator_state_handle_t>(layer.state_handles)[j] = state_handle;
 
 				if (j == res_layer.default_active_state)
+					layer.active_state = state_handle;
+				else if (j == 0 && res_layer.default_active_state == UINT32_MAX)
 					layer.active_state = state_handle;
 			}
 		}
@@ -505,7 +541,7 @@ namespace sfg
 				if (rt == nullptr)
 					return;
 
-				animation_sampler_t::sample_animation(rt, state.current_phase * state.clips[0].duration, mask, out_written_bones, decomposed, 1.0f);
+				animation_sampler_t::sample_animation(rt, state.current_phase * state.clips[0].duration, mask, out_written_bones, decomposed, weight);
 			}
 		}
 		else if (state.blend_type == animation_library_blend_type_e::blend_1d)
@@ -522,14 +558,14 @@ namespace sfg
 			{
 				const animator_clip_t& clip = state.clips[i];
 				const float			   p	= clip.blend_position.x;
-				if (p < target && p > lower_val)
+				if (p <= target && p > lower_val)
 				{
 					lower_val  = p;
 					lower_idx  = i;
 					lower_diff = target - p;
 				}
 
-				if (p > target && p < higher_val)
+				if (p >= target && p < higher_val)
 				{
 					higher_val	= p;
 					higher_idx	= i;
@@ -553,10 +589,10 @@ namespace sfg
 					if (rt == nullptr)
 						return;
 					const f32 sample_time = state.current_phase * clip.duration;
-					animation_sampler_t::sample_animation(rt, state.current_phase * clip.duration, mask, out_written_bones, decomposed, 1.0f);
+					animation_sampler_t::sample_animation(rt, state.current_phase * clip.duration, mask, out_written_bones, decomposed, weight);
 				}
 			}
-			else if (higher_idx == UINT32_MAX)
+			else if (higher_idx == UINT32_MAX || (lower_idx == higher_idx))
 			{
 				// sample_clip lower_idx at full
 				animator_clip_t& clip = state.clips[lower_idx];
@@ -569,13 +605,13 @@ namespace sfg
 					if (rt == nullptr)
 						return;
 					const f32 sample_time = state.current_phase * clip.duration;
-					animation_sampler_t::sample_animation(rt, state.current_phase * clip.duration, mask, out_written_bones, decomposed, 1.0f);
+					animation_sampler_t::sample_animation(rt, state.current_phase * clip.duration, mask, out_written_bones, decomposed, weight);
 				}
 			}
 			else
 			{
 				const float		 mult		  = 1.0f / (lower_diff + higher_diff);
-				const float		 higher_blend = higher_diff * mult;
+				const float		 higher_blend = 1.0f - (higher_diff * mult);
 				const float		 lower_blend  = 1.0f - higher_blend;
 				animator_clip_t& low		  = state.clips[lower_idx];
 				animator_clip_t& high		  = state.clips[higher_idx];
@@ -594,12 +630,12 @@ namespace sfg
 
 					const f32 sample_time = state.current_phase * (low.duration * lower_blend + high.duration * higher_blend);
 
-					animation_sampler_t::sample_animation(clip_rt_low, state.current_phase * low.duration, mask, out_written_bones, decomposed, 1.0f);
+					animation_sampler_t::sample_animation(clip_rt_low, state.current_phase * low.duration, mask, out_written_bones, decomposed, weight);
 					animation_sampler_t::sample_animation(clip_rt_high, state.current_phase * high.duration, mask, out_written_bones, decomposed, higher_blend);
 				}
 			}
 		}
-		else if (state.clip_count > 3)
+		else if (state.clip_count > 2)
 		{
 			const vec2f_t& blend_pos = state.blend_position_value;
 
@@ -635,7 +671,7 @@ namespace sfg
 
 						const f32 sample_time = state.current_phase * weighted_dur;
 
-						animation_sampler_t::sample_animation(clip_rt0, state.current_phase * clip0.duration, mask, out_written_bones, decomposed, 1.0f);
+						animation_sampler_t::sample_animation(clip_rt0, state.current_phase * clip0.duration, mask, out_written_bones, decomposed, weight);
 						animation_sampler_t::sample_animation(clip_rt1, state.current_phase * clip1.duration, mask, out_written_bones, decomposed, weight1);
 						animation_sampler_t::sample_animation(clip_rt2, state.current_phase * clip2.duration, mask, out_written_bones, decomposed, weight2);
 					}

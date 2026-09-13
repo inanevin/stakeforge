@@ -85,7 +85,7 @@ namespace sfg
 			.render_particle_max_count		   = GAME_WORLD_PARTICLE_MAX_COUNT,
 			.render_bone_max_count			   = GAME_WORLD_BONE_MAX_COUNT,
 			.render_bone_initial_capacity	   = 1024,
-			.animation_graph_budget_bytes	   = 1 * 1024 * 1024,
+			.animation_processor_budget		   = 1 * 1024 * 1024,
 			.component_table_initial_capacity  = 64,
 			.entity_free_list_initial_capacity = 1024,
 			.used_resource_initial_capacity	   = 512,

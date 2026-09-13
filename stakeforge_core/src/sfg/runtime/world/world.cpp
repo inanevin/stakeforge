@@ -78,8 +78,8 @@ namespace sfg
 
 		_logic_helper.init(*this);
 
-		_animation_controller.init(*this, config.render_bone_max_count, config.animation_graph_budget_bytes);
-		_animation_processor.init(*this, 1000, 1000);
+		_animation_controller.init(*this, config.render_bone_max_count, config.animation_processor_budget);
+		_animation_processor.init(*this, config.animation_processor_budget, 1000);
 
 		_audio_controller.init(*this);
 
@@ -620,6 +620,7 @@ namespace sfg
 			_physics_world.destroy_entity(id);
 
 		_animation_controller.destroy_entity(id);
+		_animation_processor.destroy_entity(id);
 		_audio_controller.destroy_entity(id);
 		_canvas_controller.destroy_entity(id);
 

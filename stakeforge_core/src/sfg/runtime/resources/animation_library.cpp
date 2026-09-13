@@ -136,8 +136,9 @@ namespace sfg
 					// delaunay triangulation for barycentric
 					vector_t<double> triangle_points = {};
 
-					for (const animation_library_clip_def_t& clip_def : source_state.clips)
+					for (u32 clip = 0; clip < clip_count; ++clip)
 					{
+						const animation_library_clip_def_t& clip_def = source_state.clips[clip];
 						triangle_points.push_back(clip_def.blend_position.x);
 						triangle_points.push_back(clip_def.blend_position.y);
 					}
@@ -147,16 +148,18 @@ namespace sfg
 
 					if (!d.triangles.empty())
 					{
-						target_state.delaunay_triangles = memory.allocate<animation_library_state_delaunay_triangle_t>(d.triangles.size());
+						target_state.delaunay_triangles = memory.allocate<animation_library_state_delaunay_triangle_t>(d.triangles.size() / 3);
 						tris							= memory.get<animation_library_state_delaunay_triangle_t>(target_state.delaunay_triangles);
-						target_state.triangle_count		= static_cast<u32>(d.triangles.size());
+						target_state.triangle_count		= static_cast<u32>(d.triangles.size() / 3);
 					}
 
 					auto find_clip_idx = [&](const vec2f_t& p) -> u32 {
 						u32 idx = 0;
 
-						for (const animation_library_clip_def_t& clip_def : source_state.clips)
+						for (u32 clip = 0; clip < clip_count; ++clip)
 						{
+							const animation_library_clip_def_t& clip_def = source_state.clips[clip];
+
 							if (p.equals(clip_def.blend_position))
 								return idx;
 							idx++;
@@ -165,7 +168,7 @@ namespace sfg
 						return UINT32_MAX;
 					};
 
-					for (size_t i = 0; i < d.triangles.size(); i++)
+					for (size_t i = 0; i < d.triangles.size(); i += 3)
 					{
 						const float x0 = d.coords[2 * d.triangles[i]];
 						const float y0 = d.coords[2 * d.triangles[i] + 1];
@@ -176,14 +179,14 @@ namespace sfg
 
 						const vec2f_t								 v1	 = {x1, y1};
 						const vec2f_t								 v2	 = {x2, y2};
-						animation_library_state_delaunay_triangle_t& tri = tris[i];
+						animation_library_state_delaunay_triangle_t& tri = tris[i / 3];
 						tri.v0											 = {x0, y0};
 
 						tri.clip_index0 = find_clip_idx(tri.v0);
 						tri.clip_index1 = find_clip_idx(v1);
 						tri.clip_index2 = find_clip_idx(v2);
 
-						const vec2f_t edge0	  = v1 - v2;
+						const vec2f_t edge0	  = v1 - tri.v0;
 						const vec2f_t edge1	  = v2 - tri.v0;
 						const f32	  inv_det = 1.0f / (edge0.x * edge1.y - edge0.y * edge1.x);
 						tri.coeff1			  = {edge1.y * inv_det, -edge1.x * inv_det};
@@ -206,7 +209,15 @@ namespace sfg
 			const animation_library_layer_runtime_t& layer = runtime.layers[layer_index];
 
 			if (layer.state_count != 0)
+			{
+				const animation_library_state_runtime_t* st = memory.get<animation_library_state_runtime_t>(layer.states);
+				for (u32 i = 0; i < layer.state_count; i++)
+				{
+					if (st[i].delaunay_triangles)
+						memory.free(st[i].delaunay_triangles);
+				}
 				memory.free(layer.states);
+			}
 		}
 
 		runtime = {};

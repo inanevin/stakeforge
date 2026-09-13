@@ -155,14 +155,15 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_animation_library";
 
-		resource_handle_t animation_library = NULL_RESOURCE_HANDLE;
-		chunk_handle32_t  bone_alloc		= {};
-		chunk_handle32_t  decompose_alloc	= {};
-		pool_handle32	  lib_alloc			= {};
-		chunk_handle32_t  evaluation_order	= {};
-		chunk_handle32_t  parent_indices	= {};
-		u32				  joint_count		= 0;
-		bool			  sample_this_frame = false;
+		resource_handle_t animation_library	   = NULL_RESOURCE_HANDLE;
+		chunk_handle32_t  bone_alloc		   = {};
+		chunk_handle32_t  decompose_alloc	   = {};
+		pool_handle32	  lib_alloc			   = {};
+		chunk_handle32_t  evaluation_order	   = {};
+		chunk_handle32_t  parent_indices	   = {};
+		u32				  joint_count		   = 0;
+		u32				  last_throttle_frames = 0;
+		bool			  sample_this_frame	   = false;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_animation_library_t);

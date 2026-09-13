@@ -52,7 +52,7 @@ namespace sfg
 		u32								   render_particle_max_count		 = 8192;
 		u32								   render_bone_max_count			 = 256;
 		u32								   render_bone_initial_capacity		 = 256;
-		u32								   animation_graph_budget_bytes		 = 1 * 1024 * 1024;
+		u32								   animation_processor_budget		 = 1 * 1024 * 1024;
 		u32								   component_table_initial_capacity	 = 64;
 		u32								   entity_free_list_initial_capacity = 1024;
 		u32								   used_resource_initial_capacity	 = 512;

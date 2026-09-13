@@ -125,6 +125,7 @@ namespace sfg
 
 		void tick(f32 dt);
 		void calculate_skinning_matrices(f32 dt);
+		void destroy_entity(entity_id_t id);
 
 		void					switch_layer_state(animator_library_handle_t library, u32 layer_index, animator_state_handle_t state, f32 transition_duration);
 		animator_state_handle_t find_state_handle(animator_library_handle_t library, sid_t name_hash, u32 layer = UINT32_MAX);
