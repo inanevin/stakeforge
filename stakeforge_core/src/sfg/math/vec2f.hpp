@@ -71,6 +71,14 @@ namespace sfg
 		{
 			return {x - other.x, y - other.y};
 		}
+		inline vec2f_t operator*(const vec2f_t& other) const
+		{
+			return {x * other.x, y * other.y};
+		}
+		inline vec2f_t operator/(const vec2f_t& other) const
+		{
+			return {x / other.x, y / other.y};
+		}
 		inline vec2f_t operator*(f32 scalar) const
 		{
 			return {x * scalar, y * scalar};

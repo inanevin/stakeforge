@@ -24,7 +24,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "common_animation.hpp"
 
 #include <sfg/io/assert.hpp>
-#include <sfg/math/math.hpp>
 #include <sfg/runtime/resources/animation.hpp>
 
 namespace sfg
@@ -128,44 +127,45 @@ namespace sfg
 		}
 	}
 
-	void animation_sampler_t::sample_animation(const animation_runtime_t* animation, f32 sample_time, const skeleton_mask_t& mask, skeleton_mask_t& out_written_bones, decomposed_bone_t* bones, f32 weight)
+	void animation_sampler_t::sample_animation(const animation_sample_params_t& params)
 	{
-		SFG_ASSERT(animation != nullptr);
-		SFG_ASSERT(bones != nullptr);
+		SFG_ASSERT(params.animation != nullptr);
+		SFG_ASSERT(params.bones != nullptr);
 
-		if (math::almost_equal(weight, 0.0f))
-			return;
-
-		const bool full_weight = math::almost_equal(weight, 1.0f);
-
-		for (u32 channel_index = 0; channel_index < animation->position_count; ++channel_index)
+		for (u32 channel_index = 0; channel_index < params.animation->position_count; ++channel_index)
 		{
-			const animation_channel_v3_runtime_t& channel	 = animation->position_channels[channel_index];
+			const animation_channel_v3_runtime_t& channel	 = params.animation->position_channels[channel_index];
 			const u32							  node_index = static_cast<u32>(channel.node_index);
 
-			if (is_masked(node_index, mask.masks))
+			if (is_masked(node_index, params.mask.masks))
 				continue;
 
-			decomposed_bone_t& bone		= bones[node_index];
-			const vec3f_t	   position = sample_channel(channel, sample_time);
-
-			bone.position = full_weight ? position : vec3f_t::lerp(bone.position, position, weight);
-			out_written_bones.masks[node_index / 64] |= 1llu << (node_index % 64);
+			params.bones[node_index].position = sample_channel(channel, params.sample_time);
+			params.out_position_mask.masks[node_index / 64] |= 1llu << (node_index % 64);
 		}
 
-		for (u32 channel_index = 0; channel_index < animation->rotation_count; ++channel_index)
+		for (u32 channel_index = 0; channel_index < params.animation->rotation_count; ++channel_index)
 		{
-			const animation_channel_q_runtime_t& channel	= animation->rotation_channels[channel_index];
+			const animation_channel_q_runtime_t& channel	= params.animation->rotation_channels[channel_index];
 			const u32							 node_index = static_cast<u32>(channel.node_index);
 
-			if (is_masked(node_index, mask.masks))
+			if (is_masked(node_index, params.mask.masks))
 				continue;
 
-			decomposed_bone_t& bone		= bones[node_index];
-			const quat_t	   rotation = sample_channel(channel, sample_time);
+			params.bones[node_index].rotation = sample_channel(channel, params.sample_time);
+			params.out_rotation_mask.masks[node_index / 64] |= 1llu << (node_index % 64);
+		}
 
-			bone.rotation = full_weight ? rotation : quat_t::slerp(bone.rotation, rotation, weight);
-			out_written_bones.masks[node_index / 64] |= 1llu << (node_index % 64);
+		for (u32 channel_index = 0; channel_index < params.animation->scale_count; ++channel_index)
+		{
+			const animation_channel_v3_runtime_t& channel	 = params.animation->scale_channels[channel_index];
+			const u32							  node_index = static_cast<u32>(channel.node_index);
+
+			if (is_masked(node_index, params.mask.masks))
+				continue;
+
+			params.bones[node_index].scale = sample_channel(channel, params.sample_time);
+			params.out_scale_mask.masks[node_index / 64] |= 1llu << (node_index % 64);
 		}
 	}
 

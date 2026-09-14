@@ -29,7 +29,48 @@ namespace sfg
 
 	struct skeleton_mask_t
 	{
-		u64 masks[(MAX_SKELETON_BONES + 63) / 64] = {0};
+		static constexpr size_t SZ		  = (MAX_SKELETON_BONES + 63) / 64;
+		u64						masks[SZ] = {0};
+
+		inline skeleton_mask_t operator|(const skeleton_mask_t& other) const
+		{
+			skeleton_mask_t m = {};
+
+			for (u32 i = 0; i < SZ; i++)
+			{
+				m.masks[i] = masks[i] | other.masks[i];
+			}
+
+			return m;
+		}
+
+		inline skeleton_mask_t& operator|=(const skeleton_mask_t& other)
+		{
+			for (u32 i = 0; i < SZ; i++)
+			{
+				this->masks[i] |= other.masks[i];
+			}
+
+			return *this;
+		}
+
+		inline bool masked(u32 joint_index) const
+		{
+			const u32 idx	= joint_index / 64;
+			const u32 local = joint_index % 64;
+
+			return (masks[idx] & (1llu << local)) != 0;
+		}
+
+		inline bool empty() const
+		{
+			for (u32 i = 0; i < SZ; i++)
+			{
+				if (masks[i] != 0)
+					return false;
+			}
+			return true;
+		}
 	};
 
 	inline constexpr u32 make_resource_wire_magic(char c0, char c1, char c2, char c3)

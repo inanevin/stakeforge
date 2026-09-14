@@ -41,5 +41,6 @@ namespace sfg
 	{
 		vec3f_t position = vec3f_t::zero;
 		quat_t	rotation = quat_t::identity;
+		vec3f_t scale	 = vec3f_t::one;
 	};
 }

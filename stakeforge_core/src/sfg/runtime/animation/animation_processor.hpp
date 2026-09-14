@@ -131,10 +131,36 @@ namespace sfg
 		animator_state_handle_t find_state_handle(animator_library_handle_t library, sid_t name_hash, u32 layer = UINT32_MAX);
 
 	private:
+		struct process_state_params_t
+		{
+			animator_state_t&	   state;
+			decomposed_bone_t*	   decomposed;
+			decomposed_bone_t*	   scratch;
+			const skeleton_mask_t& mask;
+			skeleton_mask_t&	   out_position_mask;
+			skeleton_mask_t&	   out_rotation_mask;
+			skeleton_mask_t&	   out_scale_mask;
+			u32					   joint_count;
+			f32					   dt;
+			bool				   sample_animation;
+		};
+
+		struct blend_decomposed_params_t
+		{
+			decomposed_bone_t*		 store;
+			const decomposed_bone_t* target;
+			const skeleton_mask_t&	 target_position_writes;
+			const skeleton_mask_t&	 target_rotation_writes;
+			const skeleton_mask_t&	 target_scale_writes;
+			u32						 joint_count;
+			f32						 blend;
+		};
+
 		void alloc_for_entity(entity_id_t id);
 		void dealloc_for_entity(entity_id_t id);
-		void process_state(decomposed_bone_t* decomposed, animator_state_t& state, const skeleton_mask_t& mask, f32 weight, f32 dt, bool sample_animation);
+		void process_state(const process_state_params_t& params);
 		u32	 get_count_for_lib_alloc(u32 skeleton_joint_count);
+		void blend_decomposed(const blend_decomposed_params_t& params);
 
 	private:
 		world_t*															_world			   = nullptr;
@@ -143,5 +169,6 @@ namespace sfg
 		chunk_allocator_t													_decomposition_aux = {};
 		dynamic_gen_pool_t<animator_state_t, u32, animator_state_tag_t>		_states;
 		dynamic_gen_pool_t<animator_library_t, u32, animator_library_tag_t> _libraries;
+		u32																	_frame_counter = 0;
 	};
 }
