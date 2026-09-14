@@ -22,6 +22,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "animation_processor.hpp"
 #include <sfg/math/math.hpp>
+#include <sfg/math/triangulation_2d.hpp>
 #include <sfg/io/assert.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
@@ -134,8 +135,11 @@ namespace sfg
 		};
 
 		auto is_throttled = [&](const vec3f_t& pos, f32 begin, f32 full, u32 max_throttle) -> bool {
+			begin = math::max(begin, 0.0f);
+			full  = math::max(begin, full);
+
 			const f32 dist_sqr = (pos - cam_pos).magnitude_sqr();
-			const f32 mapped   = math::clamp(math::remap(dist_sqr, begin * begin, full * full, 0.0f, 1.0f), 0.0f, 1.0f);
+			const f32 mapped   = begin == full ? (dist_sqr > begin * begin ? 1.0f : 0.0f) : math::clamp(math::remap(dist_sqr, begin * begin, full * full, 0.0f, 1.0f), 0.0f, 1.0f);
 			const u32 blanks   = static_cast<u32>(math::lerp(1.0f, static_cast<f32>(math::max(max_throttle, 1u)), mapped));
 			return _frame_counter % blanks != 0;
 		};
@@ -150,7 +154,7 @@ namespace sfg
 			component_system_animation_library_t& sys_lib = row.get_mutable<component_system_animation_library_t>();
 			const vec3f_t						  pos	  = _world->get_entity_pos_abs(row.id);
 			const bool skip_sample = ent_main_camera == NULL_ENTITY_ID || (lib.use_cull && is_culled(pos, lib.cull_angle_limit)) || lib.use_throttle && is_throttled(pos, lib.throttle_begin_distance, lib.throttle_full_distance, lib.max_throttle_tick_blanks) ||
-									 (!lib.use_throttle && lib.tick_blanks != 1 && _frame_counter % lib.tick_blanks != 0);
+									 (!lib.use_throttle && lib.tick_blanks > 1 && _frame_counter % lib.tick_blanks != 0);
 
 			const u32 jc			  = sys_lib.joint_count;
 			sys_lib.sample_this_frame = !skip_sample;
@@ -378,7 +382,7 @@ namespace sfg
 				const u32 joint_index  = eval_order[i];
 				const u32 parent_index = parent_indices[joint_index];
 
-				const mat4x3_t& local = mat4x3_t::transform(decomposed[joint_index].position, decomposed[joint_index].rotation, vec3f_t::one);
+				const mat4x3_t& local = mat4x3_t::transform(decomposed[joint_index].position, decomposed[joint_index].rotation, decomposed[joint_index].scale);
 				if (parent_index != SKELETON_JOINT_NO_PARENT)
 					matrices[1 + jc * 2 + joint_index] = matrices[1 + jc * 2 + parent_index] * local;
 				else
@@ -541,6 +545,8 @@ namespace sfg
 
 			if (parent_index != SKELETON_JOINT_NO_PARENT)
 				matrices[1 + skeleton_joint_count * 2 + joint_index] = matrices[1 + skeleton_joint_count * 2 + parent_index] * joints[joint_index].local;
+			else
+				matrices[1 + skeleton_joint_count * 2 + joint_index] = joints[joint_index].local;
 		}
 
 		for (u32 i = 0; i < skeleton_joint_count; i++)
@@ -616,15 +622,15 @@ namespace sfg
 						state_tris[t] = tris[t];
 					}
 				}
+
 				for (u32 k = 0; k < res_state.clip_count; k++)
 				{
 					const animation_library_clip_runtime_t& res_clip = res_state.clips[k];
-
-					state.clips[k].blend_position = res_clip.weight_value;
-					state.clips[k].clip_handle	  = res_clip.animation_clip;
-					state.clips[k].duration		  = res_clip.duration;
-					state.clips[k].start_time	  = res_clip.start_time;
-					state.clips[k].speed		  = res_clip.playback_speed;
+					const animation_runtime_t*				anim	 = rm.find_runtime<animation_runtime_t>(res_clip.animation_clip);
+					state.clips[k].blend_position					 = res_clip.weight_value;
+					state.clips[k].clip_handle						 = res_clip.animation_clip;
+					state.clips[k].speed							 = res_clip.playback_speed;
+					state.clips[k].start_time						 = res_clip.start_time;
 				}
 
 				_aux.get<animator_state_handle_t>(layer.state_handles)[j] = state_handle;
@@ -747,6 +753,16 @@ namespace sfg
 		}
 		else if (state.blend_type == animation_library_blend_type_e::blend_2d && state.clip_count == 2)
 		{
+			const vec2f_t& a		  = state.clips[0].blend_position;
+			const vec2f_t  edge		  = state.clips[1].blend_position - a;
+			const f32	   length_sqr = edge.magnitude_sqr();
+			const f32	   blend	  = length_sqr > 0.0f ? math::clamp(vec2f_t::dot(state.blend_position_value - a, edge) / length_sqr, 0.0f, 1.0f) : 0.0f;
+
+			clip_indices[0] = 0;
+			clip_indices[1] = 1;
+			weights[0]		= 1.0f - blend;
+			weights[1]		= blend;
+			clip_count		= 2;
 		}
 		else if (state.clip_count > 2)
 		{
@@ -773,29 +789,38 @@ namespace sfg
 					break;
 				}
 			}
+
+			// find closest edge
+			if (clip_count == 0)
+			{
+				f32 closest_distance = MATH_INF_F;
+
+				for (u32 i = 0; i < state.triangle_count; i++)
+				{
+					const animation_library_state_delaunay_triangle_t& tri			 = tris[i];
+					const vec2f_t&									   a			 = state.clips[tri.clip_index0].blend_position;
+					const vec2f_t&									   b			 = state.clips[tri.clip_index1].blend_position;
+					const vec2f_t&									   c			 = state.clips[tri.clip_index2].blend_position;
+					const vec3f_t									   edge_weights	 = math::closest_triangle_barycentric_2d(state.blend_position_value, a, b, c);
+					const vec2f_t									   closest_point = a * edge_weights.x + b * edge_weights.y + c * edge_weights.z;
+					const f32										   distance		 = (state.blend_position_value - closest_point).magnitude_sqr();
+
+					if (distance >= closest_distance)
+						continue;
+
+					closest_distance = distance;
+					clip_indices[0]	 = tri.clip_index0;
+					clip_indices[1]	 = tri.clip_index1;
+					clip_indices[2]	 = tri.clip_index2;
+					weights[0]		 = edge_weights.x;
+					weights[1]		 = edge_weights.y;
+					weights[2]		 = edge_weights.z;
+					clip_count		 = 3;
+				}
+			}
 		}
 
 		if (clip_count == 0)
-			return;
-
-		f32 total_weight = 0.0f;
-		f32 duration	 = 0.0f;
-
-		for (u32 i = 0; i < clip_count; i++)
-		{
-			if (weights[i] <= 0.0f)
-				continue;
-
-			const animator_clip_t& clip = state.clips[clip_indices[i]];
-			total_weight += weights[i];
-			duration += (clip.duration / clip.speed) * weights[i];
-		}
-
-		duration /= total_weight;
-		state.current_phase += params.dt / (duration / state.speed);
-		state.current_phase = state.loop ? math::fmodf(state.current_phase, 1.0f) : math::min(state.current_phase, 1.0f);
-
-		if (!params.sample_animation)
 			return;
 
 		const animation_runtime_t* animations[3] = {};
@@ -806,25 +831,58 @@ namespace sfg
 				continue;
 
 			animations[i] = resource_manager_t::get().find_runtime<animation_runtime_t>(state.clips[clip_indices[i]].clip_handle);
-
 			if (animations[i] == nullptr)
 				return;
 		}
 
-		f32 accumulated_weight = 0.0f;
+		f32 total_weight = 0.0f;
+		f32 duration	 = 0.0f;
 
 		for (u32 i = 0; i < clip_count; i++)
 		{
 			if (weights[i] <= 0.0f)
 				continue;
 
+			const animator_clip_t& clip = state.clips[clip_indices[i]];
+
+			const f32 anim_res_duration = animations[i]->duration;
+
+			if (!math::almost_equal(clip.speed, 0.0f))
+			{
+				total_weight += weights[i];
+				duration += ((anim_res_duration - math::clamp(clip.start_time, 0.0f, anim_res_duration)) / clip.speed) * weights[i];
+			}
+		}
+
+		if (!math::almost_equal(total_weight, 0.0f))
+			duration /= total_weight;
+
+		if (!math::almost_equal(duration, 0.0f) && !math::almost_equal(state.speed, 0.0f))
+			state.current_phase += params.dt / (duration / state.speed);
+
+		state.current_phase = state.loop ? math::fmodf(state.current_phase, 1.0f) : math::clamp(state.current_phase, -1.0f, 1.0f);
+
+		if (!params.sample_animation)
+			return;
+
+		f32 accumulated_weight = 0.0f;
+
+		for (u32 i = 0; i < clip_count; i++)
+		{
+			const animator_clip_t& clip = state.clips[clip_indices[i]];
+
+			if (weights[i] <= 0.0f)
+				continue;
+
 			const bool first = accumulated_weight == 0.0f;
 			accumulated_weight += weights[i];
 
-			skeleton_mask_t		   position_writes = {};
-			skeleton_mask_t		   rotation_writes = {};
-			skeleton_mask_t		   scale_writes	   = {};
-			const animator_clip_t& clip			   = state.clips[clip_indices[i]];
+			skeleton_mask_t position_writes = {};
+			skeleton_mask_t rotation_writes = {};
+			skeleton_mask_t scale_writes	= {};
+
+			const f32 anim_dur	 = animations[i]->duration;
+			const f32 start_time = math::clamp(clip.start_time, 0.0f, anim_dur);
 
 			animation_sampler_t::sample_animation({
 				.animation		   = animations[i],
@@ -833,7 +891,7 @@ namespace sfg
 				.out_position_mask = position_writes,
 				.out_rotation_mask = rotation_writes,
 				.out_scale_mask	   = scale_writes,
-				.sample_time	   = state.current_phase * clip.duration,
+				.sample_time	   = start_time + (math::almost_equal(clip.speed, 0.0f) ? 0.0f : state.current_phase * (anim_dur - start_time)),
 			});
 
 			if (!first)

@@ -34,7 +34,6 @@ namespace sfg
 		vec2f_t			  weight_value	 = vec2f_t::zero;
 		chunk_handle32_t  state			 = {};
 		f32				  start_time	 = 0.0f;
-		f32				  duration		 = 0.0f;
 		f32				  playback_speed = 1.0f;
 	};
 

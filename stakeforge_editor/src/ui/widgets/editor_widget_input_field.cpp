@@ -198,6 +198,7 @@ namespace sfg
 		{
 		case editor_input_field_field_type_e::string: {
 			const string_t& value = *reinterpret_cast<const string_t*>(field.fields.data[0]);
+
 			for (size_t i = 1; i < field.fields.size; ++i)
 			{
 				if (*reinterpret_cast<const string_t*>(field.fields.data[i]) != value)
@@ -206,11 +207,13 @@ namespace sfg
 					break;
 				}
 			}
+
 			set_text_raw(_mixed ? "" : value.c_str());
 			break;
 		}
 		case editor_input_field_field_type_e::char_array: {
 			const char* value = reinterpret_cast<const char*>(field.fields.data[0]);
+
 			for (size_t i = 1; i < field.fields.size; ++i)
 			{
 				if (std::strncmp(reinterpret_cast<const char*>(field.fields.data[i]), value, field.field_size) != 0)
@@ -219,11 +222,13 @@ namespace sfg
 					break;
 				}
 			}
+
 			set_text_raw(_mixed ? "" : value);
 			break;
 		}
 		case editor_input_field_field_type_e::pod_number: {
 			const u8* value = field.fields.data[0];
+
 			for (size_t i = 1; i < field.fields.size; ++i)
 			{
 				if (SFG_MEMCMP(field.fields.data[i], value, field.field_size) != 0)
@@ -232,9 +237,12 @@ namespace sfg
 					break;
 				}
 			}
+
 			_number_value = read_pod_number(value);
-			if (field.is_slider)
+
+			if (field.is_slider || _config.is_clamped)
 				_number_value = math::clamp(_number_value, _config.min_value, _config.max_value);
+
 			if (_mixed)
 				set_text_raw("");
 			else
@@ -290,18 +298,23 @@ namespace sfg
 
 		char* end	= nullptr;
 		f32	  value = static_cast<f32>(std::strtod(_text, &end));
+
 		if (end == _text)
 			value = 0.0f;
-		if (_config.field.is_slider)
+
+		if (_config.field.is_slider || _config.is_clamped)
 			value = math::clamp(value, _config.min_value, _config.max_value);
+
 		if (_config.is_integer)
 			value = static_cast<f32>(static_cast<i64>(value + (value >= 0.0f ? 0.5f : -0.5f)));
+
 		if (value == _number_value)
 		{
 			format_number();
 			refresh_text();
 			return;
 		}
+
 		_number_value = value;
 		format_number();
 		modify_field();
@@ -312,17 +325,24 @@ namespace sfg
 	{
 		if (_config.field.type != editor_input_field_field_type_e::pod_number)
 			return true;
+
 		char* end	= nullptr;
 		f32	  value = static_cast<f32>(std::strtod(_text, &end));
+
 		if (end == _text)
 			value = 0.0f;
-		if (_config.field.is_slider)
+
+		if (_config.field.is_slider || _config.is_clamped)
 			value = math::clamp(value, _config.min_value, _config.max_value);
+
 		if (_config.is_integer)
 			value = static_cast<f32>(static_cast<i64>(value + (value >= 0.0f ? 0.5f : -0.5f)));
+
 		if (value == _number_value)
 			return false;
+
 		_number_value = value;
+
 		return true;
 	}
 
@@ -505,14 +525,19 @@ namespace sfg
 	{
 		if (_config.field.type != editor_input_field_field_type_e::pod_number)
 			return;
+
 		_mixed	  = false;
 		f32 value = _number_value + delta_x * _config.increment;
-		if (_config.field.is_slider)
+
+		if (_config.field.is_slider || _config.is_clamped)
 			value = math::clamp(value, _config.min_value, _config.max_value);
+
 		if (_config.is_integer)
 			value = static_cast<f32>(static_cast<i64>(value + (value >= 0.0f ? 0.5f : -0.5f)));
+
 		if (value == _number_value)
 			return;
+
 		_number_value = value;
 		format_number();
 		modify_field();

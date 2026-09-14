@@ -64,6 +64,7 @@ namespace sfg
 		f32						   min_value	  = 0.0f;
 		f32						   max_value	  = 1.0f;
 		bool					   is_integer	  = false;
+		bool					   is_clamped	  = false;
 	};
 
 	class editor_input_field_t final

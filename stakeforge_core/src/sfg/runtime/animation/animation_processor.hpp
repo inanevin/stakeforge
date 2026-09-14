@@ -53,7 +53,6 @@ namespace sfg
 		resource_handle_t clip_handle	 = NULL_RESOURCE_HANDLE;
 		vec2f_t			  blend_position = vec2f_t::zero;
 		f32				  speed			 = 1.0f;
-		f32				  duration		 = 0.0f;
 		f32				  start_time	 = 0.0f;
 	};
 

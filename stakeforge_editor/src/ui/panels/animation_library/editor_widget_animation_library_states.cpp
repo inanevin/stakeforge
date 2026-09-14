@@ -46,7 +46,6 @@ namespace sfg
 	{
 		editor_widget_reference_t animation		  = {};
 		editor_input_field_t	  start_time	  = {};
-		editor_input_field_t	  duration		  = {};
 		editor_input_field_t	  playback_speed  = {};
 		editor_input_field_t	  blend_x		  = {};
 		editor_input_field_t	  blend_y		  = {};
@@ -151,7 +150,6 @@ namespace sfg
 
 				clip.animation.uninit();
 				clip.start_time.uninit();
-				clip.duration.uninit();
 				clip.playback_speed.uninit();
 				clip.blend_x.uninit();
 				clip.blend_y.uninit();
@@ -213,11 +211,12 @@ namespace sfg
 		field.init(*_ui,
 				   row.right,
 				   {
-					   .field	  = {.fields = {.data = &data, .size = 1}, .field_size = sizeof(value), .type = editor_input_field_field_type_e::pod_number, .is_slider = minimum == -1.0f && maximum == 1.0f},
-					   .callbacks = {.edit_begin = on_edit_begin, .edited = on_edited, .edit_submitted = on_edit_submitted, .user_data = this},
-					   .increment = 0.01f,
-					   .min_value = minimum,
-					   .max_value = maximum,
+					   .field	   = {.fields = {.data = &data, .size = 1}, .field_size = sizeof(value), .type = editor_input_field_field_type_e::pod_number, .is_slider = minimum == -1.0f && maximum == 1.0f},
+					   .callbacks  = {.edit_begin = on_edit_begin, .edited = on_edited, .edit_submitted = on_edit_submitted, .user_data = this},
+					   .increment  = 0.01f,
+					   .min_value  = minimum,
+					   .max_value  = maximum,
+					   .is_clamped = true,
 				   });
 
 		ui::layout_tree_t& tree = _ui->get_tree();
@@ -279,7 +278,7 @@ namespace sfg
 						   });
 		tree.in(controls.name.get_root()).size_mode_x = ui::axis_mode_e::fill;
 		editor_dividers_t::add_divider_hor(*_ui, body, theme.divider_thickness, theme.color_outline, theme.color_outline, ui::vg_gradient_e::none);
-		init_number(body, controls.speed, "Speed", state.speed, -FLT_MAX, FLT_MAX);
+		init_number(body, controls.speed, "Speed", state.speed, 0.0f, FLT_MAX);
 
 		const editor_property_row_t loop_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, body, "Loop");
 		u8*							loop	 = reinterpret_cast<u8*>(&state.loop);
@@ -430,8 +429,7 @@ namespace sfg
 		tree.in(animation_row.label).flags &= ~ui::wf_input;
 		tree.in(clip.animation.get_root()).size_mode_x = ui::axis_mode_e::fill;
 		init_number(body, clip.start_time, "Start Time", definition.start_time, 0.0f, FLT_MAX);
-		init_number(body, clip.duration, "Duration", definition.duration, 0.0f, FLT_MAX);
-		init_number(body, clip.playback_speed, "Playback Speed", definition.playback_speed, -FLT_MAX, FLT_MAX);
+		init_number(body, clip.playback_speed, "Playback Speed", definition.playback_speed, 0.0f, FLT_MAX);
 		clip.blend_x_row = init_number(body, clip.blend_x, "Blend X", definition.blend_position.x, -1.0f, 1.0f);
 		clip.blend_y_row = init_number(body, clip.blend_y, "Blend Y", definition.blend_position.y, -1.0f, 1.0f);
 		clip.diamond	 = _ui->allocate_widget();

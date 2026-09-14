@@ -124,14 +124,13 @@ namespace sfg
 						.weight_value	= source_clip.blend_position,
 						.state			= state_handle,
 						.start_time		= source_clip.start_time,
-						.duration		= source_clip.duration,
 						.playback_speed = source_clip.playback_speed,
 					};
 				}
 
 				if (target_state.blend_type == animation_library_blend_type_e::blend_1d)
 					std::sort(target_state.clips, target_state.clips + target_state.clip_count, [](const animation_library_clip_runtime_t& a, const animation_library_clip_runtime_t& b) -> bool { return a.weight_value.x < b.weight_value.x; });
-				else if (target_state.blend_type == animation_library_blend_type_e::blend_2d)
+				else if (target_state.blend_type == animation_library_blend_type_e::blend_2d && clip_count > 2)
 				{
 					// delaunay triangulation for barycentric
 					vector_t<double> triangle_points = {};
