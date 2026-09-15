@@ -3,6 +3,7 @@
 
 #include "animation_common.hpp"
 #include "common_resources.hpp"
+#include <sfg/runtime/animation/common_animation.hpp>
 
 namespace sfg
 {
@@ -29,23 +30,23 @@ namespace sfg
 	struct animation_event_t
 	{
 		sid_t name_hash = NULL_SID;
-		f32	  time		= 0.0f;
+		u32	  time		= 0;
 	};
 
 	struct animation_runtime_t
 	{
-		const animation_event_t*			  events			= nullptr;
-		chunk_handle32_t					  data				= {};
-		const animation_channel_v3_runtime_t* position_channels = nullptr;
-		const animation_channel_q_runtime_t*  rotation_channels = nullptr;
-		const animation_channel_v3_runtime_t* scale_channels	= nullptr;
-		resource_handle_t					  preview_mesh		= NULL_RESOURCE_HANDLE;
-		resource_handle_t					  preview_skeleton	= NULL_RESOURCE_HANDLE;
-		u32									  event_count		= 0;
-		u32									  position_count	= 0;
-		u32									  rotation_count	= 0;
-		u32									  scale_count		= 0;
-		f32									  duration			= 0.0f;
+		animation_event_t					  events[MAX_CLIP_EVENTS] = {};
+		chunk_handle32_t					  data					  = {};
+		const animation_channel_v3_runtime_t* position_channels		  = nullptr;
+		const animation_channel_q_runtime_t*  rotation_channels		  = nullptr;
+		const animation_channel_v3_runtime_t* scale_channels		  = nullptr;
+		resource_handle_t					  preview_mesh			  = NULL_RESOURCE_HANDLE;
+		resource_handle_t					  preview_skeleton		  = NULL_RESOURCE_HANDLE;
+		u32									  event_count			  = 0;
+		u32									  position_count		  = 0;
+		u32									  rotation_count		  = 0;
+		u32									  scale_count			  = 0;
+		f32									  duration				  = 0.0f;
 	};
 
 	struct animation_internals_t

@@ -341,9 +341,9 @@ namespace sfg
 
 				if (layer.current_switch.active && layer.current_switch.current_time >= layer.current_switch.duration)
 				{
-					_states.get(layer.active_state).current_phase = 0.0f;
-					layer.active_state							  = layer.current_switch.target_state;
-					layer.current_switch						  = {};
+					reset_state(_states.get(layer.active_state));
+					layer.active_state	 = layer.current_switch.target_state;
+					layer.current_switch = {};
 				}
 			}
 		}
@@ -422,14 +422,15 @@ namespace sfg
 
 		if (layer.current_switch.active)
 		{
-			_states.get(layer.current_switch.target_state).current_phase = 0.0f;
+			reset_state(_states.get(layer.current_switch.target_state));
 		}
 
 		if (math::almost_equal(transition_duration, 0.0f))
 		{
-			_states.get(layer.active_state).current_phase = 0.0f;
-			layer.active_state							  = state;
-			layer.current_switch.active					  = false;
+			reset_state(_states.get(layer.active_state));
+
+			layer.active_state			= state;
+			layer.current_switch.active = false;
 			return;
 		}
 
@@ -460,9 +461,11 @@ namespace sfg
 			animator_layer_t& layer = lib.layers[layer_index];
 
 			const animator_state_handle_t* states = layer.state_count == 0 ? nullptr : _aux.get<animator_state_handle_t>(layer.state_handles);
+
 			for (u32 j = 0; j < layer.state_count; j++)
 			{
 				const animator_state_t& state = _states.get(states[j]);
+
 				if (state.name_hash == name_hash)
 					return states[j];
 			}
@@ -475,9 +478,11 @@ namespace sfg
 			animator_layer_t& layer = lib.layers[i];
 
 			const animator_state_handle_t* states = layer.state_count == 0 ? nullptr : _aux.get<animator_state_handle_t>(layer.state_handles);
+
 			for (u32 j = 0; j < lib.layers[i].state_count; j++)
 			{
 				const animator_state_t& state = _states.get(states[j]);
+
 				if (state.name_hash == name_hash)
 					return states[j];
 			}
@@ -617,6 +622,7 @@ namespace sfg
 
 					animation_library_state_delaunay_triangle_t*	   state_tris = _aux.get<animation_library_state_delaunay_triangle_t>(state.delaunay_triangles);
 					const animation_library_state_delaunay_triangle_t* tris		  = rm.get_memory().get<animation_library_state_delaunay_triangle_t>(res_state.delaunay_triangles);
+
 					for (u32 t = 0; t < res_state.triangle_count; t++)
 					{
 						state_tris[t] = tris[t];
@@ -627,10 +633,11 @@ namespace sfg
 				{
 					const animation_library_clip_runtime_t& res_clip = res_state.clips[k];
 					const animation_runtime_t*				anim	 = rm.find_runtime<animation_runtime_t>(res_clip.animation_clip);
-					state.clips[k].blend_position					 = res_clip.weight_value;
-					state.clips[k].clip_handle						 = res_clip.animation_clip;
-					state.clips[k].speed							 = res_clip.playback_speed;
-					state.clips[k].start_time						 = res_clip.start_time;
+
+					state.clips[k].blend_position = res_clip.weight_value;
+					state.clips[k].clip_handle	  = res_clip.animation_clip;
+					state.clips[k].speed		  = res_clip.playback_speed;
+					state.clips[k].start_time	  = res_clip.start_time;
 				}
 
 				_aux.get<animator_state_handle_t>(layer.state_handles)[j] = state_handle;
@@ -652,10 +659,13 @@ namespace sfg
 
 		if (sys.bone_alloc)
 			_bone_aux.free(sys.bone_alloc);
+
 		if (sys.decompose_alloc)
 			_decomposition_aux.free(sys.decompose_alloc);
+
 		if (sys.parent_indices)
 			_bone_aux.free(sys.parent_indices);
+
 		if (sys.evaluation_order)
 			_bone_aux.free(sys.evaluation_order);
 
@@ -670,6 +680,7 @@ namespace sfg
 			for (u32 j = 0; j < layer.state_count; j++)
 			{
 				animator_state_t& state = _states.get(state_handles[j]);
+
 				if (state.triangle_count != 0)
 					_aux.free(state.delaunay_triangles);
 
@@ -751,18 +762,31 @@ namespace sfg
 				clip_count		= 2;
 			}
 		}
-		else if (state.blend_type == animation_library_blend_type_e::blend_2d && state.clip_count == 2)
+		else if (state.blend_type == animation_library_blend_type_e::blend_2d && state.triangle_count == 0)
 		{
-			const vec2f_t& a		  = state.clips[0].blend_position;
-			const vec2f_t  edge		  = state.clips[1].blend_position - a;
-			const f32	   length_sqr = edge.magnitude_sqr();
-			const f32	   blend	  = length_sqr > 0.0f ? math::clamp(vec2f_t::dot(state.blend_position_value - a, edge) / length_sqr, 0.0f, 1.0f) : 0.0f;
+			// without triangles, blend the two clips on the closest segment in the sorted chain.
+			f32 closest_distance = MATH_INF_F;
 
-			clip_indices[0] = 0;
-			clip_indices[1] = 1;
-			weights[0]		= 1.0f - blend;
-			weights[1]		= blend;
-			clip_count		= 2;
+			for (u32 i = 0; i + 1 < state.clip_count; ++i)
+			{
+				// project onto this segment, clamping to its ends and choosing the first clip if both coincide.
+				const vec2f_t& a			 = state.clips[i].blend_position;
+				const vec2f_t  edge			 = state.clips[i + 1].blend_position - a;
+				const f32	   length_sqr	 = edge.magnitude_sqr();
+				const f32	   blend		 = length_sqr > 0.0f ? math::clamp(vec2f_t::dot(state.blend_position_value - a, edge) / length_sqr, 0.0f, 1.0f) : 0.0f;
+				const vec2f_t  closest_point = a + edge * blend;
+				const f32	   distance		 = (state.blend_position_value - closest_point).magnitude_sqr();
+
+				if (distance >= closest_distance)
+					continue;
+
+				closest_distance = distance;
+				clip_indices[0]	 = i;
+				clip_indices[1]	 = i + 1;
+				weights[0]		 = 1.0f - blend;
+				weights[1]		 = blend;
+				clip_count		 = 2;
+			}
 		}
 		else if (state.clip_count > 2)
 		{
@@ -831,6 +855,7 @@ namespace sfg
 				continue;
 
 			animations[i] = resource_manager_t::get().find_runtime<animation_runtime_t>(state.clips[clip_indices[i]].clip_handle);
+
 			if (animations[i] == nullptr)
 				return;
 		}
@@ -857,32 +882,97 @@ namespace sfg
 		if (!math::almost_equal(total_weight, 0.0f))
 			duration /= total_weight;
 
-		if (!math::almost_equal(duration, 0.0f) && !math::almost_equal(state.speed, 0.0f))
-			state.current_phase += params.dt / (duration / state.speed);
+		// keep the loop count before wrapping so large steps can cross several loops.
+		const f32  previous_phase = state.current_phase;
+		const f32  phase_delta	  = !math::almost_equal(duration, 0.0f) && !math::almost_equal(state.speed, 0.0f) ? params.dt / (duration / state.speed) : 0.0f;
+		const f32  next_phase	  = previous_phase + phase_delta;
+		const i32  loop_count	  = state.loop ? static_cast<i32>(math::floor(next_phase)) : 0;
+		const bool reverse		  = phase_delta < 0.0f;
 
-		state.current_phase = state.loop ? math::fmodf(state.current_phase, 1.0f) : math::clamp(state.current_phase, -1.0f, 1.0f);
+		state.current_phase = state.loop ? next_phase - static_cast<f32>(loop_count) : math::clamp(next_phase, 0.0f, 1.0f);
 
-		if (!params.sample_animation)
-			return;
+		// reset inactive clips so they do not replay events when their blend weight returns.
+		u32 active_clips = 0;
+
+		for (u32 i = 0; i < clip_count; ++i)
+		{
+			if (weights[i] > 0.0f)
+				active_clips |= 1u << clip_indices[i];
+		}
+
+		for (u32 i = 0; i < state.clip_count; ++i)
+		{
+			if ((active_clips & (1u << i)) == 0)
+				state.clips[i].last_sample = UINT32_MAX;
+		}
 
 		f32 accumulated_weight = 0.0f;
 
 		for (u32 i = 0; i < clip_count; i++)
 		{
-			const animator_clip_t& clip = state.clips[clip_indices[i]];
+			animator_clip_t& clip = state.clips[clip_indices[i]];
 
 			if (weights[i] <= 0.0f)
 				continue;
 
+			const animation_runtime_t& animation	 = *animations[i];
+			const f32				   start_time	 = math::clamp(clip.start_time, 0.0f, animation.duration);
+			const f32				   clip_duration = animation.duration - start_time;
+			const bool				   frozen		 = math::almost_equal(clip.speed, 0.0f);
+			const f32				   sample_time	 = start_time + (frozen ? 0.0f : state.current_phase * clip_duration);
+
+			// use millisecond ticks for events while keeping pose sampling in seconds.
+			const u32  sample			= static_cast<u32>(math::round(sample_time * ANIMATION_TICKS_PER_SECOND));
+			bool	   include_previous = clip.last_sample == UINT32_MAX;
+			u32		   previous_sample	= include_previous ? static_cast<u32>(math::round((start_time + (frozen ? 0.0f : previous_phase * clip_duration)) * ANIMATION_TICKS_PER_SECOND)) : clip.last_sample;
+			const bool phase_delta_zero = math::almost_equal(phase_delta, 0.0f);
+
+			if (!frozen && !phase_delta_zero && clip_duration > 0.0f)
+				clip.last_sample = sample;
+
+			if (clip.event_callback != nullptr && animation.event_count != 0 && !frozen && !phase_delta_zero && clip_duration > 0.0f)
+			{
+				const u32 start_sample = static_cast<u32>(math::round(start_time * ANIMATION_TICKS_PER_SECOND));
+				const u32 end_sample   = static_cast<u32>(math::round(animation.duration * ANIMATION_TICKS_PER_SECOND));
+
+				// fire crossed events once, in playback order, including the first tick on entry.
+				const auto dispatch_events = [&](u32 begin, u32 end, bool include_begin) {
+					for (u32 event_index = 0; event_index < animation.event_count; ++event_index)
+					{
+						const animation_event_t& event = animation.events[reverse ? animation.event_count - event_index - 1 : event_index];
+
+						const bool crossed = reverse ? event.time < begin && event.time >= end : event.time > begin && event.time <= end;
+
+						if (crossed || (include_begin && event.time == begin))
+							clip.event_callback(event.name_hash, clip.event_user_data);
+					}
+				};
+
+				// split the event interval at every loop boundary.
+				const u32 crossings = static_cast<u32>(reverse ? -loop_count : loop_count);
+
+				for (u32 crossing = 0; crossing < crossings; ++crossing)
+				{
+					dispatch_events(previous_sample, reverse ? start_sample : end_sample, include_previous);
+
+					previous_sample	 = reverse ? end_sample : start_sample;
+					include_previous = true;
+				}
+
+				dispatch_events(previous_sample, sample, include_previous);
+			}
+
+			// events still advance when pose sampling is skipped.
+			if (!params.sample_animation)
+				continue;
+
 			const bool first = accumulated_weight == 0.0f;
+
 			accumulated_weight += weights[i];
 
 			skeleton_mask_t position_writes = {};
 			skeleton_mask_t rotation_writes = {};
 			skeleton_mask_t scale_writes	= {};
-
-			const f32 anim_dur	 = animations[i]->duration;
-			const f32 start_time = math::clamp(clip.start_time, 0.0f, anim_dur);
 
 			animation_sampler_t::sample_animation({
 				.animation		   = animations[i],
@@ -891,7 +981,7 @@ namespace sfg
 				.out_position_mask = position_writes,
 				.out_rotation_mask = rotation_writes,
 				.out_scale_mask	   = scale_writes,
-				.sample_time	   = start_time + (math::almost_equal(clip.speed, 0.0f) ? 0.0f : state.current_phase * (anim_dur - start_time)),
+				.sample_time	   = sample_time,
 			});
 
 			if (!first)
@@ -911,6 +1001,15 @@ namespace sfg
 			params.out_rotation_mask |= rotation_writes;
 			params.out_scale_mask |= scale_writes;
 		}
+	}
+
+	void animation_processor_t::reset_state(animator_state_t& state)
+	{
+		state.current_phase = 0.0f;
+
+		// allow starting events to fire again when this state restarts.
+		for (u32 i = 0; i < state.clip_count; ++i)
+			state.clips[i].last_sample = UINT32_MAX;
 	}
 
 	u32 animation_processor_t::get_count_for_lib_alloc(u32 skeleton_joint_count)

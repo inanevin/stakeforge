@@ -29,6 +29,10 @@ namespace sfg
 {
 #define MAX_ANIMATION_LIBRARY_LAYERS	  6
 #define MAX_ANIMATION_LIBRARY_STATE_CLIPS 8
+#define MAX_CLIP_EVENTS					  8
+#define ANIMATION_TICKS_PER_SECOND		  1000.0f
+
+	using animation_event_fn = void (*)(sid_t name_hash, void* user_data);
 
 	enum class animation_library_blend_type_e : u8
 	{

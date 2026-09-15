@@ -132,6 +132,49 @@ namespace sfg
 					std::sort(target_state.clips, target_state.clips + target_state.clip_count, [](const animation_library_clip_runtime_t& a, const animation_library_clip_runtime_t& b) -> bool { return a.weight_value.x < b.weight_value.x; });
 				else if (target_state.blend_type == animation_library_blend_type_e::blend_2d && clip_count > 2)
 				{
+					// use the farthest clip from the first clip to define the line.
+					const vec2f_t origin	 = target_state.clips[0].weight_value;
+					vec2f_t		  axis		 = vec2f_t::zero;
+					f32			  length_sqr = 0.0f;
+
+					for (u32 clip = 1; clip < clip_count; ++clip)
+					{
+						const vec2f_t offset	   = target_state.clips[clip].weight_value - origin;
+						const f32	  distance_sqr = offset.magnitude_sqr();
+
+						if (distance_sqr > length_sqr)
+						{
+							axis	   = offset;
+							length_sqr = distance_sqr;
+						}
+					}
+
+					// check whether every clip lies within epsilon of the line.
+					bool collinear = true;
+
+					for (u32 clip = 1; clip < clip_count; ++clip)
+					{
+						const vec2f_t offset = target_state.clips[clip].weight_value - origin;
+						const f32	  cross	 = axis.x * offset.y - axis.y * offset.x;
+
+						if (cross * cross > MATH_EPS * MATH_EPS * length_sqr)
+						{
+							collinear = false;
+							break;
+						}
+					}
+
+					if (collinear)
+					{
+						// sort along the line and skip triangulation, preserving order when all clips coincide.
+						if (length_sqr > 0.0f)
+							std::sort(target_state.clips, target_state.clips + clip_count, [axis](const animation_library_clip_runtime_t& a, const animation_library_clip_runtime_t& b) -> bool {
+								return vec2f_t::dot(a.weight_value, axis) < vec2f_t::dot(b.weight_value, axis);
+							});
+
+						continue;
+					}
+
 					// delaunay triangulation for barycentric
 					vector_t<double> triangle_points = {};
 

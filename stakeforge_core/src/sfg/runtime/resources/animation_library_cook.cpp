@@ -50,9 +50,9 @@ namespace sfg
 
 		size_t dependency_capacity = 1;
 
-		for (size_t layer_index = 0; layer_index < def.layer_count; ++layer_index)
+		for (size_t _layer_index = 0; _layer_index < def.layer_count; ++_layer_index)
 		{
-			const animation_library_layer_def_t& layer = def.layers[layer_index];
+			const animation_library_layer_def_t& layer = def.layers[_layer_index];
 
 			for (const animation_library_state_def_t& state : layer.states)
 				dependency_capacity += state.clip_count;
@@ -65,9 +65,9 @@ namespace sfg
 		if (def.skeleton != NULL_RESOURCE_HANDLE)
 			dependencies.push_back({.handle = def.skeleton, .type = resource_type_e::skeleton});
 
-		for (size_t layer_index = 0; layer_index < def.layer_count; ++layer_index)
+		for (size_t _layer_index = 0; _layer_index < def.layer_count; ++_layer_index)
 		{
-			const animation_library_layer_def_t& layer = def.layers[layer_index];
+			const animation_library_layer_def_t& layer = def.layers[_layer_index];
 
 			for (const animation_library_state_def_t& state : layer.states)
 			{

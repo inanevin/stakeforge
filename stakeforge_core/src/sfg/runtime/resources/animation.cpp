@@ -8,6 +8,7 @@
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/log.hpp>
+#include <sfg/math/math.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/memory/bump_allocator.hpp>
 #include <sfg/serialization/compression.hpp>
@@ -71,16 +72,33 @@ namespace sfg
 		runtime->preview_skeleton = definition.preview_skeleton;
 		runtime->duration		  = definition.duration;
 
-		if (!definition.events.empty())
-			storage_size = (ALIGN_UP(storage_size, alignof(animation_event_t))) + definition.events.size() * sizeof(animation_event_t);
+		runtime->event_count = static_cast<u32>(definition.event_count);
+
+		for (u32 index = 0; index < runtime->event_count; ++index)
+		{
+			const animation_event_def_t& event = definition.events[index];
+
+			runtime->events[index] = {.name_hash = TO_SID(static_cast<const char*>(event.name)), .time = static_cast<u32>(math::round(event.time * ANIMATION_TICKS_PER_SECOND))};
+		}
+
+		std::sort(runtime->events, runtime->events + runtime->event_count, [](const animation_event_t& a, const animation_event_t& b) { return a.time < b.time; });
 
 		if (storage_size == 0)
 		{
+			if (runtime->event_count != 0)
+				return true;
+
 			SFG_ERR("animation has no channels or events: {0}", entry.hash);
 			return false;
 		}
 
 		runtime->data = memory.allocate_bytes(storage_size, alignof(std::max_align_t));
+
+		if (!runtime->data)
+		{
+			SFG_ERR("failed to allocate animation channels: {0}", entry.hash);
+			return false;
+		}
 
 		bump_allocator_t storage = {};
 
@@ -122,17 +140,7 @@ namespace sfg
 		runtime->position_count	   = static_cast<u32>(definition.position_channels.size());
 		runtime->rotation_count	   = static_cast<u32>(definition.rotation_channels.size());
 		runtime->scale_count	   = static_cast<u32>(definition.scale_channels.size());
-		runtime->event_count	   = static_cast<u32>(definition.events.size());
 
-		animation_event_t* events = storage.allocate<animation_event_t>(runtime->event_count);
-
-		for (u32 index = 0; index < runtime->event_count; ++index)
-			events[index] = {.name_hash = TO_SID(static_cast<const char*>(definition.events[index].name)), .time = definition.events[index].time};
-
-		if (runtime->event_count != 0)
-			std::sort(events, events + runtime->event_count, [](const animation_event_t& a, const animation_event_t& b) { return a.time < b.time; });
-
-		runtime->events = events;
 		storage.uninit();
 
 		return true;

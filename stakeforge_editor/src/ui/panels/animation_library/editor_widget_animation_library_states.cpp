@@ -73,7 +73,7 @@ namespace sfg
 		editor_widget_button_t					  clear_clips							   = {};
 		editor_widget_animation_library_states_t* owner									   = nullptr;
 		u32										  index									   = 0;
-		u32										  clip_count							   = 0;
+		u32										  _clip_count							   = 0;
 		ui::widget_id_t							  preview								   = NULL_WIDGET;
 		ui::widget_id_t							  blend_frame							   = NULL_WIDGET;
 		ui::widget_id_t							  clip_list								   = NULL_WIDGET;
@@ -144,7 +144,7 @@ namespace sfg
 	{
 		for (state_controls_t* controls : _controls)
 		{
-			for (u32 i = 0; i < controls->clip_count; ++i)
+			for (u32 i = 0; i < controls->_clip_count; ++i)
 			{
 				clip_controls_t& clip = controls->clips[i];
 
@@ -471,7 +471,7 @@ namespace sfg
 		coordinate_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
 		coordinate_in.pos_value.y = 0.5f;
 		coordinate_in.anchor_y	  = ui::anchor_e::center;
-		++controls.clip_count;
+		++controls._clip_count;
 	}
 
 	void editor_widget_animation_library_states_t::refresh_values()
@@ -503,7 +503,7 @@ namespace sfg
 			else
 				tree.in(controls->clear_clips.get_root()).flags &= ~ui::wf_disabled;
 
-			for (u32 i = 0; i < controls->clip_count; ++i)
+			for (u32 i = 0; i < controls->_clip_count; ++i)
 			{
 				clip_controls_t& clip = controls->clips[i];
 				const vec2f_t	 position{math::clamp(state.clips[i].blend_position.x, -1.0f, 1.0f), blend_2d ? math::clamp(state.clips[i].blend_position.y, -1.0f, 1.0f) : 0.0f};
@@ -541,7 +541,7 @@ namespace sfg
 
 		for (const auto& controls : _controls)
 		{
-			for (u32 i = 0; i < controls->clip_count; ++i)
+			for (u32 i = 0; i < controls->_clip_count; ++i)
 			{
 				const clip_controls_t& clip		= controls->clips[i];
 				const bool			   selected = _panel->_selected_layer == _layer && _panel->_selected_state == controls->index && _panel->_selected_clip == i;

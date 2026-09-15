@@ -658,7 +658,10 @@ namespace sfg
 
 		if (asset != nullptr && editor_asset_util_t::load_animation_def(*asset, _animation))
 		{
-			_events				  = std::move(_animation.events);
+			_events.resize(_animation.event_count);
+
+			std::copy_n(_animation.events, _animation.event_count, _events.begin());
+
 			_data.target_mesh	  = _animation.preview_mesh;
 			_data.target_skeleton = _animation.preview_skeleton;
 		}
@@ -1674,7 +1677,7 @@ namespace sfg
 	{
 		on_event_edit_submitted(this);
 
-		if (!is_event_time_available(_cursor_time) || !editor_command_animation_events_edit_t::begin(*this))
+		if (_events.size() == MAX_CLIP_EVENTS || !is_event_time_available(_cursor_time) || !editor_command_animation_events_edit_t::begin(*this))
 			return;
 
 		_events.push_back({.name = "Event", .time = _cursor_time});
@@ -1685,7 +1688,7 @@ namespace sfg
 
 	void editor_panel_animation_t::duplicate_event()
 	{
-		if (_selected_event == UINT32_MAX)
+		if (_selected_event == UINT32_MAX || _events.size() == MAX_CLIP_EVENTS)
 			return;
 
 		on_event_edit_submitted(this);
@@ -1796,9 +1799,32 @@ namespace sfg
 			},
 		};
 
+		static const editor_action_menu_row_desc_t full_add_actions[] = {
+			{
+				.text	  = "Add Event",
+				.command  = ANIMATION_VIEWER_ADD_EVENT,
+				.disabled = true,
+			},
+		};
+		static const editor_action_menu_row_desc_t full_event_actions[] = {
+			{
+				.text	  = "Duplicate",
+				.shortcut = "CTRL+D",
+				.command  = ANIMATION_VIEWER_DUPLICATE_EVENT,
+				.disabled = true,
+			},
+			{
+				.text	  = "Delete",
+				.shortcut = "DEL",
+				.command  = ANIMATION_VIEWER_DELETE_EVENT,
+			},
+		};
+
+		const bool full = _events.size() == MAX_CLIP_EVENTS;
+
 		editor_action_menu_controller_t::find(*_ui)->request_action_menu({
 			.style			   = make_default_action_menu_style(editor_theme_t::get()),
-			.rows			   = on_event ? event_actions : add_actions,
+			.rows			   = on_event ? (full ? full_event_actions : event_actions) : (full ? full_add_actions : add_actions),
 			.command_fn		   = on_event_menu_action,
 			.command_user_data = this,
 			.closed_fn		   = [](void* user_data) { static_cast<editor_panel_animation_t*>(user_data)->_event_menu_open = false; },
@@ -1874,7 +1900,10 @@ namespace sfg
 		if (!editor_asset_util_t::load_animation_def(*asset, definition))
 			return;
 
-		definition.events			= panel._events;
+		definition.event_count = panel._events.size();
+
+		std::copy_n(panel._events.begin(), definition.event_count, definition.events);
+
 		definition.preview_mesh		= panel._data.target_mesh;
 		definition.preview_skeleton = panel._data.target_skeleton;
 

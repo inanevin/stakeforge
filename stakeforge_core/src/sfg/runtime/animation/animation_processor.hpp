@@ -50,10 +50,13 @@ namespace sfg
 
 	struct animator_clip_t
 	{
-		resource_handle_t clip_handle	 = NULL_RESOURCE_HANDLE;
-		vec2f_t			  blend_position = vec2f_t::zero;
-		f32				  speed			 = 1.0f;
-		f32				  start_time	 = 0.0f;
+		animation_event_fn event_callback  = nullptr;
+		void*			   event_user_data = nullptr;
+		resource_handle_t  clip_handle	   = NULL_RESOURCE_HANDLE;
+		vec2f_t			   blend_position  = vec2f_t::zero;
+		f32				   speed		   = 1.0f;
+		f32				   start_time	   = 0.0f;
+		u32				   last_sample	   = UINT32_MAX;
 	};
 
 	struct animator_state_switch_t
@@ -158,6 +161,7 @@ namespace sfg
 		void alloc_for_entity(entity_id_t id);
 		void dealloc_for_entity(entity_id_t id);
 		void process_state(const process_state_params_t& params);
+		void reset_state(animator_state_t& state);
 		u32	 get_count_for_lib_alloc(u32 skeleton_joint_count);
 		void blend_decomposed(const blend_decomposed_params_t& params);
 
