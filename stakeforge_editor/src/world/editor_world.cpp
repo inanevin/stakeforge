@@ -678,7 +678,8 @@ namespace sfg
 	void editor_world_t::produce_snapshot()
 	{
 		world_render_snapshot_t& snapshot = _snapshot_slots[_producer_slot];
-		world_snapshot_producer_t::produce(_world, snapshot, engine_runtime_t::get().get_project_settings());
+
+		world_snapshot_producer_t::produce(_world, snapshot, engine_runtime_t::get().get_project_settings(), _render_context.get_world_render_context());
 		_view_rotation = snapshot.main_view.rot;
 
 		editor_world_snapshot_data_t&	data			= *static_cast<editor_world_snapshot_data_t*>(snapshot.user_data);

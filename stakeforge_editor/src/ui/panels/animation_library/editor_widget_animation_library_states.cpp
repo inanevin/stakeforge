@@ -102,10 +102,23 @@ namespace sfg
 		root_in.size_value.x  = 1.0f;
 		root_in.child_spacing = theme.item_spacing;
 
-		const editor_property_row_t actions = editor_misc_widgets_t::make_property_row(ui, _root);
+		const ui::widget_id_t actions = ui.allocate_widget();
 
-		_add_state.init(ui, actions.left, {.text = "Add State"});
-		_clear_states.init(ui, actions.right, {.text = "Clear All"});
+		tree.attach(_root, actions);
+		ui.set_widget_debug_name(actions, "animation_library_state_actions");
+
+		ui::layout_in_t& actions_in = tree.in(actions);
+
+		actions_in.flow			 = ui::flow_e::row;
+		actions_in.size_mode_x	 = ui::axis_mode_e::parent_relative;
+		actions_in.size_mode_y	 = ui::axis_mode_e::fixed;
+		actions_in.size_value	 = {1.0f, theme.item_height};
+		actions_in.child_spacing = theme.item_spacing;
+
+		_add_state.init(ui, actions, {.text = "Add State"});
+		_clear_states.init(ui, actions, {.text = "Clear All"});
+		tree.in(_add_state.get_root()).size_mode_x	  = ui::axis_mode_e::fill;
+		tree.in(_clear_states.get_root()).size_mode_x = ui::axis_mode_e::fill;
 		ui.get_input().set_listener(_add_state.get_root(), {.on_click = on_states_pressed, .user_data = this});
 		ui.get_input().set_listener(_clear_states.get_root(), {.on_click = on_states_pressed, .user_data = this});
 
@@ -256,16 +269,26 @@ namespace sfg
 		controls.fold.init(*_ui,
 						   _list,
 						   {
-							   .label			= label,
-							   .on_fold_changed = on_state_fold_changed,
-							   .user_data		= &controls,
-							   .folded			= !_state_ui[_layer][index].expanded,
-							   .header_frame	= false,
+							   .background =
+								   {
+									   .fill_color_a  = theme.color_frame,
+									   .fill_color_b  = theme.color_frame,
+									   .rounding	  = theme.item_rounding,
+									   .rounding_segs = 4,
+								   },
+							   .label			 = label,
+							   .on_fold_changed	 = on_state_fold_changed,
+							   .user_data		 = &controls,
+							   .folded			 = !_state_ui[_layer][index].expanded,
+							   .background_frame = true,
+							   .header_frame	 = false,
 						   });
 
-		const ui::widget_id_t body = controls.fold.get_body();
+		const ui::widget_id_t body	  = controls.fold.get_body();
+		ui::layout_in_t&	  body_in = tree.in(body);
 
-		tree.in(body).child_spacing = 0.0f;
+		body_in.child_spacing = 0.0f;
+		body_in.child_margins = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
 
 		const editor_property_row_t name_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, body, "Name");
 		u8*							name	 = reinterpret_cast<u8*>(state.name);
@@ -284,6 +307,16 @@ namespace sfg
 		u8*							loop	 = reinterpret_cast<u8*>(&state.loop);
 
 		controls.loop.init(*_ui, loop_row.right, {.field = {.fields = {.data = &loop, .size = 1}, .field_size = sizeof(state.loop)}, .callbacks = callbacks});
+
+		for (const ui::widget_id_t widget : {controls.name.get_root(), controls.loop.get_root()})
+		{
+			ui::layout_in_t& control_in = tree.in(widget);
+
+			control_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
+			control_in.pos_value.y = 0.5f;
+			control_in.anchor_y	   = ui::anchor_e::center;
+		}
+
 		editor_dividers_t::add_divider_hor(*_ui, body, theme.divider_thickness, theme.color_outline, theme.color_outline, ui::vg_gradient_e::none);
 
 		static const editor_dropdown_item_t blend_items[] = {
@@ -308,12 +341,28 @@ namespace sfg
 		init_preview(controls);
 		editor_misc_widgets_t::make_section_label(*_ui, body, "Clips");
 
-		const editor_property_row_t actions = editor_misc_widgets_t::make_property_row(*_ui, body);
+		const ui::widget_id_t actions = _ui->allocate_widget();
 
-		controls.add_clip.init(*_ui, actions.left, {.text = "Add New"});
-		controls.clear_clips.init(*_ui, actions.right, {.text = "Clear All"});
+		tree.attach(body, actions);
+		_ui->set_widget_debug_name(actions, "animation_library_clip_actions");
+
+		ui::layout_in_t& actions_in = tree.in(actions);
+
+		actions_in.flow			 = ui::flow_e::row;
+		actions_in.size_mode_x	 = ui::axis_mode_e::parent_relative;
+		actions_in.size_mode_y	 = ui::axis_mode_e::fixed;
+		actions_in.size_value	 = {1.0f, theme.item_height};
+		actions_in.child_spacing = theme.item_spacing;
+
+		controls.add_clip.init(*_ui, actions, {.text = "Add New"});
+		controls.clear_clips.init(*_ui, actions, {.text = "Clear All"});
+		tree.in(controls.add_clip.get_root()).size_mode_x	 = ui::axis_mode_e::fill;
+		tree.in(controls.clear_clips.get_root()).size_mode_x = ui::axis_mode_e::fill;
 		_ui->get_input().set_listener(controls.add_clip.get_root(), {.on_click = on_clips_pressed, .user_data = &controls});
 		_ui->get_input().set_listener(controls.clear_clips.get_root(), {.on_click = on_clips_pressed, .user_data = &controls});
+
+		editor_misc_widgets_t::add_spacer(*_ui, body, {0.0f, theme.item_spacing});
+
 		controls.clip_list = _ui->allocate_widget();
 		tree.attach(body, controls.clip_list);
 
@@ -343,10 +392,9 @@ namespace sfg
 		preview_in.size_mode_y	 = ui::axis_mode_e::fixed;
 		preview_in.size_value	 = {1.0f, theme.item_height * ANIMATION_BLEND_PREVIEW_HEIGHT};
 		preview_in.child_margins = {theme.item_height, theme.item_height, theme.item_height, theme.item_height};
-		_ui->get_paint().set_rect(controls.preview, {.fill_color_a = theme.color_frame, .fill_color_b = theme.color_frame});
+
 		controls.blend_frame = _ui->allocate_widget();
 		tree.attach(controls.preview, controls.blend_frame);
-		tree.draw_order(controls.blend_frame) = tree.draw_order_const(controls.preview) + 1;
 
 		ui::layout_in_t& inner_in = tree.in(controls.blend_frame);
 
@@ -402,13 +450,12 @@ namespace sfg
 		clip.fold.init(*_ui,
 					   controls.clip_list,
 					   {
-						   .background		 = {.fill_color_a = theme.color_frame, .fill_color_b = theme.color_frame, .rounding = theme.item_rounding, .rounding_segs = 4},
-						   .label			 = label,
-						   .on_pressed		 = on_clip_pressed,
-						   .on_fold_changed	 = on_clip_fold_changed,
-						   .user_data		 = &clip,
-						   .folded			 = !_state_ui[_layer][controls.index].clip_expanded[index],
-						   .background_frame = true,
+						   .label			= label,
+						   .on_pressed		= on_clip_pressed,
+						   .on_fold_changed = on_clip_fold_changed,
+						   .user_data		= &clip,
+						   .folded			= !_state_ui[_layer][controls.index].clip_expanded[index],
+						   .header_frame	= false,
 					   });
 
 		const ui::widget_id_t body = clip.fold.get_body();
@@ -548,9 +595,9 @@ namespace sfg
 
 				_ui->get_paint().set_rect(clip.fold.get_root(),
 										  {
-											  .fill_color_a		 = theme.color_frame,
-											  .fill_color_b		 = theme.color_frame,
-											  .outline_color	 = selected ? theme.color_accent1 : theme.color_frame,
+											  .fill_color_a		 = vec4f_t::zero,
+											  .fill_color_b		 = vec4f_t::zero,
+											  .outline_color	 = selected ? theme.color_accent1 : vec4f_t::zero,
 											  .rounding			 = theme.item_rounding,
 											  .outline_thickness = theme.border_thickness,
 											  .rounding_segs	 = 4,

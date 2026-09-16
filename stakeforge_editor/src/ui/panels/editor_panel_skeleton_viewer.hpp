@@ -162,7 +162,7 @@ namespace sfg
 		static void on_save_changes_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_mask_edit_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_mask_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
-		static void on_mask_activate_toggled(bool is_toggled, void* user_data);
+		static void on_clear_masks_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_mask_name_edit_begin(void* user_data);
 		static void on_mask_name_edit_submitted(void* user_data);
 		static void on_make_mask_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
@@ -187,6 +187,7 @@ namespace sfg
 		editor_icon_button_t	   _animation_reset_button		= {};
 		editor_widget_button_t	   _save_changes_button			= {};
 		editor_widget_button_t	   _make_mask_button			= {};
+		editor_widget_button_t	   _clear_masks_button			= {};
 		vector_t<mask_item_t*>	   _mask_items					= {};
 		vector_t<u32>			   _selected_joints				= {};
 		editor_vec3_field_t		   _slot_position_field			= {};
@@ -231,7 +232,6 @@ namespace sfg
 		ui::widget_id_t											 _right_content			  = NULL_WIDGET;
 		ui::widget_id_t											 _mask_list				  = NULL_WIDGET;
 		u32														 _editing_mask			  = UINT32_MAX;
-		u32														 _active_mask			  = UINT32_MAX;
 		bool													 _mask_name_edit_active	  = false;
 		ui::widget_id_t											 _joint_count_value		  = NULL_WIDGET;
 		ui::widget_id_t											 _root_joint_value		  = NULL_WIDGET;

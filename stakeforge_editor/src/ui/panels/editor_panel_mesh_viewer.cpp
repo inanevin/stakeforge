@@ -128,17 +128,25 @@ namespace sfg
 
 		editor_misc_widgets_t::make_section_label(ui, _right_pane, "Mesh");
 
+		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
 		_vertex_count_value = append_property_value_row("Vertices");
 		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
 		_index_count_value = append_property_value_row("Indices");
 		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
 		_triangle_count_value = append_property_value_row("Total Triangles");
 		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
 		_primitive_count_value = append_property_value_row("Primitives");
 		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
 		_vertex_stride_value = append_property_value_row("Vertex Stride");
 		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
 		_is_skinned_value = append_property_value_row("Skinned");
+		editor_dividers_t::add_divider_hor(ui, _right_pane, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
 		create_preview_world();
 

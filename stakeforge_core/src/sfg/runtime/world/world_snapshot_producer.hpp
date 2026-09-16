@@ -25,12 +25,13 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	class world_t;
+	class world_render_context_t;
 	struct project_settings_t;
 	struct world_render_snapshot_t;
 
 	class world_snapshot_producer_t final
 	{
 	public:
-		static void produce(world_t& world, world_render_snapshot_t& snapshot, const project_settings_t& project_settings);
+		static void produce(world_t& world, world_render_snapshot_t& snapshot, const project_settings_t& project_settings, const world_render_context_t& render_context);
 	};
 }

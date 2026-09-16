@@ -34,6 +34,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/editor_widget_fold.hpp"
 #include "ui/widgets/editor_widget_input_field.hpp"
+#include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_dropdown.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
@@ -179,6 +180,8 @@ namespace sfg
 		_left_scrollbar.init(ui, {.target = _left_pane, .axes = editor_scrollbar_axis_y});
 		editor_misc_widgets_t::make_section_label(ui, left_content, "Animation Library");
 
+		editor_dividers_t::add_divider_hor(ui, left_content, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
+
 		const editor_property_row_t skeleton_row   = editor_misc_widgets_t::make_property_row_with_label(ui, left_content, "Skeleton");
 		u64*						skeleton_field = &_skeleton_reference_value;
 
@@ -196,6 +199,8 @@ namespace sfg
 		reference_in.pos_mode_y	 = ui::pos_mode_e::relative_in_parent;
 		reference_in.pos_value.y = 0.5f;
 		reference_in.anchor_y	 = ui::anchor_e::center;
+
+		editor_dividers_t::add_divider_hor(ui, left_content, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
 		editor_misc_widgets_t::add_spacer(ui, left_content, {0.0f, theme.item_spacing});
 		_save_changes_button.init(ui, left_content, {.text = "Save Changes"});

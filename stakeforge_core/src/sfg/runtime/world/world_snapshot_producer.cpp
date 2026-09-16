@@ -29,6 +29,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/runtime/animation/animation_bone.hpp>
 #include <sfg/runtime/render/render_resources.hpp>
 #include <sfg/runtime/render/world_draw_common.hpp>
+#include <sfg/runtime/render/world_render_context.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/resources/cubemap.hpp>
 #include <sfg/runtime/resources/curve.hpp>
@@ -217,7 +218,7 @@ namespace sfg
 
 	}
 
-	void world_snapshot_producer_t::produce(world_t& world, world_render_snapshot_t& snapshot, const project_settings_t& project_settings)
+	void world_snapshot_producer_t::produce(world_t& world, world_render_snapshot_t& snapshot, const project_settings_t& project_settings, const world_render_context_t& render_context)
 	{
 		resource_manager_t::get().flush_material_updates();
 
@@ -417,6 +418,7 @@ namespace sfg
 
 		// lights.
 		{
+			const u32						light_max	 = render_context.get_light_max();
 			const ecs_component_table_ref_t table_refs[] = {
 				transform_table.ref(),
 				alive_table.ref(),
@@ -426,6 +428,9 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
+				if (snapshot.lights.size() >= light_max)
+					break;
+
 				const component_system_transform_t& transform = row.get<component_system_transform_t>(0);
 				const component_light_t&			light	  = row.get<component_light_t>(2);
 

@@ -400,7 +400,8 @@ namespace sfg
 	void game_world_controller_t::produce_snapshot()
 	{
 		world_render_snapshot_t& snapshot = _snapshot_slots[_producer_slot];
-		world_snapshot_producer_t::produce(_main_world, snapshot, engine_runtime_t::get().get_project_settings());
+
+		world_snapshot_producer_t::produce(_main_world, snapshot, engine_runtime_t::get().get_project_settings(), _render_context);
 		publish_snapshot();
 	}
 

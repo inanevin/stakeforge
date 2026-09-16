@@ -383,7 +383,7 @@ namespace sfg
 		thumbnail_world.world->tick_animation_prep(0.0f);
 		thumbnail_world.world->tick_animation_logic(0.0f);
 
-		world_snapshot_producer_t::produce(*thumbnail_world.world, _snapshot, engine_runtime_t::get().get_project_settings());
+		world_snapshot_producer_t::produce(*thumbnail_world.world, _snapshot, engine_runtime_t::get().get_project_settings(), _render_context);
 		editor_thumbnail_render_util_t::write_collision_mesh_debug_draw(thumbnail_world, _snapshot.debug_draw);
 	}
 
