@@ -37,7 +37,7 @@ namespace sfg
 
 	void engine_runtime_t::init_globals(resource_file_system_t& resource_file_system, size_t resource_manager_memory)
 	{
-		init_globals(resource_file_system, {.resource_manager = {.memory_budget_bytes = resource_manager_memory}});
+		init_globals(resource_file_system, {.resource_manager = {.memory_page_size_bytes = resource_manager_memory}});
 	}
 
 	void engine_runtime_t::init_globals(const engine_global_config_t& config)

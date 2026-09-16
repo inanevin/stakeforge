@@ -27,6 +27,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 #include <sfg/platform/common_window.hpp>
+#include <sfg/runtime/physics/physics_config.hpp>
 #include <sfg/runtime/physics/physics_world.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/prefab.hpp>
@@ -47,17 +48,12 @@ namespace sfg
 	world_t::world_t()	= default;
 	world_t::~world_t() = default;
 
-	void world_t::init(const world_init_config_t& config)
+	void world_t::init(const world_init_config_t& config, const world_debug_draw_config_t& debug_draw_config, const physics_runtime_config_t& physics_config, const world_particle_simulation_config_t& particle_simulation_config)
 	{
-		SFG_ASSERT(config.particle_simulation.particle_max_count == config.render_particle_max_count);
-
-		_debug_draw.init(config.debug_draw);
-		_component_tables.reserve(config.component_table_initial_capacity);
-		_entity_free_list.reserve(config.entity_free_list_initial_capacity);
-		_text_allocations.reserve(config.text_allocation_initial_capacity);
-		_text_allocation_free_list.reserve(config.text_allocation_initial_capacity);
-		_text_allocator.init(config.text_budget_bytes);
-		_used_resources.reserve(config.used_resource_initial_capacity);
+		_debug_draw.init(debug_draw_config);
+		_component_tables.reserve(64);
+		_entity_free_list.reserve(1024);
+		_used_resources.reserve(512);
 		_screen.init(config.render_resolution);
 
 		const vector_t<reflected_type_t>& types = reflection_registry_t::get().get_types();
@@ -78,18 +74,18 @@ namespace sfg
 
 		_logic_helper.init(*this);
 
-		_animation_controller.init(*this, config.render_bone_max_count, config.animation_processor_budget);
-		_animation_processor.init(*this, config.animation_processor_budget, 1000);
+		_animation_controller.init(*this, 256, 1 * 1024 * 1024);
+		_animation_processor.init(*this, config.animation_processor_page_size);
 
 		_audio_controller.init(*this);
 
 		_canvas_controller.init(*this);
 
-		_particle_simulation.init(*this, config.particle_simulation);
+		_particle_simulation.init(*this, particle_simulation_config);
 
-		if (config.physics_enabled)
+		if (physics_config.physics_enabled)
 		{
-			_physics_world.init(*this, config.physics);
+			_physics_world.init(*this, physics_config);
 		}
 	}
 
@@ -125,9 +121,6 @@ namespace sfg
 		_used_resources.resize(0);
 		_component_tables.resize(0);
 		_entity_free_list.resize(0);
-		_text_allocations.resize(0);
-		_text_allocation_free_list.resize(0);
-		_text_allocator.uninit();
 		_engine_components			  = {};
 		_system_components			  = {};
 		_tick_count					  = 0;
@@ -233,10 +226,7 @@ namespace sfg
 		for (ecs_component_table_t& table : _component_tables)
 			table.clear();
 
-		_text_allocations.resize(0);
-		_text_allocation_free_list.resize(0);
 		_entity_free_list.resize(0);
-		_text_allocator.reset();
 		_tick_count			= 0;
 		_elapsed_time		= 0.0f;
 		_real_elapsed_time	= 0.0f;
@@ -1378,50 +1368,5 @@ namespace sfg
 
 		const component_name_t& name = _engine_components.name_table->get_as_const<component_name_t>(id);
 		return name.text;
-	}
-
-	const char* world_t::get_text(u32 text_index) const
-	{
-		if (text_index == ECS_INVALID_INDEX)
-			return nullptr;
-
-		SFG_ASSERT(text_index < _text_allocations.size());
-		return _text_allocations[text_index].allocated;
-	}
-
-	bool world_t::is_alive(entity_id_t id) const
-	{
-		return _engine_components.alive_table->has(id);
-	}
-
-	u32 world_t::allocate_text(const char* text)
-	{
-		const char* allocated = _text_allocator.allocate(text);
-		SFG_ASSERT(allocated != nullptr);
-		if (allocated == nullptr)
-			return ECS_INVALID_INDEX;
-
-		if (!_text_allocation_free_list.empty())
-		{
-			const u32 text_index = _text_allocation_free_list.back();
-			_text_allocation_free_list.pop_back();
-			_text_allocations[text_index].allocated = allocated;
-			return text_index;
-		}
-
-		const u32 text_index = static_cast<u32>(_text_allocations.size());
-		_text_allocations.push_back({.allocated = allocated});
-		return text_index;
-	}
-
-	void world_t::release_text(u32 text_index)
-	{
-		if (text_index == ECS_INVALID_INDEX)
-			return;
-
-		world_text_allocation_t& allocation = _text_allocations[text_index];
-		_text_allocator.deallocate(allocation.allocated);
-		allocation.allocated = nullptr;
-		_text_allocation_free_list.push_back(text_index);
 	}
 }

@@ -76,7 +76,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const world_render_context_config_t& config);
+		void init(const world_render_context_config_t& config, const world_debug_draw_config_t& debug_draw_config);
 		void uninit();
 		void resize(vec2u16_t size);
 

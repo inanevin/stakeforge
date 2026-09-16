@@ -37,16 +37,18 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	void animation_processor_t::init(world_t& world, size_t aux_size, size_t max_library_support)
+	void animation_processor_t::init(world_t& world, size_t animation_processor_page_size)
 	{
 		_world = &world;
-		_aux.init(aux_size);
 
-		_bone_aux.init(max_library_support * (get_count_for_lib_alloc(MAX_SKELETON_BONES) * sizeof(mat4x3_t) + sizeof(u32) * MAX_SKELETON_BONES * 4));
-		_decomposition_aux.init(max_library_support * sizeof(decomposed_bone_t) * MAX_SKELETON_BONES);
+		_aux.init(32 * 1024);
 
-		_states.reserve(1000);
-		_libraries.reserve(max_library_support);
+		_bone_aux.init(animation_processor_page_size);
+		_decomposition_aux.init(animation_processor_page_size);
+
+		_states.reserve(512);
+		_libraries.reserve(64);
+
 		_frame_counter = 0;
 	}
 

@@ -118,7 +118,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(world_t& world, size_t aux_size, size_t max_library_support);
+		void init(world_t& world, size_t animation_processor_page_size);
 		void uninit();
 
 		// -----------------------------------------------------------------------------

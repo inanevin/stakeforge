@@ -30,7 +30,7 @@ namespace sfg
 	void editor_command_system_t::init(const editor_command_system_config_t& config)
 	{
 		SFG_ASSERT(config.command_max_count != 0);
-		SFG_ASSERT(config.aux_data_budget_bytes != 0);
+		SFG_ASSERT(config.aux_data_page_size_bytes != 0);
 
 		s_instance = this;
 		_config	   = config;
@@ -38,7 +38,7 @@ namespace sfg
 		_commands.reserve(config.command_max_count);
 		_listeners.reserve(config.listener_initial_capacity);
 		_history.reserve(config.command_max_count);
-		_aux_data.init(config.aux_data_budget_bytes);
+		_aux_data.init(config.aux_data_page_size_bytes);
 
 		_cursor			   = 0;
 		_next_sequence	   = 1;
@@ -311,7 +311,9 @@ namespace sfg
 			return {};
 
 		const chunk_handle32_t payload = _aux_data.allocate_bytes(desc.payload_size, desc.payload_alignment);
-		SFG_MEMCPY(_aux_data.get(payload.head), payload_data, desc.payload_size);
+
+		SFG_MEMCPY(_aux_data.get<u8>(payload), payload_data, desc.payload_size);
+
 		return payload;
 	}
 }

@@ -45,22 +45,22 @@ namespace sfg
 
 		_world	= &world;
 		_config = config;
-		_emitters.reserve(config.emitter_initial_capacity);
+		_particles.init(config.page_size);
 	}
 
 	void world_particle_simulation_t::uninit()
 	{
 		clear();
-		_emitters.shrink_to_fit();
+		_particles.uninit();
 		_config = {};
 		_world	= nullptr;
 	}
 
 	void world_particle_simulation_t::clear()
 	{
-		_emitters.resize(0);
+		_world->get_component_table<component_system_particle_emitter_t>().clear();
+		_particles.reset();
 		_fixed_accumulator = 0.0f;
-		_particle_count	   = 0;
 	}
 
 	void world_particle_simulation_t::begin_play()
@@ -75,11 +75,10 @@ namespace sfg
 
 	void world_particle_simulation_t::destroy_entity(entity_id_t entity)
 	{
-		const ecs_component_table_t&			   system_table = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
-		const component_system_particle_emitter_t* system		= system_table.find_as_const<component_system_particle_emitter_t>(entity);
+		const ecs_component_table_t& system_table = _world->get_component_table<component_system_particle_emitter_t>();
 
-		if (system != nullptr && system->runtime_index < _emitters.size() && _emitters[system->runtime_index].entity == entity)
-			remove_runtime(system->runtime_index);
+		if (system_table.has(entity))
+			dealloc_for_entity(entity);
 	}
 
 	void world_particle_simulation_t::tick(f32 delta_time)
@@ -94,6 +93,7 @@ namespace sfg
 		while (_fixed_accumulator >= _config.fixed_step_seconds && step_count < _config.max_steps_per_tick)
 		{
 			simulate_step(_config.fixed_step_seconds);
+
 			_fixed_accumulator -= _config.fixed_step_seconds;
 			++step_count;
 		}
@@ -104,223 +104,187 @@ namespace sfg
 		const ecs_component_table_t& emitter_table	 = _world->get_component_table(type_id_t<component_particle_emitter_t>::value);
 		const ecs_component_table_t& transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
 
-		for (particle_emitter_runtime_t& runtime : _emitters)
-		{
-			const component_particle_emitter_t& emitter	  = emitter_table.get_as_const<component_particle_emitter_t>(runtime.entity);
-			const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(runtime.entity);
+		const ecs_component_table_t&	system_table = _world->get_component_table<component_system_particle_emitter_t>();
+		const ecs_component_table_ref_t refs[]		 = {emitter_table.ref(), transform_table.ref(), system_table.ref()};
 
-			update_bounds(runtime, emitter, transform);
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+		{
+			const component_particle_emitter_t&	 emitter   = row.get<component_particle_emitter_t>();
+			const component_system_transform_t&	 transform = row.get<component_system_transform_t>();
+			component_system_particle_emitter_t& system	   = row.get_mutable<component_system_particle_emitter_t>();
+
+			update_bounds(system, emitter, transform);
 		}
 	}
 
 	void world_particle_simulation_t::play(entity_id_t entity)
 	{
-		const ecs_component_table_t&			   system_table = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
-		const component_system_particle_emitter_t& system		= system_table.get_as_const<component_system_particle_emitter_t>(entity);
-		particle_emitter_runtime_t&				   runtime		= _emitters[system.runtime_index];
+		component_system_particle_emitter_t& system = _world->get_component_table<component_system_particle_emitter_t>().get_as<component_system_particle_emitter_t>(entity);
 
-		runtime.playing = 1;
+		system.playing = 1;
 	}
 
 	void world_particle_simulation_t::stop(entity_id_t entity, bool clear_particles)
 	{
-		const ecs_component_table_t&			   system_table = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
-		const component_system_particle_emitter_t& system		= system_table.get_as_const<component_system_particle_emitter_t>(entity);
-		particle_emitter_runtime_t&				   runtime		= _emitters[system.runtime_index];
+		component_system_particle_emitter_t& system = _world->get_component_table<component_system_particle_emitter_t>().get_as<component_system_particle_emitter_t>(entity);
 
-		runtime.playing = 0;
+		system.playing = 0;
 
 		if (clear_particles)
-		{
-			_particle_count -= static_cast<u32>(runtime.particles.size());
-			runtime.particles.resize(0);
-		}
+			system.particle_count = 0;
 	}
 
 	void world_particle_simulation_t::restart(entity_id_t entity)
 	{
-		const ecs_component_table_t&			   system_table = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
-		const component_system_particle_emitter_t& system		= system_table.get_as_const<component_system_particle_emitter_t>(entity);
-		particle_emitter_runtime_t&				   runtime		= _emitters[system.runtime_index];
+		component_system_particle_emitter_t& system = _world->get_component_table<component_system_particle_emitter_t>().get_as<component_system_particle_emitter_t>(entity);
 
-		_particle_count -= static_cast<u32>(runtime.particles.size());
-		runtime.particles.resize(0);
-		runtime.emitter_age			 = 0.0f;
-		runtime.emission_accumulator = 0.0f;
-		runtime.spawn_serial		 = 0;
-		runtime.completed_loops		 = 0;
-		runtime.burst_emitted		 = 0;
-		runtime.playing				 = 1;
-	}
-
-	const particle_emitter_runtime_t* world_particle_simulation_t::find_runtime(entity_id_t entity) const
-	{
-		const ecs_component_table_t&			   system_table = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
-		const component_system_particle_emitter_t* system		= system_table.find_as_const<component_system_particle_emitter_t>(entity);
-
-		if (system == nullptr || system->runtime_index >= _emitters.size() || _emitters[system->runtime_index].entity != entity)
-			return nullptr;
-
-		return &_emitters[system->runtime_index];
+		system.particle_count		= 0;
+		system.emitter_age			= 0.0f;
+		system.emission_accumulator = 0.0f;
+		system.spawn_serial			= 0;
+		system.completed_loops		= 0;
+		system.burst_emitted		= 0;
+		system.playing				= 1;
 	}
 
 	const aabb_t* world_particle_simulation_t::find_bounds(entity_id_t entity) const
 	{
-		const particle_emitter_runtime_t* runtime = find_runtime(entity);
-		return runtime != nullptr ? &runtime->bounds : nullptr;
+		const component_system_particle_emitter_t* system = _world->get_component_table<component_system_particle_emitter_t>().find_as_const<component_system_particle_emitter_t>(entity);
+
+		return system != nullptr ? &system->bounds : nullptr;
 	}
 
-	particle_emitter_runtime_t& world_particle_simulation_t::create_runtime(entity_id_t entity, const component_particle_emitter_t& emitter, const component_system_transform_t& transform)
+	void world_particle_simulation_t::alloc_for_entity(entity_id_t entity)
 	{
-		particle_emitter_runtime_t& runtime = _emitters.emplace_back();
-		runtime.entity						= entity;
+		const component_particle_emitter_t&	 emitter   = _world->get_component_table<component_particle_emitter_t>().get_as_const<component_particle_emitter_t>(entity);
+		const component_system_transform_t&	 transform = _world->get_component_table<component_system_transform_t>().get_as_const<component_system_transform_t>(entity);
+		component_system_particle_emitter_t& system	   = _world->get_component_table<component_system_particle_emitter_t>().add_or_get_as<component_system_particle_emitter_t>(entity);
 
-		reset_runtime(runtime, emitter, transform);
+		system.particles	 = _particles.allocate<particle_state_t>(emitter.max_particles);
+		system.max_particles = emitter.max_particles;
 
-		return runtime;
+		reset_emitter(system, emitter, transform);
+		update_bounds(system, emitter, transform);
 	}
 
-	void world_particle_simulation_t::reset_runtime(particle_emitter_runtime_t& runtime, const component_particle_emitter_t& emitter, const component_system_transform_t& transform)
+	void world_particle_simulation_t::reset_emitter(component_system_particle_emitter_t& system, const component_particle_emitter_t& emitter, const component_system_transform_t& transform)
 	{
-		_particle_count -= static_cast<u32>(runtime.particles.size());
-		runtime.particles.resize(0);
-		runtime.bounds				 = {};
-		runtime.emitter_age			 = 0.0f;
-		runtime.emission_accumulator = 0.0f;
-		runtime.spawn_serial		 = 0;
-		runtime.completed_loops		 = 0;
-		runtime.burst_emitted		 = 0;
-		runtime.playing				 = emitter.play_on_create;
-		runtime.particles.reserve(math::min(emitter.max_particles, math::min(_config.particle_per_emitter_initial_capacity, _config.particle_max_count)));
+		system.particle_count		= 0;
+		system.bounds				= {};
+		system.emitter_age			= 0.0f;
+		system.emission_accumulator = 0.0f;
+		system.spawn_serial			= 0;
+		system.completed_loops		= 0;
+		system.burst_emitted		= 0;
+		system.playing				= emitter.play_on_create;
 
-		if (emitter.prewarm != 0 && emitter.loop_mode != particle_loop_mode_e::once && runtime.playing != 0)
+		if (emitter.prewarm != 0 && emitter.loop_mode != particle_loop_mode_e::once && system.playing != 0)
 		{
 			const u32 prewarm_steps = math::min(static_cast<u32>(math::ceil(emitter.duration / _config.fixed_step_seconds)), _config.prewarm_max_steps);
 
 			for (u32 step = 0; step < prewarm_steps; ++step)
-				simulate_emitter(runtime, emitter, transform, _config.fixed_step_seconds);
+				simulate_emitter(system, emitter, transform, _config.fixed_step_seconds);
 
-			const f32 active_age = runtime.emitter_age - emitter.start_delay;
+			const f32 active_age = system.emitter_age - emitter.start_delay;
 
 			if (active_age >= emitter.duration)
 			{
-				runtime.emitter_age	  = emitter.start_delay + math::fmodf(active_age, emitter.duration);
-				runtime.burst_emitted = 0;
+				system.emitter_age	 = emitter.start_delay + math::fmodf(active_age, emitter.duration);
+				system.burst_emitted = 0;
 			}
 
-			runtime.completed_loops = 0;
-			runtime.playing			= emitter.play_on_create;
+			system.completed_loops = 0;
+			system.playing		   = emitter.play_on_create;
 		}
 	}
 
 	void world_particle_simulation_t::reset_emitters()
 	{
+		sync_emitters();
+
 		const ecs_component_table_t& emitter_table	 = _world->get_component_table(type_id_t<component_particle_emitter_t>::value);
 		const ecs_component_table_t& transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
 
 		_fixed_accumulator = 0.0f;
 
-		for (particle_emitter_runtime_t& runtime : _emitters)
-		{
-			const component_particle_emitter_t& emitter	  = emitter_table.get_as_const<component_particle_emitter_t>(runtime.entity);
-			const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(runtime.entity);
+		const ecs_component_table_t&	system_table = _world->get_component_table<component_system_particle_emitter_t>();
+		const ecs_component_table_ref_t refs[]		 = {emitter_table.ref(), transform_table.ref(), system_table.ref()};
 
-			reset_runtime(runtime, emitter, transform);
-			update_bounds(runtime, emitter, transform);
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+		{
+			const component_particle_emitter_t&	 emitter   = row.get<component_particle_emitter_t>();
+			const component_system_transform_t&	 transform = row.get<component_system_transform_t>();
+			component_system_particle_emitter_t& system	   = row.get_mutable<component_system_particle_emitter_t>();
+
+			reset_emitter(system, emitter, transform);
+			update_bounds(system, emitter, transform);
 		}
 	}
 
-	void world_particle_simulation_t::remove_runtime(u32 runtime_index)
+	void world_particle_simulation_t::dealloc_for_entity(entity_id_t entity)
 	{
-		ecs_component_table_t& system_table	  = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
-		const entity_id_t	   removed_entity = _emitters[runtime_index].entity;
-		const u32			   last_index	  = static_cast<u32>(_emitters.size() - 1);
+		ecs_component_table_t&				 system_table = _world->get_component_table<component_system_particle_emitter_t>();
+		component_system_particle_emitter_t& system		  = system_table.get_as<component_system_particle_emitter_t>(entity);
 
-		_particle_count -= static_cast<u32>(_emitters[runtime_index].particles.size());
-
-		if (runtime_index != last_index)
-		{
-			_emitters[runtime_index]						  = std::move(_emitters[last_index]);
-			component_system_particle_emitter_t& moved_system = system_table.get_as<component_system_particle_emitter_t>(_emitters[runtime_index].entity);
-			moved_system.runtime_index						  = runtime_index;
-		}
-
-		_emitters.pop_back();
-		system_table.remove(removed_entity);
+		_particles.free(system.particles);
+		system_table.remove(entity);
 	}
 
 	void world_particle_simulation_t::sync_emitters()
 	{
 		ZoneScoped;
 
-		const ecs_component_table_t& alive_table	 = _world->get_component_table(type_id_t<component_alive_t>::value);
-		const ecs_component_table_t& emitter_table	 = _world->get_component_table(type_id_t<component_particle_emitter_t>::value);
-		const ecs_component_table_t& transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
-		const ecs_component_table_t& disabled_table	 = _world->get_component_table(type_id_t<component_disabled_t>::value);
-		ecs_component_table_t&		 system_table	 = _world->get_component_table(type_id_t<component_system_particle_emitter_t>::value);
+		const ecs_component_table_t& emitter_table		 = _world->get_component_table<component_particle_emitter_t>();
+		const ecs_component_table_t& disabled_table		 = _world->get_component_table<component_disabled_t>();
+		const ecs_component_table_t& system_table		 = _world->get_component_table<component_system_particle_emitter_t>();
+		frame_vector_t<entity_id_t>	 add_sys_entities	 = {};
+		frame_vector_t<entity_id_t>	 remove_sys_entities = {};
 
 		// engine emitter no system emitter, create
 		{
-			const ecs_component_table_ref_t refs[] = {
-				!disabled_table.ref(),
-				alive_table.ref(),
-				emitter_table.ref(),
-				!system_table.ref(),
-			};
-			frame_vector_t<entity_id_t> create_entities = {};
+			const ecs_component_table_ref_t refs[] = {emitter_table.ref(), !system_table.ref(), !disabled_table.ref()};
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
-				create_entities.push_back(row.id);
-
-			for (const entity_id_t entity : create_entities)
-			{
-				const component_particle_emitter_t& emitter	  = emitter_table.get_as_const<component_particle_emitter_t>(entity);
-				const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(entity);
-
-				create_runtime(entity, emitter, transform);
-
-				component_system_particle_emitter_t& system = system_table.add_or_get_as<component_system_particle_emitter_t>(entity);
-				system.runtime_index						= static_cast<u32>(_emitters.size() - 1);
-			}
+				add_sys_entities.push_back(row.id);
 		}
 
 		// system emitter disabled, remove
 		{
-			const ecs_component_table_ref_t refs[] = {
-				alive_table.ref(),
-				disabled_table.ref(),
-				system_table.ref(),
-			};
-			frame_vector_t<entity_id_t> destroy_entities = {};
+			const ecs_component_table_ref_t refs[] = {system_table.ref(), disabled_table.ref()};
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
-				destroy_entities.push_back(row.id);
-
-			for (const entity_id_t entity : destroy_entities)
-			{
-				const component_system_particle_emitter_t& system = system_table.get_as_const<component_system_particle_emitter_t>(entity);
-				remove_runtime(system.runtime_index);
-			}
+				remove_sys_entities.push_back(row.id);
 		}
 
 		// system emitter not disabled but no engine emitter, remove
 		{
-			const ecs_component_table_ref_t refs[] = {
-				alive_table.ref(),
-				system_table.ref(),
-				!emitter_table.ref(),
-			};
-			frame_vector_t<entity_id_t> destroy_entities = {};
+			const ecs_component_table_ref_t refs[] = {system_table.ref(), !emitter_table.ref(), !disabled_table.ref()};
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
-				destroy_entities.push_back(row.id);
+				remove_sys_entities.push_back(row.id);
+		}
 
-			for (const entity_id_t entity : destroy_entities)
+		{
+			const ecs_component_table_ref_t refs[] = {emitter_table.ref(), system_table.ref(), !disabled_table.ref()};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 			{
-				const component_system_particle_emitter_t& system = system_table.get_as_const<component_system_particle_emitter_t>(entity);
-				remove_runtime(system.runtime_index);
+				const component_particle_emitter_t&		   emitter = row.get<component_particle_emitter_t>();
+				const component_system_particle_emitter_t& system  = row.get<component_system_particle_emitter_t>();
+
+				if (emitter.max_particles == system.max_particles)
+					continue;
+
+				remove_sys_entities.push_back(row.id);
+				add_sys_entities.push_back(row.id);
 			}
 		}
+
+		for (const entity_id_t entity : remove_sys_entities)
+			dealloc_for_entity(entity);
+
+		for (const entity_id_t entity : add_sys_entities)
+			alloc_for_entity(entity);
 	}
 
 	void world_particle_simulation_t::simulate_step(f32 delta_time)
@@ -330,32 +294,37 @@ namespace sfg
 		const ecs_component_table_t& emitter_table	 = _world->get_component_table(type_id_t<component_particle_emitter_t>::value);
 		const ecs_component_table_t& transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
 
-		for (particle_emitter_runtime_t& runtime : _emitters)
-		{
-			const component_particle_emitter_t& emitter	  = emitter_table.get_as_const<component_particle_emitter_t>(runtime.entity);
-			const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(runtime.entity);
+		const ecs_component_table_t&	system_table = _world->get_component_table<component_system_particle_emitter_t>();
+		const ecs_component_table_ref_t refs[]		 = {emitter_table.ref(), transform_table.ref(), system_table.ref()};
 
-			simulate_emitter(runtime, emitter, transform, delta_time);
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+		{
+			const component_particle_emitter_t&	 emitter   = row.get<component_particle_emitter_t>();
+			const component_system_transform_t&	 transform = row.get<component_system_transform_t>();
+			component_system_particle_emitter_t& system	   = row.get_mutable<component_system_particle_emitter_t>();
+
+			simulate_emitter(system, emitter, transform, delta_time);
 		}
 	}
 
-	void world_particle_simulation_t::simulate_emitter(particle_emitter_runtime_t& runtime, const component_particle_emitter_t& emitter, const component_system_transform_t& transform, f32 delta_time)
+	void world_particle_simulation_t::simulate_emitter(component_system_particle_emitter_t& system, const component_particle_emitter_t& emitter, const component_system_transform_t& transform, f32 delta_time)
 	{
 		const curve_runtime_t* acceleration_curve	= emitter.acceleration_over_lifetime != NULL_RESOURCE_HANDLE ? resource_manager_t::get().find_runtime<curve_runtime_t>(emitter.acceleration_over_lifetime) : nullptr;
 		const vec3f_t		   gravity				= _config.gravity * emitter.gravity_multiplier;
 		const vec3f_t		   gravity_acceleration = emitter.simulation_space == particle_simulation_space_e::world ? gravity : transform.abs_rot.conjugate() * gravity;
 		const f32			   damping				= math::max(0.0f, 1.0f - emitter.drag * delta_time);
 
-		for (size_t particle_index = 0; particle_index < runtime.particles.size();)
+		particle_state_t* const particles = _particles.get<particle_state_t>(system.particles);
+
+		for (u32 particle_index = 0; particle_index < system.particle_count;)
 		{
-			particle_state_t& particle = runtime.particles[particle_index];
+			particle_state_t& particle = particles[particle_index];
+
 			particle.age += delta_time;
 
 			if (particle.age >= particle.lifetime)
 			{
-				particle = runtime.particles.back();
-				runtime.particles.pop_back();
-				--_particle_count;
+				particle = particles[--system.particle_count];
 				continue;
 			}
 
@@ -376,15 +345,15 @@ namespace sfg
 			++particle_index;
 		}
 
-		if (runtime.playing == 0)
+		if (system.playing == 0)
 			return;
 
-		runtime.emitter_age += delta_time;
+		system.emitter_age += delta_time;
 
-		if (runtime.emitter_age < emitter.start_delay)
+		if (system.emitter_age < emitter.start_delay)
 			return;
 
-		const f32 active_age = runtime.emitter_age - emitter.start_delay;
+		const f32 active_age = system.emitter_age - emitter.start_delay;
 
 		if (active_age >= emitter.duration)
 		{
@@ -392,51 +361,53 @@ namespace sfg
 
 			if (emitter.loop_mode == particle_loop_mode_e::once)
 			{
-				runtime.playing = 0;
+				system.playing = 0;
 				return;
 			}
 
 			if (emitter.loop_mode == particle_loop_mode_e::loop_count)
 			{
-				if (runtime.completed_loops + elapsed_loops >= emitter.loop_count)
+				if (system.completed_loops + elapsed_loops >= emitter.loop_count)
 				{
-					runtime.playing = 0;
+					system.playing = 0;
 					return;
 				}
 
-				runtime.completed_loops += elapsed_loops;
+				system.completed_loops += elapsed_loops;
 			}
 
-			runtime.emitter_age	  = emitter.start_delay + math::fmodf(active_age, emitter.duration);
-			runtime.burst_emitted = 0;
+			system.emitter_age	 = emitter.start_delay + math::fmodf(active_age, emitter.duration);
+			system.burst_emitted = 0;
 		}
 
 		u32 emit_count = 0;
 
-		if (runtime.burst_emitted == 0)
+		if (system.burst_emitted == 0)
 		{
 			emit_count += emitter.burst_count;
-			runtime.burst_emitted = 1;
+			system.burst_emitted = 1;
 		}
 
-		runtime.emission_accumulator += emitter.emission_rate * delta_time;
-		const u32 continuous_count = static_cast<u32>(math::floor(runtime.emission_accumulator));
-		runtime.emission_accumulator -= static_cast<f32>(continuous_count);
+		system.emission_accumulator += emitter.emission_rate * delta_time;
+
+		const u32 continuous_count = static_cast<u32>(math::floor(system.emission_accumulator));
+
+		system.emission_accumulator -= static_cast<f32>(continuous_count);
 		emit_count += continuous_count;
 
 		if (emit_count != 0)
-			emit_particles(runtime, emitter, transform, emit_count);
+			emit_particles(system, emitter, transform, emit_count);
 	}
 
-	void world_particle_simulation_t::emit_particles(particle_emitter_runtime_t& runtime, const component_particle_emitter_t& emitter, const component_system_transform_t& transform, u32 count)
+	void world_particle_simulation_t::emit_particles(component_system_particle_emitter_t& system, const component_particle_emitter_t& emitter, const component_system_transform_t& transform, u32 count)
 	{
-		const u32 emitter_available = emitter.max_particles - static_cast<u32>(runtime.particles.size());
-		const u32 world_available	= _config.particle_max_count - _particle_count;
-		const u32 spawn_count		= math::min(count, math::min(emitter_available, world_available));
+		const u32				emitter_available = system.max_particles - system.particle_count;
+		const u32				spawn_count		  = math::min(count, emitter_available);
+		particle_state_t* const particles		  = _particles.get<particle_state_t>(system.particles);
 
 		for (u32 particle_index = 0; particle_index < spawn_count; ++particle_index)
 		{
-			u32 random_state = emitter.random_seed ^ (runtime.spawn_serial++ * 747796405u + 2891336453u);
+			u32 random_state = emitter.random_seed ^ (system.spawn_serial++ * 747796405u + 2891336453u);
 
 			if (random_state == 0)
 				random_state = 1;
@@ -463,17 +434,15 @@ namespace sfg
 				.random			   = random_state,
 			};
 
-			runtime.particles.push_back(particle);
+			particles[system.particle_count++] = particle;
 		}
-
-		_particle_count += spawn_count;
 	}
 
-	void world_particle_simulation_t::update_bounds(particle_emitter_runtime_t& runtime, const component_particle_emitter_t& emitter, const component_system_transform_t& transform)
+	void world_particle_simulation_t::update_bounds(component_system_particle_emitter_t& system, const component_particle_emitter_t& emitter, const component_system_transform_t& transform)
 	{
 		ZoneScoped;
 
-		if (runtime.particles.empty())
+		if (system.particle_count == 0)
 		{
 			vec3f_t local_half_extent = vec3f_t::zero;
 			vec3f_t local_center	  = vec3f_t::zero;
@@ -490,8 +459,9 @@ namespace sfg
 				break;
 			case particle_spawn_shape_e::cone: {
 				const f32 cone_radius = math::tan(math::degrees_to_radians(emitter.cone_angle_degrees)) * emitter.cone_length;
-				local_half_extent	  = {cone_radius, cone_radius, emitter.cone_length * 0.5f};
-				local_center		  = {0.0f, 0.0f, -emitter.cone_length * 0.5f};
+
+				local_half_extent = {cone_radius, cone_radius, emitter.cone_length * 0.5f};
+				local_center	  = {0.0f, 0.0f, -emitter.cone_length * 0.5f};
 				break;
 			}
 			}
@@ -511,17 +481,19 @@ namespace sfg
 																	   local_center.y + (y == 0 ? -local_half_extent.y : local_half_extent.y),
 																	   local_center.z + (z == 0 ? -local_half_extent.z : local_half_extent.z),
 																   };
-						bounds_min			 = vec3f_t::min(bounds_min, corner);
-						bounds_max			 = vec3f_t::max(bounds_max, corner);
+
+						bounds_min = vec3f_t::min(bounds_min, corner);
+						bounds_max = vec3f_t::max(bounds_max, corner);
 					}
 				}
 			}
 
-			runtime.bounds = {bounds_min, bounds_max};
+			system.bounds = {bounds_min, bounds_max};
 			return;
 		}
 
-		const particle_state_t& first				  = runtime.particles.front();
+		const particle_state_t* particles			  = _particles.get<particle_state_t>(system.particles);
+		const particle_state_t& first				  = particles[0];
 		const curve_runtime_t*	size_curve			  = emitter.size_over_lifetime != NULL_RESOURCE_HANDLE ? resource_manager_t::get().find_runtime<curve_runtime_t>(emitter.size_over_lifetime) : nullptr;
 		const vec3f_t			first_position		  = emitter.simulation_space == particle_simulation_space_e::world ? first.position : transform.abs_mat * first.position;
 		const f32				first_normalized_age  = first.age / first.lifetime;
@@ -531,19 +503,20 @@ namespace sfg
 		vec3f_t					bounds_min			  = first_position - vec3f_t{first_radius, first_radius, first_radius};
 		vec3f_t					bounds_max			  = first_position + vec3f_t{first_radius, first_radius, first_radius};
 
-		for (size_t particle_index = 1; particle_index < runtime.particles.size(); ++particle_index)
+		for (u32 particle_index = 1; particle_index < system.particle_count; ++particle_index)
 		{
-			const particle_state_t& particle		= runtime.particles[particle_index];
+			const particle_state_t& particle		= particles[particle_index];
 			const vec3f_t			position		= emitter.simulation_space == particle_simulation_space_e::world ? particle.position : transform.abs_mat * particle.position;
 			const f32				normalized_age	= particle.age / particle.lifetime;
 			const f32				size_multiplier = (size_curve != nullptr ? size_curve->sample(normalized_age).x : 1.0f) * emitter.size_amplitude;
 			const f32				radius			= particle.start_size * math::max(size_multiplier, 0.0f) * local_scale * 0.5f;
 			const vec3f_t			extent			= {radius, radius, radius};
-			bounds_min								= vec3f_t::min(bounds_min, position - extent);
-			bounds_max								= vec3f_t::max(bounds_max, position + extent);
+
+			bounds_min = vec3f_t::min(bounds_min, position - extent);
+			bounds_max = vec3f_t::max(bounds_max, position + extent);
 		}
 
-		runtime.bounds = {bounds_min, bounds_max};
+		system.bounds = {bounds_min, bounds_max};
 	}
 
 	vec3f_t world_particle_simulation_t::random_spawn_position(u32& random_state, const component_particle_emitter_t& emitter) const

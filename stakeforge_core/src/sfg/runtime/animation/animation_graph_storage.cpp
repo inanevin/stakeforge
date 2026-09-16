@@ -179,6 +179,7 @@ namespace sfg
 							SFG_ASSERT(source_state.blend_parameter_index < instance.parameter_count);
 
 							destination_state.blend_parameter = {
+								.page = instance.parameters.page,
 								.head = instance.parameters.head + static_cast<u32>(sizeof(animation_graph_param_t)) * source_state.blend_parameter_index,
 								.size = sizeof(animation_graph_param_t),
 							};
@@ -222,6 +223,7 @@ namespace sfg
 						SFG_ASSERT(source_asm.first_state_index < destination_asm.state_count);
 
 						destination_asm.first_state = {
+							.page = destination_asm.states.page,
 							.head = destination_asm.states.head + static_cast<u32>(sizeof(animation_graph_asm_state_t)) * source_asm.first_state_index,
 							.size = sizeof(animation_graph_asm_state_t),
 						};
@@ -248,11 +250,13 @@ namespace sfg
 					destination_transition = {
 						.from_state =
 							{
+								.page = destination_asm.states.page,
 								.head = destination_asm.states.head + static_cast<u32>(sizeof(animation_graph_asm_state_t)) * source_transition.from_state_index,
 								.size = sizeof(animation_graph_asm_state_t),
 							},
 						.to_state =
 							{
+								.page = destination_asm.states.page,
 								.head = destination_asm.states.head + static_cast<u32>(sizeof(animation_graph_asm_state_t)) * source_transition.to_state_index,
 								.size = sizeof(animation_graph_asm_state_t),
 							},
@@ -271,6 +275,7 @@ namespace sfg
 					else
 					{
 						destination_transition.parameter = {
+							.page = instance.parameters.page,
 							.head = instance.parameters.head + static_cast<u32>(sizeof(animation_graph_param_t)) * source_transition.parameter_index,
 							.size = sizeof(animation_graph_param_t),
 						};
@@ -315,6 +320,7 @@ namespace sfg
 
 				bone_indices[bone_index]	  = source_bone.bone_index;
 				parameter_handles[bone_index] = {
+					.page = instance.parameters.page,
 					.head = instance.parameters.head + static_cast<u32>(sizeof(animation_graph_param_t)) * source_bone.parameter_index,
 					.size = sizeof(animation_graph_param_t),
 				};
@@ -547,6 +553,7 @@ namespace sfg
 			{
 				const animation_graph_asm_transition_t& transition = transitions[transition_index];
 				const chunk_handle32_t					transition_handle{
+					.page = node.transitions.page,
 					.head = node.transitions.head + static_cast<u32>(sizeof(animation_graph_asm_transition_t)) * transition_index,
 					.size = static_cast<u32>(sizeof(animation_graph_asm_transition_t)),
 				};
@@ -583,6 +590,7 @@ namespace sfg
 				node._current_state = active_transition->to_state;
 
 			node._current_transition = {
+				.page = node.transitions.page,
 				.head = node.transitions.head + static_cast<u32>(sizeof(animation_graph_asm_transition_t)) * selected_transition_index,
 				.size = static_cast<u32>(sizeof(animation_graph_asm_transition_t)),
 			};
@@ -596,6 +604,7 @@ namespace sfg
 		if (node._current_transition)
 		{
 			const animation_graph_asm_transition_t& transition = *_asm_transitions.get<animation_graph_asm_transition_t>(node._current_transition);
+
 			node._current_transition_time += delta_time;
 
 			if (node._current_transition_time >= transition.duration)
@@ -612,6 +621,7 @@ namespace sfg
 		}
 
 		update.current_state = _asm_states.get<animation_graph_asm_state_t>(node._current_state);
+
 		return update;
 	}
 

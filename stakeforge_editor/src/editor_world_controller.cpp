@@ -109,7 +109,9 @@ namespace sfg
 
 		editor_world_init_config_t world_config		= init_config;
 		const project_settings_t&  project_settings = engine_runtime_t::get().get_project_settings();
-		world_config.world.physics					= project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps);
+
+		world_config.physics				 = project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps);
+		world_config.physics.physics_enabled = init_config.physics.physics_enabled;
 
 		const editor_world_handle_t handle = _worlds.add();
 		_worlds.get(handle)				   = new editor_world_t();

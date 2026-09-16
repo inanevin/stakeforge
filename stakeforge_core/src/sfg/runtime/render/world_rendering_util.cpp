@@ -325,8 +325,8 @@ namespace sfg
 
 			if (light.type == static_cast<u32>(world_render_light_type_e::spot))
 			{
-				param0 = std::cos(math::degrees_to_radians(light.inner_cone_degrees));
-				param1 = std::cos(math::degrees_to_radians(light.outer_cone_degrees));
+				param0 = math::cos(math::degrees_to_radians(light.inner_cone_degrees));
+				param1 = math::cos(math::degrees_to_radians(light.outer_cone_degrees));
 			}
 			else if (light.type == static_cast<u32>(world_render_light_type_e::area))
 			{
@@ -642,11 +642,13 @@ namespace sfg
 		for (u32 view_index = 0; view_index < prep_data.views.size(); ++view_index)
 		{
 			world_render_prep_view_t& view = prep_data.views[view_index];
+
 			prep_data.begin_view_queues(view);
 
 			for (u32 renderable_index = 0; renderable_index < snapshot.renderables.size(); ++renderable_index)
 			{
 				const world_renderable_t& renderable = snapshot.renderables[renderable_index];
+
 				SFG_ASSERT(renderable.entity_index < snapshot.entities.size());
 
 				const mat4x4_t& model = entity_buffer[renderable.entity_index].model;
@@ -666,6 +668,7 @@ namespace sfg
 				};
 
 				const bool is_view_model = (renderable.flags & world_renderable_flag_view_model) != 0;
+
 				if (is_view_model)
 				{
 					// only in main camera
@@ -673,11 +676,13 @@ namespace sfg
 					{
 						if ((renderable.pass_mask & world_pass_flags_depth) != 0)
 							prep_data.view_model_depth_queue.push_back(item);
+
 						prep_data.view_model_queue.push_back(item);
 					}
 
 					if ((view.queue_flags & world_render_queue_flag_visible) != 0 && (renderable.pass_mask & world_pass_flags_id) != 0)
 						prep_data.visible_queue.push_back(item);
+
 					continue;
 				}
 
@@ -712,6 +717,7 @@ namespace sfg
 			std::sort(opaque_draws.begin(), opaque_draws.end(), [&snapshot](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
 				const world_renderable_t& left_renderable  = snapshot.renderables[left.renderable_index];
 				const world_renderable_t& right_renderable = snapshot.renderables[right.renderable_index];
+
 				return left_renderable.sort_key == right_renderable.sort_key ? left.depth < right.depth : left_renderable.sort_key < right_renderable.sort_key;
 			});
 
@@ -722,6 +728,7 @@ namespace sfg
 			std::sort(shadow_draws.begin(), shadow_draws.end(), [&snapshot](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
 				const world_renderable_t& left_renderable  = snapshot.renderables[left.renderable_index];
 				const world_renderable_t& right_renderable = snapshot.renderables[right.renderable_index];
+
 				return left_renderable.sort_key == right_renderable.sort_key ? left.depth < right.depth : left_renderable.sort_key < right_renderable.sort_key;
 			});
 
@@ -733,6 +740,7 @@ namespace sfg
 		std::sort(prep_data.view_model_queue.begin(), prep_data.view_model_queue.end(), [&snapshot](const world_render_queue_item_t& left, const world_render_queue_item_t& right) {
 			const world_renderable_t& left_renderable  = snapshot.renderables[left.renderable_index];
 			const world_renderable_t& right_renderable = snapshot.renderables[right.renderable_index];
+
 			return left_renderable.sort_key == right_renderable.sort_key ? left.depth < right.depth : left_renderable.sort_key < right_renderable.sort_key;
 		});
 
@@ -741,7 +749,7 @@ namespace sfg
 		render_resources_t&				  render_resources = render_resources_t::get();
 		u32								  instance_count   = 0;
 
-		auto append_sprite_instances = [&](vector_t<world_render_queue_item_t>& queue) {
+		auto append_sprite_instances = [&](frame_vector_t<world_render_queue_item_t>& queue) {
 			for (world_render_queue_item_t& item : queue)
 			{
 				const world_renderable_t& renderable = snapshot.renderables[item.renderable_index];
@@ -812,6 +820,7 @@ namespace sfg
 						const world_particle_t& particle	   = snapshot.particles[particle_index];
 						const vec3f_t			position	   = vec3f_t::lerp(particle.previous_position, particle.position, interpolation_alpha);
 						const vec4f_t			view_position  = view.view * vec4f_t(position.x, position.y, position.z, 1.0f);
+
 						particle_sort_items.push_back({.depth = -view_position.z, .particle_index = particle_index});
 					}
 

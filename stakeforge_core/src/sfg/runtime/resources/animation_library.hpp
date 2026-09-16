@@ -32,7 +32,7 @@ namespace sfg
 	{
 		resource_handle_t animation_clip = NULL_RESOURCE_HANDLE;
 		vec2f_t			  weight_value	 = vec2f_t::zero;
-		chunk_handle32_t  state			 = {};
+		u32				  state_index	 = 0;
 		f32				  start_time	 = 0.0f;
 		f32				  playback_speed = 1.0f;
 	};
@@ -52,8 +52,8 @@ namespace sfg
 		animation_library_clip_runtime_t clips[MAX_ANIMATION_LIBRARY_STATE_CLIPS] = {};
 		sid_t							 name_hash								  = NULL_SID;
 		vec2f_t							 initial_blend_value					  = vec2f_t::zero;
-		chunk_handle32_t				 layer									  = {};
 		chunk_handle32_t				 delaunay_triangles						  = {};
+		u32								 layer_index							  = 0;
 		u32								 triangle_count							  = 0;
 		u32								 clip_count								  = 0;
 		f32								 speed									  = 1.0f;

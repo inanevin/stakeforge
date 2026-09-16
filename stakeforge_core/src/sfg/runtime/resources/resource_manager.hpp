@@ -22,10 +22,8 @@ namespace sfg
 
 	struct resource_manager_config_t
 	{
-		size_t memory_budget_bytes				= 64ull * 1024ull * 1024ull;
-		u32	   resource_initial_capacity		= 256;
-		u32	   dirty_material_initial_capacity	= 64;
-		u32	   reload_listener_initial_capacity = 0;
+		size_t memory_page_size_bytes	 = 16ull * 1024ull * 1024ull;
+		u32	   resource_initial_capacity = 128;
 	};
 
 	class resource_manager_t final

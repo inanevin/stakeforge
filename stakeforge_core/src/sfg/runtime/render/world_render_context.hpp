@@ -31,6 +31,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "world_gpu_cluster.hpp"
 #include "world_render_reflection_context.hpp"
 #include "world_render_shadow_context.hpp"
+#include <sfg/runtime/world/world_debug_draw_config.hpp>
 
 namespace sfg
 {
@@ -166,13 +167,6 @@ namespace sfg
 		u32		  bone_max				  = 0;
 		u32		  light_max				  = 0;
 		u32		  reflection_probe_max	  = 0;
-		u32		  line_vertex_max		  = 0;
-		u32		  line_index_max		  = 0;
-		u32		  triangle_vertex_max	  = 0;
-		u32		  triangle_index_max	  = 0;
-		u32		  text_vertex_max		  = 0;
-		u32		  text_index_max		  = 0;
-		u32		  debug_texture_max		  = 0;
 		u32		  canvas_vertex_max_bytes = 1u << 20;
 		u32		  canvas_index_max_bytes  = 1u << 20;
 		u16		  shadow_view_max		  = 0;
@@ -193,7 +187,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
-		void init(const world_render_context_config_t& config);
+		void init(const world_render_context_config_t& config, const world_debug_draw_config_t& debug_draw_config);
 		void uninit();
 		void resize(vec2u16_t size);
 
@@ -313,7 +307,7 @@ namespace sfg
 
 		inline u32 get_debug_texture_max() const
 		{
-			return _config.debug_texture_max;
+			return _debug_draw_config.texture_max_count;
 		}
 
 		inline gfx_handle_t get_world_texture(u8 frame_index) const
@@ -993,6 +987,7 @@ namespace sfg
 		world_render_shadow_context_t	  _shadow_context			= {};
 		shaders_t						  _shaders					= {};
 		world_render_context_config_t	  _config					= {};
+		world_debug_draw_config_t		  _debug_draw_config		= {};
 		gfx_handle_t					  _ssao_noise_texture		= {};
 		gfx_handle_t					  _ssao_noise_staging		= {};
 		gpu_index_t						  _ssao_noise_texture_index = NULL_GPU_INDEX;

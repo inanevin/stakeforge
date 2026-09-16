@@ -5,7 +5,6 @@
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
-#include <sfg/memory/text_allocator.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/resources/resource_type.hpp>
 #include <sfg/runtime/world/ecs_table.hpp>
@@ -25,6 +24,9 @@ namespace sfg
 	class mat4x3_t;
 	class istream_t;
 	struct world_init_config_t;
+	struct world_debug_draw_config_t;
+	struct physics_runtime_config_t;
+	struct world_particle_simulation_config_t;
 	struct component_hierarchy_t;
 	struct prefab_internals_t;
 	class script_component_schema_t;
@@ -59,7 +61,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const world_init_config_t& config);
+		void init(const world_init_config_t& config, const world_debug_draw_config_t& debug_draw_config, const physics_runtime_config_t& physics_config, const world_particle_simulation_config_t& particle_simulation_config);
 		void uninit();
 		void begin_play();
 		void end_play();
@@ -152,12 +154,13 @@ namespace sfg
 		ecs_component_table_t&				   get_component_table(sid_t type_id);
 		const vector_t<ecs_component_table_t>& get_component_tables() const;
 		const char*							   get_entity_name(entity_id_t id) const;
-		const char*							   get_text(u32 text_index) const;
-		u32									   allocate_text(const char* text);
-		void								   release_text(u32 text_index);
 		void								   begin_component_query();
 		void								   end_component_query();
-		bool								   is_alive(entity_id_t id) const;
+
+		inline bool is_alive(entity_id_t id) const
+		{
+			return _engine_components.alive_table->has(id);
+		}
 
 		template <typename T> const ecs_component_table_t& get_component_table() const
 		{
@@ -330,34 +333,31 @@ namespace sfg
 		};
 
 	private:
-		vector_t<ecs_component_table_t>	  _component_tables;
-		vector_t<world_text_allocation_t> _text_allocations;
-		vector_t<u32>					  _text_allocation_free_list;
-		vector_t<entity_id_t>			  _entity_free_list;
-		vector_t<world_resource_t>		  _used_resources;
-		world_screen_t					  _screen						= {};
-		world_debug_draw_t				  _debug_draw					= {};
-		physics_world_t					  _physics_world				= {};
-		world_animation_controller_t	  _animation_controller			= {};
-		animation_processor_t			  _animation_processor			= {};
-		world_audio_controller_t		  _audio_controller				= {};
-		world_canvas_controller_t		  _canvas_controller			= {};
-		world_logic_helper_t			  _logic_helper					= {};
-		world_particle_simulation_t		  _particle_simulation			= {};
-		text_allocator_t				  _text_allocator				= {};
-		engine_components_t				  _engine_components			= {};
-		system_components_t				  _system_components			= {};
-		void*							  _world_script_instance		= nullptr;
-		key_state_t						  _key_states[256]				= {};
-		f32								  _elapsed_time					= 0.0f;
-		f32								  _real_elapsed_time			= 0.0f;
-		u64								  _tick_count					= 0;
-		f32								  _time_scale					= 1.0f;
-		entity_id_t						  _entity_head					= 0;
-		entity_id_t						  _main_camera_entity			= NULL_ENTITY_ID;
-		u32								  _play_resource_count			= 0;
-		u32								  _active_component_query_count = 0;
-		bool							  _is_playing					= false;
+		vector_t<ecs_component_table_t> _component_tables;
+		vector_t<entity_id_t>			_entity_free_list;
+		vector_t<world_resource_t>		_used_resources;
+		world_screen_t					_screen						  = {};
+		world_debug_draw_t				_debug_draw					  = {};
+		physics_world_t					_physics_world				  = {};
+		world_animation_controller_t	_animation_controller		  = {};
+		animation_processor_t			_animation_processor		  = {};
+		world_audio_controller_t		_audio_controller			  = {};
+		world_canvas_controller_t		_canvas_controller			  = {};
+		world_logic_helper_t			_logic_helper				  = {};
+		world_particle_simulation_t		_particle_simulation		  = {};
+		engine_components_t				_engine_components			  = {};
+		system_components_t				_system_components			  = {};
+		void*							_world_script_instance		  = nullptr;
+		key_state_t						_key_states[256]			  = {};
+		f32								_elapsed_time				  = 0.0f;
+		f32								_real_elapsed_time			  = 0.0f;
+		u64								_tick_count					  = 0;
+		f32								_time_scale					  = 1.0f;
+		entity_id_t						_entity_head				  = 0;
+		entity_id_t						_main_camera_entity			  = NULL_ENTITY_ID;
+		u32								_play_resource_count		  = 0;
+		u32								_active_component_query_count = 0;
+		bool							_is_playing					  = false;
 	};
 
 }

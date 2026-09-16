@@ -219,15 +219,6 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_particle_emitter_t);
 
-	struct component_system_particle_emitter_t
-	{
-		static inline constexpr const char* DEBUG_NAME = "component_system_particle_emitter";
-
-		u32 runtime_index = UINT32_MAX;
-	};
-
-	SFG_DEFINE_TYPE_ID(component_system_particle_emitter_t);
-
 	struct component_skinned_mesh_renderer_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_skinned_mesh_renderer";

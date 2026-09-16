@@ -172,56 +172,30 @@ namespace sfg
 		u32 particle_instance_index = UINT32_MAX;
 	};
 
-	struct world_render_prep_initial_capacity_config_t
-	{
-		size_t view_initial_capacity			  = 65;
-		size_t depth_queue_initial_capacity		  = 0;
-		size_t opaque_queue_initial_capacity	  = 0;
-		size_t transparent_queue_initial_capacity = 0;
-		size_t shadow_queue_initial_capacity	  = 0;
-		size_t visible_queue_initial_capacity	  = 0;
-		size_t view_model_queue_initial_capacity  = 0;
-		size_t shadow_view_initial_capacity		  = 0;
-	};
-
 	struct world_render_prep_data_t
 	{
-		vector_t<world_render_prep_view_t>	 views					= {};
-		vector_t<world_render_queue_item_t>	 depth_queue			= {};
-		vector_t<world_render_queue_item_t>	 opaque_queue			= {};
-		vector_t<world_render_queue_item_t>	 transparent_queue		= {};
-		vector_t<world_render_queue_item_t>	 shadow_queue			= {};
-		vector_t<world_render_queue_item_t>	 visible_queue			= {};
-		vector_t<world_render_queue_item_t>	 view_model_depth_queue = {};
-		vector_t<world_render_queue_item_t>	 view_model_queue		= {};
-		vector_t<world_render_shadow_view_t> shadow_views			= {};
-		u32									 reflection_probe_count = 0;
+		frame_vector_t<world_render_prep_view_t>   views				  = {};
+		frame_vector_t<world_render_queue_item_t>  depth_queue			  = {};
+		frame_vector_t<world_render_queue_item_t>  opaque_queue			  = {};
+		frame_vector_t<world_render_queue_item_t>  transparent_queue	  = {};
+		frame_vector_t<world_render_queue_item_t>  shadow_queue			  = {};
+		frame_vector_t<world_render_queue_item_t>  visible_queue		  = {};
+		frame_vector_t<world_render_queue_item_t>  view_model_depth_queue = {};
+		frame_vector_t<world_render_queue_item_t>  view_model_queue		  = {};
+		frame_vector_t<world_render_shadow_view_t> shadow_views			  = {};
+		u32										   reflection_probe_count = 0;
 
-		inline void reserve(const world_render_prep_initial_capacity_config_t& config)
+		inline void reserve()
 		{
-			views.reserve(config.view_initial_capacity);
-			depth_queue.reserve(config.depth_queue_initial_capacity);
-			opaque_queue.reserve(config.opaque_queue_initial_capacity);
-			transparent_queue.reserve(config.transparent_queue_initial_capacity);
-			shadow_queue.reserve(config.shadow_queue_initial_capacity);
-			visible_queue.reserve(config.visible_queue_initial_capacity);
-			view_model_depth_queue.reserve(config.view_model_queue_initial_capacity);
-			view_model_queue.reserve(config.view_model_queue_initial_capacity);
-			shadow_views.reserve(config.shadow_view_initial_capacity);
-		}
-
-		inline void reset()
-		{
-			views.resize(0);
-			depth_queue.resize(0);
-			opaque_queue.resize(0);
-			transparent_queue.resize(0);
-			shadow_queue.resize(0);
-			visible_queue.resize(0);
-			view_model_depth_queue.resize(0);
-			view_model_queue.resize(0);
-			shadow_views.resize(0);
-			reflection_probe_count = 0;
+			views.reserve(16);
+			depth_queue.reserve(16);
+			opaque_queue.reserve(16);
+			transparent_queue.reserve(16);
+			shadow_queue.reserve(16);
+			visible_queue.reserve(16);
+			view_model_depth_queue.reserve(16);
+			view_model_queue.reserve(16);
+			shadow_views.reserve(16);
 		}
 
 		inline u16 add_view(const world_render_prep_view_t& view)
@@ -310,30 +284,6 @@ namespace sfg
 		}
 	};
 
-	struct world_render_snapshot_initial_capacity_config_t
-	{
-		size_t material_initial_capacity		   = 0;
-		size_t entity_initial_capacity			   = 0;
-		size_t renderable_initial_capacity		   = 0;
-		size_t draw_initial_capacity			   = 0;
-		size_t sprite_initial_capacity			   = 0;
-		size_t particle_draw_initial_capacity	   = 0;
-		size_t particle_initial_capacity		   = 0;
-		size_t bone_initial_capacity			   = 0;
-		size_t light_initial_capacity			   = 0;
-		size_t reflection_probe_initial_capacity   = 0;
-		size_t line_vertex_initial_capacity		   = 0;
-		size_t line_index_initial_capacity		   = 0;
-		size_t triangle_vertex_initial_capacity	   = 0;
-		size_t triangle_index_initial_capacity	   = 0;
-		size_t text_vertex_initial_capacity		   = 0;
-		size_t text_index_initial_capacity		   = 0;
-		size_t debug_texture_initial_capacity	   = 0;
-		size_t canvas_draw_buffer_initial_capacity = 0;
-		size_t canvas_vertex_initial_capacity	   = 0;
-		size_t canvas_index_initial_capacity	   = 0;
-	};
-
 	struct world_render_snapshot_t
 	{
 		void*									  user_data			= nullptr;
@@ -356,31 +306,34 @@ namespace sfg
 		vector_t<world_particle_t>				  particles			= {};
 		engine_quality_level_e					  quality_level		= engine_quality_level_e::high;
 
-		inline void reserve(const world_render_snapshot_initial_capacity_config_t& config)
+		inline void reserve()
 		{
-			materials.reserve(config.material_initial_capacity);
-			entities.reserve(config.entity_initial_capacity);
-			bones.reserve(config.bone_initial_capacity);
-			lights.reserve(config.light_initial_capacity);
-			reflection_probes.reserve(config.reflection_probe_initial_capacity);
-			renderables.reserve(config.renderable_initial_capacity);
-			mesh_draws.reserve(config.draw_initial_capacity);
-			sprite_draws.reserve(config.sprite_initial_capacity);
-			particle_draws.reserve(config.particle_draw_initial_capacity);
-			particles.reserve(config.particle_initial_capacity);
-			debug_draw.line_vertices.reserve(config.line_vertex_initial_capacity);
-			debug_draw.line_indices.reserve(config.line_index_initial_capacity);
-			debug_draw.triangle_vertices.reserve(config.triangle_vertex_initial_capacity);
-			debug_draw.triangle_indices.reserve(config.triangle_index_initial_capacity);
-			debug_draw.text_vertices.reserve(config.text_vertex_initial_capacity);
-			debug_draw.text_indices.reserve(config.text_index_initial_capacity);
-			debug_draw.textures.reserve(config.debug_texture_initial_capacity);
-			canvas.before_post_process.draw_buffers.reserve(config.canvas_draw_buffer_initial_capacity);
-			canvas.before_post_process.vertices.reserve(config.canvas_vertex_initial_capacity);
-			canvas.before_post_process.indices.reserve(config.canvas_index_initial_capacity);
-			canvas.after_post_process.draw_buffers.reserve(config.canvas_draw_buffer_initial_capacity);
-			canvas.after_post_process.vertices.reserve(config.canvas_vertex_initial_capacity);
-			canvas.after_post_process.indices.reserve(config.canvas_index_initial_capacity);
+			materials.reserve(16);
+			entities.reserve(16);
+			bones.reserve(16);
+			lights.reserve(16);
+			reflection_probes.reserve(16);
+			renderables.reserve(16);
+			mesh_draws.reserve(16);
+			sprite_draws.reserve(16);
+			particle_draws.reserve(16);
+			particles.reserve(16);
+
+			debug_draw.line_vertices.reserve(16);
+			debug_draw.line_indices.reserve(16);
+			debug_draw.triangle_vertices.reserve(16);
+			debug_draw.triangle_indices.reserve(16);
+			debug_draw.text_vertices.reserve(16);
+			debug_draw.text_indices.reserve(16);
+			debug_draw.textures.reserve(16);
+
+			canvas.before_post_process.draw_buffers.reserve(16);
+			canvas.before_post_process.vertices.reserve(16);
+			canvas.before_post_process.indices.reserve(16);
+
+			canvas.after_post_process.draw_buffers.reserve(16);
+			canvas.after_post_process.vertices.reserve(16);
+			canvas.after_post_process.indices.reserve(16);
 		}
 	};
 }

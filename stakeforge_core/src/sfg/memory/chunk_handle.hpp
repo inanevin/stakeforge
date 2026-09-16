@@ -27,6 +27,7 @@ namespace sfg
 {
 	struct chunk_handle32_t
 	{
+		u32 page = 0;
 		u32 head = 0;
 		u32 size = 0;
 
@@ -37,12 +38,12 @@ namespace sfg
 
 		bool operator==(chunk_handle32_t other) const
 		{
-			return head == other.head && size == other.size;
+			return page == other.page && head == other.head && size == other.size;
 		}
 
 		bool operator!=(chunk_handle32_t other) const
 		{
-			return (head != other.head) || (size != other.size);
+			return (page != other.page) || (head != other.head) || (size != other.size);
 		}
 	};
 }

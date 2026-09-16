@@ -730,16 +730,15 @@ namespace sfg
 				!disabled_table.ref(),
 			};
 
-			const span_t<const particle_emitter_runtime_t> emitter_runtimes = world.get_particle_simulation().get_emitters();
+			const chunk_allocator_t& particle_memory = world.get_particle_simulation().get_memory();
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
 				const component_system_transform_t&		   transform	  = row.get<component_system_transform_t>(0);
 				const component_particle_emitter_t&		   emitter		  = row.get<component_particle_emitter_t>(2);
 				const component_system_particle_emitter_t& system_emitter = row.get<component_system_particle_emitter_t>(3);
-				const particle_emitter_runtime_t&		   runtime		  = emitter_runtimes.data[system_emitter.runtime_index];
 
-				if (runtime.particles.empty())
+				if (system_emitter.particle_count == 0)
 					continue;
 
 				const material_runtime_t* material_runtime = rm.find_runtime<material_runtime_t>(emitter.material);
@@ -767,17 +766,20 @@ namespace sfg
 				const curve_runtime_t* color_curve	  = emitter.color_over_lifetime != NULL_RESOURCE_HANDLE ? rm.find_runtime<curve_runtime_t>(emitter.color_over_lifetime) : nullptr;
 				const u32			   particle_start = static_cast<u32>(snapshot.particles.size());
 
-				for (const particle_state_t& particle : runtime.particles)
+				const particle_state_t* particles = particle_memory.get<particle_state_t>(system_emitter.particles);
+
+				for (u32 particle_index = 0; particle_index < system_emitter.particle_count; ++particle_index)
 				{
-					const f32	  normalized_age	 = particle.age / particle.lifetime;
-					const f32	  size_multiplier	 = math::max((size_curve != nullptr ? size_curve->sample(normalized_age).x : 1.0f) * emitter.size_amplitude, 0.0f);
-					const f32	  opacity_multiplier = math::max((opacity_curve != nullptr ? opacity_curve->sample(normalized_age).x : 1.0f) * emitter.opacity_amplitude, 0.0f);
-					const vec4f_t color_curve_sample = color_curve != nullptr ? color_curve->sample(normalized_age) : vec4f_t{1.0f, 1.0f, 1.0f, 1.0f};
-					const vec4f_t color_amplitude	 = emitter.color_amplitude.to_vector();
-					const vec4f_t start_color		 = particle.start_color.to_vector();
-					const vec3f_t position			 = emitter.simulation_space == particle_simulation_space_e::world ? particle.position : transform.abs_mat * particle.position;
-					const vec3f_t previous_position	 = emitter.simulation_space == particle_simulation_space_e::world ? particle.previous_position : transform.prev_abs_mat * particle.previous_position;
-					const vec3f_t velocity			 = emitter.simulation_space == particle_simulation_space_e::world ? particle.velocity : transform.abs_rot * particle.velocity;
+					const particle_state_t& particle		   = particles[particle_index];
+					const f32				normalized_age	   = particle.age / particle.lifetime;
+					const f32				size_multiplier	   = math::max((size_curve != nullptr ? size_curve->sample(normalized_age).x : 1.0f) * emitter.size_amplitude, 0.0f);
+					const f32				opacity_multiplier = math::max((opacity_curve != nullptr ? opacity_curve->sample(normalized_age).x : 1.0f) * emitter.opacity_amplitude, 0.0f);
+					const vec4f_t			color_curve_sample = color_curve != nullptr ? color_curve->sample(normalized_age) : vec4f_t{1.0f, 1.0f, 1.0f, 1.0f};
+					const vec4f_t			color_amplitude	   = emitter.color_amplitude.to_vector();
+					const vec4f_t			start_color		   = particle.start_color.to_vector();
+					const vec3f_t			position		   = emitter.simulation_space == particle_simulation_space_e::world ? particle.position : transform.abs_mat * particle.position;
+					const vec3f_t			previous_position  = emitter.simulation_space == particle_simulation_space_e::world ? particle.previous_position : transform.prev_abs_mat * particle.previous_position;
+					const vec3f_t			velocity		   = emitter.simulation_space == particle_simulation_space_e::world ? particle.velocity : transform.abs_rot * particle.velocity;
 
 					snapshot.particles.push_back({
 						.position		   = position,
@@ -808,14 +810,14 @@ namespace sfg
 					.uv_start		= vec2f_t::zero,
 					.uv_size		= sprite_runtime->uv_size,
 					.particle_start = particle_start,
-					.particle_count = static_cast<u32>(runtime.particles.size()),
+					.particle_count = system_emitter.particle_count,
 					.aspect			= frame_width / frame_height,
 					.alignment		= static_cast<u8>(emitter.alignment),
 				});
 
 				snapshot.renderables.push_back({
 					.sort_key		= emitter.material,
-					.aabb			= runtime.bounds,
+					.aabb			= system_emitter.bounds,
 					.payload_index	= particle_draw_index,
 					.material_index = material_index,
 					.entity_index	= entity_index,

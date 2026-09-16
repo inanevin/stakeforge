@@ -62,6 +62,8 @@ namespace sfg
 		other._shaders					= {};
 		_config							= other._config;
 		other._config					= {};
+		_debug_draw_config				= other._debug_draw_config;
+		other._debug_draw_config		= {};
 		_ssao_noise_texture				= other._ssao_noise_texture;
 		other._ssao_noise_texture		= {};
 		_ssao_noise_staging				= other._ssao_noise_staging;
@@ -87,17 +89,19 @@ namespace sfg
 		return *this;
 	}
 
-	void world_render_context_t::init(const world_render_context_config_t& config)
+	void world_render_context_t::init(const world_render_context_config_t& config, const world_debug_draw_config_t& debug_draw_config)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT((config.line_vertex_max == 0) == (config.line_index_max == 0));
-		SFG_ASSERT((config.triangle_vertex_max == 0) == (config.triangle_index_max == 0));
-		SFG_ASSERT((config.text_vertex_max == 0) == (config.text_index_max == 0));
+		SFG_ASSERT((debug_draw_config.line_vertex_max_count == 0) == (debug_draw_config.line_index_max_count == 0));
+		SFG_ASSERT((debug_draw_config.triangle_vertex_max_count == 0) == (debug_draw_config.triangle_index_max_count == 0));
+		SFG_ASSERT((debug_draw_config.text_vertex_max_count == 0) == (debug_draw_config.text_index_max_count == 0));
 		SFG_ASSERT(config.entity_max > 0);
 		SFG_ASSERT(config.bone_max > 0);
 		SFG_ASSERT(config.reflection_probe_max <= WORLD_RENDER_REFLECTION_ALLOCATION_CAPACITY);
 
-		_config = config;
+		_config			   = config;
+		_debug_draw_config = debug_draw_config;
+
 		render_util_t::ensure_world_resolution(_config.size);
 
 		resource_desc_t view_render_pass_data_desc = {};
@@ -159,9 +163,9 @@ namespace sfg
 		particle_instance_buffer_desc.set_name("world_particle_instance_buffer");
 
 		resource_desc_t debug_texture_buffer_desc = {};
-		debug_texture_buffer_desc.size			  = static_cast<u32>(sizeof(world_debug_draw_texture_gpu_t) * config.debug_texture_max);
+		debug_texture_buffer_desc.size			  = static_cast<u32>(sizeof(world_debug_draw_texture_gpu_t) * debug_draw_config.texture_max_count);
 		debug_texture_buffer_desc.structure_size  = static_cast<u32>(sizeof(world_debug_draw_texture_gpu_t));
-		debug_texture_buffer_desc.structure_count = config.debug_texture_max;
+		debug_texture_buffer_desc.structure_count = debug_draw_config.texture_max_count;
 		debug_texture_buffer_desc.flags			  = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
 		debug_texture_buffer_desc.set_name("world_debug_texture_buffer");
 
@@ -186,22 +190,22 @@ namespace sfg
 		debug_line_data_desc.set_name("world_debug_line_data");
 
 		resource_desc_t debug_line_vertex_desc = {};
-		debug_line_vertex_desc.size			   = config.line_vertex_max * static_cast<u32>(sizeof(vertex_debug_line_t));
+		debug_line_vertex_desc.size			   = debug_draw_config.line_vertex_max_count * static_cast<u32>(sizeof(vertex_debug_line_t));
 		debug_line_vertex_desc.flags		   = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
 		debug_line_vertex_desc.set_name("world_debug_line_vertices");
 
 		resource_desc_t debug_line_index_desc = {};
-		debug_line_index_desc.size			  = config.line_index_max * static_cast<u32>(sizeof(primitive_index));
+		debug_line_index_desc.size			  = debug_draw_config.line_index_max_count * static_cast<u32>(sizeof(primitive_index));
 		debug_line_index_desc.flags			  = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
 		debug_line_index_desc.set_name("world_debug_line_indices");
 
 		resource_desc_t debug_triangle_vertex_desc = {};
-		debug_triangle_vertex_desc.size			   = config.triangle_vertex_max * static_cast<u32>(sizeof(vertex_debug_triangle_t));
+		debug_triangle_vertex_desc.size			   = debug_draw_config.triangle_vertex_max_count * static_cast<u32>(sizeof(vertex_debug_triangle_t));
 		debug_triangle_vertex_desc.flags		   = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
 		debug_triangle_vertex_desc.set_name("world_debug_triangle_vertices");
 
 		resource_desc_t debug_triangle_index_desc = {};
-		debug_triangle_index_desc.size			  = config.triangle_index_max * static_cast<u32>(sizeof(primitive_index));
+		debug_triangle_index_desc.size			  = debug_draw_config.triangle_index_max_count * static_cast<u32>(sizeof(primitive_index));
 		debug_triangle_index_desc.flags			  = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
 		debug_triangle_index_desc.set_name("world_debug_triangle_indices");
 
@@ -211,12 +215,12 @@ namespace sfg
 		debug_text_data_desc.set_name("world_debug_text_data");
 
 		resource_desc_t debug_text_vertex_desc = {};
-		debug_text_vertex_desc.size			   = config.text_vertex_max * static_cast<u32>(sizeof(vertex_debug_text_t));
+		debug_text_vertex_desc.size			   = debug_draw_config.text_vertex_max_count * static_cast<u32>(sizeof(vertex_debug_text_t));
 		debug_text_vertex_desc.flags		   = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
 		debug_text_vertex_desc.set_name("world_debug_text_vertices");
 
 		resource_desc_t debug_text_index_desc = {};
-		debug_text_index_desc.size			  = config.text_index_max * static_cast<u32>(sizeof(primitive_index));
+		debug_text_index_desc.size			  = debug_draw_config.text_index_max_count * static_cast<u32>(sizeof(primitive_index));
 		debug_text_index_desc.flags			  = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
 		debug_text_index_desc.set_name("world_debug_text_indices");
 
@@ -345,7 +349,7 @@ namespace sfg
 			_pfd[i].bone_buffer						   = backend.create_resource(bone_buffer_desc);
 			_pfd[i].light_buffer					   = backend.create_resource(light_buffer_desc);
 
-			if (config.debug_texture_max > 0)
+			if (debug_draw_config.texture_max_count > 0)
 			{
 				_pfd[i].debug_texture_buffer = backend.create_resource(debug_texture_buffer_desc);
 				backend.map_resource(_pfd[i].debug_texture_buffer, _pfd[i].mapped_debug_texture_buffer);
@@ -392,7 +396,7 @@ namespace sfg
 			_pfd[i].bone_buffer_index						 = backend.get_resource_gpu_index(_pfd[i].bone_buffer);
 			_pfd[i].light_buffer_index						 = backend.get_resource_gpu_index(_pfd[i].light_buffer);
 
-			if (config.line_vertex_max > 0)
+			if (debug_draw_config.line_vertex_max_count > 0)
 			{
 				_pfd[i].debug_line_data			 = backend.create_resource(debug_line_data_desc);
 				_pfd[i].debug_line_vertex_buffer = backend.create_resource(debug_line_vertex_desc);
@@ -403,7 +407,7 @@ namespace sfg
 				_pfd[i].debug_line_data_index = backend.get_resource_gpu_index(_pfd[i].debug_line_data);
 			}
 
-			if (config.triangle_vertex_max > 0)
+			if (debug_draw_config.triangle_vertex_max_count > 0)
 			{
 				_pfd[i].debug_triangle_vertex_buffer = backend.create_resource(debug_triangle_vertex_desc);
 				_pfd[i].debug_triangle_index_buffer	 = backend.create_resource(debug_triangle_index_desc);
@@ -411,7 +415,7 @@ namespace sfg
 				backend.map_resource(_pfd[i].debug_triangle_index_buffer, _pfd[i].mapped_debug_triangle_indices);
 			}
 
-			if (config.text_vertex_max > 0)
+			if (debug_draw_config.text_vertex_max_count > 0)
 			{
 				_pfd[i].debug_text_data			 = backend.create_resource(debug_text_data_desc);
 				_pfd[i].debug_text_vertex_buffer = backend.create_resource(debug_text_vertex_desc);
@@ -532,27 +536,27 @@ namespace sfg
 				backend.destroy_semaphore(_pfd[i].bloom_semaphore);
 			}
 
-			if (_config.line_vertex_max > 0)
+			if (_debug_draw_config.line_vertex_max_count > 0)
 			{
 				backend.destroy_resource(_pfd[i].debug_line_data);
 				backend.destroy_resource(_pfd[i].debug_line_vertex_buffer);
 				backend.destroy_resource(_pfd[i].debug_line_index_buffer);
 			}
 
-			if (_config.triangle_vertex_max > 0)
+			if (_debug_draw_config.triangle_vertex_max_count > 0)
 			{
 				backend.destroy_resource(_pfd[i].debug_triangle_vertex_buffer);
 				backend.destroy_resource(_pfd[i].debug_triangle_index_buffer);
 			}
 
-			if (_config.text_vertex_max > 0)
+			if (_debug_draw_config.text_vertex_max_count > 0)
 			{
 				backend.destroy_resource(_pfd[i].debug_text_data);
 				backend.destroy_resource(_pfd[i].debug_text_vertex_buffer);
 				backend.destroy_resource(_pfd[i].debug_text_index_buffer);
 			}
 
-			if (_config.debug_texture_max > 0)
+			if (_debug_draw_config.texture_max_count > 0)
 				backend.destroy_resource(_pfd[i].debug_texture_buffer);
 
 			backend.destroy_command_buffer(_pfd[i].cmd_depth);
@@ -624,6 +628,7 @@ namespace sfg
 
 		_shaders				  = {};
 		_config					  = {};
+		_debug_draw_config		  = {};
 		_post_process_hdr_scratch = 0;
 		_post_process_ldr_scratch = 0;
 	}

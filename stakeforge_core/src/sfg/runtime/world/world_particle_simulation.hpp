@@ -21,17 +21,17 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
-#include "engine_components.hpp"
-
-#include <sfg/data/span.hpp>
-#include <sfg/data/vector.hpp>
+#include "world_particle_simulation_config.hpp"
 #include <sfg/math/aabb.hpp>
+#include <sfg/math/color.hpp>
+#include <sfg/memory/chunk_allocator.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
-#include <sfg/runtime/world/world_init_config.hpp>
 
 namespace sfg
 {
 	class world_t;
+	struct component_particle_emitter_t;
+	struct component_system_particle_emitter_t;
 	struct component_system_transform_t;
 
 	struct particle_state_t
@@ -46,19 +46,6 @@ namespace sfg
 		f32		rotation		  = 0.0f;
 		f32		angular_velocity  = 0.0f;
 		u32		random			  = 0;
-	};
-
-	struct particle_emitter_runtime_t
-	{
-		vector_t<particle_state_t> particles;
-		aabb_t					   bounds				= {};
-		entity_id_t				   entity				= NULL_ENTITY_ID;
-		f32						   emitter_age			= 0.0f;
-		f32						   emission_accumulator = 0.0f;
-		u32						   spawn_serial			= 0;
-		u32						   completed_loops		= 0;
-		u8						   burst_emitted		= 0;
-		u8						   playing				= 0;
 	};
 
 	class world_particle_simulation_t final
@@ -93,35 +80,33 @@ namespace sfg
 		// queries
 		// -----------------------------------------------------------------------------
 
-		const particle_emitter_runtime_t* find_runtime(entity_id_t entity) const;
-		const aabb_t*					  find_bounds(entity_id_t entity) const;
+		const aabb_t* find_bounds(entity_id_t entity) const;
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		inline span_t<const particle_emitter_runtime_t> get_emitters() const
+		inline const chunk_allocator_t& get_memory() const
 		{
-			return {.data = _emitters.data(), .size = _emitters.size()};
+			return _particles;
 		}
 
 	private:
-		particle_emitter_runtime_t& create_runtime(entity_id_t entity, const component_particle_emitter_t& emitter, const component_system_transform_t& transform);
-		void						reset_runtime(particle_emitter_runtime_t& runtime, const component_particle_emitter_t& emitter, const component_system_transform_t& transform);
-		void						reset_emitters();
-		void						remove_runtime(u32 runtime_index);
-		void						sync_emitters();
-		void						simulate_step(f32 delta_time);
-		void						simulate_emitter(particle_emitter_runtime_t& runtime, const component_particle_emitter_t& emitter, const component_system_transform_t& transform, f32 delta_time);
-		void						emit_particles(particle_emitter_runtime_t& runtime, const component_particle_emitter_t& emitter, const component_system_transform_t& transform, u32 count);
-		void						update_bounds(particle_emitter_runtime_t& runtime, const component_particle_emitter_t& emitter, const component_system_transform_t& transform);
-		vec3f_t						random_spawn_position(u32& random_state, const component_particle_emitter_t& emitter) const;
+		void	alloc_for_entity(entity_id_t entity);
+		void	dealloc_for_entity(entity_id_t entity);
+		void	reset_emitter(component_system_particle_emitter_t& system, const component_particle_emitter_t& emitter, const component_system_transform_t& transform);
+		void	reset_emitters();
+		void	sync_emitters();
+		void	simulate_step(f32 delta_time);
+		void	simulate_emitter(component_system_particle_emitter_t& system, const component_particle_emitter_t& emitter, const component_system_transform_t& transform, f32 delta_time);
+		void	emit_particles(component_system_particle_emitter_t& system, const component_particle_emitter_t& emitter, const component_system_transform_t& transform, u32 count);
+		void	update_bounds(component_system_particle_emitter_t& system, const component_particle_emitter_t& emitter, const component_system_transform_t& transform);
+		vec3f_t random_spawn_position(u32& random_state, const component_particle_emitter_t& emitter) const;
 
 	private:
-		vector_t<particle_emitter_runtime_t> _emitters;
-		world_particle_simulation_config_t	 _config			= {};
-		world_t*							 _world				= nullptr;
-		f32									 _fixed_accumulator = 0.0f;
-		u32									 _particle_count	= 0;
+		chunk_allocator_t				   _particles		  = {};
+		world_t*						   _world			  = nullptr;
+		world_particle_simulation_config_t _config			  = {};
+		f32								   _fixed_accumulator = 0.0f;
 	};
 }

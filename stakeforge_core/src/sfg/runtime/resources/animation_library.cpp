@@ -72,10 +72,6 @@ namespace sfg
 		{
 			const animation_library_layer_def_t& source_layer = def.layers[layer_index];
 			const u32							 state_count  = static_cast<u32>(source_layer.states.size());
-			const chunk_handle32_t				 layer_handle{
-				.head = entry.runtime.head + static_cast<u32>(offsetof(animation_library_runtime_t, layers)) + static_cast<u32>(sizeof(animation_library_layer_runtime_t)) * layer_index,
-				.size = sizeof(animation_library_layer_runtime_t),
-			};
 
 			animation_library_layer_runtime_t& layer = runtime.layers[layer_index];
 
@@ -98,17 +94,13 @@ namespace sfg
 			{
 				const animation_library_state_def_t& source_state = source_layer.states[state_index];
 				const u32							 clip_count	  = static_cast<u32>(source_state.clip_count);
-				const chunk_handle32_t				 state_handle{
-					.head = layer.states.head + static_cast<u32>(sizeof(animation_library_state_runtime_t)) * state_index,
-					.size = sizeof(animation_library_state_runtime_t),
-				};
 
 				animation_library_state_runtime_t& target_state = states[state_index];
 
 				target_state = {
 					.name_hash			 = TO_SID(static_cast<const char*>(source_state.name)),
 					.initial_blend_value = source_state.blend_value,
-					.layer				 = layer_handle,
+					.layer_index		 = layer_index,
 					.clip_count			 = clip_count,
 					.speed				 = source_state.speed,
 					.blend_type			 = source_state.blend_type,
@@ -122,7 +114,7 @@ namespace sfg
 					target_state.clips[clip] = {
 						.animation_clip = source_clip.animation_clip,
 						.weight_value	= source_clip.blend_position,
-						.state			= state_handle,
+						.state_index	= state_index,
 						.start_time		= source_clip.start_time,
 						.playback_speed = source_clip.playback_speed,
 					};
@@ -181,6 +173,7 @@ namespace sfg
 					for (u32 clip = 0; clip < clip_count; ++clip)
 					{
 						const animation_library_clip_def_t& clip_def = source_state.clips[clip];
+
 						triangle_points.push_back(clip_def.blend_position.x);
 						triangle_points.push_back(clip_def.blend_position.y);
 					}
@@ -204,6 +197,7 @@ namespace sfg
 
 							if (p.equals(clip_def.blend_position))
 								return idx;
+
 							idx++;
 						}
 
@@ -222,7 +216,8 @@ namespace sfg
 						const vec2f_t								 v1	 = {x1, y1};
 						const vec2f_t								 v2	 = {x2, y2};
 						animation_library_state_delaunay_triangle_t& tri = tris[i / 3];
-						tri.v0											 = {x0, y0};
+
+						tri.v0 = {x0, y0};
 
 						tri.clip_index0 = find_clip_idx(tri.v0);
 						tri.clip_index1 = find_clip_idx(v1);
@@ -231,8 +226,9 @@ namespace sfg
 						const vec2f_t edge0	  = v1 - tri.v0;
 						const vec2f_t edge1	  = v2 - tri.v0;
 						const f32	  inv_det = 1.0f / (edge0.x * edge1.y - edge0.y * edge1.x);
-						tri.coeff1			  = {edge1.y * inv_det, -edge1.x * inv_det};
-						tri.coeff2			  = {-edge0.y * inv_det, edge0.x * inv_det};
+
+						tri.coeff1 = {edge1.y * inv_det, -edge1.x * inv_det};
+						tri.coeff2 = {-edge0.y * inv_det, edge0.x * inv_det};
 					}
 				}
 			}

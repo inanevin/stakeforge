@@ -24,100 +24,248 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-
 	chunk_allocator_t::~chunk_allocator_t()
 	{
-		SFG_ASSERT(_raw == nullptr);
-		if (_raw != nullptr)
-			uninit();
+		SFG_ASSERT(_page_size == 0);
 	}
 
-	void chunk_allocator_t::init(size_t size)
+	void chunk_allocator_t::init(size_t page_size, chunk_page_policy_e policy)
 	{
-		SFG_ASSERT(_raw == nullptr);
-		SFG_ASSERT(size != 0);
+		SFG_ASSERT(_page_size == 0);
+		SFG_ASSERT(page_size != 0);
+		SFG_ASSERT(page_size <= UINT32_MAX - (alignof(std::max_align_t) - 1));
 
-		const size_t alignment = alignof(std::max_align_t);
-		const size_t mem_size  = ALIGN_UP(size, alignment);
-		SFG_ASSERT(mem_size <= UINT32_MAX);
+		_page_size = static_cast<u32>(ALIGN_UP(page_size, alignof(std::max_align_t)));
+		_policy	   = policy;
 
-		_raw		= reinterpret_cast<u8*>(SFG_ALIGNED_MALLOC(alignment, mem_size));
-		_total_size = static_cast<u32>(mem_size);
-		SFG_ASSERT(_raw != nullptr);
+		allocate_page(_page_size);
 	}
 
 	void chunk_allocator_t::uninit()
 	{
-		SFG_ASSERT(_raw != nullptr);
-		SFG_ALIGNED_FREE(_raw);
-		_raw		= nullptr;
-		_head		= 0;
-		_total_size = 0;
-		_free_chunks.resize(0);
+		SFG_ASSERT(_page_size != 0);
+
+		for (u32 i = 0; i < _pages.size(); ++i)
+		{
+			if (_pages[i].raw != nullptr)
+				release_page(i);
+		}
+
+		vector_t<page_t>{}.swap(_pages);
+		_page_size = 0;
+		_free_page = UINT32_MAX;
 	}
 
 	void chunk_allocator_t::reset()
 	{
-		_free_chunks.resize(0);
-		_head = 0;
+		SFG_ASSERT(_page_size != 0);
+
+		for (u32 i = 0; i < _pages.size(); ++i)
+		{
+			page_t& page = _pages[i];
+
+			if (page.raw == nullptr)
+				continue;
+
+			if (_policy == chunk_page_policy_e::release)
+			{
+				release_page(i);
+				continue;
+			}
+
+			page.free_chunks.resize(0);
+			page.head			  = 0;
+			page.live_allocations = 0;
+		}
+	}
+
+	u32 chunk_allocator_t::allocate_page(u32 size)
+	{
+		const size_t capacity = ALIGN_UP(static_cast<size_t>(size), alignof(std::max_align_t));
+		u8*			 raw	  = reinterpret_cast<u8*>(SFG_ALIGNED_MALLOC(alignof(std::max_align_t), capacity));
+
+		SFG_FAIL(raw != nullptr, "failed to allocate chunk allocator page");
+
+		u32 index = _free_page;
+
+		if (index == UINT32_MAX)
+		{
+			SFG_FAIL(_pages.size() < UINT32_MAX, "chunk allocator page indices exhausted");
+
+			index = static_cast<u32>(_pages.size());
+			_pages.emplace_back();
+		}
+		else
+		{
+			_free_page = _pages[index].next_free_page;
+		}
+
+		page_t& page = _pages[index];
+
+		page.raw			= raw;
+		page.capacity		= static_cast<u32>(capacity);
+		page.next_free_page = UINT32_MAX;
+		_capacity += capacity;
+
+		return index;
+	}
+
+	void chunk_allocator_t::release_page(u32 index)
+	{
+		page_t& page = _pages[index];
+
+		SFG_ALIGNED_FREE(page.raw);
+		_capacity -= page.capacity;
+
+		vector_t<free_chunk_t>{}.swap(page.free_chunks);
+		page.raw			  = nullptr;
+		page.head			  = 0;
+		page.capacity		  = 0;
+		page.live_allocations = 0;
+		page.next_free_page	  = _free_page;
+		_free_page			  = index;
 	}
 
 	chunk_handle32_t chunk_allocator_t::allocate_bytes(size_t size, size_t alignment)
 	{
+		SFG_ASSERT(_page_size != 0);
 		SFG_ASSERT(size != 0);
 		SFG_ASSERT(alignment != 0);
 		SFG_ASSERT((alignment & (alignment - 1)) == 0);
 		SFG_ASSERT(alignment <= alignof(std::max_align_t));
-		SFG_ASSERT(size <= UINT32_MAX);
-		SFG_ASSERT(static_cast<size_t>(_head) + size < UINT32_MAX);
+		SFG_ASSERT(size <= UINT32_MAX - (alignof(std::max_align_t) - 1));
 
 		const u32 requested_size = static_cast<u32>(size);
 
-		if (!_free_chunks.empty())
+		for (u32 index = 0; index < _pages.size(); ++index)
 		{
-			for (auto it = _free_chunks.begin(); it != _free_chunks.end(); ++it)
+			page_t& page = _pages[index];
+
+			if (page.raw == nullptr || page.capacity < requested_size)
+				continue;
+
+			for (auto it = page.free_chunks.begin(); it != page.free_chunks.end(); ++it)
 			{
-				const chunk_handle32_t chunk = *it;
+				const free_chunk_t chunk		= *it;
+				const u32		   aligned_head = ALIGN_UP(chunk.head, static_cast<u32>(alignment));
+				const u32		   padding		= aligned_head - chunk.head;
 
-				const u32 aligned_head		= ALIGN_UP(chunk.head, static_cast<u32>(alignment));
-				const u32 aligned_size_need = (aligned_head - chunk.head) + requested_size;
+				if (padding > chunk.size || requested_size > chunk.size - padding)
+					continue;
 
-				if (chunk.size >= aligned_size_need)
-				{
-					_free_chunks.erase(it);
+				page.free_chunks.erase(it);
 
-					const chunk_handle32_t allocated_chunk{aligned_head, requested_size};
+				if (padding != 0)
+					insert_free_chunk_sorted(page, {.head = chunk.head, .size = padding});
 
-					if (aligned_head > chunk.head)
-						insert_free_chunk_sorted({chunk.head, aligned_head - chunk.head});
+				const u32 remaining_size = chunk.size - padding - requested_size;
 
-					const u32 remaining_size = chunk.size - aligned_size_need;
-					if (remaining_size > 0)
-						insert_free_chunk_sorted({allocated_chunk.head + allocated_chunk.size, remaining_size});
+				if (remaining_size != 0)
+					insert_free_chunk_sorted(page, {.head = aligned_head + requested_size, .size = remaining_size});
 
-					return allocated_chunk;
-				}
+				++page.live_allocations;
+
+				return {.page = index, .head = aligned_head, .size = requested_size};
+			}
+
+			const u32 aligned_head = ALIGN_UP(page.head, static_cast<u32>(alignment));
+
+			if (requested_size > page.capacity - aligned_head)
+				continue;
+
+			if (aligned_head != page.head)
+				insert_free_chunk_sorted(page, {.head = page.head, .size = aligned_head - page.head});
+
+			page.head = aligned_head + requested_size;
+			++page.live_allocations;
+
+			return {.page = index, .head = aligned_head, .size = requested_size};
+		}
+
+		const u32 index = allocate_page(std::max(_page_size, requested_size));
+		page_t&	  page	= _pages[index];
+
+		page.head			  = requested_size;
+		page.live_allocations = 1;
+
+		return {.page = index, .head = 0, .size = requested_size};
+	}
+
+	void chunk_allocator_t::free(chunk_handle32_t handle)
+	{
+		SFG_ASSERT(handle.size != 0);
+
+		page_t& page = _pages[handle.page];
+
+		SFG_MEMSET(page.raw + handle.head, 0, handle.size); // optional
+		--page.live_allocations;
+
+		if (page.live_allocations == 0)
+		{
+			if (_policy == chunk_page_policy_e::release)
+				release_page(handle.page);
+			else
+			{
+				page.free_chunks.resize(0);
+				page.head = 0;
+			}
+
+			return;
+		}
+
+		insert_free_chunk_sorted(page, {.head = handle.head, .size = handle.size});
+
+		const free_chunk_t tail = page.free_chunks.back();
+
+		if (tail.head + tail.size == page.head)
+		{
+			page.head = tail.head;
+			page.free_chunks.pop_back();
+		}
+	}
+
+	void chunk_allocator_t::insert_free_chunk_sorted(page_t& page, free_chunk_t chunk)
+	{
+		auto& chunks = page.free_chunks;
+		auto  it	 = std::lower_bound(chunks.begin(), chunks.end(), chunk, [](const free_chunk_t& a, const free_chunk_t& b) { return a.head < b.head; });
+
+		it = chunks.insert(it, chunk); // insert c at sorted position
+
+		// Merge with previous if adjacent
+		if (it != chunks.begin())
+		{
+			auto prev = it - 1;
+
+			if (prev->head + prev->size == it->head)
+			{
+				prev->size += it->size;
+				it = chunks.erase(it); // drop current, keep prev
+				it = prev;			   // iterator now at merged block
 			}
 		}
 
-		const u32 current_aligned_head = ALIGN_UP(_head, static_cast<u32>(alignment));
-		const u32 needed_size		   = (current_aligned_head - _head) + requested_size;
+		// Merge with next if adjacent
+		if (it + 1 != chunks.end())
+		{
+			auto next = it + 1;
 
-		SFG_ASSERT(_head <= _total_size);
-		SFG_ASSERT(needed_size <= _total_size - _head);
-
-		const chunk_handle32_t ret{current_aligned_head, requested_size};
-		_head += needed_size;
-		return ret;
+			if (it->head + it->size == next->head)
+			{
+				it->size += next->size;
+				chunks.erase(next);
+			}
+		}
 	}
 
 	chunk_handle32_t chunk_allocator_t::allocate_text(const char* src)
 	{
 		const size_t		   len	  = strlen(src);
 		const chunk_handle32_t handle = allocate<u8>(len + 1);
-		char*				   dst	  = (char*)get<u8>(handle);
+		char*				   dst	  = get<char>(handle);
+
 		SFG_MEMCPY(dst, src, len);
 		dst[len] = '\0';
+
 		return handle;
 	}
 
@@ -126,8 +274,6 @@ namespace sfg
 		if (handle.size == 0)
 			return nullptr;
 
-		const u8* data = _raw + handle.head;
-		return reinterpret_cast<const char*>(data);
+		return get<char>(handle);
 	}
-
 }

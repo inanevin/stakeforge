@@ -58,13 +58,13 @@ namespace sfg
 		SFG_ASSERT((config.text_vertex_max_count == 0) == (config.text_budget_bytes == 0));
 
 		_config = config;
-		_vertices.reserve(config.line_vertex_max_count);
-		_indices.reserve(config.line_index_max_count);
-		_triangle_vertices.reserve(config.triangle_vertex_max_count);
-		_triangle_indices.reserve(config.triangle_index_max_count);
-		_text_commands.reserve(config.text_command_max_count);
-		_texture_commands.reserve(config.texture_max_count);
-		_text_bytes.reserve(config.text_budget_bytes);
+		_vertices.reserve(std::min(config.line_vertex_max_count, 16u));
+		_indices.reserve(std::min(config.line_index_max_count, 16u));
+		_triangle_vertices.reserve(std::min(config.triangle_vertex_max_count, 16u));
+		_triangle_indices.reserve(std::min(config.triangle_index_max_count, 16u));
+		_text_commands.reserve(std::min(config.text_command_max_count, 16u));
+		_texture_commands.reserve(std::min(config.texture_max_count, 16u));
+		_text_bytes.reserve(std::min(config.text_budget_bytes, 256u));
 
 		if (config.text_vertex_max_count > 0)
 		{

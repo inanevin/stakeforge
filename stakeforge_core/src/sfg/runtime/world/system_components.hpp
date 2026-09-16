@@ -111,6 +111,24 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_system_ragdoll_t);
 
+	struct component_system_particle_emitter_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_particle_emitter";
+
+		aabb_t			 bounds				  = {};
+		chunk_handle32_t particles			  = {};
+		f32				 emitter_age		  = 0.0f;
+		f32				 emission_accumulator = 0.0f;
+		u32				 particle_count		  = 0;
+		u32				 max_particles		  = 0;
+		u32				 spawn_serial		  = 0;
+		u32				 completed_loops	  = 0;
+		u8				 burst_emitted		  = 0;
+		u8				 playing			  = 0;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_particle_emitter_t);
+
 	struct component_system_sprite_renderer_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_sprite_renderer";

@@ -22,14 +22,16 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
-#include <sfg/common/size_definitions.hpp>
-#include <sfg/math/vec2u16.hpp>
+#include <sfg/math/vec3f.hpp>
 
 namespace sfg
 {
-	struct world_init_config_t
+	struct world_particle_simulation_config_t
 	{
-		vec2u16_t render_resolution				= vec2u16_t(512, 512);
-		u32		  animation_processor_page_size = 512 * 1024;
+		vec3f_t gravity			   = {0.0f, -9.81f, 0.0f};
+		f32		fixed_step_seconds = 1.0f / 60.0f;
+		u32		page_size		   = 512 * 1024;
+		u32		max_steps_per_tick = 4;
+		u32		prewarm_max_steps  = 240;
 	};
 }

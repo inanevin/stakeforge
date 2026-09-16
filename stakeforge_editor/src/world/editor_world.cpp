@@ -66,42 +66,17 @@ namespace sfg
 #define EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT			8192
 #define EDITOR_MAIN_WORLD_LIGHT_MAX_COUNT				1024
 #define EDITOR_MAIN_WORLD_REFLECTION_PROBE_MAX_COUNT	256
-#define EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY			8000
 #define EDITOR_PREVIEW_WORLD_LIGHT_MAX_COUNT			16
 #define EDITOR_PREVIEW_WORLD_REFLECTION_PROBE_MAX_COUNT 8
-#define EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY		64
 
 	editor_world_init_config_t editor_world_init_config_t::make_main(vec2u16_t render_resolution)
 	{
+		physics_runtime_config_t physics_config = {};
+
+		physics_config.physics_enabled = true;
+
 		return {
-			.world =
-				{
-					.debug_draw =
-						{
-							.line_vertex_max_count	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-							.line_index_max_count	   = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-							.triangle_vertex_max_count = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-							.triangle_index_max_count  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-							.text_command_max_count	   = EDITOR_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
-							.text_budget_bytes		   = EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES,
-							.text_vertex_max_count	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-							.text_index_max_count	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-							.texture_max_count		   = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
-						},
-					.render_resolution				   = render_resolution,
-					.render_entity_max_count		   = 1024 * 10,
-					.render_sprite_max_count		   = 256,
-					.render_particle_max_count		   = 8192,
-					.render_bone_max_count			   = 4096,
-					.render_bone_initial_capacity	   = 1024,
-					.animation_processor_budget		   = 1 * 1024 * 1024,
-					.component_table_initial_capacity  = 64,
-					.entity_free_list_initial_capacity = 1024,
-					.used_resource_initial_capacity	   = 512,
-					.text_allocation_initial_capacity  = 1024,
-					.text_budget_bytes				   = 64 * 1024,
-					.physics_enabled				   = true,
-				},
+			.physics = physics_config,
 			.render_context =
 				{
 					.size				  = render_resolution,
@@ -111,48 +86,21 @@ namespace sfg
 					.bone_max			  = 4096,
 					.light_max			  = EDITOR_MAIN_WORLD_LIGHT_MAX_COUNT,
 					.reflection_probe_max = EDITOR_MAIN_WORLD_REFLECTION_PROBE_MAX_COUNT,
-					.line_vertex_max	  = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-					.line_index_max		  = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-					.triangle_vertex_max  = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-					.triangle_index_max	  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-					.text_vertex_max	  = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-					.text_index_max		  = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-					.debug_texture_max	  = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
 					.shadow_view_max	  = ENGINE_SHADOW_VIEW_MAX,
 				},
-			.snapshot =
+			.debug_draw =
 				{
-					.material_initial_capacity			 = 256,
-					.entity_initial_capacity			 = EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY,
-					.renderable_initial_capacity		 = EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY,
-					.draw_initial_capacity				 = EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY,
-					.sprite_initial_capacity			 = 256,
-					.particle_draw_initial_capacity		 = 1024 * 10,
-					.particle_initial_capacity			 = 8192,
-					.bone_initial_capacity				 = 1024,
-					.light_initial_capacity				 = EDITOR_MAIN_WORLD_LIGHT_MAX_COUNT,
-					.reflection_probe_initial_capacity	 = EDITOR_MAIN_WORLD_REFLECTION_PROBE_MAX_COUNT,
-					.line_vertex_initial_capacity		 = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-					.line_index_initial_capacity		 = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-					.triangle_vertex_initial_capacity	 = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-					.triangle_index_initial_capacity	 = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-					.text_vertex_initial_capacity		 = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-					.text_index_initial_capacity		 = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-					.debug_texture_initial_capacity		 = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
-					.canvas_draw_buffer_initial_capacity = 64,
-					.canvas_vertex_initial_capacity		 = 4096,
-					.canvas_index_initial_capacity		 = 32768,
+					.line_vertex_max_count	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
+					.line_index_max_count	   = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
+					.triangle_vertex_max_count = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
+					.triangle_index_max_count  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
+					.text_command_max_count	   = EDITOR_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
+					.text_budget_bytes		   = EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES,
+					.text_vertex_max_count	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
+					.text_index_max_count	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+					.texture_max_count		   = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
 				},
-			.render_prep =
-				{
-					.view_initial_capacity				= 65,
-					.depth_queue_initial_capacity		= EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY * 8,
-					.opaque_queue_initial_capacity		= EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY * 8,
-					.transparent_queue_initial_capacity = EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY * 8,
-					.shadow_queue_initial_capacity		= EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY * ENGINE_SHADOW_VIEW_MAX,
-					.visible_queue_initial_capacity		= EDITOR_MAIN_WORLD_DRAW_INITIAL_CAPACITY,
-					.shadow_view_initial_capacity		= ENGINE_SHADOW_VIEW_MAX,
-				},
+			.world							  = {.render_resolution = render_resolution},
 			.selected_entity_initial_capacity = 256,
 		};
 	}
@@ -160,40 +108,6 @@ namespace sfg
 	editor_world_init_config_t editor_world_init_config_t::make_preview(vec2u16_t render_resolution)
 	{
 		return {
-			.world =
-				{
-					.debug_draw =
-						{
-							.line_vertex_max_count	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-							.line_index_max_count	   = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-							.triangle_vertex_max_count = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-							.triangle_index_max_count  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-							.text_command_max_count	   = EDITOR_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
-							.text_budget_bytes		   = EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES,
-							.text_vertex_max_count	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-							.text_index_max_count	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-							.texture_max_count		   = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
-						},
-					.particle_simulation =
-						{
-							.emitter_initial_capacity			   = 0,
-							.particle_per_emitter_initial_capacity = 0,
-							.particle_max_count					   = 0,
-						},
-					.render_resolution				   = render_resolution,
-					.render_entity_max_count		   = 128,
-					.render_sprite_max_count		   = 16,
-					.render_particle_max_count		   = 0,
-					.render_bone_max_count			   = MAX_SKELETON_BONES,
-					.render_bone_initial_capacity	   = MAX_SKELETON_BONES,
-					.animation_processor_budget		   = 64 * 1024,
-					.component_table_initial_capacity  = 64,
-					.entity_free_list_initial_capacity = 128,
-					.used_resource_initial_capacity	   = 64,
-					.text_allocation_initial_capacity  = 256,
-					.text_budget_bytes				   = 4096,
-					.physics_enabled				   = false,
-				},
 			.render_context =
 				{
 					.size				  = render_resolution,
@@ -203,45 +117,22 @@ namespace sfg
 					.bone_max			  = MAX_SKELETON_BONES,
 					.light_max			  = EDITOR_PREVIEW_WORLD_LIGHT_MAX_COUNT,
 					.reflection_probe_max = EDITOR_PREVIEW_WORLD_REFLECTION_PROBE_MAX_COUNT,
-					.line_vertex_max	  = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-					.line_index_max		  = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-					.triangle_vertex_max  = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-					.triangle_index_max	  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-					.text_vertex_max	  = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-					.text_index_max		  = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-					.debug_texture_max	  = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
 					.shadow_view_max	  = 8,
 				},
-			.snapshot =
+			.debug_draw =
 				{
-					.material_initial_capacity		   = 64,
-					.entity_initial_capacity		   = 64,
-					.renderable_initial_capacity	   = 80,
-					.draw_initial_capacity			   = EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY,
-					.sprite_initial_capacity		   = 16,
-					.particle_draw_initial_capacity	   = 0,
-					.particle_initial_capacity		   = 0,
-					.bone_initial_capacity			   = MAX_SKELETON_BONES,
-					.light_initial_capacity			   = EDITOR_PREVIEW_WORLD_LIGHT_MAX_COUNT,
-					.reflection_probe_initial_capacity = EDITOR_PREVIEW_WORLD_REFLECTION_PROBE_MAX_COUNT,
-					.line_vertex_initial_capacity	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-					.line_index_initial_capacity	   = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-					.triangle_vertex_initial_capacity  = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-					.triangle_index_initial_capacity   = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-					.text_vertex_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-					.text_index_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-					.debug_texture_initial_capacity	   = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
+					.line_vertex_max_count	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
+					.line_index_max_count	   = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
+					.triangle_vertex_max_count = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
+					.triangle_index_max_count  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
+					.text_command_max_count	   = EDITOR_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
+					.text_budget_bytes		   = EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES,
+					.text_vertex_max_count	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
+					.text_index_max_count	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+					.texture_max_count		   = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
 				},
-			.render_prep =
-				{
-					.view_initial_capacity				= 9,
-					.depth_queue_initial_capacity		= EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY * 8,
-					.opaque_queue_initial_capacity		= EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY * 8,
-					.transparent_queue_initial_capacity = EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY * 8,
-					.shadow_queue_initial_capacity		= EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY * 8,
-					.visible_queue_initial_capacity		= EDITOR_PREVIEW_WORLD_DRAW_INITIAL_CAPACITY,
-					.shadow_view_initial_capacity		= 8,
-				},
+			.particle_simulation			  = {.page_size = 4 * 1024},
+			.world							  = {.render_resolution = render_resolution},
 			.selected_entity_initial_capacity = 64,
 		};
 	}
@@ -249,18 +140,8 @@ namespace sfg
 	void editor_world_t::init(const editor_world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
 	{
 		SFG_ASSERT(init_config.world.render_resolution == init_config.render_context.size);
-		SFG_ASSERT(init_config.world.render_entity_max_count == init_config.render_context.entity_max);
-		SFG_ASSERT(init_config.world.render_sprite_max_count == init_config.render_context.sprite_max);
-		SFG_ASSERT(init_config.world.render_particle_max_count == init_config.render_context.particle_max);
-		SFG_ASSERT(init_config.world.render_bone_max_count == init_config.render_context.bone_max);
-		SFG_ASSERT(init_config.snapshot.entity_initial_capacity <= init_config.render_context.entity_max);
-		SFG_ASSERT(init_config.snapshot.sprite_initial_capacity <= init_config.render_context.sprite_max);
-		SFG_ASSERT(init_config.snapshot.particle_initial_capacity <= init_config.render_context.particle_max);
-		SFG_ASSERT(init_config.snapshot.bone_initial_capacity <= init_config.render_context.bone_max);
-		SFG_ASSERT(init_config.snapshot.light_initial_capacity <= init_config.render_context.light_max);
-		SFG_ASSERT(init_config.snapshot.reflection_probe_initial_capacity <= init_config.render_context.reflection_probe_max);
 
-		_world.init(init_config.world);
+		_world.init(init_config.world, init_config.debug_draw, init_config.physics, init_config.particle_simulation);
 		_edit_context.init(edit_type);
 		_edit_context.set_world(handle);
 		_input_controller.init(*this, handle);
@@ -287,14 +168,14 @@ namespace sfg
 			_object_id_readback_valid[i] = false;
 
 		_render_resolution = init_config.render_context.size;
-		_render_context.init(init_config.render_context);
-		_render_prep_data.reserve(init_config.render_prep);
+		_render_context.init(init_config.render_context, init_config.debug_draw);
 
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
-			_snapshot_slots[i].reserve(init_config.snapshot);
+			_snapshot_slots[i].reserve();
 
 			editor_world_snapshot_data_t* data = new editor_world_snapshot_data_t();
+
 			data->selected_entities.reserve(init_config.selected_entity_initial_capacity);
 			_snapshot_slots[i].user_data = data;
 		}
@@ -880,7 +761,9 @@ namespace sfg
 
 	void editor_world_t::render(const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
-		_render_prep_data.reset();
+		world_render_prep_data_t prep_data = {};
+
+		prep_data.reserve();
 
 		const editor_world_snapshot_data_t& data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.user_data);
 
@@ -897,10 +780,10 @@ namespace sfg
 			_last_render_pick_request_id = data.pick_request.id;
 		}
 
-		world_rendering_t::render_world(_render_context.get_world_render_context(), snapshot, _render_prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
-		editor_world_rendering_t::render_outlines(_render_context, snapshot, _render_prep_data, frame_index, global_cbv_index, global_layout);
-		editor_world_rendering_t::render_object_ids(_render_context, snapshot, _render_prep_data, frame_index);
-		editor_world_rendering_t::blit_world_texture(_render_context, snapshot, _render_prep_data, interpolation_alpha, frame_index);
+		world_rendering_t::render_world(_render_context.get_world_render_context(), snapshot, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
+		editor_world_rendering_t::render_outlines(_render_context, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+		editor_world_rendering_t::render_object_ids(_render_context, snapshot, prep_data, frame_index);
+		editor_world_rendering_t::blit_world_texture(_render_context, snapshot, prep_data, interpolation_alpha, frame_index);
 		_object_id_readback_valid[frame_index] = true;
 	}
 }

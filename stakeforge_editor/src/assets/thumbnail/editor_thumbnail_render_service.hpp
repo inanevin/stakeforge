@@ -30,9 +30,11 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/semaphore_data.hpp>
 #include <sfg/runtime/render/world_render_context.hpp>
+#include <sfg/runtime/physics/physics_config.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
+#include <sfg/runtime/world/world_particle_simulation_config.hpp>
 
 namespace sfg
 {
@@ -40,16 +42,17 @@ namespace sfg
 
 	struct editor_thumbnail_render_service_config_t
 	{
-		world_init_config_t								world							  = {};
-		world_render_context_config_t					render_context					  = {};
-		world_render_snapshot_initial_capacity_config_t snapshot						  = {};
-		world_render_prep_initial_capacity_config_t		render_prep						  = {};
-		vec2u16_t										render_resolution				  = vec2u16_t(256, 256);
-		u32												world_pool_initial_capacity		  = 16;
-		u32												world_pool_max_count			  = 64;
-		u32												request_initial_capacity		  = 256;
-		u32												texture_resource_initial_capacity = 32;
-		u8												pixel_bytes						  = 4;
+		physics_runtime_config_t		   physics							 = {};
+		world_render_context_config_t	   render_context					 = {};
+		world_debug_draw_config_t		   debug_draw						 = {};
+		world_particle_simulation_config_t particle_simulation				 = {};
+		world_init_config_t				   world							 = {};
+		vec2u16_t						   render_resolution				 = vec2u16_t(256, 256);
+		u32								   world_pool_initial_capacity		 = 16;
+		u32								   world_pool_max_count				 = 64;
+		u32								   request_initial_capacity			 = 256;
+		u32								   texture_resource_initial_capacity = 32;
+		u8								   pixel_bytes						 = 4;
 
 		static editor_thumbnail_render_service_config_t make_default();
 	};
@@ -112,10 +115,8 @@ namespace sfg
 
 	private:
 		editor_thumbnail_render_service_config_t _config = {};
-		world_init_config_t						 _world_config;
 		world_render_context_t					 _render_context;
 		world_render_snapshot_t					 _snapshot;
-		world_render_prep_data_t				 _prep_data;
 		vector_t<editor_thumbnail_world_t>		 _worlds;
 		vector_t<pending_render_t>				 _pending_renders;
 		vector_t<thumbnail_request_t>			 _requests;

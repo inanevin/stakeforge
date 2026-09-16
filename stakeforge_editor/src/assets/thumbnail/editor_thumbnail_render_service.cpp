@@ -55,64 +55,24 @@ namespace sfg
 	editor_thumbnail_render_service_config_t editor_thumbnail_render_service_config_t::make_default()
 	{
 		return {
-			.world =
-				{
-					.particle_simulation =
-						{
-							.emitter_initial_capacity			   = 0,
-							.particle_per_emitter_initial_capacity = 0,
-							.particle_max_count					   = 0,
-						},
-					.render_resolution				   = vec2u16_t(256, 256),
-					.render_entity_max_count		   = 1024,
-					.render_sprite_max_count		   = 16,
-					.render_particle_max_count		   = 0,
-					.render_bone_max_count			   = 256,
-					.render_bone_initial_capacity	   = 256,
-					.animation_processor_budget		   = 64 * 1024,
-					.component_table_initial_capacity  = 32,
-					.entity_free_list_initial_capacity = 16,
-					.used_resource_initial_capacity	   = 32,
-					.text_allocation_initial_capacity  = 32,
-					.text_budget_bytes				   = 4096,
-					.physics_enabled				   = false,
-				},
 			.render_context =
 				{
-					.size				 = vec2u16_t(256, 256),
-					.entity_max			 = 1024,
-					.sprite_max			 = 16,
-					.particle_max		 = 0,
-					.bone_max			 = 256,
-					.light_max			 = 4,
-					.triangle_vertex_max = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_VERTEX_MAX,
-					.triangle_index_max	 = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_INDEX_MAX,
-					.enable_ssao		 = 0,
-					.enable_bloom		 = 1,
+					.size		  = vec2u16_t(256, 256),
+					.entity_max	  = 1024,
+					.sprite_max	  = 16,
+					.particle_max = 0,
+					.bone_max	  = 256,
+					.light_max	  = 4,
+					.enable_ssao  = 0,
+					.enable_bloom = 1,
 				},
-			.snapshot =
+			.debug_draw =
 				{
-					.material_initial_capacity		  = 32,
-					.entity_initial_capacity		  = 10,
-					.renderable_initial_capacity	  = 80,
-					.draw_initial_capacity			  = 64,
-					.sprite_initial_capacity		  = 16,
-					.particle_draw_initial_capacity	  = 0,
-					.particle_initial_capacity		  = 0,
-					.bone_initial_capacity			  = 128,
-					.triangle_vertex_initial_capacity = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_VERTEX_MAX,
-					.triangle_index_initial_capacity  = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_INDEX_MAX,
+					.triangle_vertex_max_count = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_VERTEX_MAX,
+					.triangle_index_max_count  = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_INDEX_MAX,
 				},
-			.render_prep =
-				{
-					.view_initial_capacity				= 1,
-					.depth_queue_initial_capacity		= 80,
-					.opaque_queue_initial_capacity		= 80,
-					.transparent_queue_initial_capacity = 80,
-					.shadow_queue_initial_capacity		= 0,
-					.visible_queue_initial_capacity		= 10,
-					.shadow_view_initial_capacity		= 0,
-				},
+			.particle_simulation			   = {.page_size = 4 * 1024},
+			.world							   = {.render_resolution = vec2u16_t(256, 256)},
 			.render_resolution				   = vec2u16_t(256, 256),
 			.world_pool_initial_capacity	   = 16,
 			.world_pool_max_count			   = 64,
@@ -133,22 +93,12 @@ namespace sfg
 		SFG_ASSERT(config.world_pool_initial_capacity <= config.world_pool_max_count);
 		SFG_ASSERT(config.render_resolution == config.world.render_resolution);
 		SFG_ASSERT(config.render_resolution == config.render_context.size);
-		SFG_ASSERT(config.world.render_entity_max_count == config.render_context.entity_max);
-		SFG_ASSERT(config.world.render_sprite_max_count == config.render_context.sprite_max);
-		SFG_ASSERT(config.world.render_particle_max_count == config.render_context.particle_max);
-		SFG_ASSERT(config.world.render_bone_max_count == config.render_context.bone_max);
-		SFG_ASSERT(config.snapshot.entity_initial_capacity <= config.render_context.entity_max);
-		SFG_ASSERT(config.snapshot.sprite_initial_capacity <= config.render_context.sprite_max);
-		SFG_ASSERT(config.snapshot.particle_initial_capacity <= config.render_context.particle_max);
-		SFG_ASSERT(config.snapshot.bone_initial_capacity <= config.render_context.bone_max);
-		SFG_ASSERT(config.snapshot.light_initial_capacity <= config.render_context.light_max);
-		SFG_ASSERT(config.snapshot.reflection_probe_initial_capacity <= config.render_context.reflection_probe_max);
 		SFG_ASSERT(config.pixel_bytes != 0);
 
-		_config		  = config;
-		_world_config = config.world;
+		_config = config;
 
-		gfx_backend& backend	= gfx_backend::get();
+		gfx_backend& backend = gfx_backend::get();
+
 		_semaphore_frame.sem	= backend.create_semaphore();
 		_semaphore_transfer.sem = backend.create_semaphore();
 		_semaphore_readback.sem = backend.create_semaphore();
@@ -174,8 +124,9 @@ namespace sfg
 		});
 
 		resource_desc_t global_desc = {};
-		global_desc.size			= sizeof(global_buffer_data_t);
-		global_desc.flags			= resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
+
+		global_desc.size  = sizeof(global_buffer_data_t);
+		global_desc.flags = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 		global_desc.set_name("thumbnail_global");
 
 		_global_buffer = backend.create_resource(global_desc);
@@ -183,6 +134,7 @@ namespace sfg
 		backend.map_resource(_global_buffer, _mapped_global);
 
 		texture_desc_t thumbnail_texture_desc = {};
+
 		thumbnail_texture_desc.texture_format = format_e::r8g8b8a8_srgb;
 		thumbnail_texture_desc.initial_states = resource_state_copy_source;
 		thumbnail_texture_desc.size			  = config.render_resolution;
@@ -193,21 +145,22 @@ namespace sfg
 		_thumbnail_texture = backend.create_texture(thumbnail_texture_desc);
 
 		resource_desc_t readback_desc = {};
-		readback_desc.size			  = static_cast<u32>(config.render_resolution.x) * config.render_resolution.y * config.pixel_bytes;
-		readback_desc.flags			  = resource_flags::rf_readback;
+
+		readback_desc.size	= static_cast<u32>(config.render_resolution.x) * config.render_resolution.y * config.pixel_bytes;
+		readback_desc.flags = resource_flags::rf_readback;
 		readback_desc.set_name("thumbnail_readback");
 		_thumbnail_readback = backend.create_resource(readback_desc);
 		_readback_pixels.reserve(readback_desc.size);
 		backend.map_resource(_thumbnail_readback, _mapped_readback);
 
-		_render_context.init(config.render_context);
+		_render_context.init(config.render_context, config.debug_draw);
 
 		const shader_internals_t* shader				= resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/thumbnail_capture_copy.hlsl"_hs);
 		const shader_internals_t* debug_triangle_shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_physics_debug.hlsl"_hs);
-		_thumbnail_shader								= render_resources_t::get().get_shader_hw(shader->psos[0]);
-		_debug_triangle_shader							= render_resources_t::get().get_shader_hw(debug_triangle_shader->psos[0]);
-		_snapshot.reserve(config.snapshot);
-		_prep_data.reserve(config.render_prep);
+
+		_thumbnail_shader	   = render_resources_t::get().get_shader_hw(shader->psos[0]);
+		_debug_triangle_shader = render_resources_t::get().get_shader_hw(debug_triangle_shader->psos[0]);
+		_snapshot.reserve();
 		_worlds.reserve(config.world_pool_max_count);
 		_available_worlds.reserve(config.world_pool_max_count);
 		_pending_renders.reserve(config.world_pool_max_count);
@@ -266,7 +219,6 @@ namespace sfg
 		_readback_pixels.resize(0);
 		_requests.resize(0);
 		_config			 = {};
-		_world_config	 = {};
 		_global_index	 = NULL_GPU_INDEX;
 		_mapped_global	 = nullptr;
 		_mapped_readback = nullptr;
@@ -380,9 +332,10 @@ namespace sfg
 	void editor_thumbnail_render_service_t::release_world(u32 world_index)
 	{
 		editor_thumbnail_world_t& thumbnail_world = _worlds[world_index];
+
 		thumbnail_world.world->unload_all_used_resources();
 		thumbnail_world.world->uninit();
-		thumbnail_world.world->init(_world_config);
+		thumbnail_world.world->init(_config.world, _config.debug_draw, _config.physics, _config.particle_simulation);
 		thumbnail_world.texture_resources.resize(0);
 		thumbnail_world.collision_mesh		  = NULL_RESOURCE_HANDLE;
 		thumbnail_world.collision_mesh_center = vec3f_t::zero;
@@ -395,6 +348,7 @@ namespace sfg
 	void editor_thumbnail_render_service_t::grow_world_pool(u32 count)
 	{
 		const u32 start = static_cast<u32>(_worlds.size());
+
 		_worlds.resize(_worlds.size() + count);
 		_available_worlds.reserve(_available_worlds.size() + count);
 
@@ -402,8 +356,9 @@ namespace sfg
 		{
 			const u32				  world_index	  = start + i;
 			editor_thumbnail_world_t& thumbnail_world = _worlds[world_index];
-			thumbnail_world.world					  = new world_t();
-			thumbnail_world.world->init(_world_config);
+
+			thumbnail_world.world = new world_t();
+			thumbnail_world.world->init(_config.world, _config.debug_draw, _config.physics, _config.particle_simulation);
 			thumbnail_world.texture_resources.reserve(_config.texture_resource_initial_capacity);
 			_available_worlds.push_back(world_index);
 		}
@@ -435,14 +390,17 @@ namespace sfg
 	void editor_thumbnail_render_service_t::render_world()
 	{
 		gfx_backend& backend = gfx_backend::get();
+
 		backend.wait_semaphore(_semaphore_frame.sem, _semaphore_frame.value);
 
 		render_resources_t& render_resources = render_resources_t::get();
+
 		render_resources.drain_requests();
 		render_resources.flush_texture_region_data_uploads(0);
 		render_resources.flush_material_parameter_updates(0);
 
 		texture_queue_t& texture_queue = render_resources.get_texture_upload_queue();
+
 		texture_queue.submit({
 			.queue_gfx		= backend.get_queue_gfx(),
 			.queue_transfer = backend.get_queue_transfer(),
@@ -453,13 +411,18 @@ namespace sfg
 		});
 
 		const global_buffer_data_t global_data = {};
+
 		SFG_MEMCPY(_mapped_global, &global_data, sizeof(global_buffer_data_t));
 
-		_prep_data.reset();
-		world_rendering_t::render_world(_render_context, _snapshot, _prep_data, 1.0f, 0, _global_index, render_globals_t::get_global_bind_layout());
+		world_render_prep_data_t prep_data = {};
+
+		prep_data.reserve();
+
+		world_rendering_t::render_world(_render_context, _snapshot, prep_data, 1.0f, 0, _global_index, render_globals_t::get_global_bind_layout());
 
 		_semaphore_frame.value++;
 		const gfx_handle_t queue_gfx = backend.get_queue_gfx();
+
 		backend.queue_signal(queue_gfx, &_semaphore_frame.sem, &_semaphore_frame.value, 1);
 
 		render_resources.drain_destroy_requests();

@@ -102,7 +102,6 @@ namespace sfg
 		f32	 calculate_render_alpha() const;
 
 		world_render_snapshot_t		   _snapshot_slots[3]  = {};
-		world_render_prep_data_t	   _render_prep_data   = {};
 		world_render_context_t		   _render_context	   = {};
 		world_t						   _main_world		   = {};
 		const project_package_meta_t*  _package_meta	   = nullptr;

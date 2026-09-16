@@ -54,7 +54,6 @@ namespace sfg
 #define GAME_WORLD_DEBUG_TEXTURE_MAX_COUNT		   8192
 #define GAME_WORLD_LIGHT_MAX_COUNT				   1024
 #define GAME_WORLD_REFLECTION_PROBE_MAX_COUNT	   256
-#define GAME_WORLD_DRAW_INITIAL_CAPACITY		   8000
 #define GAME_WORLD_ENTITY_MAX_COUNT				   (1024 * 10)
 #define GAME_WORLD_SPRITE_MAX_COUNT				   256
 #define GAME_WORLD_PARTICLE_MAX_COUNT			   8192
@@ -65,33 +64,22 @@ namespace sfg
 		SFG_ASSERT(!_initialized);
 
 		const project_settings_t& project_settings = engine_runtime_t::get().get_project_settings();
-		const world_init_config_t world_config{
-			.debug_draw =
-				{
-					.line_vertex_max_count	   = GAME_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-					.line_index_max_count	   = GAME_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-					.triangle_vertex_max_count = GAME_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-					.triangle_index_max_count  = GAME_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-					.text_command_max_count	   = GAME_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
-					.text_budget_bytes		   = GAME_WORLD_DEBUG_TEXT_BUDGET_BYTES,
-					.text_vertex_max_count	   = GAME_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-					.text_index_max_count	   = GAME_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-					.texture_max_count		   = GAME_WORLD_DEBUG_TEXTURE_MAX_COUNT,
-				},
-			.physics						   = project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps),
-			.render_resolution				   = render_resolution,
-			.render_entity_max_count		   = GAME_WORLD_ENTITY_MAX_COUNT,
-			.render_sprite_max_count		   = GAME_WORLD_SPRITE_MAX_COUNT,
-			.render_particle_max_count		   = GAME_WORLD_PARTICLE_MAX_COUNT,
-			.render_bone_max_count			   = GAME_WORLD_BONE_MAX_COUNT,
-			.render_bone_initial_capacity	   = 1024,
-			.animation_processor_budget		   = 1 * 1024 * 1024,
-			.component_table_initial_capacity  = 64,
-			.entity_free_list_initial_capacity = 1024,
-			.used_resource_initial_capacity	   = 512,
-			.text_allocation_initial_capacity  = 1024,
-			.text_budget_bytes				   = 64 * 1024,
-			.physics_enabled				   = true,
+		physics_runtime_config_t  physics_config   = project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps);
+
+		physics_config.physics_enabled = true;
+
+		const world_init_config_t				 world_config{.render_resolution = render_resolution};
+		const world_particle_simulation_config_t particle_simulation_config = {};
+		const world_debug_draw_config_t			 debug_draw_config{
+			.line_vertex_max_count	   = GAME_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
+			.line_index_max_count	   = GAME_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
+			.triangle_vertex_max_count = GAME_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
+			.triangle_index_max_count  = GAME_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
+			.text_command_max_count	   = GAME_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
+			.text_budget_bytes		   = GAME_WORLD_DEBUG_TEXT_BUDGET_BYTES,
+			.text_vertex_max_count	   = GAME_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
+			.text_index_max_count	   = GAME_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+			.texture_max_count		   = GAME_WORLD_DEBUG_TEXTURE_MAX_COUNT,
 		};
 
 		const world_render_context_config_t render_context_config{
@@ -102,58 +90,18 @@ namespace sfg
 			.bone_max			  = GAME_WORLD_BONE_MAX_COUNT,
 			.light_max			  = GAME_WORLD_LIGHT_MAX_COUNT,
 			.reflection_probe_max = GAME_WORLD_REFLECTION_PROBE_MAX_COUNT,
-			.line_vertex_max	  = GAME_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-			.line_index_max		  = GAME_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-			.triangle_vertex_max  = GAME_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-			.triangle_index_max	  = GAME_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-			.text_vertex_max	  = GAME_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-			.text_index_max		  = GAME_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-			.debug_texture_max	  = GAME_WORLD_DEBUG_TEXTURE_MAX_COUNT,
 			.shadow_view_max	  = ENGINE_SHADOW_VIEW_MAX,
 		};
 
-		const world_render_snapshot_initial_capacity_config_t snapshot_config{
-			.material_initial_capacity			 = 256,
-			.entity_initial_capacity			 = GAME_WORLD_DRAW_INITIAL_CAPACITY,
-			.renderable_initial_capacity		 = GAME_WORLD_DRAW_INITIAL_CAPACITY,
-			.draw_initial_capacity				 = GAME_WORLD_DRAW_INITIAL_CAPACITY,
-			.sprite_initial_capacity			 = GAME_WORLD_SPRITE_MAX_COUNT,
-			.particle_draw_initial_capacity		 = 1024 * 10,
-			.particle_initial_capacity			 = GAME_WORLD_PARTICLE_MAX_COUNT,
-			.bone_initial_capacity				 = 1024,
-			.light_initial_capacity				 = GAME_WORLD_LIGHT_MAX_COUNT,
-			.reflection_probe_initial_capacity	 = GAME_WORLD_REFLECTION_PROBE_MAX_COUNT,
-			.line_vertex_initial_capacity		 = GAME_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-			.line_index_initial_capacity		 = GAME_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-			.triangle_vertex_initial_capacity	 = GAME_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-			.triangle_index_initial_capacity	 = GAME_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-			.text_vertex_initial_capacity		 = GAME_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-			.text_index_initial_capacity		 = GAME_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-			.debug_texture_initial_capacity		 = GAME_WORLD_DEBUG_TEXTURE_MAX_COUNT,
-			.canvas_draw_buffer_initial_capacity = 64,
-			.canvas_vertex_initial_capacity		 = 4096,
-			.canvas_index_initial_capacity		 = 32768,
-		};
-
-		const world_render_prep_initial_capacity_config_t render_prep_config{
-			.view_initial_capacity				= 65,
-			.depth_queue_initial_capacity		= GAME_WORLD_DRAW_INITIAL_CAPACITY * 8,
-			.opaque_queue_initial_capacity		= GAME_WORLD_DRAW_INITIAL_CAPACITY * 8,
-			.transparent_queue_initial_capacity = GAME_WORLD_DRAW_INITIAL_CAPACITY * 8,
-			.shadow_queue_initial_capacity		= GAME_WORLD_DRAW_INITIAL_CAPACITY * ENGINE_SHADOW_VIEW_MAX,
-			.visible_queue_initial_capacity		= GAME_WORLD_DRAW_INITIAL_CAPACITY,
-			.shadow_view_initial_capacity		= ENGINE_SHADOW_VIEW_MAX,
-		};
-
-		_main_world.init(world_config);
-		_render_context.init(render_context_config);
-		_render_prep_data.reserve(render_prep_config);
+		_main_world.init(world_config, debug_draw_config, physics_config, particle_simulation_config);
+		_render_context.init(render_context_config, debug_draw_config);
 		_package_meta = &package_meta;
 
 		for (u32 slot_index = 0; slot_index < GAME_WORLD_SNAPSHOT_SLOT_COUNT; ++slot_index)
 		{
 			world_render_snapshot_t& snapshot = _snapshot_slots[slot_index];
-			snapshot.reserve(snapshot_config);
+
+			snapshot.reserve();
 			snapshot.main_view = {
 				.near_plane	 = 0.1f,
 				.far_plane	 = 1000.0f,
@@ -196,9 +144,8 @@ namespace sfg
 		for (u32 slot_index = 0; slot_index < GAME_WORLD_SNAPSHOT_SLOT_COUNT; ++slot_index)
 			_snapshot_slots[slot_index] = {};
 
-		_render_prep_data = {};
-		_package_meta	  = nullptr;
-		_render_snapshot  = nullptr;
+		_package_meta	 = nullptr;
+		_render_snapshot = nullptr;
 		_snapshot_mailbox.store(0, std::memory_order_relaxed);
 		_last_fixed_step_us.store(0, std::memory_order_relaxed);
 		_fixed_step_us.store(0, std::memory_order_relaxed);
@@ -438,11 +385,15 @@ namespace sfg
 		SFG_ASSERT(_render_snapshot != nullptr);
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 
-		_render_prep_data.reset();
-		world_rendering_t::render_world(_render_context, *_render_snapshot, _render_prep_data, _render_alpha, frame_index, global_cbv_index, global_layout);
+		world_render_prep_data_t prep_data = {};
+
+		prep_data.reserve();
+
+		world_rendering_t::render_world(_render_context, *_render_snapshot, prep_data, _render_alpha, frame_index, global_cbv_index, global_layout);
 		_render_snapshot = nullptr;
 
 		gfx_backend::get().queue_signal(queue, &signal, &signal_value, 1);
+
 		return true;
 	}
 

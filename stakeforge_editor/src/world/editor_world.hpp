@@ -32,9 +32,11 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/data/ostream.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
+#include <sfg/runtime/physics/physics_config.hpp>
 #include <sfg/runtime/render/world_render_snapshot.hpp>
 #include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
+#include <sfg/runtime/world/world_particle_simulation_config.hpp>
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
@@ -42,11 +44,12 @@ namespace sfg
 	struct aabb_t;
 	struct editor_world_init_config_t
 	{
-		world_init_config_t								world							 = {};
-		world_render_context_config_t					render_context					 = {};
-		world_render_snapshot_initial_capacity_config_t snapshot						 = {};
-		world_render_prep_initial_capacity_config_t		render_prep						 = {};
-		u32												selected_entity_initial_capacity = 0;
+		physics_runtime_config_t		   physics							= {};
+		world_render_context_config_t	   render_context					= {};
+		world_debug_draw_config_t		   debug_draw						= {};
+		world_particle_simulation_config_t particle_simulation				= {};
+		world_init_config_t				   world							= {};
+		u32								   selected_entity_initial_capacity = 0;
 
 		static editor_world_init_config_t make_main(vec2u16_t render_resolution);
 		static editor_world_init_config_t make_preview(vec2u16_t render_resolution);
@@ -211,8 +214,7 @@ namespace sfg
 		void restore_play_snapshot(bool keep_current_camera);
 
 	private:
-		world_render_snapshot_t	 _snapshot_slots[3] = {};
-		world_render_prep_data_t _render_prep_data	= {};
+		world_render_snapshot_t _snapshot_slots[3] = {};
 
 		editor_world_tick_callback_t _tick_callback			  = nullptr;
 		void*						 _tick_callback_user_data = nullptr;

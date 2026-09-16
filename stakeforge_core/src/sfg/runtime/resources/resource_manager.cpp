@@ -27,25 +27,22 @@ namespace sfg
 	{
 		SFG_ASSERT(is_main_thread());
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(config.memory_budget_bytes != 0);
+		SFG_ASSERT(config.memory_page_size_bytes != 0);
 		SFG_ASSERT(_reload_listeners.empty());
 
 		_resource_file_system = &resource_file_system;
 		_generation			  = 0;
 
-		_memory.init(config.memory_budget_bytes);
+		_memory.init(config.memory_page_size_bytes);
 		_texture_streamer.init(resource_file_system);
-
 		_entries.reserve(config.resource_initial_capacity);
-		_dirty_materials.reserve(config.dirty_material_initial_capacity);
-
-		if (config.reload_listener_initial_capacity != 0)
-			_reload_listeners.reserve(config.reload_listener_initial_capacity);
+		_dirty_materials.reserve(32);
+		_reload_listeners.reserve(8);
 	}
 
 	void resource_manager_t::init(resource_file_system_t& resource_file_system, size_t resource_memory_size)
 	{
-		init(resource_file_system, {.memory_budget_bytes = resource_memory_size});
+		init(resource_file_system, {.memory_page_size_bytes = resource_memory_size});
 	}
 
 	void resource_manager_t::init_atlases(const ui::glyph_atlas_config_t& glyph_atlas_config)
@@ -646,9 +643,11 @@ namespace sfg
 	void resource_manager_t::unload_entry(resource_entry_t& entry)
 	{
 		const resource_type_desc_t* desc = find_resource_type_desc(entry.type);
+
 		SFG_ASSERT(desc != nullptr);
 
-		const char* dbg = reinterpret_cast<const char*>(_memory.get(entry.debug_name.head));
+		const char* dbg = _memory.get_text(entry.debug_name);
+
 		SFG_TRACE("unloaded resource: {0}", dbg);
 
 		if (desc->unload != nullptr)

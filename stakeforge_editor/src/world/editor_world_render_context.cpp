@@ -48,12 +48,12 @@ namespace sfg
 		}
 	}
 
-	void editor_world_render_context_t::init(const world_render_context_config_t& config)
+	void editor_world_render_context_t::init(const world_render_context_config_t& config, const world_debug_draw_config_t& debug_draw_config)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(config.size.x > 0 && config.size.y > 0);
 
-		_world_render_context.init(config);
+		_world_render_context.init(config, debug_draw_config);
 
 		resource_desc_t composite_data_desc = {};
 		composite_data_desc.size			= static_cast<u32>(sizeof(editor_world_composite_data_t));
@@ -66,6 +66,7 @@ namespace sfg
 		gizmo_data_desc.set_name("editor_world_gizmo_data");
 
 		gfx_backend& backend = gfx_backend::get();
+
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			_pfd[i].cmd_gfx = backend.create_command_buffer({
