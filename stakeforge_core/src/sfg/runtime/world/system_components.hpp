@@ -144,8 +144,13 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_animation_player";
 
-		resource_handle_t animation	  = NULL_RESOURCE_HANDLE;
-		f32				  sample_time = 0.0f;
+		resource_handle_t animation		   = NULL_RESOURCE_HANDLE;
+		resource_handle_t skeleton		   = NULL_RESOURCE_HANDLE;
+		sid_t			  mask			   = NULL_SID;
+		chunk_handle32_t  decompose_alloc  = {};
+		f32				  sample_time	   = 0.0f;
+		f32				  last_sample_time = -1.0f;
+		u32				  mask_index	   = UINT32_MAX;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_animation_player_t);

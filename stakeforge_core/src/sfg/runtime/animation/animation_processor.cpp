@@ -78,6 +78,10 @@ namespace sfg
 	{
 		const ecs_component_table_t& system_table		  = _world->get_component_table<component_system_animation_library_t>();
 		const ecs_component_table_t& system_skinned_table = _world->get_component_table<component_system_skinned_mesh_renderer_t>();
+		const ecs_component_table_t& system_player_table  = _world->get_component_table<component_system_animation_player_t>();
+
+		if (system_player_table.has(id))
+			dealloc_for_player(id);
 
 		if (system_table.has(id))
 			dealloc_for_entity(id);
@@ -180,6 +184,8 @@ namespace sfg
 			for (entity_id_t id : add_sys_entities)
 				alloc_for_skinned_renderer(id);
 		}
+
+		tick_players(dt);
 
 		const entity_id_t ent_main_camera = _world->get_main_camera_entity();
 
@@ -475,6 +481,42 @@ namespace sfg
 			}
 
 			sys_skinned.needs_skinning = false;
+		}
+
+		const ecs_component_table_t& table_player	  = _world->get_component_table<component_animation_player_t>();
+		const ecs_component_table_t& table_sys_player = _world->get_component_table<component_system_animation_player_t>();
+		const ecs_component_table_t& table_lib		  = _world->get_component_table<component_animation_library_t>();
+		ecs_component_table_ref_t	 player_refs[]	  = {table_player.ref(), table_sys_player.ref(), table_sys_skinned.ref(), !table_lib.ref(), !table_disabled.ref()};
+		resource_manager_t&			 rm				  = resource_manager_t::get();
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = player_refs, .size = std::size(player_refs)}))
+		{
+			const component_system_animation_player_t& player	= row.get<component_system_animation_player_t>();
+			component_system_skinned_mesh_renderer_t&  renderer = row.get_mutable<component_system_skinned_mesh_renderer_t>();
+
+			if (!renderer.needs_skinning || player.last_sample_time < 0.0f)
+				continue;
+
+			const skeleton_runtime_t&		skeleton   = *rm.find_runtime<skeleton_runtime_t>(player.skeleton);
+			const skeleton_joint_runtime_t* joints	   = rm.get_memory().get<skeleton_joint_runtime_t>(skeleton.joints);
+			const u32*						eval_order = rm.get_memory().get<u32>(skeleton.evaluation_order);
+			const decomposed_bone_t*		decomposed = _decomposition_aux.get<decomposed_bone_t>(player.decompose_alloc);
+			mat4x3_t*						matrices   = _bone_aux.get<mat4x3_t>(renderer.bone_alloc);
+
+			for (u32 i = 0; i < skeleton.joint_count; ++i)
+			{
+				const u32				 joint_index  = eval_order[i];
+				const u32				 parent_index = joints[joint_index].parent_index;
+				const decomposed_bone_t& bone		  = decomposed[joint_index];
+				const mat4x3_t			 local		  = mat4x3_t::transform(bone.position, bone.rotation, bone.scale);
+
+				matrices[joint_index] = parent_index == SKELETON_JOINT_NO_PARENT ? local : matrices[parent_index] * local;
+			}
+
+			for (u32 i = 0; i < skeleton.joint_count; ++i)
+				matrices[i] = skeleton.skinning_transform * matrices[i] * joints[i].inverse_bind;
+
+			renderer.needs_skinning = false;
 		}
 	}
 
@@ -788,12 +830,22 @@ namespace sfg
 			return;
 		}
 
-		const chunk_handle32_t			bone_alloc = _bone_aux.allocate<mat4x3_t>(skeleton->joint_count);
-		mat4x3_t*						matrices   = _bone_aux.get<mat4x3_t>(bone_alloc);
-		const skeleton_joint_runtime_t* joints	   = rm.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
-		const u32*						eval_order = rm.get_memory().get<u32>(skeleton->evaluation_order);
+		const chunk_handle32_t					  bone_alloc = _bone_aux.allocate<mat4x3_t>(skeleton->joint_count);
+		component_system_skinned_mesh_renderer_t& sys		 = _world->get_component_table<component_system_skinned_mesh_renderer_t>().add_or_get_as<component_system_skinned_mesh_renderer_t>(id);
 
-		for (u32 i = 0; i < skeleton->joint_count; ++i)
+		sys = {.skeleton = skinned.skeleton, .bone_alloc = bone_alloc, .needs_skinning = true};
+
+		reset_skinned_renderer_pose(sys, *skeleton);
+	}
+
+	void animation_processor_t::reset_skinned_renderer_pose(component_system_skinned_mesh_renderer_t& renderer, const skeleton_runtime_t& skeleton)
+	{
+		const chunk_allocator_t&		resource_memory = resource_manager_t::get().get_memory();
+		mat4x3_t*						matrices		= _bone_aux.get<mat4x3_t>(renderer.bone_alloc);
+		const skeleton_joint_runtime_t* joints			= resource_memory.get<skeleton_joint_runtime_t>(skeleton.joints);
+		const u32*						eval_order		= resource_memory.get<u32>(skeleton.evaluation_order);
+
+		for (u32 i = 0; i < skeleton.joint_count; ++i)
 		{
 			const u32 joint_index  = eval_order[i];
 			const u32 parent_index = joints[joint_index].parent_index;
@@ -801,12 +853,10 @@ namespace sfg
 			matrices[joint_index] = parent_index == SKELETON_JOINT_NO_PARENT ? joints[joint_index].local : matrices[parent_index] * joints[joint_index].local;
 		}
 
-		for (u32 i = 0; i < skeleton->joint_count; ++i)
-			matrices[i] = skeleton->skinning_transform * matrices[i] * joints[i].inverse_bind;
+		for (u32 i = 0; i < skeleton.joint_count; ++i)
+			matrices[i] = skeleton.skinning_transform * matrices[i] * joints[i].inverse_bind;
 
-		component_system_skinned_mesh_renderer_t& sys = _world->get_component_table<component_system_skinned_mesh_renderer_t>().add_or_get_as<component_system_skinned_mesh_renderer_t>(id);
-
-		sys = {.skeleton = skinned.skeleton, .bone_alloc = bone_alloc, .needs_skinning = true};
+		renderer.needs_skinning = true;
 	}
 
 	void animation_processor_t::dealloc_for_skinned_renderer(entity_id_t id)
@@ -815,6 +865,178 @@ namespace sfg
 		const component_system_skinned_mesh_renderer_t& sys	  = table.get_as<component_system_skinned_mesh_renderer_t>(id);
 
 		_bone_aux.free(sys.bone_alloc);
+		table.remove(id);
+	}
+
+	void animation_processor_t::tick_players(f32 dt)
+	{
+		const ecs_component_table_t& table_player	   = _world->get_component_table<component_animation_player_t>();
+		const ecs_component_table_t& table_sys_player  = _world->get_component_table<component_system_animation_player_t>();
+		const ecs_component_table_t& table_sys_skinned = _world->get_component_table<component_system_skinned_mesh_renderer_t>();
+		const ecs_component_table_t& table_lib		   = _world->get_component_table<component_animation_library_t>();
+		const ecs_component_table_t& table_disabled	   = _world->get_component_table<component_disabled_t>();
+		resource_manager_t&			 rm				   = resource_manager_t::get();
+		frame_vector_t<entity_id_t>	 entities		   = {};
+
+		// release players that no longer own the pose
+		{
+			ecs_component_table_ref_t refs[] = {table_sys_player.ref()};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+			{
+				const component_system_animation_player_t&		player	 = row.get<component_system_animation_player_t>();
+				const component_system_skinned_mesh_renderer_t* renderer = table_sys_skinned.find_as_const<component_system_skinned_mesh_renderer_t>(row.id);
+
+				if (!table_player.has(row.id) || renderer == nullptr || table_lib.has(row.id) || table_disabled.has(row.id) || player.skeleton != renderer->skeleton)
+					entities.push_back(row.id);
+			}
+		}
+
+		for (entity_id_t id : entities)
+		{
+			dealloc_for_player(id);
+
+			component_system_skinned_mesh_renderer_t* renderer = table_sys_skinned.find_as<component_system_skinned_mesh_renderer_t>(id);
+
+			if (renderer != nullptr)
+			{
+				const skeleton_runtime_t* skeleton = rm.find_runtime<skeleton_runtime_t>(renderer->skeleton);
+
+				if (skeleton != nullptr)
+					reset_skinned_renderer_pose(*renderer, *skeleton);
+			}
+		}
+
+		entities.resize(0);
+
+		{
+			ecs_component_table_ref_t refs[] = {table_player.ref(), table_sys_skinned.ref(), !table_sys_player.ref(), !table_lib.ref(), !table_disabled.ref()};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+				entities.push_back(row.id);
+		}
+
+		for (entity_id_t id : entities)
+			alloc_for_player(id);
+
+		// sample only when the pose or playback time changes
+		ecs_component_table_ref_t refs[] = {table_player.ref(), table_sys_player.ref(), table_sys_skinned.ref(), !table_lib.ref(), !table_disabled.ref()};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+		{
+			const component_animation_player_t&		  player   = row.get<component_animation_player_t>();
+			component_system_animation_player_t&	  sys	   = row.get_mutable<component_system_animation_player_t>();
+			component_system_skinned_mesh_renderer_t& renderer = row.get_mutable<component_system_skinned_mesh_renderer_t>();
+			const skeleton_runtime_t*				  skeleton = rm.find_runtime<skeleton_runtime_t>(sys.skeleton);
+
+			if (skeleton == nullptr)
+				continue;
+
+			if (sys.animation != player.animation)
+			{
+				sys.animation		 = player.animation;
+				sys.sample_time		 = 0.0f;
+				sys.last_sample_time = -1.0f;
+
+				reset_skinned_renderer_pose(renderer, *skeleton);
+			}
+
+			const animation_runtime_t* animation = rm.find_runtime<animation_runtime_t>(player.animation);
+
+			if (animation == nullptr)
+				continue;
+
+			decomposed_bone_t* decomposed = _decomposition_aux.get<decomposed_bone_t>(sys.decompose_alloc);
+
+			if (sys.last_sample_time < 0.0f || sys.mask != player.mask)
+			{
+				const skeleton_joint_runtime_t* joints = rm.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
+
+				for (u32 i = 0; i < skeleton->joint_count; ++i)
+					joints[i].local.decompose(decomposed[i].position, decomposed[i].rotation, decomposed[i].scale);
+
+				sys.mask			 = player.mask;
+				sys.mask_index		 = UINT32_MAX;
+				sys.last_sample_time = -1.0f;
+
+				if (player.mask != NULL_SID && skeleton->mask_count != 0)
+				{
+					const skeleton_mask_runtime_t* masks = rm.get_memory().get<skeleton_mask_runtime_t>(skeleton->masks);
+
+					for (u32 i = 0; i < skeleton->mask_count; ++i)
+					{
+						if (masks[i].name_hash == player.mask)
+						{
+							sys.mask_index = i;
+							break;
+						}
+					}
+				}
+			}
+
+			if (player.is_scrub)
+				sys.sample_time = math::clamp(player.scrub_ratio, 0.0f, 1.0f) * animation->duration;
+			else
+			{
+				sys.sample_time += dt * player.speed_multiplier;
+
+				if (player.is_looping && animation->duration > 0.0f)
+				{
+					sys.sample_time = math::fmodf(sys.sample_time, animation->duration);
+
+					if (sys.sample_time < 0.0f)
+						sys.sample_time += animation->duration;
+				}
+				else
+					sys.sample_time = math::clamp(sys.sample_time, 0.0f, animation->duration);
+			}
+
+			if (sys.sample_time == sys.last_sample_time && !renderer.needs_skinning)
+				continue;
+
+			const skeleton_mask_t  empty_mask	   = {};
+			const skeleton_mask_t& mask			   = sys.mask_index == UINT32_MAX ? empty_mask : rm.get_memory().get<skeleton_mask_runtime_t>(skeleton->masks)[sys.mask_index].value;
+			skeleton_mask_t		   position_writes = {};
+			skeleton_mask_t		   rotation_writes = {};
+			skeleton_mask_t		   scale_writes	   = {};
+
+			animation_sampler_t::sample_animation({
+				.animation		   = animation,
+				.bones			   = decomposed,
+				.mask			   = mask,
+				.out_position_mask = position_writes,
+				.out_rotation_mask = rotation_writes,
+				.out_scale_mask	   = scale_writes,
+				.sample_time	   = sys.sample_time,
+			});
+
+			sys.last_sample_time	= sys.sample_time;
+			renderer.needs_skinning = true;
+		}
+	}
+
+	void animation_processor_t::alloc_for_player(entity_id_t id)
+	{
+		const component_animation_player_t&				player	 = _world->get_component_table<component_animation_player_t>().get_as<component_animation_player_t>(id);
+		const component_system_skinned_mesh_renderer_t& renderer = _world->get_component_table<component_system_skinned_mesh_renderer_t>().get_as<component_system_skinned_mesh_renderer_t>(id);
+		resource_manager_t&								rm		 = resource_manager_t::get();
+		const skeleton_runtime_t*						skeleton = rm.find_runtime<skeleton_runtime_t>(renderer.skeleton);
+
+		if (skeleton == nullptr || rm.find_runtime<animation_runtime_t>(player.animation) == nullptr)
+			return;
+
+		const chunk_handle32_t				 decompose_alloc = _decomposition_aux.allocate<decomposed_bone_t>(skeleton->joint_count);
+		component_system_animation_player_t& sys			 = _world->get_component_table<component_system_animation_player_t>().add_or_get_as<component_system_animation_player_t>(id);
+
+		sys = {.animation = player.animation, .skeleton = renderer.skeleton, .decompose_alloc = decompose_alloc};
+	}
+
+	void animation_processor_t::dealloc_for_player(entity_id_t id)
+	{
+		ecs_component_table_t&					   table = _world->get_component_table<component_system_animation_player_t>();
+		const component_system_animation_player_t& sys	 = table.get_as<component_system_animation_player_t>(id);
+
+		_decomposition_aux.free(sys.decompose_alloc);
 		table.remove(id);
 	}
 

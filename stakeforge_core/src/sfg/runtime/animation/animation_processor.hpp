@@ -36,6 +36,8 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	class world_t;
+	struct skeleton_runtime_t;
+	struct component_system_skinned_mesh_renderer_t;
 
 	// tags
 	struct animator_state_tag_t
@@ -176,6 +178,10 @@ namespace sfg
 		void dealloc_for_entity(entity_id_t id);
 		void alloc_for_skinned_renderer(entity_id_t id);
 		void dealloc_for_skinned_renderer(entity_id_t id);
+		void reset_skinned_renderer_pose(component_system_skinned_mesh_renderer_t& renderer, const skeleton_runtime_t& skeleton);
+		void tick_players(f32 dt);
+		void alloc_for_player(entity_id_t id);
+		void dealloc_for_player(entity_id_t id);
 		void process_state(const process_state_params_t& params);
 		void reset_state(animator_state_t& state);
 		u32	 get_count_for_lib_alloc(u32 skeleton_joint_count);
