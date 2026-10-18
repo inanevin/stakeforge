@@ -74,6 +74,7 @@ namespace sfg
 		resource_handle_t			   preview_mesh		  = NULL_RESOURCE_HANDLE;
 		resource_handle_t			   preview_animation  = NULL_RESOURCE_HANDLE;
 		u32							   root_joint_index	  = UINT32_MAX;
+		u32							   motion_joint_index = SKELETON_JOINT_NO_PARENT;
 
 		bool build_evaluation_order();
 		bool is_evaluation_order_valid() const;

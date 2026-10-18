@@ -428,6 +428,7 @@ namespace sfg
 
 	void animation_processor_t::calculate_skinning_matrices(f32 dt)
 	{
+		const ecs_component_table_t& table_lib		   = _world->get_component_table<component_animation_library_t>();
 		const ecs_component_table_t& table_sys_lib	   = _world->get_component_table(type_id_t<component_system_animation_library_t>::value);
 		const ecs_component_table_t& table_disabled	   = _world->get_component_table(type_id_t<component_disabled_t>::value);
 		const ecs_component_table_t& table_sys_skinned = _world->get_component_table<component_system_skinned_mesh_renderer_t>();
@@ -462,10 +463,11 @@ namespace sfg
 			}
 		}
 
-		ecs_component_table_ref_t skinned_refs[] = {table_sys_lib.ref(), table_sys_skinned.ref(), !table_disabled.ref()};
+		ecs_component_table_ref_t skinned_refs[] = {table_lib.ref(), table_sys_lib.ref(), table_sys_skinned.ref(), !table_disabled.ref()};
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = skinned_refs, .size = std::size(skinned_refs)}))
 		{
+			const bool									in_place	= row.get<component_animation_library_t>().in_place;
 			const component_system_animation_library_t& sys_lib		= row.get<component_system_animation_library_t>();
 			component_system_skinned_mesh_renderer_t&	sys_skinned = row.get_mutable<component_system_skinned_mesh_renderer_t>();
 			const animator_library_t&					anim_lib	= _libraries.get({sys_lib.lib_alloc.index, sys_lib.lib_alloc.generation});
@@ -476,13 +478,22 @@ namespace sfg
 			// if one adds skinned renderer while anim library is in-between samples,
 			// visuals will stay in t-pose until anim library samples. needs_skinning prevents that.
 			// idk very rare case scenario for a small branch cost, at least its easily predictable.
-			if (!sys_lib.sample_this_frame && !sys_skinned.needs_skinning)
+			if (!sys_lib.sample_this_frame && !sys_skinned.needs_skinning && sys_skinned.in_place == in_place)
 				continue;
 
 			const mat4x3_t* matrices	   = _bone_aux.get<mat4x3_t>(sys_lib.bone_alloc);
 			mat4x3_t*		final_matrices = _bone_aux.get<mat4x3_t>(sys_skinned.bone_alloc);
-			const mat4x3_t& skinning	   = matrices[0];
+			mat4x3_t		skinning	   = matrices[0];
 			const u32		jc			   = sys_lib.joint_count;
+
+			if (in_place)
+			{
+				const vec3f_t position = skinning * matrices[1 + jc + sys_skinned.motion_joint_index].get_translation();
+
+				// x & z comps
+				skinning[9] += sys_skinned.motion_reference_position.x - position.x;
+				skinning[11] += sys_skinned.motion_reference_position.y - position.z;
+			}
 
 			for (u32 i = 0; i < jc; i++)
 			{
@@ -490,20 +501,21 @@ namespace sfg
 			}
 
 			sys_skinned.needs_skinning = false;
+			sys_skinned.in_place	   = in_place;
 		}
 
 		const ecs_component_table_t& table_player	  = _world->get_component_table<component_animation_player_t>();
 		const ecs_component_table_t& table_sys_player = _world->get_component_table<component_system_animation_player_t>();
-		const ecs_component_table_t& table_lib		  = _world->get_component_table<component_animation_library_t>();
 		ecs_component_table_ref_t	 player_refs[]	  = {table_player.ref(), table_sys_player.ref(), table_sys_skinned.ref(), !table_lib.ref(), !table_disabled.ref()};
 		resource_manager_t&			 rm				  = resource_manager_t::get();
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = player_refs, .size = std::size(player_refs)}))
 		{
+			const bool								   in_place = row.get<component_animation_player_t>().in_place;
 			const component_system_animation_player_t& player	= row.get<component_system_animation_player_t>();
 			component_system_skinned_mesh_renderer_t&  renderer = row.get_mutable<component_system_skinned_mesh_renderer_t>();
 
-			if (!renderer.needs_skinning || player.last_sample_time < 0.0f)
+			if ((!renderer.needs_skinning && renderer.in_place == in_place) || player.last_sample_time < 0.0f)
 				continue;
 
 			const skeleton_runtime_t&		skeleton   = *rm.find_runtime<skeleton_runtime_t>(player.skeleton);
@@ -522,10 +534,21 @@ namespace sfg
 				matrices[joint_index] = parent_index == SKELETON_JOINT_NO_PARENT ? local : matrices[parent_index] * local;
 			}
 
+			mat4x3_t skinning = skeleton.skinning_transform;
+
+			if (in_place)
+			{
+				const vec3f_t position = skinning * matrices[renderer.motion_joint_index].get_translation();
+
+				skinning[9] += renderer.motion_reference_position.x - position.x;
+				skinning[11] += renderer.motion_reference_position.y - position.z;
+			}
+
 			for (u32 i = 0; i < skeleton.joint_count; ++i)
-				matrices[i] = skeleton.skinning_transform * matrices[i] * joints[i].inverse_bind;
+				matrices[i] = skinning * matrices[i] * joints[i].inverse_bind;
 
 			renderer.needs_skinning = false;
+			renderer.in_place		= in_place;
 		}
 	}
 
@@ -935,6 +958,13 @@ namespace sfg
 
 			matrices[joint_index] = parent_index == SKELETON_JOINT_NO_PARENT ? joints[joint_index].local : matrices[parent_index] * joints[joint_index].local;
 		}
+
+		renderer.motion_joint_index = skeleton.motion_joint_index == SKELETON_JOINT_NO_PARENT ? skeleton.root_joint_index : skeleton.motion_joint_index;
+
+		const vec3f_t motion_position = skeleton.skinning_transform * matrices[renderer.motion_joint_index].get_translation();
+
+		renderer.motion_reference_position = {motion_position.x, motion_position.z};
+		renderer.in_place				   = false;
 
 		for (u32 i = 0; i < skeleton.joint_count; ++i)
 			matrices[i] = skeleton.skinning_transform * matrices[i] * joints[i].inverse_bind;

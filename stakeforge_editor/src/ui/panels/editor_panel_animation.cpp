@@ -704,6 +704,7 @@ namespace sfg
 		animation_player.speed_multiplier = _data.speed_multiplier;
 		animation_player.is_looping		  = _is_playing;
 		animation_player.is_scrub		  = !_is_playing;
+		animation_player.in_place		  = _data.in_place;
 
 		const editor_asset_t* mesh_asset = editor_asset_manager_t::get().find_asset(_data.target_mesh);
 		mesh_def_t			  mesh_def	 = {};
@@ -1185,6 +1186,7 @@ namespace sfg
 		animation_player.speed_multiplier = _data.speed_multiplier;
 		animation_player.is_looping		  = _is_playing;
 		animation_player.is_scrub		  = !_is_playing;
+		animation_player.in_place		  = _data.in_place;
 	}
 
 	void editor_panel_animation_t::refresh_data_reflection()
@@ -1936,6 +1938,13 @@ namespace sfg
 			.display_name = "Animation",
 			.fields =
 				{
+					{
+						.name		  = "in_place",
+						.display_name = "In Place",
+						.offset		  = offsetof(panel_animation_data_t, in_place),
+						.size		  = sizeof(bool),
+						.type		  = reflected_value_type_e::boolean,
+					},
 					{.name		   = "target_mesh",
 					 .display_name = "Target Mesh",
 					 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MESH,

@@ -86,9 +86,12 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_skinned_mesh_renderer";
 
-		resource_handle_t skeleton		 = NULL_RESOURCE_HANDLE;
-		chunk_handle32_t  bone_alloc	 = {};
-		bool			  needs_skinning = true;
+		resource_handle_t skeleton					= NULL_RESOURCE_HANDLE;
+		chunk_handle32_t  bone_alloc				= {};
+		vec2f_t			  motion_reference_position = vec2f_t::zero;
+		u32				  motion_joint_index		= UINT32_MAX;
+		bool			  needs_skinning			= true;
+		bool			  in_place					= false;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_skinned_mesh_renderer_t);

@@ -25,6 +25,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "ui/panels/editor_panel.hpp"
 #include "ui/widgets/editor_split_border.hpp"
 #include "ui/widgets/editor_widget_button.hpp"
+#include "ui/widgets/editor_widget_checkbox.hpp"
 #include "ui/widgets/editor_widget_reference.hpp"
 #include "ui/widgets/editor_widget_world_view.hpp"
 #include "ui/widgets/editor_widgets_scrollbar.hpp"
@@ -98,6 +99,7 @@ namespace sfg
 		void refresh_layer_selection();
 		void finish_edit();
 
+		static void on_in_place_edited(void* user_data);
 		static void on_skeleton_edited(void* user_data);
 		static void on_edit_begin(void* user_data);
 		static void on_edit_submitted(void* user_data);
@@ -111,6 +113,7 @@ namespace sfg
 		static void on_asset_deletion(editor_asset_manager_t& manager, span_t<const sid_t> asset_ids, void* user_data);
 
 	private:
+		editor_checkbox_t										 _in_place_checkbox											 = {};
 		layer_controls_t*										 _layer_controls											 = nullptr;
 		editor_widget_animation_library_states_t*				 _states_widget												 = nullptr;
 		vector_t<string_t>										 _mask_names												 = {};
@@ -159,5 +162,6 @@ namespace sfg
 		bool													 _refresh_layers											 = false;
 		bool													 _refresh_states											 = false;
 		bool													 _refresh_skeleton											 = false;
+		bool													 _in_place													 = true;
 	};
 }

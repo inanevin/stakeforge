@@ -905,6 +905,13 @@ namespace sfg
 				.fields =
 					{
 						{
+							.name		  = "in_place",
+							.display_name = "In Place",
+							.offset		  = offsetof(component_animation_library_t, in_place),
+							.size		  = sizeof(bool),
+							.type		  = reflected_value_type_e::boolean,
+						},
+						{
 							.name		  = "animation_library",
 							.display_name = "Animation Library",
 							.tooltip	  = "Animation library resource used for animation evaluation.",
@@ -1036,6 +1043,13 @@ namespace sfg
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_animation_player_t*>(ptr), component_animation_player_t{}); },
 				.fields =
 					{
+						{
+							.name		  = "in_place",
+							.display_name = "In Place",
+							.offset		  = offsetof(component_animation_player_t, in_place),
+							.size		  = sizeof(bool),
+							.type		  = reflected_value_type_e::boolean,
+						},
 						{.name		   = "animation",
 						 .display_name = "Animation",
 						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION,

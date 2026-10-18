@@ -254,6 +254,14 @@ namespace sfg
 					},
 					{.name = "root_index", .display_name = "Root Index", .offset = offsetof(skeleton_def_t, root_joint_index), .size = sizeof(u32), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u32},
 					{
+						.name		  = "motion_joint_index",
+						.display_name = "Motion Joint",
+						.offset		  = offsetof(skeleton_def_t, motion_joint_index),
+						.size		  = sizeof(u32),
+						.flags		  = reflected_field_flag_no_ui,
+						.type		  = reflected_value_type_e::u32,
+					},
+					{
 						.container_ops = reflection_container_ops_t::vector_ops<skeleton_mask_def_t>(reflected_value_type_e::object, type_id_t<skeleton_mask_def_t>::value),
 						.name		   = "masks",
 						.display_name  = "Masks",

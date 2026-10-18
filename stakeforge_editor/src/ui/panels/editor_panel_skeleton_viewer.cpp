@@ -183,6 +183,37 @@ namespace sfg
 		_root_joint_value = append_property_value_row("Root Joint");
 		editor_dividers_t::add_divider_hor(ui, _right_content, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
+		const editor_property_row_t	 motion_row = editor_misc_widgets_t::make_property_row_with_label(ui, _right_content, "Motion Joint");
+		const editor_dropdown_item_t automatic_motion_joint{.text = "Automatic (Root Joint)", .value = UINT16_MAX};
+
+		_motion_joint.init(ui,
+						   motion_row.right,
+						   {
+							   .items = &automatic_motion_joint,
+							   .selected =
+								   [](void* user_data) {
+									   const skeleton_def_t& skeleton = static_cast<editor_panel_skeleton_viewer_t*>(user_data)->_skeleton;
+
+									   return static_cast<u16>(skeleton.motion_joint_index == SKELETON_JOINT_NO_PARENT ? UINT16_MAX : skeleton.motion_joint_index);
+								   },
+							   .pressed	   = on_motion_joint_pressed,
+							   .user_data  = this,
+							   .item_count = 1,
+							   .width	   = editor_dropdown_width_e::parent_relative,
+							   .pos_y	   = editor_dropdown_pos_y_e::center,
+						   });
+		refresh_motion_joint();
+
+		const editor_property_row_t in_place_row   = editor_misc_widgets_t::make_property_row_with_label(ui, _right_content, "In Place");
+		u8*							in_place_field = reinterpret_cast<u8*>(&_in_place);
+
+		_in_place_checkbox.init(ui,
+								in_place_row.right,
+								{
+									.field	   = {.fields = {.data = &in_place_field, .size = 1}, .field_size = sizeof(_in_place)},
+									.callbacks = {.edited = on_in_place_edited, .user_data = this},
+								});
+
 		const editor_property_row_t preview_mesh_row   = editor_misc_widgets_t::make_property_row_with_label(ui, _right_content, "Preview Mesh");
 		u64*						preview_mesh_field = &_preview_mesh;
 
@@ -318,6 +349,8 @@ namespace sfg
 		_asset_deletion_listener = {};
 		_right_scrollbar.uninit();
 		_preview_mesh_reference.uninit();
+		_motion_joint.uninit();
+		_in_place_checkbox.uninit();
 		_preview_animation_reference.uninit();
 		_animation_play_button.uninit();
 		_animation_reset_button.uninit();
@@ -401,6 +434,7 @@ namespace sfg
 		_is_animation_playing = false;
 		_root_joint_index	  = _skeleton.is_evaluation_order_valid() ? _skeleton.root_joint_index : UINT32_MAX;
 
+		refresh_motion_joint();
 		refresh_preview_mesh_reference();
 		refresh_preview_animation_reference();
 		update_preview_environment();
@@ -415,7 +449,7 @@ namespace sfg
 		refresh_title(_asset_name.c_str(), "S: ");
 	}
 
-	void editor_panel_skeleton_viewer_t::apply_edits(vector_t<skeleton_slot_def_t>&& slots, vector_t<skeleton_mask_def_t>&& masks, u32 selected_joint, u32 selected_slot)
+	void editor_panel_skeleton_viewer_t::apply_edits(vector_t<skeleton_slot_def_t>&& slots, vector_t<skeleton_mask_def_t>&& masks, u32 selected_joint, u32 selected_slot, u32 motion_joint)
 	{
 		if (_rename_slot_index != UINT32_MAX)
 		{
@@ -433,10 +467,13 @@ namespace sfg
 		++_slot_generation;
 
 		clear_mask_items();
-		_editing_mask		   = UINT32_MAX;
-		_mask_name_edit_active = false;
-		_skeleton.slots		   = std::move(slots);
-		_skeleton.masks		   = std::move(masks);
+		_editing_mask				 = UINT32_MAX;
+		_mask_name_edit_active		 = false;
+		_skeleton.slots				 = std::move(slots);
+		_skeleton.masks				 = std::move(masks);
+		_skeleton.motion_joint_index = motion_joint;
+
+		_motion_joint.refresh_title();
 		refresh_mask_items();
 
 		refresh_info();
@@ -653,6 +690,51 @@ namespace sfg
 		refresh_animation_controls();
 	}
 
+	void editor_panel_skeleton_viewer_t::refresh_motion_joint()
+	{
+		_motion_joint.close();
+
+		frame_vector_t<editor_dropdown_item_t> items = {};
+
+		items.reserve(_skeleton.joints.size() + 1);
+		items.push_back({.text = "Automatic (Root Joint)", .value = UINT16_MAX});
+
+		for (u32 i = 0; i < _skeleton.joints.size(); ++i)
+			items.push_back({.text = _skeleton.joints[i].name.c_str(), .value = i});
+
+		_motion_joint.set_items(items.data(), static_cast<u16>(items.size()));
+
+		if (_skeleton.joints.empty())
+			_ui->get_tree().in(_motion_joint.get_root()).flags |= ui::wf_disabled;
+		else
+			_ui->get_tree().in(_motion_joint.get_root()).flags &= ~ui::wf_disabled;
+	}
+
+	void editor_panel_skeleton_viewer_t::on_motion_joint_pressed(u16 value, void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		editor_world_controller_t::get().get_editor_world(viewer._world)->cancel_gizmo_action();
+		on_slot_fields_edit_submitted(&viewer);
+		viewer.finish_mask_edit();
+
+		if (!editor_command_skeleton_edit_t::begin(viewer))
+			return;
+
+		viewer._skeleton.motion_joint_index = value == UINT16_MAX ? SKELETON_JOINT_NO_PARENT : value;
+		++viewer._slot_generation;
+		editor_command_skeleton_edit_t::submit(viewer, "Skeleton Motion Joint", false);
+	}
+
+	void editor_panel_skeleton_viewer_t::on_in_place_edited(void* user_data)
+	{
+		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		editor_world_controller_t::get().get_editor_world(viewer._world)->cancel_gizmo_action();
+		++viewer._slot_generation;
+		viewer.update_animation_player(false);
+	}
+
 	void editor_panel_skeleton_viewer_t::refresh_animation_controls()
 	{
 		const bool disabled = _preview_animation == NULL_RESOURCE_HANDLE || _display_entity == NULL_ENTITY_ID;
@@ -687,6 +769,7 @@ namespace sfg
 			player.speed_multiplier = _is_animation_playing ? 1.0f : 0.0f;
 			player.is_looping		= true;
 			player.is_scrub			= false;
+			player.in_place			= _in_place;
 
 			if (reset)
 			{
@@ -2106,6 +2189,23 @@ namespace sfg
 	void editor_panel_skeleton_viewer_t::on_world_tick(world_t& world, f32 delta_time, void* user_data)
 	{
 		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
+
+		component_system_skinned_mesh_renderer_t* renderer = viewer._display_entity == NULL_ENTITY_ID ? nullptr : world.get_component_table<component_system_skinned_mesh_renderer_t>().find_as<component_system_skinned_mesh_renderer_t>(viewer._display_entity);
+		const u32								  motion_joint = viewer._skeleton.motion_joint_index == SKELETON_JOINT_NO_PARENT ? viewer._skeleton.root_joint_index : viewer._skeleton.motion_joint_index;
+
+		if (renderer != nullptr && renderer->motion_joint_index != motion_joint)
+		{
+			mat4x3_t reference = viewer._skeleton.joints[motion_joint].local;
+
+			for (u32 parent = viewer._skeleton.joints[motion_joint].parent_index; parent != SKELETON_JOINT_NO_PARENT; parent = viewer._skeleton.joints[parent].parent_index)
+				reference = viewer._skeleton.joints[parent].local * reference;
+
+			const vec3f_t position = viewer._skeleton.skinning_transform * reference.get_translation();
+
+			renderer->motion_reference_position = {position.x, position.z};
+			renderer->motion_joint_index		= motion_joint;
+			renderer->needs_skinning			= true;
+		}
 
 		viewer.update_slot_entity_transforms(world);
 		viewer.draw_skeleton(world);

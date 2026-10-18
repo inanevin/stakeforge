@@ -260,6 +260,7 @@ namespace sfg
 		f32				  speed_multiplier = 1.0f;
 		bool			  is_looping	   = false;
 		bool			  is_scrub		   = false;
+		bool			  in_place		   = false;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_animation_player_t);
@@ -293,6 +294,7 @@ namespace sfg
 		u32				  max_throttle_tick_blanks = 30;
 		bool			  use_throttle			   = false;
 		bool			  use_cull				   = false;
+		bool			  in_place				   = false;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_animation_library_t);

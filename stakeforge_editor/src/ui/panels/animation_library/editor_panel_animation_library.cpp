@@ -216,6 +216,16 @@ namespace sfg
 		tree.in(_skeleton_reference.get_root()).flags |= ui::wf_disabled;
 		ui.get_input().set_listener(_save_changes_button.get_root(), {.on_click = on_save_changes_pressed, .user_data = this});
 
+		const editor_property_row_t in_place_row   = editor_misc_widgets_t::make_property_row_with_label(ui, left_content, "In Place");
+		u8*							in_place_field = reinterpret_cast<u8*>(&_in_place);
+
+		_in_place_checkbox.init(ui,
+								in_place_row.right,
+								{
+									.field	   = {.fields = {.data = &in_place_field, .size = 1}, .field_size = sizeof(_in_place)},
+									.callbacks = {.edited = on_in_place_edited, .user_data = this},
+								});
+
 		editor_misc_widgets_t::make_section_label(ui, left_content, "Layers");
 
 		_layer_list = ui.allocate_widget();
@@ -320,6 +330,7 @@ namespace sfg
 		editor_asset_manager_t::get().remove_asset_deletion_listener(_asset_deletion_listener);
 
 		_skeleton_reference.uninit();
+		_in_place_checkbox.uninit();
 		_save_changes_button.uninit();
 		_right_scrollbar.uninit();
 		_world_view.uninit();
@@ -551,7 +562,12 @@ namespace sfg
 		}
 
 		if (preview_ready)
-			world.get_component_table<component_animation_library_t>().add_or_get_as<component_animation_library_t>(_display_entity).animation_library = _preview_library;
+		{
+			component_animation_library_t& library = world.get_component_table<component_animation_library_t>().add_or_get_as<component_animation_library_t>(_display_entity);
+
+			library.animation_library = _preview_library;
+			library.in_place		  = _in_place;
+		}
 
 		world.scan_for_resources(_display_entity, true);
 
@@ -564,6 +580,20 @@ namespace sfg
 			editor_world.fit_camera_to_bounds(skeleton.local_bounds);
 			_preview_skeleton = _library.skeleton;
 		}
+	}
+
+	void editor_panel_animation_library_t::on_in_place_edited(void* user_data)
+	{
+		editor_panel_animation_library_t& panel = *static_cast<editor_panel_animation_library_t*>(user_data);
+
+		if (panel._display_entity == NULL_ENTITY_ID)
+			return;
+
+		world_t&					   world   = editor_world_controller_t::get().get_editor_world(panel._world)->get_world();
+		component_animation_library_t* library = world.get_component_table<component_animation_library_t>().find_as<component_animation_library_t>(panel._display_entity);
+
+		if (library != nullptr)
+			library->in_place = panel._in_place;
 	}
 
 	void editor_panel_animation_library_t::refresh_skeleton_reference()

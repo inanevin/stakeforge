@@ -39,7 +39,14 @@ namespace sfg
 			return false;
 		}
 
+		if (def.motion_joint_index != SKELETON_JOINT_NO_PARENT && def.motion_joint_index >= def.joints.size())
+		{
+			SFG_ERR("skeleton motion joint is invalid");
+			return false;
+		}
+
 		ostream_t skeleton_stream = {};
+
 		if (!reflection_registry_t::get().type_to_stream(type_id_t<skeleton_def_t>::value, const_cast<skeleton_def_t*>(&def), nullptr, skeleton_stream))
 		{
 			SFG_ERR("failed to serialize skeleton definition");

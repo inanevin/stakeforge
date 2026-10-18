@@ -61,6 +61,7 @@ namespace sfg
 		resource_handle_t target_mesh	   = NULL_RESOURCE_HANDLE;
 		resource_handle_t target_skeleton  = NULL_RESOURCE_HANDLE;
 		f32				  speed_multiplier = 1.0f;
+		bool			  in_place		   = true;
 	};
 
 	SFG_DEFINE_TYPE_ID(panel_animation_data_t);

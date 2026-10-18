@@ -28,6 +28,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include "ui/widgets/editor_widget_world_view.hpp"
 #include "ui/widgets/editor_widgets_vec_fields.hpp"
 #include "ui/widgets/editor_widget_button.hpp"
+#include "ui/widgets/editor_widget_checkbox.hpp"
+#include "ui/widgets/editor_widgets_dropdown.hpp"
 #include "ui/widgets/editor_widgets_icon_button.hpp"
 #include "world/editor_world_handle.hpp"
 
@@ -69,7 +71,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void set_skeleton(sid_t skeleton_guid, const char* asset_name);
-		void apply_edits(vector_t<skeleton_slot_def_t>&& slots, vector_t<skeleton_mask_def_t>&& masks, u32 selected_joint, u32 selected_slot);
+		void apply_edits(vector_t<skeleton_slot_def_t>&& slots, vector_t<skeleton_mask_def_t>&& masks, u32 selected_joint, u32 selected_slot, u32 motion_joint);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -111,6 +113,7 @@ namespace sfg
 			entity_id_t		  entity = NULL_ENTITY_ID;
 		};
 
+		void refresh_motion_joint();
 		void init_animation_controls();
 		void update_animation_player(bool reset);
 		void refresh_animation_controls();
@@ -156,6 +159,8 @@ namespace sfg
 		ui::widget_id_t append_property_value_row(const char* label);
 		ui::widget_id_t append_value_label(ui::widget_id_t parent);
 
+		static void on_motion_joint_pressed(u16 value, void* user_data);
+		static void on_in_place_edited(void* user_data);
 		static void on_preview_animation_edited(void* user_data);
 		static void on_animation_play_pressed(bool toggled, void* user_data);
 		static void on_animation_reset_pressed(bool toggled, void* user_data);
@@ -181,6 +186,8 @@ namespace sfg
 		static void on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 
 	private:
+		editor_dropdown_t		   _motion_joint				= {};
+		editor_checkbox_t		   _in_place_checkbox			= {};
 		editor_widget_world_view_t _world_view					= {};
 		editor_widget_reference_t  _preview_animation_reference = {};
 		editor_icon_button_t	   _animation_play_button		= {};
@@ -236,6 +243,7 @@ namespace sfg
 		ui::widget_id_t											 _joint_count_value		  = NULL_WIDGET;
 		ui::widget_id_t											 _root_joint_value		  = NULL_WIDGET;
 		f32														 _pane_split			  = 0.72f;
+		bool													 _in_place				  = true;
 		bool													 _is_animation_playing	  = false;
 		bool													 _slot_fields_edit_active = false;
 		bool													 _slot_gizmo_active		  = false;

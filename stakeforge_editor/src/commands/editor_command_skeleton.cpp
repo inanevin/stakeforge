@@ -63,6 +63,8 @@ namespace sfg
 				}
 			}
 
+			stream << skeleton.motion_joint_index;
+
 			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(stream.get_size(), alignof(u8));
 
 			SFG_MEMCPY(system.get_aux_data().get<u8>(handle), stream.get_raw(), stream.get_size());
@@ -103,7 +105,10 @@ namespace sfg
 				}
 			}
 
-			viewer.apply_edits(std::move(slots), std::move(masks), selected_joint, selected_slot);
+			u32 motion_joint = SKELETON_JOINT_NO_PARENT;
+
+			stream >> motion_joint;
+			viewer.apply_edits(std::move(slots), std::move(masks), selected_joint, selected_slot, motion_joint);
 
 			return true;
 		}
