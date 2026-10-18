@@ -24,6 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/vec2f.hpp>
+#include <sfg/data/span.hpp>
 #include <sfg/memory/dynamic_gen_pool.hpp>
 #include <sfg/memory/pool_handle.hpp>
 #include <sfg/memory/chunk_allocator.hpp>
@@ -120,6 +121,7 @@ namespace sfg
 
 		void init(world_t& world, size_t animation_processor_page_size);
 		void uninit();
+		void clear();
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -131,6 +133,18 @@ namespace sfg
 
 		void					switch_layer_state(animator_library_handle_t library, u32 layer_index, animator_state_handle_t state, f32 transition_duration);
 		animator_state_handle_t find_state_handle(animator_library_handle_t library, sid_t name_hash, u32 layer = UINT32_MAX);
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline span_t<const mat4x3_t> get_skinning_matrices(chunk_handle32_t handle) const
+		{
+			return {
+				.data = _bone_aux.get<mat4x3_t>(handle),
+				.size = handle.size / sizeof(mat4x3_t),
+			};
+		}
 
 	private:
 		struct process_state_params_t
@@ -160,6 +174,8 @@ namespace sfg
 
 		void alloc_for_entity(entity_id_t id);
 		void dealloc_for_entity(entity_id_t id);
+		void alloc_for_skinned_renderer(entity_id_t id);
+		void dealloc_for_skinned_renderer(entity_id_t id);
 		void process_state(const process_state_params_t& params);
 		void reset_state(animator_state_t& state);
 		u32	 get_count_for_lib_alloc(u32 skeleton_joint_count);

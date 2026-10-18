@@ -592,9 +592,6 @@ namespace sfg
 				if (skinned_mesh_renderer.mesh == NULL_RESOURCE_HANDLE || skinned_mesh_renderer.skeleton == NULL_RESOURCE_HANDLE)
 					continue;
 
-				if (!system_skinned_mesh_renderer.bones_handle)
-					continue;
-
 				const resource_entry_t* entry = rm.find_entry(skinned_mesh_renderer.mesh);
 
 				if (entry == nullptr)
@@ -607,18 +604,19 @@ namespace sfg
 				const component_system_ragdoll_t* system_ragdoll	   = system_ragdoll_table.find_as_const<component_system_ragdoll_t>(row.id);
 				const u8 renderable_flags = (system_ragdoll != nullptr ? world_renderable_flag_world_space_aabb : world_renderable_flag_none) | (view_model_table.has(row.id) ? world_renderable_flag_view_model : world_renderable_flag_none);
 
-				const render_resource_handle_t		 vertex_buffer = mesh_internals->vertex_buffer;
-				const render_resource_handle_t		 index_buffer  = mesh_internals->index_buffer;
-				const u32							 idx		   = static_cast<u32>(snapshot.bones.size());
-				const span_t<const animation_bone_t> bones		   = world.get_animation_controller().get_bones(system_skinned_mesh_renderer.bones_handle);
+				const render_resource_handle_t vertex_buffer = mesh_internals->vertex_buffer;
+				const render_resource_handle_t index_buffer	 = mesh_internals->index_buffer;
+				const u32					   idx			 = static_cast<u32>(snapshot.bones.size());
+				const span_t<const mat4x3_t>   bones		 = world.get_animation_processor().get_skinning_matrices(system_skinned_mesh_renderer.bone_alloc);
 
 				for (size_t i = 0; i < bones.size; ++i)
 				{
-					const animation_bone_t& bone = bones.data[i];
+					const mat4x3_t& bone = bones.data[i];
+
 					snapshot.bones.push_back({
 						.gpu_bone =
 							{
-								.model = bone.bone_transform.to_matrix4x4(),
+								.model = bone.to_matrix4x4(),
 							},
 					});
 				}

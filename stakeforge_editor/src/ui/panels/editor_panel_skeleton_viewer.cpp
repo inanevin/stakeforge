@@ -551,7 +551,7 @@ namespace sfg
 		const ecs_component_table_t&					system_skinned_table = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
 		const component_system_skinned_mesh_renderer_t* system_skinned		 = system_skinned_table.find_as_const<component_system_skinned_mesh_renderer_t>(_display_entity);
 
-		if (system_skinned == nullptr || !system_skinned->final_bones_calculated)
+		if (system_skinned == nullptr)
 			return;
 
 		resource_manager_t&		  resource_manager = resource_manager_t::get();
@@ -560,10 +560,10 @@ namespace sfg
 		if (skeleton == nullptr)
 			return;
 
-		const skeleton_joint_runtime_t*		 joints			= resource_manager.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
-		const span_t<const animation_bone_t> bones			= world.get_animation_controller().get_bones(system_skinned->bones_handle);
-		const mat4x3_t						 mesh_transform = world.calculate_transform_direct(_display_entity);
-		world_debug_draw_t&					 debug_draw		= world.get_debug_draw();
+		const skeleton_joint_runtime_t* joints		   = resource_manager.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
+		const span_t<const mat4x3_t>	bones		   = world.get_animation_processor().get_skinning_matrices(system_skinned->bone_alloc);
+		const mat4x3_t					mesh_transform = world.calculate_transform_direct(_display_entity);
+		world_debug_draw_t&				debug_draw	   = world.get_debug_draw();
 
 		frame_vector_t<u8> selected = {};
 
@@ -579,15 +579,15 @@ namespace sfg
 			if (joint.parent_index == SKELETON_JOINT_NO_PARENT)
 				continue;
 
-			const vec3f_t position		  = mesh_transform * (bones.data[joint_index].bone_transform * joint.bind_global.get_translation());
-			const vec3f_t parent_position = mesh_transform * (bones.data[joint.parent_index].bone_transform * joints[joint.parent_index].bind_global.get_translation());
+			const vec3f_t position		  = mesh_transform * (bones.data[joint_index] * joint.bind_global.get_translation());
+			const vec3f_t parent_position = mesh_transform * (bones.data[joint.parent_index] * joints[joint.parent_index].bind_global.get_translation());
 
 			debug_draw.draw_line(parent_position, position, selected[joint_index] != 0 ? color_t::red : color_t::white, 2.0f, debug_draw_depth_e::always_visible);
 		}
 
 		if (_selected_joint_index != SKELETON_JOINT_NO_PARENT)
 		{
-			const mat4x3_t transform = mesh_transform * bones.data[_selected_joint_index].bone_transform * joints[_selected_joint_index].bind_global;
+			const mat4x3_t transform = mesh_transform * bones.data[_selected_joint_index] * joints[_selected_joint_index].bind_global;
 			const f32	   length	 = math::max(0.05f, (_skeleton.local_bounds.bounds_max - _skeleton.local_bounds.bounds_min).magnitude() * 0.08f) * 0.2f;
 
 			editor_world_util_t::draw_transform_axes(debug_draw, transform, length, 2.0f, debug_draw_depth_e::always_visible);
@@ -886,7 +886,7 @@ namespace sfg
 
 		const component_system_skinned_mesh_renderer_t* skinned = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value).find_as_const<component_system_skinned_mesh_renderer_t>(_display_entity);
 
-		if (skinned == nullptr || !skinned->final_bones_calculated)
+		if (skinned == nullptr)
 			return;
 
 		resource_manager_t&		  resources = resource_manager_t::get();
@@ -895,10 +895,10 @@ namespace sfg
 		if (skeleton == nullptr)
 			return;
 
-		const skeleton_joint_runtime_t*		 joints			= resources.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
-		const span_t<const animation_bone_t> bones			= world.get_animation_controller().get_bones(skinned->bones_handle);
-		const mat4x3_t						 mesh_transform = world.calculate_transform_direct(_display_entity);
-		bool								 updated		= false;
+		const skeleton_joint_runtime_t* joints		   = resources.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
+		const span_t<const mat4x3_t>	bones		   = world.get_animation_processor().get_skinning_matrices(skinned->bone_alloc);
+		const mat4x3_t					mesh_transform = world.calculate_transform_direct(_display_entity);
+		bool							updated		   = false;
 
 		for (size_t i = 0; i < _slot_previews.size(); ++i)
 		{
@@ -908,7 +908,7 @@ namespace sfg
 			if (preview.entity == NULL_ENTITY_ID || slot.slot_joint_index == SKELETON_JOINT_NO_PARENT)
 				continue;
 
-			const mat4x3_t parent	= mesh_transform * bones.data[slot.slot_joint_index].bone_transform * joints[slot.slot_joint_index].bind_global;
+			const mat4x3_t parent	= mesh_transform * bones.data[slot.slot_joint_index] * joints[slot.slot_joint_index].bind_global;
 			vec3f_t		   position = vec3f_t::zero;
 			quat_t		   rotation = quat_t::identity;
 			vec3f_t		   scale	= vec3f_t::one;
@@ -1554,7 +1554,7 @@ namespace sfg
 		world_t&										world	= editor_world_controller_t::get().get_editor_world(_world)->get_world();
 		const component_system_skinned_mesh_renderer_t* skinned = world.get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value).find_as_const<component_system_skinned_mesh_renderer_t>(_display_entity);
 
-		if (skinned == nullptr || !skinned->final_bones_calculated)
+		if (skinned == nullptr)
 			return false;
 
 		resource_manager_t&		  resources = resource_manager_t::get();
@@ -1563,10 +1563,10 @@ namespace sfg
 		if (skeleton == nullptr)
 			return false;
 
-		const skeleton_joint_runtime_t*		 joints = resources.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
-		const span_t<const animation_bone_t> bones	= world.get_animation_controller().get_bones(skinned->bones_handle);
+		const skeleton_joint_runtime_t* joints = resources.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
+		const span_t<const mat4x3_t>	bones  = world.get_animation_processor().get_skinning_matrices(skinned->bone_alloc);
 
-		transform = world.calculate_transform_direct(_display_entity) * bones.data[joint_index].bone_transform * joints[joint_index].bind_global;
+		transform = world.calculate_transform_direct(_display_entity) * bones.data[joint_index] * joints[joint_index].bind_global;
 
 		return true;
 	}

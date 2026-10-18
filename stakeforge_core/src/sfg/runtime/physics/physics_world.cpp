@@ -566,7 +566,7 @@ namespace sfg
 			const component_system_transform_t&				transform			   = system_transform_table.get_as_const<component_system_transform_t>(entity);
 			const ecs_component_table_t&					system_skinned_table   = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
 			const component_system_skinned_mesh_renderer_t& system_skinned		   = system_skinned_table.get_as_const<component_system_skinned_mesh_renderer_t>(entity);
-			const span_t<const animation_bone_t>			current_bones		   = _world->get_animation_controller().get_bones(system_skinned.bones_handle);
+			const span_t<const mat4x3_t>					current_bones		   = _world->get_animation_processor().get_skinning_matrices(system_skinned.bone_alloc);
 
 			mat4x3_t*			   frozen_local_pose		= nullptr;
 			const chunk_handle32_t frozen_local_pose_handle = _ragdoll_pose_memory.allocate<mat4x3_t>(skeleton->joint_count, frozen_local_pose);
@@ -574,7 +574,7 @@ namespace sfg
 			const chunk_handle32_t joint_global_pose_handle = _ragdoll_pose_memory.allocate<mat4x3_t>(skeleton->joint_count, joint_global_pose);
 
 			for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
-				joint_global_pose[joint_index] = system_skinned.final_bones_calculated ? current_bones[joint_index].bone_transform * joints[joint_index].bind_global : joints[joint_index].bind_global;
+				joint_global_pose[joint_index] = current_bones[joint_index] * joints[joint_index].bind_global;
 
 			for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
 			{

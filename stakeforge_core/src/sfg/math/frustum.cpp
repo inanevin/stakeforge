@@ -69,7 +69,7 @@ namespace sfg
 
 	frustum_result frustum_t::test(const frustum_t& fr, const vec3f_t& position, f32 sphere_radius)
 	{
-		auto performTest = [&](const plane_t& p) {
+		auto perf = [&](const plane_t& p) {
 			const f32 distance = vec3f_t::dot(p.normal, position) + p.distance;
 
 			if (distance < -sphere_radius)
@@ -78,22 +78,22 @@ namespace sfg
 			return frustum_result::inside;
 		};
 
-		if (performTest(fr.left) == frustum_result::outside)
+		if (perf(fr.left) == frustum_result::outside)
 			return frustum_result::outside;
 
-		if (performTest(fr.right) == frustum_result::outside)
+		if (perf(fr.right) == frustum_result::outside)
 			return frustum_result::outside;
 
-		if (performTest(fr.top) == frustum_result::outside)
+		if (perf(fr.top) == frustum_result::outside)
 			return frustum_result::outside;
 
-		if (performTest(fr.bottom) == frustum_result::outside)
+		if (perf(fr.bottom) == frustum_result::outside)
 			return frustum_result::outside;
 
-		if (performTest(fr.near) == frustum_result::outside)
+		if (perf(fr.near) == frustum_result::outside)
 			return frustum_result::outside;
 
-		if (performTest(fr.far) == frustum_result::outside)
+		if (perf(fr.far) == frustum_result::outside)
 			return frustum_result::outside;
 
 		return frustum_result::inside;

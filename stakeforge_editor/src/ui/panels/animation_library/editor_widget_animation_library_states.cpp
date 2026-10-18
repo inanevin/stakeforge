@@ -407,6 +407,14 @@ namespace sfg
 		inner_in.anchor_x	 = ui::anchor_e::center;
 		inner_in.anchor_y	 = ui::anchor_e::center;
 
+		_ui->get_paint().set_rect(controls.blend_frame,
+								  {
+									  .fill_color_a	 = theme.color_panel,
+									  .fill_color_b	 = theme.color_panel,
+									  .rounding		 = theme.item_rounding,
+									  .rounding_segs = 4,
+								  });
+
 		const vec2f_t positions[] = {{0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 1.0f}, {0.5f, 0.5f}};
 		const char*	  labels[]	  = {"-1, 1", "1, 1", "-1, -1", "1, -1", "0, 0"};
 
@@ -415,6 +423,7 @@ namespace sfg
 			const ui::widget_id_t label = _ui->allocate_widget();
 
 			tree.attach(controls.blend_frame, label);
+			tree.draw_order(label) = tree.draw_order_const(controls.blend_frame) + 1;
 
 			ui::layout_in_t& in = tree.in(label);
 
@@ -833,7 +842,7 @@ namespace sfg
 		const ui::ui_render_state_t render_state{.pipeline = paint.get_pipelines().default_pipeline};
 		const f32					scale = ui::get_valid_scale(widget._ui->get_ui_scale());
 
-		canvas.push_clip(out.clip, ui::clip_mode_e::scissor_rect);
+		canvas.push_clip(tree.out(clip.state->preview).clip, ui::clip_mode_e::scissor_rect);
 		canvas.add_convex({points, 4}, {.fill_color_a = color, .fill_color_b = color, .aa_thickness = theme.aa_thickness * scale}, render_state, tree.draw_order_const(id));
 		canvas.pop_clip(ui::clip_mode_e::scissor_rect);
 	}

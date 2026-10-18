@@ -218,6 +218,7 @@ namespace sfg
 
 		_particle_simulation.clear();
 		_animation_controller.clear();
+		_animation_processor.clear();
 		_audio_controller.clear();
 		_canvas_controller.clear();
 
@@ -268,7 +269,7 @@ namespace sfg
 		const f32 scaled_dt = dt * _time_scale;
 
 		_animation_processor.tick(scaled_dt);
-		_animation_controller.tick_logic(scaled_dt);
+		_animation_processor.calculate_skinning_matrices(scaled_dt);
 	}
 
 	void world_t::tick_logic(f32 dt)
