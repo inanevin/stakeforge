@@ -74,7 +74,6 @@ namespace sfg
 
 		_logic_helper.init(*this);
 
-		_animation_controller.init(*this, 256, 1 * 1024 * 1024);
 		_animation_processor.init(*this, config.animation_processor_page_size);
 
 		_audio_controller.init(*this);
@@ -104,7 +103,6 @@ namespace sfg
 		_audio_controller.uninit();
 
 		_animation_processor.uninit();
-		_animation_controller.uninit();
 
 		if (_physics_world.is_init())
 		{
@@ -217,7 +215,6 @@ namespace sfg
 			_physics_world.clear();
 
 		_particle_simulation.clear();
-		_animation_controller.clear();
 		_animation_processor.clear();
 		_audio_controller.clear();
 		_canvas_controller.clear();
@@ -251,15 +248,6 @@ namespace sfg
 		const f32 scaled_dt = dt * _time_scale;
 
 		_physics_world.tick(scaled_dt);
-	}
-
-	void world_t::tick_animation_prep(f32 dt)
-	{
-		ZoneScoped;
-
-		const f32 scaled_dt = dt * _time_scale;
-
-		_animation_controller.tick_prep(scaled_dt);
 	}
 
 	void world_t::tick_animation_logic(f32 dt)
@@ -610,7 +598,6 @@ namespace sfg
 		if (_physics_world.is_init())
 			_physics_world.destroy_entity(id);
 
-		_animation_controller.destroy_entity(id);
 		_animation_processor.destroy_entity(id);
 		_audio_controller.destroy_entity(id);
 		_canvas_controller.destroy_entity(id);

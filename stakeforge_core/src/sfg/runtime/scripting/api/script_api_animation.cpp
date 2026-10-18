@@ -37,7 +37,8 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		return world->get_animation_controller().get_slot_pos_abs(entity, slot_name_hash, *out_position) ? 1 : 0;
+		// return world->get_animation_controller().get_slot_pos_abs(entity, slot_name_hash, *out_position) ? 1 : 0;
+		return 0;
 	}
 
 	u8 api_animation_get_slot_rot_abs(const world_t* world, entity_id_t entity, sid_t slot_name_hash, quat_t* out_rotation)
@@ -50,7 +51,8 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		return world->get_animation_controller().get_slot_rot_abs(entity, slot_name_hash, *out_rotation) ? 1 : 0;
+		// return world->get_animation_controller().get_slot_rot_abs(entity, slot_name_hash, *out_rotation) ? 1 : 0;
+		return 0;
 	}
 
 	u8 api_animation_set_graph_parameter_f32(world_t* world, entity_id_t entity, sid_t parameter_hash, f32 value)
@@ -60,7 +62,8 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		return world->get_animation_controller().set_graph_parameter_f32(entity, parameter_hash, value) ? 1 : 0;
+		// return world->get_animation_controller().set_graph_parameter_f32(entity, parameter_hash, value) ? 1 : 0;
+		return 0;
 	}
 
 	u8 api_animation_set_graph_parameter_vec2(world_t* world, entity_id_t entity, sid_t parameter_hash, const vec2f_t* value)
@@ -71,7 +74,8 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		return world->get_animation_controller().set_graph_parameter_vec2(entity, parameter_hash, *value) ? 1 : 0;
+		// return world->get_animation_controller().set_graph_parameter_vec2(entity, parameter_hash, *value) ? 1 : 0;
+		return 0;
 	}
 
 	u8 api_animation_set_graph_parameter_vec3(world_t* world, entity_id_t entity, sid_t parameter_hash, const vec3f_t* value)
@@ -82,7 +86,8 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		return world->get_animation_controller().set_graph_parameter_vec3(entity, parameter_hash, *value) ? 1 : 0;
+		// return world->get_animation_controller().set_graph_parameter_vec3(entity, parameter_hash, *value) ? 1 : 0;
+		return 0;
 	}
 
 	u8 api_animation_set_graph_parameter_quat(world_t* world, entity_id_t entity, sid_t parameter_hash, const quat_t* value)
@@ -93,7 +98,8 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		return world->get_animation_controller().set_graph_parameter_quat(entity, parameter_hash, *value) ? 1 : 0;
+		// return world->get_animation_controller().set_graph_parameter_quat(entity, parameter_hash, *value) ? 1 : 0;
+		return 0;
 	}
 
 	u8 api_animation_set_graph_parameter_bool(world_t* world, entity_id_t entity, sid_t parameter_hash, u8 value)
@@ -103,7 +109,8 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		return world->get_animation_controller().set_graph_parameter_bool(entity, parameter_hash, value != 0) ? 1 : 0;
+		// return world->get_animation_controller().set_graph_parameter_bool(entity, parameter_hash, value != 0) ? 1 : 0;
+		return 0;
 	}
 
 	u8 api_animation_get_graph_parameter_f32(const world_t* world, entity_id_t entity, sid_t parameter_hash, f32* out_value)
@@ -116,7 +123,8 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		return world->get_animation_controller().get_graph_parameter_f32(entity, parameter_hash, *out_value) ? 1 : 0;
+		// return world->get_animation_controller().get_graph_parameter_f32(entity, parameter_hash, *out_value) ? 1 : 0;
+		return 0;
 	}
 
 	u8 api_animation_get_graph_parameter_vec2(const world_t* world, entity_id_t entity, sid_t parameter_hash, vec2f_t* out_value)
@@ -129,7 +137,8 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		return world->get_animation_controller().get_graph_parameter_vec2(entity, parameter_hash, *out_value) ? 1 : 0;
+		// return world->get_animation_controller().get_graph_parameter_vec2(entity, parameter_hash, *out_value) ? 1 : 0;
+		return 0;
 	}
 
 	u8 api_animation_get_graph_parameter_vec3(const world_t* world, entity_id_t entity, sid_t parameter_hash, vec3f_t* out_value)
@@ -142,7 +151,8 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		return world->get_animation_controller().get_graph_parameter_vec3(entity, parameter_hash, *out_value) ? 1 : 0;
+		// return world->get_animation_controller().get_graph_parameter_vec3(entity, parameter_hash, *out_value) ? 1 : 0;
+		return 0;
 	}
 
 	u8 api_animation_get_graph_parameter_quat(const world_t* world, entity_id_t entity, sid_t parameter_hash, quat_t* out_value)
@@ -155,7 +165,8 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		return world->get_animation_controller().get_graph_parameter_quat(entity, parameter_hash, *out_value) ? 1 : 0;
+		// return world->get_animation_controller().get_graph_parameter_quat(entity, parameter_hash, *out_value) ? 1 : 0;
+		return 0;
 	}
 
 	u8 api_animation_get_graph_parameter_bool(const world_t* world, entity_id_t entity, sid_t parameter_hash, u8* out_value)
@@ -171,9 +182,10 @@ namespace sfg
 			return 0;
 		}
 
-		const bool result = world->get_animation_controller().get_graph_parameter_bool(entity, parameter_hash, value);
-		*out_value		  = value ? 1 : 0;
-		return result ? 1 : 0;
+		// const bool result = world->get_animation_controller().get_graph_parameter_bool(entity, parameter_hash, value);
+		*out_value = value ? 1 : 0;
+		// return result ? 1 : 0;
+		return 0;
 	}
 
 	const script_api_animation_t& get_script_api_animation()

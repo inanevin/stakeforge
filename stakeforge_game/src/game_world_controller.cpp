@@ -191,7 +191,6 @@ namespace sfg
 				_main_world.tick_physics(dt_seconds);
 				_main_world.tick_logic_post_physics(dt_seconds);
 				_main_world.update_world_transforms(false);
-				_main_world.tick_animation_prep(dt_seconds);
 				_main_world.tick_animation_logic(dt_seconds);
 				_main_world.tick_logic_post_animation(dt_seconds);
 				_main_world.update_world_transforms(false);

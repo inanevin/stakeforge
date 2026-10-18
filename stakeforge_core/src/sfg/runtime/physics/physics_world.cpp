@@ -37,7 +37,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/world/world.hpp>
-#include <sfg/runtime/world/world_animation_controller.hpp>
 #include <sfg/vendor/moodycamel/concurrentqueue.h>
 #include <tracy/Tracy.hpp>
 
@@ -735,8 +734,8 @@ namespace sfg
 			_ragdoll_pose_memory.free(system_ragdoll.frozen_local_pose);
 			system_ragdoll_table.remove(entity);
 
-			if (reset_animation)
-				_world->get_animation_controller().reset_pose_after_ragdoll(entity);
+			// if (reset_animation)
+			// 	_world->get_animation_controller().reset_pose_after_ragdoll(entity);
 		}
 
 		void sync_ragdoll_create_destroy()

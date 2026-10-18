@@ -10,7 +10,6 @@
 #include <sfg/runtime/world/ecs_table.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/animation/animation_processor.hpp>
-#include <sfg/runtime/world/world_animation_controller.hpp>
 #include <sfg/runtime/world/world_audio_controller.hpp>
 #include <sfg/runtime/world/world_canvas_controller.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
@@ -70,7 +69,6 @@ namespace sfg
 		void set_time_scale(f32 time_scale);
 		void reset_world_state();
 		void tick_physics(f32 dt);
-		void tick_animation_prep(f32 dt);
 		void tick_animation_logic(f32 dt);
 		void tick_logic(f32 dt);
 		void tick_logic_post(f32 dt);
@@ -221,16 +219,6 @@ namespace sfg
 			return _animation_processor;
 		}
 
-		inline world_animation_controller_t& get_animation_controller()
-		{
-			return _animation_controller;
-		}
-
-		inline const world_animation_controller_t& get_animation_controller() const
-		{
-			return _animation_controller;
-		}
-
 		inline world_audio_controller_t& get_audio_controller()
 		{
 			return _audio_controller;
@@ -339,7 +327,6 @@ namespace sfg
 		world_screen_t					_screen						  = {};
 		world_debug_draw_t				_debug_draw					  = {};
 		physics_world_t					_physics_world				  = {};
-		world_animation_controller_t	_animation_controller		  = {};
 		animation_processor_t			_animation_processor		  = {};
 		world_audio_controller_t		_audio_controller			  = {};
 		world_canvas_controller_t		_canvas_controller			  = {};

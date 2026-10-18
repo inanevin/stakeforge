@@ -483,7 +483,6 @@ namespace sfg
 			world.tick_physics(dt_seconds);
 			world.update_world_transforms(false);
 
-			world.tick_animation_prep(dt_seconds);
 			world.tick_animation_logic(dt_seconds);
 			world.tick_post(dt_seconds);
 			return;
@@ -495,7 +494,6 @@ namespace sfg
 			editor_world.tick_camera(dt_seconds);
 			world.update_world_transforms();
 
-			world.tick_animation_prep(dt_seconds);
 			world.tick_animation_logic(dt_seconds);
 
 			break;
@@ -507,7 +505,6 @@ namespace sfg
 			world.tick_logic_post_physics(dt_seconds);
 			world.update_world_transforms(false);
 
-			world.tick_animation_prep(dt_seconds);
 			world.tick_animation_logic(dt_seconds);
 			world.tick_logic_post_animation(dt_seconds);
 			world.update_world_transforms(false);
@@ -519,7 +516,6 @@ namespace sfg
 			world.tick_physics(dt_seconds);
 			world.update_world_transforms(false);
 
-			world.tick_animation_prep(dt_seconds);
 			world.tick_animation_logic(dt_seconds);
 			break;
 		case editor_play_mode_e::play_paused:
@@ -532,7 +528,6 @@ namespace sfg
 				world.tick_logic_post_physics(dt_seconds);
 				world.update_world_transforms(false);
 
-				world.tick_animation_prep(dt_seconds);
 				world.tick_animation_logic(dt_seconds);
 				world.tick_logic_post_animation(dt_seconds);
 				world.update_world_transforms(false);
@@ -547,7 +542,6 @@ namespace sfg
 				world.tick_physics(dt_seconds);
 				world.update_world_transforms(false);
 
-				world.tick_animation_prep(dt_seconds);
 				world.tick_animation_logic(dt_seconds);
 			}
 
