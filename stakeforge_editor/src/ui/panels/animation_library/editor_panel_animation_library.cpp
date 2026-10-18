@@ -26,6 +26,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "assets/editor_asset_util.hpp"
 #include "commands/editor_command_animation_library.hpp"
 #include "editor_command_system.hpp"
 #include "editor_surface_controller.hpp"
@@ -42,10 +43,17 @@ in GAME-LINKING-EXCEPTION.md.
 #include "world/editor_world_util.hpp"
 
 #include <sfg/io/log.hpp>
+#include <sfg/data/istream.hpp>
+#include <sfg/data/ostream.hpp>
 #include <sfg/common/hashing.hpp>
 #include <sfg/math/math.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/skeleton_def.hpp>
+#include <sfg/runtime/resources/mesh_def.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
+#include <sfg/runtime/world/system_components.hpp>
+#include <sfg/runtime/world/world.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -317,7 +325,15 @@ namespace sfg
 		_world_view.uninit();
 		_left_split_border.uninit();
 		_right_split_border.uninit();
+		clear_preview_scene();
 		editor_world_controller_t::get().destroy_world(_world);
+
+		if (_preview_library != NULL_RESOURCE_HANDLE)
+			resource_manager_t::get().unload_resource(_preview_library);
+
+		_preview_library	= NULL_RESOURCE_HANDLE;
+		_preview_skeleton	= NULL_RESOURCE_HANDLE;
+		_environment_entity = NULL_ENTITY_ID;
 
 		_world					 = {};
 		_library				 = {};
@@ -388,6 +404,9 @@ namespace sfg
 
 	void editor_panel_animation_library_t::apply_edits(const animation_library_def_t& definition, u32 selected_layer, const bool* layer_expanded, u32 selected_state, u32 selected_clip)
 	{
+		_preview_layer = UINT32_MAX;
+		_preview_state = UINT32_MAX;
+
 		if (layer_expanded != nullptr && definition.layer_count != _library.layer_count)
 			SFG_MEMCPY(_layer_expanded, layer_expanded, sizeof(_layer_expanded));
 
@@ -430,13 +449,121 @@ namespace sfg
 
 		editor_world_t& editor_world = *controller.get_editor_world(_world);
 
-		editor_world.install_camera(editor_world_camera_type_e::fly);
-		editor_world_util_t::install_default_scene_dark(editor_world.get_world(), 5.0f);
+		editor_world.install_camera(editor_world_camera_type_e::orbit);
+		_environment_entity = editor_world_util_t::install_default_scene_dark(editor_world.get_world(), 5.0f);
 		_world_view.set_edit_world(_world);
+	}
+
+	void editor_panel_animation_library_t::clear_preview_scene()
+	{
+		_preview_state_handle = {};
+
+		world_t& world = editor_world_controller_t::get().get_editor_world(_world)->get_world();
+
+		if (_display_entity != NULL_ENTITY_ID)
+		{
+			world.destroy_entity(_display_entity);
+			_display_entity = NULL_ENTITY_ID;
+		}
 	}
 
 	void editor_panel_animation_library_t::refresh_scene()
 	{
+		if (!_has_skeleton)
+		{
+			clear_preview_scene();
+			_preview_skeleton = NULL_RESOURCE_HANDLE;
+
+			return;
+		}
+
+		const editor_asset_t& skeleton_asset  = *editor_asset_manager_t::get().find_asset(_library.skeleton);
+		const nlohmann::json  skeleton_source = editor_asset_io_t::get_embedded_source_json(skeleton_asset);
+		skeleton_def_t		  skeleton		  = {};
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, skeleton_source))
+		{
+			SFG_ERR("failed to read preview skeleton: {0}", _library.skeleton);
+			clear_preview_scene();
+
+			return;
+		}
+
+		if (skeleton.preview_mesh == NULL_RESOURCE_HANDLE)
+		{
+			clear_preview_scene();
+
+			return;
+		}
+
+		editor_world_t&		editor_world   = *editor_world_controller_t::get().get_editor_world(_world);
+		world_t&			world		   = editor_world.get_world();
+		resource_manager_t& resources	   = resource_manager_t::get();
+		ostream_t			library_stream = {};
+		bool				preview_ready  = false;
+
+		if (_library.layer_count != 0)
+		{
+			if (reflection_registry_t::get().type_to_stream(type_id_t<animation_library_def_t>::value, &_library, nullptr, library_stream))
+			{
+				istream_t stream(library_stream.get_raw(), library_stream.get_size());
+
+				if (_preview_library == NULL_RESOURCE_HANDLE)
+				{
+					const resource_handle_t preview_library = editor_asset_util_t::generate_unique_asset_guid();
+
+					preview_ready = resources.load_resource_runtime(preview_library, resource_type_e::animation_library, stream) != resource_state_e::failed;
+
+					if (preview_ready)
+						_preview_library = preview_library;
+				}
+				else
+					preview_ready = resources.reload_resource_runtime(_preview_library, stream) != resource_state_e::failed;
+			}
+			else
+				SFG_ERR("failed to serialize preview animation library: {0}", _library_guid);
+		}
+
+		if (_preview_skeleton != _library.skeleton || !preview_ready)
+			clear_preview_scene();
+
+		if (_display_entity == NULL_ENTITY_ID)
+		{
+			_display_entity = world.create_entity("animation_library_preview");
+
+			component_skinned_mesh_renderer_t& renderer	  = world.get_component_table<component_skinned_mesh_renderer_t>().add_or_get_as<component_skinned_mesh_renderer_t>(_display_entity);
+			const editor_asset_t*			   mesh_asset = editor_asset_manager_t::get().find_asset(skeleton.preview_mesh);
+			mesh_def_t						   mesh		  = {};
+
+			renderer.mesh	  = skeleton.preview_mesh;
+			renderer.skeleton = _library.skeleton;
+
+			if (mesh_asset != nullptr && editor_asset_util_t::load_mesh_def(*mesh_asset, mesh) && !mesh.preview_materials.empty())
+			{
+				for (resource_handle_t material : mesh.preview_materials)
+					renderer.materials.push_back(material);
+			}
+			else
+			{
+				for (size_t i = 0; i < decltype(renderer.materials)::capacity; ++i)
+					renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
+			}
+		}
+
+		if (preview_ready)
+			world.get_component_table<component_animation_library_t>().add_or_get_as<component_animation_library_t>(_display_entity).animation_library = _preview_library;
+
+		world.scan_for_resources(_display_entity, true);
+
+		if (_preview_skeleton != _library.skeleton)
+		{
+			const f32 spotlight_y = skeleton.local_bounds.bounds_max.y * 2.0f;
+
+			world.set_entity_pos_local(_environment_entity, {0.0f, spotlight_y, 0.0f});
+			world.get_component_table<component_light_t>().get_as<component_light_t>(_environment_entity).range = math::max(10.0f, spotlight_y * 2.0f);
+			editor_world.fit_camera_to_bounds(skeleton.local_bounds);
+			_preview_skeleton = _library.skeleton;
+		}
 	}
 
 	void editor_panel_animation_library_t::refresh_skeleton_reference()
@@ -691,8 +818,6 @@ namespace sfg
 			std::snprintf(label, sizeof(label), "Layer: %s", layer.name);
 			panel._layer_controls[i].fold.set_text(label);
 		}
-
-		panel.refresh_scene();
 	}
 
 	void editor_panel_animation_library_t::on_layer_pressed(void* user_data)
@@ -772,6 +897,9 @@ namespace sfg
 		else if (panel._selected_layer != UINT32_MAX && panel._selected_layer > index)
 			--panel._selected_layer;
 
+		panel._preview_layer = UINT32_MAX;
+		panel._preview_state = UINT32_MAX;
+
 		editor_command_animation_library_edit_t::submit(panel, "Remove Animation Layer");
 		panel._refresh_layers = true;
 		panel._refresh_states = true;
@@ -781,6 +909,27 @@ namespace sfg
 	void editor_panel_animation_library_t::on_refresh_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
 	{
 		editor_panel_animation_library_t& panel = *static_cast<editor_panel_animation_library_t*>(user_data);
+
+		if (panel._preview_layer < panel._library.layer_count && panel._preview_state < panel._library.layers[panel._preview_layer].states.size() && panel._display_entity != NULL_ENTITY_ID)
+		{
+			world_t&									world	= editor_world_controller_t::get().get_editor_world(panel._world)->get_world();
+			const component_system_animation_library_t* library = world.get_component_table<component_system_animation_library_t>().find_as_const<component_system_animation_library_t>(panel._display_entity);
+
+			if (library != nullptr)
+			{
+				animation_processor_t&			processor = world.get_animation_processor();
+				const animator_library_handle_t library_handle{library->lib_alloc.index, library->lib_alloc.generation};
+				const animator_state_handle_t	state = processor.get_state_handle(library_handle, panel._preview_layer, panel._preview_state);
+
+				if (panel._preview_state_handle != state)
+				{
+					processor.switch_layer_state(library_handle, panel._preview_layer, state, 0.0f);
+					panel._preview_state_handle = state;
+				}
+
+				processor.set_state_blend_value(state, panel._preview_blend);
+			}
+		}
 
 		if (panel._refresh_skeleton)
 		{
@@ -827,7 +976,6 @@ namespace sfg
 		panel.validate_layer_masks();
 		editor_command_animation_library_edit_t::submit(panel, "Assign Skeleton");
 		panel.refresh_skeleton_overlay();
-		panel.refresh_scene();
 		panel._refresh_layers = true;
 		panel._refresh_states = true;
 	}

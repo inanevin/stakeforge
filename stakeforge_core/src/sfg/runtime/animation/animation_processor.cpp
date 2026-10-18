@@ -39,7 +39,8 @@ namespace sfg
 {
 	void animation_processor_t::init(world_t& world, size_t animation_processor_page_size)
 	{
-		_world = &world;
+		_world					  = &world;
+		_resource_reload_listener = resource_manager_t::get().add_reload_listener(on_resource_reload, this);
 
 		_aux.init(32 * 1024);
 
@@ -54,6 +55,9 @@ namespace sfg
 
 	void animation_processor_t::uninit()
 	{
+		resource_manager_t::get().remove_reload_listener(_resource_reload_listener);
+		_resource_reload_listener = {};
+
 		_states.clear();
 		_libraries.clear();
 		_decomposition_aux.uninit();
@@ -237,6 +241,7 @@ namespace sfg
 			skeleton_mask_t src_rotation = {};
 			skeleton_mask_t src_scale	 = {};
 
+			if (!anim_lib.layers[0].active_state.is_null())
 			{
 				animator_layer_t& layer	 = anim_lib.layers[0];
 				animator_state_t& active = _states.get(layer.active_state);
@@ -315,7 +320,11 @@ namespace sfg
 
 			for (u32 i = 1; i < anim_lib.layer_count; i++)
 			{
-				animator_layer_t& layer	 = anim_lib.layers[i];
+				animator_layer_t& layer = anim_lib.layers[i];
+
+				if (layer.active_state.is_null())
+					continue;
+
 				animator_state_t& active = _states.get(layer.active_state);
 				const bool		  sample = !skip_sample && !math::almost_equal(layer.weight, 0.0f);
 
@@ -614,6 +623,80 @@ namespace sfg
 
 		SFG_WARN("failed finding state handle!");
 		return {};
+	}
+
+	void animation_processor_t::on_resource_reload(resource_manager_t& resource_manager, sid_t resource_id, resource_type_e resource_type, void* user_data)
+	{
+		if (resource_type != resource_type_e::animation_library && resource_type != resource_type_e::animation && resource_type != resource_type_e::skeleton)
+			return;
+
+		animation_processor_t&		 processor = *static_cast<animation_processor_t*>(user_data);
+		frame_vector_t<entity_id_t>	 entities  = {};
+		const ecs_component_table_t& libraries = processor._world->get_component_table<component_system_animation_library_t>();
+		const ecs_component_table_t& players   = processor._world->get_component_table<component_system_animation_player_t>();
+		const ecs_component_table_t& renderers = processor._world->get_component_table<component_system_skinned_mesh_renderer_t>();
+
+		{
+			ecs_component_table_ref_t refs[] = {libraries.ref()};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+			{
+				const component_system_animation_library_t& sys		 = row.get<component_system_animation_library_t>();
+				const animator_library_t&					library	 = processor._libraries.get({sys.lib_alloc.index, sys.lib_alloc.generation});
+				bool										affected = resource_type == resource_type_e::animation_library && sys.animation_library == resource_id;
+
+				affected |= resource_type == resource_type_e::skeleton && library.skeleton_handle == resource_id;
+
+				if (resource_type == resource_type_e::animation)
+				{
+					for (u32 i = 0; i < library.layer_count && !affected; ++i)
+					{
+						const animator_layer_t&		   layer  = library.layers[i];
+						const animator_state_handle_t* states = layer.state_count == 0 ? nullptr : processor._aux.get<animator_state_handle_t>(layer.state_handles);
+
+						for (u32 j = 0; j < layer.state_count && !affected; ++j)
+						{
+							const animator_state_t& state = processor._states.get(states[j]);
+
+							for (u32 k = 0; k < state.clip_count; ++k)
+								affected |= state.clips[k].clip_handle == resource_id;
+						}
+					}
+				}
+
+				if (affected)
+					entities.push_back(row.id);
+			}
+		}
+
+		{
+			ecs_component_table_ref_t refs[] = {players.ref()};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+			{
+				const component_system_animation_player_t& player = row.get<component_system_animation_player_t>();
+
+				if ((resource_type == resource_type_e::animation && player.animation == resource_id) || (resource_type == resource_type_e::skeleton && player.skeleton == resource_id))
+					entities.push_back(row.id);
+			}
+		}
+
+		if (resource_type == resource_type_e::skeleton)
+		{
+			ecs_component_table_ref_t refs[] = {renderers.ref()};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+			{
+				if (row.get<component_system_skinned_mesh_renderer_t>().skeleton == resource_id)
+					entities.push_back(row.id);
+			}
+		}
+
+		std::sort(entities.begin(), entities.end());
+		const auto end = std::unique(entities.begin(), entities.end());
+
+		for (auto it = entities.begin(); it != end; ++it)
+			processor.destroy_entity(*it);
 	}
 
 	void animation_processor_t::alloc_for_entity(entity_id_t id)

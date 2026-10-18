@@ -99,7 +99,7 @@ namespace sfg
 			bool		  disabled = false;
 		};
 
-		void begin_camera_control(window_runtime_t& runtime);
+		void begin_camera_control(window_runtime_t& runtime, bool pan);
 		void end_camera_control();
 		void pass_camera_input(const editor_world_camera_input_t& input);
 		bool pass_camera_key(const window_event_t& ev);
@@ -117,6 +117,7 @@ namespace sfg
 		bool								_camera_control			  = false;
 		bool								_gizmo_press_consumed	  = false;
 		bool								_shoot_ray_press_consumed = false;
+		bool								_camera_pan_control		  = false;
 
 		static inline editor_world_input_controller_t* s_active_camera_controller = nullptr;
 		static inline window_runtime_t*				   s_event_runtime			  = nullptr;

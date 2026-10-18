@@ -90,7 +90,11 @@ namespace sfg
 		static constexpr u32 WIRE_VERSION = 8;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
+		static bool runtime_load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
+
+	private:
+		static bool load_definition(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
 	};
 
 	extern const resource_type_desc_t animation_library_resource_desc;

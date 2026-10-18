@@ -83,9 +83,18 @@ namespace sfg
 	{
 		SFG_ASSERT(s_event_runtime != nullptr);
 
+		if (_camera_control)
+			return;
+
 		if (button == editor_world_input_pointer_button_e::right)
 		{
-			begin_camera_control(*s_event_runtime);
+			begin_camera_control(*s_event_runtime, false);
+			return;
+		}
+
+		if (_world->get_camera_type() == editor_world_camera_type_e::orbit && process::is_key_down(static_cast<u16>(input_code::key_lshift)))
+		{
+			begin_camera_control(*s_event_runtime, true);
 			return;
 		}
 
@@ -105,9 +114,20 @@ namespace sfg
 	{
 		if (button == editor_world_input_pointer_button_e::right)
 		{
+			if (!_camera_pan_control)
+				end_camera_control();
+
+			return;
+		}
+
+		if (_camera_pan_control)
+		{
 			end_camera_control();
 			return;
 		}
+
+		if (_camera_control)
+			return;
 
 		if (_shoot_ray_press_consumed)
 		{
@@ -166,6 +186,12 @@ namespace sfg
 		}
 
 		const bool ctrl_pressed = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+
+		if (key == static_cast<u16>(input_code::key_r) && !ctrl_pressed && _world->get_camera_type() == editor_world_camera_type_e::orbit)
+		{
+			pass_camera_input({.reset_target = true});
+			return;
+		}
 
 		if (key == static_cast<u16>(input_code::key_x) || (key == static_cast<u16>(input_code::key_d) && ctrl_pressed))
 		{
@@ -392,7 +418,10 @@ namespace sfg
 
 		if (ev.type == window_event_type_e::delta)
 		{
-			active->pass_camera_input({.mouse_delta = {static_cast<f32>(ev.value.x), static_cast<f32>(ev.value.y)}});
+			if (active->_camera_pan_control && !process::is_key_down(static_cast<u16>(input_code::key_lshift)))
+				return true;
+
+			active->pass_camera_input({.mouse_delta = {static_cast<f32>(ev.value.x), static_cast<f32>(ev.value.y)}, .pan = active->_camera_pan_control});
 			return true;
 		}
 
@@ -408,7 +437,7 @@ namespace sfg
 			s_active_camera_controller->end_camera_control();
 	}
 
-	void editor_world_input_controller_t::begin_camera_control(window_runtime_t& runtime)
+	void editor_world_input_controller_t::begin_camera_control(window_runtime_t& runtime, bool pan)
 	{
 		const editor_play_mode_e play_mode = _world->get_edit_context().get_play_mode();
 
@@ -421,6 +450,7 @@ namespace sfg
 		editor_surface_controller_t::get().begin_editor_camera_cursor_capture(runtime);
 		_camera_runtime			   = &runtime;
 		_camera_control			   = true;
+		_camera_pan_control		   = pan;
 		s_active_camera_controller = this;
 
 		pass_camera_input({.reset = true});
@@ -434,8 +464,9 @@ namespace sfg
 		editor_surface_controller_t::get().end_editor_camera_cursor_capture(*_camera_runtime);
 		pass_camera_input({.reset = true});
 
-		_camera_runtime = nullptr;
-		_camera_control = false;
+		_camera_runtime		= nullptr;
+		_camera_control		= false;
+		_camera_pan_control = false;
 
 		if (s_active_camera_controller == this)
 			s_active_camera_controller = nullptr;
@@ -450,6 +481,14 @@ namespace sfg
 	{
 		if (ev.sub_type != window_event_sub_type_e::press && ev.sub_type != window_event_sub_type_e::release)
 			return false;
+
+		if (ev.button == static_cast<u16>(input_code::key_r) && _world->get_camera_type() == editor_world_camera_type_e::orbit)
+		{
+			if (ev.sub_type == window_event_sub_type_e::press)
+				key_press(ev.button);
+
+			return true;
+		}
 
 		const f32					sign  = ev.sub_type == window_event_sub_type_e::press ? 1.0f : -1.0f;
 		editor_world_camera_input_t input = {};

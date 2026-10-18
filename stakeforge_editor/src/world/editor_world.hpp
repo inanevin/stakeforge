@@ -190,6 +190,11 @@ namespace sfg
 			return _play_mode;
 		}
 
+		inline editor_world_camera_type_e get_camera_type() const
+		{
+			return _camera_type;
+		}
+
 		inline const quat_t& get_view_rotation() const
 		{
 			return _view_rotation;

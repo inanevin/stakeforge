@@ -65,18 +65,25 @@ namespace sfg
 	{
 		clip_controls_t							  clips[MAX_ANIMATION_LIBRARY_STATE_CLIPS] = {};
 		editor_input_field_t					  name									   = {};
+		editor_input_field_t					  preview_x								   = {};
+		editor_input_field_t					  preview_y								   = {};
 		editor_input_field_t					  speed									   = {};
 		editor_dropdown_t						  blend_type							   = {};
 		editor_checkbox_t						  loop									   = {};
 		editor_widget_fold_t					  fold									   = {};
 		editor_widget_button_t					  add_clip								   = {};
 		editor_widget_button_t					  clear_clips							   = {};
+		editor_widget_button_t					  preview_state							   = {};
+		vec2f_t									  preview_blend							   = vec2f_t::zero;
 		editor_widget_animation_library_states_t* owner									   = nullptr;
 		u32										  index									   = 0;
 		u32										  _clip_count							   = 0;
 		ui::widget_id_t							  preview								   = NULL_WIDGET;
 		ui::widget_id_t							  blend_frame							   = NULL_WIDGET;
 		ui::widget_id_t							  clip_list								   = NULL_WIDGET;
+		ui::widget_id_t							  preview_x_row							   = NULL_WIDGET;
+		ui::widget_id_t							  preview_y_row							   = NULL_WIDGET;
+		ui::widget_id_t							  preview_marker						   = NULL_WIDGET;
 	};
 
 	editor_widget_animation_library_states_t::editor_widget_animation_library_states_t()  = default;
@@ -171,6 +178,9 @@ namespace sfg
 
 			controls->name.uninit();
 			controls->speed.uninit();
+			controls->preview_x.uninit();
+			controls->preview_y.uninit();
+			controls->preview_state.uninit();
 			controls->blend_type.uninit();
 			controls->loop.uninit();
 			controls->add_clip.uninit();
@@ -215,7 +225,7 @@ namespace sfg
 		refresh_values();
 	}
 
-	ui::widget_id_t editor_widget_animation_library_states_t::init_number(ui::widget_id_t parent, editor_input_field_t& field, const char* label, f32& value, f32 minimum, f32 maximum)
+	ui::widget_id_t editor_widget_animation_library_states_t::init_number(ui::widget_id_t parent, editor_input_field_t& field, const char* label, f32& value, f32 minimum, f32 maximum, const editor_widget_callbacks_t* callbacks)
 	{
 		const editor_theme_t&		theme = editor_theme_t::get();
 		const editor_property_row_t row	  = editor_misc_widgets_t::make_property_row_with_label(*_ui, parent, label);
@@ -225,7 +235,7 @@ namespace sfg
 				   row.right,
 				   {
 					   .field	   = {.fields = {.data = &data, .size = 1}, .field_size = sizeof(value), .type = editor_input_field_field_type_e::pod_number, .is_slider = minimum == -1.0f && maximum == 1.0f},
-					   .callbacks  = {.edit_begin = on_edit_begin, .edited = on_edited, .edit_submitted = on_edit_submitted, .user_data = this},
+					   .callbacks  = callbacks != nullptr ? *callbacks : editor_widget_callbacks_t{.edit_begin = on_edit_begin, .edited = on_edited, .edit_submitted = on_edit_submitted, .user_data = this},
 					   .increment  = 0.01f,
 					   .min_value  = minimum,
 					   .max_value  = maximum,
@@ -280,9 +290,12 @@ namespace sfg
 							   .on_fold_changed	 = on_state_fold_changed,
 							   .user_data		 = &controls,
 							   .folded			 = !_state_ui[_layer][index].expanded,
+							   .remove_button	 = true,
 							   .background_frame = true,
 							   .header_frame	 = false,
 						   });
+
+		_ui->get_input().set_listener(controls.fold.get_remove_button(), {.on_click = on_state_remove_pressed, .user_data = &controls});
 
 		const ui::widget_id_t body	  = controls.fold.get_body();
 		ui::layout_in_t&	  body_in = tree.in(body);
@@ -338,6 +351,14 @@ namespace sfg
 									 .pos_y		 = editor_dropdown_pos_y_e::center,
 								 });
 		editor_dividers_t::add_divider_hor(*_ui, body, theme.divider_thickness, theme.color_outline, theme.color_outline, ui::vg_gradient_e::none);
+		controls.preview_blend = _panel->_preview_layer == _layer && _panel->_preview_state == index ? _panel->_preview_blend : state.blend_value;
+		controls.preview_state.init(*_ui, body, {.text = "Preview State"});
+		_ui->get_input().set_listener(controls.preview_state.get_root(), {.on_click = on_preview_pressed, .user_data = &controls});
+
+		const editor_widget_callbacks_t preview_callbacks{.edited = on_preview_blend_edited, .user_data = &controls};
+
+		controls.preview_x_row = init_number(body, controls.preview_x, "Preview X", controls.preview_blend.x, -1.0f, 1.0f, &preview_callbacks);
+		controls.preview_y_row = init_number(body, controls.preview_y, "Preview Y", controls.preview_blend.y, -1.0f, 1.0f, &preview_callbacks);
 		init_preview(controls);
 		editor_misc_widgets_t::make_section_label(*_ui, body, "Clips");
 
@@ -415,6 +436,29 @@ namespace sfg
 									  .rounding_segs = 4,
 								  });
 
+		controls.preview_marker = _ui->allocate_widget();
+		tree.attach(controls.blend_frame, controls.preview_marker);
+		tree.draw_order(controls.preview_marker) = tree.draw_order_const(controls.blend_frame) + 3;
+
+		ui::layout_in_t& marker_in = tree.in(controls.preview_marker);
+
+		marker_in.size_mode_x = ui::axis_mode_e::fixed;
+		marker_in.size_mode_y = ui::axis_mode_e::fixed;
+		marker_in.size_value  = {theme.item_height * 0.4f, theme.item_height * 0.4f};
+		marker_in.pos_mode_x  = ui::pos_mode_e::relative_in_parent;
+		marker_in.pos_mode_y  = ui::pos_mode_e::relative_in_parent;
+		marker_in.anchor_x	  = ui::anchor_e::center;
+		marker_in.anchor_y	  = ui::anchor_e::center;
+		_ui->get_paint().set_rect(controls.preview_marker,
+								  {
+									  .fill_color_a		 = theme.color_accent1,
+									  .fill_color_b		 = theme.color_accent1,
+									  .outline_color	 = theme.color_text0,
+									  .rounding			 = theme.item_height * 0.2f,
+									  .outline_thickness = theme.border_thickness,
+									  .rounding_segs	 = 8,
+								  });
+
 		const vec2f_t positions[] = {{0.0f, 0.0f}, {1.0f, 0.0f}, {0.0f, 1.0f}, {1.0f, 1.0f}, {0.5f, 0.5f}};
 		const char*	  labels[]	  = {"-1, 1", "1, 1", "-1, -1", "1, -1", "0, 0"};
 
@@ -464,8 +508,11 @@ namespace sfg
 						   .on_fold_changed = on_clip_fold_changed,
 						   .user_data		= &clip,
 						   .folded			= !_state_ui[_layer][controls.index].clip_expanded[index],
+						   .remove_button	= true,
 						   .header_frame	= false,
 					   });
+
+		_ui->get_input().set_listener(clip.fold.get_remove_button(), {.on_click = on_clip_remove_pressed, .user_data = &clip});
 
 		const ui::widget_id_t body = clip.fold.get_body();
 
@@ -548,6 +595,11 @@ namespace sfg
 			std::snprintf(title, sizeof(title), "State: %s", state.name);
 			controls->fold.set_text(title);
 			tree.set_visible(controls->preview, blended);
+			tree.set_visible(controls->preview_x_row, blended);
+			tree.set_visible(controls->preview_y_row, blend_2d);
+			tree.in(controls->preview_marker).pos_value = {(controls->preview_blend.x + 1.0f) * 0.5f, blend_2d ? (1.0f - controls->preview_blend.y) * 0.5f : 0.5f};
+			tree.set_visible(controls->preview_marker, _panel->_preview_layer == _layer && _panel->_preview_state == controls->index);
+			controls->preview_state.set_text(_panel->_preview_layer == _layer && _panel->_preview_state == controls->index ? "Previewing State" : "Preview State");
 
 			if (state.clip_count == MAX_ANIMATION_LIBRARY_STATE_CLIPS)
 				tree.in(controls->add_clip.get_root()).flags |= ui::wf_disabled;
@@ -700,6 +752,118 @@ namespace sfg
 		editor_command_animation_library_edit_t::submit(panel, "Set Animation Clip Reference");
 	}
 
+	void editor_widget_animation_library_states_t::on_preview_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		const auto& controls = *static_cast<state_controls_t*>(user_data);
+
+		controls.owner->_panel->finish_edit();
+		on_preview_blend_edited(user_data);
+	}
+
+	void editor_widget_animation_library_states_t::on_preview_blend_edited(void* user_data)
+	{
+		const auto&							 controls = *static_cast<state_controls_t*>(user_data);
+		auto&								 widget	  = *controls.owner;
+		auto&								 panel	  = *widget._panel;
+		const animation_library_state_def_t& state	  = panel._library.layers[widget._layer].states[controls.index];
+
+		panel._preview_layer = widget._layer;
+		panel._preview_state = controls.index;
+		panel._preview_blend = {controls.preview_blend.x, state.blend_type == animation_library_blend_type_e::blend_2d ? controls.preview_blend.y : 0.0f};
+		widget.refresh_values();
+	}
+
+	void editor_widget_animation_library_states_t::on_state_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		const auto& controls = *static_cast<state_controls_t*>(user_data);
+		auto&		widget	 = *controls.owner;
+		auto&		panel	 = *widget._panel;
+		const u32	index	 = controls.index;
+
+		router.set_focus(panel._root, false);
+		panel.finish_edit();
+
+		if (!editor_command_animation_library_edit_t::begin(panel))
+			return;
+
+		animation_library_layer_def_t& layer = panel._library.layers[widget._layer];
+
+		layer.states.erase(layer.states.begin() + index);
+		widget._state_ui[widget._layer].erase(widget._state_ui[widget._layer].begin() + index);
+
+		if (layer.default_active_state == index)
+			layer.default_active_state = UINT32_MAX;
+		else if (layer.default_active_state != UINT32_MAX && layer.default_active_state > index)
+			--layer.default_active_state;
+
+		if (panel._selected_state == index)
+		{
+			panel._selected_state = UINT32_MAX;
+			panel._selected_clip  = UINT32_MAX;
+		}
+		else if (panel._selected_state != UINT32_MAX && panel._selected_state > index)
+			--panel._selected_state;
+
+		if (panel._preview_layer == widget._layer)
+		{
+			if (panel._preview_state == index)
+				panel._preview_state = UINT32_MAX;
+			else if (panel._preview_state != UINT32_MAX && panel._preview_state > index)
+				--panel._preview_state;
+		}
+
+		editor_command_animation_library_edit_t::submit(panel, "Remove Animation State");
+		panel._refresh_states = true;
+	}
+
+	void editor_widget_animation_library_states_t::on_clip_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		const auto& clip		= *static_cast<clip_controls_t*>(user_data);
+		auto&		widget		= *clip.state->owner;
+		auto&		panel		= *widget._panel;
+		const u32	index		= clip.index;
+		const u32	state_index = clip.state->index;
+
+		router.set_focus(panel._root, false);
+		panel.finish_edit();
+
+		if (!editor_command_animation_library_edit_t::begin(panel))
+			return;
+
+		animation_library_state_def_t& state	= panel._library.layers[widget._layer].states[state_index];
+		state_ui_t&					   state_ui = widget._state_ui[widget._layer][state_index];
+
+		for (u32 i = index; i + 1 < state.clip_count; ++i)
+		{
+			state.clips[i]			  = state.clips[i + 1];
+			state_ui.clip_expanded[i] = state_ui.clip_expanded[i + 1];
+		}
+
+		--state.clip_count;
+		state.clips[state.clip_count]			 = {};
+		state_ui.clip_expanded[state.clip_count] = false;
+
+		if (panel._selected_state == state_index)
+		{
+			if (panel._selected_clip == index)
+				panel._selected_clip = UINT32_MAX;
+			else if (panel._selected_clip != UINT32_MAX && panel._selected_clip > index)
+				--panel._selected_clip;
+		}
+
+		editor_command_animation_library_edit_t::submit(panel, "Remove Animation Clip");
+		panel._refresh_states = true;
+	}
+
 	void editor_widget_animation_library_states_t::on_states_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
 	{
 		if (button != ui::mouse_button_e::left)
@@ -723,8 +887,12 @@ namespace sfg
 			layer.states.resize(0);
 			widget._state_ui[widget._layer].resize(0);
 			layer.default_active_state = UINT32_MAX;
-			panel._selected_state	   = UINT32_MAX;
-			panel._selected_clip	   = UINT32_MAX;
+
+			if (panel._preview_layer == widget._layer)
+				panel._preview_state = UINT32_MAX;
+
+			panel._selected_state = UINT32_MAX;
+			panel._selected_clip  = UINT32_MAX;
 		}
 
 		editor_command_animation_library_edit_t::submit(panel, adding ? "Add Animation State" : "Clear Animation States");

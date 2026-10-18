@@ -28,6 +28,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/common/hashing.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/data/istream.hpp>
+#include <sfg/data/frame_vector.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
@@ -45,8 +46,84 @@ namespace sfg
 			return false;
 		}
 
+		istream_t stream(file_stream.get_raw(), file_stream.get_size());
+
+		return load_definition(entry, ctx, stream);
+	}
+
+	bool animation_library_loader_t::runtime_load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
+	{
+		if (!load_definition(entry, ctx, stream))
+			return false;
+
+		resource_manager_t&					  resources			  = ctx.resource_manager;
+		chunk_allocator_t&					  memory			  = resources.get_memory();
+		const animation_library_runtime_t&	  runtime			  = *memory.get<animation_library_runtime_t>(entry.runtime);
+		frame_vector_t<resource_dependency_t> dependencies		  = {};
+		size_t								  dependency_capacity = 1;
+
+		for (u32 i = 0; i < runtime.layer_count; ++i)
+		{
+			const animation_library_layer_runtime_t& layer	= runtime.layers[i];
+			const animation_library_state_runtime_t* states = layer.state_count == 0 ? nullptr : memory.get<animation_library_state_runtime_t>(layer.states);
+
+			for (u32 j = 0; j < layer.state_count; ++j)
+				dependency_capacity += states[j].clip_count;
+		}
+
+		dependencies.reserve(dependency_capacity);
+
+		if (runtime.skeleton != NULL_RESOURCE_HANDLE)
+			dependencies.push_back({.handle = runtime.skeleton, .type = resource_type_e::skeleton});
+
+		for (u32 i = 0; i < runtime.layer_count; ++i)
+		{
+			const animation_library_layer_runtime_t& layer	= runtime.layers[i];
+			const animation_library_state_runtime_t* states = layer.state_count == 0 ? nullptr : memory.get<animation_library_state_runtime_t>(layer.states);
+
+			for (u32 j = 0; j < layer.state_count; ++j)
+			{
+				for (u32 k = 0; k < states[j].clip_count; ++k)
+				{
+					const resource_handle_t clip = states[j].clips[k].animation_clip;
+
+					if (clip != NULL_RESOURCE_HANDLE && std::find_if(dependencies.begin(), dependencies.end(), [clip](const resource_dependency_t& dependency) { return dependency.handle == clip; }) == dependencies.end())
+						dependencies.push_back({.handle = clip, .type = resource_type_e::animation});
+				}
+			}
+		}
+
+		if (!dependencies.empty())
+		{
+			entry.dependencies = memory.allocate<resource_dependency_t>(dependencies.size());
+
+			for (const resource_dependency_t& dependency : dependencies)
+			{
+				if (resources.load_resource(dependency.handle, dependency.type) == resource_state_e::failed)
+				{
+					SFG_ERR("failed loading dependency {0} for preview animation library {1}", dependency.handle, entry.hash);
+
+					const resource_dependency_t* loaded = memory.get<resource_dependency_t>(entry.dependencies);
+
+					for (u32 i = 0; i < entry.dependency_count; ++i)
+						resources.unload_resource(loaded[i].handle);
+
+					entry.dependency_count = 0;
+					unload(entry, ctx);
+
+					return false;
+				}
+
+				memory.get<resource_dependency_t>(entry.dependencies)[entry.dependency_count++] = dependency;
+			}
+		}
+
+		return true;
+	}
+
+	bool animation_library_loader_t::load_definition(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
+	{
 		animation_library_def_t def = {};
-		istream_t				stream(file_stream.get_raw(), file_stream.get_size());
 
 		if (!reflection_registry_t::get().type_from_stream(type_id_t<animation_library_def_t>::value, &def, nullptr, stream))
 		{
@@ -170,6 +247,8 @@ namespace sfg
 					// delaunay triangulation for barycentric
 					vector_t<double> triangle_points = {};
 
+					triangle_points.reserve(clip_count * 2);
+
 					for (u32 clip = 0; clip < clip_count; ++clip)
 					{
 						const animation_library_clip_def_t& clip_def = source_state.clips[clip];
@@ -270,6 +349,7 @@ namespace sfg
 		.wire_magic			 = animation_library_loader_t::WIRE_MAGIC,
 		.wire_version		 = animation_library_loader_t::WIRE_VERSION,
 		.load				 = animation_library_loader_t::load,
+		.runtime_load		 = animation_library_loader_t::runtime_load,
 		.unload				 = animation_library_loader_t::unload,
 	};
 }

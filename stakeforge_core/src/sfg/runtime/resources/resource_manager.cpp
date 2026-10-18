@@ -253,6 +253,51 @@ namespace sfg
 		return state;
 	}
 
+	resource_state_e resource_manager_t::reload_resource_runtime(sid_t hash, istream_t& stream)
+	{
+		SFG_ASSERT(is_main_thread());
+
+		const resource_entry_t* existing = find_entry(hash);
+
+		SFG_ASSERT(existing != nullptr && existing->state == resource_state_e::ready);
+
+		const resource_type_e		type = existing->type;
+		const resource_type_desc_t* desc = find_resource_type_desc(type);
+
+		SFG_ASSERT(desc != nullptr && desc->runtime_load != nullptr);
+
+		resource_entry_t replacement{
+			.hash		= hash,
+			.runtime	= _memory.allocate_bytes(desc->runtime_size, desc->runtime_alignment),
+			.internals	= _memory.allocate_bytes(desc->internals_size, desc->internals_alignment),
+			.debug_name = _memory.allocate_text("runtime_resource"),
+			.type		= type,
+		};
+		resource_context_t ctx{*this};
+
+		if (!desc->runtime_load(replacement, ctx, stream))
+		{
+			SFG_ERR("failed reloading runtime resource: {0}", hash);
+			free_entry(replacement);
+
+			return resource_state_e::failed;
+		}
+
+		resource_entry_t& entry	   = _entries.find(hash)->second;
+		resource_entry_t  previous = entry;
+
+		replacement.ref_count = previous.ref_count;
+		replacement.state	  = resource_state_e::ready;
+		entry				  = replacement;
+
+		unload_dependencies(previous);
+		unload_entry(previous);
+		_generation++;
+		notify_reload(hash, type);
+
+		return resource_state_e::ready;
+	}
+
 	resource_reload_listener_handle_t resource_manager_t::add_reload_listener(resource_reload_listener_fn fn, void* user_data)
 	{
 		SFG_ASSERT(is_main_thread());

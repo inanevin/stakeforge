@@ -141,6 +141,28 @@ namespace sfg
 			settings_in.anchor_y		 = ui::anchor_e::center;
 		}
 
+		if (config.remove_button)
+		{
+			_remove_button = editor_icon_widgets_t::add_naked_icon_button(ui, _header, ICON_CROSS, theme.item_height * 0.75f, theme.color_text1, theme.color_accent1, theme.color_accent1_dim, theme.color_text_disabled);
+
+			ui::layout_in_t& remove_in = tree.in(_remove_button);
+
+			remove_in.pos_mode_x								   = ui::pos_mode_e::relative_in_parent;
+			remove_in.pos_mode_y								   = ui::pos_mode_e::relative_in_parent;
+			remove_in.pos_value									   = {1.0f, 0.5f};
+			remove_in.anchor_x									   = ui::anchor_e::end;
+			remove_in.anchor_y									   = ui::anchor_e::center;
+			tree.draw_order(_remove_button)						   = tree.draw_order_const(_header) + 1;
+			tree.draw_order(tree.node(_remove_button).first_child) = tree.draw_order_const(_remove_button);
+
+			if (config.settings_button)
+			{
+				tree.detach(_settings_button);
+				tree.attach(_remove_button, _settings_button);
+				tree.in(_settings_button).pos_value.x = 0.0f;
+			}
+		}
+
 		_body = ui.allocate_widget();
 		ui.set_widget_debug_name(_body, "fold_body");
 		tree.attach(_root, _body);
@@ -169,6 +191,7 @@ namespace sfg
 		_label			 = NULL_WIDGET;
 		_body			 = NULL_WIDGET;
 		_settings_button = NULL_WIDGET;
+		_remove_button	 = NULL_WIDGET;
 		_folded			 = false;
 	}
 

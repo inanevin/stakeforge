@@ -54,6 +54,7 @@ namespace sfg
 		resource_state_e				  load_resource(sid_t hash, resource_type_e type);
 		resource_state_e				  load_resource_runtime(sid_t hash, resource_type_e type, istream_t& stream);
 		resource_state_e				  reload_resource(sid_t hash);
+		resource_state_e				  reload_resource_runtime(sid_t hash, istream_t& stream);
 		void							  unload_resource(sid_t hash, bool force = false);
 		resource_reload_listener_handle_t add_reload_listener(resource_reload_listener_fn fn, void* user_data);
 		void							  remove_reload_listener(resource_reload_listener_handle_t handle);

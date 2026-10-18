@@ -37,6 +37,7 @@ namespace sfg
 {
 	class editor_panel_animation_library_t;
 	class editor_input_field_t;
+	struct editor_widget_callbacks_t;
 
 	class editor_widget_animation_library_states_t final
 	{
@@ -74,7 +75,7 @@ namespace sfg
 		void			clear_controls();
 		void			create_state(u32 index);
 		void			create_clip(state_controls_t& controls, u32 index);
-		ui::widget_id_t init_number(ui::widget_id_t parent, editor_input_field_t& field, const char* label, f32& value, f32 minimum, f32 maximum);
+		ui::widget_id_t init_number(ui::widget_id_t parent, editor_input_field_t& field, const char* label, f32& value, f32 minimum, f32 maximum, const editor_widget_callbacks_t* callbacks = nullptr);
 		void			init_preview(state_controls_t& controls);
 
 		static void on_edit_begin(void* user_data);
@@ -85,6 +86,10 @@ namespace sfg
 		static void on_clip_fold_changed(bool folded, void* user_data);
 		static void on_clip_pressed(void* user_data);
 		static void on_clip_animation_edited(void* user_data);
+		static void on_state_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_clip_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_preview_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_preview_blend_edited(void* user_data);
 		static void on_states_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_clips_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_diamond_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);

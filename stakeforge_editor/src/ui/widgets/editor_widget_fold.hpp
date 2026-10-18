@@ -40,6 +40,7 @@ namespace sfg
 		void (*on_fold_changed)(bool folded, void* user_data) = nullptr;
 		void* user_data										  = nullptr;
 		bool  folded										  = false;
+		bool  remove_button									  = false;
 		bool  settings_button								  = false;
 		bool  background_frame								  = false;
 		bool  header_frame									  = true;
@@ -73,6 +74,11 @@ namespace sfg
 			return _settings_button;
 		}
 
+		inline ui::widget_id_t get_remove_button() const
+		{
+			return _remove_button;
+		}
+
 		inline bool is_folded() const
 		{
 			return _folded;
@@ -95,6 +101,7 @@ namespace sfg
 		ui::widget_id_t _label								   = NULL_WIDGET;
 		ui::widget_id_t _body								   = NULL_WIDGET;
 		ui::widget_id_t _settings_button					   = NULL_WIDGET;
+		ui::widget_id_t _remove_button						   = NULL_WIDGET;
 		bool			_folded								   = false;
 	};
 }

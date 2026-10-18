@@ -39,6 +39,7 @@ namespace sfg
 	class editor_widget_animation_library_states_t;
 	struct editor_dropdown_item_t;
 	struct editor_asset_deletion_listener_tag_t;
+	struct animator_state_tag_t;
 
 	class editor_panel_animation_library_t final : public editor_panel_t
 	{
@@ -86,6 +87,7 @@ namespace sfg
 
 		void create_preview_world();
 		void refresh_scene();
+		void clear_preview_scene();
 		void refresh_skeleton_reference();
 		void refresh_skeleton_overlay();
 		void apply_pane_splits();
@@ -125,9 +127,17 @@ namespace sfg
 		animation_library_def_t									 _library													 = {};
 		resource_handle_t										 _skeleton_reference_value									 = NULL_RESOURCE_HANDLE;
 		sid_t													 _library_guid												 = NULL_SID;
+		vec2f_t													 _preview_blend												 = vec2f_t::zero;
+		pool_handle_t<u32, animator_state_tag_t>				 _preview_state_handle										 = {};
+		resource_handle_t										 _preview_library											 = NULL_RESOURCE_HANDLE;
+		resource_handle_t										 _preview_skeleton											 = NULL_RESOURCE_HANDLE;
 		editor_world_handle_t									 _world														 = {};
 		pool_handle_t<u32, editor_asset_deletion_listener_tag_t> _asset_deletion_listener									 = {};
 		chunk_handle32_t										 _edit_previous_stream										 = {};
+		entity_id_t												 _display_entity											 = NULL_ENTITY_ID;
+		entity_id_t												 _environment_entity										 = NULL_ENTITY_ID;
+		u32														 _preview_layer												 = UINT32_MAX;
+		u32														 _preview_state												 = UINT32_MAX;
 		u32														 _edit_previous_layer										 = UINT32_MAX;
 		u32														 _selected_layer											 = UINT32_MAX;
 		u32														 _selected_state											 = UINT32_MAX;

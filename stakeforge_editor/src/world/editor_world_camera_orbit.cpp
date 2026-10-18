@@ -32,6 +32,7 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 #define EDITOR_WORLD_CAMERA_ORBIT_MOUSE_SENSITIVITY 0.2f
+#define EDITOR_WORLD_CAMERA_ORBIT_PAN_SENSITIVITY	0.002f
 #define EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE		0.1f
 #define EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE		1000.0f
 #define EDITOR_WORLD_CAMERA_ORBIT_WHEEL_STEP		0.15f
@@ -88,10 +89,27 @@ namespace sfg
 			_mouse_delta	   = vec2f_t::zero;
 			_distance_target   = _distance;
 			_distance_velocity = 0.0f;
+
 			return;
 		}
 
-		_mouse_delta += input.mouse_delta;
+		if (input.reset_target)
+		{
+			_target		 = vec3f_t::zero;
+			_mouse_delta = vec2f_t::zero;
+
+			return;
+		}
+
+		if (input.pan)
+		{
+			const quat_t rotation  = world.get_entity_rot_local(_camera_entity);
+			const f32	 pan_scale = _distance * EDITOR_WORLD_CAMERA_ORBIT_PAN_SENSITIVITY;
+
+			_target += (rotation.get_up() * input.mouse_delta.y - rotation.get_right() * input.mouse_delta.x) * pan_scale;
+		}
+		else
+			_mouse_delta += input.mouse_delta;
 
 		if (input.wheel_delta != 0.0f)
 			_distance_target = math::clamp(_distance_target - input.wheel_delta * _distance_target * EDITOR_WORLD_CAMERA_ORBIT_WHEEL_STEP, EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE, EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE);

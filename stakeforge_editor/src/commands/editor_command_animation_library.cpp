@@ -180,6 +180,7 @@ namespace sfg
 		}
 
 		panel._edit_previous_stream = {};
+		panel.refresh_scene();
 
 		return true;
 	}

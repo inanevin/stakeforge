@@ -47,6 +47,8 @@ namespace sfg
 		f32		wheel_delta		= 0.0f;
 		bool	set_move_speed	= false;
 		bool	reset			= false;
+		bool	pan				= false;
+		bool	reset_target	= false;
 	};
 
 	class editor_world_camera_t

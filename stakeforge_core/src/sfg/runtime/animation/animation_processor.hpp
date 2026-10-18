@@ -31,6 +31,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/runtime/resources/common_resources.hpp>
+#include <sfg/runtime/resources/resource_reload_listener.hpp>
 #include <sfg/runtime/animation/common_animation.hpp>
 
 namespace sfg
@@ -136,9 +137,27 @@ namespace sfg
 		void					switch_layer_state(animator_library_handle_t library, u32 layer_index, animator_state_handle_t state, f32 transition_duration);
 		animator_state_handle_t find_state_handle(animator_library_handle_t library, sid_t name_hash, u32 layer = UINT32_MAX);
 
+		inline void set_state_blend_value(animator_state_handle_t state, const vec2f_t& value)
+		{
+			_states.get(state).blend_position_value = value;
+		}
+
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
+
+		inline animator_state_handle_t get_state_handle(animator_library_handle_t library, u32 layer_index, u32 state_index) const
+		{
+			const animator_library_t& animation = _libraries.get(library);
+
+			SFG_ASSERT(layer_index < animation.layer_count);
+
+			const animator_layer_t& layer = animation.layers[layer_index];
+
+			SFG_ASSERT(state_index < layer.state_count);
+
+			return _aux.get<animator_state_handle_t>(layer.state_handles)[state_index];
+		}
 
 		inline span_t<const mat4x3_t> get_skinning_matrices(chunk_handle32_t handle) const
 		{
@@ -174,18 +193,19 @@ namespace sfg
 			f32						 blend;
 		};
 
-		void alloc_for_entity(entity_id_t id);
-		void dealloc_for_entity(entity_id_t id);
-		void alloc_for_skinned_renderer(entity_id_t id);
-		void dealloc_for_skinned_renderer(entity_id_t id);
-		void reset_skinned_renderer_pose(component_system_skinned_mesh_renderer_t& renderer, const skeleton_runtime_t& skeleton);
-		void tick_players(f32 dt);
-		void alloc_for_player(entity_id_t id);
-		void dealloc_for_player(entity_id_t id);
-		void process_state(const process_state_params_t& params);
-		void reset_state(animator_state_t& state);
-		u32	 get_count_for_lib_alloc(u32 skeleton_joint_count);
-		void blend_decomposed(const blend_decomposed_params_t& params);
+		void		alloc_for_entity(entity_id_t id);
+		static void on_resource_reload(resource_manager_t& resource_manager, sid_t resource_id, resource_type_e resource_type, void* user_data);
+		void		dealloc_for_entity(entity_id_t id);
+		void		alloc_for_skinned_renderer(entity_id_t id);
+		void		dealloc_for_skinned_renderer(entity_id_t id);
+		void		reset_skinned_renderer_pose(component_system_skinned_mesh_renderer_t& renderer, const skeleton_runtime_t& skeleton);
+		void		tick_players(f32 dt);
+		void		alloc_for_player(entity_id_t id);
+		void		dealloc_for_player(entity_id_t id);
+		void		process_state(const process_state_params_t& params);
+		void		reset_state(animator_state_t& state);
+		u32			get_count_for_lib_alloc(u32 skeleton_joint_count);
+		void		blend_decomposed(const blend_decomposed_params_t& params);
 
 	private:
 		world_t*															_world			   = nullptr;
@@ -194,6 +214,7 @@ namespace sfg
 		chunk_allocator_t													_decomposition_aux = {};
 		dynamic_gen_pool_t<animator_state_t, u32, animator_state_tag_t>		_states;
 		dynamic_gen_pool_t<animator_library_t, u32, animator_library_tag_t> _libraries;
-		u32																	_frame_counter = 0;
+		resource_reload_listener_handle_t									_resource_reload_listener = {};
+		u32																	_frame_counter			  = 0;
 	};
 }
