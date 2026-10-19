@@ -34,6 +34,8 @@ namespace sfg
 		f32 snap_translate	  = 0.0f;
 		f32 snap_rotate		  = 0.0f;
 		f32 snap_scale		  = 0.0f;
+
+		bool operator==(const editor_world_view_settings_t&) const = default;
 	};
 
 	SFG_DEFINE_TYPE_ID(editor_world_view_settings_t);

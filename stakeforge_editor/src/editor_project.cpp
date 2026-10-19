@@ -179,6 +179,15 @@ namespace sfg
 			.fields =
 				{
 					{.name = "last_world_guid", .display_name = "Last World GUID", .offset = offsetof(editor_project_settings_data_t, last_world_guid), .size = sizeof(sid_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u64},
+					{
+						.name		  = "world_view_settings",
+						.display_name = "World View Settings",
+						.sub_type_id  = type_id_t<editor_world_view_settings_t>::value,
+						.offset		  = offsetof(editor_project_settings_data_t, world_view_settings),
+						.size		  = sizeof(editor_world_view_settings_t),
+						.flags		  = reflected_field_flag_no_ui,
+						.type		  = reflected_value_type_e::object,
+					},
 					{.name		   = "world_view_snapping_enabled",
 					 .display_name = "World View Snapping",
 					 .offset	   = offsetof(editor_project_settings_data_t, world_view_snapping_enabled),

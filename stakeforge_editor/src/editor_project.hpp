@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include "world/editor_world_view_settings.hpp"
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/common/type_id.hpp>
 #include <sfg/data/string.hpp>
@@ -46,13 +48,14 @@ namespace sfg
 
 	struct editor_project_settings_data_t
 	{
-		project_settings_t project_settings					= {};
-		sid_t			   last_world_guid					= NULL_SID;
-		bool			   world_view_snapping_enabled		= false;
-		bool			   world_view_grid_enabled			= false;
-		bool			   world_view_aabb_enabled			= false;
-		bool			   world_view_physics_debug_enabled = false;
-		bool			   world_view_perf_metrics_enabled	= false;
+		project_settings_t			 project_settings				  = {};
+		sid_t						 last_world_guid				  = NULL_SID;
+		editor_world_view_settings_t world_view_settings			  = {};
+		bool						 world_view_snapping_enabled	  = false;
+		bool						 world_view_grid_enabled		  = false;
+		bool						 world_view_aabb_enabled		  = false;
+		bool						 world_view_physics_debug_enabled = false;
+		bool						 world_view_perf_metrics_enabled  = false;
 
 		bool operator==(const editor_project_settings_data_t&) const = default;
 	};

@@ -224,10 +224,11 @@ namespace sfg
 			if (entity.entity_id == editor_camera_entity)
 				continue;
 
-			const vec3f_t  center		 = (renderable.aabb.bounds_min + renderable.aabb.bounds_max) * 0.5f;
-			const vec3f_t  dimensions	 = renderable.aabb.bounds_half_extent * 2.0f;
-			const mat4x3_t box_transform = entity.transform * mat4x3_t::translation(center);
-			const vec3f_t  text_position = entity.transform * vec3f_t(center.x, renderable.aabb.bounds_max.y, center.z);
+			const mat4x3_t& bounds_transform = (renderable.flags & world_renderable_flag_world_space_aabb) != 0 ? mat4x3_t::identity : entity.transform;
+			const vec3f_t	center			 = (renderable.aabb.bounds_min + renderable.aabb.bounds_max) * 0.5f;
+			const vec3f_t	dimensions		 = renderable.aabb.bounds_half_extent * 2.0f;
+			const mat4x3_t	box_transform	 = bounds_transform * mat4x3_t::translation(center);
+			const vec3f_t	text_position	 = bounds_transform * vec3f_t(center.x, renderable.aabb.bounds_max.y, center.z);
 
 			debug_draw.draw_box(box_transform, renderable.aabb.bounds_half_extent, bounds_color, 2.0f, debug_draw_depth_e::always_visible);
 

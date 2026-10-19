@@ -29,6 +29,7 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	enum class editor_transform_control_type_e : u8;
+	enum class editor_world_view_e : u8;
 
 	class editor_widget_world_view_toolbars_t final
 	{
@@ -71,11 +72,20 @@ namespace sfg
 			editor_transform_control_type_e		 type	 = {};
 		};
 
+		struct shading_button_data_t
+		{
+			editor_widget_world_view_toolbars_t* toolbar = nullptr;
+			editor_world_view_e					 view	 = {};
+		};
+
 		void save_project_settings();
 		void refresh_perf_metrics();
 
 		static void on_transform_control_toggled(bool toggled, void* user_data);
+		static void on_shading_toggled(bool toggled, void* user_data);
+		static void on_shading_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_settings_pressed(bool toggled, void* user_data);
+		static void on_settings_edit_submitted(void* user_data);
 		static void on_settings_popup_install(ui::ui_context& ui, ui::widget_id_t parent, void* user_data);
 		static void on_settings_popup_uninstall(ui::ui_context& ui, void* user_data);
 		static void on_locality_toggled(bool toggled, void* user_data);
@@ -90,6 +100,7 @@ namespace sfg
 	private:
 		editor_popup_world_view_settings_t _settings_popup;
 		editor_icon_button_t			   _transform_buttons[3];
+		editor_icon_button_t			   _shading_buttons[2];
 		editor_icon_button_t			   _settings_button;
 		editor_icon_button_t			   _perf_metrics_button;
 		editor_icon_button_t			   _locality_button;
@@ -99,6 +110,7 @@ namespace sfg
 		editor_icon_button_t			   _physics_debug_button;
 		editor_icon_button_t			   _shoot_rays_button;
 		transform_button_data_t			   _transform_button_data[3];
+		shading_button_data_t			   _shading_button_data[2];
 		ui::ui_context*					   _ui					   = nullptr;
 		editor_world_handle_t			   _edit_world			   = {};
 		ui::widget_id_t					   _root				   = NULL_WIDGET;
@@ -108,12 +120,14 @@ namespace sfg
 		ui::widget_id_t					   _top_right_row		   = NULL_WIDGET;
 		ui::widget_id_t					   _global_frame		   = NULL_WIDGET;
 		ui::widget_id_t					   _controls_frame		   = NULL_WIDGET;
+		ui::widget_id_t					   _shading_frame		   = NULL_WIDGET;
 		ui::widget_id_t					   _view_frame			   = NULL_WIDGET;
 		ui::widget_id_t					   _physics_frame		   = NULL_WIDGET;
 		ui::widget_id_t					   _perf_metrics_frame	   = NULL_WIDGET;
 		ui::widget_id_t					   _perf_metrics_labels[5] = {};
 		ui::widget_id_t					   _global_spacer		   = NULL_WIDGET;
 		ui::widget_id_t					   _controls_spacer		   = NULL_WIDGET;
+		ui::widget_id_t					   _shading_spacer		   = NULL_WIDGET;
 		ui::widget_id_t					   _view_spacer			   = NULL_WIDGET;
 		editor_world_edit_type_e		   _edit_type			   = editor_world_edit_type_e::full_control;
 		u8								   _perf_metrics_ticks	   = 0;

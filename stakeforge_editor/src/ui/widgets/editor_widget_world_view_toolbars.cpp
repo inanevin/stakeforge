@@ -43,6 +43,7 @@ namespace sfg
 	static void set_icon_button_parent_relative_height(ui::layout_tree_t& tree, const editor_icon_button_t& button)
 	{
 		ui::layout_in_t& in = tree.in(button.get_root());
+		in.size_mode_x		= ui::axis_mode_e::fixed;
 		in.size_mode_y		= ui::axis_mode_e::parent_relative;
 		in.size_value.y		= 1.0f;
 	}
@@ -159,10 +160,10 @@ namespace sfg
 		paint.set_rect(_controls_frame, buttons_frame_rect);
 
 		editor_icon_button_config_t button_config = {};
-		button_config.frame_color				  = {};
+		button_config.frame_color				  = vec4f_t::zero;
 		button_config.toggled_frame_color		  = theme.color_accent1_dim;
-		button_config.outline_color				  = {};
-		button_config.toggled_outline_color		  = {};
+		button_config.outline_color				  = vec4f_t::zero;
+		button_config.toggled_outline_color		  = vec4f_t::zero;
 		button_config.hover_color				  = theme.color_panel_light1;
 		button_config.toggled_hover_color		  = {theme.color_accent1_dim.x, theme.color_accent1_dim.y, theme.color_accent1_dim.z, 0.1f};
 		button_config.press_color				  = theme.color_frame_light;
@@ -233,6 +234,52 @@ namespace sfg
 		set_icon_button_parent_relative_height(tree, _snapping_button);
 
 		_controls_spacer = editor_misc_widgets_t::add_spacer(ui, _top_left_row, {theme.item_height, theme.item_height});
+
+		_shading_frame = ui.allocate_widget();
+		ui.set_widget_debug_name(_shading_frame, "world_view_toolbar_shading_frame");
+		tree.attach(_top_left_row, _shading_frame);
+
+		ui::layout_in_t& shading_frame_in = tree.in(_shading_frame);
+		shading_frame_in.pos_mode_x		  = ui::pos_mode_e::flow;
+		shading_frame_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
+		shading_frame_in.pos_value.y	  = 0.5f;
+		shading_frame_in.anchor_y		  = ui::anchor_e::center;
+		shading_frame_in.size_mode_x	  = ui::axis_mode_e::sum_children;
+		shading_frame_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
+		shading_frame_in.size_value.y	  = 1.0f;
+		shading_frame_in.flow			  = ui::flow_e::row;
+		shading_frame_in.child_spacing	  = 0.0f;
+		paint.set_rect(_shading_frame, buttons_frame_rect);
+		ui.set_pre_layout_tick(_shading_frame, on_shading_tick, this);
+
+		const struct
+		{
+			const char*			icon;
+			const char*			tooltip;
+			editor_world_view_e view;
+		} shading_button_specs[2] = {
+			{ICON_LIT, "Lit", editor_world_view_e::final},
+			{ICON_UNLIT, "Unlit (Albedo)", editor_world_view_e::gbuffer_albedo},
+		};
+
+		for (size_t i = 0; i < std::size(_shading_buttons); ++i)
+		{
+			_shading_button_data[i]	   = {.toolbar = this, .view = shading_button_specs[i].view};
+			button_config.icon		   = shading_button_specs[i].icon;
+			button_config.toggled_icon = shading_button_specs[i].icon;
+			button_config.tooltip	   = shading_button_specs[i].tooltip;
+			button_config.toggled	   = shading_button_specs[i].view == editor_world_view_e::final;
+			button_config.user_data	   = &_shading_button_data[i];
+			button_config.on_clicked   = on_shading_toggled;
+			_shading_buttons[i].init(ui, _shading_frame, button_config);
+			set_icon_button_parent_relative_height(tree, _shading_buttons[i]);
+
+			if (i + 1 < std::size(_shading_buttons))
+				editor_dividers_t::add_divider_ver(ui, _shading_frame, theme.border_thickness * 0.5f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
+		}
+
+		_shading_spacer			= editor_misc_widgets_t::add_spacer(ui, _top_left_row, {theme.item_height, theme.item_height});
+		button_config.user_data = this;
 
 		_view_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(_view_frame, "world_view_toolbar_view_frame");
@@ -383,6 +430,9 @@ namespace sfg
 		for (editor_icon_button_t& button : _transform_buttons)
 			button.uninit();
 
+		for (editor_icon_button_t& button : _shading_buttons)
+			button.uninit();
+
 		_perf_metrics_button.uninit();
 		_settings_button.uninit();
 
@@ -397,11 +447,13 @@ namespace sfg
 		_top_right_row		= NULL_WIDGET;
 		_global_frame		= NULL_WIDGET;
 		_controls_frame		= NULL_WIDGET;
+		_shading_frame		= NULL_WIDGET;
 		_view_frame			= NULL_WIDGET;
 		_physics_frame		= NULL_WIDGET;
 		_perf_metrics_frame = NULL_WIDGET;
 		_global_spacer		= NULL_WIDGET;
 		_controls_spacer	= NULL_WIDGET;
+		_shading_spacer		= NULL_WIDGET;
 		_view_spacer		= NULL_WIDGET;
 		_edit_type			= editor_world_edit_type_e::full_control;
 		_perf_metrics_ticks = 0;
@@ -478,6 +530,9 @@ namespace sfg
 		for (size_t i = 0; i < 3; ++i)
 			_transform_buttons[i].set_toggled(_transform_button_data[i].type == context.get_transform_control_type());
 
+		for (size_t i = 0; i < std::size(_shading_buttons); ++i)
+			_shading_buttons[i].set_toggled(_shading_button_data[i].view == context.get_world_view());
+
 		_locality_button.set_toggled(context.get_transform_locality() == editor_transform_locality_e::world);
 		_snapping_button.set_toggled(context.get_transform_snapping() == editor_transform_snapping_e::default_);
 
@@ -497,6 +552,9 @@ namespace sfg
 		project.settings.world_view_grid_enabled		  = context.is_grid_enabled();
 		project.settings.world_view_aabb_enabled		  = context.is_bounding_boxes_enabled();
 		project.settings.world_view_physics_debug_enabled = context.is_physics_debug_enabled();
+
+		if (_edit_world == editor_world_controller_t::get().get_main_world_handle())
+			project.settings.world_view_settings = context.get_world_view_settings();
 
 		if (!project.save(project._runtime.path.c_str()))
 			SFG_ERR("failed to save world view settings");
@@ -528,6 +586,32 @@ namespace sfg
 		data.toolbar->set_transform_control_type(data.type);
 	}
 
+	void editor_widget_world_view_toolbars_t::on_shading_toggled(bool toggled, void* user_data)
+	{
+		shading_button_data_t& data = *static_cast<shading_button_data_t*>(user_data);
+		editor_world_controller_t::get().get_editor_world(data.toolbar->_edit_world)->get_edit_context().set_world_view(data.view);
+		data.toolbar->refresh();
+	}
+
+	void editor_widget_world_view_toolbars_t::on_shading_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
+	{
+		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
+
+		if (toolbar._edit_world.is_null())
+			return;
+
+		const editor_world_view_e view = editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().get_world_view();
+
+		for (size_t i = 0; i < std::size(toolbar._shading_buttons); ++i)
+		{
+			if (toolbar._shading_buttons[i].is_toggled() != (toolbar._shading_button_data[i].view == view))
+			{
+				toolbar.refresh();
+				break;
+			}
+		}
+	}
+
 	void editor_widget_world_view_toolbars_t::on_settings_pressed(bool toggled, void* user_data)
 	{
 		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
@@ -542,11 +626,31 @@ namespace sfg
 			});
 	}
 
+	void editor_widget_world_view_toolbars_t::on_settings_edit_submitted(void* user_data)
+	{
+		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
+
+		if (toolbar._edit_world != editor_world_controller_t::get().get_main_world_handle())
+			return;
+
+		toolbar.save_project_settings();
+	}
+
 	void editor_widget_world_view_toolbars_t::on_settings_popup_install(ui::ui_context& ui, ui::widget_id_t parent, void* user_data)
 	{
 		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
 		editor_world_edit_context_t&		 context = editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context();
-		toolbar._settings_popup.init(ui, parent, {.settings = &context.get_world_view_settings()});
+
+		toolbar._settings_popup.init(ui,
+									 parent,
+									 {
+										 .callbacks =
+											 {
+												 .edit_submitted = on_settings_edit_submitted,
+												 .user_data		 = &toolbar,
+											 },
+										 .settings = &context.get_world_view_settings(),
+									 });
 	}
 
 	void editor_widget_world_view_toolbars_t::on_settings_popup_uninstall(ui::ui_context& ui, void* user_data)

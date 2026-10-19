@@ -30,7 +30,8 @@ namespace sfg
 
 	struct editor_popup_world_view_settings_config_t
 	{
-		editor_world_view_settings_t* settings = nullptr;
+		editor_widget_callbacks_t	  callbacks = {};
+		editor_world_view_settings_t* settings	= nullptr;
 	};
 
 	class editor_popup_world_view_settings_t final

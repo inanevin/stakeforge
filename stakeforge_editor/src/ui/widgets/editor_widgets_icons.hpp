@@ -56,6 +56,8 @@ in GAME-LINKING-EXCEPTION.md.
 #define ICON_SPOT			 "\u003A"
 #define ICON_LIGHT_BULB		 "\u003B"
 #define ICON_SUN			 "\u003C"
+#define ICON_LIT			 "\u0040"
+#define ICON_UNLIT			 "\u005F"
 #define ICON_MESH			 "\u003D"
 #define ICON_EXPLOSION		 "\u003E"
 #define ICON_CUBES			 "\u003F"

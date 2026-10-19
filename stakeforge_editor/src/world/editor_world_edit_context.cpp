@@ -21,6 +21,7 @@ in GAME-LINKING-EXCEPTION.md.
 */
 #include "world/editor_world_edit_context.hpp"
 #include "editor_command_system.hpp"
+#include "editor_project.hpp"
 #include "editor_world_controller.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/io/assert.hpp>
@@ -46,6 +47,7 @@ namespace sfg
 
 		_selection_generation = 0;
 		_edit_type			  = edit_type;
+		_world_view_settings  = editor_project_t::get().settings.world_view_settings;
 	}
 
 	void editor_world_edit_context_t::uninit()

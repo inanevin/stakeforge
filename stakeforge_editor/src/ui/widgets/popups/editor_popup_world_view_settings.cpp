@@ -52,8 +52,9 @@ namespace sfg
 		_reflection.init(ui,
 						 _root,
 						 {
-							 .objects = {.data = &settings, .size = 1},
-							 .type_id = type_id_t<editor_world_view_settings_t>::value,
+							 .callbacks = config.callbacks,
+							 .objects	= {.data = &settings, .size = 1},
+							 .type_id	= type_id_t<editor_world_view_settings_t>::value,
 						 });
 	}
 
