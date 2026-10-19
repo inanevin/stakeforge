@@ -30,13 +30,6 @@ namespace sfg
 
 	enum entity_action_menu_command_e : u16
 	{
-		entity_action_menu_create_empty = 1,
-		entity_action_menu_create_folder,
-		entity_action_menu_create_cube,
-		entity_action_menu_create_sphere,
-		entity_action_menu_create_cylinder,
-		entity_action_menu_create_capsule,
-		entity_action_menu_create_plane,
 		entity_action_menu_duplicate,
 		entity_action_menu_hide,
 		entity_action_menu_show_alone,

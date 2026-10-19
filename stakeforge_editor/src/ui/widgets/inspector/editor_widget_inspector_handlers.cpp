@@ -173,26 +173,12 @@ namespace sfg
 		}
 	}
 
-	void editor_widget_inspector_t::on_add_component_clicked(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	void editor_widget_inspector_t::on_add_component_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
-		static_cast<editor_widget_inspector_t*>(user_data)->open_add_component_action_menu(pos);
-	}
-
-	void editor_widget_inspector_t::on_add_component_action_menu_command(u16 command, void* user_data)
-	{
-		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
-		if (command == 0 || command > panel._add_component_types.size())
-			return;
-		if (panel._allow_prefab_blocks && panel.is_selection_prefab_child())
-			return;
-
-		frame_vector_t<entity_id_t> entities;
-		editor_world_handle_t		world = {};
-		if (get_selected_entities_from_panel(panel._edit_world, entities, world))
-			editor_commands_component_t::add(world, entities, panel._add_component_types[command - 1]);
+		static_cast<editor_widget_inspector_t*>(user_data)->open_add_component_modal();
 	}
 
 	void editor_widget_inspector_t::on_component_edit_begin(void* user_data)

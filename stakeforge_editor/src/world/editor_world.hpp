@@ -120,6 +120,7 @@ namespace sfg
 		void						   reset_camera_input();
 		void						   tick_camera(f32 dt_seconds);
 		void						   fit_camera_to_bounds(const aabb_t& bounds);
+		void						   align_camera_to_selection();
 		void						   update_gizmo_hover(vec2f_t relative_position);
 		void						   clear_gizmo_hover();
 		bool						   begin_gizmo_action(vec2f_t relative_position);

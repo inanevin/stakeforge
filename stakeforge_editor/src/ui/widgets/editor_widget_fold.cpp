@@ -113,6 +113,21 @@ namespace sfg
 		_icon				   = editor_icon_widgets_t::add_icon(ui, icon_frame, ICON_DD_DOWN, theme.icon_default_px_size, theme.color_text0);
 		tree.draw_order(_icon) = tree.draw_order_const(_icon) + 1;
 
+		if (config.icon != nullptr)
+		{
+			const ui::widget_id_t custom_icon_frame = ui.allocate_widget();
+
+			ui.set_widget_debug_name(custom_icon_frame, "fold_custom_icon_frame");
+			tree.attach(_header, custom_icon_frame);
+
+			ui::layout_in_t& custom_icon_in = tree.in(custom_icon_frame);
+			custom_icon_in.size_mode_x		= ui::axis_mode_e::fixed;
+			custom_icon_in.size_mode_y		= ui::axis_mode_e::parent_relative;
+			custom_icon_in.size_value		= {theme.item_height, 1.0f};
+
+			editor_icon_widgets_t::add_icon(ui, custom_icon_frame, config.icon, theme.icon_default_px_size, theme.color_text0);
+		}
+
 		_label = ui.allocate_widget();
 		ui.set_widget_debug_name(_label, "fold_label");
 		tree.attach(_header, _label);

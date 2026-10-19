@@ -29,7 +29,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define MODAL_FRAME_WIDTH_X				0.4f
 #define MODAL_TITLE_TEXT_CAPACITY		256u
 #define MODAL_DESCRIPTION_TEXT_CAPACITY 4096u
 
@@ -108,7 +107,7 @@ namespace sfg
 		window_in.anchor_y		   = ui::anchor_e::center;
 		window_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		window_in.size_mode_y	   = ui::axis_mode_e::sum_children;
-		window_in.size_value.x	   = MODAL_FRAME_WIDTH_X;
+		window_in.size_value.x	   = DEFAULT_FRAME_WIDTH_X;
 		window_in.flow			   = ui::flow_e::column;
 		window_in.child_spacing	   = theme.margin_vertical * 2.0f;
 		window_in.child_margins	   = {theme.margin_vertical * 4.0f, theme.margin_horizontal * 3.0f, theme.margin_vertical * 3.0f, theme.margin_horizontal * 3.0f};
@@ -216,6 +215,7 @@ namespace sfg
 	{
 		SFG_ASSERT(button_count <= MAX_BUTTONS);
 
+		_ui->get_input().set_focus_scope(_window);
 		close_content();
 
 		_button_count	 = button_count;
@@ -256,6 +256,9 @@ namespace sfg
 		}
 
 		set_visible(true);
+
+		if (show_buttons && button_count != 0 && !_content_active)
+			_ui->get_input().set_focus(_button_widgets[0]->get_root(), true);
 	}
 
 	void editor_modal_controller_t::set_body_text(const char* text)
@@ -271,10 +274,13 @@ namespace sfg
 	{
 		if (!_visible)
 			return;
+
 		close_content();
 		set_visible(false);
+		_ui->get_input().clear_focus_scope();
 		_button_count	 = 0;
 		_buttons_visible = false;
+
 		for (editor_modal_button_desc_t& button : _buttons)
 			button = {};
 	}
@@ -302,10 +308,11 @@ namespace sfg
 		tree.set_visible(_foreground, visible, false);
 		tree.set_visible(_container, visible && _content_active, false);
 		tree.set_visible(_button_row, visible && _buttons_visible, false);
+
 		for (u32 i = 0; i < MAX_BUTTONS; ++i)
 		{
 			const bool button_visible = visible && _buttons_visible && i < _button_count;
-			tree.set_visible(_button_widgets[i]->get_root(), button_visible, button_visible);
+			tree.set_visible(_button_widgets[i]->get_root(), button_visible);
 		}
 	}
 
@@ -325,7 +332,7 @@ namespace sfg
 			ui::layout_tree_t& tree = _ui->get_tree();
 
 			tree.in(_window).size_mode_x	= ui::axis_mode_e::parent_relative;
-			tree.in(_window).size_value.x	= MODAL_FRAME_WIDTH_X;
+			tree.in(_window).size_value.x	= DEFAULT_FRAME_WIDTH_X;
 			tree.in(_container).size_mode_x = ui::axis_mode_e::max_children;
 		}
 	}

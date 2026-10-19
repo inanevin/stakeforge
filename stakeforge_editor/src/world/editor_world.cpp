@@ -304,6 +304,19 @@ namespace sfg
 			_camera->tick(_world, dt_seconds);
 	}
 
+	void editor_world_t::align_camera_to_selection()
+	{
+		const entity_id_t anchor = _edit_context.get_entity_anchor();
+
+		if (anchor == NULL_ENTITY_ID)
+			return;
+
+		_input_controller.deactivate();
+
+		_world.update_world_transforms(false);
+		_camera->set_transform(_world, _world.get_entity_pos_abs(anchor), _world.get_entity_rot_abs(anchor));
+	}
+
 	void editor_world_t::fit_camera_to_bounds(const aabb_t& bounds)
 	{
 		if (_camera != nullptr)

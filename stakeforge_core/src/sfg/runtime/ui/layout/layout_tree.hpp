@@ -72,6 +72,7 @@ namespace sfg::ui
 		wf_scroll_y		= 1 << 6,
 		wf_custom_solve = 1 << 7,
 		wf_disabled		= 1 << 8,
+		wf_key_click	= 1 << 9,
 	};
 
 	struct layout_in_t

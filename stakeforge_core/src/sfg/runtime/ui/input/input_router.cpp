@@ -43,8 +43,11 @@ namespace sfg::ui
 		_listeners.clear();
 		_focus_order.init(max_widgets);
 		_hit_order.init(max_widgets);
-		_hovered = NULL_WIDGET;
-		_focused = NULL_WIDGET;
+		_hovered			  = NULL_WIDGET;
+		_focused			  = NULL_WIDGET;
+		_focus_scope		  = NULL_WIDGET;
+		_previous_scope_focus = NULL_WIDGET;
+
 		for (u32 i = 0; i < static_cast<u32>(mouse_button_e::count); ++i)
 		{
 			_pressed[i]		  = NULL_WIDGET;
@@ -73,17 +76,28 @@ namespace sfg::ui
 	void input_router_t::clear_widget_state(widget_id_t id)
 	{
 		clear_listener(id);
+
 		auto hit_it = std::find(_hit_order.begin(), _hit_order.end(), id);
+
 		if (hit_it != _hit_order.end())
 			_hit_order.erase(hit_it);
+
 		auto focus_it = std::find(_focus_order.begin(), _focus_order.end(), id);
+
 		if (focus_it != _focus_order.end())
 			_focus_order.erase(focus_it);
 
 		if (_hovered == id)
 			_hovered = NULL_WIDGET;
+
 		if (_focused == id)
 			_focused = NULL_WIDGET;
+
+		if (_previous_scope_focus == id)
+			_previous_scope_focus = NULL_WIDGET;
+
+		if (_focus_scope == id)
+			clear_focus_scope();
 
 		for (u32 i = 0; i < static_cast<u32>(mouse_button_e::count); ++i)
 		{
@@ -92,6 +106,7 @@ namespace sfg::ui
 				_pressed[i]		  = NULL_WIDGET;
 				_pressed_state[i] = {};
 			}
+
 			if (_last_click[i].target == id)
 				_last_click[i] = {};
 		}
@@ -156,6 +171,26 @@ namespace sfg::ui
 		}
 
 		_popup_scope = {};
+	}
+
+	void input_router_t::set_focus_scope(widget_id_t root)
+	{
+		SFG_ASSERT(root != NULL_WIDGET && (_focus_scope == NULL_WIDGET || _focus_scope == root));
+
+		if (_focus_scope == NULL_WIDGET)
+			_previous_scope_focus = _focused;
+
+		_focus_scope = root;
+		set_focus(NULL_WIDGET, false);
+	}
+
+	void input_router_t::clear_focus_scope()
+	{
+		const widget_id_t previous = _previous_scope_focus;
+
+		_focus_scope		  = NULL_WIDGET;
+		_previous_scope_focus = NULL_WIDGET;
+		set_focus(previous, false);
 	}
 
 	void input_router_t::rebuild_hit_test(const layout_tree_t& tree)
@@ -608,6 +643,25 @@ namespace sfg::ui
 		if (_tree == nullptr || !is_widget_visible(*_tree, _focused) || _tree->is_disabled(_focused))
 			return;
 
+		if ((_tree->in_const(_focused).flags & wf_key_click) != 0 && (ev.key == static_cast<u16>(input_code::key_return) || ev.key == static_cast<u16>(input_code::key_space)))
+		{
+			if (ev.action == key_action_e::press)
+			{
+				const auto it = _listeners.find(_focused);
+
+				if (it != _listeners.end() && it->second.on_click != nullptr)
+				{
+					const listener_bundle_t listener = it->second;
+					const vec4f_t			bounds	 = _tree->bounds(_focused);
+					const vec2f_t			center	 = {bounds.x + bounds.z * 0.5f, bounds.y + bounds.w * 0.5f};
+
+					listener.on_click(*this, _focused, center, mouse_button_e::left, listener.user_data);
+				}
+			}
+
+			return;
+		}
+
 		widget_id_t cur = _focused;
 
 		while (cur != NULL_WIDGET)
@@ -627,6 +681,9 @@ namespace sfg::ui
 	void input_router_t::set_focus(widget_id_t id, bool from_nav)
 	{
 		if (id != NULL_WIDGET && _tree != nullptr && (!is_widget_visible(*_tree, id) || _tree->is_disabled(id)))
+			id = NULL_WIDGET;
+
+		if (id != NULL_WIDGET && _tree != nullptr && _focus_scope != NULL_WIDGET && !is_in_subtree(id, _focus_scope) && !(_popup_scope.active && is_in_popup_scope(id)))
 			id = NULL_WIDGET;
 
 		if (_focused == id)
@@ -687,7 +744,7 @@ namespace sfg::ui
 		{
 			const widget_id_t candidate = _focus_order[(start + i) % _focus_order.size()];
 
-			if (!_tree->is_disabled(candidate) && (!_popup_scope.active || is_in_popup_scope(candidate)))
+			if (!_tree->is_disabled(candidate) && (_popup_scope.active ? is_in_popup_scope(candidate) : (_focus_scope == NULL_WIDGET || is_in_subtree(candidate, _focus_scope))))
 			{
 				set_focus(candidate, true);
 				return;
@@ -722,7 +779,7 @@ namespace sfg::ui
 		{
 			const widget_id_t candidate = _focus_order[(start + _focus_order.size() - i) % _focus_order.size()];
 
-			if (!_tree->is_disabled(candidate) && (!_popup_scope.active || is_in_popup_scope(candidate)))
+			if (!_tree->is_disabled(candidate) && (_popup_scope.active ? is_in_popup_scope(candidate) : (_focus_scope == NULL_WIDGET || is_in_subtree(candidate, _focus_scope))))
 			{
 				set_focus(candidate, true);
 				return;

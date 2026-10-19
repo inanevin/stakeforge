@@ -80,6 +80,7 @@ in GAME-LINKING-EXCEPTION.md.
 #define ICON_WINDOW_MAXIMIZE "\u0054"
 #define ICON_WINDOW_CLOSE	 ICON_CROSS
 
+#include <sfg/reflection/reflection_icons.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
 
 namespace sfg::ui

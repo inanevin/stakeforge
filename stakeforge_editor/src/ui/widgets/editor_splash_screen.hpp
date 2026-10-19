@@ -75,7 +75,6 @@ namespace sfg
 		ui::ui_context*				 _ui		   = nullptr;
 		ui::widget_id_t				 _root		   = NULL_WIDGET;
 		ui::widget_id_t				 _texture_bg   = NULL_WIDGET;
-		ui::widget_id_t				 _strikes	   = NULL_WIDGET;
 		ui::widget_id_t				 _column	   = NULL_WIDGET;
 		ui::widget_id_t				 _title		   = NULL_WIDGET;
 		ui::widget_id_t				 _version	   = NULL_WIDGET;

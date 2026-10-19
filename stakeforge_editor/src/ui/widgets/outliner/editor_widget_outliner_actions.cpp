@@ -26,6 +26,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "world/editor_world.hpp"
 #include "ui/widgets/outliner/editor_widget_outliner_internal.hpp"
 #include "ui/editor_action_menu_controller.hpp"
+#include "ui/editor_entity_create_menu.hpp"
 #include "ui/editor_popup_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/widgets/popups/editor_popup_color_wheel.hpp"
@@ -39,32 +40,12 @@ namespace sfg
 {
 	namespace
 	{
-		editor_action_menu_row_desc_t ENTITY_CREATE_PRIMITIVE_ROWS[] = {
-			{.text = "Cube", .command = entity_action_menu_create_cube},
-			{.text = "Plane", .command = entity_action_menu_create_plane},
-			{.text = "Sphere", .command = entity_action_menu_create_sphere},
-			{.text = "Cylinder", .command = entity_action_menu_create_cylinder},
-			{.text = "Capsule", .command = entity_action_menu_create_capsule},
-		};
-
-		editor_action_menu_row_desc_t ENTITY_CREATE_ROWS[] = {
-			{.text = "Empty Entity", .command = entity_action_menu_create_empty},
-			{.text = "Primitives", .children = ENTITY_CREATE_PRIMITIVE_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_PRIMITIVE_ROWS) / sizeof(ENTITY_CREATE_PRIMITIVE_ROWS[0]))},
-			{.text = "Folder", .command = entity_action_menu_create_folder},
-		};
-
-		editor_action_menu_row_desc_t ENTITY_CREATE_ENTITY_ROWS[] = {
-			{.text = "Empty Entity", .command = entity_action_menu_create_empty},
-			{.text = "Primitives", .children = ENTITY_CREATE_PRIMITIVE_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_PRIMITIVE_ROWS) / sizeof(ENTITY_CREATE_PRIMITIVE_ROWS[0]))},
-			{.text = "Folder", .command = entity_action_menu_create_folder, .disabled = true},
-		};
-
 		editor_action_menu_row_desc_t ENTITY_EMPTY_ACTION_MENU_ROWS[] = {
-			{.text = "Create", .children = ENTITY_CREATE_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_ROWS) / sizeof(ENTITY_CREATE_ROWS[0]))},
+			{.text = "Create", .children = editor_entity_create_menu_t::get_rows().data, .child_count = static_cast<u16>(editor_entity_create_menu_t::get_rows().size)},
 		};
 
 		editor_action_menu_row_desc_t ENTITY_ROW_ACTION_MENU_ROWS[] = {
-			{.text = "Create", .children = ENTITY_CREATE_ENTITY_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_ENTITY_ROWS) / sizeof(ENTITY_CREATE_ENTITY_ROWS[0]))},
+			{.text = "Create", .children = editor_entity_create_menu_t::get_rows(false).data, .child_count = static_cast<u16>(editor_entity_create_menu_t::get_rows(false).size)},
 			{.text = "Duplicate Entity", .shortcut = "CTRL+D", .command = entity_action_menu_duplicate},
 			{.text = "Hide / Show", .shortcut = "H", .command = entity_action_menu_hide},
 			{.text = "Show Alone", .shortcut = "CTRL+H", .command = entity_action_menu_show_alone},
@@ -72,53 +53,12 @@ namespace sfg
 		};
 
 		editor_action_menu_row_desc_t FOLDER_ROW_ACTION_MENU_ROWS[] = {
-			{.text = "Create", .children = ENTITY_CREATE_ROWS, .child_count = static_cast<u16>(sizeof(ENTITY_CREATE_ROWS) / sizeof(ENTITY_CREATE_ROWS[0]))},
+			{.text = "Create", .children = editor_entity_create_menu_t::get_rows().data, .child_count = static_cast<u16>(editor_entity_create_menu_t::get_rows().size)},
 			{.text = "Rename", .shortcut = "F2", .command = entity_action_menu_rename_folder},
 			{.text = "Change Color", .command = entity_action_menu_change_folder_color},
 			{.text = "Delete", .command = entity_action_menu_delete_folder},
 		};
 	}
-	void editor_widget_outliner_t::create_entity(entity_id_t parent, editor_world_folder_handle_t folder)
-	{
-		const entity_id_t entity = editor_commands_entity_t::create(_edit_world, parent, folder);
-		if (entity == NULL_ENTITY_ID)
-			return;
-
-		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
-		{
-			world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
-			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().set_entity_folded(world.get_entity_guid(parent), false);
-		}
-		if (!folder.is_null())
-			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().set_folder_folded(folder, false);
-		refresh_entities();
-	}
-
-	void editor_widget_outliner_t::create_primitive(editor_primitive_type_e primitive, entity_id_t parent, editor_world_folder_handle_t folder)
-	{
-		const entity_id_t entity = editor_command_primitive_spawn_t::spawn(_edit_world, primitive, parent, folder);
-		if (entity == NULL_ENTITY_ID)
-			return;
-
-		if (parent != NULL_ENTITY_ID && !is_entity_expanded(parent))
-		{
-			world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
-			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().set_entity_folded(world.get_entity_guid(parent), false);
-		}
-		if (!folder.is_null())
-			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().set_folder_folded(folder, false);
-		refresh_entities();
-	}
-
-	void editor_widget_outliner_t::create_folder(editor_world_folder_handle_t parent)
-	{
-		const editor_world_folder_handle_t folder = editor_commands_world_edit_context_t::create_folder(_edit_world, "Folder", parent);
-		if (!parent.is_null())
-			editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().set_folder_folded(parent, false);
-		_focused_folder = folder;
-		refresh_entities();
-	}
-
 	void editor_widget_outliner_t::delete_folder(editor_world_folder_handle_t folder)
 	{
 		if (!editor_commands_world_edit_context_t::delete_folder(_edit_world, folder))

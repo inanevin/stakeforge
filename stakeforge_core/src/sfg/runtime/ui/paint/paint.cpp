@@ -331,6 +331,14 @@ namespace sfg::ui
 			if (o.clip.z <= 0.0f || o.clip.w <= 0.0f)
 				continue;
 
+			const vec4f_t scissor_clip = canvas.current_scissor_clip();
+
+			if (scissor_clip.z <= 0.0f || scissor_clip.w <= 0.0f)
+			{
+				i += dfs_descendants.data[i];
+				continue;
+			}
+
 			const paint_def_t& pd		  = _defs[id];
 			const u32		   draw_order = tree.draw_order_const(id);
 			const widget_id_t  state_id	  = pd.state_source != NULL_WIDGET ? pd.state_source : id;

@@ -23,6 +23,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "world/editor_world_input_controller.hpp"
 #include "assets/editor_asset_spawn.hpp"
 #include "commands/editor_commands_entity.hpp"
+#include "commands/editor_commands_world_view.hpp"
 #include "editor_project.hpp"
 #include "editor_surface_controller.hpp"
 #include "ui/editor_payload_controller.hpp"
@@ -230,6 +231,20 @@ namespace sfg
 
 		const bool ctrl_pressed = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
 
+		const bool shift_pressed = process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
+
+		if (ctrl_pressed && !shift_pressed && key == static_cast<u16>(input_code::key_g))
+		{
+			_world->align_camera_to_selection();
+			return;
+		}
+
+		if (ctrl_pressed && !shift_pressed && key == static_cast<u16>(input_code::key_f))
+		{
+			editor_commands_world_view_t::snap_selection_to_camera(_handle);
+			return;
+		}
+
 		if (key == static_cast<u16>(input_code::key_r) && !ctrl_pressed && _world->get_camera_type() == editor_world_camera_type_e::orbit)
 		{
 			pass_camera_input({.reset_target = true});
@@ -264,7 +279,7 @@ namespace sfg
 			return;
 		}
 
-		if (key == static_cast<u16>(input_code::key_f))
+		if (key == static_cast<u16>(input_code::key_f) && !ctrl_pressed)
 		{
 			focus_selection();
 			return;
@@ -534,6 +549,17 @@ namespace sfg
 	{
 		if (ev.sub_type != window_event_sub_type_e::press && ev.sub_type != window_event_sub_type_e::release)
 			return false;
+
+		const bool ctrl_pressed	 = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+		const bool shift_pressed = process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
+
+		if (ctrl_pressed && !shift_pressed && (ev.button == static_cast<u16>(input_code::key_g) || ev.button == static_cast<u16>(input_code::key_f)))
+		{
+			if (ev.sub_type == window_event_sub_type_e::press)
+				key_press(ev.button);
+
+			return true;
+		}
 
 		if (ev.button == static_cast<u16>(input_code::key_r) && _world->get_camera_type() == editor_world_camera_type_e::orbit)
 		{

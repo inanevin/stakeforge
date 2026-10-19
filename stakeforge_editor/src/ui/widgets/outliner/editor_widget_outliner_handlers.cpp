@@ -26,6 +26,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "assets/editor_asset_spawn.hpp"
 #include "ui/widgets/outliner/editor_widget_outliner_internal.hpp"
 #include "ui/editor_action_menu_controller.hpp"
+#include "ui/editor_entity_create_menu.hpp"
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "commands/editor_command_primitive_spawn.hpp"
 #include "commands/editor_command_prefab_spawn.hpp"
@@ -54,59 +55,21 @@ namespace sfg
 	{
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
 
-		if (command == entity_action_menu_create_empty)
-			panel.create_entity(NULL_ENTITY_ID);
-		else if (command == entity_action_menu_create_cube)
-			panel.create_primitive(editor_primitive_type_e::cube, NULL_ENTITY_ID);
-		else if (command == entity_action_menu_create_plane)
-			panel.create_primitive(editor_primitive_type_e::plane, NULL_ENTITY_ID);
-		else if (command == entity_action_menu_create_sphere)
-			panel.create_primitive(editor_primitive_type_e::sphere, NULL_ENTITY_ID);
-		else if (command == entity_action_menu_create_cylinder)
-			panel.create_primitive(editor_primitive_type_e::cylinder, NULL_ENTITY_ID);
-		else if (command == entity_action_menu_create_capsule)
-			panel.create_primitive(editor_primitive_type_e::capsule, NULL_ENTITY_ID);
-		else if (command == entity_action_menu_create_folder)
-		{
-			panel.create_folder({});
-		}
+		if (editor_entity_create_menu_t::execute(command, panel._edit_world))
+			panel.refresh_entities();
 	}
 
 	void editor_widget_outliner_t::on_entity_action_menu_command(u16 command, void* user_data)
 	{
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
 
-		if (command == entity_action_menu_create_empty)
+		if (panel.is_create_enabled() && editor_entity_create_menu_t::execute(command, panel._edit_world, panel._action_menu_entity))
 		{
-			if (panel.is_create_enabled())
-				panel.create_entity(panel._action_menu_entity);
+			panel.refresh_entities();
+			return;
 		}
-		else if (command == entity_action_menu_create_cube)
-		{
-			if (panel.is_create_enabled())
-				panel.create_primitive(editor_primitive_type_e::cube, panel._action_menu_entity);
-		}
-		else if (command == entity_action_menu_create_plane)
-		{
-			if (panel.is_create_enabled())
-				panel.create_primitive(editor_primitive_type_e::plane, panel._action_menu_entity);
-		}
-		else if (command == entity_action_menu_create_sphere)
-		{
-			if (panel.is_create_enabled())
-				panel.create_primitive(editor_primitive_type_e::sphere, panel._action_menu_entity);
-		}
-		else if (command == entity_action_menu_create_cylinder)
-		{
-			if (panel.is_create_enabled())
-				panel.create_primitive(editor_primitive_type_e::cylinder, panel._action_menu_entity);
-		}
-		else if (command == entity_action_menu_create_capsule)
-		{
-			if (panel.is_create_enabled())
-				panel.create_primitive(editor_primitive_type_e::capsule, panel._action_menu_entity);
-		}
-		else if (command == entity_action_menu_duplicate)
+
+		if (command == entity_action_menu_duplicate)
 			panel.duplicate_selected_entities();
 		else if (command == entity_action_menu_hide)
 		{
@@ -126,21 +89,13 @@ namespace sfg
 	{
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
 
-		if (command == entity_action_menu_create_empty)
-			panel.create_entity(NULL_ENTITY_ID, panel._action_menu_folder);
-		else if (command == entity_action_menu_create_cube)
-			panel.create_primitive(editor_primitive_type_e::cube, NULL_ENTITY_ID, panel._action_menu_folder);
-		else if (command == entity_action_menu_create_plane)
-			panel.create_primitive(editor_primitive_type_e::plane, NULL_ENTITY_ID, panel._action_menu_folder);
-		else if (command == entity_action_menu_create_sphere)
-			panel.create_primitive(editor_primitive_type_e::sphere, NULL_ENTITY_ID, panel._action_menu_folder);
-		else if (command == entity_action_menu_create_cylinder)
-			panel.create_primitive(editor_primitive_type_e::cylinder, NULL_ENTITY_ID, panel._action_menu_folder);
-		else if (command == entity_action_menu_create_capsule)
-			panel.create_primitive(editor_primitive_type_e::capsule, NULL_ENTITY_ID, panel._action_menu_folder);
-		else if (command == entity_action_menu_create_folder)
-			panel.create_folder(panel._action_menu_folder);
-		else if (command == entity_action_menu_rename_folder)
+		if (editor_entity_create_menu_t::execute(command, panel._edit_world, NULL_ENTITY_ID, panel._action_menu_folder))
+		{
+			panel.refresh_entities();
+			return;
+		}
+
+		if (command == entity_action_menu_rename_folder)
 		{
 			editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*panel._ui);
 			menu->close_action_menu();

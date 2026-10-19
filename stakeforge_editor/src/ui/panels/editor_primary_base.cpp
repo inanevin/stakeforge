@@ -23,6 +23,10 @@ in GAME-LINKING-EXCEPTION.md.
 #include "ui/panels/editor_panel_types.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include "ui/editor_action_menu_common.hpp"
+#include "ui/editor_entity_create_menu.hpp"
+#include "commands/editor_commands_world_view.hpp"
+#include "editor_world_controller.hpp"
+#include "world/editor_world.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_draws.hpp"
@@ -72,26 +76,14 @@ namespace sfg
 			edit_cut,
 			edit_copy,
 			edit_paste,
-			view_command_palette,
 			view_debug_bounds,
 			layout_apply_default,
-			entity_create_empty,
-			entity_create_camera,
-			entity_create_light,
-			entity_create_mesh,
-			entity_duplicate,
-			entity_delete,
-			entity_rename,
+			view_align_camera,
+			view_align_selection,
 			debug_toggle_bounds,
-			debug_toggle_wireframe,
-			debug_freeze_culling,
-			debug_reload_shaders,
-			debug_dump_ui_tree,
-			debug_capture_frame,
 			help_github,
 			help_website,
-			help_version,
-			help_build_info,
+			help_about,
 		};
 
 		constexpr u16 PANEL_MENU_COMMAND_BASE = 1000;
@@ -147,8 +139,6 @@ namespace sfg
 		};
 
 		const editor_action_menu_row_desc_t VIEW_ROWS[] = {
-			{.text = "Tools", .kind = editor_action_menu_row_kind_e::title},
-			{.text = "Command Palette", .shortcut = "Ctrl+Shift+P", .command = static_cast<u16>(editor_file_menu_commands_e::view_command_palette)},
 			{.text = "Panels", .kind = editor_action_menu_row_kind_e::title},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::entities), .command = panel_menu_command(editor_panel_type_e::entities)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::assets), .command = panel_menu_command(editor_panel_type_e::assets)},
@@ -160,32 +150,23 @@ namespace sfg
 			{.text = editor_panel_type_to_string(editor_panel_type_e::resources), .command = panel_menu_command(editor_panel_type_e::resources)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::project_settings), .command = panel_menu_command(editor_panel_type_e::project_settings)},
 			{.text = "Editor", .kind = editor_action_menu_row_kind_e::title},
+			{
+				.text	  = "Align Camera to Selection",
+				.shortcut = "Ctrl+G",
+				.command  = static_cast<u16>(editor_file_menu_commands_e::view_align_camera),
+			},
+			{
+				.text	  = "Align Selection to Camera",
+				.shortcut = "Ctrl+F",
+				.command  = static_cast<u16>(editor_file_menu_commands_e::view_align_selection),
+			},
 			{.text = "Layouts", .children = LAYOUT_ROWS, .child_count = static_cast<u16>(sizeof(LAYOUT_ROWS) / sizeof(LAYOUT_ROWS[0]))},
 			{.text = "Subpixel Text", .toggle_query = is_editor_subpixel_text_enabled, .toggle_callback = set_editor_subpixel_text_enabled, .kind = editor_action_menu_row_kind_e::toggle},
 			{.text = "Debug Bounds", .toggle_query = is_editor_debug_bounds_enabled, .toggle_callback = set_editor_debug_bounds_enabled, .kind = editor_action_menu_row_kind_e::toggle, .close_on_toggle = true},
 		};
 
-		const editor_action_menu_row_desc_t ENTITY_ROWS[] = {
-			{.text = "Create", .kind = editor_action_menu_row_kind_e::title},
-			{.text = "Empty Entity", .command = static_cast<u16>(editor_file_menu_commands_e::entity_create_empty)},
-			{.text = "Camera", .command = static_cast<u16>(editor_file_menu_commands_e::entity_create_camera)},
-			{.text = "Light", .command = static_cast<u16>(editor_file_menu_commands_e::entity_create_light)},
-			{.text = "Mesh", .command = static_cast<u16>(editor_file_menu_commands_e::entity_create_mesh)},
-			{.text = "Selection", .kind = editor_action_menu_row_kind_e::title},
-			{.text = "Duplicate", .shortcut = "Ctrl+D", .command = static_cast<u16>(editor_file_menu_commands_e::entity_duplicate)},
-			{.text = "Delete", .shortcut = "Del", .command = static_cast<u16>(editor_file_menu_commands_e::entity_delete)},
-			{.text = "Rename", .shortcut = "F2", .command = static_cast<u16>(editor_file_menu_commands_e::entity_rename)},
-		};
-
 		const editor_action_menu_row_desc_t DEBUG_ROWS[] = {
-			{.text = "Viewport", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Toggle Bounds", .command = static_cast<u16>(editor_file_menu_commands_e::debug_toggle_bounds)},
-			{.text = "Toggle Wireframe", .command = static_cast<u16>(editor_file_menu_commands_e::debug_toggle_wireframe)},
-			{.text = "Freeze Culling", .command = static_cast<u16>(editor_file_menu_commands_e::debug_freeze_culling)},
-			{.text = "Runtime", .kind = editor_action_menu_row_kind_e::title},
-			{.text = "Reload Shaders", .shortcut = "Ctrl+R", .command = static_cast<u16>(editor_file_menu_commands_e::debug_reload_shaders)},
-			{.text = "Dump UI Tree", .command = static_cast<u16>(editor_file_menu_commands_e::debug_dump_ui_tree)},
-			{.text = "Capture Frame", .command = static_cast<u16>(editor_file_menu_commands_e::debug_capture_frame)},
 		};
 
 		const editor_action_menu_row_desc_t HELP_ROWS[] = {
@@ -193,15 +174,14 @@ namespace sfg
 			{.text = "GitHub", .command = static_cast<u16>(editor_file_menu_commands_e::help_github)},
 			{.text = "Website", .command = static_cast<u16>(editor_file_menu_commands_e::help_website)},
 			{.text = "About", .kind = editor_action_menu_row_kind_e::title},
-			{.text = "Version", .command = static_cast<u16>(editor_file_menu_commands_e::help_version)},
-			{.text = "Build Info", .command = static_cast<u16>(editor_file_menu_commands_e::help_build_info)},
+			{.text = "About", .command = static_cast<u16>(editor_file_menu_commands_e::help_about)},
 		};
 
 		const editor_file_menu_item_desc_t FILE_MENU_ITEMS[] = {
 			{.text = "File", .rows = FILE_ROWS, .row_count = static_cast<u16>(sizeof(FILE_ROWS) / sizeof(FILE_ROWS[0]))},
 			{.text = "Edit", .rows = EDIT_ROWS, .row_count = static_cast<u16>(sizeof(EDIT_ROWS) / sizeof(EDIT_ROWS[0]))},
 			{.text = "View", .rows = VIEW_ROWS, .row_count = static_cast<u16>(sizeof(VIEW_ROWS) / sizeof(VIEW_ROWS[0]))},
-			{.text = "Entity", .rows = ENTITY_ROWS, .row_count = static_cast<u16>(sizeof(ENTITY_ROWS) / sizeof(ENTITY_ROWS[0]))},
+			{.text = "Entity", .rows = editor_entity_create_menu_t::get_rows().data, .row_count = static_cast<u16>(editor_entity_create_menu_t::get_rows().size)},
 			{.text = "Debug", .rows = DEBUG_ROWS, .row_count = static_cast<u16>(sizeof(DEBUG_ROWS) / sizeof(DEBUG_ROWS[0]))},
 			{.text = "Help", .rows = HELP_ROWS, .row_count = static_cast<u16>(sizeof(HELP_ROWS) / sizeof(HELP_ROWS[0]))},
 		};
@@ -275,8 +255,23 @@ namespace sfg
 				return;
 			}
 
+			const editor_world_handle_t world = editor_world_controller_t::get().get_main_world_handle();
+
+			if (editor_entity_create_menu_t::execute(command, world))
+				return;
+
 			switch (static_cast<editor_file_menu_commands_e>(command))
 			{
+			case editor_file_menu_commands_e::view_align_camera:
+				if (!world.is_null())
+					editor_world_controller_t::get().get_editor_world(world)->align_camera_to_selection();
+
+				break;
+			case editor_file_menu_commands_e::view_align_selection:
+				if (!world.is_null())
+					editor_commands_world_view_t::snap_selection_to_camera(world);
+
+				break;
 			case editor_file_menu_commands_e::project_switch:
 				editor_app_t::get().request_switch_mode(editor_app_mode_e::project_creator);
 				break;
@@ -292,6 +287,9 @@ namespace sfg
 				break;
 			case editor_file_menu_commands_e::layout_apply_default:
 				editor_surface_controller_t::get().apply_default_layout();
+				break;
+			case editor_file_menu_commands_e::help_about:
+				static_cast<editor_primary_base_t*>(user_data)->show_about();
 				break;
 			case editor_file_menu_commands_e::help_github:
 				process::open_url("https://github.com/inanevin/stakeforge");
@@ -606,6 +604,8 @@ namespace sfg
 
 	void editor_primary_base_t::uninit()
 	{
+		_about.close();
+
 		_dock_widget.uninit();
 		_main_toolbar.uninit();
 		_file_menu.uninit();
@@ -620,6 +620,11 @@ namespace sfg
 		_top_mid_file	 = NULL_WIDGET;
 		_top_mid_util	 = NULL_WIDGET;
 		_label_wrap		 = NULL_WIDGET;
+	}
+
+	void editor_primary_base_t::show_about()
+	{
+		_about.open(*_ui, "Version " SFG_EDITOR_VERSION_TEXT, "Build " SFG_BUILD);
 	}
 
 	void editor_primary_base_t::set_current_project_name(const char* name)

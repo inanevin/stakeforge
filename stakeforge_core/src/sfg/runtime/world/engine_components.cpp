@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "engine_components.hpp"
 
+#include <sfg/reflection/reflection_icons.hpp>
+
 #include <sfg/reflection/reflection_container_ops.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
@@ -80,6 +82,7 @@ namespace sfg
 				.name			 = "component_hierarchy",
 				.display_name	 = "Hierarchy",
 				.category		 = "Gameplay",
+				.icon			 = ICON_COMPONENT_HIERARCHY,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_hierarchy_t*>(ptr), component_hierarchy_t{}); },
 				.fields =
 					{
@@ -101,6 +104,7 @@ namespace sfg
 				.name			 = "component_guid",
 				.display_name	 = "GUID",
 				.category		 = "Gameplay",
+				.icon			 = ICON_COMPONENT_GUID,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_guid_t*>(ptr), component_guid_t{}); },
 				.fields =
 					{
@@ -125,6 +129,7 @@ namespace sfg
 				.name			 = "component_transform",
 				.display_name	 = "Transform",
 				.category		 = "Gameplay",
+				.icon			 = ICON_COMPONENT_TRANSFORM,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_transform_t*>(ptr), component_transform_t{}); },
 				.fields =
 					{
@@ -145,6 +150,7 @@ namespace sfg
 				.name			 = "component_name",
 				.display_name	 = "Name",
 				.category		 = "Gameplay",
+				.icon			 = ICON_COMPONENT_NAME,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_name_t*>(ptr), component_name_t{}); },
 				.fields =
 					{
@@ -163,6 +169,7 @@ namespace sfg
 				.name			 = "component_world_script",
 				.display_name	 = "World Script",
 				.category		 = "Scripting",
+				.icon			 = ICON_COMPONENT_WORLD_SCRIPT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_world_script_t*>(ptr), component_world_script_t{}); },
 				.fields =
 					{
@@ -195,6 +202,7 @@ namespace sfg
 				.name			 = "component_canvas",
 				.display_name	 = "Canvas",
 				.category		 = "UI",
+				.icon			 = ICON_COMPONENT_CANVAS,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_canvas_t*>(ptr), component_canvas_t{}); },
 				.fields =
 					{
@@ -267,6 +275,7 @@ namespace sfg
 				.name			 = "component_mesh_renderer",
 				.display_name	 = "Mesh Renderer",
 				.category		 = "Graphics",
+				.icon			 = ICON_COMPONENT_MESH_RENDERER,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_mesh_renderer_t*>(ptr), component_mesh_renderer_t{}); },
 				.fields =
 					{
@@ -298,6 +307,7 @@ namespace sfg
 				.name			 = "component_sprite_renderer",
 				.display_name	 = "Sprite Renderer",
 				.category		 = "Graphics",
+				.icon			 = ICON_COMPONENT_SPRITE_RENDERER,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_sprite_renderer_t*>(ptr), component_sprite_renderer_t{}); },
 				.fields =
 					{
@@ -400,6 +410,7 @@ namespace sfg
 						.display_name	 = "Particle Emitter",
 						.category		 = "Graphics",
 						.tooltip		 = "CPU-simulated particle emitter with bounded curves and dense live-particle storage.",
+						.icon			 = ICON_COMPONENT_PARTICLE_EMITTER,
 						.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_particle_emitter_t*>(ptr), component_particle_emitter_t{}); },
 						.fields =
 							{
@@ -734,6 +745,7 @@ namespace sfg
 				.name			 = "component_skinned_mesh_renderer",
 				.display_name	 = "Skinned Mesh Renderer",
 				.category		 = "Graphics",
+				.icon			 = ICON_COMPONENT_SKINNED_MESH_RENDERER,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_skinned_mesh_renderer_t*>(ptr), component_skinned_mesh_renderer_t{}); },
 				.fields =
 					{
@@ -772,6 +784,7 @@ namespace sfg
 				.name			 = "component_view_model",
 				.display_name	 = "View Model",
 				.category		 = "Graphics",
+				.icon			 = ICON_COMPONENT_VIEW_MODEL,
 				.default_init_fn = [](void*) {},
 				.type_id		 = type_id_t<component_view_model_t>::value,
 				.size			 = sizeof(component_view_model_t),
@@ -786,6 +799,7 @@ namespace sfg
 				.name			 = "component_animation_graph",
 				.display_name	 = "Animation Graph",
 				.category		 = "Animation",
+				.icon			 = ICON_COMPONENT_ANIMATION_GRAPH,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_animation_graph_t*>(ptr), component_animation_graph_t{}); },
 				.fields =
 					{
@@ -901,6 +915,7 @@ namespace sfg
 				.name			 = "component_animation_library",
 				.display_name	 = "Animation Library",
 				.category		 = "Animation",
+				.icon			 = ICON_COMPONENT_ANIMATION_LIBRARY,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_animation_library_t*>(ptr), component_animation_library_t{}); },
 				.fields =
 					{
@@ -1016,6 +1031,7 @@ namespace sfg
 				.name			 = "component_ragdoll",
 				.display_name	 = "Ragdoll",
 				.category		 = "Physics",
+				.icon			 = ICON_COMPONENT_RAGDOLL,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_ragdoll_t*>(ptr), component_ragdoll_t{}); },
 				.fields =
 					{
@@ -1040,6 +1056,7 @@ namespace sfg
 				.name			 = "component_animation_player",
 				.display_name	 = "Animation Player",
 				.category		 = "Animation",
+				.icon			 = ICON_COMPONENT_ANIMATION_PLAYER,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_animation_player_t*>(ptr), component_animation_player_t{}); },
 				.fields =
 					{
@@ -1150,6 +1167,7 @@ namespace sfg
 				.display_name	 = "Audio Source",
 				.category		 = "Audio",
 				.tooltip		 = "Plays an audio asset with optional world-space positioning and distance attenuation.",
+				.icon			 = ICON_COMPONENT_AUDIO_SOURCE,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_audio_source_t*>(ptr), component_audio_source_t{}); },
 				.fields =
 					{
@@ -1269,6 +1287,7 @@ namespace sfg
 				.display_name	 = "Audio Listener",
 				.category		 = "Audio",
 				.tooltip		 = "Defines the world-space listener used for spatialized audio.",
+				.icon			 = ICON_COMPONENT_AUDIO_LISTENER,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_audio_listener_t*>(ptr), component_audio_listener_t{}); },
 				.fields			 = {{.name		   = "priority",
 									 .display_name = "Priority",
@@ -1289,6 +1308,7 @@ namespace sfg
 				.name			 = "component_camera",
 				.display_name	 = "Camera",
 				.category		 = "Graphics",
+				.icon			 = ICON_COMPONENT_CAMERA,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_camera_t*>(ptr), component_camera_t{}); },
 				.fields =
 					{
@@ -1328,6 +1348,7 @@ namespace sfg
 				.display_name	 = "Light",
 				.category		 = "Graphics",
 				.tooltip		 = "Deferred scene light supporting directional, point, spot, and rectangular area emission.",
+				.icon			 = ICON_COMPONENT_LIGHT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_light_t*>(ptr), component_light_t{}); },
 				.fields =
 					{
@@ -1450,6 +1471,7 @@ namespace sfg
 				.name			 = "component_environment",
 				.display_name	 = "Environment",
 				.category		 = "Graphics",
+				.icon			 = ICON_COMPONENT_ENVIRONMENT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_environment_t*>(ptr), component_environment_t{}); },
 				.fields =
 					{
@@ -1506,6 +1528,7 @@ namespace sfg
 				.display_name	 = "Fog",
 				.category		 = "Graphics",
 				.tooltip		 = "Applies analytical distance or height fog to the active camera view.",
+				.icon			 = ICON_COMPONENT_FOG,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_fog_t*>(ptr), component_fog_t{}); },
 				.fields =
 					{
@@ -1642,6 +1665,7 @@ namespace sfg
 				.display_name	 = "Reflection Probe",
 				.category		 = "Graphics",
 				.tooltip		 = "Captures local scene lighting for diffuse ambient light and specular reflections.",
+				.icon			 = ICON_COMPONENT_REFLECTION_PROBE,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_reflection_probe_t*>(ptr), component_reflection_probe_t{}); },
 				.fields =
 					{
@@ -1915,6 +1939,7 @@ namespace sfg
 				.display_name	 = "Post Process",
 				.category		 = "Graphics",
 				.tooltip		 = "Camera post-processing controls applied to the HDR lighting result before display output.",
+				.icon			 = ICON_COMPONENT_POST_PROCESS,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_post_process_t*>(ptr), component_post_process_t{}); },
 				.fields =
 					{
@@ -2004,6 +2029,7 @@ namespace sfg
 				.name			 = "component_prefab_reference",
 				.display_name	 = "Prefab Reference",
 				.category		 = "Gameplay",
+				.icon			 = ICON_COMPONENT_PREFAB_REFERENCE,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_prefab_reference_t*>(ptr), component_prefab_reference_t{}); },
 				.fields =
 					{
@@ -2023,6 +2049,7 @@ namespace sfg
 				.name			 = "component_entity_tags",
 				.display_name	 = "Tags",
 				.category		 = "Gameplay",
+				.icon			 = ICON_COMPONENT_ENTITY_TAGS,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_entity_tags_t*>(ptr), component_entity_tags_t{}); },
 				.fields			 = {{.name = "tags", .display_name = "Tags", .offset = offsetof(component_entity_tags_t, tags), .size = sizeof(u64), .type = reflected_value_type_e::bitmask}},
 				.bitmask_opts	 = {.get_option_count_fn = get_entity_tag_bitmask_option_count, .get_option_fn = get_entity_tag_bitmask_option, .build_title_fn = build_entity_tag_bitmask_title},
@@ -2067,6 +2094,7 @@ namespace sfg
 						.display_name	 = "Physical",
 						.category		 = "Physics",
 						.tooltip		 = "Defines the collision shape and motion behavior of one physics body.",
+						.icon			 = ICON_COMPONENT_PHYSICAL,
 						.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_physical_t*>(ptr), component_physical_t{}); },
 						.fields =
 							{
@@ -2216,6 +2244,7 @@ namespace sfg
 				.display_name	 = "Compound Shape",
 				.category		 = "Physics",
 				.tooltip		 = "Defines one child shape used by a compound physical body on the parent entity.",
+				.icon			 = ICON_COMPONENT_COMPOUND_SHAPE,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_compound_shape_t*>(ptr), component_compound_shape_t{}); },
 				.fields =
 					{
@@ -2287,6 +2316,7 @@ namespace sfg
 				.display_name	 = "Character Mover",
 				.category		 = "Physics",
 				.tooltip		 = "Configures a kinematic character capsule with slope, stair, and ground movement handling.",
+				.icon			 = ICON_COMPONENT_CHARACTER_MOVER,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_character_mover_t*>(ptr), component_character_mover_t{}); },
 				.fields =
 					{
@@ -2416,6 +2446,7 @@ namespace sfg
 				.display_name	 = "Fixed Constraint",
 				.category		 = "Physics",
 				.tooltip		 = "Locks the relative position and rotation of this body to another body or the world.",
+				.icon			 = ICON_COMPONENT_FIXED_CONSTRAINT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_fixed_constraint_t*>(ptr), component_fixed_constraint_t{}); },
 				.fields =
 					{
@@ -2472,6 +2503,7 @@ namespace sfg
 				.display_name	 = "Distance Constraint",
 				.category		 = "Physics",
 				.tooltip		 = "Keeps two anchor points within a configurable distance range.",
+				.icon			 = ICON_COMPONENT_DISTANCE_CONSTRAINT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_distance_constraint_t*>(ptr), component_distance_constraint_t{}); },
 				.fields =
 					{
@@ -2538,6 +2570,7 @@ namespace sfg
 				.display_name	 = "Point Constraint",
 				.category		 = "Physics",
 				.tooltip		 = "Pins two anchor points together while leaving rotation unrestricted.",
+				.icon			 = ICON_COMPONENT_POINT_CONSTRAINT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_point_constraint_t*>(ptr), component_point_constraint_t{}); },
 				.fields =
 					{
@@ -2580,6 +2613,7 @@ namespace sfg
 				.display_name	 = "Hinge Constraint",
 				.category		 = "Physics",
 				.tooltip		 = "Joins two anchors while allowing rotation around one aligned hinge axis.",
+				.icon			 = ICON_COMPONENT_HINGE_CONSTRAINT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_hinge_constraint_t*>(ptr), component_hinge_constraint_t{}); },
 				.fields =
 					{
@@ -2734,6 +2768,7 @@ namespace sfg
 				.display_name	 = "Cone Constraint",
 				.category		 = "Physics",
 				.tooltip		 = "Pins two anchors and limits their relative twist axes to a cone.",
+				.icon			 = ICON_COMPONENT_CONE_CONSTRAINT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_cone_constraint_t*>(ptr), component_cone_constraint_t{}); },
 				.fields =
 					{
@@ -2796,6 +2831,7 @@ namespace sfg
 				.display_name	 = "Slider Constraint",
 				.category		 = "Physics",
 				.tooltip		 = "Allows translation along one axis while locking the other degrees of freedom.",
+				.icon			 = ICON_COMPONENT_SLIDER_CONSTRAINT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_slider_constraint_t*>(ptr), component_slider_constraint_t{}); },
 				.fields =
 					{
@@ -2950,6 +2986,7 @@ namespace sfg
 				.display_name	 = "Swing Twist Constraint",
 				.category		 = "Physics",
 				.tooltip		 = "Limits swing around two axes and twist around a third axis.",
+				.icon			 = ICON_COMPONENT_SWING_TWIST_CONSTRAINT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_swing_twist_constraint_t*>(ptr), component_swing_twist_constraint_t{}); },
 				.fields =
 					{
@@ -3050,6 +3087,7 @@ namespace sfg
 				.display_name	 = "Six DOF Constraint",
 				.category		 = "Physics",
 				.tooltip		 = "Configures independent translation and rotation limits for all six degrees of freedom.",
+				.icon			 = ICON_COMPONENT_SIX_DOF_CONSTRAINT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_six_dof_constraint_t*>(ptr), component_six_dof_constraint_t{}); },
 				.fields =
 					{
@@ -3148,6 +3186,7 @@ namespace sfg
 				.display_name	 = "Pulley Constraint",
 				.category		 = "Physics",
 				.tooltip		 = "Couples two body-to-fixed-point segments using a configurable length ratio.",
+				.icon			 = ICON_COMPONENT_PULLEY_CONSTRAINT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_pulley_constraint_t*>(ptr), component_pulley_constraint_t{}); },
 				.fields =
 					{
@@ -3363,6 +3402,7 @@ namespace sfg
 				.display_name	 = "Vehicle Constraint",
 				.category		 = "Physics",
 				.tooltip		 = "Configures wheel suspension and orientation for a wheeled vehicle body.",
+				.icon			 = ICON_COMPONENT_VEHICLE_CONSTRAINT,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_vehicle_constraint_t*>(ptr), component_vehicle_constraint_t{}); },
 				.fields =
 					{
@@ -3515,6 +3555,7 @@ namespace sfg
 				.name			 = "debug_widgets_component",
 				.display_name	 = "Debug Widgets",
 				.category		 = "Debug",
+				.icon			 = ICON_COMPONENT_DEBUG_WIDGETS,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_debug_widgets_t*>(ptr), component_debug_widgets_t{}); },
 				.fields =
 					{
@@ -3686,6 +3727,7 @@ namespace sfg
 				.name			 = "component_alive",
 				.display_name	 = "Alive",
 				.category		 = "Debug",
+				.icon			 = ICON_COMPONENT_ALIVE,
 				.default_init_fn = [](void*) {},
 				.type_id		 = type_id_t<component_alive_t>::value,
 				.size			 = sizeof(component_alive_t),
@@ -3700,6 +3742,7 @@ namespace sfg
 				.name			 = "component_disabled",
 				.display_name	 = "Disabled",
 				.category		 = "Debug",
+				.icon			 = ICON_COMPONENT_DISABLED,
 				.default_init_fn = [](void*) {},
 				.type_id		 = type_id_t<component_disabled_t>::value,
 				.size			 = sizeof(component_disabled_t),
@@ -3714,6 +3757,7 @@ namespace sfg
 				.name			 = "component_destroyer",
 				.display_name	 = "Destroyer",
 				.category		 = "Gameplay",
+				.icon			 = ICON_COMPONENT_DESTROYER,
 				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_destroyer_t*>(ptr), component_destroyer_t{}); },
 				.fields =
 					{
@@ -3761,6 +3805,7 @@ namespace sfg
 				.name			 = "component_no_serialize",
 				.display_name	 = "No Serialize",
 				.category		 = "Debug",
+				.icon			 = ICON_COMPONENT_NO_SERIALIZE,
 				.default_init_fn = [](void*) {},
 				.type_id		 = type_id_t<component_no_serialize_t>::value,
 				.size			 = sizeof(component_no_serialize_t),

@@ -24,6 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
 #include "editor_command_system.hpp"
+#include "assets/editor_asset.hpp"
 #include <sfg/data/istream.hpp>
 #include <sfg/data/ostream.hpp>
 #include <sfg/io/assert.hpp>
@@ -32,6 +33,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/resources/world_cook.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/runtime/world/ecs.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 
 namespace sfg
 {
@@ -134,21 +137,75 @@ namespace sfg
 
 		bool create_entity_redo(editor_command_system_t& system, editor_command_t& command)
 		{
-			editor_command_create_entity_payload_t& payload = system.get_payload_as<editor_command_create_entity_payload_t>(command);
-			world_t&								world	= editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
-			const entity_id_t						entity	= world.create_entity(payload.name, payload.guid);
+			editor_command_create_entity_payload_t& payload		 = system.get_payload_as<editor_command_create_entity_payload_t>(command);
+			editor_world_t&							editor_world = *editor_world_controller_t::get().get_editor_world(payload.world);
+			world_t&								world		 = editor_world.get_world();
+			const entity_id_t						entity		 = world.create_entity(payload.name, payload.guid);
+
 			if (payload.parent != NULL_ENTITY_ID)
 				world.attach_to(entity, payload.parent);
+
+			switch (payload.preset)
+			{
+			case editor_entity_preset_e::camera:
+				world.get_component_table<component_camera_t>().add(entity);
+				world.get_component_table<component_post_process_t>().add(entity);
+				break;
+			case editor_entity_preset_e::directional_light:
+			case editor_entity_preset_e::point_light:
+			case editor_entity_preset_e::spot_light:
+			case editor_entity_preset_e::area_light: {
+				component_light_t& light = world.get_component_table<component_light_t>().add_or_get_as<component_light_t>(entity);
+				light.type				 = static_cast<light_type_e>(static_cast<u8>(payload.preset) - static_cast<u8>(editor_entity_preset_e::directional_light));
+				break;
+			}
+			case editor_entity_preset_e::ground:
+			case editor_entity_preset_e::character: {
+				const bool				   ground	= payload.preset == editor_entity_preset_e::ground;
+				component_mesh_renderer_t& renderer = world.get_component_table<component_mesh_renderer_t>().add_or_get_as<component_mesh_renderer_t>(entity);
+				renderer.mesh						= ground ? DEFAULT_MESH_PLANE_GUID : DEFAULT_MESH_CAPSULE_GUID;
+				renderer.materials.resize(0);
+				renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
+
+				if (ground)
+				{
+					world.set_entity_scale_local(entity, {10.0f, 1.0f, 10.0f});
+
+					component_physical_t& physical = world.get_component_table<component_physical_t>().add_or_get_as<component_physical_t>(entity);
+					physical.shape				   = physics_shape_type_e::box;
+					physical.motion_type		   = physics_motion_type_e::static_body;
+					physical.half_extent		   = {0.5f, 0.05f, 0.5f};
+					physical.local_position		   = {0.0f, -0.05f, 0.0f};
+				}
+				else
+				{
+					component_character_mover_t& mover = world.get_component_table<component_character_mover_t>().add_or_get_as<component_character_mover_t>(entity);
+					mover.radius					   = 0.5f;
+					mover.half_height				   = 0.5f;
+
+					world.set_entity_pos_local(entity, {0.0f, 1.0f, 0.0f});
+				}
+
+				world.scan_for_resources(entity, true);
+				break;
+			}
+			case editor_entity_preset_e::empty:
+				break;
+			}
+
 			payload.guid   = world.get_entity_guid(entity);
 			payload.entity = entity;
+
 			if (payload.folder_guid != 0)
 			{
-				editor_world_edit_context_t&	   metadata = editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context();
+				editor_world_edit_context_t&	   metadata = editor_world.get_edit_context();
 				const editor_world_folder_handle_t folder	= metadata.get_folder_handle(payload.folder_guid);
+
 				if (!folder.is_null())
 					metadata.assign_entities_to_folder(folder, {.data = &payload.guid, .size = 1});
 			}
-			editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context().apply_entity_selection({.data = &payload.entity, .size = 1}, payload.entity);
+
+			editor_world.get_edit_context().apply_entity_selection({.data = &payload.entity, .size = 1}, payload.entity);
 			return true;
 		}
 
@@ -362,10 +419,11 @@ namespace sfg
 		}
 	}
 
-	entity_id_t editor_commands_entity_t::create(editor_world_handle_t world, entity_id_t parent, editor_world_folder_handle_t folder)
+	entity_id_t editor_commands_entity_t::create(editor_world_handle_t world, entity_id_t parent, editor_world_folder_handle_t folder, editor_entity_preset_e preset)
 	{
 		editor_world_t*				 editor_world = editor_world_controller_t::get().get_editor_world(world);
 		editor_world_edit_context_t& context	  = editor_world->get_edit_context();
+
 		if (parent != NULL_ENTITY_ID && !context.is_entity_child_insertion_allowed(editor_world->get_world(), parent))
 			return NULL_ENTITY_ID;
 
@@ -380,9 +438,39 @@ namespace sfg
 		payload.previous_anchor						   = context.get_entity_anchor();
 		payload.folder_guid							   = folder.is_null() ? 0 : editor_world_controller_t::get().get_editor_world(world)->get_edit_context().get_folder(folder).guid;
 		payload.previous_selection_count			   = static_cast<u32>(selection.size);
-		const char*	 entity_name					   = "Entity";
-		const size_t entity_len						   = std::strlen(entity_name);
-		const size_t entity_n						   = entity_len < EDITOR_ENTITY_COMMAND_NAME_SIZE - 1 ? entity_len : EDITOR_ENTITY_COMMAND_NAME_SIZE - 1;
+		payload.preset								   = preset;
+
+		const char* entity_name = "Entity";
+
+		switch (preset)
+		{
+		case editor_entity_preset_e::camera:
+			entity_name = "Camera";
+			break;
+		case editor_entity_preset_e::directional_light:
+			entity_name = "Directional Light";
+			break;
+		case editor_entity_preset_e::point_light:
+			entity_name = "Point Light";
+			break;
+		case editor_entity_preset_e::spot_light:
+			entity_name = "Spot Light";
+			break;
+		case editor_entity_preset_e::area_light:
+			entity_name = "Area Light";
+			break;
+		case editor_entity_preset_e::ground:
+			entity_name = "Ground";
+			break;
+		case editor_entity_preset_e::character:
+			entity_name = "Character";
+			break;
+		case editor_entity_preset_e::empty:
+			break;
+		}
+
+		const size_t entity_len = std::strlen(entity_name);
+		const size_t entity_n	= entity_len < EDITOR_ENTITY_COMMAND_NAME_SIZE - 1 ? entity_len : EDITOR_ENTITY_COMMAND_NAME_SIZE - 1;
 		SFG_MEMCPY(payload.name, entity_name, entity_n);
 		payload.name[entity_n] = '\0';
 
@@ -397,6 +485,7 @@ namespace sfg
 		};
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+
 		if (handle.is_null())
 		{
 			SFG_ERR("failed to issue create entity command");

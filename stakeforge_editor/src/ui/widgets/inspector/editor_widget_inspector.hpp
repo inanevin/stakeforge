@@ -44,6 +44,7 @@ namespace sfg
 	class editor_command_system_t;
 	class world_t;
 	class editor_widget_entity_info_t;
+	class editor_modal_component_add_t;
 	struct editor_command_listener_tag_t;
 	struct editor_command_t;
 
@@ -104,12 +105,6 @@ namespace sfg
 			bool  folded  = false;
 		};
 
-		struct add_component_menu_category_t
-		{
-			vector_t<editor_action_menu_row_desc_t> rows	 = {};
-			const char*								category = nullptr;
-		};
-
 	private:
 		void					   save_display_state();
 		void					   clear_display();
@@ -119,7 +114,7 @@ namespace sfg
 		component_display_state_t* find_component_display_state(sid_t type_id);
 		void					   open_entity_info_action_menu(const vec2f_t& pos);
 		void					   open_component_action_menu(const vec2f_t& pos, sid_t type_id);
-		void					   open_add_component_action_menu(const vec2f_t& pos);
+		void					   open_add_component_modal();
 		void					   create_add_component_button();
 		void					   copy_entity_info();
 		void					   copy_component(sid_t type_id);
@@ -146,7 +141,6 @@ namespace sfg
 		static void													  on_component_settings_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void													  on_component_action_menu_command(u16 command, void* user_data);
 		static void													  on_add_component_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
-		static void													  on_add_component_action_menu_command(u16 command, void* user_data);
 		static void													  on_component_edit_begin(void* user_data);
 		static void													  on_component_edit_submitted(void* user_data);
 		static span_t<const editor_widget_reflection_dropdown_item_t> resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, u32 element_index, void* user_data);
@@ -158,9 +152,6 @@ namespace sfg
 		vector_t<component_display_state_t>				   _component_states			= {};
 		vector_t<editor_widget_reflection_fold_state_t>	   _field_states				= {};
 		vector_t<component_display_t>					   _component_displays			= {};
-		vector_t<add_component_menu_category_t>			   _add_component_categories	= {};
-		vector_t<editor_action_menu_row_desc_t>			   _add_component_root_rows		= {};
-		vector_t<sid_t>									   _add_component_types			= {};
 		vector_t<entity_id_t>							   _display_entities			= {};
 		vector_t<entity_id_t>							   _entity_info_edit_entities	= {};
 		vector_t<editor_entity_info_data_t>				   _entity_info_edit_prev_infos = {};
@@ -169,6 +160,7 @@ namespace sfg
 		editor_widget_fold_t*							   _entity_info_fold			= nullptr;
 		editor_widget_entity_info_t*					   _entity_info					= nullptr;
 		editor_widget_button_t*							   _add_component_button		= nullptr;
+		editor_modal_component_add_t*					   _component_modal				= nullptr;
 		ui::ui_context*									   _ui							= nullptr;
 		ui::widget_id_t									   _root						= NULL_WIDGET;
 		ui::widget_id_t									   _column						= NULL_WIDGET;

@@ -31,17 +31,30 @@ namespace sfg
 {
 #define EDITOR_ENTITY_COMMAND_NAME_SIZE 64
 
+	enum class editor_entity_preset_e : u8
+	{
+		empty,
+		camera,
+		directional_light,
+		point_light,
+		spot_light,
+		area_light,
+		ground,
+		character,
+	};
+
 	struct editor_command_create_entity_payload_t
 	{
-		chunk_handle32_t	  previous_selection					= {};
-		editor_world_handle_t world									= {};
-		entity_id_t			  parent								= NULL_ENTITY_ID;
-		entity_id_t			  entity								= NULL_ENTITY_ID;
-		entity_id_t			  previous_anchor						= NULL_ENTITY_ID;
-		entity_guid_t		  guid									= NULL_ENTITY_GUID;
-		u64					  folder_guid							= 0;
-		u32					  previous_selection_count				= 0;
-		char				  name[EDITOR_ENTITY_COMMAND_NAME_SIZE] = {};
+		chunk_handle32_t	   previous_selection					 = {};
+		editor_world_handle_t  world								 = {};
+		entity_id_t			   parent								 = NULL_ENTITY_ID;
+		entity_id_t			   entity								 = NULL_ENTITY_ID;
+		entity_id_t			   previous_anchor						 = NULL_ENTITY_ID;
+		entity_guid_t		   guid									 = NULL_ENTITY_GUID;
+		u64					   folder_guid							 = 0;
+		u32					   previous_selection_count				 = 0;
+		char				   name[EDITOR_ENTITY_COMMAND_NAME_SIZE] = {};
+		editor_entity_preset_e preset								 = editor_entity_preset_e::empty;
 	};
 
 	struct editor_command_duplicate_entity_payload_t
@@ -82,7 +95,7 @@ namespace sfg
 	public:
 		editor_commands_entity_t() = delete;
 
-		static entity_id_t create(editor_world_handle_t world, entity_id_t parent, editor_world_folder_handle_t folder = {});
+		static entity_id_t create(editor_world_handle_t world, entity_id_t parent, editor_world_folder_handle_t folder = {}, editor_entity_preset_e preset = editor_entity_preset_e::empty);
 		static entity_id_t duplicate(editor_world_handle_t world, entity_id_t entity);
 		static bool		   duplicate(editor_world_handle_t world, const frame_vector_t<entity_id_t>& entities, frame_vector_t<entity_id_t>& out_entities);
 		static bool		   destroy(editor_world_handle_t world, entity_id_t entity);

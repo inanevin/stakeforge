@@ -32,6 +32,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/reflection/reflection_icons.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
@@ -179,7 +180,13 @@ namespace sfg
 				display.objects.push_back(component_table.get(entity));
 
 			component_display_state_t* state = find_component_display_state(display.type_id);
-			display.fold->init(*_ui, _column, {.label = reflected_type->display_name != nullptr ? reflected_type->display_name : reflected_type->name, .folded = state != nullptr && state->folded, .settings_button = !prefab_blocked});
+
+			display.fold->init(*_ui,
+							   _column,
+							   {.label			 = reflected_type->display_name != nullptr ? reflected_type->display_name : reflected_type->name,
+								.icon			 = reflected_type->icon[0] != '\0' ? reflected_type->icon : ICON_COMPONENT_GENERIC,
+								.folded			 = state != nullptr && state->folded,
+								.settings_button = !prefab_blocked});
 			display.reflect->init(*_ui,
 								  display.fold->get_body(),
 								  {

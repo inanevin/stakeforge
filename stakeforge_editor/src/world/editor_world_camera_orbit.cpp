@@ -59,6 +59,7 @@ namespace sfg
 		world.destroy_entity(_camera_entity);
 
 		_camera_entity		  = NULL_ENTITY_ID;
+		_camera_roll_degrees  = 0.0f;
 		_target				  = vec3f_t::zero;
 		_mouse_delta		  = vec2f_t::zero;
 		_camera_yaw_degrees	  = 0.0f;
@@ -76,6 +77,7 @@ namespace sfg
 			const vec2f_t angles   = get_camera_angles(rotation);
 
 			_camera_pitch_degrees = angles.x;
+			_camera_roll_degrees  = 0.0f;
 			_camera_yaw_degrees	  = angles.y;
 			_target				  = world.get_entity_pos_local(_camera_entity) + rotation.get_forward() * _distance;
 			_distance_target	  = _distance;
@@ -125,6 +127,7 @@ namespace sfg
 		const vec2f_t angles = get_camera_angles(target_rotation);
 
 		_camera_pitch_degrees = angles.x;
+		_camera_roll_degrees  = 0.0f;
 		_camera_yaw_degrees	  = angles.y;
 		_target				  = (bounds.bounds_min + bounds.bounds_max) * 0.5f;
 		_distance			  = vec3f_t::distance(_target, target_position);
@@ -157,12 +160,14 @@ namespace sfg
 	{
 		const vec3f_t& position = world.get_entity_pos_local(_camera_entity);
 		const quat_t&  rotation = world.get_entity_rot_local(_camera_entity);
-		out_json				= {
+
+		out_json = {
 			{"position", {{"x", position.x}, {"y", position.y}, {"z", position.z}}},
 			{"rotation", {{"x", rotation.x}, {"y", rotation.y}, {"z", rotation.z}, {"w", rotation.w}}},
 			{"target", {{"x", _target.x}, {"y", _target.y}, {"z", _target.z}}},
 			{"yaw_degrees", _camera_yaw_degrees},
 			{"pitch_degrees", _camera_pitch_degrees},
+			{"roll_degrees", _camera_roll_degrees},
 			{"distance", _distance},
 			{"distance_target", _distance_target},
 			{"distance_velocity", _distance_velocity},
@@ -178,34 +183,56 @@ namespace sfg
 
 		const nlohmann::json position_json = in_json.value<nlohmann::json>("position", nlohmann::json::object());
 		const nlohmann::json rotation_json = in_json.value<nlohmann::json>("rotation", nlohmann::json::object());
-		position.x						   = position_json.value<f32>("x", position.x);
-		position.y						   = position_json.value<f32>("y", position.y);
-		position.z						   = position_json.value<f32>("z", position.z);
-		rotation.x						   = rotation_json.value<f32>("x", rotation.x);
-		rotation.y						   = rotation_json.value<f32>("y", rotation.y);
-		rotation.z						   = rotation_json.value<f32>("z", rotation.z);
-		rotation.w						   = rotation_json.value<f32>("w", rotation.w);
 
-		const vec3f_t euler	  = quat_t::to_euler(rotation);
+		position.x = position_json.value<f32>("x", position.x);
+		position.y = position_json.value<f32>("y", position.y);
+		position.z = position_json.value<f32>("z", position.z);
+		rotation.x = rotation_json.value<f32>("x", rotation.x);
+		rotation.y = rotation_json.value<f32>("y", rotation.y);
+		rotation.z = rotation_json.value<f32>("z", rotation.z);
+		rotation.w = rotation_json.value<f32>("w", rotation.w);
+
+		const vec3f_t euler = quat_t::to_euler(rotation);
+
 		_camera_yaw_degrees	  = in_json.value<f32>("yaw_degrees", euler.y);
 		_camera_pitch_degrees = in_json.value<f32>("pitch_degrees", euler.x);
+		_camera_roll_degrees  = in_json.value<f32>("roll_degrees", euler.z);
 		_distance			  = in_json.value<f32>("distance", _distance);
 		_distance_target	  = in_json.value<f32>("distance_target", _distance);
 		_distance_velocity	  = in_json.value<f32>("distance_velocity", 0.0f);
 		_target				  = position + rotation.get_forward() * _distance;
 
 		const nlohmann::json target_json = in_json.value<nlohmann::json>("target", nlohmann::json::object());
-		_target.x						 = target_json.value<f32>("x", _target.x);
-		_target.y						 = target_json.value<f32>("y", _target.y);
-		_target.z						 = target_json.value<f32>("z", _target.z);
-		_mouse_delta					 = vec2f_t::zero;
+
+		_target.x	 = target_json.value<f32>("x", _target.x);
+		_target.y	 = target_json.value<f32>("y", _target.y);
+		_target.z	 = target_json.value<f32>("z", _target.z);
+		_mouse_delta = vec2f_t::zero;
+
 		apply_transform(world);
 	}
 
 	void editor_world_camera_orbit_t::apply_transform(world_t& world)
 	{
-		const quat_t rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f);
+		const quat_t rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, _camera_roll_degrees);
 		world.set_entity_rot_local(_camera_entity, rotation);
 		world.set_entity_pos_local(_camera_entity, _target - rotation.get_forward() * _distance);
+	}
+
+	void editor_world_camera_orbit_t::set_transform(world_t& world, const vec3f_t& position, const quat_t& rotation)
+	{
+		cancel_focus();
+
+		const vec3f_t angles = quat_t::to_euler(rotation);
+
+		_camera_pitch_degrees = angles.x;
+		_camera_yaw_degrees	  = angles.y;
+		_camera_roll_degrees  = angles.z;
+		_mouse_delta		  = vec2f_t::zero;
+		_target				  = position + rotation.get_forward() * _distance;
+		_distance_target	  = _distance;
+		_distance_velocity	  = 0.0f;
+
+		world.teleport_entity(_camera_entity, position, rotation, vec3f_t::one);
 	}
 }

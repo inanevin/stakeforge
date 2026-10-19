@@ -75,7 +75,7 @@ namespace sfg
 
 		ui::layout_in_t& root_in = tree.in(_root);
 
-		root_in.flags = ui::wf_visible | ui::wf_input;
+		root_in.flags = ui::wf_visible | ui::wf_input | ui::wf_focusable | ui::wf_key_click;
 
 		apply_editor_widget_width(root_in, config.width);
 

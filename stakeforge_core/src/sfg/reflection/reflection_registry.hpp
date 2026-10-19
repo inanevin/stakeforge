@@ -206,6 +206,7 @@ namespace sfg
 		const char*			   display_name	   = nullptr;
 		const char*			   category		   = nullptr;
 		const char*			   tooltip		   = nullptr;
+		char				   icon[8]		   = {};
 		fn_default_init		   default_init_fn = nullptr;
 		sid_t				   type_id		   = 0;
 		size_t				   size			   = 0;
@@ -220,6 +221,7 @@ namespace sfg
 		const char*							   display_name	   = nullptr;
 		const char*							   category		   = nullptr;
 		const char*							   tooltip		   = "";
+		char								   icon[8]		   = {};
 		fn_default_init						   default_init_fn = nullptr;
 		vector_t<reflected_field_descriptor_t> fields;
 		bitmask_opts_t						   bitmask_opts = {};

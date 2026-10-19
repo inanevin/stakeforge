@@ -36,6 +36,7 @@ namespace sfg
 	{
 		ui::vg_rect_paint_t background						  = {};
 		const char*			label							  = nullptr;
+		const char*			icon							  = nullptr;
 		void (*on_pressed)(void* user_data)					  = nullptr;
 		void (*on_fold_changed)(bool folded, void* user_data) = nullptr;
 		void* user_data										  = nullptr;

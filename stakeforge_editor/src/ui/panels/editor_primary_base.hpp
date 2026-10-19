@@ -23,6 +23,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "ui/docking/dock_widget.hpp"
 #include "ui/editor_main_toolbar.hpp"
+#include "ui/editor_modal_about.hpp"
 #include "ui/widgets/editor_widgets_file_menu.hpp"
 #include <sfg/math/vec2i16.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
@@ -58,6 +59,7 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void set_current_project_name(const char* name);
+		void show_about();
 		bool is_window_drag_region(const vec2i16_t& pos) const;
 
 		// -----------------------------------------------------------------------------
@@ -101,5 +103,6 @@ namespace sfg
 		dock_widget_t		  _dock_widget;
 		editor_file_menu_t	  _file_menu;
 		editor_main_toolbar_t _main_toolbar;
+		editor_modal_about_t  _about = {};
 	};
 }

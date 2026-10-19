@@ -21,6 +21,7 @@ in GAME-LINKING-EXCEPTION.md.
 */
 #include "ui/widgets/inspector/editor_widget_inspector.hpp"
 #include "world/editor_world_edit_context.hpp"
+#include "ui/editor_modal_component_add.hpp"
 #include "editor_command_system.hpp"
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
@@ -34,6 +35,7 @@ namespace sfg
 	{
 		_ui					 = &ui;
 		_allow_prefab_blocks = config.allow_prefab_blocks;
+		_component_modal	 = new editor_modal_component_add_t();
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -69,6 +71,10 @@ namespace sfg
 
 	void editor_widget_inspector_t::uninit()
 	{
+		_component_modal->close();
+		delete _component_modal;
+		_component_modal = nullptr;
+
 		editor_command_system_t::get().remove_listener(_command_listener);
 		clear_display();
 		_ui->deallocate_widget(_root);
@@ -91,6 +97,8 @@ namespace sfg
 
 	void editor_widget_inspector_t::set_edit_world(editor_world_handle_t world)
 	{
+		_component_modal->close();
+
 		_edit_world = world;
 	}
 

@@ -23,7 +23,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor_project.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
-#include "ui/widgets/editor_widgets_draws.hpp"
 
 #include <sfg/runtime/ui/ui_context.hpp>
 
@@ -51,38 +50,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	namespace
-	{
-		void draw_splash_strikes(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
-		{
-			ui::ui_context&			ui	  = *static_cast<ui::ui_context*>(user_data);
-			const editor_theme_t&	theme = editor_theme_t::get();
-			const ui::layout_out_t& out	  = ui.get_tree().out(id);
-
-			ui::ui_render_state_t state = {};
-			state.pipeline				= paint.get_pipelines().default_pipeline;
-			ui::vg_convex_paint_t p		= {};
-			p.fill_color_b				= theme.color_accent0;
-			p.fill_color_a				= theme.color_accent0_dim;
-			p.gradient					= ui::vg_gradient_e::vertical;
-			p.aa_thickness				= theme.aa_thickness;
-
-			canvas.push_clip({out.pos.x, out.pos.y, out.size.x, out.size.y}, ui::clip_mode_e::scissor_rect);
-
-			const f32 width		 = out.size.x * 0.08f;
-			const f32 lean		 = 0.35f;
-			const f32 x_start	 = out.pos.x + out.size.x * 0.65f;
-			const f32 y_start	 = out.pos.y;
-			const f32 height	 = out.size.y;
-			const f32 draw_order = ui.get_tree().draw_order_const(id);
-
-			editor_custom_draws_t::add_leaned_convex_rect(canvas, {x_start, y_start + height * 0.5f}, {width, height * 0.5f}, lean, p, state, draw_order);
-			editor_custom_draws_t::add_leaned_convex_rect(canvas, {x_start + width + width * 0.3f, y_start}, {width, height}, lean, p, state, draw_order);
-
-			canvas.pop_clip(ui::clip_mode_e::scissor_rect);
-		}
-	}
-
 	void editor_splash_screen_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_splash_screen_config_t& config)
 	{
 		_ui							= &ui;
@@ -121,21 +88,10 @@ namespace sfg
 		bg_state.constants[0].type	   = ui::ui_resource_type_e::texture;
 		paint.set_rect(_texture_bg, bg_rect, bg_state);
 
-		_strikes = ui.allocate_widget();
-		ui.set_widget_debug_name(_strikes, "splash_strikes");
-		tree.attach(_root, _strikes);
-		tree.draw_order(_strikes) = tree.draw_order_const(_root) + 1;
-
-		ui::layout_in_t& strikes_in = tree.in(_strikes);
-		strikes_in.size_mode_x		= ui::axis_mode_e::parent_relative;
-		strikes_in.size_mode_y		= ui::axis_mode_e::parent_relative;
-		strikes_in.size_value		= {1.0f, 1.0f};
-		paint.set_custom(_strikes, draw_splash_strikes, &ui);
-
 		_column = ui.allocate_widget();
 		ui.set_widget_debug_name(_column, "splash_column");
 		tree.attach(_root, _column);
-		tree.draw_order(_column) = tree.draw_order_const(_root) + 2;
+		tree.draw_order(_column) = tree.draw_order_const(_root) + 1;
 
 		ui::layout_in_t& column_in = tree.in(_column);
 		column_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
@@ -224,7 +180,6 @@ namespace sfg
 		_ui			  = nullptr;
 		_root		  = NULL_WIDGET;
 		_texture_bg	  = NULL_WIDGET;
-		_strikes	  = NULL_WIDGET;
 		_column		  = NULL_WIDGET;
 		_title		  = NULL_WIDGET;
 		_version	  = NULL_WIDGET;

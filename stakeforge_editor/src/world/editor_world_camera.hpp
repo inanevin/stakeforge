@@ -72,10 +72,11 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		virtual void pass_input(world_t& world, const editor_world_camera_input_t& input) = 0;
-		virtual void tick(world_t& world, f32 dt_seconds)								  = 0;
-		virtual void serialize(const world_t& world, nlohmann::json& out_json) const	  = 0;
-		virtual void deserialize(world_t& world, const nlohmann::json& in_json)			  = 0;
+		virtual void pass_input(world_t& world, const editor_world_camera_input_t& input)			= 0;
+		virtual void set_transform(world_t& world, const vec3f_t& position, const quat_t& rotation) = 0;
+		virtual void tick(world_t& world, f32 dt_seconds)											= 0;
+		virtual void serialize(const world_t& world, nlohmann::json& out_json) const				= 0;
+		virtual void deserialize(world_t& world, const nlohmann::json& in_json)						= 0;
 		virtual void fit_to_bounds(world_t& world, const aabb_t& bounds)
 		{
 		}

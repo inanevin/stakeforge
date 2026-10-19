@@ -57,6 +57,7 @@ namespace sfg
 		world.destroy_entity(_camera_entity);
 
 		_camera_entity		  = NULL_ENTITY_ID;
+		_camera_roll_degrees  = 0.0f;
 		_direction_input	  = vec3f_t::zero;
 		_mouse_delta		  = vec2f_t::zero;
 		_camera_yaw_degrees	  = 0.0f;
@@ -71,6 +72,7 @@ namespace sfg
 			const vec2f_t angles = get_camera_angles(world.get_entity_rot_local(_camera_entity));
 
 			_camera_pitch_degrees = angles.x;
+			_camera_roll_degrees  = 0.0f;
 			_camera_yaw_degrees	  = angles.y;
 		}
 
@@ -104,7 +106,7 @@ namespace sfg
 
 		_mouse_delta = vec2f_t::zero;
 
-		const quat_t rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f);
+		const quat_t rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, _camera_roll_degrees);
 		world.set_entity_rot_local(_camera_entity, rotation);
 
 		vec3f_t move_dir = rotation.get_forward() * _direction_input.z + rotation.get_right() * _direction_input.x + vec3f_t::up * _direction_input.y;
@@ -129,6 +131,7 @@ namespace sfg
 			{"rotation", {{"x", rotation.x}, {"y", rotation.y}, {"z", rotation.z}, {"w", rotation.w}}},
 			{"yaw_degrees", _camera_yaw_degrees},
 			{"pitch_degrees", _camera_pitch_degrees},
+			{"roll_degrees", _camera_roll_degrees},
 			{"move_speed", _current_move_speed},
 		};
 	}
@@ -151,14 +154,16 @@ namespace sfg
 		rotation.z = rotation_json.value<f32>("z", rotation.z);
 		rotation.w = rotation_json.value<f32>("w", rotation.w);
 
-		const vec3f_t euler	  = quat_t::to_euler(rotation);
+		const vec3f_t euler = quat_t::to_euler(rotation);
+
 		_camera_yaw_degrees	  = in_json.value<f32>("yaw_degrees", euler.y);
 		_camera_pitch_degrees = in_json.value<f32>("pitch_degrees", euler.x);
+		_camera_roll_degrees  = in_json.value<f32>("roll_degrees", euler.z);
 		_current_move_speed	  = in_json.value<f32>("move_speed", EDITOR_WORLD_CAMERA_FLY_BASE_MOVE_SPEED);
 		_direction_input	  = vec3f_t::zero;
 		_mouse_delta		  = vec2f_t::zero;
 
-		world.teleport_entity(_camera_entity, position, quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, 0.0f), vec3f_t::one);
+		world.teleport_entity(_camera_entity, position, quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, _camera_roll_degrees), vec3f_t::one);
 	}
 
 	void editor_world_camera_fly_t::fit_to_bounds(world_t& world, const aabb_t& bounds)
@@ -171,11 +176,27 @@ namespace sfg
 		const vec2f_t angles = get_camera_angles(target_rotation);
 
 		_camera_pitch_degrees = angles.x;
+		_camera_roll_degrees  = 0.0f;
 		_camera_yaw_degrees	  = angles.y;
 		_direction_input	  = vec3f_t::zero;
 		_mouse_delta		  = vec2f_t::zero;
 		// world.set_entity_pos_local(_camera_entity, center - rotation.get_forward() * distance);
 
 		begin_focus(world, target_position, target_rotation);
+	}
+
+	void editor_world_camera_fly_t::set_transform(world_t& world, const vec3f_t& position, const quat_t& rotation)
+	{
+		cancel_focus();
+
+		const vec3f_t angles = quat_t::to_euler(rotation);
+
+		_camera_pitch_degrees = angles.x;
+		_camera_yaw_degrees	  = angles.y;
+		_camera_roll_degrees  = angles.z;
+		_mouse_delta		  = vec2f_t::zero;
+		_direction_input	  = vec3f_t::zero;
+
+		world.teleport_entity(_camera_entity, position, rotation, vec3f_t::one);
 	}
 }

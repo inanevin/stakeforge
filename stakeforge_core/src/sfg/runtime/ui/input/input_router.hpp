@@ -128,6 +128,8 @@ namespace sfg::ui
 							 popup_hover_policy_e		  hover_policy		   = popup_hover_policy_e::block_outside,
 							 popup_outside_press_policy_e outside_press_policy = popup_outside_press_policy_e::consume);
 		void clear_popup_scope();
+		void set_focus_scope(widget_id_t root);
+		void clear_focus_scope();
 
 		// -----------------------------------------------------------------------------
 		// events
@@ -219,11 +221,13 @@ namespace sfg::ui
 		widget_id_t	   _pressed[static_cast<u32>(mouse_button_e::count)]	   = {NULL_WIDGET, NULL_WIDGET, NULL_WIDGET};
 		click_record_t _last_click[static_cast<u32>(mouse_button_e::count)]	   = {};
 
-		vec2f_t		  _mouse	   = {0, 0};
-		vec2f_t		  _mouse_prev  = {0, 0};
-		f32			  _accum_time  = 0.0f;
-		widget_id_t	  _hovered	   = NULL_WIDGET;
-		widget_id_t	  _focused	   = NULL_WIDGET;
-		popup_scope_t _popup_scope = {};
+		vec2f_t		  _mouse				= {0, 0};
+		vec2f_t		  _mouse_prev			= {0, 0};
+		f32			  _accum_time			= 0.0f;
+		widget_id_t	  _hovered				= NULL_WIDGET;
+		widget_id_t	  _focused				= NULL_WIDGET;
+		popup_scope_t _popup_scope			= {};
+		widget_id_t	  _focus_scope			= NULL_WIDGET;
+		widget_id_t	  _previous_scope_focus = NULL_WIDGET;
 	};
 }

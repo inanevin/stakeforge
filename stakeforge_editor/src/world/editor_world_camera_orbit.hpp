@@ -48,6 +48,7 @@ namespace sfg
 
 		void pass_input(world_t& world, const editor_world_camera_input_t& input) override;
 		void tick(world_t& world, f32 dt_seconds) override;
+		void set_transform(world_t& world, const vec3f_t& position, const quat_t& rotation) override;
 		void serialize(const world_t& world, nlohmann::json& out_json) const override;
 		void deserialize(world_t& world, const nlohmann::json& in_json) override;
 		void fit_to_bounds(world_t& world, const aabb_t& bounds) override;
@@ -70,6 +71,7 @@ namespace sfg
 		entity_id_t _camera_entity		  = NULL_ENTITY_ID;
 		f32			_camera_yaw_degrees	  = 0.0f;
 		f32			_camera_pitch_degrees = 25.0f;
+		f32			_camera_roll_degrees  = 0.0f;
 		f32			_distance			  = 8.0f;
 		f32			_distance_target	  = 8.0f;
 		f32			_distance_velocity	  = 0.0f;

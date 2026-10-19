@@ -907,6 +907,7 @@ namespace sfg
 		SFG_ASSERT(descriptor.owner != reflection_owner_e::game_scripts || is_script_capacity_valid(_types.size() - _script_type_begin + 1, _fields.size() - _script_field_begin + descriptor.fields.size()));
 
 		const reflected_type_t* existing_type = find_type(descriptor.type_id);
+
 		if (existing_type != nullptr)
 		{
 			SFG_WARN("reflection type already exists! {0}", existing_type->name);
@@ -933,6 +934,7 @@ namespace sfg
 		type.flags		  = descriptor.flags;
 		type.bitmask_opts = descriptor.bitmask_opts;
 		type.owner		  = descriptor.owner;
+		SFG_MEMCPY(type.icon, descriptor.icon, sizeof(type.icon));
 
 		if (descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 		{

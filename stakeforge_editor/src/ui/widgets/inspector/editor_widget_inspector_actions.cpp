@@ -24,6 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor_world_controller.hpp"
 #include "world/editor_world.hpp"
 #include "ui/editor_action_menu_controller.hpp"
+#include "ui/editor_modal_component_add.hpp"
 #include "ui/panels/editor_theme.hpp"
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
@@ -109,69 +110,15 @@ namespace sfg
 		menu->request_action_menu(desc);
 	}
 
-	void editor_widget_inspector_t::open_add_component_action_menu(const vec2f_t& pos)
+	void editor_widget_inspector_t::open_add_component_modal()
 	{
-		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
-
-		_add_component_categories.resize(0);
-		_add_component_root_rows.resize(0);
-		_add_component_types.resize(0);
-
-		world_t&							   world			= editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
-		const vector_t<ecs_component_table_t>& component_tables = world.get_component_tables();
-		_add_component_categories.reserve(component_tables.size());
-		_add_component_types.reserve(component_tables.size());
-
-		for (const ecs_component_table_t& component_table : component_tables)
-		{
-			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component_table.get_type_desc().type_id);
-
-			if (reflected_type == nullptr || reflected_type->flags.is_set(reflected_type_flag_no_ui))
-				continue;
-
-			const char*					   category			= reflected_type->category != nullptr ? reflected_type->category : "Component";
-			add_component_menu_category_t* category_storage = nullptr;
-
-			for (add_component_menu_category_t& candidate : _add_component_categories)
-			{
-				if (std::strcmp(candidate.category, category) == 0)
-				{
-					category_storage = &candidate;
-					break;
-				}
-			}
-
-			if (category_storage == nullptr)
-			{
-				_add_component_categories.push_back({.category = category});
-				category_storage = &_add_component_categories.back();
-			}
-
-			_add_component_types.push_back(component_table.get_type_desc().type_id);
-			category_storage->rows.push_back({.text = reflected_type->display_name != nullptr ? reflected_type->display_name : reflected_type->name, .command = static_cast<u16>(_add_component_types.size())});
-		}
-
-		_add_component_root_rows.reserve(_add_component_categories.size());
-
-		for (add_component_menu_category_t& category : _add_component_categories)
-		{
-			if (category.rows.empty())
-				continue;
-
-			_add_component_root_rows.push_back({.text = category.category, .children = category.rows.data(), .child_count = static_cast<u16>(category.rows.size())});
-		}
-
-		if (_add_component_root_rows.empty())
+		if (_allow_prefab_blocks && is_selection_prefab_child())
 			return;
 
-		editor_action_menu_desc_t desc = {};
-		desc.rows					   = _add_component_root_rows.data();
-		desc.row_count				   = static_cast<u16>(_add_component_root_rows.size());
-		desc.pos					   = pos;
-		desc.style					   = make_default_action_menu_style(editor_theme_t::get());
-		desc.command_fn				   = on_add_component_action_menu_command;
-		desc.command_user_data		   = this;
-		menu->request_action_menu(desc);
+		const span_t<const entity_id_t> entities = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_selected_entities();
+
+		if (entities.size != 0)
+			_component_modal->open(*_ui, _edit_world, entities);
 	}
 
 	void editor_widget_inspector_t::create_add_component_button()

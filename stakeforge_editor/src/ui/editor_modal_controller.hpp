@@ -64,7 +64,8 @@ namespace sfg
 	class editor_modal_controller_t final
 	{
 	public:
-		static constexpr u32 MAX_CONTROLLERS = 16;
+		static constexpr u32 MAX_CONTROLLERS	   = 16;
+		static constexpr f32 DEFAULT_FRAME_WIDTH_X = 0.4f;
 
 		editor_modal_controller_t()												   = default;
 		~editor_modal_controller_t()											   = default;

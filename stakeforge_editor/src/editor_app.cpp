@@ -487,7 +487,9 @@ namespace sfg
 					.fn =
 						[](editor_work_context_t& context, void* user_data) {
 							editor_app_t& app = *static_cast<editor_app_t*>(user_data);
-
+							while (true)
+							{
+							};
 							return editor_asset_manager_util_t::ensure_project_assets(app._asset_manager, context);
 						},
 					.completed =
