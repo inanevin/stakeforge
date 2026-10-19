@@ -57,6 +57,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/SphereShape.h>
 #include <Jolt/Physics/Constraints/SwingTwistConstraint.h>
+#include <Jolt/Physics/Constraints/PointConstraint.h>
 #include <Jolt/Physics/Ragdoll/Ragdoll.h>
 
 namespace sfg
@@ -268,6 +269,8 @@ namespace sfg
 		vector_t<entity_id_t>							 _sync_entities;
 		chunk_allocator32_t								 _ragdoll_pose_memory;
 		resource_reload_listener_handle_t				 _resource_reload_listener = {};
+		JPH::Ref<JPH::PointConstraint>					 _ragdoll_drag			   = nullptr;
+		entity_id_t										 _drag_entity			   = NULL_ENTITY_ID;
 		f32												 _accumulator			   = 0.0f;
 		u32												 _next_ragdoll_group_id	   = 1;
 
@@ -338,11 +341,7 @@ namespace sfg
 				bool							  recreate		 = resource_type == resource_type_e::ragdoll && system_ragdoll.ragdoll_resource == resource_id;
 				recreate |= resource_type == resource_type_e::skeleton && system_ragdoll.skeleton == resource_id;
 
-				if (resource_type == resource_type_e::physical_material)
-				{
-					const ragdoll_runtime_t* ragdoll_resource = resource_manager.find_runtime<ragdoll_runtime_t>(system_ragdoll.ragdoll_resource);
-					recreate |= ragdoll_resource != nullptr && ragdoll_resource->physical_material == resource_id;
-				}
+				recreate |= resource_type == resource_type_e::physical_material && system_ragdoll.physical_material == resource_id;
 
 				if (recreate)
 					impl._sync_entities.push_back(row.id);
@@ -542,6 +541,14 @@ namespace sfg
 			if (resource == nullptr)
 				return false;
 
+			return create_ragdoll(entity, component, *resource, resource_manager.get_memory().get<ragdoll_part_runtime_t>(resource->parts));
+		}
+
+		bool create_ragdoll(entity_id_t entity, const component_ragdoll_t& component, const ragdoll_runtime_t& definition, const ragdoll_part_runtime_t* resource_parts)
+		{
+			resource_manager_t&		 resource_manager = resource_manager_t::get();
+			const ragdoll_runtime_t* resource		  = &definition;
+
 			const ecs_component_table_t&			 skinned_table = _world->get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
 			const component_skinned_mesh_renderer_t& skinned	   = skinned_table.get_as_const<component_skinned_mesh_renderer_t>(entity);
 
@@ -559,7 +566,6 @@ namespace sfg
 			_world->calculate_transform_direct(entity);
 
 			chunk_allocator32_t&							resource_memory		   = resource_manager.get_memory();
-			const ragdoll_part_runtime_t*					resource_parts		   = resource_memory.get<ragdoll_part_runtime_t>(resource->parts);
 			const skeleton_joint_runtime_t*					joints				   = resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
 			const ecs_component_table_t&					system_transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
 			const component_system_transform_t&				transform			   = system_transform_table.get_as_const<component_system_transform_t>(entity);
@@ -688,6 +694,12 @@ namespace sfg
 				};
 			}
 
+			u32*				   part_joints		  = nullptr;
+			const chunk_handle32_t part_joints_handle = _ragdoll_pose_memory.allocate<u32>(resource->part_count, part_joints);
+
+			for (u32 part_index = 0; part_index < resource->part_count; ++part_index)
+				part_joints[part_index] = resource_parts[part_index].joint_index;
+
 			vec3f_t root_position = vec3f_t::zero;
 			quat_t	root_rotation = quat_t::identity;
 			vec3f_t root_scale	  = vec3f_t::one;
@@ -706,7 +718,9 @@ namespace sfg
 					},
 				.frozen_local_pose = frozen_local_pose_handle,
 				.joint_global_pose = joint_global_pose_handle,
+				.part_joints	   = part_joints_handle,
 				.ragdoll_resource  = component.ragdoll,
+				.physical_material = resource->physical_material,
 				.skeleton		   = resource->target_skeleton,
 				.joint_count	   = skeleton->joint_count,
 				.collision_layer   = component.collision_layer,
@@ -717,6 +731,9 @@ namespace sfg
 
 		void destroy_ragdoll(entity_id_t entity, bool reset_animation = true)
 		{
+			if (_drag_entity == entity)
+				end_ragdoll_drag();
+
 			ecs_component_table_t&		system_ragdoll_table = _world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
 			component_system_ragdoll_t& system_ragdoll		 = system_ragdoll_table.get_as<component_system_ragdoll_t>(entity);
 
@@ -730,12 +747,27 @@ namespace sfg
 
 			system_ragdoll.ragdoll->RemoveFromPhysicsSystem();
 			system_ragdoll.ragdoll->Release();
+			_ragdoll_pose_memory.free(system_ragdoll.part_joints);
 			_ragdoll_pose_memory.free(system_ragdoll.joint_global_pose);
 			_ragdoll_pose_memory.free(system_ragdoll.frozen_local_pose);
 			system_ragdoll_table.remove(entity);
 
+			if (reset_animation)
+				_world->get_animation_processor().reset_skinning_pose(entity);
+
 			// if (reset_animation)
 			// 	_world->get_animation_controller().reset_pose_after_ragdoll(entity);
+		}
+
+		void end_ragdoll_drag()
+		{
+			if (_ragdoll_drag == nullptr)
+				return;
+
+			_system->GetBodyInterface().ActivateBody(_ragdoll_drag->GetBody1()->GetID());
+			_system->RemoveConstraint(_ragdoll_drag);
+			_ragdoll_drag = nullptr;
+			_drag_entity  = NULL_ENTITY_ID;
 		}
 
 		void sync_ragdoll_create_destroy()
@@ -1266,13 +1298,12 @@ namespace sfg
 			{
 				component_system_ragdoll_t&	  system_ragdoll   = row.get_mutable<component_system_ragdoll_t>(0);
 				component_system_transform_t& system_transform = row.get_mutable<component_system_transform_t>(1);
-				const ragdoll_runtime_t*	  resource		   = resource_manager.find_runtime<ragdoll_runtime_t>(system_ragdoll.ragdoll_resource);
 				const skeleton_runtime_t*	  skeleton		   = resource_manager.find_runtime<skeleton_runtime_t>(system_ragdoll.skeleton);
 
-				SFG_ASSERT(resource != nullptr);
 				SFG_ASSERT(skeleton != nullptr);
 
-				const ragdoll_part_runtime_t*	parts			 = resource_memory.get<ragdoll_part_runtime_t>(resource->parts);
+				const u32*						part_joints		 = _ragdoll_pose_memory.get<u32>(system_ragdoll.part_joints);
+				const u32						part_count		 = static_cast<u32>(system_ragdoll.ragdoll->GetBodyCount());
 				const skeleton_joint_runtime_t* joints			 = resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
 				const u32*						evaluation_order = resource_memory.get<u32>(skeleton->evaluation_order);
 				mat4x3_t*						joint_globals	 = _ragdoll_pose_memory.get<mat4x3_t>(system_ragdoll.joint_global_pose);
@@ -1287,7 +1318,7 @@ namespace sfg
 
 				mat4x3_t part_world[RAGDOLL_PART_MAX] = {};
 
-				for (u32 part_index = 0; part_index < resource->part_count; ++part_index)
+				for (u32 part_index = 0; part_index < part_count; ++part_index)
 				{
 					const JPH::Mat44& pose		  = part_pose[part_index];
 					const JPH::Vec3	  translation = pose.GetTranslation() + JPH::Vec3(root_offset);
@@ -1305,7 +1336,7 @@ namespace sfg
 													  translation.GetY(),
 													  translation.GetZ());
 
-					joint_to_part[parts[part_index].joint_index] = static_cast<u8>(part_index);
+					joint_to_part[part_joints[part_index]] = static_cast<u8>(part_index);
 				}
 
 				const mat4x3_t entity_world_rigid = part_world[0] * system_ragdoll.entity_from_root;
@@ -1316,9 +1347,9 @@ namespace sfg
 
 				const mat4x3_t inverse_entity_world_rigid = mat4x3_t::transform(entity_position, entity_rotation, vec3f_t::one).inverse();
 
-				for (u32 part_index = 0; part_index < resource->part_count; ++part_index)
+				for (u32 part_index = 0; part_index < part_count; ++part_index)
 				{
-					const u32 joint_index = parts[part_index].joint_index;
+					const u32 joint_index = part_joints[part_index];
 
 					vec3f_t preserved_position = vec3f_t::zero;
 					quat_t	preserved_rotation = quat_t::identity;
@@ -1440,10 +1471,8 @@ namespace sfg
 			{
 				const ecs_component_table_t&	  system_ragdoll_table = _world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
 				const component_system_ragdoll_t& system_ragdoll	   = system_ragdoll_table.get_as_const<component_system_ragdoll_t>(entity);
-				const ragdoll_runtime_t*		  ragdoll_resource	   = resource_manager_t::get().find_runtime<ragdoll_runtime_t>(system_ragdoll.ragdoll_resource);
-				SFG_ASSERT(ragdoll_resource != nullptr);
 
-				hit.physical_material = ragdoll_resource->physical_material;
+				hit.physical_material = system_ragdoll.physical_material;
 				hit.sub_shape_id	  = lookup.ragdoll_part;
 			}
 
@@ -1565,10 +1594,8 @@ namespace sfg
 			{
 				const ecs_component_table_t&	  system_ragdoll_table = _world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
 				const component_system_ragdoll_t& system_ragdoll	   = system_ragdoll_table.get_as_const<component_system_ragdoll_t>(entity);
-				const ragdoll_runtime_t*		  ragdoll_resource	   = resource_manager_t::get().find_runtime<ragdoll_runtime_t>(system_ragdoll.ragdoll_resource);
-				SFG_ASSERT(ragdoll_resource != nullptr);
 
-				hit.physical_material = ragdoll_resource->physical_material;
+				hit.physical_material = system_ragdoll.physical_material;
 				hit.sub_shape_id	  = lookup.ragdoll_part;
 			}
 		}
@@ -1728,6 +1755,87 @@ namespace sfg
 		}
 
 		_impl->destroy_body(entity, *sys);
+	}
+
+	bool physics_world_t::create_ragdoll(entity_id_t entity, const ragdoll_def_t& definition)
+	{
+		const skeleton_runtime_t* skeleton = resource_manager_t::get().find_runtime<skeleton_runtime_t>(definition.target_skeleton);
+
+		if (skeleton == nullptr || !definition.is_valid(skeleton->joint_count))
+			return false;
+
+		SFG_ASSERT(!_impl->_world->get_component_table<component_system_ragdoll_t>().has(entity));
+
+		const ragdoll_runtime_t runtime{
+			.target_skeleton   = definition.target_skeleton,
+			.physical_material = definition.physical_material,
+			.gravity_factor	   = definition.gravity_factor,
+			.linear_damping	   = definition.linear_damping,
+			.angular_damping   = definition.angular_damping,
+			.part_count		   = static_cast<u32>(definition.parts.size()),
+			.allow_sleep	   = definition.allow_sleep,
+		};
+		const component_ragdoll_t& component = _impl->_world->get_component_table<component_ragdoll_t>().get_as_const<component_ragdoll_t>(entity);
+
+		return _impl->create_ragdoll(entity, component, runtime, definition.parts.data());
+	}
+
+	void physics_world_t::destroy_ragdoll(entity_id_t entity)
+	{
+		_impl->destroy_ragdoll(entity);
+	}
+
+	void physics_world_t::add_ragdoll_part_force(entity_id_t entity, u32 part_index, const vec3f_t& force, const vec3f_t& position)
+	{
+		const component_system_ragdoll_t& ragdoll = _impl->_world->get_component_table<component_system_ragdoll_t>().get_as_const<component_system_ragdoll_t>(entity);
+		const JPH::BodyID				  body	  = ragdoll.ragdoll->GetBodyID(static_cast<i32>(part_index));
+
+		_impl->_system->GetBodyInterface().AddForce(body, physics_world_util_t::to_jolt(force), physics_world_util_t::to_jolt_position(position));
+	}
+
+	bool physics_world_t::begin_ragdoll_drag(entity_id_t entity, u32 part_index, const vec3f_t& position)
+	{
+		SFG_ASSERT(_impl->_ragdoll_drag == nullptr);
+
+		const component_system_ragdoll_t& ragdoll = _impl->_world->get_component_table<component_system_ragdoll_t>().get_as_const<component_system_ragdoll_t>(entity);
+		const JPH::BodyID				  body_id = ragdoll.ragdoll->GetBodyID(static_cast<i32>(part_index));
+
+		{
+			JPH::BodyLockWrite lock(_impl->_system->GetBodyLockInterface(), body_id);
+
+			if (!lock.Succeeded())
+			{
+				SFG_ERR("failed to lock ragdoll part for dragging");
+				return false;
+			}
+
+			JPH::PointConstraintSettings settings = {};
+			settings.mPoint1					  = physics_world_util_t::to_jolt_position(position);
+			settings.mPoint2					  = settings.mPoint1;
+			_impl->_ragdoll_drag				  = static_cast<JPH::PointConstraint*>(settings.Create(lock.GetBody(), JPH::Body::sFixedToWorld));
+		}
+
+		_impl->_drag_entity = entity;
+		_impl->_system->AddConstraint(_impl->_ragdoll_drag);
+		_impl->_system->GetBodyInterface().ActivateBody(body_id);
+
+		return true;
+	}
+
+	bool physics_world_t::update_ragdoll_drag(const vec3f_t& position)
+	{
+		if (_impl->_ragdoll_drag == nullptr)
+			return false;
+
+		_impl->_ragdoll_drag->SetPoint2(JPH::EConstraintSpace::WorldSpace, physics_world_util_t::to_jolt_position(position));
+		_impl->_system->GetBodyInterface().ActivateBody(_impl->_ragdoll_drag->GetBody1()->GetID());
+
+		return true;
+	}
+
+	void physics_world_t::end_ragdoll_drag()
+	{
+		_impl->end_ragdoll_drag();
 	}
 
 	span_t<const mat4x3_t> physics_world_t::get_ragdoll_joint_globals(entity_id_t entity) const

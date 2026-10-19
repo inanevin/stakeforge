@@ -23,19 +23,19 @@ in GAME-LINKING-EXCEPTION.md.
 #pragma once
 
 #include "world/editor_world_handle.hpp"
-#include <sfg/math/vec2f.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
 	struct editor_payload_t;
+	struct vec3f_t;
 
 	struct editor_asset_spawn_desc_t
 	{
-		const editor_payload_t* payload	   = nullptr;
-		vec2f_t					screen_pos = vec2f_t::zero;
-		editor_world_handle_t	world	   = {};
-		entity_id_t				parent	   = NULL_ENTITY_ID;
+		const editor_payload_t* payload		   = nullptr;
+		const vec3f_t*			world_position = nullptr;
+		editor_world_handle_t	world		   = {};
+		entity_id_t				parent		   = NULL_ENTITY_ID;
 	};
 
 	class editor_asset_spawn_t final

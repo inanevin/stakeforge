@@ -23,6 +23,9 @@ in GAME-LINKING-EXCEPTION.md.
 #include "ragdoll_def.hpp"
 #include "resource_type.hpp"
 
+#include <sfg/io/log.hpp>
+#include <sfg/math/math.hpp>
+
 #include <sfg/reflection/reflection_container_ops.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
@@ -30,6 +33,69 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	bool ragdoll_def_t::is_valid(u32 joint_count) const
+	{
+		if (target_skeleton == NULL_RESOURCE_HANDLE)
+		{
+			SFG_ERR("ragdoll requires a target skeleton");
+			return false;
+		}
+
+		if (parts.empty() || parts.size() > RAGDOLL_PART_MAX)
+		{
+			SFG_ERR("ragdoll part count must be between 1 and {0}", RAGDOLL_PART_MAX);
+			return false;
+		}
+
+		for (u32 i = 0; i < parts.size(); ++i)
+		{
+			const ragdoll_part_def_t& part = parts[i];
+
+			if (part.joint_index >= joint_count || part.radius <= 0.0f || part.half_height <= 0.0f || part.mass <= 0.0f)
+			{
+				SFG_ERR("ragdoll part {0} has invalid joint or capsule values", i);
+				return false;
+			}
+
+			if ((i == 0 && part.parent_part_index != RAGDOLL_PART_NO_PARENT) || (i != 0 && part.parent_part_index == RAGDOLL_PART_NO_PARENT))
+			{
+				SFG_ERR("ragdoll must have exactly one root in the first part");
+				return false;
+			}
+
+			if (part.parent_part_index != RAGDOLL_PART_NO_PARENT && part.parent_part_index >= i)
+			{
+				SFG_ERR("ragdoll part {0} must reference an earlier parent part", i);
+				return false;
+			}
+
+			if (part.twist_axis.is_zero() || part.plane_axis.is_zero() || math::abs(vec3f_t::dot(part.twist_axis.normalized(), part.plane_axis.normalized())) > 0.999f || part.normal_half_cone_angle_degrees < 0.0f ||
+				part.normal_half_cone_angle_degrees > 180.0f || part.plane_half_cone_angle_degrees < 0.0f || part.plane_half_cone_angle_degrees > 180.0f || part.twist_min_angle_degrees < -180.0f || part.twist_max_angle_degrees > 180.0f ||
+				part.twist_min_angle_degrees > part.twist_max_angle_degrees || part.max_friction_torque < 0.0f)
+			{
+				SFG_ERR("ragdoll part {0} has invalid constraint values", i);
+				return false;
+			}
+
+			for (u32 other = 0; other < i; ++other)
+			{
+				if (parts[other].joint_index == part.joint_index)
+				{
+					SFG_ERR("ragdoll joint {0} is used by more than one part", part.joint_index);
+					return false;
+				}
+			}
+		}
+
+		if (linear_damping < 0.0f || linear_damping > 1.0f || angular_damping < 0.0f || angular_damping > 1.0f)
+		{
+			SFG_ERR("ragdoll damping values must be between 0 and 1");
+			return false;
+		}
+
+		return true;
+	}
+
 	ragdoll_def_reflection_t::ragdoll_def_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();

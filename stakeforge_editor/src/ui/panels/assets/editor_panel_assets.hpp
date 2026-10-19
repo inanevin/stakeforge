@@ -203,6 +203,7 @@ namespace sfg
 		void create_folder(const char* name);
 		void open_create_asset_popup(u16 command);
 		void create_asset_item(u16 command, const char* name);
+		void create_ragdoll_from_skeleton();
 		bool create_asset_item_internal(u16 command, const char* name, bool allow_overwrite);
 		bool make_create_asset_desc(u16 command, const char* name, bool allow_overwrite, editor_asset_create_desc_t& out_desc) const;
 		bool make_create_script_desc(u16 command, const char* name, bool allow_overwrite, editor_script_create_desc_t& out_desc) const;

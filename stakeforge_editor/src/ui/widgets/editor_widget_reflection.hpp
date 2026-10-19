@@ -71,6 +71,7 @@ namespace sfg
 	{
 		vector_t<editor_widget_reflection_fold_state_t>* fold_states			  = nullptr;
 		editor_widget_callbacks_t						 callbacks				  = {};
+		span_t<const sid_t>								 excluded_fields		  = {};
 		span_t<void*>									 objects				  = {};
 		sid_t											 type_id				  = 0;
 		editor_world_handle_t							 world					  = {};
@@ -209,6 +210,7 @@ namespace sfg
 		editor_widget_callbacks_t						 _callbacks		  = {};
 		editor_widget_callbacks_t						 _field_callbacks = {};
 		vector_t<void*>									 _objects;
+		vector_t<sid_t>									 _excluded_fields = {};
 		vector_t<editor_input_field_t*>					 _inputs;
 		vector_t<editor_checkbox_t*>					 _checkboxes;
 		vector_t<editor_dropdown_t*>					 _dropdowns;

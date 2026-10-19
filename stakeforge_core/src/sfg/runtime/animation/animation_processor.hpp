@@ -132,6 +132,7 @@ namespace sfg
 
 		void tick(f32 dt);
 		void calculate_skinning_matrices(f32 dt);
+		void reset_skinning_pose(entity_id_t entity);
 		void destroy_entity(entity_id_t id);
 
 		void					switch_layer_state(animator_library_handle_t library, u32 layer_index, animator_state_handle_t state, f32 transition_duration);

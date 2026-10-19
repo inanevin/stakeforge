@@ -87,5 +87,6 @@ namespace sfg
 		assets_action_menu_create_post_process_material		 = 44,
 		assets_action_menu_create_ragdoll					 = 45,
 		assets_item_action_menu_check_integrity				 = 46,
+		assets_item_action_menu_create_ragdoll				 = 47,
 	};
 }

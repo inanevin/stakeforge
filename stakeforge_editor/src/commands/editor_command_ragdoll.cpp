@@ -38,20 +38,6 @@ namespace sfg
 {
 	namespace
 	{
-		bool save_and_cook_ragdoll_async(editor_panel_ragdoll_viewer_t& viewer)
-		{
-			nlohmann::json embedded_source = nlohmann::json::object();
-			ragdoll_def_t& ragdoll		   = viewer.get_ragdoll_def();
-
-			if (!reflection_registry_t::get().type_to_json(type_id_t<ragdoll_def_t>::value, &ragdoll, nullptr, embedded_source))
-			{
-				SFG_ERR("failed to serialize ragdoll definition for asset {0}", viewer.get_ragdoll_guid());
-				return false;
-			}
-
-			embedded_source["schema"] = "sfg.schema.ragdoll";
-			return editor_asset_manager_t::get().save_and_cook_embedded_asset_async(viewer.get_ragdoll_guid(), embedded_source);
-		}
 
 		chunk_handle32_t ragdoll_to_aux(editor_command_system_t& system, const ragdoll_def_t& ragdoll)
 		{
@@ -92,7 +78,6 @@ namespace sfg
 			if (!ragdoll_from_aux(system, viewer, payload.previous_stream))
 				return false;
 
-			save_and_cook_ragdoll_async(viewer);
 			return true;
 		}
 
@@ -104,7 +89,6 @@ namespace sfg
 			if (!ragdoll_from_aux(system, viewer, payload.post_stream))
 				return false;
 
-			save_and_cook_ragdoll_async(viewer);
 			return true;
 		}
 
@@ -185,7 +169,6 @@ namespace sfg
 		}
 
 		viewer._edit_previous_stream = {};
-		save_and_cook_ragdoll_async(viewer);
 		return true;
 	}
 

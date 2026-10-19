@@ -465,12 +465,15 @@ namespace sfg
 		if (widget._edit_world.is_null())
 			return false;
 
+		if (widget._edit_world != editor_world_controller_t::get().get_main_world_handle() || widget._ui->get_input().get_hovered() != widget._world_view)
+			return false;
+
 		const ui::layout_out_t& out	  = widget._ui->get_tree().out(widget._world_view);
 		const vec2f_t&			mouse = widget._ui->get_input().get_mouse_position();
 
 		if (!rectf_t{out.pos.x, out.pos.y, out.size.x, out.size.y}.contains(mouse))
 			return false;
 
-		return editor_world_controller_t::get().get_editor_world(widget._edit_world)->get_input_controller().payload_drop(payload, mouse);
+		return editor_world_controller_t::get().get_editor_world(widget._edit_world)->get_input_controller().payload_drop(payload, widget.calculate_relative_position(mouse));
 	}
 }

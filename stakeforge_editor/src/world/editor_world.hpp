@@ -42,6 +42,7 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	struct aabb_t;
+	struct physics_raycast_t;
 	struct editor_world_init_config_t
 	{
 		physics_runtime_config_t		   physics							= {};
@@ -127,6 +128,7 @@ namespace sfg
 		void						   set_gizmo_callbacks(const editor_gizmo_callbacks_t& callbacks);
 		void						   request_entity_pick(vec2f_t relative_position, bool incremental_selection);
 		void						   shoot_ray_from_camera(vec2f_t relative_position);
+		bool						   get_camera_ray(vec2f_t relative_position, physics_raycast_t& ray) const;
 		void						   begin_frame();
 		void						   invoke_tick_callback(f32 delta_time);
 		void						   draw_debug();

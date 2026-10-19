@@ -27,23 +27,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	struct ragdoll_part_runtime_t
-	{
-		vec3f_t local_position				   = vec3f_t::zero;
-		quat_t	local_rotation				   = quat_t::identity;
-		vec3f_t twist_axis					   = vec3f_t::right;
-		vec3f_t plane_axis					   = vec3f_t::up;
-		f32		radius						   = 0.1f;
-		f32		half_height					   = 0.2f;
-		f32		mass						   = 5.0f;
-		f32		normal_half_cone_angle_degrees = 45.0f;
-		f32		plane_half_cone_angle_degrees  = 45.0f;
-		f32		twist_min_angle_degrees		   = -45.0f;
-		f32		twist_max_angle_degrees		   = 45.0f;
-		f32		max_friction_torque			   = 0.0f;
-		u32		joint_index					   = UINT32_MAX;
-		u32		parent_part_index			   = RAGDOLL_PART_NO_PARENT;
-	};
+	using ragdoll_part_runtime_t = ragdoll_part_def_t;
 
 	struct ragdoll_runtime_t
 	{

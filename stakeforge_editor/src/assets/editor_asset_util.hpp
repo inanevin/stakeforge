@@ -32,6 +32,7 @@ namespace sfg
 	struct editor_asset_t;
 	struct mesh_def_t;
 	struct animation_def_t;
+	struct skeleton_def_t;
 
 	class editor_asset_util_t final
 	{
@@ -48,6 +49,8 @@ namespace sfg
 		static const char*				  find_asset_display_name(sid_t guid);
 		static bool						  load_animation_def(const editor_asset_t& asset, animation_def_t& out);
 		static bool						  load_mesh_def(const editor_asset_t& asset, mesh_def_t& out);
+		static bool						  load_skeleton_def(const editor_asset_t& asset, skeleton_def_t& out);
+		static sid_t					  find_skeleton_for_mesh(sid_t mesh);
 		static bool						  duplicate_folder(editor_asset_node_handle_t folder_node, string_t* out_duplicated_path = nullptr);
 		static bool						  rename_folder(editor_asset_node_handle_t folder_node, const char* new_path);
 		static bool						  move_folder(editor_asset_node_handle_t folder_node, editor_asset_node_handle_t target_folder_node);

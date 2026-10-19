@@ -24,6 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "world/editor_world_edit_context.hpp"
 #include "world/editor_world_handle.hpp"
+#include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 #include <sfg/memory/chunk_handle.hpp>
@@ -35,11 +36,13 @@ namespace sfg
 		editor_world_handle_t world						 = {};
 		editor_world_handle_t previous_selection_context = {};
 		resource_handle_t	  prefab					 = NULL_RESOURCE_HANDLE;
+		vec3f_t				  position					 = vec3f_t::zero;
 		chunk_handle32_t	  previous_selection		 = {};
 		entity_id_t			  parent					 = NULL_ENTITY_ID;
 		entity_id_t			  root						 = NULL_ENTITY_ID;
 		entity_id_t			  previous_anchor			 = NULL_ENTITY_ID;
 		u32					  previous_selection_count	 = 0;
+		bool				  place						 = false;
 	};
 
 	class editor_command_prefab_spawn_t final
@@ -47,6 +50,6 @@ namespace sfg
 	public:
 		editor_command_prefab_spawn_t() = delete;
 
-		static entity_id_t spawn(editor_world_handle_t world, resource_handle_t prefab, entity_id_t parent);
+		static entity_id_t spawn(editor_world_handle_t world, resource_handle_t prefab, entity_id_t parent, const vec3f_t* world_position = nullptr);
 	};
 }

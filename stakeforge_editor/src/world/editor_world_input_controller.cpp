@@ -35,6 +35,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/platform/common_window.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/runtime/physics/physics_types.hpp>
 #include <sfg/runtime/resources/mesh.hpp>
 #include <sfg/runtime/resources/resource_manager.hpp>
 #include <sfg/runtime/world/ecs.hpp>
@@ -47,6 +48,7 @@ namespace sfg
 #define EDITOR_WORLD_INPUT_CAMERA_BOOST_MULTIPLIER 8.0f
 #define EDITOR_WORLD_INPUT_FOCUS_POINT_HALF_EXTENT 0.5f
 #define EDITOR_WORLD_INPUT_VISIBILITY_CAPACITY	   64
+#define EDITOR_WORLD_INPUT_ASSET_DROP_DISTANCE	   5.0f
 
 	void editor_world_input_controller_t::init(editor_world_t& world, editor_world_handle_t handle)
 	{
@@ -61,6 +63,7 @@ namespace sfg
 		deactivate();
 
 		_show_alone_states.resize(0);
+		_drag_callbacks		   = {};
 		_world				   = nullptr;
 		_handle				   = {};
 		_visibility_generation = 0;
@@ -69,13 +72,14 @@ namespace sfg
 
 	void editor_world_input_controller_t::deactivate()
 	{
+		cancel_pointer_drag();
 		cancel_gizmo_action();
 		end_camera_control();
 	}
 
 	void editor_world_input_controller_t::tick(const vec2f_t& relative_position, bool hovered)
 	{
-		if (!_gizmo_press_consumed && !_shoot_ray_press_consumed && hovered)
+		if (!_pointer_drag_active && !_gizmo_press_consumed && !_shoot_ray_press_consumed && hovered)
 			_world->update_gizmo_hover(relative_position);
 	}
 
@@ -88,6 +92,7 @@ namespace sfg
 
 		if (button == editor_world_input_pointer_button_e::right)
 		{
+			cancel_pointer_drag();
 			begin_camera_control(*s_event_runtime, false);
 			return;
 		}
@@ -95,6 +100,19 @@ namespace sfg
 		if (_world->get_camera_type() == editor_world_camera_type_e::orbit && process::is_key_down(static_cast<u16>(input_code::key_lshift)))
 		{
 			begin_camera_control(*s_event_runtime, true);
+			return;
+		}
+
+		if (_drag_callbacks.begin != nullptr)
+		{
+			_pointer_drag_active = _drag_callbacks.begin(relative_position, _drag_callbacks.user_data);
+
+			if (_pointer_drag_active)
+			{
+				_pointer_drag_runtime	 = s_event_runtime;
+				s_active_drag_controller = this;
+			}
+
 			return;
 		}
 
@@ -117,6 +135,12 @@ namespace sfg
 			if (!_camera_pan_control)
 				end_camera_control();
 
+			return;
+		}
+
+		if (_pointer_drag_active)
+		{
+			cancel_pointer_drag();
 			return;
 		}
 
@@ -155,7 +179,7 @@ namespace sfg
 
 	void editor_world_input_controller_t::pointer_hover_move(const vec2f_t& relative_position)
 	{
-		if (!_gizmo_press_consumed && !_shoot_ray_press_consumed)
+		if (!_pointer_drag_active && !_gizmo_press_consumed && !_shoot_ray_press_consumed)
 			_world->update_gizmo_hover(relative_position);
 	}
 
@@ -166,8 +190,25 @@ namespace sfg
 
 	void editor_world_input_controller_t::pointer_drag(const vec2f_t& relative_position)
 	{
+		if (_pointer_drag_active)
+		{
+			_drag_callbacks.update(relative_position, _drag_callbacks.user_data);
+			return;
+		}
+
 		if (_gizmo_press_consumed)
 			_world->update_gizmo_action(relative_position);
+	}
+
+	void editor_world_input_controller_t::cancel_pointer_drag()
+	{
+		if (!_pointer_drag_active)
+			return;
+
+		_pointer_drag_active	 = false;
+		_pointer_drag_runtime	 = nullptr;
+		s_active_drag_controller = nullptr;
+		_drag_callbacks.end(_drag_callbacks.user_data);
 	}
 
 	void editor_world_input_controller_t::focus_lost()
@@ -179,6 +220,8 @@ namespace sfg
 	{
 		if (key == static_cast<u16>(input_code::key_escape))
 		{
+			cancel_pointer_drag();
+
 			if (_gizmo_press_consumed)
 				cancel_gizmo_action();
 
@@ -388,16 +431,23 @@ namespace sfg
 			++_visibility_generation;
 	}
 
-	bool editor_world_input_controller_t::payload_drop(const editor_payload_t& payload, const vec2f_t& screen_position)
+	bool editor_world_input_controller_t::payload_drop(const editor_payload_t& payload, const vec2f_t& relative_position)
 	{
 		if (payload.type != editor_payload_type_e::asset && payload.type != editor_payload_type_e::asset_multi)
 			return false;
 
+		physics_raycast_t ray = {};
+
+		if (!_world->get_camera_ray(relative_position, ray))
+			return false;
+
+		const vec3f_t position = ray.origin + ray.direction * EDITOR_WORLD_INPUT_ASSET_DROP_DISTANCE;
+
 		return editor_asset_spawn_t::spawn_from_payload({
-			.payload	= &payload,
-			.screen_pos = screen_position,
-			.world		= _handle,
-			.parent		= NULL_ENTITY_ID,
+			.payload		= &payload,
+			.world_position = &position,
+			.world			= _handle,
+			.parent			= NULL_ENTITY_ID,
 		});
 	}
 
@@ -407,6 +457,9 @@ namespace sfg
 
 		if (ev.type == window_event_type_e::focus && ev.sub_type == window_event_sub_type_e::release)
 		{
+			if (s_active_drag_controller != nullptr && s_active_drag_controller->_pointer_drag_runtime == &runtime)
+				s_active_drag_controller->cancel_pointer_drag();
+
 			reset_camera_input(runtime);
 			return false;
 		}

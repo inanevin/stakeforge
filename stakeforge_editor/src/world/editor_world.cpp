@@ -438,20 +438,13 @@ namespace sfg
 		};
 	}
 
-	void editor_world_t::shoot_ray_from_camera(vec2f_t relative_position)
+	bool editor_world_t::get_camera_ray(vec2f_t relative_position, physics_raycast_t& out_ray) const
 	{
-		SFG_ASSERT(_play_mode == editor_play_mode_e::play_physics || _play_mode == editor_play_mode_e::play_physics_paused);
 		SFG_ASSERT(_camera != nullptr);
-
-		physics_world_t& physics = _world.get_physics();
-
-		if (!physics.is_init())
-			return;
 
 		const entity_id_t camera_entity	  = _camera->get_entity();
 		vec3f_t			  camera_position = _world.get_entity_pos_local(camera_entity);
 		quat_t			  camera_rotation = _world.get_entity_rot_local(camera_entity);
-		vec3f_t			  camera_scale	  = _world.get_entity_scale_local(camera_entity);
 
 		const component_camera_t& camera	 = _world.get_component_table(type_id_t<component_camera_t>::value).get_as<component_camera_t>(camera_entity);
 		const world_render_view_t world_view = {
@@ -469,20 +462,40 @@ namespace sfg
 		world_ray_t ray = {};
 
 		if (!world_util_t::relative_position_to_world_ray(view.inv_view_proj, relative_position, ray))
+			return false;
+
+		out_ray = {.origin = camera_position, .direction = ray.direction, .distance = camera.far_plane};
+
+		return true;
+	}
+
+	void editor_world_t::shoot_ray_from_camera(vec2f_t relative_position)
+	{
+		physics_world_t& physics = _world.get_physics();
+
+		if (!physics.is_init())
 			return;
 
-		ray.origin		  = camera_position;
-		physics_hit_t hit = {};
+		physics_raycast_t ray = {};
+		physics_hit_t	  hit = {};
 
-		if (!physics.raycast_closest({.origin = ray.origin, .direction = ray.direction, .distance = camera.far_plane}, hit))
+		if (!get_camera_ray(relative_position, ray) || !physics.raycast_closest(ray, hit))
 			return;
+
+		const vec3f_t force = ray.direction * _edit_context.get_world_view_settings().physics_ray_force;
+
+		if (_world.get_component_table<component_system_ragdoll_t>().has(hit.entity))
+		{
+			physics.add_ragdoll_part_force(hit.entity, hit.sub_shape_id, force, hit.position);
+			return;
+		}
 
 		const component_physical_t* body = _world.get_component_table(type_id_t<component_physical_t>::value).find_as_const<component_physical_t>(hit.entity);
 
 		if (body == nullptr || body->motion_type != physics_motion_type_e::dynamic_body)
 			return;
 
-		physics.add_body_force(hit.entity, ray.direction * _edit_context.get_world_view_settings().physics_ray_force);
+		physics.add_body_force(hit.entity, force);
 	}
 
 	void editor_world_t::consume_entity_pick_result()

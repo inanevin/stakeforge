@@ -52,6 +52,8 @@ namespace sfg
 		bool	is_active		 = false;
 	};
 
+	struct ragdoll_def_t;
+
 	class physics_world_t final
 	{
 	public:
@@ -74,16 +76,23 @@ namespace sfg
 		// bodies
 		// -----------------------------------------------------------------------------
 
-		void				   sync_body_create_destroy();
-		void				   destroy_entity(entity_id_t entity);
-		void				   destroy_body(entity_id_t entity);
-		bool				   set_body_linear_velocity(entity_id_t entity, const vec3f_t& velocity);
-		void				   set_body_angular_velocity(entity_id_t entity, const vec3f_t& velocity);
-		void				   add_body_force(entity_id_t entity, const vec3f_t& force);
-		bool				   add_body_impulse(entity_id_t entity, const vec3f_t& impulse);
-		void				   wake_body(entity_id_t entity);
-		bool				   get_body_state(entity_id_t entity, physics_body_state_t& out_state) const;
-		bool				   is_body(entity_id_t entity) const;
+		void sync_body_create_destroy();
+		void destroy_entity(entity_id_t entity);
+		void destroy_body(entity_id_t entity);
+		bool set_body_linear_velocity(entity_id_t entity, const vec3f_t& velocity);
+		void set_body_angular_velocity(entity_id_t entity, const vec3f_t& velocity);
+		void add_body_force(entity_id_t entity, const vec3f_t& force);
+		bool add_body_impulse(entity_id_t entity, const vec3f_t& impulse);
+		void wake_body(entity_id_t entity);
+		bool get_body_state(entity_id_t entity, physics_body_state_t& out_state) const;
+		bool is_body(entity_id_t entity) const;
+		bool create_ragdoll(entity_id_t entity, const ragdoll_def_t& definition);
+		void destroy_ragdoll(entity_id_t entity);
+		void add_ragdoll_part_force(entity_id_t entity, u32 part_index, const vec3f_t& force, const vec3f_t& position);
+		bool begin_ragdoll_drag(entity_id_t entity, u32 part_index, const vec3f_t& position);
+		bool update_ragdoll_drag(const vec3f_t& position);
+		void end_ragdoll_drag();
+
 		span_t<const mat4x3_t> get_ragdoll_joint_globals(entity_id_t entity) const;
 
 		// -----------------------------------------------------------------------------

@@ -38,6 +38,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/resources/mesh_cook.hpp>
 #include <sfg/runtime/resources/mesh_def.hpp>
+#include <sfg/runtime/resources/skeleton_def.hpp>
 #include <sfg/serialization/serialization.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
 
@@ -301,6 +302,47 @@ namespace sfg
 		}
 
 		return true;
+	}
+
+	bool editor_asset_util_t::load_skeleton_def(const editor_asset_t& asset, skeleton_def_t& out)
+	{
+		SFG_ASSERT(asset.asset_type == editor_asset_type_e::skeleton);
+
+		const nlohmann::json source = editor_asset_io_t::get_embedded_source_json(asset);
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &out, nullptr, source))
+		{
+			SFG_ERR("failed to deserialize skeleton definition for asset {0}", asset.guid);
+			return false;
+		}
+
+		return true;
+	}
+
+	sid_t editor_asset_util_t::find_skeleton_for_mesh(sid_t mesh)
+	{
+		sid_t result = NULL_SID;
+
+		for (const auto& [guid, asset] : editor_asset_manager_t::get().get_assets())
+		{
+			if (asset.asset_type != editor_asset_type_e::skeleton)
+				continue;
+
+			skeleton_def_t skeleton = {};
+
+			if (!load_skeleton_def(asset, skeleton) || skeleton.preview_mesh != mesh)
+				continue;
+
+			if (result != NULL_SID)
+			{
+				SFG_WARN("mesh {0} is assigned to multiple skeletons; drop an animation library, animation or ragdoll to select its skeleton", mesh);
+				return NULL_SID;
+			}
+
+			result = guid;
+		}
+
+		return result;
 	}
 
 	bool editor_asset_util_t::duplicate_folder(editor_asset_node_handle_t folder_node, string_t* out_duplicated_path)

@@ -22,6 +22,10 @@ in GAME-LINKING-EXCEPTION.md.
 #include "ui/panels/assets/editor_panel_assets.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_util.hpp"
+#include "assets/editor_ragdoll_util.hpp"
+#include "assets/editor_asset_io.hpp"
+#include "assets/editor_asset_writer.hpp"
+#include "assets/editor_asset_cooker.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "assets/editor_asset_manager_util.hpp"
 #include "assets/editor_asset_path.hpp"
@@ -50,6 +54,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/math/math.hpp>
 #include <sfg/platform/process.hpp>
 #include <sfg/runtime/resources/shader_types.hpp>
+#include <sfg/reflection/reflection_registry.hpp>
+#include <sfg/vendor/nhlohmann/json.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 
 namespace sfg
@@ -756,6 +762,49 @@ namespace sfg
 		desc.pos					   = _action_menu_pos;
 		desc.width					   = editor_theme_t::get().item_width;
 		popup->request_input_popup(desc);
+	}
+
+	void editor_panel_assets_t::create_ragdoll_from_skeleton()
+	{
+		editor_asset_manager_t&	   manager		  = editor_asset_manager_t::get();
+		const editor_asset_tree_t& tree			  = manager.get_asset_tree();
+		const editor_asset_node_t& node			  = tree.value(_selected_asset_node);
+		const editor_asset_t&	   skeleton_asset = *manager.find_asset(node.asset_id);
+		const nlohmann::json	   source		  = editor_asset_io_t::get_embedded_source_json(skeleton_asset);
+		skeleton_def_t			   skeleton		  = {};
+		ragdoll_def_t			   ragdoll{.target_skeleton = skeleton_asset.guid};
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, source) || !editor_ragdoll_util_t::generate(skeleton, ragdoll))
+			return;
+
+		nlohmann::json definition = nlohmann::json::object();
+
+		if (!reflection_registry_t::get().type_to_json(type_id_t<ragdoll_def_t>::value, &ragdoll, nullptr, definition))
+			return;
+
+		definition["schema"] = "sfg.schema.ragdoll";
+
+		const editor_asset_node_handle_t parent		 = tree.parent(_selected_asset_node);
+		const string_t					 parent_path = tree.value(parent).full_path;
+		const string_t					 base_name	 = node.name + "_ragdoll";
+		string_t						 name		 = base_name;
+		u32								 suffix		 = 1;
+
+		while (file_system_t::exists(editor_asset_path_t::make_asset_path(parent_path.c_str(), name.c_str()).c_str()))
+			name = base_name + "_" + std::to_string(suffix++);
+
+		editor_asset_t asset	  = {};
+		string_t	   asset_path = {};
+
+		if (!editor_asset_writer_t::write_embedded_asset({.embedded_source = &definition, .parent_path = parent_path.c_str(), .name = name.c_str(), .asset_type = editor_asset_type_e::ragdoll}, &asset, &asset_path))
+			return;
+
+		if (!editor_asset_cooker_t::cook_ragdoll(asset, name.c_str()))
+			SFG_ERR("created ragdoll asset but cooking failed: {0}", asset_path);
+
+		manager.add_path_node(parent, asset_path.c_str());
+		refresh_folder_rows();
+		open_asset_item(manager.find_node_by_path(asset_path.c_str()));
 	}
 
 	void editor_panel_assets_t::create_asset_item(u16 command, const char* name)

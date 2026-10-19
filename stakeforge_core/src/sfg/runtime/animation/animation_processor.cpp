@@ -31,6 +31,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/runtime/resources/animation.hpp>
 #include <sfg/runtime/animation/animation_sampler.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/runtime/physics/physics_world.hpp>
 #include <sfg/runtime/world/ecs.hpp>
 #include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/system_components.hpp>
@@ -426,12 +427,22 @@ namespace sfg
 		_frame_counter++;
 	}
 
+	void animation_processor_t::reset_skinning_pose(entity_id_t entity)
+	{
+		component_system_skinned_mesh_renderer_t* renderer = _world->get_component_table<component_system_skinned_mesh_renderer_t>().find_as<component_system_skinned_mesh_renderer_t>(entity);
+
+		if (renderer != nullptr)
+			reset_skinned_renderer_pose(*renderer, *resource_manager_t::get().find_runtime<skeleton_runtime_t>(renderer->skeleton));
+	}
+
 	void animation_processor_t::calculate_skinning_matrices(f32 dt)
 	{
 		const ecs_component_table_t& table_lib		   = _world->get_component_table<component_animation_library_t>();
 		const ecs_component_table_t& table_sys_lib	   = _world->get_component_table(type_id_t<component_system_animation_library_t>::value);
 		const ecs_component_table_t& table_disabled	   = _world->get_component_table(type_id_t<component_disabled_t>::value);
 		const ecs_component_table_t& table_sys_skinned = _world->get_component_table<component_system_skinned_mesh_renderer_t>();
+
+		const ecs_component_table_t& table_ragdoll = _world->get_component_table<component_system_ragdoll_t>();
 
 		ecs_component_table_ref_t refs[] = {table_sys_lib.ref(), !table_disabled.ref()};
 
@@ -463,7 +474,7 @@ namespace sfg
 			}
 		}
 
-		ecs_component_table_ref_t skinned_refs[] = {table_lib.ref(), table_sys_lib.ref(), table_sys_skinned.ref(), !table_disabled.ref()};
+		ecs_component_table_ref_t skinned_refs[] = {table_lib.ref(), table_sys_lib.ref(), table_sys_skinned.ref(), !table_disabled.ref(), !table_ragdoll.ref()};
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = skinned_refs, .size = std::size(skinned_refs)}))
 		{
@@ -506,7 +517,7 @@ namespace sfg
 
 		const ecs_component_table_t& table_player	  = _world->get_component_table<component_animation_player_t>();
 		const ecs_component_table_t& table_sys_player = _world->get_component_table<component_system_animation_player_t>();
-		ecs_component_table_ref_t	 player_refs[]	  = {table_player.ref(), table_sys_player.ref(), table_sys_skinned.ref(), !table_lib.ref(), !table_disabled.ref()};
+		ecs_component_table_ref_t	 player_refs[]	  = {table_player.ref(), table_sys_player.ref(), table_sys_skinned.ref(), !table_lib.ref(), !table_disabled.ref(), !table_ragdoll.ref()};
 		resource_manager_t&			 rm				  = resource_manager_t::get();
 
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = player_refs, .size = std::size(player_refs)}))
@@ -549,6 +560,27 @@ namespace sfg
 
 			renderer.needs_skinning = false;
 			renderer.in_place		= in_place;
+		}
+
+		const ecs_component_table_ref_t ragdoll_refs[] = {table_ragdoll.ref(), table_sys_skinned.ref(), !table_disabled.ref()};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = ragdoll_refs, .size = std::size(ragdoll_refs)}))
+		{
+			const component_system_ragdoll_t&		  ragdoll  = row.get<component_system_ragdoll_t>();
+			component_system_skinned_mesh_renderer_t& renderer = row.get_mutable<component_system_skinned_mesh_renderer_t>();
+
+			if (ragdoll.skeleton != renderer.skeleton)
+				continue;
+
+			const skeleton_runtime_t&		skeleton = *rm.find_runtime<skeleton_runtime_t>(ragdoll.skeleton);
+			const skeleton_joint_runtime_t* joints	 = rm.get_memory().get<skeleton_joint_runtime_t>(skeleton.joints);
+			const span_t<const mat4x3_t>	pose	 = _world->get_physics().get_ragdoll_joint_globals(row.id);
+			mat4x3_t*						matrices = _bone_aux.get<mat4x3_t>(renderer.bone_alloc);
+
+			for (u32 joint = 0; joint < skeleton.joint_count; ++joint)
+				matrices[joint] = pose[joint] * joints[joint].inverse_bind;
+
+			renderer.needs_skinning = true;
 		}
 	}
 

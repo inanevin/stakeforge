@@ -133,6 +133,8 @@ namespace sfg
 	{
 		clear_widgets();
 
+		_excluded_fields.assign(config.excluded_fields.begin(), config.excluded_fields.end());
+
 		_fold_states			  = config.fold_states;
 		_callbacks				  = config.callbacks;
 		_dropdown_items			  = config.dropdown_items;
@@ -293,7 +295,7 @@ namespace sfg
 		for (u32 i = field_start; i < field_end; i++)
 		{
 			const reflected_field_t* field = reflection_registry_t::get().get_field(i);
-			if (field == nullptr || field->flags.is_set(reflected_field_flags_e::reflected_field_flag_no_ui))
+			if (field == nullptr || field->flags.is_set(reflected_field_flags_e::reflected_field_flag_no_ui) || std::find(_excluded_fields.begin(), _excluded_fields.end(), field->field_identifier) != _excluded_fields.end())
 				continue;
 
 			ui::widget_id_t divider = NULL_WIDGET;

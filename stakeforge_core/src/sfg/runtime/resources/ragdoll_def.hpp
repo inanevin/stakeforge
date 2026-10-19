@@ -60,6 +60,8 @@ namespace sfg
 		f32							 linear_damping	   = 0.05f;
 		f32							 angular_damping   = 0.05f;
 		u8							 allow_sleep	   = 1;
+
+		bool is_valid(u32 joint_count = UINT32_MAX) const;
 	};
 
 	SFG_DEFINE_TYPE_ID(ragdoll_part_def_t);

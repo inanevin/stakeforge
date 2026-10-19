@@ -20,9 +20,12 @@ in GAME-LINKING-EXCEPTION.md.
 
 */
 
-#include "ui/panels/editor_panel_ragdoll_viewer.hpp"
+#include "editor_panel_ragdoll_viewer.hpp"
 
 #include "assets/editor_asset.hpp"
+#include "assets/editor_asset_util.hpp"
+#include "assets/editor_ragdoll_util.hpp"
+#include "ui/widgets/editor_widgets_dividers.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
 #include "commands/editor_command_ragdoll.hpp"
@@ -44,6 +47,12 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/ui/ui_context.hpp>
 #include <sfg/runtime/world/world.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
+#include <sfg/runtime/world/system_components.hpp>
+#include <sfg/runtime/physics/physics_world.hpp>
+#include <sfg/runtime/resources/resource_manager.hpp>
+#include <sfg/runtime/resources/mesh_def.hpp>
+#include <sfg/runtime/resources/physical_material.hpp>
 #include <sfg/runtime/world/world_debug_draw.hpp>
 #include <sfg/runtime/world/world_init_config.hpp>
 #include <sfg/vendor/nhlohmann/json.hpp>
@@ -97,7 +106,8 @@ namespace sfg
 		tree.attach(_root, _left_pane);
 
 		ui::layout_in_t& left_in = tree.in(_left_pane);
-		left_in.flow			 = ui::flow_e::none;
+		left_in.flow			 = ui::flow_e::column;
+		left_in.child_spacing	 = theme.item_spacing;
 		left_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
 		left_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
 		left_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
@@ -108,7 +118,39 @@ namespace sfg
 		left_rect.fill_color_b		  = theme.color_frame;
 		paint.set_rect(_left_pane, left_rect);
 
-		_world_view.init(ui, _left_pane);
+		const ui::widget_id_t toolbar = ui.allocate_widget();
+		tree.attach(_left_pane, toolbar);
+
+		ui::layout_in_t& toolbar_in = tree.in(toolbar);
+		toolbar_in.flow				= ui::flow_e::row;
+		toolbar_in.size_mode_x		= ui::axis_mode_e::parent_relative;
+		toolbar_in.size_mode_y		= ui::axis_mode_e::fixed;
+		toolbar_in.size_value		= {1.0f, theme.item_height};
+		toolbar_in.child_spacing	= theme.item_spacing;
+
+		_simulate_button.init(ui, toolbar, {.text = "Simulate"});
+		_reset_button.init(ui, toolbar, {.text = "Reset"});
+		_mesh_button.init(ui, toolbar, {.text = "Mesh"});
+		_skeleton_button.init(ui, toolbar, {.text = "Skeleton"});
+		_capsules_button.init(ui, toolbar, {.text = "Capsules"});
+		_limits_button.init(ui, toolbar, {.text = "Limits"});
+
+		for (editor_widget_button_t* button : {&_simulate_button, &_reset_button, &_mesh_button, &_skeleton_button, &_capsules_button, &_limits_button})
+		{
+			tree.in(button->get_root()).size_mode_x = ui::axis_mode_e::fill;
+			ui.get_input().set_listener(button->get_root(), {.on_click = on_action, .user_data = this});
+		}
+
+		const ui::widget_id_t viewport = ui.allocate_widget();
+		tree.attach(_left_pane, viewport);
+
+		ui::layout_in_t& viewport_in = tree.in(viewport);
+		viewport_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		viewport_in.size_mode_y		 = ui::axis_mode_e::fill;
+		viewport_in.size_value.x	 = 1.0f;
+		viewport_in.child_clip_mode	 = ui::clip_mode_e::scissor_rect;
+
+		_world_view.init(ui, viewport);
 
 		const editor_split_border_t::config_t split_config{
 			.on_drag   = on_split_border_drag,
@@ -137,9 +179,11 @@ namespace sfg
 		ui.set_widget_debug_name(_right_content, "ragdoll_viewer_right_content");
 		tree.attach(_right_pane, _right_content);
 		tree.draw_order(_right_content) = tree.draw_order_const(_right_pane) + 1;
+		paint.set_rect(_right_pane, {.fill_color_a = theme.color_frame, .fill_color_b = theme.color_frame});
 
 		ui::layout_in_t& right_content_in = tree.in(_right_content);
 		right_content_in.flow			  = ui::flow_e::column;
+		right_content_in.child_spacing	  = theme.item_spacing;
 		right_content_in.child_margins	  = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
 		right_content_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
 		right_content_in.size_mode_y	  = ui::axis_mode_e::sum_children;
@@ -147,27 +191,40 @@ namespace sfg
 
 		_right_scrollbar.init(ui, {.target = _right_pane, .axes = editor_scrollbar_axis_y});
 
-		editor_misc_widgets_t::make_section_label(ui, _right_content, "Capsule Ragdoll");
+		editor_misc_widgets_t::make_section_label(ui, _right_content, "Ragdoll");
+		_save_button.init(ui, _right_content, {.text = "Save Changes"});
+		_status.init(ui, _right_content, {.text = "Reference Pose"});
+		tree.in(_status.get_root()).flags &= ~ui::wf_input;
+		_reflection.init(ui, _right_content, {});
+		editor_misc_widgets_t::make_section_label(ui, _right_content, "Parts");
+		_generate_button.init(ui, _right_content, {.text = "Regenerate From Skeleton"});
+		_add_button.init(ui, _right_content, {.text = "Add Part"});
+		_remove_button.init(ui, _right_content, {.text = "Remove Selected Part"});
 
-		void* ragdoll_object = &_ragdoll;
-		_reflection.init(ui,
-						 _right_content,
-						 {
-							 .fold_states = &_fold_states,
-							 .callbacks =
-								 {
-									 .edit_begin	 = on_edit_begin,
-									 .edited		 = on_edited,
-									 .edit_submitted = on_edit_submitted,
-									 .user_data		 = this,
-								 },
-							 .objects				   = {.data = &ragdoll_object, .size = 1},
-							 .type_id				   = type_id_t<ragdoll_def_t>::value,
-							 .dropdown_items		   = resolve_dropdown_items,
-							 .dropdown_items_user_data = this,
-							 .block_edits			   = _ragdoll_guid == NULL_SID,
-							 .elevate_draw_order	   = true,
-						 });
+		for (editor_widget_button_t* button : {&_save_button, &_generate_button, &_add_button, &_remove_button, &_status})
+		{
+			tree.in(button->get_root()).size_mode_x	 = ui::axis_mode_e::parent_relative;
+			tree.in(button->get_root()).size_value.x = 1.0f;
+
+			if (button != &_status)
+				ui.get_input().set_listener(button->get_root(), {.on_click = on_action, .user_data = this});
+		}
+
+		_part_list = ui.allocate_widget();
+		tree.attach(_right_content, _part_list);
+
+		ui::layout_in_t& list_in = tree.in(_part_list);
+		list_in.flow			 = ui::flow_e::column;
+		list_in.size_mode_x		 = ui::axis_mode_e::parent_relative;
+		list_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		list_in.flags |= ui::wf_input | ui::wf_scroll_y;
+		list_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
+		list_in.size_value.x	= 1.0f;
+		list_in.child_spacing	= theme.item_spacing;
+		_parts_scrollbar.init(ui, {.target = _part_list, .axes = editor_scrollbar_axis_y});
+
+		editor_misc_widgets_t::make_section_label(ui, _right_content, "Selected Part");
+		_part_reflection.init(ui, _right_content, {});
 
 		create_preview_world();
 
@@ -188,6 +245,17 @@ namespace sfg
 		editor_asset_manager_t::get().remove_asset_deletion_listener(_asset_deletion_listener);
 
 		_asset_deletion_listener = {};
+		_parts_scrollbar.uninit();
+		_part_reflection.uninit();
+
+		for (u32 index = 0; index < _part_button_count; ++index)
+			_part_buttons[index].uninit();
+
+		_part_button_count = 0;
+
+		for (editor_widget_button_t* button : {&_save_button, &_simulate_button, &_reset_button, &_generate_button, &_add_button, &_remove_button, &_mesh_button, &_skeleton_button, &_capsules_button, &_limits_button, &_status})
+			button->uninit();
+
 		_reflection.uninit();
 		_right_scrollbar.uninit();
 		_world_view.uninit();
@@ -205,7 +273,6 @@ namespace sfg
 		_ragdoll		  = {};
 		_skeleton		  = {};
 		_preview_skeleton = NULL_RESOURCE_HANDLE;
-		_part_count		  = 0;
 
 		editor_panel_t::uninit();
 	}
@@ -219,6 +286,8 @@ namespace sfg
 			_edit_active = false;
 		}
 
+		reset_simulation();
+		_part_reflection.set_reflection({});
 		_ragdoll_guid = ragdoll_guid;
 		set_sub_item_id(ragdoll_guid);
 		_asset_name = asset_name;
@@ -236,32 +305,415 @@ namespace sfg
 
 		reload_skeleton();
 		rebuild_preview();
+		refresh_scene();
+		_dirty		   = false;
+		_selected_part = _ragdoll.parts.empty() ? UINT32_MAX : 0;
 		refresh_reflection();
-		_part_count = static_cast<u32>(_ragdoll.parts.size());
 		refresh_title(_asset_name.c_str(), "R: ");
 	}
 
 	void editor_panel_ragdoll_viewer_t::apply_ragdoll_def(ragdoll_def_t&& ragdoll)
 	{
+		reset_simulation();
+		_part_reflection.set_reflection({});
 		_ragdoll = std::move(ragdoll);
 
 		// reload_skeleton();
 		// rebuild_preview();
-		refresh_reflection();
-		_part_count = static_cast<u32>(_ragdoll.parts.size());
+		reload_skeleton();
+		rebuild_preview();
+		refresh_scene();
+		mark_dirty();
+		_refresh_pending = true;
 	}
-
 	void editor_panel_ragdoll_viewer_t::create_preview_world()
 	{
-		const editor_world_init_config_t init_config = editor_world_init_config_t::make_preview(editor_surface_controller_t::get().get_main_surface().swapchain_size);
+		editor_world_init_config_t init_config		  = editor_world_init_config_t::make_preview(editor_surface_controller_t::get().get_main_surface().swapchain_size);
+		init_config.physics.physics_enabled			  = true;
+		init_config.physics.max_bodies				  = 128;
+		init_config.physics.body_reserve			  = 128;
+		init_config.physics.max_body_pairs			  = 1024;
+		init_config.physics.max_contact_constraints	  = 1024;
+		init_config.physics.character_reserve		  = 0;
+		init_config.physics.contact_event_reserve	  = 256;
+		init_config.physics.temp_allocator_bytes	  = 2 * 1024 * 1024;
+		init_config.physics.ragdoll_pose_budget_bytes = 128 * 1024;
 
 		editor_world_controller_t& controller = editor_world_controller_t::get();
 		_world								  = controller.create_world(init_config, editor_world_edit_type_e::view_with_debug, on_world_tick, this);
-		editor_world_t* const editor_world	  = controller.get_editor_world(_world);
+		editor_world_t& editor_world		  = *controller.get_editor_world(_world);
+		world_t&		world				  = editor_world.get_world();
 
-		editor_world->install_camera(editor_world_camera_type_e::orbit);
-		editor_world_util_t::install_default_scene_light(editor_world->get_world());
+		editor_world.install_camera(editor_world_camera_type_e::orbit);
+		editor_world.get_input_controller().set_pointer_drag_callbacks({
+			.begin	   = on_preview_drag_begin,
+			.update	   = on_preview_drag_update,
+			.end	   = on_preview_drag_end,
+			.user_data = this,
+		});
+		editor_world_util_t::install_default_scene_dark(world, 5.0f);
 		_world_view.set_edit_world(_world);
+
+		const entity_id_t	  floor	   = world.create_entity("ragdoll_collision_floor");
+		component_physical_t& physical = world.get_component_table<component_physical_t>().add_or_get_as<component_physical_t>(floor);
+		physical.half_extent		   = {25.0f, 0.1f, 25.0f};
+		world.set_entity_pos_local(floor, {0.0f, -0.1f, 0.0f});
+	}
+	void editor_panel_ragdoll_viewer_t::refresh_scene()
+	{
+		world_t& world = editor_world_controller_t::get().get_editor_world(_world)->get_world();
+
+		if (_display_entity != NULL_ENTITY_ID)
+		{
+			const component_skinned_mesh_renderer_t& renderer = world.get_component_table<component_skinned_mesh_renderer_t>().get_as_const<component_skinned_mesh_renderer_t>(_display_entity);
+
+			if (renderer.skeleton != _ragdoll.target_skeleton || _skeleton.joints.empty())
+			{
+				world.destroy_entity(_display_entity);
+				_display_entity = NULL_ENTITY_ID;
+			}
+		}
+
+		if (_skeleton.joints.empty())
+			return;
+
+		if (_display_entity == NULL_ENTITY_ID)
+			_display_entity = world.create_entity("ragdoll_preview");
+
+		component_skinned_mesh_renderer_t& renderer = world.get_component_table<component_skinned_mesh_renderer_t>().add_or_get_as<component_skinned_mesh_renderer_t>(_display_entity);
+		renderer.skeleton							= _ragdoll.target_skeleton;
+		renderer.mesh								= _skeleton.preview_mesh;
+		renderer.materials.resize(0);
+
+		if (_show_mesh)
+		{
+			const editor_asset_t* mesh_asset = editor_asset_manager_t::get().find_asset(_skeleton.preview_mesh);
+			mesh_def_t			  mesh		 = {};
+
+			if (mesh_asset != nullptr && editor_asset_util_t::load_mesh_def(*mesh_asset, mesh) && !mesh.preview_materials.empty())
+			{
+				for (resource_handle_t material : mesh.preview_materials)
+					renderer.materials.push_back(material);
+			}
+			else
+			{
+				for (u32 index = 0; index < decltype(renderer.materials)::capacity; ++index)
+					renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
+			}
+		}
+
+		world.scan_for_resources(_display_entity, true);
+	}
+
+	bool editor_panel_ragdoll_viewer_t::start_simulation()
+	{
+		if (_simulating)
+			return true;
+
+		if (_display_entity == NULL_ENTITY_ID)
+			return false;
+
+		if (!_ragdoll.is_valid(static_cast<u32>(_skeleton.joints.size())))
+		{
+			_status.set_text("Invalid parts or limits; see log", editor_theme_t::get().color_accent_err);
+			return false;
+		}
+
+		world_t& world = editor_world_controller_t::get().get_editor_world(_world)->get_world();
+
+		if (_ragdoll.physical_material != NULL_RESOURCE_HANDLE)
+		{
+			world.add_resource(resource_type_e::physical_material, _ragdoll.physical_material);
+			world.load_all_used_resources();
+
+			if (resource_manager_t::get().find_runtime<physical_material_runtime_t>(_ragdoll.physical_material) == nullptr)
+			{
+				_status.set_text("Material could not be loaded", editor_theme_t::get().color_accent_err);
+				return false;
+			}
+		}
+
+		world.tick_animation_logic(0.0f);
+		world.get_component_table<component_ragdoll_t>().add_or_get_as<component_ragdoll_t>(_display_entity);
+		_simulating = world.get_physics().create_ragdoll(_display_entity, _ragdoll);
+
+		if (!_simulating)
+			world.get_component_table<component_ragdoll_t>().remove(_display_entity);
+
+		_status.set_text(_simulating ? "Simulating unsaved preview" : "Simulation failed; see log");
+		refresh_actions();
+
+		return _simulating;
+	}
+
+	bool editor_panel_ragdoll_viewer_t::on_preview_drag_begin(const vec2f_t& relative_position, void* user_data)
+	{
+		editor_panel_ragdoll_viewer_t& panel = *static_cast<editor_panel_ragdoll_viewer_t*>(user_data);
+		panel.finish_edit();
+
+		if (!panel.start_simulation())
+			return false;
+
+		editor_world_t&	  editor_world = *editor_world_controller_t::get().get_editor_world(panel._world);
+		physics_world_t&  physics	   = editor_world.get_world().get_physics();
+		physics_raycast_t ray		   = {};
+		physics_raycast_t center_ray   = {};
+		physics_hit_t	  hit		   = {};
+
+		if (!editor_world.get_camera_ray(relative_position, ray) || !editor_world.get_camera_ray({0.5f, 0.5f}, center_ray) || !physics.raycast_closest(ray, hit) || hit.entity != panel._display_entity)
+			return false;
+
+		if (!physics.begin_ragdoll_drag(hit.entity, hit.sub_shape_id, hit.position))
+			return false;
+
+		panel._drag_plane_point	 = hit.position;
+		panel._drag_plane_normal = center_ray.direction;
+		panel._selected_part	 = hit.sub_shape_id;
+		panel._refresh_pending	 = true;
+
+		return true;
+	}
+
+	void editor_panel_ragdoll_viewer_t::on_preview_drag_update(const vec2f_t& relative_position, void* user_data)
+	{
+		editor_panel_ragdoll_viewer_t& panel		= *static_cast<editor_panel_ragdoll_viewer_t*>(user_data);
+		editor_world_t&				   editor_world = *editor_world_controller_t::get().get_editor_world(panel._world);
+		physics_raycast_t			   ray			= {};
+
+		if (!editor_world.get_camera_ray(relative_position, ray))
+			return;
+
+		const f32 denominator = vec3f_t::dot(ray.direction, panel._drag_plane_normal);
+
+		if (math::abs(denominator) < MATH_EPS)
+			return;
+
+		const f32 distance = vec3f_t::dot(panel._drag_plane_point - ray.origin, panel._drag_plane_normal) / denominator;
+
+		if (distance <= 0.0f)
+			return;
+
+		if (!editor_world.get_world().get_physics().update_ragdoll_drag(ray.origin + ray.direction * distance))
+			editor_world.get_input_controller().cancel_pointer_drag();
+	}
+
+	void editor_panel_ragdoll_viewer_t::on_preview_drag_end(void* user_data)
+	{
+		editor_panel_ragdoll_viewer_t& panel = *static_cast<editor_panel_ragdoll_viewer_t*>(user_data);
+		editor_world_controller_t::get().get_editor_world(panel._world)->get_world().get_physics().end_ragdoll_drag();
+		panel._drag_plane_point	 = vec3f_t::zero;
+		panel._drag_plane_normal = vec3f_t::zero;
+	}
+
+	void editor_panel_ragdoll_viewer_t::reset_simulation()
+	{
+		if (_display_entity == NULL_ENTITY_ID)
+			return;
+
+		editor_world_controller_t::get().get_editor_world(_world)->get_input_controller().cancel_pointer_drag();
+
+		world_t&			   world	= editor_world_controller_t::get().get_editor_world(_world)->get_world();
+		ecs_component_table_t& ragdolls = world.get_component_table<component_ragdoll_t>();
+
+		if (world.get_component_table<component_system_ragdoll_t>().has(_display_entity))
+			world.get_physics().destroy_ragdoll(_display_entity);
+
+		if (ragdolls.has(_display_entity))
+			ragdolls.remove(_display_entity);
+
+		world.set_entity_pos_local(_display_entity, vec3f_t::zero);
+		world.set_entity_rot_local(_display_entity, quat_t::identity);
+		_simulating = false;
+		_status.set_text("Reference Pose");
+		refresh_actions();
+	}
+
+	void editor_panel_ragdoll_viewer_t::refresh_actions()
+	{
+		ui::layout_tree_t&	  tree		   = _ui->get_tree();
+		const editor_theme_t& theme		   = editor_theme_t::get();
+		const bool			  has_skeleton = !_skeleton.joints.empty();
+
+		for (editor_widget_button_t* button : {&_save_button, &_simulate_button, &_reset_button, &_generate_button, &_add_button, &_remove_button})
+			tree.in(button->get_root()).flags &= ~ui::wf_disabled;
+
+		if (!_dirty || _ragdoll_guid == NULL_SID)
+			tree.in(_save_button.get_root()).flags |= ui::wf_disabled;
+
+		if (!has_skeleton || _ragdoll.parts.empty() || _simulating)
+			tree.in(_simulate_button.get_root()).flags |= ui::wf_disabled;
+
+		if (!_simulating)
+			tree.in(_reset_button.get_root()).flags |= ui::wf_disabled;
+
+		if (!has_skeleton)
+			tree.in(_generate_button.get_root()).flags |= ui::wf_disabled;
+
+		if (!has_skeleton || _ragdoll.parts.size() >= RAGDOLL_PART_MAX || _ragdoll.parts.size() >= _skeleton.joints.size())
+			tree.in(_add_button.get_root()).flags |= ui::wf_disabled;
+
+		if (_selected_part == UINT32_MAX)
+			tree.in(_remove_button.get_root()).flags |= ui::wf_disabled;
+
+		_mesh_button.set_text("Mesh", _show_mesh ? theme.color_accent1 : theme.color_text1);
+		_skeleton_button.set_text("Skeleton", _show_skeleton ? theme.color_accent1 : theme.color_text1);
+		_capsules_button.set_text("Capsules", _show_capsules ? theme.color_accent1 : theme.color_text1);
+		_limits_button.set_text("Limits", _show_limits ? theme.color_accent1 : theme.color_text1);
+		refresh_title(_asset_name.c_str(), "R: ", _dirty);
+	}
+
+	void editor_panel_ragdoll_viewer_t::mark_dirty()
+	{
+		_dirty = true;
+		refresh_actions();
+	}
+
+	void editor_panel_ragdoll_viewer_t::finish_edit()
+	{
+		if (!_edit_active)
+			return;
+
+		editor_command_ragdoll_edit_t::submit(*this, "Ragdoll Edit", false);
+		_edit_active	 = false;
+		_refresh_pending = true;
+	}
+
+	void editor_panel_ragdoll_viewer_t::on_part_selected(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_ragdoll_viewer_t& panel = *static_cast<editor_panel_ragdoll_viewer_t*>(user_data);
+		router.set_focus(panel._root, false);
+		panel.finish_edit();
+
+		for (u32 index = 0; index < panel._part_button_count; ++index)
+		{
+			if (panel._part_buttons[index].get_root() == id)
+				panel._selected_part = index;
+		}
+
+		panel._refresh_pending = true;
+	}
+
+	void editor_panel_ragdoll_viewer_t::on_action(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_ragdoll_viewer_t& panel = *static_cast<editor_panel_ragdoll_viewer_t*>(user_data);
+		router.set_focus(panel._root, false);
+		panel.finish_edit();
+
+		if (id == panel._save_button.get_root())
+		{
+			if (!panel._ragdoll.is_valid(static_cast<u32>(panel._skeleton.joints.size())))
+			{
+				panel._status.set_text("Invalid parts or limits; see log", editor_theme_t::get().color_accent_err);
+				return;
+			}
+
+			nlohmann::json source = nlohmann::json::object();
+
+			if (!reflection_registry_t::get().type_to_json(type_id_t<ragdoll_def_t>::value, &panel._ragdoll, nullptr, source))
+				return;
+
+			source["schema"] = "sfg.schema.ragdoll";
+
+			if (editor_asset_manager_t::get().save_and_cook_embedded_asset_async(panel._ragdoll_guid, source))
+			{
+				panel._dirty = false;
+				panel._status.set_text("Saved; cooking queued");
+				panel.refresh_actions();
+			}
+			else
+				panel._status.set_text("Save failed; see log", editor_theme_t::get().color_accent_err);
+
+			return;
+		}
+
+		if (id == panel._reset_button.get_root())
+		{
+			panel.reset_simulation();
+			return;
+		}
+
+		if (id == panel._simulate_button.get_root())
+		{
+			panel.start_simulation();
+			return;
+		}
+
+		if (id == panel._mesh_button.get_root() || id == panel._skeleton_button.get_root() || id == panel._capsules_button.get_root() || id == panel._limits_button.get_root())
+		{
+			if (id == panel._mesh_button.get_root())
+			{
+				panel._show_mesh = !panel._show_mesh;
+				panel.refresh_scene();
+			}
+			else if (id == panel._skeleton_button.get_root())
+				panel._show_skeleton = !panel._show_skeleton;
+			else if (id == panel._capsules_button.get_root())
+				panel._show_capsules = !panel._show_capsules;
+			else
+				panel._show_limits = !panel._show_limits;
+
+			panel.refresh_actions();
+			return;
+		}
+
+		panel.reset_simulation();
+		on_edit_begin(&panel);
+
+		if (!panel._edit_active)
+			return;
+
+		panel._part_reflection.set_reflection({});
+
+		if (id == panel._generate_button.get_root())
+		{
+			if (!editor_ragdoll_util_t::generate(panel._skeleton, panel._ragdoll))
+				panel._status.set_text("Generation failed; see log", editor_theme_t::get().color_accent_err);
+
+			panel._selected_part = panel._ragdoll.parts.empty() ? UINT32_MAX : 0;
+		}
+		else if (id == panel._add_button.get_root())
+		{
+			for (const u32 joint : panel._skeleton.evaluation_order)
+			{
+				const auto used = std::find_if(panel._ragdoll.parts.begin(), panel._ragdoll.parts.end(), [joint](const ragdoll_part_def_t& part) { return part.joint_index == joint; });
+
+				if (used != panel._ragdoll.parts.end())
+					continue;
+
+				panel._ragdoll.parts.push_back({.joint_index = joint, .parent_part_index = panel._ragdoll.parts.empty() ? RAGDOLL_PART_NO_PARENT : 0});
+				panel._selected_part = static_cast<u32>(panel._ragdoll.parts.size() - 1);
+				break;
+			}
+		}
+		else if (id == panel._remove_button.get_root())
+		{
+			const u32 removed = panel._selected_part;
+			const u32 parent  = panel._ragdoll.parts[removed].parent_part_index;
+			panel._ragdoll.parts.erase(panel._ragdoll.parts.begin() + removed);
+
+			for (u32 index = 0; index < panel._ragdoll.parts.size(); ++index)
+			{
+				ragdoll_part_def_t& part = panel._ragdoll.parts[index];
+
+				if (index == 0)
+					part.parent_part_index = RAGDOLL_PART_NO_PARENT;
+				else if (part.parent_part_index == removed)
+					part.parent_part_index = removed == 0 ? 0 : parent;
+				else if (part.parent_part_index > removed)
+					--part.parent_part_index;
+			}
+
+			panel._selected_part = panel._ragdoll.parts.empty() ? UINT32_MAX : math::min(removed, static_cast<u32>(panel._ragdoll.parts.size() - 1));
+		}
+
+		panel.mark_dirty();
+		panel.finish_edit();
 	}
 
 	void editor_panel_ragdoll_viewer_t::destroy_preview_world()
@@ -328,7 +780,10 @@ namespace sfg
 			vec3f_t capsule_position = vec3f_t::zero;
 			quat_t	capsule_rotation = quat_t::identity;
 			vec3f_t capsule_scale	 = vec3f_t::one;
-			(_joint_globals[part.joint_index] * mat4x3_t::transform(part.local_position, part.local_rotation, vec3f_t::one)).decompose(capsule_position, capsule_rotation, capsule_scale);
+			_joint_globals[part.joint_index].decompose(capsule_position, capsule_rotation, capsule_scale);
+
+			capsule_position += capsule_rotation * (part.local_position * capsule_scale);
+
 			const f32	  shape_scale = math::max(math::max(math::abs(capsule_scale.x), math::abs(capsule_scale.y)), math::abs(capsule_scale.z));
 			const f32	  extent	  = (part.radius + part.half_height) * shape_scale;
 			const vec3f_t margin(extent, extent, extent);
@@ -340,52 +795,65 @@ namespace sfg
 			editor_world_controller_t::get().get_editor_world(_world)->fit_camera_to_bounds(aabb_t(bounds_min, bounds_max));
 	}
 
-	void editor_panel_ragdoll_viewer_t::refresh_part_dropdown_names()
-	{
-		_part_dropdown_names.reserve(RAGDOLL_PART_MAX);
-
-		for (u32 part_index = static_cast<u32>(_part_dropdown_names.size()); part_index < _ragdoll.parts.size(); ++part_index)
-			_part_dropdown_names.push_back("Part " + std::to_string(part_index));
-	}
-
 	void editor_panel_ragdoll_viewer_t::refresh_reflection()
 	{
-		if (_ui == nullptr)
-			return;
-
 		_joint_dropdown_items.resize(0);
-		_joint_dropdown_items.reserve(_skeleton.joints.size() + 1);
-		_joint_dropdown_items.push_back({.text = "None", .value = UINT32_MAX});
+		_joint_dropdown_items.reserve(_skeleton.joints.size());
 
-		for (u32 joint_index = 0; joint_index < _skeleton.joints.size(); ++joint_index)
+		for (u32 joint = 0; joint < _skeleton.joints.size(); ++joint)
+			_joint_dropdown_items.push_back({.text = _skeleton.joints[joint].name.c_str(), .value = joint});
+
+		if (_selected_part >= _ragdoll.parts.size())
+			_selected_part = _ragdoll.parts.empty() ? UINT32_MAX : 0;
+
+		for (u32 index = 0; index < _part_button_count; ++index)
+			_part_buttons[index].uninit();
+
+		_part_button_count							= static_cast<u32>(_ragdoll.parts.size());
+		const editor_theme_t& theme					= editor_theme_t::get();
+		_ui->get_tree().in(_part_list).size_value.y = static_cast<f32>(math::max(1u, math::min(_part_button_count, 7u))) * (theme.item_height + theme.item_spacing);
+		_part_dropdown_names.resize(0);
+		_part_dropdown_names.reserve(_part_button_count);
+
+		for (u32 index = 0; index < _part_button_count; ++index)
 		{
-			const skeleton_joint_def_t& joint = _skeleton.joints[joint_index];
-			_joint_dropdown_items.push_back({
-				.text  = joint.name.empty() ? "Unnamed Joint" : joint.name.c_str(),
-				.value = joint_index,
-			});
+			const ragdoll_part_def_t& part = _ragdoll.parts[index];
+			_part_dropdown_names.push_back(part.joint_index < _skeleton.joints.size() ? _skeleton.joints[part.joint_index].name : "Unassigned Joint");
+			_part_buttons[index].init(*_ui, _part_list, {.text = _part_dropdown_names.back().c_str(), .elevate_draw_order = true});
+
+			const ui::widget_id_t button = _part_buttons[index].get_root();
+			ui::layout_in_t&	  layout = _ui->get_tree().in(button);
+			layout.size_mode_x			 = ui::axis_mode_e::parent_relative;
+			layout.size_value.x			 = 1.0f;
+
+			const vec4f_t color = index == _selected_part ? theme.color_accent1 : theme.color_panel;
+			_ui->get_paint().set_rect(button, {.fill_color_a = color, .fill_color_b = color, .rounding = theme.item_rounding, .rounding_segs = 4});
+			_ui->get_input().set_listener(button, {.on_click = on_part_selected, .user_data = this});
 		}
 
-		refresh_part_dropdown_names();
-
-		void* ragdoll_object = &_ragdoll;
+		void*							object	   = &_ragdoll;
+		const sid_t						excluded[] = {"parts"_hs};
+		const editor_widget_callbacks_t callbacks{.edit_begin = on_edit_begin, .edited = on_edited, .edit_submitted = on_edit_submitted, .user_data = this};
 		_reflection.save_fold_states();
 		_reflection.set_reflection({
-			.fold_states = &_fold_states,
-			.callbacks =
-				{
-					.edit_begin		= on_edit_begin,
-					.edited			= on_edited,
-					.edit_submitted = on_edit_submitted,
-					.user_data		= this,
-				},
-			.objects				  = {.data = &ragdoll_object, .size = 1},
-			.type_id				  = type_id_t<ragdoll_def_t>::value,
+			.fold_states	 = &_fold_states,
+			.callbacks		 = callbacks,
+			.excluded_fields = {.data = excluded, .size = std::size(excluded)},
+			.objects		 = {.data = &object, .size = 1},
+			.type_id		 = type_id_t<ragdoll_def_t>::value,
+			.block_edits	 = _ragdoll_guid == NULL_SID,
+		});
+
+		void* part = _selected_part == UINT32_MAX ? nullptr : &_ragdoll.parts[_selected_part];
+		_part_reflection.set_reflection({
+			.callbacks				  = callbacks,
+			.objects				  = {.data = &part, .size = part == nullptr ? 0u : 1u},
+			.type_id				  = type_id_t<ragdoll_part_def_t>::value,
 			.dropdown_items			  = resolve_dropdown_items,
 			.dropdown_items_user_data = this,
 			.block_edits			  = _ragdoll_guid == NULL_SID,
-			.elevate_draw_order		  = true,
 		});
+		refresh_actions();
 	}
 
 	void editor_panel_ragdoll_viewer_t::apply_pane_split()
@@ -399,45 +867,99 @@ namespace sfg
 		if (_joint_globals.empty())
 			return;
 
-		const editor_theme_t& theme = editor_theme_t::get();
-		const color_t		  joint_color{
-			theme.color_accent1.x,
-			theme.color_accent1.y,
-			theme.color_accent1.z,
-			theme.color_accent1.w,
-		};
-		const color_t joint_name_color{
-			theme.color_accent0.x,
-			theme.color_accent0.y,
-			theme.color_accent0.z,
-			theme.color_accent0.w,
-		};
-		world_debug_draw_t& debug_draw = world.get_debug_draw();
+		const editor_theme_t&  theme = editor_theme_t::get();
+		const color_t		   selected{theme.color_accent1.x, theme.color_accent1.y, theme.color_accent1.z, 1.0f};
+		const color_t		   neutral{theme.color_text1.x, theme.color_text1.y, theme.color_text1.z, 1.0f};
+		world_debug_draw_t&	   draw = world.get_debug_draw();
+		span_t<const mat4x3_t> pose{.data = _joint_globals.data(), .size = _joint_globals.size()};
+		mat4x3_t			   entity_transform = mat4x3_t::identity;
 
-		for (u32 joint_index = 0; joint_index < _skeleton.joints.size(); ++joint_index)
+		if (_simulating && world.get_component_table<component_system_ragdoll_t>().has(_display_entity))
 		{
-			const skeleton_joint_def_t& joint	 = _skeleton.joints[joint_index];
-			const vec3f_t				position = _joint_globals[joint_index].get_translation();
-
-			if (joint.parent_index != SKELETON_JOINT_NO_PARENT)
-				debug_draw.draw_line(_joint_globals[joint.parent_index].get_translation(), position, joint_color, 1.0f, debug_draw_depth_e::depth_tested);
-
-			debug_draw.draw_text_3d(position, joint.name.c_str(), joint_name_color, theme.text_small_px_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
+			pose			 = world.get_physics().get_ragdoll_joint_globals(_display_entity);
+			entity_transform = world.get_component_table<component_system_transform_t>().get_as_const<component_system_transform_t>(_display_entity).abs_mat;
 		}
 
-		for (const ragdoll_part_def_t& part : _ragdoll.parts)
+		if (_show_skeleton)
 		{
-			if (part.joint_index >= _joint_globals.size())
+			for (u32 joint_index = 0; joint_index < _skeleton.joints.size(); ++joint_index)
+			{
+				const skeleton_joint_def_t& joint	 = _skeleton.joints[joint_index];
+				const vec3f_t				position = entity_transform * pose[joint_index].get_translation();
+
+				if (joint.parent_index != SKELETON_JOINT_NO_PARENT)
+					draw.draw_line(entity_transform * pose[joint.parent_index].get_translation(), position, neutral, 1.0f, debug_draw_depth_e::always_visible);
+			}
+		}
+
+		for (u32 index = 0; index < _ragdoll.parts.size(); ++index)
+		{
+			const ragdoll_part_def_t& part = _ragdoll.parts[index];
+
+			if (part.joint_index >= pose.size)
 				continue;
 
-			const mat4x3_t capsule_transform = _joint_globals[part.joint_index] * mat4x3_t::transform(part.local_position, part.local_rotation, vec3f_t::one);
-			vec3f_t		   position			 = vec3f_t::zero;
-			quat_t		   rotation			 = quat_t::identity;
-			vec3f_t		   scale			 = vec3f_t::one;
-			capsule_transform.decompose(position, rotation, scale);
-			const f32 shape_scale = math::max(math::max(math::abs(scale.x), math::abs(scale.y)), math::abs(scale.z));
+			const mat4x3_t joint_transform = entity_transform * pose[part.joint_index];
+			vec3f_t		   position		   = vec3f_t::zero;
+			quat_t		   rotation		   = quat_t::identity;
+			vec3f_t		   scale		   = vec3f_t::one;
+			joint_transform.decompose(position, rotation, scale);
 
-			debug_draw.draw_capsule(position, math::max(part.radius * shape_scale, 0.001f), math::max(part.half_height * shape_scale, 0.001f), rotation.get_up(), color_t::purple, 2.0f, debug_draw_depth_e::depth_tested, 20);
+			position += rotation * (part.local_position * scale);
+			rotation = rotation * part.local_rotation;
+
+			const f32  shape_scale = math::max(math::abs(scale.x), math::max(math::abs(scale.y), math::abs(scale.z)));
+			const bool active	   = index == _selected_part;
+
+			if (_show_capsules)
+				draw.draw_capsule(position, math::max(part.radius * shape_scale, 0.001f), math::max(part.half_height * shape_scale, 0.001f), rotation.get_up(), active ? selected : neutral, active ? 2.0f : 1.0f, debug_draw_depth_e::always_visible, 20);
+
+			if (!active || !_show_limits || part.parent_part_index == RAGDOLL_PART_NO_PARENT || part.twist_axis.is_zero() || part.plane_axis.is_zero())
+				continue;
+
+			vec3f_t joint_position = vec3f_t::zero;
+			quat_t	joint_rotation = quat_t::identity;
+			vec3f_t joint_scale	   = vec3f_t::one;
+			joint_transform.decompose(joint_position, joint_rotation, joint_scale);
+
+			if (_simulating && part.parent_part_index < _ragdoll.parts.size())
+			{
+				const u32	   parent_joint		  = _ragdoll.parts[part.parent_part_index].joint_index;
+				vec3f_t		   reference_position = vec3f_t::zero;
+				quat_t		   reference_rotation = quat_t::identity;
+				vec3f_t		   reference_scale	  = vec3f_t::one;
+				const mat4x3_t frame			  = entity_transform * pose[parent_joint] * _joint_globals[parent_joint].inverse() * _joint_globals[part.joint_index];
+				frame.decompose(reference_position, reference_rotation, reference_scale);
+				joint_rotation = reference_rotation;
+			}
+
+			const vec3f_t twist	 = joint_rotation * part.twist_axis.normalized();
+			const vec3f_t plane	 = joint_rotation * part.plane_axis.normalized();
+			const vec3f_t normal = vec3f_t::cross(twist, plane);
+
+			if (normal.is_zero())
+				continue;
+
+			const f32 length = math::max(part.radius + part.half_height, 0.01f) * shape_scale;
+			draw.draw_line(joint_position, joint_position + twist * length, selected, 2.0f, debug_draw_depth_e::always_visible);
+			draw.draw_line(joint_position, joint_position + plane * length, color_t::green, 1.0f, debug_draw_depth_e::always_visible);
+			draw.draw_arc(joint_position,
+						  normal.normalized(),
+						  quat_t::angle_axis(-part.plane_half_cone_angle_degrees, normal.normalized()) * twist,
+						  length,
+						  math::degrees_to_radians(2.0f * part.plane_half_cone_angle_degrees),
+						  selected,
+						  1.0f,
+						  debug_draw_depth_e::always_visible);
+			draw.draw_arc(joint_position, plane, quat_t::angle_axis(-part.normal_half_cone_angle_degrees, plane) * twist, length, math::degrees_to_radians(2.0f * part.normal_half_cone_angle_degrees), selected, 1.0f, debug_draw_depth_e::always_visible);
+			draw.draw_arc(joint_position,
+						  twist,
+						  quat_t::angle_axis(part.twist_min_angle_degrees, twist) * plane,
+						  length * 0.65f,
+						  math::degrees_to_radians(part.twist_max_angle_degrees - part.twist_min_angle_degrees),
+						  color_t::green,
+						  1.0f,
+						  debug_draw_depth_e::always_visible);
 		}
 	}
 
@@ -450,17 +972,14 @@ namespace sfg
 
 		if (field_id == "parent_part_index"_hs)
 		{
-			SFG_ASSERT(element_index < viewer._part_dropdown_names.size());
-
 			viewer._part_dropdown_items.resize(0);
-			viewer._part_dropdown_items.reserve(element_index == 0 ? 1 : element_index);
 
-			if (element_index == 0)
+			if (viewer._selected_part == 0)
 				viewer._part_dropdown_items.push_back({.text = "None", .value = RAGDOLL_PART_NO_PARENT});
 			else
 			{
-				for (u32 part_index = 0; part_index < element_index; ++part_index)
-					viewer._part_dropdown_items.push_back({.text = viewer._part_dropdown_names[part_index].c_str(), .value = part_index});
+				for (u32 index = 0; index < viewer._selected_part; ++index)
+					viewer._part_dropdown_items.push_back({.text = viewer._part_dropdown_names[index].c_str(), .value = index});
 			}
 
 			return {.data = viewer._part_dropdown_items.data(), .size = viewer._part_dropdown_items.size()};
@@ -469,7 +988,7 @@ namespace sfg
 		return {};
 	}
 
-	void editor_panel_ragdoll_viewer_t::on_asset_deletion(editor_asset_manager_t&, span_t<const sid_t> asset_ids, void* user_data)
+	void editor_panel_ragdoll_viewer_t::on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data)
 	{
 		editor_panel_ragdoll_viewer_t& panel = *static_cast<editor_panel_ragdoll_viewer_t*>(user_data);
 
@@ -483,7 +1002,9 @@ namespace sfg
 
 			if (asset_ids[i] == panel._ragdoll.target_skeleton)
 			{
+				panel.reset_simulation();
 				panel._skeleton = {};
+				panel.refresh_scene();
 				panel.rebuild_preview();
 				panel.refresh_reflection();
 				return;
@@ -493,63 +1014,23 @@ namespace sfg
 
 	void editor_panel_ragdoll_viewer_t::on_edited(void* user_data)
 	{
-		editor_panel_ragdoll_viewer_t& panel			= *static_cast<editor_panel_ragdoll_viewer_t*>(user_data);
-		const bool					   skeleton_changed = panel._preview_skeleton != panel._ragdoll.target_skeleton;
-		const bool					   topology_changed = panel._part_count != panel._ragdoll.parts.size();
+		editor_panel_ragdoll_viewer_t& panel = *static_cast<editor_panel_ragdoll_viewer_t*>(user_data);
 
-		if (skeleton_changed)
+		if (panel._preview_skeleton != panel._ragdoll.target_skeleton)
 		{
+			panel._part_reflection.set_reflection({});
 			panel.reload_skeleton();
+			panel._ragdoll.parts.resize(0);
+
+			if (!panel._skeleton.joints.empty())
+				editor_ragdoll_util_t::generate(panel._skeleton, panel._ragdoll);
+
 			panel.rebuild_preview();
+			panel.refresh_scene();
 		}
 
-		if (!skeleton_changed && !topology_changed)
-			return;
-
-		for (u32 part_index = 0; part_index < panel._ragdoll.parts.size(); ++part_index)
-		{
-			ragdoll_part_def_t& part = panel._ragdoll.parts[part_index];
-
-			if (topology_changed)
-			{
-				if (part_index == 0)
-					part.parent_part_index = RAGDOLL_PART_NO_PARENT;
-				else if (part.parent_part_index == RAGDOLL_PART_NO_PARENT || part.parent_part_index >= part_index)
-					part.parent_part_index = part_index - 1;
-			}
-
-			if (!skeleton_changed && part_index < panel._part_count)
-				continue;
-
-			bool joint_used = part.joint_index >= panel._skeleton.joints.size();
-
-			for (u32 previous_index = 0; !joint_used && previous_index < part_index; ++previous_index)
-				joint_used = panel._ragdoll.parts[previous_index].joint_index == part.joint_index;
-
-			if (!joint_used)
-				continue;
-
-			part.joint_index = UINT32_MAX;
-
-			for (const u32 candidate_joint : panel._skeleton.evaluation_order)
-			{
-				bool candidate_used = false;
-
-				for (u32 previous_index = 0; previous_index < part_index; ++previous_index)
-					candidate_used |= panel._ragdoll.parts[previous_index].joint_index == candidate_joint;
-
-				if (candidate_used)
-					continue;
-
-				part.joint_index = candidate_joint;
-				break;
-			}
-		}
-
-		panel._part_count = static_cast<u32>(panel._ragdoll.parts.size());
-		panel.refresh_part_dropdown_names();
+		panel.mark_dirty();
 	}
-
 	void editor_panel_ragdoll_viewer_t::on_edit_begin(void* user_data)
 	{
 		editor_panel_ragdoll_viewer_t& panel = *static_cast<editor_panel_ragdoll_viewer_t*>(user_data);
@@ -557,26 +1038,30 @@ namespace sfg
 		if (panel._edit_active)
 			return;
 
+		panel.reset_simulation();
 		panel._edit_active = editor_command_ragdoll_edit_t::begin(panel);
 	}
 
 	void editor_panel_ragdoll_viewer_t::on_edit_submitted(void* user_data)
 	{
 		editor_panel_ragdoll_viewer_t& panel = *static_cast<editor_panel_ragdoll_viewer_t*>(user_data);
-
-		if (!panel._edit_active)
-			return;
-
-		editor_command_ragdoll_edit_t::submit(panel, "Ragdoll Edit Property", false);
-		panel._edit_active = false;
+		panel.finish_edit();
 	}
-
 	void editor_panel_ragdoll_viewer_t::on_world_tick(world_t& world, f32 delta_time, void* user_data)
 	{
-		const editor_panel_ragdoll_viewer_t& panel = *static_cast<const editor_panel_ragdoll_viewer_t*>(user_data);
+		editor_panel_ragdoll_viewer_t& panel = *static_cast<editor_panel_ragdoll_viewer_t*>(user_data);
+
+		if (panel._refresh_pending && !panel._edit_active)
+		{
+			panel._refresh_pending = false;
+			panel.refresh_reflection();
+		}
+
+		if (panel._simulating && !world.get_component_table<component_system_ragdoll_t>().has(panel._display_entity))
+			panel.reset_simulation();
+
 		panel.draw_ragdoll(world);
 	}
-
 	void editor_panel_ragdoll_viewer_t::on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data)
 	{
 		editor_panel_ragdoll_viewer_t& panel = *static_cast<editor_panel_ragdoll_viewer_t*>(user_data);

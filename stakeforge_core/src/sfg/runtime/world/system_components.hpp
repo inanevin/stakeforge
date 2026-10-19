@@ -105,7 +105,9 @@ namespace sfg
 		aabb_t			  world_bounds		= {};
 		chunk_handle32_t  frozen_local_pose = {};
 		chunk_handle32_t  joint_global_pose = {};
+		chunk_handle32_t  part_joints		= {};
 		resource_handle_t ragdoll_resource	= NULL_RESOURCE_HANDLE;
+		resource_handle_t physical_material = NULL_RESOURCE_HANDLE;
 		resource_handle_t skeleton			= NULL_RESOURCE_HANDLE;
 		u32				  joint_count		= 0;
 		u8				  collision_layer	= 0;

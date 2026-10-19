@@ -393,11 +393,13 @@ namespace sfg
 		if (payload.type != editor_payload_type_e::entity && payload.type != editor_payload_type_e::entity_multi && payload.type != editor_payload_type_e::folder && payload.type != editor_payload_type_e::asset &&
 			payload.type != editor_payload_type_e::asset_multi)
 			return false;
+
 		SFG_ASSERT(payload.user_ptr != nullptr);
 
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
 		const ui::layout_out_t&	  out	= panel._ui->get_tree().out(panel._entity_list_area);
 		const vec2f_t&			  mouse = panel._ui->get_input().get_mouse_position();
+
 		if (!rectf_t{out.pos.x, out.pos.y, out.size.x, out.size.y}.contains(mouse))
 			return false;
 
@@ -405,19 +407,20 @@ namespace sfg
 		const entity_id_t				   parent  = row != nullptr && row->type == editor_outliner_item_type_e::entity ? row->entity : NULL_ENTITY_ID;
 		const editor_world_folder_handle_t folder  = row != nullptr && row->type == editor_outliner_item_type_e::folder ? row->folder_handle : editor_world_folder_handle_t{};
 		bool							   changed = false;
+
 		if (payload.type == editor_payload_type_e::asset || payload.type == editor_payload_type_e::asset_multi)
 		{
 			return editor_asset_spawn_t::spawn_from_payload({
-				.payload	= &payload,
-				.screen_pos = mouse,
-				.world		= panel._edit_world,
-				.parent		= parent,
+				.payload = &payload,
+				.world	 = panel._edit_world,
+				.parent	 = parent,
 			});
 		}
 		else if (payload.type == editor_payload_type_e::folder)
 		{
 			if (row != nullptr && row->type != editor_outliner_item_type_e::folder)
 				return false;
+
 			const editor_world_folder_handle_t payload_folder = *static_cast<const editor_world_folder_handle_t*>(payload.user_ptr);
 			changed											  = panel.assign_payload_folder_to_folder(payload_folder, folder);
 		}
@@ -427,6 +430,7 @@ namespace sfg
 			panel._payload_entities.resize(0);
 			panel._payload_entities.push_back(entity);
 			changed = !folder.is_null() ? panel.assign_payload_entities_to_folder(panel._payload_entities, folder) : panel.reparent_payload_entities(panel._payload_entities, parent);
+
 			if (changed && folder.is_null())
 				panel.deassign_payload_entities_from_folder(panel._payload_entities);
 		}
@@ -434,9 +438,11 @@ namespace sfg
 		{
 			const vector_t<editor_entity_payload_t>& entities = *static_cast<const vector_t<editor_entity_payload_t>*>(payload.user_ptr);
 			changed											  = !folder.is_null() ? panel.assign_payload_entities_to_folder(entities, folder) : panel.reparent_payload_entities(entities, parent);
+
 			if (changed && folder.is_null())
 				panel.deassign_payload_entities_from_folder(entities);
 		}
+
 		return changed;
 	}
 

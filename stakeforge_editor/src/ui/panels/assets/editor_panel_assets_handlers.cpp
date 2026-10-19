@@ -272,6 +272,9 @@ namespace sfg
 
 		switch (command)
 		{
+		case assets_item_action_menu_create_ragdoll:
+			panel.create_ragdoll_from_skeleton();
+			return;
 		case assets_item_action_menu_rename:
 			panel._asset_rename_popup_pending = true;
 			return;

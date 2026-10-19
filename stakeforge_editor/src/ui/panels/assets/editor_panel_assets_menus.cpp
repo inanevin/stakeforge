@@ -108,6 +108,7 @@ namespace sfg
 			{.text = "Toggle Favourite", .icon = ICON_STAR, .command = assets_item_action_menu_toggle_favourite, .has_icon_color = true},
 			{.text = "Open C# Project", .command = assets_action_menu_open_csharp_project},
 			{.text = "Recompile C# Project", .command = assets_action_menu_recompile_csharp_project},
+			{.text = "Create Ragdoll", .command = assets_item_action_menu_create_ragdoll},
 		};
 	}
 
@@ -187,6 +188,8 @@ namespace sfg
 		ASSETS_ITEM_ACTION_MENU_ROWS[5].disabled   = multi_selected;
 		ASSETS_ITEM_ACTION_MENU_ROWS[6].disabled   = is_file_node;
 		ASSETS_ITEM_ACTION_MENU_ROWS[6].icon_color = editor_theme_t::get().color_accent1;
+
+		ASSETS_ITEM_ACTION_MENU_ROWS[std::size(ASSETS_ITEM_ACTION_MENU_ROWS) - 1].disabled = multi_selected || selected_asset == nullptr || selected_asset->asset_type != editor_asset_type_e::skeleton;
 
 		editor_action_menu_desc_t desc = {};
 		desc.rows					   = ASSETS_ITEM_ACTION_MENU_ROWS;

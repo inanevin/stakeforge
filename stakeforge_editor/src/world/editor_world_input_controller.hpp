@@ -42,6 +42,14 @@ namespace sfg
 		right,
 	};
 
+	struct editor_world_pointer_drag_callbacks_t
+	{
+		bool (*begin)(const vec2f_t& relative_position, void* user_data)  = nullptr;
+		void (*update)(const vec2f_t& relative_position, void* user_data) = nullptr;
+		void (*end)(void* user_data)									  = nullptr;
+		void* user_data													  = nullptr;
+	};
+
 	class editor_world_input_controller_t final
 	{
 	public:
@@ -68,15 +76,21 @@ namespace sfg
 		void		pointer_hover_move(const vec2f_t& relative_position);
 		void		pointer_hover_exit();
 		void		pointer_drag(const vec2f_t& relative_position);
+		void		cancel_pointer_drag();
 		void		focus_lost();
 		void		key_press(u16 key);
 		void		wheel(f32 delta);
 		void		hide_selection();
 		void		hide(entity_id_t entity);
 		void		toggle_show_alone();
-		bool		payload_drop(const editor_payload_t& payload, const vec2f_t& screen_position);
+		bool		payload_drop(const editor_payload_t& payload, const vec2f_t& relative_position);
 		static bool on_window_event(window_runtime_t& runtime, const window_event_t& ev);
 		static void reset_camera_input(window_runtime_t& runtime);
+
+		void set_pointer_drag_callbacks(const editor_world_pointer_drag_callbacks_t& callbacks)
+		{
+			_drag_callbacks = callbacks;
+		}
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -108,18 +122,22 @@ namespace sfg
 		void hide(span_t<const entity_id_t> entities);
 
 	private:
-		vector_t<show_alone_entity_state_t> _show_alone_states		  = {};
-		editor_world_t*						_world					  = nullptr;
-		window_runtime_t*					_camera_runtime			  = nullptr;
-		editor_world_handle_t				_handle					  = {};
-		u32									_visibility_generation	  = 0;
-		bool								_show_alone_active		  = false;
-		bool								_camera_control			  = false;
-		bool								_gizmo_press_consumed	  = false;
-		bool								_shoot_ray_press_consumed = false;
-		bool								_camera_pan_control		  = false;
+		vector_t<show_alone_entity_state_t>	  _show_alone_states		= {};
+		editor_world_pointer_drag_callbacks_t _drag_callbacks			= {};
+		editor_world_t*						  _world					= nullptr;
+		window_runtime_t*					  _camera_runtime			= nullptr;
+		window_runtime_t*					  _pointer_drag_runtime		= nullptr;
+		editor_world_handle_t				  _handle					= {};
+		u32									  _visibility_generation	= 0;
+		bool								  _show_alone_active		= false;
+		bool								  _camera_control			= false;
+		bool								  _gizmo_press_consumed		= false;
+		bool								  _shoot_ray_press_consumed = false;
+		bool								  _camera_pan_control		= false;
+		bool								  _pointer_drag_active		= false;
 
 		static inline editor_world_input_controller_t* s_active_camera_controller = nullptr;
+		static inline editor_world_input_controller_t* s_active_drag_controller	  = nullptr;
 		static inline window_runtime_t*				   s_event_runtime			  = nullptr;
 	};
 }
