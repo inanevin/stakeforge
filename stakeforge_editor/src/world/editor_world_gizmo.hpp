@@ -79,6 +79,16 @@ namespace sfg
 		editor_transform_locality_e		locality	   = editor_transform_locality_e::world;
 	};
 
+	struct editor_gizmo_snap_grid_t
+	{
+		vec3f_t origin	= vec3f_t::zero;
+		vec3f_t right	= vec3f_t::zero;
+		vec3f_t up		= vec3f_t::zero;
+		vec2f_t center	= vec2f_t::zero;
+		f32		spacing = 0.0f;
+		f32		radius	= 0.0f;
+	};
+
 	class editor_world_gizmo_t final
 	{
 	public:
@@ -133,6 +143,11 @@ namespace sfg
 			return _action_active;
 		}
 
+		inline const editor_gizmo_snap_grid_t& get_snap_grid() const
+		{
+			return _snap_grid;
+		}
+
 	private:
 		struct frame_t;
 		struct hit_t;
@@ -147,6 +162,7 @@ namespace sfg
 
 	private:
 		editor_gizmo_callbacks_t		_callbacks					= {};
+		editor_gizmo_snap_grid_t		_snap_grid					= {};
 		quat_t							_orientation				= quat_t::identity;
 		vec3f_t							_initial_rotation_direction = vec3f_t::zero;
 		vec3f_t							_initial_plane_point		= vec3f_t::zero;

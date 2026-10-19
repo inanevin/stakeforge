@@ -45,6 +45,10 @@ namespace sfg
 		vec4f_t	 grid_z_color	  = vec4f_t::zero;
 		vec4f_t	 params			  = vec4f_t::zero;
 		vec4f_t	 selection_color  = vec4f_t::zero;
+		vec4f_t	 snap_grid_origin = vec4f_t::zero;
+		vec4f_t	 snap_grid_right  = vec4f_t::zero;
+		vec4f_t	 snap_grid_up	  = vec4f_t::zero;
+		vec4f_t	 snap_grid_center = vec4f_t::zero;
 	};
 
 	struct editor_world_gizmo_gpu_data_t

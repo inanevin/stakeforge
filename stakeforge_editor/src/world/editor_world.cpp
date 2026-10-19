@@ -705,12 +705,15 @@ namespace sfg
 			.enabled = _edit_context.is_grid_enabled(),
 		};
 		data.gizmo		= {};
+		data.snap_grid	= {};
 		data.world_view = _edit_context.get_world_view();
 
 		editor_gizmo_input_t gizmo_input = {};
 
 		if (get_gizmo_input(gizmo_input))
 		{
+			data.snap_grid = _gizmo.get_snap_grid();
+
 			const editor_gizmo_target_t& target = gizmo_input.target;
 			const bool					 local	= gizmo_input.locality == editor_transform_locality_e::local;
 			data.gizmo							= {

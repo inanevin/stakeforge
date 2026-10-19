@@ -35,6 +35,8 @@ namespace sfg
 #define EDITOR_WORLD_GIZMO_SCALE_MIN			   0.001f
 #define EDITOR_WORLD_GIZMO_UNIFORM_SCALE_PER_PIXEL 0.0025f
 #define EDITOR_WORLD_GIZMO_AXIS_PARALLEL_EPS	   0.01f
+#define EDITOR_WORLD_GIZMO_SNAP_GRID_RADIUS_CELLS  12.0f
+#define EDITOR_WORLD_GIZMO_SNAP_GRID_FOLLOW_CELLS  4.0f
 
 	static constexpr u32 GIZMO_PLANE_AXES[3][3] = {
 		{0, 1, 2},
@@ -378,6 +380,30 @@ namespace sfg
 
 		_callbacks	   = callbacks;
 		_action_active = true;
+
+		if (_control_type == editor_transform_control_type_e::move && _snap_translate > 0.0f)
+		{
+			_snap_grid = {
+				.origin	 = _pivot,
+				.right	 = _central_plane_right,
+				.up		 = _central_plane_up,
+				.spacing = _snap_translate,
+				.radius	 = _snap_translate * EDITOR_WORLD_GIZMO_SNAP_GRID_RADIUS_CELLS,
+			};
+
+			if (axis_handle)
+			{
+				const vec3f_t& candidate_a = frame.axes[(handle_index + 1) % 3];
+				const vec3f_t& candidate_b = frame.axes[(handle_index + 2) % 3];
+				const vec3f_t  to_camera   = frame.view.pos - _pivot;
+				const f32	   facing_a	   = math::abs(vec3f_t::dot(vec3f_t::cross(_axis_world, candidate_a), to_camera));
+				const f32	   facing_b	   = math::abs(vec3f_t::dot(vec3f_t::cross(_axis_world, candidate_b), to_camera));
+
+				_snap_grid.right = _axis_world;
+				_snap_grid.up	 = facing_b > facing_a ? candidate_b : candidate_a;
+			}
+		}
+
 		return true;
 	}
 
@@ -529,6 +555,20 @@ namespace sfg
 			break;
 		}
 
+		if (_snap_grid.spacing > 0.0f)
+		{
+			const vec3f_t translation = delta.get_translation();
+			const vec2f_t offset	  = {vec3f_t::dot(translation, _snap_grid.right), vec3f_t::dot(translation, _snap_grid.up)};
+			const f32	  step		  = _snap_grid.spacing * EDITOR_WORLD_GIZMO_SNAP_GRID_FOLLOW_CELLS;
+			const vec2f_t difference  = offset - _snap_grid.center;
+
+			if (math::abs(difference.x) >= step)
+				_snap_grid.center.x += std::trunc(difference.x / step) * step;
+
+			if (math::abs(difference.y) >= step)
+				_snap_grid.center.y += std::trunc(difference.y / step) * step;
+		}
+
 		_callbacks.update(_callbacks.user_data, delta);
 	}
 
@@ -581,6 +621,7 @@ namespace sfg
 	void editor_world_gizmo_t::clear_action()
 	{
 		_callbacks = {};
+		_snap_grid = {};
 
 		_orientation				= quat_t::identity;
 		_initial_rotation_direction = vec3f_t::zero;

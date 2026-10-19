@@ -612,6 +612,10 @@ namespace sfg
 			.grid_z_color	  = vec4f_t(theme.color_accent1.x, theme.color_accent1.y, theme.color_accent1.z, 0.65f),
 			.params			  = vec4f_t(static_cast<f32>(size.x), static_cast<f32>(size.y), 2.0f, snapshot_data.selected_entities.empty() ? 0.0f : 1.0f),
 			.selection_color  = theme.color_accent2,
+			.snap_grid_origin = vec4f_t(snapshot_data.snap_grid.origin.x - view.pos.x, snapshot_data.snap_grid.origin.y - view.pos.y, snapshot_data.snap_grid.origin.z - view.pos.z, snapshot_data.snap_grid.spacing),
+			.snap_grid_right  = vec4f_t(snapshot_data.snap_grid.right.x, snapshot_data.snap_grid.right.y, snapshot_data.snap_grid.right.z, snapshot_data.snap_grid.radius),
+			.snap_grid_up	  = vec4f_t(snapshot_data.snap_grid.up.x, snapshot_data.snap_grid.up.y, snapshot_data.snap_grid.up.z, 0.0f),
+			.snap_grid_center = vec4f_t(snapshot_data.snap_grid.center.x, snapshot_data.snap_grid.center.y, 0.0f, 0.0f),
 		};
 
 		SFG_MEMCPY(ctx.get_mapped_composite_data(frame_index), &composite_data, sizeof(editor_world_composite_data_t));

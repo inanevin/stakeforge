@@ -22,6 +22,10 @@ struct editor_world_render_data
 	float4 grid_z_color;
 	float4 params;
 	float4 selection_color;
+	float4 snap_grid_origin;
+	float4 snap_grid_right;
+	float4 snap_grid_up;
+	float4 snap_grid_center;
 };
 
 float grid_line(float2 position, float spacing)
@@ -119,6 +123,42 @@ float4 PSMain(vs_output input) : SV_TARGET
 			}
 		}
 	}
+
+	[branch]
+	if (data.snap_grid_origin.w > 0.0)
+	{
+		float2 ndc = float2(input.uv.x * 2.0 - 1.0, 1.0 - input.uv.y * 2.0);
+		float4 far_view = mul(data.inv_proj, float4(ndc, 0.0, 1.0));
+		float3 view_ray = normalize(far_view.xyz / far_view.w);
+		float3 world_ray = normalize(mul((float3x3)data.inv_view, view_ray));
+		float3 normal = cross(data.snap_grid_right.xyz, data.snap_grid_up.xyz);
+		float denominator = dot(world_ray, normal);
+		float safe_denominator = abs(denominator) > 0.00001 ? denominator : (denominator < 0.0 ? -0.00001 : 0.00001);
+		float ray_distance = dot(data.snap_grid_origin.xyz, normal) / safe_denominator;
+		float3 offset = world_ray * ray_distance - data.snap_grid_origin.xyz;
+		float2 position = float2(dot(offset, data.snap_grid_right.xyz), dot(offset, data.snap_grid_up.xyz));
+		float spacing = data.snap_grid_origin.w;
+		float radius = data.snap_grid_right.w;
+		float footprint = max(length(ddx(position)), length(ddy(position)));
+		float minor_visibility = 1.0 - smoothstep(0.25, 1.0, footprint / spacing);
+		float major_visibility = 1.0 - smoothstep(0.25, 1.0, footprint / (spacing * 4.0));
+		float minor_line = grid_line(position, spacing) * minor_visibility;
+		float major_line = grid_line(position, spacing * 4.0) * major_visibility;
+		float fade = (1.0 - smoothstep(radius * 0.65, radius, length(position - data.snap_grid_center.xy))) * smoothstep(0.015, 0.12, abs(denominator));
+		float alpha = max(minor_line * data.grid_minor_color.a, major_line * data.grid_major_color.a) * fade * 2.0;
+
+		if (abs(denominator) > 0.0001 && ray_distance > 0.0 && alpha > 0.0)
+		{
+			float4 plane_clip = mul(data.proj, float4(view_ray * ray_distance, 1.0));
+			float plane_depth = plane_clip.z / plane_clip.w;
+			Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(sfg_constant_obj2);
+			float scene_depth = depth_texture.Load(int3(pixel, 0));
+
+			if (plane_depth >= 0.0 && plane_depth <= 1.0 && (scene_depth <= 0.000001 || plane_depth > scene_depth + 0.000001))
+				color.rgb = lerp(color.rgb, lerp(data.grid_minor_color.rgb, data.grid_major_color.rgb, major_line), saturate(alpha));
+		}
+	}
+
 	if (data.params.w <= 0.0)
 		return color;
 
