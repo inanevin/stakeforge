@@ -12,6 +12,7 @@
                         "slot": 0
                     }
                 ],
+                "kinematic_sensors_collide_with_non_dynamic": false,
                 "next_collision_layer_identifier": 10
             },
             "quality_level": 2,
@@ -36,7 +37,13 @@
         "world_view_grid_enabled": true,
         "world_view_perf_metrics_enabled": true,
         "world_view_physics_debug_enabled": false,
-        "world_view_skeleton_enabled": false,
+        "world_view_settings": {
+            "grid_scale": 1.0,
+            "physics_ray_force": 1000.0,
+            "snap_rotate": 0.0,
+            "snap_scale": 0.0,
+            "snap_translate": 0.0
+        },
         "world_view_snapping_enabled": false
     }
 }

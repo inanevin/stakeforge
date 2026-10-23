@@ -30,7 +30,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/physics/physics_types.hpp>
-#include <sfg/runtime/resources/resource_handle.hpp>
+#include <sfg/runtime/resources/common_resources.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
@@ -175,7 +175,7 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_particle_emitter";
 
-		resource_handle_t			material				   = NULL_RESOURCE_HANDLE;
+		resource_handle_t			material				   = DEFAULT_PARTICLE_MATERIAL_ASSET_GUID;
 		resource_handle_t			acceleration_over_lifetime = NULL_RESOURCE_HANDLE;
 		resource_handle_t			color_over_lifetime		   = NULL_RESOURCE_HANDLE;
 		resource_handle_t			size_over_lifetime		   = NULL_RESOURCE_HANDLE;

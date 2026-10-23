@@ -178,7 +178,8 @@ namespace sfg
 		SFG_ASSERT(asset_it != assets.end());
 
 		editor_asset_t& asset = asset_it->second;
-		asset.status		  = editor_asset_status_e::ok;
+
+		asset.status = editor_asset_status_e::ok;
 
 		const editor_asset_node_t* asset_node = asset_manager._database.find_asset_node_value(asset.guid);
 
@@ -195,6 +196,7 @@ namespace sfg
 		else if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
 		{
 			string_t source_path = file_system_t::get_absolute_path(assets_path.c_str());
+
 			source_path += asset.source_relative;
 
 			if (asset.source_relative.empty() || !file_system_t::exists(source_path.c_str()))
@@ -210,6 +212,7 @@ namespace sfg
 		if (!dependencies_fetched)
 		{
 			SFG_WARN("asset {0}, {1}, {2} integrity check could not read dependencies", asset_node->full_path.c_str(), asset.guid, asset_type_str);
+
 			return;
 		}
 
@@ -219,7 +222,7 @@ namespace sfg
 				continue;
 
 			// meh dont like this.
-			if (dependency.sid >= DEFAULT_MESH_START && dependency.sid <= DEFAULT_MESH_END)
+			if (dependency.sid == DEFAULT_MESH_CUBE_GUID || dependency.sid == DEFAULT_MESH_SPHERE_GUID || dependency.sid == DEFAULT_MESH_CYLINDER_GUID || dependency.sid == DEFAULT_MESH_CAPSULE_GUID || dependency.sid == DEFAULT_MESH_PLANE_GUID)
 				continue;
 
 			if (asset.status == editor_asset_status_e::ok)

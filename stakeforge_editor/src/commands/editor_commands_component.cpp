@@ -164,10 +164,17 @@ namespace sfg
 		bool add_component_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_add_component_payload_t& payload	 = system.get_payload_as<editor_command_add_component_payload_t>(command);
-			ecs_component_table_t&					table	 = editor_world_controller_t::get().get_editor_world(payload.world)->get_world().get_component_table(payload.component_type);
+			world_t&								world	 = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			ecs_component_table_t&					table	 = world.get_component_table(payload.component_type);
 			const entity_id_t*						entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+
 			for (u32 i = 0; i < payload.count; ++i)
+			{
 				add_empty_component(table, entities[i]);
+
+				world.scan_for_resources(entities[i], true);
+			}
+
 			return true;
 		}
 

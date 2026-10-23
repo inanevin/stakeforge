@@ -10,7 +10,7 @@
         "blend_mode": "alpha",
         "shader": 1045,
         "textures": [
-            {"name": "sprite", "texture": 0, "type": "sprite"}
+            {"name": "sprite", "texture": 1049, "type": "sprite"}
         ],
         "samplers": [
             {"name": "sprite", "sampler": 1009}
