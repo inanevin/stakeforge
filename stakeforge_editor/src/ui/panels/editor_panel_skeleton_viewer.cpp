@@ -599,7 +599,7 @@ namespace sfg
 
 		const skeleton_joint_runtime_t* joints		   = resource_manager.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
 		const span_t<const mat4x3_t>	bones		   = world.get_animation_processor().get_skinning_matrices(system_skinned->bone_alloc);
-		const mat4x3_t					mesh_transform = world.calculate_transform_direct(_display_entity);
+		const mat4x3_t					mesh_transform = world.calculate_entity_abs_matrix(_display_entity);
 		world_debug_draw_t&				debug_draw	   = world.get_debug_draw();
 
 		frame_vector_t<u8> selected = {};
@@ -980,7 +980,7 @@ namespace sfg
 
 		const skeleton_joint_runtime_t* joints		   = resources.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
 		const span_t<const mat4x3_t>	bones		   = world.get_animation_processor().get_skinning_matrices(skinned->bone_alloc);
-		const mat4x3_t					mesh_transform = world.calculate_transform_direct(_display_entity);
+		const mat4x3_t					mesh_transform = world.calculate_entity_abs_matrix(_display_entity);
 		bool							updated		   = false;
 
 		for (size_t i = 0; i < _slot_previews.size(); ++i)
@@ -997,7 +997,11 @@ namespace sfg
 			vec3f_t		   scale	= vec3f_t::one;
 
 			parent.decompose(position, rotation, scale);
-			world.teleport_entity(preview.entity, parent * slot.local_position, (rotation * slot.local_rotation).normalized(), slot.preview_scale);
+			world.set_entity_pos_local(preview.entity, parent * slot.local_position);
+			world.set_entity_rot_local(preview.entity, (rotation * slot.local_rotation).normalized());
+			world.set_entity_scale_local(preview.entity, slot.preview_scale);
+			world.mark_entity_teleported(preview.entity);
+
 			updated = true;
 		}
 
@@ -1649,7 +1653,7 @@ namespace sfg
 		const skeleton_joint_runtime_t* joints = resources.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
 		const span_t<const mat4x3_t>	bones  = world.get_animation_processor().get_skinning_matrices(skinned->bone_alloc);
 
-		transform = world.calculate_transform_direct(_display_entity) * bones.data[joint_index] * joints[joint_index].bind_global;
+		transform = world.calculate_entity_abs_matrix(_display_entity) * bones.data[joint_index] * joints[joint_index].bind_global;
 
 		return true;
 	}

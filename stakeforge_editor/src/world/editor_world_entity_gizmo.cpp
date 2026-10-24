@@ -79,7 +79,7 @@ namespace sfg
 
 		const component_system_transform_t& transform = _world->get_component_table(type_id_t<component_system_transform_t>::value).get_as_const<component_system_transform_t>(anchor);
 		vec3f_t								scale	  = vec3f_t::one;
-		_world->calculate_transform_direct(anchor).decompose(target.position, target.rotation, scale);
+		_world->calculate_entity_abs_transform(anchor, target.position, target.rotation, scale);
 		target.prev_position = transform.prev_abs_pos;
 		target.prev_rotation = transform.prev_abs_rot;
 		target.generation	 = _context->get_selection_generation();
@@ -104,13 +104,11 @@ namespace sfg
 
 		for (entity_id_t entity : _entities)
 		{
-			const entity_id_t parent = world.get_entity_parent(entity);
-
 			_initial_local_rotations.push_back(world.get_entity_rot_local(entity));
 			_initial_local_positions.push_back(world.get_entity_pos_local(entity));
 			_initial_local_scales.push_back(world.get_entity_scale_local(entity));
-			_initial_absolute.push_back(world.calculate_transform_direct(entity));
-			_initial_parent_inverse.push_back(parent == NULL_ENTITY_ID ? mat4x3_t::identity : world.calculate_transform_direct(parent).inverse());
+			_initial_absolute.push_back(world.calculate_entity_abs_matrix(entity));
+			_initial_parent_inverse.push_back(world.calculate_entity_parent_abs_matrix(entity).inverse());
 		}
 
 		SFG_ASSERT(!_entities.empty());

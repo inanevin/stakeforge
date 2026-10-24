@@ -194,8 +194,8 @@ namespace sfg
 
 		const entity_id_t ent_main_camera = _world->get_main_camera_entity();
 
-		const vec3f_t cam_pos = ent_main_camera == NULL_ENTITY_ID ? vec3f_t::zero : _world->get_entity_pos_abs(ent_main_camera);
-		const vec3f_t cam_fw  = ent_main_camera == NULL_ENTITY_ID ? vec3f_t::zero : _world->get_entity_rot_abs(ent_main_camera).get_forward().normalized();
+		const vec3f_t cam_pos = ent_main_camera == NULL_ENTITY_ID ? vec3f_t::zero : _world->get_entity_pos_last_abs(ent_main_camera);
+		const vec3f_t cam_fw  = ent_main_camera == NULL_ENTITY_ID ? vec3f_t::zero : _world->get_entity_rot_last_abs(ent_main_camera).get_forward().normalized();
 
 		ecs_component_table_ref_t refs[] = {table_lib.ref(), table_sys_lib.ref(), !table_disabled.ref()};
 
@@ -223,7 +223,7 @@ namespace sfg
 		{
 			const component_animation_library_t&  lib	  = row.get<component_animation_library_t>();
 			component_system_animation_library_t& sys_lib = row.get_mutable<component_system_animation_library_t>();
-			const vec3f_t						  pos	  = _world->get_entity_pos_abs(row.id);
+			const vec3f_t						  pos	  = _world->get_entity_pos_last_abs(row.id);
 			const bool skip_sample = ent_main_camera == NULL_ENTITY_ID || (lib.use_cull && is_culled(pos, lib.cull_angle_limit)) || lib.use_throttle && is_throttled(pos, lib.throttle_begin_distance, lib.throttle_full_distance, lib.max_throttle_tick_blanks) ||
 									 (!lib.use_throttle && lib.tick_blanks > 1 && _frame_counter % lib.tick_blanks != 0);
 

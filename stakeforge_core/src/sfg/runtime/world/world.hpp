@@ -9,6 +9,7 @@
 #include <sfg/runtime/resources/resource_type.hpp>
 #include <sfg/runtime/world/ecs_table.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
+#include <sfg/runtime/world/system_components.hpp>
 #include <sfg/runtime/animation/animation_processor.hpp>
 #include <sfg/runtime/world/world_audio_controller.hpp>
 #include <sfg/runtime/world/world_canvas_controller.hpp>
@@ -119,25 +120,48 @@ namespace sfg
 		// transformation
 		// -----------------------------------------------------------------------------
 
-		void		   set_entity_pos_local(entity_id_t id, const vec3f_t& pos);
-		void		   set_entity_rot_local(entity_id_t id, const quat_t& rot);
-		void		   set_entity_scale_local(entity_id_t id, const vec3f_t& scale);
-		void		   teleport_entity(entity_id_t id, const vec3f_t& pos, const quat_t& rot, const vec3f_t& scale);
-		void		   mark_entity_teleported(entity_id_t id);
-		const vec3f_t& get_entity_pos_local(entity_id_t id) const;
-		const quat_t&  get_entity_rot_local(entity_id_t id) const;
-		const vec3f_t& get_entity_scale_local(entity_id_t id) const;
-		const vec3f_t& get_entity_pos_abs(entity_id_t id) const;
-		const quat_t&  get_entity_rot_abs(entity_id_t id) const;
-		const vec3f_t& get_entity_scale_abs(entity_id_t id) const;
-		const vec3f_t& get_entity_pos_last_abs(entity_id_t id) const;
-		const quat_t&  get_entity_rot_last_abs(entity_id_t id) const;
-		const vec3f_t& get_entity_scale_last_abs(entity_id_t id) const;
-		vec3f_t		   abs_pos_to_local(entity_id_t id, const vec3f_t& pos);
-		quat_t		   abs_rot_to_local(entity_id_t id, const quat_t& rot);
-		vec3f_t		   abs_scale_to_local(entity_id_t id, const vec3f_t& scale);
-		mat4x3_t	   calculate_transform_direct(entity_id_t id);
-		void		   update_world_transforms(bool advance_interpolation = true);
+		void				  set_entity_pos_local(entity_id_t id, const vec3f_t& pos);
+		void				  set_entity_rot_local(entity_id_t id, const quat_t& rot);
+		void				  set_entity_scale_local(entity_id_t id, const vec3f_t& scale);
+		void				  mark_entity_teleported(entity_id_t id);
+		const vec3f_t&		  get_entity_pos_local(entity_id_t id) const;
+		const quat_t&		  get_entity_rot_local(entity_id_t id) const;
+		const vec3f_t&		  get_entity_scale_local(entity_id_t id) const;
+		inline const vec3f_t& get_entity_pos_last_abs(entity_id_t id) const
+		{
+			return _system_components.transform_table->get_as_const<component_system_transform_t>(id).abs_pos;
+		}
+
+		inline const quat_t& get_entity_rot_last_abs(entity_id_t id) const
+		{
+			return _system_components.transform_table->get_as_const<component_system_transform_t>(id).abs_rot;
+		}
+
+		inline const vec3f_t& get_entity_scale_last_abs(entity_id_t id) const
+		{
+			return _system_components.transform_table->get_as_const<component_system_transform_t>(id).abs_scale;
+		}
+
+		static inline vec3f_t abs_pos_to_local(const vec3f_t& pos, const mat4x3_t& parent_abs_matrix)
+		{
+			return parent_abs_matrix.inverse() * pos;
+		}
+
+		static inline quat_t abs_rot_to_local(const quat_t& rot, const quat_t& parent_abs_rot)
+		{
+			return parent_abs_rot.inverse() * rot;
+		}
+
+		static inline vec3f_t abs_scale_to_local(const vec3f_t& scale, const vec3f_t& parent_abs_scale)
+		{
+			return {scale.x / parent_abs_scale.x, scale.y / parent_abs_scale.y, scale.z / parent_abs_scale.z};
+		}
+
+		void	 calculate_entity_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale) const;
+		void	 calculate_entity_parent_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale) const;
+		mat4x3_t calculate_entity_abs_matrix(entity_id_t id) const;
+		mat4x3_t calculate_entity_parent_abs_matrix(entity_id_t id) const;
+		void	 update_world_transforms(bool advance_interpolation = true);
 
 		// -----------------------------------------------------------------------------
 		// tables
@@ -285,12 +309,11 @@ namespace sfg
 		}
 
 	private:
-		void	 flush_pressed_keys();
-		void	 update_key_state(u16 key, u16 scan_code, u8 action);
-		void	 refresh_main_camera();
-		void	 update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
-		void	 set_entity_snap_interpolation_recursive(entity_id_t id);
-		mat4x3_t calculate_parent_transform_direct(entity_id_t id);
+		void flush_pressed_keys();
+		void update_key_state(u16 key, u16 scan_code, u8 action);
+		void refresh_main_camera();
+		void update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
+		void set_entity_snap_interpolation_recursive(entity_id_t id);
 
 	private:
 		struct world_text_allocation_t

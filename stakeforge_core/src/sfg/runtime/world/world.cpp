@@ -796,22 +796,6 @@ namespace sfg
 		transform.scale					 = scale;
 	}
 
-	void world_t::teleport_entity(entity_id_t id, const vec3f_t& pos, const quat_t& rot, const vec3f_t& scale)
-	{
-		SFG_ASSERT(is_alive(id));
-
-		const vec3f_t local_pos	  = abs_pos_to_local(id, pos);
-		const quat_t  local_rot	  = abs_rot_to_local(id, rot);
-		const vec3f_t local_scale = abs_scale_to_local(id, scale);
-
-		component_transform_t& transform = _engine_components.transform_table->get_as<component_transform_t>(id);
-		transform.pos					 = local_pos;
-		transform.rot					 = local_rot;
-		transform.scale					 = local_scale;
-
-		set_entity_snap_interpolation_recursive(id);
-	}
-
 	void world_t::mark_entity_teleported(entity_id_t id)
 	{
 		SFG_ASSERT(is_alive(id));
@@ -842,95 +826,67 @@ namespace sfg
 		return transform.scale;
 	}
 
-	const vec3f_t& world_t::get_entity_pos_abs(entity_id_t id) const
+	void world_t::calculate_entity_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale) const
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_system_transform_t& transform = _system_components.transform_table->get_as_const<component_system_transform_t>(id);
-		return transform.abs_pos;
+		out_pos	  = vec3f_t::zero;
+		out_rot	  = quat_t::identity;
+		out_scale = vec3f_t::one;
+
+		for (entity_id_t current = id; current != NULL_ENTITY_ID;)
+		{
+			const component_transform_t& transform = _engine_components.transform_table->get_as_const<component_transform_t>(current);
+			const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as_const<component_hierarchy_t>(current);
+
+			out_pos	  = mat4x3_t::transform(transform.pos, transform.rot, transform.scale) * out_pos;
+			out_rot	  = (transform.rot * out_rot).normalized();
+			out_scale = transform.scale * out_scale;
+			current	  = hierarchy.parent;
+		}
 	}
 
-	const quat_t& world_t::get_entity_rot_abs(entity_id_t id) const
+	void world_t::calculate_entity_parent_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale) const
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_system_transform_t& transform = _system_components.transform_table->get_as_const<component_system_transform_t>(id);
-		return transform.abs_rot;
+		const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as_const<component_hierarchy_t>(id);
+
+		if (hierarchy.parent == NULL_ENTITY_ID)
+		{
+			out_pos	  = vec3f_t::zero;
+			out_rot	  = quat_t::identity;
+			out_scale = vec3f_t::one;
+			return;
+		}
+
+		calculate_entity_abs_transform(hierarchy.parent, out_pos, out_rot, out_scale);
 	}
 
-	const vec3f_t& world_t::get_entity_scale_abs(entity_id_t id) const
+	mat4x3_t world_t::calculate_entity_abs_matrix(entity_id_t id) const
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_system_transform_t& transform = _system_components.transform_table->get_as_const<component_system_transform_t>(id);
-		return transform.abs_scale;
+		mat4x3_t matrix = mat4x3_t::identity;
+
+		for (entity_id_t current = id; current != NULL_ENTITY_ID;)
+		{
+			const component_transform_t& transform = _engine_components.transform_table->get_as_const<component_transform_t>(current);
+			const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as_const<component_hierarchy_t>(current);
+
+			matrix	= mat4x3_t::transform(transform.pos, transform.rot, transform.scale) * matrix;
+			current = hierarchy.parent;
+		}
+
+		return matrix;
 	}
 
-	const vec3f_t& world_t::get_entity_pos_last_abs(entity_id_t id) const
+	mat4x3_t world_t::calculate_entity_parent_abs_matrix(entity_id_t id) const
 	{
 		SFG_ASSERT(is_alive(id));
 
-		const component_system_transform_t& transform = _system_components.transform_table->get_as_const<component_system_transform_t>(id);
-		return transform.prev_abs_pos;
-	}
-
-	const quat_t& world_t::get_entity_rot_last_abs(entity_id_t id) const
-	{
-		SFG_ASSERT(is_alive(id));
-
-		const component_system_transform_t& transform = _system_components.transform_table->get_as_const<component_system_transform_t>(id);
-		return transform.prev_abs_rot;
-	}
-
-	const vec3f_t& world_t::get_entity_scale_last_abs(entity_id_t id) const
-	{
-		SFG_ASSERT(is_alive(id));
-
-		const component_system_transform_t& transform = _system_components.transform_table->get_as_const<component_system_transform_t>(id);
-		return transform.prev_abs_scale;
-	}
-
-	vec3f_t world_t::abs_pos_to_local(entity_id_t id, const vec3f_t& pos)
-	{
-		SFG_ASSERT(is_alive(id));
-
-		const mat4x3_t parent_abs_mat = calculate_parent_transform_direct(id);
-		return parent_abs_mat.inverse() * pos;
-	}
-
-	quat_t world_t::abs_rot_to_local(entity_id_t id, const quat_t& rot)
-	{
-		SFG_ASSERT(is_alive(id));
-
-		vec3f_t parent_abs_pos;
-		quat_t	parent_abs_rot;
-		vec3f_t parent_abs_scale;
-		calculate_parent_transform_direct(id).decompose(parent_abs_pos, parent_abs_rot, parent_abs_scale);
-		return parent_abs_rot.inverse() * rot;
-	}
-
-	vec3f_t world_t::abs_scale_to_local(entity_id_t id, const vec3f_t& scale)
-	{
-		SFG_ASSERT(is_alive(id));
-
-		vec3f_t parent_abs_pos;
-		quat_t	parent_abs_rot;
-		vec3f_t parent_abs_scale;
-		calculate_parent_transform_direct(id).decompose(parent_abs_pos, parent_abs_rot, parent_abs_scale);
-		return {scale.x / parent_abs_scale.x, scale.y / parent_abs_scale.y, scale.z / parent_abs_scale.z};
-	}
-
-	mat4x3_t world_t::calculate_transform_direct(entity_id_t id)
-	{
-		SFG_ASSERT(is_alive(id));
-
-		const mat4x3_t				  parent_abs_mat   = calculate_parent_transform_direct(id);
-		const component_transform_t&  transform		   = _engine_components.transform_table->get_as<component_transform_t>(id);
-		component_system_transform_t& system_transform = _system_components.transform_table->get_as<component_system_transform_t>(id);
-
-		system_transform.abs_mat = parent_abs_mat * mat4x3_t::transform(transform.pos, transform.rot, transform.scale);
-		system_transform.abs_mat.decompose(system_transform.abs_pos, system_transform.abs_rot, system_transform.abs_scale);
-		return system_transform.abs_mat;
+		const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as_const<component_hierarchy_t>(id);
+		return hierarchy.parent == NULL_ENTITY_ID ? mat4x3_t::identity : calculate_entity_abs_matrix(hierarchy.parent);
 	}
 
 	void world_t::update_world_transforms(bool advance_interpolation)
@@ -950,7 +906,7 @@ namespace sfg
 			if (hierarchy.parent != NULL_ENTITY_ID)
 				continue;
 
-			update_entity_transform(row.id, hierarchy, vec3f_t::zero, quat_t::identity, vec3f_t::one, mat4x3_t::identity, advance_interpolation);
+			update_entity_transform(row.id, hierarchy, quat_t::identity, vec3f_t::one, mat4x3_t::identity, advance_interpolation);
 		}
 	}
 
@@ -1119,7 +1075,7 @@ namespace sfg
 		_used_resources.resize(0);
 	}
 
-	void world_t::update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const vec3f_t& parent_abs_pos, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation)
+	void world_t::update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation)
 	{
 		const component_transform_t&  transform		   = _engine_components.transform_table->get_as<component_transform_t>(id);
 		component_system_transform_t& system_transform = _system_components.transform_table->get_as<component_system_transform_t>(id);
@@ -1132,10 +1088,10 @@ namespace sfg
 			system_transform.prev_abs_scale = system_transform.abs_scale;
 		}
 
-		system_transform.abs_pos   = parent_abs_pos + (parent_abs_rot * (transform.pos * parent_abs_scale));
 		system_transform.abs_rot   = (parent_abs_rot * transform.rot).normalized();
 		system_transform.abs_scale = parent_abs_scale * transform.scale;
 		system_transform.abs_mat   = parent_abs_mat * mat4x3_t::transform(transform.pos, transform.rot, transform.scale);
+		system_transform.abs_pos   = system_transform.abs_mat.get_translation();
 
 		if (system_transform.snap_interpolation)
 		{
@@ -1149,7 +1105,7 @@ namespace sfg
 		for (entity_id_t child = own_hierarchy.first_child; child != NULL_ENTITY_ID;)
 		{
 			const component_hierarchy_t& child_hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(child);
-			update_entity_transform(child, child_hierarchy, system_transform.abs_pos, system_transform.abs_rot, system_transform.abs_scale, system_transform.abs_mat, advance_interpolation);
+			update_entity_transform(child, child_hierarchy, system_transform.abs_rot, system_transform.abs_scale, system_transform.abs_mat, advance_interpolation);
 			child = child_hierarchy.next_sibling;
 		}
 	}
@@ -1167,16 +1123,6 @@ namespace sfg
 			set_entity_snap_interpolation_recursive(child);
 			child = child_hierarchy.next_sibling;
 		}
-	}
-
-	mat4x3_t world_t::calculate_parent_transform_direct(entity_id_t id)
-	{
-		const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as<component_hierarchy_t>(id);
-
-		if (hierarchy.parent == NULL_ENTITY_ID)
-			return mat4x3_t::identity;
-
-		return calculate_transform_direct(hierarchy.parent);
 	}
 
 	ecs_component_table_t& world_t::add_component_table(const ecs_component_type_desc_t& desc)

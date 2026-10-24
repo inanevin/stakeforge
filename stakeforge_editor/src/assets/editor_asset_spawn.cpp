@@ -107,7 +107,10 @@ namespace sfg
 				world.attach_to(entity, payload.parent);
 
 			if (payload.place)
-				world.set_entity_pos_local(entity, world.abs_pos_to_local(entity, payload.position));
+			{
+				const mat4x3_t parent_matrix = world.calculate_entity_parent_abs_matrix(entity);
+				world.set_entity_pos_local(entity, world_t::abs_pos_to_local(payload.position, parent_matrix));
+			}
 
 			if (payload.skinned)
 			{

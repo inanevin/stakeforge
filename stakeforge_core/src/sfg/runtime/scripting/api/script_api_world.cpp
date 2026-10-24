@@ -157,7 +157,17 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		world->teleport_entity(entity, *position, *rotation, *scale);
+		vec3f_t parent_position = vec3f_t::zero;
+		quat_t	parent_rotation = quat_t::identity;
+		vec3f_t parent_scale	= vec3f_t::one;
+
+		world->calculate_entity_parent_abs_transform(entity, parent_position, parent_rotation, parent_scale);
+
+		const mat4x3_t parent_matrix = world->calculate_entity_parent_abs_matrix(entity);
+		world->set_entity_pos_local(entity, world_t::abs_pos_to_local(*position, parent_matrix));
+		world->set_entity_rot_local(entity, world_t::abs_rot_to_local(*rotation, parent_rotation));
+		world->set_entity_scale_local(entity, world_t::abs_scale_to_local(*scale, parent_scale));
+		world->mark_entity_teleported(entity);
 		return 1;
 	}
 
@@ -224,7 +234,7 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		*out_position = world->get_entity_pos_abs(entity);
+		*out_position = world->get_entity_pos_last_abs(entity);
 		return 1;
 	}
 
@@ -238,7 +248,7 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		*out_rotation = world->get_entity_rot_abs(entity);
+		*out_rotation = world->get_entity_rot_last_abs(entity);
 		return 1;
 	}
 
@@ -252,7 +262,7 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		*out_scale = world->get_entity_scale_abs(entity);
+		*out_scale = world->get_entity_scale_last_abs(entity);
 		return 1;
 	}
 
@@ -309,7 +319,8 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		*out_position = world->abs_pos_to_local(entity, *position);
+		const mat4x3_t parent_matrix = world->calculate_entity_parent_abs_matrix(entity);
+		*out_position				 = world_t::abs_pos_to_local(*position, parent_matrix);
 		return 1;
 	}
 
@@ -324,7 +335,12 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		*out_rotation = world->abs_rot_to_local(entity, *rotation);
+		vec3f_t parent_position = vec3f_t::zero;
+		quat_t	parent_rotation = quat_t::identity;
+		vec3f_t parent_scale	= vec3f_t::one;
+
+		world->calculate_entity_parent_abs_transform(entity, parent_position, parent_rotation, parent_scale);
+		*out_rotation = world_t::abs_rot_to_local(*rotation, parent_rotation);
 		return 1;
 	}
 
@@ -339,7 +355,12 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		*out_scale = world->abs_scale_to_local(entity, *scale);
+		vec3f_t parent_position = vec3f_t::zero;
+		quat_t	parent_rotation = quat_t::identity;
+		vec3f_t parent_scale	= vec3f_t::one;
+
+		world->calculate_entity_parent_abs_transform(entity, parent_position, parent_rotation, parent_scale);
+		*out_scale = world_t::abs_scale_to_local(*scale, parent_scale);
 		return 1;
 	}
 

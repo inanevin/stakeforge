@@ -92,12 +92,14 @@ namespace sfg
 	private:
 		struct constraint_create_context_t
 		{
-			const component_system_transform_t* transform		 = nullptr;
-			const component_system_transform_t* target_transform = nullptr;
-			u32									body_id			 = UINT32_MAX;
-			u32									target_body_id	 = UINT32_MAX;
-			entity_id_t							entity			 = NULL_ENTITY_ID;
-			entity_id_t							target_entity	 = NULL_ENTITY_ID;
+			mat4x3_t	transform		 = mat4x3_t::identity;
+			mat4x3_t	target_transform = mat4x3_t::identity;
+			quat_t		rotation		 = quat_t::identity;
+			quat_t		target_rotation	 = quat_t::identity;
+			u32			body_id			 = UINT32_MAX;
+			u32			target_body_id	 = UINT32_MAX;
+			entity_id_t entity			 = NULL_ENTITY_ID;
+			entity_id_t target_entity	 = NULL_ENTITY_ID;
 		};
 
 		static JPH::RefConst<JPH::Shape> create_shape_from_properties(

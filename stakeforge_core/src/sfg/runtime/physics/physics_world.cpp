@@ -563,15 +563,13 @@ namespace sfg
 			if (skeleton == nullptr || resource->part_count == 0)
 				return false;
 
-			_world->calculate_transform_direct(entity);
+			const mat4x3_t entity_matrix = _world->calculate_entity_abs_matrix(entity);
 
-			chunk_allocator32_t&							resource_memory		   = resource_manager.get_memory();
-			const skeleton_joint_runtime_t*					joints				   = resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
-			const ecs_component_table_t&					system_transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
-			const component_system_transform_t&				transform			   = system_transform_table.get_as_const<component_system_transform_t>(entity);
-			const ecs_component_table_t&					system_skinned_table   = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
-			const component_system_skinned_mesh_renderer_t& system_skinned		   = system_skinned_table.get_as_const<component_system_skinned_mesh_renderer_t>(entity);
-			const span_t<const mat4x3_t>					current_bones		   = _world->get_animation_processor().get_skinning_matrices(system_skinned.bone_alloc);
+			chunk_allocator32_t&							resource_memory		 = resource_manager.get_memory();
+			const skeleton_joint_runtime_t*					joints				 = resource_memory.get<skeleton_joint_runtime_t>(skeleton->joints);
+			const ecs_component_table_t&					system_skinned_table = _world->get_component_table(type_id_t<component_system_skinned_mesh_renderer_t>::value);
+			const component_system_skinned_mesh_renderer_t& system_skinned		 = system_skinned_table.get_as_const<component_system_skinned_mesh_renderer_t>(entity);
+			const span_t<const mat4x3_t>					current_bones		 = _world->get_animation_processor().get_skinning_matrices(system_skinned.bone_alloc);
 
 			mat4x3_t*			   frozen_local_pose		= nullptr;
 			const chunk_handle32_t frozen_local_pose_handle = _ragdoll_pose_memory.allocate<mat4x3_t>(skeleton->joint_count, frozen_local_pose);
@@ -605,7 +603,7 @@ namespace sfg
 				vec3f_t		   joint_position = vec3f_t::zero;
 				quat_t		   joint_rotation = quat_t::identity;
 				vec3f_t		   joint_scale	  = vec3f_t::one;
-				const mat4x3_t joint_world	  = transform.abs_mat * joint_global_pose[source_part.joint_index];
+				const mat4x3_t joint_world	  = entity_matrix * joint_global_pose[source_part.joint_index];
 				joint_world.decompose(joint_position, joint_rotation, joint_scale);
 				const f32 shape_scale = math::max(math::max(math::abs(joint_scale.x), math::abs(joint_scale.y)), math::abs(joint_scale.z));
 
@@ -825,18 +823,19 @@ namespace sfg
 			system_physics.local_rotation			= physical.local_rotation;
 			system_physics.physical_material		= physical.physical_material;
 
-			_world->calculate_transform_direct(entity);
+			vec3f_t entity_position = vec3f_t::zero;
+			quat_t	entity_rotation = quat_t::identity;
+			vec3f_t entity_scale	= vec3f_t::one;
 
-			const ecs_component_table_t&		transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
-			const component_system_transform_t& transform		= transform_table.get_as_const<component_system_transform_t>(entity);
+			_world->calculate_entity_abs_transform(entity, entity_position, entity_rotation, entity_scale);
 
-			JPH::RefConst<JPH::Shape> shape = physics_world_util_t::create_shape(*_world, entity, physical, transform.abs_scale);
+			JPH::RefConst<JPH::Shape> shape = physics_world_util_t::create_shape(*_world, entity, physical, entity_scale);
 
 			if (shape == nullptr)
 				return false;
 
-			const quat_t			  body_rotation = transform.abs_rot * physical.local_rotation;
-			const vec3f_t			  body_position = transform.abs_pos + transform.abs_rot * (physical.local_position * transform.abs_scale);
+			const quat_t			  body_rotation = entity_rotation * physical.local_rotation;
+			const vec3f_t			  body_position = entity_position + entity_rotation * (physical.local_position * entity_scale);
 			JPH::BodyCreationSettings settings(
 				shape, physics_world_util_t::to_jolt_position(body_position), physics_world_util_t::to_jolt(body_rotation), physics_world_util_t::to_jolt(motion_type), physics_world_util_t::make_object_layer(physical.collision_layer, motion_type));
 
@@ -908,11 +907,12 @@ namespace sfg
 
 		bool create_character(entity_id_t entity, component_system_physics_t& system_physics, const component_character_mover_t& mover)
 		{
-			_world->calculate_transform_direct(entity);
-			system_physics.motion_type = static_cast<u8>(physics_motion_type_e::kinematic_body);
+			vec3f_t entity_position = vec3f_t::zero;
+			quat_t	entity_rotation = quat_t::identity;
+			vec3f_t entity_scale	= vec3f_t::one;
 
-			const ecs_component_table_t&		transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
-			const component_system_transform_t& transform		= transform_table.get_as_const<component_system_transform_t>(entity);
+			_world->calculate_entity_abs_transform(entity, entity_position, entity_rotation, entity_scale);
+			system_physics.motion_type = static_cast<u8>(physics_motion_type_e::kinematic_body);
 
 			JPH::CapsuleShapeSettings		shape_settings(math::max(mover.half_height, 0.001f), math::max(mover.radius, 0.001f));
 			JPH::ShapeSettings::ShapeResult shape_result = shape_settings.Create();
@@ -937,7 +937,7 @@ namespace sfg
 			settings.mInnerBodyShape			   = shape_result.Get();
 			settings.mInnerBodyLayer			   = physics_world_util_t::make_object_layer(mover.collision_layer, physics_motion_type_e::kinematic_body);
 
-			JPH::CharacterVirtual* character = new JPH::CharacterVirtual(&settings, physics_world_util_t::to_jolt_position(transform.abs_pos), physics_world_util_t::to_jolt(transform.abs_rot), entity, _system);
+			JPH::CharacterVirtual* character = new JPH::CharacterVirtual(&settings, physics_world_util_t::to_jolt_position(entity_position), physics_world_util_t::to_jolt(entity_rotation), entity, _system);
 			character->AddRef();
 
 			const JPH::BodyID body_id		 = character->GetInnerBodyID();
@@ -1279,8 +1279,15 @@ namespace sfg
 				system_transform.abs_rot = entity_rotation;
 				system_transform.abs_mat = mat4x3_t::transform(entity_position, entity_rotation, system_transform.abs_scale);
 
-				_world->set_entity_pos_local(row.id, _world->abs_pos_to_local(row.id, entity_position));
-				_world->set_entity_rot_local(row.id, _world->abs_rot_to_local(row.id, entity_rotation));
+				vec3f_t parent_position = vec3f_t::zero;
+				quat_t	parent_rotation = quat_t::identity;
+				vec3f_t parent_scale	= vec3f_t::one;
+
+				_world->calculate_entity_parent_abs_transform(row.id, parent_position, parent_rotation, parent_scale);
+
+				const mat4x3_t parent_matrix = _world->calculate_entity_parent_abs_matrix(row.id);
+				_world->set_entity_pos_local(row.id, world_t::abs_pos_to_local(entity_position, parent_matrix));
+				_world->set_entity_rot_local(row.id, world_t::abs_rot_to_local(entity_rotation, parent_rotation));
 			}
 		}
 
@@ -1379,8 +1386,15 @@ namespace sfg
 				system_transform.abs_rot = entity_rotation;
 				system_transform.abs_mat = mat4x3_t::transform(entity_position, entity_rotation, system_transform.abs_scale);
 
-				_world->set_entity_pos_local(row.id, _world->abs_pos_to_local(row.id, entity_position));
-				_world->set_entity_rot_local(row.id, _world->abs_rot_to_local(row.id, entity_rotation));
+				vec3f_t parent_position = vec3f_t::zero;
+				quat_t	parent_rotation = quat_t::identity;
+				vec3f_t parent_scale	= vec3f_t::one;
+
+				_world->calculate_entity_parent_abs_transform(row.id, parent_position, parent_rotation, parent_scale);
+
+				const mat4x3_t parent_matrix = _world->calculate_entity_parent_abs_matrix(row.id);
+				_world->set_entity_pos_local(row.id, world_t::abs_pos_to_local(entity_position, parent_matrix));
+				_world->set_entity_rot_local(row.id, world_t::abs_rot_to_local(entity_rotation, parent_rotation));
 
 				const JPH::AABox bounds		= system_ragdoll.ragdoll->GetWorldSpaceBounds();
 				system_ragdoll.world_bounds = {
@@ -2055,7 +2069,9 @@ namespace sfg
 		SFG_ASSERT(system_physics != nullptr && system_physics->character != 0);
 
 		system_physics->character->SetPosition(physics_world_util_t::to_jolt_position(position));
-		_impl->_world->set_entity_pos_local(entity, _impl->_world->abs_pos_to_local(entity, position));
+
+		const mat4x3_t parent_matrix = _impl->_world->calculate_entity_parent_abs_matrix(entity);
+		_impl->_world->set_entity_pos_local(entity, world_t::abs_pos_to_local(position, parent_matrix));
 	}
 
 	bool physics_world_t::get_character_state(entity_id_t entity, character_mover_state_t& out_state) const

@@ -295,16 +295,19 @@ namespace sfg
 	bool physics_world_util_t::get_constraint_create_context(world_t& world, entity_id_t entity, entity_guid_t target_guid, constraint_create_context_t& out_context)
 	{
 		const ecs_component_table_t&	  system_physics_table = world.get_component_table(type_id_t<component_system_physics_t>::value);
-		const ecs_component_table_t&	  transform_table	   = world.get_component_table(type_id_t<component_system_transform_t>::value);
 		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
 		SFG_ASSERT(system_physics != nullptr && system_physics->body_id != UINT32_MAX);
 
-		world.calculate_transform_direct(entity);
 		out_context = {
-			.transform = &transform_table.get_as_const<component_system_transform_t>(entity),
+			.transform = world.calculate_entity_abs_matrix(entity),
 			.body_id   = system_physics->body_id,
 			.entity	   = entity,
 		};
+
+		vec3f_t position = vec3f_t::zero;
+		vec3f_t scale	 = vec3f_t::one;
+
+		world.calculate_entity_abs_transform(entity, position, out_context.rotation, scale);
 
 		if (target_guid == NULL_ENTITY_GUID)
 			return true;
@@ -319,10 +322,11 @@ namespace sfg
 		if (target_physics == nullptr || target_physics->body_id == UINT32_MAX)
 			return false;
 
-		world.calculate_transform_direct(target_entity);
-		out_context.target_transform = &transform_table.get_as_const<component_system_transform_t>(target_entity);
-		out_context.target_body_id	 = target_physics->body_id;
-		out_context.target_entity	 = target_entity;
+		out_context.target_transform = world.calculate_entity_abs_matrix(target_entity);
+		world.calculate_entity_abs_transform(target_entity, position, out_context.target_rotation, scale);
+
+		out_context.target_body_id = target_physics->body_id;
+		out_context.target_entity  = target_entity;
 		return true;
 	}
 
@@ -384,16 +388,16 @@ namespace sfg
 		if (!get_constraint_create_context(world, entity, component.target_entity, context))
 			return false;
 
-		const quat_t				 world_rotation		   = context.transform->abs_rot * component.local_rotation;
-		const quat_t				 target_world_rotation = context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_rotation : component.target_rotation;
+		const quat_t				 world_rotation		   = context.rotation * component.local_rotation;
+		const quat_t				 target_world_rotation = context.target_rotation * component.target_rotation;
 		JPH::FixedConstraintSettings settings			   = {};
 		settings.mEnabled								   = component.enabled != 0;
 		settings.mUserData								   = entity;
 		settings.mSpace									   = JPH::EConstraintSpace::WorldSpace;
-		settings.mPoint1								   = to_jolt_position(context.transform->abs_mat * component.local_point);
+		settings.mPoint1								   = to_jolt_position(context.transform * component.local_point);
 		settings.mAxisX1								   = to_jolt(world_rotation.get_right());
 		settings.mAxisY1								   = to_jolt(world_rotation.get_up());
-		settings.mPoint2								   = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_point : component.target_point);
+		settings.mPoint2								   = to_jolt_position(context.target_transform * component.target_point);
 		settings.mAxisX2								   = to_jolt(target_world_rotation.get_right());
 		settings.mAxisY2								   = to_jolt(target_world_rotation.get_up());
 		return add_two_body_constraint(system, context, system_constraint_type_e::fixed, settings, system_constraints);
@@ -413,8 +417,8 @@ namespace sfg
 		settings.mMaxDistance					 = component.max_distance;
 		settings.mLimitsSpringSettings			 = JPH::SpringSettings(JPH::ESpringMode::FrequencyAndDamping, component.spring_frequency, component.spring_damping);
 		settings.mSpace							 = JPH::EConstraintSpace::WorldSpace;
-		settings.mPoint1						 = to_jolt_position(context.transform->abs_mat * component.local_point);
-		settings.mPoint2						 = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_point : component.target_point);
+		settings.mPoint1						 = to_jolt_position(context.transform * component.local_point);
+		settings.mPoint2						 = to_jolt_position(context.target_transform * component.target_point);
 		return add_two_body_constraint(system, context, system_constraint_type_e::distance, settings, system_constraints);
 	}
 
@@ -429,8 +433,8 @@ namespace sfg
 		settings.mEnabled					  = component.enabled != 0;
 		settings.mUserData					  = entity;
 		settings.mSpace						  = JPH::EConstraintSpace::WorldSpace;
-		settings.mPoint1					  = to_jolt_position(context.transform->abs_mat * component.local_point);
-		settings.mPoint2					  = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_point : component.target_point);
+		settings.mPoint1					  = to_jolt_position(context.transform * component.local_point);
+		settings.mPoint2					  = to_jolt_position(context.target_transform * component.target_point);
 		return add_two_body_constraint(system, context, system_constraint_type_e::point, settings, system_constraints);
 	}
 
@@ -451,12 +455,12 @@ namespace sfg
 		settings.mMotorSettings.mSpringSettings = JPH::SpringSettings(JPH::ESpringMode::FrequencyAndDamping, component.motor_frequency, component.motor_damping);
 		settings.mMotorSettings.SetTorqueLimit(component.max_motor_torque);
 		settings.mSpace		  = JPH::EConstraintSpace::WorldSpace;
-		settings.mPoint1	  = to_jolt_position(context.transform->abs_mat * component.local_point);
-		settings.mHingeAxis1  = to_jolt(context.transform->abs_rot * component.local_hinge_axis);
-		settings.mNormalAxis1 = to_jolt(context.transform->abs_rot * component.local_normal_axis);
-		settings.mPoint2	  = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_point : component.target_point);
-		settings.mHingeAxis2  = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_hinge_axis : component.target_hinge_axis);
-		settings.mNormalAxis2 = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_normal_axis : component.target_normal_axis);
+		settings.mPoint1	  = to_jolt_position(context.transform * component.local_point);
+		settings.mHingeAxis1  = to_jolt(context.rotation * component.local_hinge_axis);
+		settings.mNormalAxis1 = to_jolt(context.rotation * component.local_normal_axis);
+		settings.mPoint2	  = to_jolt_position(context.target_transform * component.target_point);
+		settings.mHingeAxis2  = to_jolt(context.target_rotation * component.target_hinge_axis);
+		settings.mNormalAxis2 = to_jolt(context.target_rotation * component.target_normal_axis);
 
 		if (!add_two_body_constraint(system, context, system_constraint_type_e::hinge, settings, system_constraints))
 			return false;
@@ -482,10 +486,10 @@ namespace sfg
 		settings.mUserData					 = entity;
 		settings.mHalfConeAngle				 = math::degrees_to_radians(component.half_cone_angle_degrees);
 		settings.mSpace						 = JPH::EConstraintSpace::WorldSpace;
-		settings.mPoint1					 = to_jolt_position(context.transform->abs_mat * component.local_point);
-		settings.mTwistAxis1				 = to_jolt(context.transform->abs_rot * component.local_twist_axis);
-		settings.mPoint2					 = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_point : component.target_point);
-		settings.mTwistAxis2				 = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_twist_axis : component.target_twist_axis);
+		settings.mPoint1					 = to_jolt_position(context.transform * component.local_point);
+		settings.mTwistAxis1				 = to_jolt(context.rotation * component.local_twist_axis);
+		settings.mPoint2					 = to_jolt_position(context.target_transform * component.target_point);
+		settings.mTwistAxis2				 = to_jolt(context.target_rotation * component.target_twist_axis);
 		return add_two_body_constraint(system, context, system_constraint_type_e::cone, settings, system_constraints);
 	}
 
@@ -506,12 +510,12 @@ namespace sfg
 		settings.mMotorSettings.mSpringSettings = JPH::SpringSettings(JPH::ESpringMode::FrequencyAndDamping, component.motor_frequency, component.motor_damping);
 		settings.mMotorSettings.SetForceLimit(component.max_motor_force);
 		settings.mSpace		  = JPH::EConstraintSpace::WorldSpace;
-		settings.mPoint1	  = to_jolt_position(context.transform->abs_mat * component.local_point);
-		settings.mSliderAxis1 = to_jolt(context.transform->abs_rot * component.local_slider_axis);
-		settings.mNormalAxis1 = to_jolt(context.transform->abs_rot * component.local_normal_axis);
-		settings.mPoint2	  = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_point : component.target_point);
-		settings.mSliderAxis2 = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_slider_axis : component.target_slider_axis);
-		settings.mNormalAxis2 = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_normal_axis : component.target_normal_axis);
+		settings.mPoint1	  = to_jolt_position(context.transform * component.local_point);
+		settings.mSliderAxis1 = to_jolt(context.rotation * component.local_slider_axis);
+		settings.mNormalAxis1 = to_jolt(context.rotation * component.local_normal_axis);
+		settings.mPoint2	  = to_jolt_position(context.target_transform * component.target_point);
+		settings.mSliderAxis2 = to_jolt(context.target_rotation * component.target_slider_axis);
+		settings.mNormalAxis2 = to_jolt(context.target_rotation * component.target_normal_axis);
 
 		if (!add_two_body_constraint(system, context, system_constraint_type_e::slider, settings, system_constraints))
 			return false;
@@ -541,12 +545,12 @@ namespace sfg
 		settings.mTwistMaxAngle					   = math::degrees_to_radians(component.twist_max_angle_degrees);
 		settings.mMaxFrictionTorque				   = component.max_friction_torque;
 		settings.mSpace							   = JPH::EConstraintSpace::WorldSpace;
-		settings.mPosition1						   = to_jolt_position(context.transform->abs_mat * component.local_point);
-		settings.mTwistAxis1					   = to_jolt(context.transform->abs_rot * component.local_twist_axis);
-		settings.mPlaneAxis1					   = to_jolt(context.transform->abs_rot * component.local_plane_axis);
-		settings.mPosition2						   = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_point : component.target_point);
-		settings.mTwistAxis2					   = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_twist_axis : component.target_twist_axis);
-		settings.mPlaneAxis2					   = to_jolt(context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_plane_axis : component.target_plane_axis);
+		settings.mPosition1						   = to_jolt_position(context.transform * component.local_point);
+		settings.mTwistAxis1					   = to_jolt(context.rotation * component.local_twist_axis);
+		settings.mPlaneAxis1					   = to_jolt(context.rotation * component.local_plane_axis);
+		settings.mPosition2						   = to_jolt_position(context.target_transform * component.target_point);
+		settings.mTwistAxis2					   = to_jolt(context.target_rotation * component.target_twist_axis);
+		settings.mPlaneAxis2					   = to_jolt(context.target_rotation * component.target_plane_axis);
 		return add_two_body_constraint(system, context, system_constraint_type_e::swing_twist, settings, system_constraints);
 	}
 
@@ -557,8 +561,8 @@ namespace sfg
 		if (!get_constraint_create_context(world, entity, component.target_entity, context))
 			return false;
 
-		const quat_t				  world_rotation					   = context.transform->abs_rot * component.local_rotation;
-		const quat_t				  target_world_rotation				   = context.target_transform != nullptr ? context.target_transform->abs_rot * component.target_rotation : component.target_rotation;
+		const quat_t				  world_rotation					   = context.rotation * component.local_rotation;
+		const quat_t				  target_world_rotation				   = context.target_rotation * component.target_rotation;
 		JPH::SixDOFConstraintSettings settings							   = {};
 		settings.mEnabled												   = component.enabled != 0;
 		settings.mUserData												   = entity;
@@ -582,10 +586,10 @@ namespace sfg
 		settings.mMaxFriction[JPH::SixDOFConstraintSettings::RotationY]	   = component.max_rotation_friction.y;
 		settings.mMaxFriction[JPH::SixDOFConstraintSettings::RotationZ]	   = component.max_rotation_friction.z;
 		settings.mSpace													   = JPH::EConstraintSpace::WorldSpace;
-		settings.mPosition1												   = to_jolt_position(context.transform->abs_mat * component.local_point);
+		settings.mPosition1												   = to_jolt_position(context.transform * component.local_point);
 		settings.mAxisX1												   = to_jolt(world_rotation.get_right());
 		settings.mAxisY1												   = to_jolt(world_rotation.get_up());
-		settings.mPosition2												   = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_point : component.target_point);
+		settings.mPosition2												   = to_jolt_position(context.target_transform * component.target_point);
 		settings.mAxisX2												   = to_jolt(target_world_rotation.get_right());
 		settings.mAxisY2												   = to_jolt(target_world_rotation.get_up());
 		return add_two_body_constraint(system, context, system_constraint_type_e::six_dof, settings, system_constraints);
@@ -607,8 +611,8 @@ namespace sfg
 		settings.mMinLength					   = component.min_length;
 		settings.mMaxLength					   = component.max_length;
 		settings.mSpace						   = JPH::EConstraintSpace::WorldSpace;
-		settings.mBodyPoint1				   = to_jolt_position(context.transform->abs_mat * component.local_body_point);
-		settings.mBodyPoint2				   = to_jolt_position(context.target_transform != nullptr ? context.target_transform->abs_mat * component.target_body_point : component.target_body_point);
+		settings.mBodyPoint1				   = to_jolt_position(context.transform * component.local_body_point);
+		settings.mBodyPoint2				   = to_jolt_position(context.target_transform * component.target_body_point);
 		return add_two_body_constraint(system, context, system_constraint_type_e::pulley, settings, system_constraints);
 	}
 
@@ -858,16 +862,13 @@ namespace sfg
 				if (component == nullptr)
 					break;
 
-				JPH::PointConstraint&		 constraint		 = *static_cast<JPH::PointConstraint*>(slot.constraint);
-				const ecs_component_table_t& transform_table = world.get_component_table(type_id_t<component_system_transform_t>::value);
+				JPH::PointConstraint& constraint = *static_cast<JPH::PointConstraint*>(slot.constraint);
 
 				if (constraint.GetEnabled() != (component->enabled != 0))
 					constraint.SetEnabled(component->enabled != 0);
 
-				world.calculate_transform_direct(entity);
-
-				const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(entity);
-				constraint.SetPoint1(JPH::EConstraintSpace::WorldSpace, to_jolt_position(transform.abs_mat * component->local_point));
+				const mat4x3_t transform = world.calculate_entity_abs_matrix(entity);
+				constraint.SetPoint1(JPH::EConstraintSpace::WorldSpace, to_jolt_position(transform * component->local_point));
 
 				if (slot.target_entity == NULL_ENTITY_ID)
 				{
@@ -875,10 +876,8 @@ namespace sfg
 				}
 				else
 				{
-					world.calculate_transform_direct(slot.target_entity);
-
-					const component_system_transform_t& target_transform = transform_table.get_as_const<component_system_transform_t>(slot.target_entity);
-					constraint.SetPoint2(JPH::EConstraintSpace::WorldSpace, to_jolt_position(target_transform.abs_mat * component->target_point));
+					const mat4x3_t target_transform = world.calculate_entity_abs_matrix(slot.target_entity);
+					constraint.SetPoint2(JPH::EConstraintSpace::WorldSpace, to_jolt_position(target_transform * component->target_point));
 				}
 
 				break;

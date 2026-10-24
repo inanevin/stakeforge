@@ -93,34 +93,26 @@ namespace sfg
 
 	mat4x3_t mat4x3_t::inverse() const
 	{
-		mat4x3_t result;
+		mat4x3_t result = mat4x3_t::identity;
 
-		vec3f_t s = get_scale();
-		vec3f_t inv_s_sq(1.0f / (s.x * s.x), 1.0f / (s.y * s.y), 1.0f / (s.z * s.z));
+		result.m[0] = m[4] * m[8] - m[7] * m[5];
+		result.m[1] = m[7] * m[2] - m[1] * m[8];
+		result.m[2] = m[1] * m[5] - m[4] * m[2]; // Row 0 -> Col 0
+		result.m[3] = m[6] * m[5] - m[3] * m[8];
+		result.m[4] = m[0] * m[8] - m[6] * m[2];
+		result.m[5] = m[3] * m[2] - m[0] * m[5]; // Row 1 -> Col 1
+		result.m[6] = m[3] * m[7] - m[6] * m[4];
+		result.m[7] = m[6] * m[1] - m[0] * m[7];
+		result.m[8] = m[0] * m[4] - m[3] * m[1]; // Row 2 -> Col 2
 
-		result.m[0] = m[0];
-		result.m[1] = m[3];
-		result.m[2] = m[6]; // Row 0 -> Col 0
-		result.m[3] = m[1];
-		result.m[4] = m[4];
-		result.m[5] = m[7]; // Row 1 -> Col 1
-		result.m[6] = m[2];
-		result.m[7] = m[5];
-		result.m[8] = m[8]; // Row 2 -> Col 2
+		const f32 inv_det = 1.0f / (m[0] * result.m[0] + m[3] * result.m[1] + m[6] * result.m[2]);
 
-		result.m[0] *= inv_s_sq.x;
-		result.m[1] *= inv_s_sq.x;
-		result.m[2] *= inv_s_sq.x;
-		result.m[3] *= inv_s_sq.y;
-		result.m[4] *= inv_s_sq.y;
-		result.m[5] *= inv_s_sq.y;
-		result.m[6] *= inv_s_sq.z;
-		result.m[7] *= inv_s_sq.z;
-		result.m[8] *= inv_s_sq.z;
+		for (u32 i = 0; i < 9; ++i)
+			result.m[i] *= inv_det;
 
-		vec3f_t t(m[9], m[10], m[11]);
+		const vec3f_t t(m[9], m[10], m[11]);
+		vec3f_t		  inv_t = vec3f_t::zero;
 
-		vec3f_t inv_t;
 		inv_t.x = result.m[0] * t.x + result.m[3] * t.y + result.m[6] * t.z;
 		inv_t.y = result.m[1] * t.x + result.m[4] * t.y + result.m[7] * t.z;
 		inv_t.z = result.m[2] * t.x + result.m[5] * t.y + result.m[8] * t.z;

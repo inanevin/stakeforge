@@ -163,7 +163,10 @@ namespace sfg
 		_direction_input	  = vec3f_t::zero;
 		_mouse_delta		  = vec2f_t::zero;
 
-		world.teleport_entity(_camera_entity, position, quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, _camera_roll_degrees), vec3f_t::one);
+		world.set_entity_pos_local(_camera_entity, position);
+		world.set_entity_rot_local(_camera_entity, quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, _camera_roll_degrees));
+		world.set_entity_scale_local(_camera_entity, vec3f_t::one);
+		world.mark_entity_teleported(_camera_entity);
 	}
 
 	void editor_world_camera_fly_t::fit_to_bounds(world_t& world, const aabb_t& bounds)
@@ -197,6 +200,9 @@ namespace sfg
 		_mouse_delta		  = vec2f_t::zero;
 		_direction_input	  = vec3f_t::zero;
 
-		world.teleport_entity(_camera_entity, position, rotation, vec3f_t::one);
+		world.set_entity_pos_local(_camera_entity, position);
+		world.set_entity_rot_local(_camera_entity, rotation);
+		world.set_entity_scale_local(_camera_entity, vec3f_t::one);
+		world.mark_entity_teleported(_camera_entity);
 	}
 }

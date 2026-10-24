@@ -314,7 +314,7 @@ namespace sfg
 		_input_controller.deactivate();
 
 		_world.update_world_transforms(false);
-		_camera->set_transform(_world, _world.get_entity_pos_abs(anchor), _world.get_entity_rot_abs(anchor));
+		_camera->set_transform(_world, _world.get_entity_pos_last_abs(anchor), _world.get_entity_rot_last_abs(anchor));
 	}
 
 	void editor_world_t::fit_camera_to_bounds(const aabb_t& bounds)
@@ -365,7 +365,7 @@ namespace sfg
 
 		const entity_id_t camera_entity = _camera->get_entity();
 		vec3f_t			  scale			= vec3f_t::one;
-		_world.calculate_transform_direct(camera_entity).decompose(view.pos, view.rot, scale);
+		_world.calculate_entity_abs_transform(camera_entity, view.pos, view.rot, scale);
 
 		const component_camera_t& camera = _world.get_component_table(type_id_t<component_camera_t>::value).get_as_const<component_camera_t>(camera_entity);
 		view.prev_pos					 = view.pos;

@@ -233,6 +233,9 @@ namespace sfg
 		_distance_target	  = _distance;
 		_distance_velocity	  = 0.0f;
 
-		world.teleport_entity(_camera_entity, position, rotation, vec3f_t::one);
+		world.set_entity_pos_local(_camera_entity, position);
+		world.set_entity_rot_local(_camera_entity, rotation);
+		world.set_entity_scale_local(_camera_entity, vec3f_t::one);
+		world.mark_entity_teleported(_camera_entity);
 	}
 }

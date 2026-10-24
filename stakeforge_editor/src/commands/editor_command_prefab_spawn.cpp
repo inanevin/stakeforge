@@ -78,7 +78,10 @@ namespace sfg
 				world.attach_to(payload.root, payload.parent);
 
 			if (payload.place)
-				world.set_entity_pos_local(payload.root, world.abs_pos_to_local(payload.root, payload.position));
+			{
+				const mat4x3_t parent_matrix = world.calculate_entity_parent_abs_matrix(payload.root);
+				world.set_entity_pos_local(payload.root, world_t::abs_pos_to_local(payload.position, parent_matrix));
+			}
 
 			apply_selection(editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context().get_world(), {.data = &payload.root, .size = 1}, payload.root);
 

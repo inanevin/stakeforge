@@ -55,8 +55,8 @@ namespace sfg
 		world.update_world_transforms(false);
 
 		const entity_id_t camera		  = context.get_editor_camera_entity();
-		const vec3f_t	  camera_position = world.get_entity_pos_abs(camera);
-		const quat_t	  camera_rotation = world.get_entity_rot_abs(camera);
+		const vec3f_t	  camera_position = world.get_entity_pos_last_abs(camera);
+		const quat_t	  camera_rotation = world.get_entity_rot_last_abs(camera);
 
 		frame_vector_t<component_transform_t> previous		   = {};
 		frame_vector_t<component_transform_t> next			   = {};
@@ -76,12 +76,9 @@ namespace sfg
 
 			if (parent != NULL_ENTITY_ID)
 			{
-				const quat_t   parent_inverse_rotation = world.get_entity_rot_abs(parent).inverse();
-				const vec3f_t  offset				   = parent_inverse_rotation * (camera_position - world.get_entity_pos_abs(parent));
-				const vec3f_t& parent_scale			   = world.get_entity_scale_abs(parent);
-
-				transform.pos = {offset.x / parent_scale.x, offset.y / parent_scale.y, offset.z / parent_scale.z};
-				transform.rot = parent_inverse_rotation * camera_rotation;
+				const mat4x3_t parent_matrix = world.calculate_entity_parent_abs_matrix(entity);
+				transform.pos				 = world_t::abs_pos_to_local(camera_position, parent_matrix);
+				transform.rot				 = world_t::abs_rot_to_local(camera_rotation, world.get_entity_rot_last_abs(parent));
 			}
 
 			next.push_back(transform);
