@@ -1,0 +1,62 @@
+set(Stakeforge_VERSION "@VERSION@")
+set(Stakeforge_BUILD_ID "@BUILD_ID@")
+set(Stakeforge_CONFIGURATION "@CONFIGURATION@")
+set(Stakeforge_COMPILER_VERSION "@COMPILER_VERSION@")
+set(Stakeforge_WINDOWS_SDK "@WINDOWS_SDK@")
+
+if(NOT WIN32 OR NOT CMAKE_CXX_COMPILER_ID STREQUAL "@COMPILER_ID@")
+    message(FATAL_ERROR "This Stakeforge SDK requires Windows and @COMPILER_ID@.")
+endif()
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL @POINTER_SIZE@ OR
+   NOT CMAKE_CXX_COMPILER_ARCHITECTURE_ID STREQUAL "@ARCHITECTURE@")
+    message(FATAL_ERROR "This Stakeforge SDK requires the @ARCHITECTURE@ architecture.")
+endif()
+if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS Stakeforge_COMPILER_VERSION)
+    message(FATAL_ERROR "This Stakeforge SDK requires MSVC @COMPILER_VERSION@ or newer.")
+endif()
+if(CMAKE_VS_PLATFORM_TOOLSET AND NOT CMAKE_VS_PLATFORM_TOOLSET STREQUAL "@TOOLSET@")
+    message(FATAL_ERROR "This Stakeforge SDK requires the @TOOLSET@ platform toolset.")
+endif()
+
+if(CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_CONFIGURATION_TYPES "${Stakeforge_CONFIGURATION}" CACHE STRING "SDK configuration" FORCE)
+elseif(CMAKE_BUILD_TYPE AND NOT CMAKE_BUILD_TYPE STREQUAL Stakeforge_CONFIGURATION)
+    message(FATAL_ERROR "This Stakeforge SDK contains only the ${Stakeforge_CONFIGURATION} configuration.")
+else()
+    set(CMAKE_BUILD_TYPE "${Stakeforge_CONFIGURATION}" CACHE STRING "SDK configuration" FORCE)
+endif()
+
+set(CMAKE_MSVC_RUNTIME_LIBRARY "@MSVC_RUNTIME@")
+set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "@DEBUG_INFORMATION_FORMAT@")
+set(CMAKE_CXX_FLAGS [==[@CXX_FLAGS@]==])
+set(CMAKE_CXX_FLAGS_@CONFIGURATION_UPPER@ [==[@CXX_CONFIG_FLAGS@]==])
+set(CMAKE_SHARED_LINKER_FLAGS [==[@SHARED_LINKER_FLAGS@]==])
+set(CMAKE_SHARED_LINKER_FLAGS_@CONFIGURATION_UPPER@ [==[@SHARED_LINKER_CONFIG_FLAGS@]==])
+set(CMAKE_EXE_LINKER_FLAGS [==[@EXE_LINKER_FLAGS@]==])
+set(CMAKE_EXE_LINKER_FLAGS_@CONFIGURATION_UPPER@ [==[@EXE_LINKER_CONFIG_FLAGS@]==])
+get_filename_component(_stakeforge_sdk_root "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+
+if(NOT TARGET Stakeforge::core)
+    add_library(Stakeforge::core SHARED IMPORTED)
+    set_target_properties(Stakeforge::core PROPERTIES
+        IMPORTED_LOCATION "${_stakeforge_sdk_root}/../stakeforge_core.dll"
+        IMPORTED_IMPLIB "${_stakeforge_sdk_root}/lib/@CORE_LIBRARY@"
+        INTERFACE_COMPILE_FEATURES cxx_std_23
+        INTERFACE_INCLUDE_DIRECTORIES "@INCLUDE_DIRECTORIES@"
+        INTERFACE_COMPILE_DEFINITIONS "@DEFINITIONS@"
+        INTERFACE_COMPILE_OPTIONS "@OPTIONS@"
+        INTERFACE_LINK_LIBRARIES "@LIBRARIES@"
+    )
+endif()
+
+if(NOT TARGET Stakeforge::tools)
+    add_library(Stakeforge::tools SHARED IMPORTED)
+    set_target_properties(Stakeforge::tools PROPERTIES
+        IMPORTED_LOCATION "${_stakeforge_sdk_root}/../stakeforge_tools.dll"
+        IMPORTED_IMPLIB "${_stakeforge_sdk_root}/lib/@TOOLS_LIBRARY@"
+        INTERFACE_COMPILE_DEFINITIONS SFG_TOOLS_SHARED
+        INTERFACE_LINK_LIBRARIES Stakeforge::core
+    )
+endif()
+
+unset(_stakeforge_sdk_root)

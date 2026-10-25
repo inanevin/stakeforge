@@ -1,0 +1,51 @@
+{
+    "source_root": "@CMAKE_SOURCE_DIR@",
+    "output_root": "@CMAKE_RUNTIME_OUTPUT_DIRECTORY@/$<CONFIG>",
+    "build_info": {
+        "major": @SFG_MAJOR@,
+        "minor": @SFG_MINOR@,
+        "patch": @SFG_PATCH@,
+        "build_id": "@SFG_BUILD@"
+    },
+    "configuration": "$<CONFIG>",
+    "architecture": "@SFG_SDK_PLATFORM@",
+    "pointer_size": @CMAKE_SIZEOF_VOID_P@,
+    "compiler_id": "@CMAKE_CXX_COMPILER_ID@",
+    "compiler_version": "@CMAKE_CXX_COMPILER_VERSION@",
+    "toolset": "@CMAKE_VS_PLATFORM_TOOLSET@",
+    "toolset_version": "@CMAKE_VS_PLATFORM_TOOLSET_VERSION@",
+    "windows_sdk": "@CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION@",
+    "msvc_runtime": "$<TARGET_GENEX_EVAL:stakeforge_core,$<TARGET_PROPERTY:stakeforge_core,MSVC_RUNTIME_LIBRARY>>",
+    "debug_information_format": "$<TARGET_GENEX_EVAL:stakeforge_core,$<TARGET_PROPERTY:stakeforge_core,MSVC_DEBUG_INFORMATION_FORMAT>>",
+    "headers": [
+        ["@CMAKE_SOURCE_DIR@/stakeforge_core/src/sfg", "include/sfg"],
+        ["@CMAKE_SOURCE_DIR@/stakeforge_tools/src/sfg", "include/sfg"],
+        ["@CMAKE_SOURCE_DIR@/stakeforge_core/deps/phmap/include", "include/third_party/phmap"],
+        ["@CMAKE_SOURCE_DIR@/stakeforge_core/deps/JoltPhysics-5.4.0/Jolt", "include/third_party/jolt/Jolt"],
+        ["@CMAKE_SOURCE_DIR@/stakeforge_core/deps/tracy-0.13.1/public", "include/third_party/tracy"],
+        ["@CMAKE_SOURCE_DIR@/stakeforge_core/deps/lz4-1.9.4/include", "include/third_party/lz4"],
+        ["@CMAKE_SOURCE_DIR@/stakeforge_core/deps/freetype-2.14.3/include", "include/third_party/freetype"],
+        ["@CMAKE_BINARY_DIR@/stakeforge_core/deps/freetype-2.14.3/include", "include/third_party/freetype"],
+        ["@CMAKE_SOURCE_DIR@/stakeforge_core/deps/dxc/include", "include/third_party/dxc"],
+        ["@CMAKE_SOURCE_DIR@/stakeforge_core/deps/pix/include", "include/third_party/pix"]
+    ],
+    "include_directories": [
+        "include", "include/sfg", "include/third_party/phmap", "include/third_party/jolt",
+        "include/third_party/tracy", "include/third_party/lz4", "include/third_party/freetype",
+        "include/third_party/dxc", "include/third_party/pix"
+    ],
+    "core_import_library": "$<TARGET_LINKER_FILE:stakeforge_core>",
+    "tools_import_library": "$<TARGET_LINKER_FILE:stakeforge_tools>",
+    "dependency_libraries": [
+        "$<TARGET_FILE:Jolt>", "$<TARGET_FILE:lz4>", "$<TARGET_FILE:freetype>",
+        "@CMAKE_SOURCE_DIR@/stakeforge_core/deps/dxc/Win64/$<IF:$<CONFIG:Debug>,Debug,Release>/dxcompiler.lib",
+        "@CMAKE_SOURCE_DIR@/stakeforge_core/deps/pix/lib/WinPixEventRuntime.lib",
+        "@SFG_SDK_DOTNET_NATIVE_HOST_DIR@/nethost.lib"
+    ],
+    "system_libraries": ["d3d12", "dxgi", "dxguid", "Dwmapi", "Shcore", "Winmm"],
+    "runtime_files": [
+        "$<TARGET_FILE:stakeforge_core>", "$<TARGET_FILE:stakeforge_tools>",
+        "$<$<CONFIG:Debug>:$<TARGET_PDB_FILE:stakeforge_core>>",
+        "$<$<CONFIG:Debug>:$<TARGET_PDB_FILE:stakeforge_tools>>"
+    ]
+}

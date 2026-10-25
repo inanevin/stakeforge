@@ -44,17 +44,14 @@ if(WIN32)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 endif()
 
-find_package(Git QUIET)
-set(SFG_BUILD "unknown")
-if(GIT_FOUND)
-    execute_process(
-        COMMAND "${GIT_EXECUTABLE}" rev-parse --short=12 HEAD
-        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
-        OUTPUT_VARIABLE SFG_BUILD
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_QUIET
-    )
-endif()
+find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
+execute_process(
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/utils/packaging/build_info.py"
+        --ensure --cmake-output "${CMAKE_BINARY_DIR}/packaging/build_info.cmake"
+    COMMAND_ERROR_IS_FATAL ANY
+    OUTPUT_QUIET
+)
+include("${CMAKE_BINARY_DIR}/packaging/build_info.cmake")
 
 # ------------- TARGETS -------------
 
@@ -95,6 +92,7 @@ add_subdirectory(stakeforge_core)
 add_subdirectory(stakeforge_tools)
 add_subdirectory(stakeforge_editor)
 add_subdirectory(stakeforge_game)
+include(utils/packaging/packaging.cmake)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CustomTargets")

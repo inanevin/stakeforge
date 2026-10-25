@@ -50,8 +50,9 @@ else()
     add_compile_definitions(SFG_COMPILER_UNKOWN=1)
 endif()
 
-add_compile_definitions(SFG_MAJOR=1)
-add_compile_definitions(SFG_MINOR=1)
+add_compile_definitions(SFG_MAJOR=${SFG_MAJOR})
+add_compile_definitions(SFG_MINOR=${SFG_MINOR})
+add_compile_definitions(SFG_PATCH=${SFG_PATCH})
 add_compile_definitions(SFG_BUILD="${SFG_BUILD}")
 
 
