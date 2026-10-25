@@ -125,7 +125,7 @@ namespace sfg
 		void select_row(u32 row_index, bool additive = false);
 		void refresh_mask_button();
 		void refresh_joint_selection();
-		void finish_mask_edit();
+		void apply_mask(u32 index);
 		void refresh_mask_backgrounds();
 		void refresh_mask_items();
 		void clear_mask_items();
@@ -165,7 +165,9 @@ namespace sfg
 		static void on_animation_play_pressed(bool toggled, void* user_data);
 		static void on_animation_reset_pressed(bool toggled, void* user_data);
 		static void on_save_changes_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
-		static void on_mask_edit_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_mask_pressed(void* user_data);
+		static void on_mask_fold_changed(bool folded, void* user_data);
+		static void on_mask_apply_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_mask_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_clear_masks_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_mask_name_edit_begin(void* user_data);
@@ -205,6 +207,7 @@ namespace sfg
 		editor_widget_reference_t  _preview_mesh_reference		= {};
 		editor_split_border_t	   _split_border				= {};
 		skeleton_def_t			   _skeleton					= {};
+		vector_t<u8>			   _mask_expanded				= {};
 		vector_t<joint_row_t>	   _joint_rows					= {};
 		vector_t<slot_preview_t>   _slot_previews				= {};
 		mat4x3_t				   _slot_initial_absolute		= mat4x3_t::identity;
@@ -238,7 +241,7 @@ namespace sfg
 		ui::widget_id_t											 _right_pane			  = NULL_WIDGET;
 		ui::widget_id_t											 _right_content			  = NULL_WIDGET;
 		ui::widget_id_t											 _mask_list				  = NULL_WIDGET;
-		u32														 _editing_mask			  = UINT32_MAX;
+		u32														 _selected_mask			  = UINT32_MAX;
 		bool													 _mask_name_edit_active	  = false;
 		ui::widget_id_t											 _joint_count_value		  = NULL_WIDGET;
 		ui::widget_id_t											 _root_joint_value		  = NULL_WIDGET;

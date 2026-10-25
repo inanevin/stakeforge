@@ -248,6 +248,10 @@ namespace sfg
 		_animation_processor.sync_slot_attachments();
 	}
 
+	void world_t::on_animation_callback(entity_id_t entity, sid_t anim_name_sid)
+	{
+	}
+
 	void world_t::tick_logic(f32 dt)
 	{
 		ZoneScoped;

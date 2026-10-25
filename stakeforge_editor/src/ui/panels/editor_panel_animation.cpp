@@ -19,7 +19,7 @@ holders grant the Stakeforge Game Linking Exception, version 1.0,
 in GAME-LINKING-EXCEPTION.md.
 
 */
-#include "ui/panels/editor_panel_animation.hpp"
+#include "editor_panel_animation.hpp"
 #include "assets/editor_asset.hpp"
 #include "assets/editor_asset_io.hpp"
 #include "assets/editor_asset_manager.hpp"
@@ -31,6 +31,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor_world_controller.hpp"
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widget_fold.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
@@ -87,6 +88,15 @@ namespace sfg
 #define ANIMATION_VIEWER_TIMELINE_CURSOR_HEAD_WIDTH	 22.0f
 #define ANIMATION_VIEWER_TIMELINE_CURSOR_HEAD_HEIGHT 14.0f
 #define ANIMATION_VIEWER_TIMELINE_CURSOR_HEAD_MARGIN 2.0f
+
+	struct editor_panel_animation_t::event_item_t
+	{
+		editor_widget_reflection_t reflection = {};
+		editor_widget_fold_t	   fold		  = {};
+		animation_event_def_t	   data		  = {};
+		editor_panel_animation_t*  owner	  = nullptr;
+		u32						   index	  = 0;
+	};
 
 	editor_panel_animation_t::editor_panel_animation_t()
 	{
@@ -504,28 +514,71 @@ namespace sfg
 								  .block_edits = _animation_guid == NULL_SID,
 							  });
 
-		editor_misc_widgets_t::make_section_label(ui, _right_pane, "Selected Event");
-
-		void* event_object = &_event_data;
-
-		_event_reflection.init(ui,
-							   _right_pane,
-							   {
-								   .callbacks = {.edit_begin = on_event_edit_begin, .edited = on_event_edited, .edit_submitted = on_event_edit_submitted, .user_data = this},
-								   .objects	  = {.data = &event_object, .size = 1},
-								   .type_id	  = type_id_t<animation_event_def_t>::value,
-							   });
-		tree.in(_event_reflection.get_root()).flags |= ui::wf_disabled;
-
 		editor_misc_widgets_t::add_spacer(ui, _right_pane, {0.0f, theme.item_spacing});
-		_save_changes_button.init(ui, _right_pane, {.text = "Save Changes", .width = {.mode = editor_widget_width_e::fixed, .value = theme.item_height * 6.0f}});
-
-		ui::layout_in_t& save_in = tree.in(_save_changes_button.get_root());
-
-		save_in.pos_mode_x	= ui::pos_mode_e::relative_in_parent;
-		save_in.pos_value.x = 0.5f;
-		save_in.anchor_x	= ui::anchor_e::center;
+		_save_changes_button.init(ui, _right_pane, {.text = "Save Changes"});
 		ui.get_input().set_listener(_save_changes_button.get_root(), {.on_click = on_save_changes_pressed, .user_data = this});
+
+		editor_misc_widgets_t::make_section_label(ui, _right_pane, "Events");
+
+		const ui::widget_id_t events_area = ui.allocate_widget();
+
+		tree.attach(_right_pane, events_area);
+		ui.set_widget_debug_name(events_area, "animation_events_area");
+
+		ui::layout_in_t& events_area_in = tree.in(events_area);
+
+		events_area_in.flow			= ui::flow_e::column;
+		events_area_in.size_mode_x	= ui::axis_mode_e::parent_relative;
+		events_area_in.size_mode_y	= ui::axis_mode_e::fill;
+		events_area_in.size_value.x = 1.0f;
+		events_area_in.flags |= ui::wf_scroll_y;
+		events_area_in.child_clip_mode = ui::clip_mode_e::scissor_rect;
+
+		const ui::widget_id_t events_frame = ui.allocate_widget();
+
+		tree.attach(events_area, events_frame);
+		ui.set_widget_debug_name(events_frame, "animation_events_frame");
+
+		ui::layout_in_t& events_frame_in = tree.in(events_frame);
+
+		events_frame_in.flow		  = ui::flow_e::column;
+		events_frame_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
+		events_frame_in.size_mode_y	  = ui::axis_mode_e::sum_children;
+		events_frame_in.size_value.x  = 1.0f;
+		events_frame_in.child_margins = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
+
+		const ui::widget_id_t actions = ui.allocate_widget();
+
+		tree.attach(events_frame, actions);
+
+		ui::layout_in_t& actions_in = tree.in(actions);
+
+		actions_in.flow			 = ui::flow_e::row;
+		actions_in.size_mode_x	 = ui::axis_mode_e::parent_relative;
+		actions_in.size_mode_y	 = ui::axis_mode_e::fixed;
+		actions_in.size_value	 = {1.0f, theme.item_height};
+		actions_in.child_spacing = theme.item_spacing;
+		_add_event_button.init(ui, actions, {.text = "Add New"});
+		_clear_events_button.init(ui, actions, {.text = "Clear All"});
+		tree.in(_add_event_button.get_root()).size_mode_x	 = ui::axis_mode_e::fill;
+		tree.in(_clear_events_button.get_root()).size_mode_x = ui::axis_mode_e::fill;
+		ui.get_input().set_listener(_add_event_button.get_root(), {.on_click = on_events_pressed, .user_data = this});
+		ui.get_input().set_listener(_clear_events_button.get_root(), {.on_click = on_events_pressed, .user_data = this});
+
+		_event_list = ui.allocate_widget();
+		tree.attach(events_frame, _event_list);
+		ui.set_widget_debug_name(_event_list, "animation_events");
+
+		ui::layout_in_t& events_in = tree.in(_event_list);
+
+		events_in.flow			= ui::flow_e::column;
+		events_in.size_mode_x	= ui::axis_mode_e::parent_relative;
+		events_in.size_mode_y	= ui::axis_mode_e::sum_children;
+		events_in.size_value.x	= 1.0f;
+		events_in.child_spacing = theme.item_spacing;
+		events_in.child_margins = {theme.margin_vertical, 0.0f, 0.0f, 0.0f};
+		_event_scrollbar.init(ui, {.target = events_area, .axes = editor_scrollbar_axis_y});
+
 		ui.get_input().set_listener(_root, {.on_key = on_timeline_key, .user_data = this});
 
 		rebuild_timeline(nullptr);
@@ -547,7 +600,11 @@ namespace sfg
 
 		editor_command_animation_events_edit_t::cancel(*this);
 		editor_command_system_t::get().clear_user_data(this);
-		_event_reflection.uninit();
+		clear_event_items();
+		_event_expanded.resize(0);
+		_event_scrollbar.uninit();
+		_add_event_button.uninit();
+		_clear_events_button.uninit();
 		_save_changes_button.uninit();
 		_reset_button.uninit();
 		_data_reflection.uninit();
@@ -598,6 +655,7 @@ namespace sfg
 			editor_command_system_t::get().clear_user_data(this);
 		}
 
+		_event_expanded.resize(0);
 		_events.resize(0);
 		_animation			 = {};
 		_scrubbing			 = false;
@@ -1593,6 +1651,7 @@ namespace sfg
 		if (_event_menu_open)
 			editor_action_menu_controller_t::find(*_ui)->close_action_menu();
 
+		_event_expanded.resize(events.size(), false);
 		_events				  = std::move(events);
 		_selected_event		  = selected_event;
 		_refresh_event_fields = true;
@@ -1600,36 +1659,188 @@ namespace sfg
 
 	void editor_panel_animation_t::select_event(u32 event_index)
 	{
-		on_event_edit_submitted(this);
-		_selected_event		  = event_index;
-		_refresh_event_fields = true;
+		finish_event_edit();
+		_selected_event = event_index;
+		refresh_event_selection();
+	}
+
+	void editor_panel_animation_t::clear_event_items()
+	{
+		for (event_item_t* item : _event_items)
+		{
+			item->reflection.uninit();
+			item->fold.uninit();
+
+			delete item;
+		}
+
+		_event_items.resize(0);
+	}
+
+	void editor_panel_animation_t::refresh_event_selection()
+	{
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		for (const event_item_t* item : _event_items)
+		{
+			_ui->get_paint().set_rect(item->fold.get_root(),
+									  {
+										  .fill_color_a		 = theme.color_frame,
+										  .fill_color_b		 = theme.color_frame,
+										  .outline_color	 = item->index == _selected_event ? theme.color_accent1 : theme.color_frame,
+										  .rounding			 = theme.item_rounding,
+										  .outline_thickness = theme.border_thickness,
+										  .rounding_segs	 = 4,
+									  });
+		}
 	}
 
 	void editor_panel_animation_t::refresh_event_fields()
 	{
-		_event_data = _selected_event == UINT32_MAX ? animation_event_def_t{} : _events[_selected_event];
+		clear_event_items();
+		_event_expanded.resize(_events.size(), false);
+		_event_items.reserve(_events.size());
 
-		void* event_object = &_event_data;
+		ui::layout_tree_t&	  tree	= _ui->get_tree();
+		const editor_theme_t& theme = editor_theme_t::get();
 
-		_event_reflection.set_reflection({
-			.callbacks = {.edit_begin = on_event_edit_begin, .edited = on_event_edited, .edit_submitted = on_event_edit_submitted, .user_data = this},
-			.objects   = {.data = &event_object, .size = 1},
-			.type_id   = type_id_t<animation_event_def_t>::value,
-		});
+		for (u32 index = 0; index < _events.size(); ++index)
+		{
+			event_item_t* item												 = new event_item_t{};
+			char		  label[sizeof(item->data.name) + sizeof("Event: ")] = {};
 
-		if (_selected_event == UINT32_MAX)
-			_ui->get_tree().in(_event_reflection.get_root()).flags |= ui::wf_disabled;
-		else
-			_ui->get_tree().in(_event_reflection.get_root()).flags &= ~ui::wf_disabled;
+			item->owner = this;
+			item->index = index;
+			item->data	= _events[index];
+			std::snprintf(label, sizeof(label), "Event: %s", item->data.name);
+			item->fold.init(*_ui,
+							_event_list,
+							{
+								.label			  = label,
+								.on_pressed		  = on_event_pressed,
+								.on_fold_changed  = on_event_fold_changed,
+								.user_data		  = item,
+								.folded			  = !_event_expanded[index],
+								.remove_button	  = true,
+								.background_frame = true,
+							});
+			_ui->get_input().set_listener(item->fold.get_remove_button(), {.on_click = on_event_remove_pressed, .user_data = item});
+
+			ui::layout_in_t& body_in = tree.in(item->fold.get_body());
+			void*			 object	 = &item->data;
+
+			body_in.child_spacing = 0.0f;
+			body_in.child_margins = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
+			item->reflection.init(*_ui,
+								  item->fold.get_body(),
+								  {
+									  .callbacks = {.edit_begin = on_event_edit_begin, .edited = on_event_edited, .edit_submitted = on_event_edit_submitted, .user_data = item},
+									  .objects	 = {.data = &object, .size = 1},
+									  .type_id	 = type_id_t<animation_event_def_t>::value,
+								  });
+			_event_items.push_back(item);
+		}
+
+		refresh_event_selection();
 
 		if (_animation_guid == NULL_SID)
-			_ui->get_tree().in(_save_changes_button.get_root()).flags |= ui::wf_disabled;
+			tree.in(_save_changes_button.get_root()).flags |= ui::wf_disabled;
 		else
-			_ui->get_tree().in(_save_changes_button.get_root()).flags &= ~ui::wf_disabled;
+			tree.in(_save_changes_button.get_root()).flags &= ~ui::wf_disabled;
+
+		if (_animation_guid == NULL_SID || _events.size() == MAX_CLIP_EVENTS)
+			tree.in(_add_event_button.get_root()).flags |= ui::wf_disabled;
+		else
+			tree.in(_add_event_button.get_root()).flags &= ~ui::wf_disabled;
+
+		if (_events.empty())
+			tree.in(_clear_events_button.get_root()).flags |= ui::wf_disabled;
+		else
+			tree.in(_clear_events_button.get_root()).flags &= ~ui::wf_disabled;
 
 		_play_button.set_disabled(_animation_guid == NULL_SID);
 		_reset_button.set_disabled(_animation_guid == NULL_SID);
 		_refresh_event_fields = false;
+	}
+
+	void editor_panel_animation_t::on_event_pressed(void* user_data)
+	{
+		const event_item_t& item = *static_cast<event_item_t*>(user_data);
+
+		item.owner->select_event(item.index);
+	}
+
+	void editor_panel_animation_t::on_event_fold_changed(bool folded, void* user_data)
+	{
+		const event_item_t& item = *static_cast<event_item_t*>(user_data);
+
+		item.owner->_event_expanded[item.index] = !folded;
+	}
+
+	void editor_panel_animation_t::on_event_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		const event_item_t&		  item	= *static_cast<event_item_t*>(user_data);
+		editor_panel_animation_t& panel = *item.owner;
+
+		router.set_focus(panel._root, false);
+		panel.select_event(item.index);
+		panel.delete_event();
+	}
+
+	void editor_panel_animation_t::on_events_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+
+		router.set_focus(panel._root, false);
+		panel.finish_event_edit();
+
+		if (id == panel._clear_events_button.get_root())
+		{
+			if (!editor_command_animation_events_edit_t::begin(panel))
+				return;
+
+			panel._events.resize(0);
+			panel._event_expanded.resize(0);
+			panel._selected_event = UINT32_MAX;
+			editor_command_animation_events_edit_t::submit(panel, "Clear Animation Events", false);
+			panel._refresh_event_fields = true;
+			return;
+		}
+
+		const f32 time = panel._events.empty() ? 0.0f : panel.get_available_event_time(panel._events.back().time);
+
+		if (time < 0.0f)
+			return;
+
+		panel.set_timeline_cursor_frame(static_cast<u32>(math::round(time * ANIMATION_VIEWER_TIMELINE_FRAME_RATE)));
+		panel._cursor_time = time;
+		panel.add_event();
+	}
+
+	f32 editor_panel_animation_t::get_available_event_time(f32 time) const
+	{
+		const u32 max_offset = static_cast<u32>(_events.size()) + 1;
+
+		for (u32 offset = 1; offset <= max_offset; ++offset)
+		{
+			const f32 delta	 = static_cast<f32>(offset) * ANIMATION_VIEWER_EVENT_GRANULARITY;
+			const f32 after	 = time + delta;
+			const f32 before = time - delta;
+
+			if (after <= _duration && is_event_time_available(after))
+				return after;
+
+			if (before >= 0.0f && is_event_time_available(before))
+				return before;
+		}
+
+		return -1.0f;
 	}
 
 	bool editor_panel_animation_t::is_event_time_available(f32 time, u32 ignored_event) const
@@ -1677,12 +1888,13 @@ namespace sfg
 
 	void editor_panel_animation_t::add_event()
 	{
-		on_event_edit_submitted(this);
+		finish_event_edit();
 
 		if (_events.size() == MAX_CLIP_EVENTS || !is_event_time_available(_cursor_time) || !editor_command_animation_events_edit_t::begin(*this))
 			return;
 
 		_events.push_back({.name = "Event", .time = _cursor_time});
+		_event_expanded.push_back(true);
 		_selected_event = static_cast<u32>(_events.size() - 1);
 		editor_command_animation_events_edit_t::submit(*this, "Add Animation Event", false);
 		_refresh_event_fields = true;
@@ -1693,30 +1905,9 @@ namespace sfg
 		if (_selected_event == UINT32_MAX || _events.size() == MAX_CLIP_EVENTS)
 			return;
 
-		on_event_edit_submitted(this);
+		finish_event_edit();
 
-		const f32 original_time	 = _events[_selected_event].time;
-		f32		  duplicate_time = -1.0f;
-		const u32 max_offset	 = static_cast<u32>(_events.size()) + 1;
-
-		for (u32 offset = 1; offset <= max_offset; ++offset)
-		{
-			const f32 delta	 = static_cast<f32>(offset) * ANIMATION_VIEWER_EVENT_GRANULARITY;
-			const f32 after	 = original_time + delta;
-			const f32 before = original_time - delta;
-
-			if (after <= _duration && is_event_time_available(after))
-			{
-				duplicate_time = after;
-				break;
-			}
-
-			if (before >= 0.0f && is_event_time_available(before))
-			{
-				duplicate_time = before;
-				break;
-			}
-		}
+		const f32 duplicate_time = get_available_event_time(_events[_selected_event].time);
 
 		if (duplicate_time < 0.0f || !editor_command_animation_events_edit_t::begin(*this))
 			return;
@@ -1725,6 +1916,7 @@ namespace sfg
 
 		event.time = duplicate_time;
 		_events.push_back(event);
+		_event_expanded.push_back(true);
 		_selected_event = static_cast<u32>(_events.size() - 1);
 		editor_command_animation_events_edit_t::submit(*this, "Duplicate Animation Event", false);
 		_refresh_event_fields = true;
@@ -1735,12 +1927,13 @@ namespace sfg
 		if (_selected_event == UINT32_MAX)
 			return;
 
-		on_event_edit_submitted(this);
+		finish_event_edit();
 
 		if (!editor_command_animation_events_edit_t::begin(*this))
 			return;
 
 		_events.erase(_events.begin() + _selected_event);
+		_event_expanded.erase(_event_expanded.begin() + _selected_event);
 		_selected_event = UINT32_MAX;
 		editor_command_animation_events_edit_t::submit(*this, "Delete Animation Event", false);
 		_refresh_event_fields = true;
@@ -1748,36 +1941,48 @@ namespace sfg
 
 	void editor_panel_animation_t::on_event_edit_begin(void* user_data)
 	{
-		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+		const event_item_t&		  item	= *static_cast<event_item_t*>(user_data);
+		editor_panel_animation_t& panel = *item.owner;
 
-		if (!panel._edit_previous_stream)
-			editor_command_animation_events_edit_t::begin(panel);
+		panel.select_event(item.index);
+		editor_command_animation_events_edit_t::begin(panel);
 	}
 
 	void editor_panel_animation_t::on_event_edited(void* user_data)
 	{
-		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
+		event_item_t&			  item	= *static_cast<event_item_t*>(user_data);
+		editor_panel_animation_t& panel = *item.owner;
 
 		if (!panel._edit_previous_stream)
 			return;
 
-		panel._event_data.time = math::clamp(panel._event_data.time, 0.0f, panel._duration);
+		item.data.time = math::clamp(item.data.time, 0.0f, panel._duration);
 
-		if (!panel.is_event_time_available(panel._event_data.time, panel._selected_event))
-			panel._event_data.time = panel._events[panel._selected_event].time;
+		if (!panel.is_event_time_available(item.data.time, item.index))
+			item.data.time = panel._events[item.index].time;
 
-		panel._events[panel._selected_event] = panel._event_data;
+		panel._events[item.index] = item.data;
+
+		char label[sizeof(item.data.name) + sizeof("Event: ")] = {};
+
+		std::snprintf(label, sizeof(label), "Event: %s", item.data.name);
+		item.fold.set_text(label);
 	}
 
 	void editor_panel_animation_t::on_event_edit_submitted(void* user_data)
 	{
-		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
-
-		if (!panel._edit_previous_stream)
-			return;
+		const event_item_t& item = *static_cast<event_item_t*>(user_data);
 
 		on_event_edited(user_data);
-		editor_command_animation_events_edit_t::submit(panel, "Edit Animation Event", false);
+		item.owner->finish_event_edit();
+	}
+
+	void editor_panel_animation_t::finish_event_edit()
+	{
+		if (!_edit_previous_stream)
+			return;
+
+		editor_command_animation_events_edit_t::submit(*this, "Edit Animation Event", false);
 	}
 
 	void editor_panel_animation_t::open_event_menu(const vec2f_t& position, bool on_event)
@@ -1894,7 +2099,7 @@ namespace sfg
 
 		editor_panel_animation_t& panel = *static_cast<editor_panel_animation_t*>(user_data);
 
-		on_event_edit_submitted(&panel);
+		panel.finish_event_edit();
 
 		const editor_asset_t* asset		 = editor_asset_manager_t::get().find_asset(panel._animation_guid);
 		animation_def_t		  definition = {};

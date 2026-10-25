@@ -100,6 +100,8 @@ namespace sfg
 		friend class editor_command_animation_events_edit_t;
 
 	private:
+		struct event_item_t;
+
 		struct timeline_label_t
 		{
 			u32	 frame		 = 0;
@@ -131,6 +133,10 @@ namespace sfg
 		void toggle_joint_fold(u32 joint_index);
 		void select_event(u32 event_index);
 		void refresh_event_fields();
+		void clear_event_items();
+		void refresh_event_selection();
+		void finish_event_edit();
+		f32	 get_available_event_time(f32 time) const;
 		bool is_event_time_available(f32 time, u32 ignored_event = UINT32_MAX) const;
 		u32	 get_event_at_position(const vec2f_t& position) const;
 		void add_event();
@@ -157,6 +163,10 @@ namespace sfg
 		static void on_reset_pressed(bool toggled, void* user_data);
 		static void on_joint_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_joint_double_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_event_pressed(void* user_data);
+		static void on_event_fold_changed(bool folded, void* user_data);
+		static void on_events_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_event_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_event_edit_begin(void* user_data);
 		static void on_event_edited(void* user_data);
 		static void on_event_edit_submitted(void* user_data);
@@ -171,6 +181,11 @@ namespace sfg
 		static void draw_timeline_cursor_body(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
 
 	private:
+		editor_widget_button_t									 _add_event_button				 = {};
+		editor_widget_button_t									 _clear_events_button			 = {};
+		editor_scrollbar_t										 _event_scrollbar				 = {};
+		vector_t<event_item_t*>									 _event_items					 = {};
+		vector_t<u8>											 _event_expanded				 = {};
 		editor_widget_world_view_t								 _world_view					 = {};
 		editor_widget_reflection_t								 _data_reflection				 = {};
 		editor_split_border_t									 _pane_split_border				 = {};
@@ -178,11 +193,9 @@ namespace sfg
 		editor_split_border_t									 _left_pane_bottom_split_border	 = {};
 		editor_scrollbar_t										 _left_pane_bottom_scrollbar	 = {};
 		editor_icon_button_t									 _play_button					 = {};
-		editor_widget_reflection_t								 _event_reflection				 = {};
 		editor_widget_button_t									 _save_changes_button			 = {};
 		editor_icon_button_t									 _reset_button					 = {};
 		animation_def_t											 _animation						 = {};
-		animation_event_def_t									 _event_data					 = {};
 		skeleton_def_t											 _preview_skeleton				 = {};
 		vector_t<joint_row_t>									 _joint_rows					 = {};
 		vector_t<timeline_label_t>								 _timeline_labels				 = {};
@@ -211,6 +224,7 @@ namespace sfg
 		ui::widget_id_t											 _timeline_body_content			 = NULL_WIDGET;
 		ui::widget_id_t											 _timeline_cursor_body			 = NULL_WIDGET;
 		ui::widget_id_t											 _right_pane					 = NULL_WIDGET;
+		ui::widget_id_t											 _event_list					 = NULL_WIDGET;
 		entity_id_t												 _environment_entity			 = NULL_ENTITY_ID;
 		ui::widget_id_t											 _duration_label				 = NULL_WIDGET;
 		ui::widget_id_t											 _scrub_seconds_frame			 = NULL_WIDGET;

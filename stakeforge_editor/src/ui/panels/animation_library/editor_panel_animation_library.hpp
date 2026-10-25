@@ -106,6 +106,7 @@ namespace sfg
 		static void on_layer_pressed(void* user_data);
 		static void on_layer_fold_changed(bool folded, void* user_data);
 		static void on_layer_add_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_layers_clear_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_layer_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
 		static void on_refresh_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 		static void on_save_changes_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
@@ -120,6 +121,7 @@ namespace sfg
 		vector_t<editor_dropdown_item_t>						 _mask_items												 = {};
 		editor_scrollbar_t										 _left_scrollbar											 = {};
 		editor_widget_button_t									 _add_layer_button											 = {};
+		editor_widget_button_t									 _clear_layers_button										 = {};
 		editor_widget_world_view_t								 _world_view												 = {};
 		editor_widget_reference_t								 _skeleton_reference										 = {};
 		editor_widget_button_t									 _save_changes_button										 = {};

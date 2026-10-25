@@ -487,6 +487,7 @@ namespace sfg
 						.out_scale_mask	   = src_scale,
 						.joint_count	   = jc,
 						.dt				   = dt,
+						.entity			   = row.id,
 						.sample_animation  = !skip_sample,
 					});
 				}
@@ -508,6 +509,7 @@ namespace sfg
 						.out_scale_mask	   = src_scale,
 						.joint_count	   = jc,
 						.dt				   = dt,
+						.entity			   = row.id,
 						.sample_animation  = !skip_sample,
 					});
 
@@ -525,6 +527,7 @@ namespace sfg
 						.out_scale_mask	   = transition_scale,
 						.joint_count	   = jc,
 						.dt				   = dt,
+						.entity			   = row.id,
 						.sample_animation  = !skip_sample,
 					});
 
@@ -575,6 +578,7 @@ namespace sfg
 					.out_scale_mask	   = out_scale,
 					.joint_count	   = jc,
 					.dt				   = dt,
+					.entity			   = row.id,
 					.sample_animation  = sample,
 				});
 
@@ -597,6 +601,7 @@ namespace sfg
 						.out_scale_mask	   = transition_scale,
 						.joint_count	   = jc,
 						.dt				   = dt,
+						.entity			   = row.id,
 						.sample_animation  = sample,
 					});
 
@@ -1334,6 +1339,10 @@ namespace sfg
 
 			decomposed_bone_t* decomposed = _decomposition_aux.get<decomposed_bone_t>(sys.decompose_alloc);
 
+			const f32  previous_time = sys.sample_time;
+			const bool first_sample	 = sys.last_sample_time < 0.0f;
+			i32		   loop_count	 = 0;
+
 			if (sys.last_sample_time < 0.0f || sys.mask != player.mask)
 			{
 				const skeleton_joint_runtime_t* joints = rm.get_memory().get<skeleton_joint_runtime_t>(skeleton->joints);
@@ -1368,6 +1377,7 @@ namespace sfg
 
 				if (player.is_looping && animation->duration > 0.0f)
 				{
+					loop_count		= static_cast<i32>(math::floor(sys.sample_time / animation->duration));
 					sys.sample_time = math::fmodf(sys.sample_time, animation->duration);
 
 					if (sys.sample_time < 0.0f)
@@ -1375,6 +1385,21 @@ namespace sfg
 				}
 				else
 					sys.sample_time = math::clamp(sys.sample_time, 0.0f, animation->duration);
+			}
+
+			if (!player.is_scrub && dt * player.speed_multiplier != 0.0f && animation->duration > 0.0f && animation->event_count != 0)
+			{
+				dispatch_animation_events(row.id,
+										  *animation,
+										  {
+											  .previous_sample	= static_cast<u32>(math::round(previous_time * ANIMATION_TICKS_PER_SECOND)),
+											  .sample			= static_cast<u32>(math::round(sys.sample_time * ANIMATION_TICKS_PER_SECOND)),
+											  .start_sample		= 0,
+											  .end_sample		= static_cast<u32>(math::round(animation->duration * ANIMATION_TICKS_PER_SECOND)),
+											  .loop_count		= loop_count,
+											  .include_previous = first_sample,
+											  .reverse			= dt * player.speed_multiplier < 0.0f,
+										  });
 			}
 
 			if (sys.sample_time == sys.last_sample_time && !renderer.needs_skinning)
@@ -1424,6 +1449,37 @@ namespace sfg
 
 		_decomposition_aux.free(sys.decompose_alloc);
 		table.remove(id);
+	}
+
+	void animation_processor_t::dispatch_animation_events(entity_id_t entity, const animation_runtime_t& animation, const event_interval_t& interval)
+	{
+		u32	 previous_sample  = interval.previous_sample;
+		bool include_previous = interval.include_previous;
+
+		// fire crossed events once, in playback order, including the first tick on entry.
+		const auto dispatch_events = [&](u32 begin, u32 end, bool include_begin) {
+			for (u32 event_index = 0; event_index < animation.event_count; ++event_index)
+			{
+				const animation_event_t& event	 = animation.events[interval.reverse ? animation.event_count - event_index - 1 : event_index];
+				const bool				 crossed = interval.reverse ? event.time < begin && event.time >= end : event.time > begin && event.time <= end;
+
+				if (crossed || (include_begin && event.time == begin))
+					_world->on_animation_callback(entity, event.name_hash);
+			}
+		};
+
+		// split the event interval at every loop boundary.
+		const u32 crossings = static_cast<u32>(interval.reverse ? -interval.loop_count : interval.loop_count);
+
+		for (u32 crossing = 0; crossing < crossings; ++crossing)
+		{
+			dispatch_events(previous_sample, interval.reverse ? interval.start_sample : interval.end_sample, include_previous);
+
+			previous_sample	 = interval.reverse ? interval.end_sample : interval.start_sample;
+			include_previous = true;
+		}
+
+		dispatch_events(previous_sample, interval.sample, include_previous);
 	}
 
 	void animation_processor_t::process_state(const process_state_params_t& params)
@@ -1662,36 +1718,19 @@ namespace sfg
 			if (!frozen && !phase_delta_zero && clip_duration > 0.0f)
 				clip.last_sample = sample;
 
-			if (clip.event_callback != nullptr && animation.event_count != 0 && !frozen && !phase_delta_zero && clip_duration > 0.0f)
+			if (animation.event_count != 0 && !frozen && !phase_delta_zero && clip_duration > 0.0f)
 			{
-				const u32 start_sample = static_cast<u32>(math::round(start_time * ANIMATION_TICKS_PER_SECOND));
-				const u32 end_sample   = static_cast<u32>(math::round(animation.duration * ANIMATION_TICKS_PER_SECOND));
-
-				// fire crossed events once, in playback order, including the first tick on entry.
-				const auto dispatch_events = [&](u32 begin, u32 end, bool include_begin) {
-					for (u32 event_index = 0; event_index < animation.event_count; ++event_index)
-					{
-						const animation_event_t& event = animation.events[reverse ? animation.event_count - event_index - 1 : event_index];
-
-						const bool crossed = reverse ? event.time < begin && event.time >= end : event.time > begin && event.time <= end;
-
-						if (crossed || (include_begin && event.time == begin))
-							clip.event_callback(event.name_hash, clip.event_user_data);
-					}
-				};
-
-				// split the event interval at every loop boundary.
-				const u32 crossings = static_cast<u32>(reverse ? -loop_count : loop_count);
-
-				for (u32 crossing = 0; crossing < crossings; ++crossing)
-				{
-					dispatch_events(previous_sample, reverse ? start_sample : end_sample, include_previous);
-
-					previous_sample	 = reverse ? end_sample : start_sample;
-					include_previous = true;
-				}
-
-				dispatch_events(previous_sample, sample, include_previous);
+				dispatch_animation_events(params.entity,
+										  animation,
+										  {
+											  .previous_sample	= previous_sample,
+											  .sample			= sample,
+											  .start_sample		= static_cast<u32>(math::round(start_time * ANIMATION_TICKS_PER_SECOND)),
+											  .end_sample		= static_cast<u32>(math::round(animation.duration * ANIMATION_TICKS_PER_SECOND)),
+											  .loop_count		= loop_count,
+											  .include_previous = include_previous,
+											  .reverse			= reverse,
+										  });
 			}
 
 			// events still advance when pose sampling is skipped.

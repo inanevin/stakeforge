@@ -68,7 +68,6 @@ namespace sfg
 		editor_input_field_t			  name	 = {};
 		editor_input_field_t			  weight = {};
 		editor_dropdown_t				  mask	 = {};
-		editor_widget_button_t			  remove = {};
 		editor_widget_fold_t			  fold	 = {};
 		editor_panel_animation_library_t* panel	 = nullptr;
 		u32								  index	 = 0;
@@ -210,12 +209,6 @@ namespace sfg
 
 		editor_dividers_t::add_divider_hor(ui, left_content, theme.border_thickness, theme.color_divider_dark, theme.color_divider_dark, ui::vg_gradient_e::none);
 
-		editor_misc_widgets_t::add_spacer(ui, left_content, {0.0f, theme.item_spacing});
-		_save_changes_button.init(ui, left_content, {.text = "Save Changes"});
-		tree.in(_save_changes_button.get_root()).flags |= ui::wf_disabled;
-		tree.in(_skeleton_reference.get_root()).flags |= ui::wf_disabled;
-		ui.get_input().set_listener(_save_changes_button.get_root(), {.on_click = on_save_changes_pressed, .user_data = this});
-
 		const editor_property_row_t in_place_row   = editor_misc_widgets_t::make_property_row_with_label(ui, left_content, "In Place");
 		u8*							in_place_field = reinterpret_cast<u8*>(&_in_place);
 
@@ -226,7 +219,44 @@ namespace sfg
 									.callbacks = {.edited = on_in_place_edited, .user_data = this},
 								});
 
+		ui::layout_in_t& in_place_in = tree.in(_in_place_checkbox.get_root());
+
+		in_place_in.pos_mode_y	= ui::pos_mode_e::relative_in_parent;
+		in_place_in.pos_value.y = 0.5f;
+		in_place_in.anchor_y	= ui::anchor_e::center;
+
+		editor_misc_widgets_t::add_spacer(ui, left_content, {0.0f, theme.item_spacing});
+		_save_changes_button.init(ui, left_content, {.text = "Save Changes"});
+		tree.in(_save_changes_button.get_root()).flags |= ui::wf_disabled;
+		tree.in(_skeleton_reference.get_root()).flags |= ui::wf_disabled;
+		ui.get_input().set_listener(_save_changes_button.get_root(), {.on_click = on_save_changes_pressed, .user_data = this});
+
 		editor_misc_widgets_t::make_section_label(ui, left_content, "Layers");
+
+		const ui::widget_id_t layer_actions = ui.allocate_widget();
+
+		tree.attach(left_content, layer_actions);
+		ui.set_widget_debug_name(layer_actions, "animation_library_layer_actions");
+
+		ui::layout_in_t& actions_in = tree.in(layer_actions);
+
+		actions_in.flow			 = ui::flow_e::row;
+		actions_in.size_mode_x	 = ui::axis_mode_e::parent_relative;
+		actions_in.size_mode_y	 = ui::axis_mode_e::fixed;
+		actions_in.size_value	 = {1.0f, theme.item_height};
+		actions_in.child_spacing = theme.item_spacing;
+		_add_layer_button.init(ui, layer_actions, {.text = "Add Layer"});
+		_clear_layers_button.init(ui, layer_actions, {.text = "Clear All"});
+
+		for (const ui::widget_id_t button : {_add_layer_button.get_root(), _clear_layers_button.get_root()})
+		{
+			tree.in(button).size_mode_x = ui::axis_mode_e::fill;
+			tree.in(button).flags |= ui::wf_disabled;
+		}
+
+		ui.get_input().set_listener(_add_layer_button.get_root(), {.on_click = on_layer_add_pressed, .user_data = this});
+		ui.get_input().set_listener(_clear_layers_button.get_root(), {.on_click = on_layers_clear_pressed, .user_data = this});
+		editor_misc_widgets_t::add_spacer(ui, left_content, {0.0f, theme.item_spacing});
 
 		_layer_list = ui.allocate_widget();
 		tree.attach(left_content, _layer_list);
@@ -240,11 +270,6 @@ namespace sfg
 		layers_in.size_value	= {1.0f, 1.0f};
 		layers_in.child_spacing = theme.item_spacing;
 		layers_in.flags |= ui::wf_disabled;
-
-		editor_misc_widgets_t::add_spacer(ui, left_content, {0.0f, theme.item_spacing});
-		_add_layer_button.init(ui, left_content, {.text = "Add Layer"});
-		tree.in(_add_layer_button.get_root()).flags |= ui::wf_disabled;
-		ui.get_input().set_listener(_add_layer_button.get_root(), {.on_click = on_layer_add_pressed, .user_data = this});
 
 		_right_content = ui.allocate_widget();
 		tree.attach(_right_pane, _right_content);
@@ -324,6 +349,7 @@ namespace sfg
 		_layer_controls = nullptr;
 
 		_add_layer_button.uninit();
+		_clear_layers_button.uninit();
 		_left_scrollbar.uninit();
 
 		editor_command_system_t::get().clear_user_data(this);
@@ -627,6 +653,11 @@ namespace sfg
 			tree.in(_add_layer_button.get_root()).flags &= ~ui::wf_disabled;
 		else
 			tree.in(_add_layer_button.get_root()).flags |= ui::wf_disabled;
+
+		if (_has_skeleton && _library.layer_count > 1)
+			tree.in(_clear_layers_button.get_root()).flags &= ~ui::wf_disabled;
+		else
+			tree.in(_clear_layers_button.get_root()).flags |= ui::wf_disabled;
 	}
 
 	void editor_panel_animation_library_t::refresh_skeleton_masks()
@@ -687,7 +718,6 @@ namespace sfg
 			controls.name.uninit();
 			controls.weight.uninit();
 			controls.mask.uninit();
-			controls.remove.uninit();
 			controls.fold.uninit();
 		}
 
@@ -728,6 +758,7 @@ namespace sfg
 								   .on_fold_changed	 = on_layer_fold_changed,
 								   .user_data		 = &controls,
 								   .folded			 = !_layer_expanded[i],
+								   .remove_button	 = true,
 								   .background_frame = true,
 							   });
 			_ui->set_widget_debug_name(controls.fold.get_root(), "animation_library_layer");
@@ -775,18 +806,15 @@ namespace sfg
 								   .pos_y	   = editor_dropdown_pos_y_e::center,
 							   });
 
-			const editor_property_row_t remove_row = editor_misc_widgets_t::make_property_row(*_ui, body);
-
-			controls.remove.init(*_ui, remove_row.right, {.text = "Remove"});
-			_ui->get_input().set_listener(controls.remove.get_root(), {.on_click = on_layer_remove_pressed, .user_data = &controls});
+			_ui->get_input().set_listener(controls.fold.get_remove_button(), {.on_click = on_layer_remove_pressed, .user_data = &controls});
 
 			if (_library.layer_count == 1)
-				tree.in(controls.remove.get_root()).flags |= ui::wf_disabled;
+				tree.in(controls.fold.get_remove_button()).flags |= ui::wf_disabled;
 
 			for (const ui::widget_id_t label : {name_row.label, weight_row.label, mask_row.label})
 				tree.in(label).flags &= ~ui::wf_input;
 
-			for (const ui::widget_id_t widget : {controls.name.get_root(), controls.weight.get_root(), controls.remove.get_root()})
+			for (const ui::widget_id_t widget : {controls.name.get_root(), controls.weight.get_root()})
 			{
 				ui::layout_in_t& control_in = tree.in(widget);
 
@@ -891,6 +919,42 @@ namespace sfg
 		panel.refresh_skeleton_overlay();
 	}
 
+	void editor_panel_animation_library_t::on_layers_clear_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	{
+		if (button != ui::mouse_button_e::left)
+			return;
+
+		editor_panel_animation_library_t& panel = *static_cast<editor_panel_animation_library_t*>(user_data);
+
+		router.set_focus(panel._root, false);
+		panel.finish_edit();
+
+		if (!editor_command_animation_library_edit_t::begin(panel))
+			return;
+
+		for (u32 index = 1; index < panel._library.layer_count; ++index)
+		{
+			panel._library.layers[index] = {};
+			panel._layer_expanded[index] = false;
+		}
+
+		panel._library.layer_count = 1;
+
+		if (panel._selected_layer != 0)
+		{
+			panel._selected_layer = 0;
+			panel._selected_state = UINT32_MAX;
+			panel._selected_clip  = UINT32_MAX;
+		}
+
+		panel._preview_layer = UINT32_MAX;
+		panel._preview_state = UINT32_MAX;
+		editor_command_animation_library_edit_t::submit(panel, "Clear Animation Layers");
+		panel._refresh_layers = true;
+		panel._refresh_states = true;
+		panel.refresh_skeleton_overlay();
+	}
+
 	void editor_panel_animation_library_t::on_layer_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
 	{
 		if (button != ui::mouse_button_e::left)
@@ -903,6 +967,7 @@ namespace sfg
 		if (panel._library.layer_count == 1)
 			return;
 
+		router.set_focus(panel._root, false);
 		panel.finish_edit();
 
 		if (!editor_command_animation_library_edit_t::begin(panel))

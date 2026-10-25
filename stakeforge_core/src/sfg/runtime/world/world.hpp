@@ -71,6 +71,7 @@ namespace sfg
 		void reset_world_state();
 		void tick_physics(f32 dt);
 		void tick_animation_logic(f32 dt);
+		void on_animation_callback(entity_id_t entity, sid_t anim_name_sid);
 		void tick_logic(f32 dt);
 		void tick_logic_post(f32 dt);
 		void tick_logic_post_physics(f32 dt);

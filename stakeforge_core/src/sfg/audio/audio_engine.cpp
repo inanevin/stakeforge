@@ -21,7 +21,6 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #include "audio_engine.hpp"
-
 #include <sfg/io/assert.hpp>
 #include <sfg/io/log.hpp>
 #include <sfg/memory/gen_pool.hpp>

@@ -33,6 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "ui/editor_text_rasterization.hpp"
 #include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_theme.hpp"
+#include "ui/widgets/editor_widget_fold.hpp"
 #include "ui/widgets/editor_widgets_dividers.hpp"
 #include "ui/widgets/editor_widgets_icons.hpp"
 #include "ui/widgets/editor_widgets_misc.hpp"
@@ -74,10 +75,11 @@ namespace sfg
 
 	struct editor_panel_skeleton_viewer_t::mask_item_t
 	{
-		editor_input_field_t   name_field	 = {};
-		editor_widget_button_t edit_button	 = {};
-		editor_widget_button_t remove_button = {};
-		ui::widget_id_t		   root			 = NULL_WIDGET;
+		editor_input_field_t			name_field	 = {};
+		editor_widget_button_t			apply_button = {};
+		editor_widget_fold_t			fold		 = {};
+		editor_panel_skeleton_viewer_t* owner		 = nullptr;
+		u32								index		 = 0;
 	};
 
 	editor_panel_skeleton_viewer_t::editor_panel_skeleton_viewer_t()
@@ -278,7 +280,7 @@ namespace sfg
 		mask_controls_in.flow		   = ui::flow_e::row;
 		mask_controls_in.child_spacing = theme.item_spacing;
 
-		_make_mask_button.init(ui, mask_controls, {.text = "Make Mask"});
+		_make_mask_button.init(ui, mask_controls, {.text = "Add New"});
 		tree.in(_make_mask_button.get_root()).size_mode_x = ui::axis_mode_e::fill;
 		tree.in(_make_mask_button.get_root()).flags |= ui::wf_disabled;
 		ui.get_input().set_listener(_make_mask_button.get_root(), {.on_click = on_make_mask_pressed, .user_data = this});
@@ -337,7 +339,7 @@ namespace sfg
 		editor_command_system_t::get().clear_user_data(this);
 		_slot_fields_edit_active = false;
 		_mask_name_edit_active	 = false;
-		_editing_mask			 = UINT32_MAX;
+		_selected_mask			 = UINT32_MAX;
 
 		_slot_preview_mesh_reference.uninit();
 		_slot_position_field.uninit();
@@ -359,6 +361,7 @@ namespace sfg
 		_make_mask_button.uninit();
 		_clear_masks_button.uninit();
 		clear_mask_items();
+		_mask_expanded.resize(0);
 		_selected_joints.resize(0);
 		_world_view.uninit();
 		_split_border.uninit();
@@ -390,6 +393,7 @@ namespace sfg
 			editor_action_menu_controller_t::find(*_ui)->close_action_menu();
 
 		clear_mask_items();
+		_mask_expanded.resize(0);
 		_selected_joints.resize(0);
 
 		_selected_joint_index = SKELETON_JOINT_NO_PARENT;
@@ -400,7 +404,7 @@ namespace sfg
 		editor_command_system_t::get().clear_user_data(this);
 		_slot_fields_edit_active = false;
 		_mask_name_edit_active	 = false;
-		_editing_mask			 = UINT32_MAX;
+		_selected_mask			 = UINT32_MAX;
 
 		_skeleton_guid = skeleton_guid;
 
@@ -467,7 +471,7 @@ namespace sfg
 		++_slot_generation;
 
 		clear_mask_items();
-		_editing_mask				 = UINT32_MAX;
+		_selected_mask				 = UINT32_MAX;
 		_mask_name_edit_active		 = false;
 		_skeleton.slots				 = std::move(slots);
 		_skeleton.masks				 = std::move(masks);
@@ -606,7 +610,11 @@ namespace sfg
 
 		selected.resize(skeleton->joint_count, 0);
 
-		for (const u32 joint_index : _selected_joints)
+		const vector_t<u32>& highlighted_joints = _selected_mask == UINT32_MAX ? _selected_joints : _skeleton.masks[_selected_mask].joint_indices;
+		const vec4f_t&		 accent				= editor_theme_t::get().color_accent1;
+		const color_t		 selected_color{accent.x, accent.y, accent.z, accent.w};
+
+		for (const u32 joint_index : highlighted_joints)
 			selected[joint_index] = 1;
 
 		for (u32 joint_index = 0; joint_index < skeleton->joint_count; ++joint_index)
@@ -619,7 +627,7 @@ namespace sfg
 			const vec3f_t position		  = mesh_transform * (bones.data[joint_index] * joint.bind_global.get_translation());
 			const vec3f_t parent_position = mesh_transform * (bones.data[joint.parent_index] * joints[joint.parent_index].bind_global.get_translation());
 
-			debug_draw.draw_line(parent_position, position, selected[joint_index] != 0 ? color_t::red : color_t::white, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(parent_position, position, selected[joint_index] != 0 ? selected_color : color_t::white, 2.0f, debug_draw_depth_e::always_visible);
 		}
 
 		if (_selected_joint_index != SKELETON_JOINT_NO_PARENT)
@@ -716,7 +724,6 @@ namespace sfg
 
 		editor_world_controller_t::get().get_editor_world(viewer._world)->cancel_gizmo_action();
 		on_slot_fields_edit_submitted(&viewer);
-		viewer.finish_mask_edit();
 
 		if (!editor_command_skeleton_edit_t::begin(viewer))
 			return;
@@ -839,7 +846,6 @@ namespace sfg
 		editor_world_controller_t::get().get_editor_world(viewer._world)->end_gizmo_action();
 		router.set_focus(id, false);
 		on_slot_fields_edit_submitted(&viewer);
-		viewer.finish_mask_edit();
 
 		nlohmann::json embedded_source = nlohmann::json::object();
 
@@ -1114,7 +1120,7 @@ namespace sfg
 	{
 		ui::layout_in_t& in = _ui->get_tree().in(_make_mask_button.get_root());
 
-		if (_selected_joints.empty())
+		if (_skeleton_guid == NULL_SID)
 			in.flags |= ui::wf_disabled;
 		else
 			in.flags &= ~ui::wf_disabled;
@@ -1135,61 +1141,67 @@ namespace sfg
 
 		for (u32 index = 0; index < _mask_items.size(); ++index)
 		{
-			_ui->get_paint().set_rect(_mask_items[index]->root,
+			_ui->get_paint().set_rect(_mask_items[index]->fold.get_root(),
 									  {
 										  .fill_color_a		 = theme.color_frame,
 										  .fill_color_b		 = theme.color_frame,
-										  .outline_color	 = index == _editing_mask ? theme.color_accent1 : theme.color_frame,
+										  .outline_color	 = index == _selected_mask ? theme.color_accent1 : theme.color_frame,
+										  .rounding			 = theme.item_rounding,
 										  .outline_thickness = theme.border_thickness,
+										  .rounding_segs	 = 4,
 									  });
 		}
 	}
 
-	void editor_panel_skeleton_viewer_t::finish_mask_edit()
+	void editor_panel_skeleton_viewer_t::apply_mask(u32 index)
 	{
-		if (_editing_mask == UINT32_MAX)
-			return;
-
-		const u32 index = _editing_mask;
-
 		if (!editor_command_skeleton_edit_t::begin(*this))
 			return;
 
 		_skeleton.masks[index].joint_indices = _selected_joints;
 		std::sort(_skeleton.masks[index].joint_indices.begin(), _skeleton.masks[index].joint_indices.end());
-		_editing_mask = UINT32_MAX;
-		editor_command_skeleton_edit_t::submit(*this, "Skeleton Edit Mask Joints", false);
+		_selected_mask = index;
+		editor_command_skeleton_edit_t::submit(*this, "Skeleton Apply Mask Joints", false);
 		refresh_mask_backgrounds();
 	}
 
-	void editor_panel_skeleton_viewer_t::on_mask_edit_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
+	void editor_panel_skeleton_viewer_t::on_mask_apply_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
 	{
 		if (button != ui::mouse_button_e::left)
 			return;
 
-		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
-		const auto						item   = std::find_if(viewer._mask_items.begin(), viewer._mask_items.end(), [id](const mask_item_t* value) { return value->edit_button.get_root() == id; });
-
-		SFG_ASSERT(item != viewer._mask_items.end());
-
-		const u32  index	   = static_cast<u32>(item - viewer._mask_items.begin());
-		const bool was_editing = viewer._editing_mask == index;
+		const mask_item_t&				item   = *static_cast<mask_item_t*>(user_data);
+		editor_panel_skeleton_viewer_t& viewer = *item.owner;
 
 		router.set_focus(id, false);
-		viewer.finish_mask_edit();
+		on_slot_fields_edit_submitted(&viewer);
+		viewer.apply_mask(item.index);
+	}
 
-		if (was_editing)
+	void editor_panel_skeleton_viewer_t::on_mask_pressed(void* user_data)
+	{
+		const mask_item_t&				item   = *static_cast<mask_item_t*>(user_data);
+		editor_panel_skeleton_viewer_t& viewer = *item.owner;
+
+		if (viewer._selected_mask == item.index)
 			return;
 
 		editor_world_controller_t::get().get_editor_world(viewer._world)->cancel_gizmo_action();
 		on_slot_fields_edit_submitted(&viewer);
-		viewer._editing_mask		 = index;
-		viewer._selected_joints		 = viewer._skeleton.masks[index].joint_indices;
+		viewer._selected_mask		 = item.index;
+		viewer._selected_joints		 = viewer._skeleton.masks[item.index].joint_indices;
 		viewer._selected_joint_index = viewer._selected_joints.empty() ? SKELETON_JOINT_NO_PARENT : viewer._selected_joints.back();
 		viewer._selected_slot_index	 = UINT32_MAX;
 		++viewer._slot_generation;
 		viewer.refresh_joint_selection();
 		viewer.refresh_mask_backgrounds();
+	}
+
+	void editor_panel_skeleton_viewer_t::on_mask_fold_changed(bool folded, void* user_data)
+	{
+		const mask_item_t& item = *static_cast<mask_item_t*>(user_data);
+
+		item.owner->_mask_expanded[item.index] = !folded;
 	}
 
 	void editor_panel_skeleton_viewer_t::on_mask_remove_pressed(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data)
@@ -1198,14 +1210,13 @@ namespace sfg
 			return;
 
 		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
-		const auto						item   = std::find_if(viewer._mask_items.begin(), viewer._mask_items.end(), [id](const mask_item_t* value) { return value->remove_button.get_root() == id; });
+		const auto						item   = std::find_if(viewer._mask_items.begin(), viewer._mask_items.end(), [id](const mask_item_t* value) { return value->fold.get_remove_button() == id; });
 
 		SFG_ASSERT(item != viewer._mask_items.end());
 
 		const u32 index = static_cast<u32>(item - viewer._mask_items.begin());
 
 		router.set_focus(viewer._right_content, false);
-		viewer.finish_mask_edit();
 		on_slot_fields_edit_submitted(&viewer);
 
 		if (!editor_command_skeleton_edit_t::begin(viewer))
@@ -1213,6 +1224,12 @@ namespace sfg
 
 		viewer.clear_mask_items();
 		viewer._skeleton.masks.erase(viewer._skeleton.masks.begin() + index);
+		viewer._mask_expanded.erase(viewer._mask_expanded.begin() + index);
+
+		if (viewer._selected_mask == index)
+			viewer._selected_mask = UINT32_MAX;
+		else if (viewer._selected_mask != UINT32_MAX && viewer._selected_mask > index)
+			--viewer._selected_mask;
 
 		editor_command_skeleton_edit_t::submit(viewer, "Skeleton Remove Mask", false);
 		viewer.refresh_mask_items();
@@ -1226,7 +1243,6 @@ namespace sfg
 		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
 
 		router.set_focus(viewer._right_content, false);
-		viewer.finish_mask_edit();
 		on_slot_fields_edit_submitted(&viewer);
 
 		if (!editor_command_skeleton_edit_t::begin(viewer))
@@ -1234,7 +1250,8 @@ namespace sfg
 
 		viewer.clear_mask_items();
 		viewer._skeleton.masks.resize(0);
-		viewer._editing_mask = UINT32_MAX;
+		viewer._mask_expanded.resize(0);
+		viewer._selected_mask = UINT32_MAX;
 		editor_command_skeleton_edit_t::submit(viewer, "Skeleton Clear Masks", false);
 		viewer.refresh_mask_items();
 	}
@@ -1255,6 +1272,15 @@ namespace sfg
 
 		viewer._mask_name_edit_active = false;
 		editor_command_skeleton_edit_t::submit(viewer, "Skeleton Rename Mask", false);
+
+		for (mask_item_t* item : viewer._mask_items)
+		{
+			const skeleton_mask_def_t& mask										   = viewer._skeleton.masks[item->index];
+			char					   label[sizeof(mask.name) + sizeof("Mask: ")] = {};
+
+			std::snprintf(label, sizeof(label), "Mask: %s", mask.name);
+			item->fold.set_text(label);
+		}
 	}
 
 	void editor_panel_skeleton_viewer_t::clear_mask_items()
@@ -1262,9 +1288,8 @@ namespace sfg
 		for (mask_item_t* item : _mask_items)
 		{
 			item->name_field.uninit();
-			item->edit_button.uninit();
-			item->remove_button.uninit();
-			_ui->deallocate_widget(item->root);
+			item->apply_button.uninit();
+			item->fold.uninit();
 
 			delete item;
 		}
@@ -1275,33 +1300,45 @@ namespace sfg
 	void editor_panel_skeleton_viewer_t::refresh_mask_items()
 	{
 		clear_mask_items();
+		_mask_expanded.resize(_skeleton.masks.size(), false);
+		_mask_items.reserve(_skeleton.masks.size());
 
 		ui::layout_tree_t&	  tree	= _ui->get_tree();
 		const editor_theme_t& theme = editor_theme_t::get();
 
-		_mask_items.reserve(_skeleton.masks.size());
-
-		for (skeleton_mask_def_t& mask : _skeleton.masks)
+		for (u32 index = 0; index < _skeleton.masks.size(); ++index)
 		{
-			mask_item_t* item = new mask_item_t{};
+			skeleton_mask_def_t& mask										 = _skeleton.masks[index];
+			mask_item_t*		 item										 = new mask_item_t{};
+			char				 label[sizeof(mask.name) + sizeof("Mask: ")] = {};
 
-			item->root = _ui->allocate_widget();
-			_ui->set_widget_debug_name(item->root, "skeleton_mask");
-			tree.attach(_mask_list, item->root);
+			item->owner = this;
+			item->index = index;
+			std::snprintf(label, sizeof(label), "Mask: %s", mask.name);
+			item->fold.init(*_ui,
+							_mask_list,
+							{
+								.label			  = label,
+								.on_pressed		  = on_mask_pressed,
+								.on_fold_changed  = on_mask_fold_changed,
+								.user_data		  = item,
+								.folded			  = !_mask_expanded[index],
+								.remove_button	  = true,
+								.background_frame = true,
+							});
+			_ui->set_widget_debug_name(item->fold.get_root(), "skeleton_mask");
+			_ui->get_input().set_listener(item->fold.get_remove_button(), {.on_click = on_mask_remove_pressed, .user_data = this});
 
-			ui::layout_in_t& in = tree.in(item->root);
+			const ui::widget_id_t body	  = item->fold.get_body();
+			ui::layout_in_t&	  body_in = tree.in(body);
 
-			in.size_mode_x = ui::axis_mode_e::parent_relative;
-			in.size_mode_y = ui::axis_mode_e::fixed;
-			in.size_value  = {1.0f, theme.item_area_height * 2.0f};
-			in.flow		   = ui::flow_e::column;
-			_ui->get_paint().set_rect(item->root, {.fill_color_a = theme.color_frame, .fill_color_b = theme.color_frame});
+			body_in.child_spacing = 0.0f;
+			body_in.child_margins = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
 
-			const editor_property_row_t name_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, item->root, "Name");
+			const editor_property_row_t name_row = editor_misc_widgets_t::make_property_row_with_label(*_ui, body, "Name");
 			u8*							name	 = reinterpret_cast<u8*>(mask.name);
 
-			tree.draw_order(name_row.label) = tree.draw_order_const(item->root) + 1;
-
+			tree.in(name_row.label).flags &= ~ui::wf_input;
 			item->name_field.init(*_ui,
 								  name_row.right,
 								  {
@@ -1309,17 +1346,12 @@ namespace sfg
 									  .callbacks = {.edit_begin = on_mask_name_edit_begin, .edit_submitted = on_mask_name_edit_submitted, .user_data = this},
 								  });
 
-			const editor_property_row_t edit_row = editor_misc_widgets_t::make_property_row(*_ui, item->root);
+			const editor_property_row_t apply_row = editor_misc_widgets_t::make_property_row(*_ui, body);
 
-			item->edit_button.init(*_ui, edit_row.right, {.text = "Edit"});
-			_ui->get_input().set_listener(item->edit_button.get_root(), {.on_click = on_mask_edit_pressed, .user_data = this});
+			item->apply_button.init(*_ui, apply_row.right, {.text = "Apply"});
+			_ui->get_input().set_listener(item->apply_button.get_root(), {.on_click = on_mask_apply_pressed, .user_data = item});
 
-			item->remove_button.init(*_ui, edit_row.right, {.text = "Remove"});
-			_ui->get_input().set_listener(item->remove_button.get_root(), {.on_click = on_mask_remove_pressed, .user_data = this});
-
-			const ui::widget_id_t controls[] = {item->name_field.get_root(), item->edit_button.get_root(), item->remove_button.get_root()};
-
-			for (const ui::widget_id_t control : controls)
+			for (const ui::widget_id_t control : {item->name_field.get_root(), item->apply_button.get_root()})
 			{
 				ui::layout_in_t& control_in = tree.in(control);
 
@@ -1347,10 +1379,7 @@ namespace sfg
 
 		editor_panel_skeleton_viewer_t& viewer = *static_cast<editor_panel_skeleton_viewer_t*>(user_data);
 
-		SFG_ASSERT(!viewer._selected_joints.empty());
-
 		router.set_focus(id, false);
-		viewer.finish_mask_edit();
 		on_slot_fields_edit_submitted(&viewer);
 
 		if (!editor_command_skeleton_edit_t::begin(viewer))
@@ -1381,8 +1410,14 @@ namespace sfg
 
 		std::sort(mask.joint_indices.begin(), mask.joint_indices.end());
 		viewer._skeleton.masks.push_back(std::move(mask));
-		editor_command_skeleton_edit_t::submit(viewer, "Skeleton Make Mask", false);
+		viewer._mask_expanded.push_back(true);
+		viewer._selected_mask = UINT32_MAX;
+
+		if (!editor_command_skeleton_edit_t::submit(viewer, "Skeleton Add Mask", false))
+			return;
+
 		viewer.refresh_mask_items();
+		on_mask_pressed(viewer._mask_items.back());
 	}
 
 	void editor_panel_skeleton_viewer_t::select_row(u32 row_index, bool additive)
@@ -1394,9 +1429,6 @@ namespace sfg
 		const joint_row_t& row = _joint_rows[row_index];
 
 		_ui->get_input().set_focus(row.root, false);
-
-		if (row.slot_index != UINT32_MAX)
-			finish_mask_edit();
 
 		if (!additive || row.slot_index != UINT32_MAX)
 			_selected_joints.resize(0);
@@ -1423,7 +1455,6 @@ namespace sfg
 		SFG_ASSERT(_selected_joint_index != SKELETON_JOINT_NO_PARENT);
 
 		on_slot_fields_edit_submitted(this);
-		finish_mask_edit();
 
 		if (!editor_command_skeleton_edit_t::begin(*this))
 			return;
