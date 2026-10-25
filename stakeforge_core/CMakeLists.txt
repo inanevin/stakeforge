@@ -80,118 +80,118 @@ endif()
 # ------------- SOURCES -------------
 
 file(GLOB SOURCES
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/audio/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/common/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/platform/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/math/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/io/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/data/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/memory/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/reflection/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/serialization/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/input/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/project/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/util/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/common/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/world/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/world/render_pass/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/event_stream/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/proxy/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/resources/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/animation/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/engine/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/render/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/resources/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/scripting/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/scripting/api/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/world/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/physics/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/project/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gui/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gui/widgets/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/vg/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/layout/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/input/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/paint/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/serialize/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/app/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/sfg_api.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/util/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/miniaudio/*.c
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/audio/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/common/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/platform/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/math/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/io/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/data/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/memory/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/reflection/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/serialization/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/input/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/project/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/util/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/backend/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/common/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/world/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/world/render_pass/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/event_stream/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/proxy/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/resources/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/animation/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/engine/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/render/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/resources/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/scripting/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/scripting/api/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/world/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/physics/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/project/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gui/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gui/widgets/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/ui/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/ui/vg/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/ui/layout/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/ui/input/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/ui/paint/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/ui/serialize/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/app/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/sfg_api.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/vendor/util/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/vendor/miniaudio/*.c
 )
 
 file(GLOB HEADERS
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/audio/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/common/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/platform/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/math/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/io/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/data/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/memory/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/input/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/util/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/common/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/world/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/world/render_pass/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/event_stream/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/proxy/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gui/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gui/widgets/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/vg/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/layout/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/input/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/paint/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/ui/serialize/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/app/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/project/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/resources/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/animation/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/engine/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/render/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/resources/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/scripting/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/scripting/api/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/world/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/reflection/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/serialization/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/physics/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/runtime/project/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/stb/*.h
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/moodycamel/*.h
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/nhlohmann/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/util/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/syoyo/*.h
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/miniaudio/*.h
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/delfrrr/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/um/*.h
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/vendor/um/*.inl
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/sfg_api.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/audio/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/common/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/platform/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/math/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/io/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/data/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/memory/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/input/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/util/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/backend/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/common/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/world/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/world/render_pass/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/event_stream/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/proxy/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gui/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gui/widgets/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/ui/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/ui/vg/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/ui/layout/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/ui/input/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/ui/paint/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/ui/serialize/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/app/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/project/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/resources/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/animation/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/engine/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/render/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/resources/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/scripting/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/scripting/api/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/world/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/reflection/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/serialization/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/physics/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/project/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/vendor/stb/*.h
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/vendor/moodycamel/*.h
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/vendor/nhlohmann/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/vendor/util/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/vendor/syoyo/*.h
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/vendor/miniaudio/*.h
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/vendor/delfrrr/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/vendor/um/*.h
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/vendor/um/*.inl
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/sfg_api.hpp
 )
 
 if(WIN32)
     file(GLOB PLATFORM_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/platform/win32/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/sdk/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/sdk/*.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/sdk/Residency/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/sdk/Residency/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/platform/win32/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/backend/dx12/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/backend/dx12/sdk/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/backend/dx12/sdk/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/backend/dx12/sdk/Residency/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/backend/dx12/sdk/Residency/*.c
     )
 
     list(FILTER PLATFORM_SOURCES EXCLUDE REGEX ".*/win32_window\\.cpp$")
 
     file(GLOB PLATFORM_HEADERS
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/*.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/sdk/*.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/sdk/*.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/sdk/Residency/*.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/gfx/backend/dx12/sdk/Residency/*.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/backend/dx12/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/backend/dx12/sdk/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/backend/dx12/sdk/*.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/backend/dx12/sdk/Residency/*.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gfx/backend/dx12/sdk/Residency/*.h
     )
 endif()
 
@@ -212,7 +212,10 @@ target_sources(${SFG_CORE_TARGET} PRIVATE
     ${PLATFORM_SOURCES}
 )
 
-target_include_directories(${SFG_CORE_TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(${SFG_CORE_TARGET} PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg
+)
 target_include_directories(${SFG_CORE_TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/phmap/include)
 
 if(WIN32)
@@ -255,7 +258,7 @@ target_link_libraries(${SFG_CORE_TARGET} PUBLIC Tracy::TracyClient)
 target_link_libraries(${SFG_CORE_TARGET} PRIVATE ktx)
 
 target_precompile_headers(${SFG_CORE_TARGET} PRIVATE
-    "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/common/pch.hpp>"
+    "$<$<COMPILE_LANGUAGE:CXX>:${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/common/pch.hpp>"
 )
 
 set_target_properties(${SFG_CORE_TARGET} PROPERTIES FOLDER "stakeforge")
@@ -263,6 +266,6 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common_functions.cmake)
 sfg_group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)
 sfg_group_generated(${SFG_CORE_TARGET})
 
-add_library(stakeforge_memory_overrides OBJECT src/sfg/memory/memory_operators.cpp)
+add_library(stakeforge_memory_overrides OBJECT src/sfg/core/memory/memory_operators.cpp)
 target_link_libraries(stakeforge_memory_overrides PUBLIC stakeforge_core)
 set_target_properties(stakeforge_memory_overrides PROPERTIES FOLDER "stakeforge")
