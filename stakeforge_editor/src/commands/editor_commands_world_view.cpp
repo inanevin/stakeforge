@@ -52,7 +52,7 @@ namespace sfg
 		if (entities.empty())
 			return false;
 
-		world.update_world_transforms(false);
+		world.update_world_transforms();
 
 		const entity_id_t camera		  = context.get_editor_camera_entity();
 		const vec3f_t	  camera_position = world.get_entity_pos_last_abs(camera);
@@ -116,11 +116,11 @@ namespace sfg
 				world.mark_entity_teleported(entities[i]);
 			}
 
-			world.update_world_transforms(false);
+			world.update_world_transforms();
 			return false;
 		}
 
-		world.update_world_transforms(false);
+		world.update_world_transforms();
 		return true;
 	}
 }

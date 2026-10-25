@@ -113,7 +113,7 @@ namespace sfg
 		world_t& world				   = *thumbnail_world.world;
 		thumbnail_world.display_entity = world_cooker_t::spawn_prefab(world, asset_guid, {});
 
-		world.update_world_transforms(false);
+		world.update_world_transforms();
 
 		const ecs_component_table_t& hierarchy_table			 = world.get_component_table(type_id_t<component_hierarchy_t>::value);
 		const ecs_component_table_t& mesh_renderer_table		 = world.get_component_table(type_id_t<component_mesh_renderer_t>::value);

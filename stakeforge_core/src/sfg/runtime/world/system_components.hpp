@@ -65,19 +65,26 @@ namespace sfg
 		entity_id_t		 target_entity = NULL_ENTITY_ID;
 	};
 
+	enum system_transform_flags_e : u16
+	{
+		system_transform_flag_dirty				   = 1 << 0,
+		system_transform_flag_snap_interpolation   = 1 << 1,
+		system_transform_flag_physics_pose_pending = 1 << 2,
+	};
+
 	struct component_system_transform_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_transform";
 
-		mat4x3_t prev_abs_mat		= mat4x3_t::identity;
-		mat4x3_t abs_mat			= mat4x3_t::identity;
-		quat_t	 prev_abs_rot		= quat_t::identity;
-		quat_t	 abs_rot			= quat_t::identity;
-		vec3f_t	 prev_abs_pos		= vec3f_t::zero;
-		vec3f_t	 prev_abs_scale		= vec3f_t::one;
-		vec3f_t	 abs_pos			= vec3f_t::zero;
-		vec3f_t	 abs_scale			= vec3f_t::one;
-		bool	 snap_interpolation = false;
+		mat4x3_t prev_abs_mat	= mat4x3_t::identity;
+		mat4x3_t abs_mat		= mat4x3_t::identity;
+		quat_t	 prev_abs_rot	= quat_t::identity;
+		quat_t	 abs_rot		= quat_t::identity;
+		vec3f_t	 prev_abs_pos	= vec3f_t::zero;
+		vec3f_t	 prev_abs_scale = vec3f_t::one;
+		vec3f_t	 abs_pos		= vec3f_t::zero;
+		vec3f_t	 abs_scale		= vec3f_t::one;
+		u16		 flags			= system_transform_flag_dirty;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_transform_t);

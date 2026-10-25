@@ -135,7 +135,7 @@ namespace sfg
 		void						   invoke_tick_callback(f32 delta_time);
 		void						   draw_debug();
 		void						   update_play_mode(editor_play_mode_e mode);
-		void						   update_world_transforms(bool advance_interpolation);
+		void						   update_world_transforms();
 		void						   produce_snapshot();
 		const world_render_snapshot_t& acquire_render_snapshot();
 		void						   render(const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);

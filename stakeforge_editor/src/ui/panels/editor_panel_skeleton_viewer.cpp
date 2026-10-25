@@ -1006,7 +1006,7 @@ namespace sfg
 		}
 
 		if (updated)
-			world.update_world_transforms(false);
+			world.update_world_transforms();
 	}
 
 	void editor_panel_skeleton_viewer_t::on_slot_preview_mesh_edited(void* user_data)

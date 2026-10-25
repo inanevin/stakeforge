@@ -370,7 +370,7 @@ namespace sfg
 			const bool					main_world_paused = handle == _main_world && (play_mode == editor_play_mode_e::play_paused || play_mode == editor_play_mode_e::play_physics_paused);
 
 			if (steps == 0 && !main_world_paused)
-				editor_world->update_world_transforms(false);
+				editor_world->update_world_transforms();
 
 			editor_world->invoke_tick_callback(frame_delta_seconds);
 
@@ -479,9 +479,9 @@ namespace sfg
 		if (!is_main_world)
 		{
 			editor_world.tick_camera(dt_seconds);
-			world.update_world_transforms();
+			world.update_world_transforms_for_tick();
 			world.tick_physics(dt_seconds);
-			world.update_world_transforms(false);
+			world.update_world_transforms_from_physics();
 
 			world.tick_animation_logic(dt_seconds);
 			world.tick_post(dt_seconds);
@@ -492,7 +492,7 @@ namespace sfg
 		{
 		case editor_play_mode_e::none:
 			editor_world.tick_camera(dt_seconds);
-			world.update_world_transforms();
+			world.update_world_transforms_for_tick();
 
 			world.tick_animation_logic(dt_seconds);
 
@@ -500,21 +500,22 @@ namespace sfg
 		case editor_play_mode_e::play:
 			world.tick_logic(dt_seconds);
 			world.tick_logic_post(dt_seconds);
-			world.update_world_transforms();
+			world.update_world_transforms_for_tick();
 			world.tick_physics(dt_seconds);
+			world.update_world_transforms_from_physics();
 			world.tick_logic_post_physics(dt_seconds);
-			world.update_world_transforms(false);
+			world.update_world_transforms();
 
 			world.tick_animation_logic(dt_seconds);
 			world.tick_logic_post_animation(dt_seconds);
-			world.update_world_transforms(false);
+			world.update_world_transforms();
 
 			break;
 		case editor_play_mode_e::play_physics:
 			editor_world.tick_camera(dt_seconds);
-			world.update_world_transforms();
+			world.update_world_transforms_for_tick();
 			world.tick_physics(dt_seconds);
-			world.update_world_transforms(false);
+			world.update_world_transforms_from_physics();
 
 			world.tick_animation_logic(dt_seconds);
 			break;
@@ -523,14 +524,15 @@ namespace sfg
 			{
 				world.tick_logic(dt_seconds);
 				world.tick_logic_post(dt_seconds);
-				world.update_world_transforms();
+				world.update_world_transforms_for_tick();
 				world.tick_physics(dt_seconds);
+				world.update_world_transforms_from_physics();
 				world.tick_logic_post_physics(dt_seconds);
-				world.update_world_transforms(false);
+				world.update_world_transforms();
 
 				world.tick_animation_logic(dt_seconds);
 				world.tick_logic_post_animation(dt_seconds);
-				world.update_world_transforms(false);
+				world.update_world_transforms();
 			}
 
 			break;
@@ -538,9 +540,9 @@ namespace sfg
 			if (force_simulation)
 			{
 				editor_world.tick_camera(dt_seconds);
-				world.update_world_transforms();
+				world.update_world_transforms_for_tick();
 				world.tick_physics(dt_seconds);
-				world.update_world_transforms(false);
+				world.update_world_transforms_from_physics();
 
 				world.tick_animation_logic(dt_seconds);
 			}

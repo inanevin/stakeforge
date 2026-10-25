@@ -313,7 +313,7 @@ namespace sfg
 
 		_input_controller.deactivate();
 
-		_world.update_world_transforms(false);
+		_world.update_world_transforms();
 		_camera->set_transform(_world, _world.get_entity_pos_last_abs(anchor), _world.get_entity_rot_last_abs(anchor));
 	}
 
@@ -600,7 +600,7 @@ namespace sfg
 		deserialize_camera(camera);
 
 		// reset
-		_world.update_world_transforms(false);
+		_world.update_world_transforms();
 		_play_snapshot.shrink(0);
 		_pending_pick_request		 = {};
 		_last_render_pick_request_id = 0;
@@ -696,9 +696,9 @@ namespace sfg
 			editor_world_util_t::draw_bounding_boxes(_world, _snapshot_slots[_latest_snapshot_slot], editor_camera_entity);
 	}
 
-	void editor_world_t::update_world_transforms(bool advance_interpolation)
+	void editor_world_t::update_world_transforms()
 	{
-		_world.update_world_transforms(advance_interpolation);
+		_world.update_world_transforms();
 	}
 
 	void editor_world_t::produce_snapshot()

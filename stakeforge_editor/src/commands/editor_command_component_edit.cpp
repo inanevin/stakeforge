@@ -32,6 +32,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/reflection/reflection_registry.hpp>
 #include <sfg/runtime/engine/engine_runtime.hpp>
 #include <sfg/runtime/world/ecs.hpp>
+#include <sfg/runtime/world/engine_components.hpp>
 #include <sfg/runtime/world/world.hpp>
 
 namespace sfg
@@ -149,6 +150,12 @@ namespace sfg
 				{
 					SFG_ERR("failed to apply component edit {0} for entity {1}", payload.component_type, entities[i]);
 					return false;
+				}
+
+				if (payload.component_type == type_id_t<component_transform_t>::value)
+				{
+					component_system_transform_t& system_transform = world.get_component_table<component_system_transform_t>().get_as<component_system_transform_t>(entities[i]);
+					system_transform.flags |= system_transform_flag_dirty;
 				}
 			}
 

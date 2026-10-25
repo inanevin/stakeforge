@@ -161,7 +161,9 @@ namespace sfg
 		void	 calculate_entity_parent_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale) const;
 		mat4x3_t calculate_entity_abs_matrix(entity_id_t id) const;
 		mat4x3_t calculate_entity_parent_abs_matrix(entity_id_t id) const;
-		void	 update_world_transforms(bool advance_interpolation = true);
+		void	 update_world_transforms();
+		void	 update_world_transforms_for_tick();
+		void	 update_world_transforms_from_physics();
 
 		// -----------------------------------------------------------------------------
 		// tables
@@ -312,7 +314,9 @@ namespace sfg
 		void flush_pressed_keys();
 		void update_key_state(u16 key, u16 scan_code, u8 action);
 		void refresh_main_camera();
-		void update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool advance_interpolation);
+		void update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool parent_dirty);
+		void update_entity_transform_for_tick(entity_id_t id, const component_hierarchy_t& own_hierarchy, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool parent_dirty);
+		void update_entity_transform_from_physics(entity_id_t id, const component_hierarchy_t& own_hierarchy, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool parent_dirty);
 		void set_entity_snap_interpolation_recursive(entity_id_t id);
 
 	private:

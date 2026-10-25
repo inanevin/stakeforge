@@ -187,13 +187,14 @@ namespace sfg
 
 				_main_world.tick_logic(dt_seconds);
 				_main_world.tick_logic_post(dt_seconds);
-				_main_world.update_world_transforms();
+				_main_world.update_world_transforms_for_tick();
 				_main_world.tick_physics(dt_seconds);
+				_main_world.update_world_transforms_from_physics();
 				_main_world.tick_logic_post_physics(dt_seconds);
-				_main_world.update_world_transforms(false);
+				_main_world.update_world_transforms();
 				_main_world.tick_animation_logic(dt_seconds);
 				_main_world.tick_logic_post_animation(dt_seconds);
-				_main_world.update_world_transforms(false);
+				_main_world.update_world_transforms();
 				_main_world.tick_post(dt_seconds);
 
 				++steps;
@@ -210,7 +211,7 @@ namespace sfg
 		}
 
 		if (steps == 0)
-			_main_world.update_world_transforms(false);
+			_main_world.update_world_transforms();
 
 		_main_world.draw_world_script_debug();
 		_main_world.get_debug_draw().debug_draw_missing_resources(_main_world);
@@ -279,7 +280,7 @@ namespace sfg
 
 		world_cooker_t::world_from_json(_main_world, world_json);
 		_current_world = world;
-		_main_world.update_world_transforms(false);
+		_main_world.update_world_transforms();
 		_main_world.begin_play();
 
 		_previous_time_us = time_t::get_cpu_microseconds();

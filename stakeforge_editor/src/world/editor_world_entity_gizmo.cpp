@@ -132,7 +132,7 @@ namespace sfg
 			world.mark_entity_teleported(_entities[i]);
 		}
 
-		world.update_world_transforms(false);
+		world.update_world_transforms();
 	}
 
 	void editor_world_entity_gizmo_t::commit()
@@ -205,7 +205,7 @@ namespace sfg
 			world.mark_entity_teleported(_entities[i]);
 		}
 
-		world.update_world_transforms(false);
+		world.update_world_transforms();
 		clear_action();
 	}
 
