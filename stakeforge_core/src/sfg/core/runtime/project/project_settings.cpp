@@ -1,0 +1,175 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+*/
+
+#include "core/runtime/project/project_settings.hpp"
+
+#include "core/math/math.hpp"
+#include "core/reflection/reflection_container_ops.hpp"
+#include "core/reflection/reflection_registry.hpp"
+#include "core/runtime/world/entity_tags.hpp"
+
+namespace sfg
+{
+	project_settings_reflection_t g_reflect_project_settings = {};
+
+	void project_settings_t::normalize(const project_settings_t* previous)
+	{
+		if (tags.size() > ENTITY_TAG_MAX)
+			tags.resize(ENTITY_TAG_MAX);
+
+		physics.normalize(previous != nullptr ? &previous->physics : nullptr);
+		world_tick_rate				 = math::clamp(world_tick_rate, 15u, 240u);
+		world_physics_rate			 = math::clamp(world_physics_rate, 30u, 240u);
+		max_sim_steps				 = math::clamp(max_sim_steps, 1u, 8u);
+		ui_scale					 = math::clamp(ui_scale, 0.1f, 8.0f);
+		shadows.min_resolution		 = math::clamp<u16>(shadows.min_resolution, 64, 8192);
+		shadows.max_resolution		 = math::clamp<u16>(shadows.max_resolution, shadows.min_resolution, 8192);
+		shadows.max_views			 = math::min<u16>(shadows.max_views, ENGINE_SHADOW_VIEW_MAX);
+		shadows.shadow_distance		 = math::max(shadows.shadow_distance, 1.0f);
+		shadows.shadow_fade_distance = math::clamp(shadows.shadow_fade_distance, 0.0f, shadows.shadow_distance);
+	}
+
+	project_settings_reflection_t::project_settings_reflection_t()
+	{
+		reflection_registry_t& registry = reflection_registry_t::get();
+
+		registry.register_type({
+			.name		  = "engine_quality_level_e",
+			.display_name = "Quality Level",
+			.fields		  = {{.name = "low", .display_name = "Low"}, {.name = "medium", .display_name = "Medium"}, {.name = "high", .display_name = "High"}, {.name = "ultra", .display_name = "Ultra"}},
+			.type_id	  = type_id_t<engine_quality_level_e>::value,
+			.size		  = sizeof(engine_quality_level_e),
+			.alignment	  = alignof(engine_quality_level_e),
+			.flags		  = reflected_type_flag_enum,
+		});
+
+		registry.register_type({
+			.name		  = "engine_shadow_settings_t",
+			.display_name = "Shadows",
+			.fields =
+				{
+					{.name				= "shadow_distance",
+					 .display_name		= "Shadow Distance",
+					 .tooltip			= "Maximum camera distance covered by realtime shadows.",
+					 .offset			= offsetof(engine_shadow_settings_t, shadow_distance),
+					 .size				= sizeof(f32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 1.0f,
+					 .max_clamp			= 2000.0f,
+					 .clamp_granularity = 1.0f,
+					 .type				= reflected_value_type_e::f32},
+					{.name				= "shadow_fade_distance",
+					 .display_name		= "Fade Distance",
+					 .tooltip			= "Distance over which realtime shadows fade out.",
+					 .offset			= offsetof(engine_shadow_settings_t, shadow_fade_distance),
+					 .size				= sizeof(f32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 0.0f,
+					 .max_clamp			= 500.0f,
+					 .clamp_granularity = 1.0f,
+					 .type				= reflected_value_type_e::f32},
+					{.name		   = "texel_budget",
+					 .display_name = "Texel Budget",
+					 .tooltip	   = "Maximum total texels allocated to visible realtime shadow views.",
+					 .offset	   = offsetof(engine_shadow_settings_t, texel_budget),
+					 .size		   = sizeof(u32),
+					 .type		   = reflected_value_type_e::u32},
+					{.name = "min_resolution", .display_name = "Minimum Resolution", .offset = offsetof(engine_shadow_settings_t, min_resolution), .size = sizeof(u16), .type = reflected_value_type_e::u16},
+					{.name = "max_resolution", .display_name = "Maximum Resolution", .offset = offsetof(engine_shadow_settings_t, max_resolution), .size = sizeof(u16), .type = reflected_value_type_e::u16},
+					{.name		   = "max_views",
+					 .display_name = "Maximum Views",
+					 .tooltip	   = "Maximum directional cascades, spot maps, and point-light cube faces rendered per world view.",
+					 .offset	   = offsetof(engine_shadow_settings_t, max_views),
+					 .size		   = sizeof(u16),
+					 .type		   = reflected_value_type_e::u16},
+				},
+			.type_id   = type_id_t<engine_shadow_settings_t>::value,
+			.size	   = sizeof(engine_shadow_settings_t),
+			.alignment = alignof(engine_shadow_settings_t),
+		});
+
+		registry.register_type({
+			.name		  = "project_settings_t",
+			.display_name = "Project Settings",
+			.fields =
+				{
+					{.name		   = "physics",
+					 .display_name = "Physics",
+					 .sub_type_id  = type_id_t<physics_project_settings_t>::value,
+					 .offset	   = offsetof(project_settings_t, physics),
+					 .size		   = sizeof(physics_project_settings_t),
+					 .type		   = reflected_value_type_e::object},
+					{.container_ops = reflection_container_ops_t::vector_ops<string_t>(reflected_value_type_e::string),
+					 .name			= "tags",
+					 .display_name	= "Tags",
+					 .offset		= offsetof(project_settings_t, tags),
+					 .size			= sizeof(vector_t<string_t>),
+					 .type			= reflected_value_type_e::container},
+					{.name = "shadows", .display_name = "Shadows", .sub_type_id = type_id_t<engine_shadow_settings_t>::value, .offset = offsetof(project_settings_t, shadows), .size = sizeof(engine_shadow_settings_t), .type = reflected_value_type_e::object},
+					{.name				= "world_tick_rate",
+					 .display_name		= "World Tick Rate",
+					 .offset			= offsetof(project_settings_t, world_tick_rate),
+					 .size				= sizeof(u32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 15.0f,
+					 .max_clamp			= 240.0f,
+					 .clamp_granularity = 1.0f,
+					 .type				= reflected_value_type_e::u32},
+					{.name				= "world_physics_rate",
+					 .display_name		= "World Physics Rate",
+					 .offset			= offsetof(project_settings_t, world_physics_rate),
+					 .size				= sizeof(u32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 30.0f,
+					 .max_clamp			= 240.0f,
+					 .clamp_granularity = 1.0f,
+					 .type				= reflected_value_type_e::u32},
+					{.name				= "max_sim_steps",
+					 .display_name		= "Max Sim Steps",
+					 .offset			= offsetof(project_settings_t, max_sim_steps),
+					 .size				= sizeof(u32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 1.0f,
+					 .max_clamp			= 8.0f,
+					 .clamp_granularity = 1.0f,
+					 .type				= reflected_value_type_e::u32},
+					{.name				= "ui_scale",
+					 .display_name		= "UI Scale",
+					 .offset			= offsetof(project_settings_t, ui_scale),
+					 .size				= sizeof(f32),
+					 .flags				= reflected_field_flag_clamped,
+					 .min_clamp			= 0.1f,
+					 .max_clamp			= 8.0f,
+					 .clamp_granularity = 0.1f,
+					 .type				= reflected_value_type_e::f32},
+					{.name		   = "quality_level",
+					 .display_name = "Quality Level",
+					 .sub_type_id  = type_id_t<engine_quality_level_e>::value,
+					 .offset	   = offsetof(project_settings_t, quality_level),
+					 .size		   = sizeof(engine_quality_level_e),
+					 .type		   = reflected_value_type_e::u8},
+				},
+			.type_id   = type_id_t<project_settings_t>::value,
+			.size	   = sizeof(project_settings_t),
+			.alignment = alignof(project_settings_t),
+		});
+	}
+}

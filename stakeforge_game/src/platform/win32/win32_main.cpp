@@ -3,7 +3,7 @@
 
 #include "game.hpp"
 
-#include <sfg/platform/process.hpp>
+#include <sfg/core/platform/process.hpp>
 
 #include <Windows.h>
 

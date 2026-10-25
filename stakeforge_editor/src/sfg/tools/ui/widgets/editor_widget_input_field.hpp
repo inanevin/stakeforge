@@ -1,0 +1,170 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+*/
+
+#pragma once
+
+#include "tools/ui/widgets/editor_widgets_common.hpp"
+#include <sfg/core/data/span.hpp>
+#include <sfg/core/data/vector.hpp>
+#include <sfg/core/runtime/ui/ui_common.hpp>
+
+namespace sfg::ui
+{
+	class input_router_t;
+	class paint_layer_t;
+	class ui_context;
+	class vg_canvas_t;
+	enum class mouse_button_e : u8;
+	struct key_event_t;
+}
+
+namespace sfg
+{
+	enum class editor_input_field_field_type_e : u8
+	{
+		string,
+		char_array,
+		pod_number,
+	};
+
+	struct editor_input_field_field_t
+	{
+		span_t<u8*>						fields	   = {};
+		size_t							field_size = 0;
+		editor_input_field_field_type_e type	   = editor_input_field_field_type_e::string;
+		bool							is_slider  = false;
+	};
+
+	struct editor_input_field_config_t
+	{
+		editor_input_field_field_t field		  = {};
+		editor_widget_callbacks_t  callbacks	  = {};
+		const char*				   placeholder	  = nullptr;
+		editor_widget_callback_fn  return_pressed = nullptr;
+		editor_widget_callback_fn  escape_pressed = nullptr;
+		f32						   increment	  = 0.1f;
+		f32						   min_value	  = 0.0f;
+		f32						   max_value	  = 1.0f;
+		bool					   is_integer	  = false;
+		bool					   is_clamped	  = false;
+	};
+
+	class editor_input_field_t final
+	{
+	public:
+		editor_input_field_t()										 = default;
+		~editor_input_field_t()										 = default;
+		editor_input_field_t(const editor_input_field_t&)			 = delete;
+		editor_input_field_t& operator=(const editor_input_field_t&) = delete;
+
+		void init(ui::ui_context& ui, ui::widget_id_t parent, const editor_input_field_config_t& config);
+		void uninit();
+		void select_all();
+		void set_visible(bool visible);
+		void set_text(const char* text);
+		void update_field_data(editor_input_field_field_t field);
+		void refresh_field_data();
+
+		inline ui::widget_id_t get_root() const
+		{
+			return _root;
+		}
+
+		inline const char* get_text() const
+		{
+			return _text;
+		}
+
+		inline f32 get_number() const
+		{
+			return _number_value;
+		}
+
+		inline bool is_editing() const
+		{
+			return _focused;
+		}
+
+	private:
+		static constexpr u32 TEXT_CAPACITY = 256;
+
+		void refresh_text();
+		void commit_number_text();
+		bool update_number_from_text();
+		void begin_edit();
+		void submit_edit();
+		void modify_field();
+		bool has_field_value_changed() const;
+		void set_text_raw(const char* value);
+		void format_number();
+		void insert_char(char c);
+		void insert_text(const char* text);
+		bool insert_char_data(char c);
+		void erase_selection();
+		void erase_range(u32 start, u32 end);
+		void set_caret(u32 index);
+		void update_drag_selection(const vec2f_t& pos);
+		void apply_number_delta(f32 delta_x);
+		void apply_slider_position(const vec2f_t& pos);
+		void rebuild_text_advances();
+		void reset_caret_blink();
+		u32	 index_from_pos(const vec2f_t& pos) const;
+		f32	 text_width(u32 len) const;
+		bool accepts_char(char c) const;
+		f32	 read_pod_number(const u8* data) const;
+		void write_pod_number(u8* data, f32 value);
+
+		static void on_press(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_release(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_double_click(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
+		static void on_hover_enter(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_hover_exit(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_focus_gain(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
+		static void on_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_focus_lose(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
+		static void on_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
+		static void on_pre_layout_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+		static void draw_slider(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
+		static void draw_overlay(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data);
+
+	private:
+		char						_text[TEXT_CAPACITY]		  = {};
+		f32							_text_advances[TEXT_CAPACITY] = {};
+		editor_input_field_config_t _config						  = {};
+		vector_t<u8*>				_fields						  = {};
+		ui::ui_context*				_ui							  = nullptr;
+		ui::widget_id_t				_root						  = NULL_WIDGET;
+		ui::widget_id_t				_slider						  = NULL_WIDGET;
+		ui::widget_id_t				_label						  = NULL_WIDGET;
+		ui::widget_id_t				_overlay					  = NULL_WIDGET;
+		u32							_text_len					  = 0;
+		u32							_caret						  = 0;
+		u32							_selection_anchor			  = 0;
+		f32							_number_value				  = 0.0f;
+		f32							_blink_seconds				  = 0.0f;
+		f32							_text_advance_ui_scale		  = 0.0f;
+		f32							_text_advance_dpi_scale		  = 0.0f;
+		bool						_mixed						  = false;
+		bool						_edit_active				  = false;
+		bool						_edit_dirty					  = false;
+		bool						_focused					  = false;
+	};
+}

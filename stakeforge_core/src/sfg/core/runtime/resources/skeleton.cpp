@@ -1,0 +1,173 @@
+// Copyright (c) 2025 Inan Evin
+
+#include "core/runtime/resources/skeleton.hpp"
+
+#include "core/runtime/resources/resource_file_system.hpp"
+#include "core/runtime/resources/resource_manager.hpp"
+#include "core/common/hashing.hpp"
+#include "core/data/istream.hpp"
+#include "core/data/ostream.hpp"
+#include "core/io/assert.hpp"
+#include "core/io/log.hpp"
+#include "core/reflection/reflection_registry.hpp"
+
+namespace sfg
+{
+	bool skeleton_loader_t::load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset)
+	{
+		ostream_t file_stream = {};
+
+		if (!rfs.read_resource(entry.hash, payload_offset, 0, file_stream))
+		{
+			SFG_ERR("failed to read skeleton resource: {0}", entry.hash);
+			return false;
+		}
+
+		istream_t stream = {};
+
+		stream.open(file_stream.get_raw(), file_stream.get_size());
+
+		chunk_allocator_t&	mem		= ctx.resource_manager.get_memory();
+		skeleton_runtime_t* runtime = mem.get<skeleton_runtime_t>(entry.runtime);
+		*runtime					= {};
+
+		skeleton_def_t skeleton = {};
+
+		if (!reflection_registry_t::get().type_from_stream(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, stream))
+		{
+			SFG_ERR("failed to deserialize skeleton definition: {0}", entry.hash);
+			return false;
+		}
+
+		const u32 joint_count = static_cast<u32>(skeleton.joints.size());
+
+		if (joint_count == 0)
+		{
+			SFG_ERR("skeleton has no joints: {0}", entry.hash);
+			return false;
+		}
+
+		runtime->joint_count		= joint_count;
+		runtime->slot_count			= static_cast<u32>(skeleton.slots.size());
+		runtime->skinning_transform = skeleton.skinning_transform;
+		runtime->local_bounds		= skeleton.local_bounds;
+		runtime->root_joint_index	= skeleton.root_joint_index;
+		runtime->motion_joint_index = skeleton.motion_joint_index;
+		runtime->joints				= mem.allocate_bytes(sizeof(skeleton_joint_runtime_t) * joint_count, alignof(skeleton_joint_runtime_t));
+		runtime->evaluation_order	= mem.allocate<u32>(joint_count);
+
+		if (runtime->slot_count != 0)
+			runtime->slots = mem.allocate_bytes(sizeof(skeleton_slot_runtime_t) * runtime->slot_count, alignof(skeleton_slot_runtime_t));
+
+		skeleton_joint_runtime_t* runtime_joints		   = mem.get<skeleton_joint_runtime_t>(runtime->joints);
+		u32*					  runtime_evaluation_order = mem.get<u32>(runtime->evaluation_order);
+
+		for (u32 i = 0; i < joint_count; ++i)
+		{
+			const skeleton_joint_def_t& joint = skeleton.joints[i];
+			const chunk_handle32_t		name  = mem.allocate_text(joint.name.c_str());
+
+			runtime_joints[i] = {
+				.local		  = joint.local,
+				.inverse_bind = joint.inverse_bind,
+				.bind_global  = joint.inverse_bind.inverse(),
+				.name_hash	  = joint.name_hash,
+				.name		  = name,
+				.parent_index = joint.parent_index,
+			};
+
+			runtime_evaluation_order[i] = skeleton.evaluation_order[i];
+		}
+
+		if (runtime->slot_count != 0)
+		{
+			skeleton_slot_runtime_t* runtime_slots = mem.get<skeleton_slot_runtime_t>(runtime->slots);
+
+			for (u32 i = 0; i < runtime->slot_count; ++i)
+			{
+				const skeleton_slot_def_t& slot		  = skeleton.slots[i];
+				const chunk_handle32_t	   debug_name = mem.allocate_text(slot.slot_name);
+
+				runtime_slots[i] = {
+					.slot_name_hash	  = TO_SID(slot.slot_name),
+					.debug_name		  = debug_name,
+					.local_rotation	  = slot.local_rotation,
+					.local_position	  = slot.local_position,
+					.slot_joint_index = slot.slot_joint_index,
+				};
+			}
+		}
+
+		runtime->mask_count = static_cast<u32>(skeleton.masks.size());
+
+		if (runtime->mask_count != 0)
+		{
+			runtime->masks = mem.allocate_bytes(sizeof(skeleton_mask_runtime_t) * runtime->mask_count, alignof(skeleton_mask_runtime_t));
+
+			skeleton_mask_runtime_t* masks = mem.get<skeleton_mask_runtime_t>(runtime->masks);
+
+			for (u32 i = 0; i < runtime->mask_count; ++i)
+			{
+				const skeleton_mask_def_t& mask = skeleton.masks[i];
+
+				skeleton_mask_t value = {};
+
+				for (u32 joint : mask.joint_indices)
+				{
+					const u32 index = joint / 64;
+					const u32 mod	= joint % 64;
+					value.masks[index] |= 1llu << mod;
+				}
+
+				masks[i] = {
+					.value	   = value,
+					.name_hash = TO_SID(static_cast<const char*>(mask.name)),
+				};
+			}
+		}
+
+		return true;
+	}
+
+	void skeleton_loader_t::unload(resource_entry_t& entry, resource_context_t& ctx)
+	{
+		chunk_allocator_t&		  mem	  = ctx.resource_manager.get_memory();
+		skeleton_runtime_t*		  runtime = mem.get<skeleton_runtime_t>(entry.runtime);
+		skeleton_joint_runtime_t* joints  = mem.get<skeleton_joint_runtime_t>(runtime->joints);
+
+		for (u32 i = 0; i < runtime->joint_count; ++i)
+			mem.free(joints[i].name);
+
+		mem.free(runtime->joints);
+		mem.free(runtime->evaluation_order);
+
+		if (runtime->slot_count != 0)
+		{
+			skeleton_slot_runtime_t* slots = mem.get<skeleton_slot_runtime_t>(runtime->slots);
+
+			for (u32 i = 0; i < runtime->slot_count; ++i)
+				mem.free(slots[i].debug_name);
+
+			mem.free(runtime->slots);
+		}
+
+		if (runtime->mask_count != 0)
+		{
+			mem.free(runtime->masks);
+		}
+
+		*runtime = {};
+	}
+
+	const resource_type_desc_t skeleton_resource_desc = {
+		.type				 = resource_type_e::skeleton,
+		.runtime_size		 = sizeof(skeleton_runtime_t),
+		.runtime_alignment	 = alignof(skeleton_runtime_t),
+		.internals_size		 = sizeof(skeleton_internals_t),
+		.internals_alignment = alignof(skeleton_internals_t),
+		.wire_magic			 = skeleton_loader_t::WIRE_MAGIC,
+		.wire_version		 = skeleton_loader_t::WIRE_VERSION,
+		.load				 = skeleton_loader_t::load,
+		.unload				 = skeleton_loader_t::unload,
+	};
+}

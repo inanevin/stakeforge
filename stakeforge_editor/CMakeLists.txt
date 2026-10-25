@@ -29,33 +29,33 @@ set(SFG_CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../stakeforge_core)
 include(${SFG_CORE_DIR}/cmake/compile_definitions.cmake)
 
 file(GLOB SOURCES
-${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/assets/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/assets/*/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/commands/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/scripting/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/world/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/ui/widgets/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/ui/widgets/*/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/ui/docking/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/assets/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/assets/*/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/commands/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/scripting/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/world/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/panels/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/panels/*/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/widgets/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/widgets/*/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/docking/*.cpp
 )
 
 file(GLOB HEADERS
-${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/assets/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/assets/*/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/commands/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/scripting/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/world/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/ui/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/ui/panels/*/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/ui/widgets/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/ui/widgets/*/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/ui/docking/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/assets/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/assets/*/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/commands/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/scripting/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/world/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/panels/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/panels/*/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/widgets/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/widgets/*/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/docking/*.hpp
 )
 
 
@@ -90,7 +90,10 @@ if(MSVC)
         set_property(TARGET ${SFG_EDITOR_TARGET} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>/)
 endif()
     
-target_include_directories(${SFG_EDITOR_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(${SFG_EDITOR_TARGET} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg
+)
 target_link_libraries(${SFG_EDITOR_TARGET} PRIVATE stakeforge_core stakeforge_memory_overrides)
 
 include(${SFG_CORE_DIR}/cmake/common_functions.cmake)

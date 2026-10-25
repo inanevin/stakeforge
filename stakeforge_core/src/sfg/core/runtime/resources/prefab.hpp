@@ -1,0 +1,34 @@
+// Copyright (c) 2025 Inan Evin
+#pragma once
+
+#include "core/common/sfg_exports.hpp"
+
+#include "core/runtime/resources/common_resources.hpp"
+
+namespace sfg
+{
+	struct prefab_runtime_t
+	{
+		u32 reserved = 0;
+	};
+
+	struct prefab_internals_t
+	{
+		chunk_handle32_t source = {};
+	};
+
+	class SFG_API prefab_loader_t
+	{
+	public:
+		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('P', 'R', 'F', 'B');
+		static constexpr u32 WIRE_VERSION = 2;
+
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
+		static void unload(resource_entry_t& entry, resource_context_t& ctx);
+
+	private:
+		static bool read_source(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset, chunk_handle32_t& out_source);
+	};
+
+	extern SFG_API const resource_type_desc_t prefab_resource_desc;
+}

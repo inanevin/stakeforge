@@ -1,0 +1,92 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+
+*/
+#pragma once
+
+#include <sfg/core/common/size_definitions.hpp>
+
+namespace sfg
+{
+#define ASSETS_PANE_SPLIT_MIN				 0.15f
+#define ASSETS_PANE_SPLIT_MAX				 0.35f
+#define ASSETS_SPLIT_BORDER_THICKNESS_MULT	 2.0f
+#define ASSETS_FOLDER_INDENT_MULT			 2.0f
+#define ASSETS_INITIAL_ROW_CAPACITY			 64
+#define ASSETS_INITIAL_GRID_ITEM_CAPACITY	 128
+#define ASSETS_FILTER_ID_ALL				 0
+#define ASSETS_FILTER_ID_FAVOURITES			 1
+#define ASSETS_ITEM_STYLE_ID_GRID			 0
+#define ASSETS_ITEM_STYLE_ID_LIST			 1
+#define ASSETS_IMPORT_FILE_MAX				 255
+#define ASSETS_IMPORT_FILE_EXTENSIONS		 "glb;png;jpg;jpeg;hdr;mp3;ttf"
+#define ASSETS_FIX_INTEGRITY_FILE_EXTENSIONS "glb;png;jpg;jpeg;hdr;mp3;ttf;hlsl"
+
+	enum assets_action_menu_command_e : u16
+	{
+		assets_action_menu_create_animation_library			 = 47,
+		assets_action_menu_create_folder					 = 1,
+		assets_action_menu_delete							 = 2,
+		assets_action_menu_duplicate						 = 3,
+		assets_action_menu_toggle_favourite					 = 4,
+		assets_action_menu_open_directory					 = 5,
+		assets_action_menu_rename							 = 6,
+		assets_action_menu_create_animation_graph			 = 7,
+		assets_action_menu_create_lit_shader				 = 8,
+		assets_action_menu_create_post_process_shader		 = 10,
+		assets_action_menu_create_ui_shader					 = 11,
+		assets_action_menu_create_ui_text_shader			 = 12,
+		assets_action_menu_create_texture_sampler			 = 13,
+		assets_action_menu_create_opaque_material			 = 14,
+		assets_action_menu_create_transparent_material		 = 15,
+		assets_action_menu_create_physical_material			 = 16,
+		assets_item_action_menu_rename						 = 17,
+		assets_item_action_menu_duplicate					 = 18,
+		assets_item_action_menu_delete						 = 19,
+		assets_item_action_menu_open_directory				 = 20,
+		assets_item_action_menu_toggle_favourite			 = 21,
+		assets_action_menu_import							 = 22,
+		assets_item_action_menu_fix_integrity				 = 23,
+		assets_action_menu_create_world						 = 24,
+		assets_action_menu_create_unlit_shader				 = 25,
+		assets_action_menu_create_opaque_unlit_material		 = 26,
+		assets_action_menu_import_orm_texture				 = 27,
+		assets_action_menu_create_skybox_shader				 = 28,
+		assets_action_menu_create_skybox_material			 = 29,
+		assets_action_menu_create_transparent_unlit_material = 30,
+		assets_action_menu_create_sprite_lit_shader			 = 31,
+		assets_action_menu_create_sprite_lit_material		 = 32,
+		assets_action_menu_import_sprite					 = 33,
+		assets_action_menu_create_curve						 = 34,
+		assets_action_menu_create_sprite_unlit_shader		 = 35,
+		assets_action_menu_create_sprite_unlit_material		 = 36,
+		assets_action_menu_create_particle_shader			 = 37,
+		assets_action_menu_create_particle_material			 = 38,
+		assets_action_menu_create_csharp_component			 = 39,
+		assets_action_menu_create_csharp_world_script		 = 40,
+		assets_action_menu_create_csharp_class				 = 41,
+		assets_action_menu_open_csharp_project				 = 42,
+		assets_action_menu_recompile_csharp_project			 = 43,
+		assets_action_menu_create_post_process_material		 = 44,
+		assets_action_menu_create_ragdoll					 = 45,
+		assets_item_action_menu_check_integrity				 = 46,
+		assets_item_action_menu_create_ragdoll				 = 47,
+	};
+}

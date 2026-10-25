@@ -1,0 +1,998 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+
+*/
+
+#include "core/reflection/reflection_registry.hpp"
+#include "core/data/ostream.hpp"
+#include "core/data/istream.hpp"
+#include "core/data/string_util.hpp"
+#include "core/io/assert.hpp"
+#include "core/math/math.hpp"
+#include "core/memory/memory.hpp"
+#include "core/vendor/nhlohmann/json.hpp"
+
+#include <algorithm>
+
+namespace sfg
+{
+#define FLOAT_ROUND_PRECISION_JSON 1'000'000.0f
+
+	namespace
+	{
+
+		bool field_to_stream(const reflected_field_t& field, void* obj, void* user_data, ostream_t& out_stream)
+		{
+			u8* data = reinterpret_cast<u8*>(obj) + field.offset;
+
+			if (field.value_type == reflected_value_type_e::invalid)
+			{
+				SFG_ERR("can't write field to stream because value type is invalid!");
+				return false;
+			}
+
+			if (field.custom_serialization.to_stream_fn)
+			{
+				field.custom_serialization.to_stream_fn(data, user_data, out_stream);
+				return true;
+			}
+
+			if (field.value_type == reflected_value_type_e::object)
+			{
+				return reflection_registry_t::get().type_to_stream(field.sub_type_id, data, user_data, out_stream);
+			}
+
+			if (field.value_type == reflected_value_type_e::container)
+			{
+				if (field.container_ops.get_element_ptr_fn == nullptr || field.container_ops.get_element_size_fn == nullptr)
+					return false;
+
+				const u32 item_size = static_cast<u32>(field.container_ops.get_element_size_fn(data));
+				out_stream << item_size;
+
+				for (size_t i = 0; i < item_size; i++)
+				{
+					u8*						element_data = field.container_ops.get_element_ptr_fn(data, i);
+					const reflected_field_t temp_field	 = {
+						.sub_type_id = field.container_ops.element_sub_type_id,
+						.size		 = field.container_ops.element_value_size,
+						.value_type	 = field.container_ops.element_value_type,
+					};
+
+					if (!field_to_stream(temp_field, element_data, user_data, out_stream))
+						return false;
+				}
+
+				return true;
+			}
+
+			if (field.value_type == reflected_value_type_e::string)
+			{
+				string_t* str = reinterpret_cast<string_t*>(data);
+				out_stream << *str;
+				return true;
+			}
+
+			SFG_ASSERT(field.size != 0);
+			const size_t write_size = field.size;
+			out_stream.write_raw(data, write_size);
+			return true;
+		}
+
+		bool field_from_stream(const reflected_field_t& field, void* obj, void* user_data, istream_t& in_stream)
+		{
+			u8* data = reinterpret_cast<u8*>(obj) + field.offset;
+
+			if (field.value_type == reflected_value_type_e::invalid)
+			{
+				SFG_ERR("can't write field to stream because value type is invalid!");
+				return false;
+			}
+
+			if (field.custom_serialization.from_stream_fn)
+			{
+				field.custom_serialization.from_stream_fn(data, user_data, in_stream);
+				return true;
+			}
+
+			if (field.value_type == reflected_value_type_e::object)
+			{
+				return reflection_registry_t::get().type_from_stream(field.sub_type_id, data, user_data, in_stream);
+			}
+
+			if (field.value_type == reflected_value_type_e::container)
+			{
+				u32 item_size = 0;
+				in_stream >> item_size;
+
+				if (field.container_ops.reset_fn == nullptr || field.container_ops.add_element_ptr_fn == nullptr)
+					return false;
+
+				field.container_ops.reset_fn(data);
+
+				for (size_t i = 0; i < item_size; i++)
+				{
+					u8* element_data = field.container_ops.add_element_ptr_fn(data);
+					if (element_data == nullptr)
+						return false;
+
+					const reflected_field_t temp_field = {
+						.sub_type_id = field.container_ops.element_sub_type_id,
+						.size		 = field.container_ops.element_value_size,
+						.value_type	 = field.container_ops.element_value_type,
+					};
+
+					if (!field_from_stream(temp_field, element_data, user_data, in_stream))
+						return false;
+				}
+
+				return true;
+			}
+
+			if (field.value_type == reflected_value_type_e::string)
+			{
+				string_t& str = *reinterpret_cast<string_t*>(data);
+				in_stream >> str;
+				return true;
+			}
+
+			SFG_ASSERT(field.size != 0);
+			const size_t read_size = field.size;
+			in_stream.read_to_raw(data, read_size);
+			return true;
+		}
+
+		bool field_to_json(const reflected_field_t& field, void* obj, void* user_data, nlohmann::json& out_json, bool dismiss_name = false)
+		{
+			u8* data = reinterpret_cast<u8*>(obj) + field.offset;
+
+			if (field.value_type == reflected_value_type_e::invalid)
+			{
+				SFG_ERR("can't write field to stream because value type is invalid!");
+				return false;
+			}
+
+			if (field.custom_serialization.to_json_fn)
+			{
+				nlohmann::json child_json = nlohmann::json::object();
+				field.custom_serialization.to_json_fn(data, user_data, child_json);
+
+				if (dismiss_name)
+					out_json = child_json;
+				else
+					out_json[field.name] = child_json;
+
+				return true;
+			}
+
+			if (field.value_type == reflected_value_type_e::container)
+			{
+				if (field.container_ops.get_element_ptr_fn == nullptr || field.container_ops.get_element_size_fn == nullptr)
+					return false;
+
+				const size_t item_size = field.container_ops.get_element_size_fn(data);
+
+				nlohmann::json container_json = nlohmann::json::array();
+
+				for (size_t i = 0; i < item_size; i++)
+				{
+					u8*						element_data = field.container_ops.get_element_ptr_fn(data, i);
+					const reflected_field_t temp_field	 = {
+						.sub_type_id = field.container_ops.element_sub_type_id,
+						.size		 = field.container_ops.element_value_size,
+						.value_type	 = field.container_ops.element_value_type,
+					};
+
+					nlohmann::json elem_json = nlohmann::json::object();
+					if (!field_to_json(temp_field, element_data, user_data, elem_json, true))
+						return false;
+					container_json.push_back(elem_json);
+				}
+
+				out_json[field.name] = container_json;
+
+				return true;
+			}
+
+			if (field.value_type == reflected_value_type_e::object)
+			{
+				if (dismiss_name)
+					return reflection_registry_t::get().type_to_json(field.sub_type_id, data, user_data, out_json);
+				else
+				{
+					nlohmann::json child_json = nlohmann::json::object();
+					if (!reflection_registry_t::get().type_to_json(field.sub_type_id, data, user_data, child_json))
+						return false;
+					out_json[field.name] = child_json;
+				}
+
+				return true;
+			}
+
+			if (field.value_type == reflected_value_type_e::string)
+			{
+				string_t* str = reinterpret_cast<string_t*>(data);
+				if (dismiss_name)
+					out_json = *str;
+				else
+					out_json[field.name] = *str;
+				return true;
+			}
+
+			switch (field.value_type)
+			{
+			case reflected_value_type_e::char_array:
+				if (dismiss_name)
+					out_json = reinterpret_cast<const char*>(data);
+				else
+					out_json[field.name] = reinterpret_cast<const char*>(data);
+				break;
+			case reflected_value_type_e::boolean:
+				if (dismiss_name)
+					out_json = *reinterpret_cast<const bool*>(data);
+				else
+					out_json[field.name] = *reinterpret_cast<const bool*>(data);
+				break;
+			case reflected_value_type_e::f32: {
+				float v = *reinterpret_cast<const float*>(data);
+				v		= math::round(v * FLOAT_ROUND_PRECISION_JSON) / FLOAT_ROUND_PRECISION_JSON;
+				if (dismiss_name)
+					out_json = v;
+				else
+					out_json[field.name] = v;
+				break;
+			}
+
+			case reflected_value_type_e::u64:
+			case reflected_value_type_e::bitmask:
+				if (dismiss_name)
+				{
+					switch (field.size)
+					{
+					case sizeof(u8):
+						out_json = *reinterpret_cast<const u8*>(data);
+						break;
+					case sizeof(u16):
+						out_json = *reinterpret_cast<const u16*>(data);
+						break;
+					case sizeof(u32):
+						out_json = *reinterpret_cast<const u32*>(data);
+						break;
+					case sizeof(u64):
+						out_json = *reinterpret_cast<const u64*>(data);
+						break;
+					default:
+						SFG_ASSERT(false);
+						break;
+					}
+				}
+				else
+				{
+					switch (field.size)
+					{
+					case sizeof(u8):
+						out_json[field.name] = *reinterpret_cast<const u8*>(data);
+						break;
+					case sizeof(u16):
+						out_json[field.name] = *reinterpret_cast<const u16*>(data);
+						break;
+					case sizeof(u32):
+						out_json[field.name] = *reinterpret_cast<const u32*>(data);
+						break;
+					case sizeof(u64):
+						out_json[field.name] = *reinterpret_cast<const u64*>(data);
+						break;
+					default:
+						SFG_ASSERT(false);
+						break;
+					}
+				}
+				break;
+
+			case reflected_value_type_e::i64:
+				if (dismiss_name)
+					out_json = *reinterpret_cast<const i64*>(data);
+				else
+					out_json[field.name] = *reinterpret_cast<const i64*>(data);
+				break;
+
+			case reflected_value_type_e::u32:
+				if (dismiss_name)
+					out_json = *reinterpret_cast<const u32*>(data);
+				else
+					out_json[field.name] = *reinterpret_cast<const u32*>(data);
+				break;
+
+			case reflected_value_type_e::i32:
+				if (dismiss_name)
+					out_json = *reinterpret_cast<const i32*>(data);
+				else
+					out_json[field.name] = *reinterpret_cast<const i32*>(data);
+				break;
+
+			case reflected_value_type_e::u16:
+				if (dismiss_name)
+					out_json = *reinterpret_cast<const u16*>(data);
+				else
+					out_json[field.name] = *reinterpret_cast<const u16*>(data);
+				break;
+
+			case reflected_value_type_e::i16:
+				if (dismiss_name)
+					out_json = *reinterpret_cast<const i16*>(data);
+				else
+					out_json[field.name] = *reinterpret_cast<const i16*>(data);
+				break;
+
+			case reflected_value_type_e::u8:
+				if (dismiss_name)
+					out_json = *reinterpret_cast<const u8*>(data);
+				else
+					out_json[field.name] = *reinterpret_cast<const u8*>(data);
+				break;
+
+			case reflected_value_type_e::i8:
+				if (dismiss_name)
+					out_json = *reinterpret_cast<const i8*>(data);
+				else
+					out_json[field.name] = *reinterpret_cast<const i8*>(data);
+				break;
+
+			default:
+				SFG_ERR("unsupported reflected value type");
+				return false;
+			}
+			return true;
+		}
+
+		bool field_from_json(const reflected_field_t& field, void* obj, void* user_data, const nlohmann::json& in_json, bool dismiss_name = false)
+		{
+			u8* data = reinterpret_cast<u8*>(obj) + field.offset;
+
+			if (field.value_type == reflected_value_type_e::invalid)
+			{
+				SFG_ERR("can't write field to stream because value type is invalid!");
+				return false;
+			}
+
+			if (field.custom_serialization.from_json_fn)
+			{
+				if (dismiss_name)
+					field.custom_serialization.from_json_fn(data, user_data, in_json);
+				else
+				{
+					const nlohmann::json child_json = in_json.value<nlohmann::json>(field.name, {});
+					field.custom_serialization.from_json_fn(data, user_data, child_json);
+				}
+
+				return true;
+			}
+
+			if (field.value_type == reflected_value_type_e::container)
+			{
+				if (field.container_ops.reset_fn == nullptr || field.container_ops.add_element_ptr_fn == nullptr)
+					return false;
+
+				if (!in_json.contains(field.name))
+					return true;
+
+				const nlohmann::json container_json = in_json.value<nlohmann::json>(field.name, nlohmann::json::array());
+				if (!container_json.is_array())
+					return false;
+
+				const size_t sz = container_json.size();
+				field.container_ops.reset_fn(data);
+
+				for (size_t i = 0; i < sz; i++)
+				{
+					u8* element_data = field.container_ops.add_element_ptr_fn(data);
+					if (element_data == nullptr)
+						return false;
+
+					const reflected_field_t temp_field = {
+						.sub_type_id = field.container_ops.element_sub_type_id,
+						.size		 = field.container_ops.element_value_size,
+						.value_type	 = field.container_ops.element_value_type,
+					};
+					if (!field_from_json(temp_field, element_data, user_data, container_json[i], true))
+						return false;
+				}
+
+				return true;
+			}
+
+			if (field.value_type == reflected_value_type_e::object)
+			{
+				if (dismiss_name)
+					return reflection_registry_t::get().type_from_json(field.sub_type_id, data, user_data, in_json);
+				else
+				{
+					if (!in_json.contains(field.name))
+						return true;
+					const nlohmann::json child_json = in_json.value<nlohmann::json>(field.name, {});
+					if (!reflection_registry_t::get().type_from_json(field.sub_type_id, data, user_data, child_json))
+						return false;
+				}
+
+				return true;
+			}
+
+			if (field.value_type == reflected_value_type_e::string)
+			{
+				string_t& str = *reinterpret_cast<string_t*>(data);
+				if (dismiss_name)
+					str = in_json;
+				else
+				{
+					if (!in_json.contains(field.name))
+						return true;
+					str = in_json.value<string_t>(field.name, "");
+				}
+				return true;
+			}
+
+			if (!dismiss_name && !in_json.contains(field.name))
+				return true;
+
+			switch (field.value_type)
+			{
+			case reflected_value_type_e::char_array: {
+				string_t val = "";
+				if (dismiss_name)
+					val = in_json;
+				else
+					val = in_json.value<string_t>(field.name, "");
+				const size_t copy_size = val.size() > field.size ? field.size : val.size();
+				if (copy_size != 0)
+				{
+					SFG_MEMCPY(data, &val[0], copy_size);
+					if (copy_size < field.size)
+						reinterpret_cast<char*>(data)[copy_size] = '\0';
+				}
+				break;
+			}
+			case reflected_value_type_e::boolean:
+				if (dismiss_name)
+					*reinterpret_cast<bool*>(data) = in_json;
+				else
+					*reinterpret_cast<bool*>(data) = in_json.value<bool>(field.name, false);
+				break;
+			case reflected_value_type_e::f32:
+				if (dismiss_name)
+					*reinterpret_cast<f32*>(data) = in_json;
+				else
+					*reinterpret_cast<f32*>(data) = in_json.value<f32>(field.name, 0.0f);
+				break;
+
+			case reflected_value_type_e::u64:
+			case reflected_value_type_e::bitmask: {
+				const u64 value = dismiss_name ? in_json.get<u64>() : in_json.value<u64>(field.name, 0);
+				switch (field.size)
+				{
+				case sizeof(u8):
+					*reinterpret_cast<u8*>(data) = static_cast<u8>(value);
+					break;
+				case sizeof(u16):
+					*reinterpret_cast<u16*>(data) = static_cast<u16>(value);
+					break;
+				case sizeof(u32):
+					*reinterpret_cast<u32*>(data) = static_cast<u32>(value);
+					break;
+				case sizeof(u64):
+					*reinterpret_cast<u64*>(data) = value;
+					break;
+				default:
+					SFG_ASSERT(false);
+					break;
+				}
+				break;
+			}
+
+			case reflected_value_type_e::i64:
+				if (dismiss_name)
+					*reinterpret_cast<i64*>(data) = in_json;
+				else
+					*reinterpret_cast<i64*>(data) = in_json.value<i64>(field.name, 0);
+				break;
+
+			case reflected_value_type_e::u32:
+				if (dismiss_name)
+					*reinterpret_cast<u32*>(data) = in_json;
+				else
+					*reinterpret_cast<u32*>(data) = in_json.value<u32>(field.name, 0);
+				break;
+
+			case reflected_value_type_e::i32:
+				if (dismiss_name)
+					*reinterpret_cast<i32*>(data) = in_json;
+				else
+					*reinterpret_cast<i32*>(data) = in_json.value<i32>(field.name, 0);
+				break;
+
+			case reflected_value_type_e::u16:
+				if (dismiss_name)
+					*reinterpret_cast<u16*>(data) = in_json;
+				else
+					*reinterpret_cast<u16*>(data) = in_json.value<u16>(field.name, 0);
+				break;
+
+			case reflected_value_type_e::i16:
+				if (dismiss_name)
+					*reinterpret_cast<i16*>(data) = in_json;
+				else
+					*reinterpret_cast<i16*>(data) = in_json.value<i16>(field.name, 0);
+				break;
+
+			case reflected_value_type_e::u8:
+				if (dismiss_name)
+					*reinterpret_cast<u8*>(data) = in_json;
+				else
+					*reinterpret_cast<u8*>(data) = in_json.value<u8>(field.name, 0);
+				break;
+
+			case reflected_value_type_e::i8:
+				if (dismiss_name)
+					*reinterpret_cast<i8*>(data) = in_json;
+				else
+					*reinterpret_cast<i8*>(data) = in_json.value<i8>(field.name, 0);
+				break;
+
+			default:
+				SFG_ERR("unsupported reflected value type");
+				return false;
+			}
+			return true;
+		}
+	}
+
+	reflection_registry_t::reflection_registry_t()
+	{
+		init();
+	}
+
+	reflection_registry_t::~reflection_registry_t()
+	{
+		uninit();
+	}
+
+	void reflection_registry_t::init()
+	{
+		_types.reserve(512);
+		_fields.reserve(1024);
+
+		_text_allocator.init(2 * 1024 * 1024);
+		_script_text_allocator.init(SCRIPT_TEXT_CAPACITY);
+	}
+
+	void reflection_registry_t::uninit()
+	{
+		_types.clear();
+		_fields.clear();
+
+		_script_text_allocator.uninit();
+		_text_allocator.uninit();
+
+		_script_type_begin	   = 0;
+		_script_field_begin	   = 0;
+		_script_capacity_ready = false;
+	}
+
+	void reflection_registry_t::initialize_type(sid_t type_id, void* obj) const
+	{
+		const reflected_type_t* type = find_type(type_id);
+		SFG_ASSERT(type != nullptr);
+
+		if (type->default_init_fn != nullptr)
+		{
+			type->default_init_fn(obj);
+			return;
+		}
+
+		SFG_ASSERT(type->owner == reflection_owner_e::game_scripts);
+		SFG_MEMSET(obj, 0, type->size);
+
+		for (u32 field_index = type->fields.start; field_index < type->fields.end; ++field_index)
+		{
+			const reflected_field_t& field = _fields[field_index];
+
+			if (field.value_type != reflected_value_type_e::u64 || field.sub_type_id == 0)
+				continue;
+
+			SFG_ASSERT(field.size == sizeof(u64));
+			*reinterpret_cast<u64*>(static_cast<u8*>(obj) + field.offset) = NULL_SID;
+		}
+	}
+
+	void reflection_registry_t::reserve_script_capacity()
+	{
+		SFG_ASSERT(!_script_capacity_ready);
+
+		_script_type_begin	= _types.size();
+		_script_field_begin = _fields.size();
+		_types.reserve(_script_type_begin + SCRIPT_TYPE_CAPACITY);
+		_fields.reserve(_script_field_begin + SCRIPT_FIELD_CAPACITY);
+		_script_capacity_ready = true;
+	}
+
+	bool reflection_registry_t::is_script_capacity_valid(size_t type_count, size_t field_count) const
+	{
+		SFG_ASSERT(_script_capacity_ready);
+
+		return type_count <= SCRIPT_TYPE_CAPACITY && field_count <= SCRIPT_FIELD_CAPACITY;
+	}
+
+	void reflection_registry_t::remove_script_types()
+	{
+		SFG_ASSERT(_script_capacity_ready);
+
+		for (size_t type_index = _script_type_begin; type_index < _types.size(); ++type_index)
+			SFG_ASSERT(_types[type_index].owner == reflection_owner_e::game_scripts);
+
+		_types.resize(_script_type_begin);
+		_fields.resize(_script_field_begin);
+		_script_text_allocator.reset();
+	}
+
+	void reflection_registry_t::type_field_to_stream(sid_t type_id, sid_t field_id, void* obj, void* user_data, ostream_t& out_stream)
+	{
+		const reflected_type_t* type = find_type(type_id);
+		if (type == nullptr)
+		{
+			SFG_ERR("type id could not be found! {0}", type_id);
+			return;
+		}
+
+		for (size_t i = type->fields.start; i < type->fields.end; i++)
+		{
+			const reflected_field_t& field = _fields[i];
+			if (field.field_identifier == field_id)
+			{
+				if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_serialization))
+					return;
+
+				field_to_stream(field, obj, user_data, out_stream);
+				return;
+			}
+		}
+
+		SFG_ERR("field id could not be found! field: {0}, type: {1}", field_id, type_id);
+	}
+
+	void reflection_registry_t::type_field_to_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, nlohmann::json& out_json)
+	{
+		const reflected_type_t* type = find_type(type_id);
+		if (type == nullptr)
+		{
+			SFG_ERR("type id could not be found! {0}", type_id);
+			return;
+		}
+
+		for (size_t i = type->fields.start; i < type->fields.end; i++)
+		{
+			const reflected_field_t& field = _fields[i];
+			if (field.field_identifier == field_id)
+			{
+				if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_serialization))
+					return;
+
+				field_to_json(field, obj, user_data, out_json);
+				return;
+			}
+		}
+
+		SFG_ERR("field id could not be found! field: {0}, type: {1}", field_id, type_id);
+	}
+
+	void reflection_registry_t::type_field_from_stream(sid_t type_id, sid_t field_id, void* obj, void* user_data, istream_t& in_stream)
+	{
+		const reflected_type_t* type = find_type(type_id);
+		(type_id);
+		if (type == nullptr)
+		{
+			SFG_ERR("type id could not be found! {0}", type_id);
+			return;
+		}
+		for (size_t i = type->fields.start; i < type->fields.end; i++)
+		{
+			const reflected_field_t& field = _fields[i];
+			if (field.field_identifier == field_id)
+			{
+				if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_serialization))
+					return;
+
+				field_from_stream(field, obj, user_data, in_stream);
+				return;
+			}
+		}
+
+		SFG_ERR("field id could not be found! field: {0}, type: {1}", field_id, type_id);
+	}
+
+	void reflection_registry_t::type_field_from_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, const nlohmann::json& in_json)
+	{
+		const reflected_type_t* type = find_type(type_id);
+		if (type == nullptr)
+		{
+			SFG_ERR("type id could not be found! {0}", type_id);
+			return;
+		}
+
+		for (size_t i = type->fields.start; i < type->fields.end; i++)
+		{
+			const reflected_field_t& field = _fields[i];
+			if (field.field_identifier == field_id)
+			{
+				if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_serialization))
+					return;
+
+				field_from_json(field, obj, user_data, in_json);
+				return;
+			}
+		}
+
+		SFG_ERR("field id could not be found! field: {0}, type: {1}", field_id, type_id);
+	}
+
+	bool reflection_registry_t::type_to_stream(sid_t type_id, void* obj, void* user_data, ostream_t& out_stream)
+	{
+		const reflected_type_t* type = find_type(type_id);
+		if (type == nullptr)
+		{
+			SFG_ERR("type id could not be found! {0}", type_id);
+			return false;
+		}
+
+		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
+		{
+			out_stream.write_raw(reinterpret_cast<u8*>(obj), type->size);
+			return true;
+		}
+
+		for (size_t i = type->fields.start; i < type->fields.end; i++)
+		{
+			const reflected_field_t& field = _fields[i];
+			if (!field_to_stream(field, obj, user_data, out_stream))
+				return false;
+		}
+		return true;
+	}
+
+	bool reflection_registry_t::type_to_json(sid_t type_id, void* obj, void* user_data, nlohmann::json& out_json)
+	{
+		const reflected_type_t* type = find_type(type_id);
+		if (type == nullptr)
+		{
+			SFG_ERR("type id could not be found! {0}", type_id);
+			return false;
+		}
+
+		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
+		{
+			if (type->size == sizeof(u8))
+			{
+				out_json = *reinterpret_cast<u8*>(obj);
+			}
+			else if (type->size == sizeof(u16))
+			{
+				out_json = *reinterpret_cast<u16*>(obj);
+			}
+			else if (type->size == sizeof(u32))
+			{
+				out_json = *reinterpret_cast<u32*>(obj);
+			}
+			else
+			{
+				SFG_ERR("enum type size mismatch!");
+				return false;
+			}
+			return true;
+		}
+
+		nlohmann::json type_json = nlohmann::json::object();
+
+		for (size_t i = type->fields.start; i < type->fields.end; i++)
+		{
+			const reflected_field_t& field = _fields[i];
+			if (!field_to_json(field, obj, user_data, type_json))
+				return false;
+		}
+
+		out_json = type_json;
+		return true;
+	}
+
+	bool reflection_registry_t::type_from_stream(sid_t type_id, void* obj, void* user_data, istream_t& in_stream)
+	{
+		const reflected_type_t* type = find_type(type_id);
+		if (type == nullptr)
+		{
+			SFG_ERR("type id could not be found! {0}", type_id);
+			return false;
+		}
+
+		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
+		{
+			u8* ptr = reinterpret_cast<u8*>(obj);
+			in_stream.read_to_raw(ptr, type->size);
+			return true;
+		}
+
+		for (size_t i = type->fields.start; i < type->fields.end; i++)
+		{
+			const reflected_field_t& field = _fields[i];
+			if (!field_from_stream(field, obj, user_data, in_stream))
+				return false;
+		}
+		return true;
+	}
+
+	bool reflection_registry_t::type_from_json(sid_t type_id, void* obj, void* user_data, const nlohmann::json& in_json)
+	{
+		const reflected_type_t* type = find_type(type_id);
+		if (type == nullptr)
+		{
+			SFG_ERR("type id could not be found! {0}", type_id);
+			return false;
+		}
+
+		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
+		{
+			if (type->size == sizeof(u8))
+			{
+				*reinterpret_cast<u8*>(obj) = in_json;
+			}
+			else if (type->size == sizeof(u16))
+			{
+				*reinterpret_cast<u16*>(obj) = in_json;
+			}
+			else if (type->size == sizeof(u32))
+			{
+				*reinterpret_cast<u32*>(obj) = in_json;
+			}
+			else
+			{
+				SFG_ERR("enum type size mismatch!");
+				return false;
+			}
+			return true;
+		}
+
+		for (size_t i = type->fields.start; i < type->fields.end; i++)
+		{
+			const reflected_field_t& field = _fields[i];
+			if (!field_from_json(field, obj, user_data, in_json))
+				return false;
+		}
+		return true;
+	}
+
+	const reflected_type_t* reflection_registry_t::find_type(sid_t type_id) const
+	{
+		auto it = std::find_if(_types.begin(), _types.end(), [type_id](const reflected_type_t& t) -> bool { return t.type_id == type_id; });
+		if (it == _types.end())
+			return nullptr;
+		return &*it;
+	}
+
+	const reflected_field_t* reflection_registry_t::get_field(u32 index) const
+	{
+		if (index >= _fields.size())
+			return nullptr;
+		return &_fields[index];
+	}
+
+	void reflection_registry_t::register_type(const reflected_type_descriptor_t& descriptor)
+	{
+		SFG_ASSERT(descriptor.name != nullptr);
+		SFG_ASSERT(descriptor.type_id != 0);
+		SFG_ASSERT(descriptor.size != 0);
+		SFG_ASSERT(!_script_capacity_ready || descriptor.owner == reflection_owner_e::game_scripts);
+		SFG_ASSERT(descriptor.owner != reflection_owner_e::game_scripts || is_script_capacity_valid(_types.size() - _script_type_begin + 1, _fields.size() - _script_field_begin + descriptor.fields.size()));
+
+		const reflected_type_t* existing_type = find_type(descriptor.type_id);
+
+		if (existing_type != nullptr)
+		{
+			SFG_WARN("reflection type already exists! {0}", existing_type->name);
+			return;
+		}
+
+		reflected_type_t  type			 = {};
+		text_allocator_t& text_allocator = descriptor.owner == reflection_owner_e::game_scripts ? _script_text_allocator : _text_allocator;
+
+		type.name = text_allocator.allocate(descriptor.name);
+
+		if (descriptor.tooltip != nullptr)
+			type.tooltip = text_allocator.allocate(descriptor.tooltip);
+
+		if (descriptor.display_name != nullptr)
+			type.display_name = text_allocator.allocate(descriptor.display_name);
+
+		if (descriptor.category != nullptr)
+			type.category = text_allocator.allocate(descriptor.category);
+
+		type.type_id	  = descriptor.type_id;
+		type.size		  = descriptor.size;
+		type.alignment	  = descriptor.alignment;
+		type.flags		  = descriptor.flags;
+		type.bitmask_opts = descriptor.bitmask_opts;
+		type.owner		  = descriptor.owner;
+		SFG_MEMCPY(type.icon, descriptor.icon, sizeof(type.icon));
+
+		if (descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
+		{
+			SFG_ASSERT(descriptor.size == sizeof(u8) || descriptor.size == sizeof(u16) || descriptor.size == sizeof(u32));
+		}
+
+		type.fields.start	 = static_cast<u32>(_fields.size());
+		type.default_init_fn = descriptor.default_init_fn;
+
+		if (descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_component) || descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_system_component) ||
+			descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_tag_component))
+		{
+			SFG_ASSERT(descriptor.default_init_fn != nullptr || descriptor.owner == reflection_owner_e::game_scripts);
+		}
+
+		for (const reflected_field_descriptor_t& field_desc : descriptor.fields)
+		{
+			reflected_field_t field = {};
+			SFG_ASSERT(field_desc.name != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::object || field_desc.sub_type_id != 0);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.get_element_ptr_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.get_element_size_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.add_element_ptr_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.reset_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.remove_index_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || (field_desc.container_ops.element_value_type != reflected_value_type_e::invalid && field_desc.container_ops.element_value_type != reflected_value_type_e::container));
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.element_value_type != reflected_value_type_e::object || field_desc.container_ops.element_sub_type_id != 0);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::bitmask || field_desc.size == sizeof(u8) || field_desc.size == sizeof(u16) || field_desc.size == sizeof(u32) || field_desc.size == sizeof(u64));
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::bitmask || descriptor.bitmask_opts.get_option_count_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::bitmask || descriptor.bitmask_opts.get_option_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::bitmask || descriptor.bitmask_opts.build_title_fn != nullptr);
+
+			field.name			   = text_allocator.allocate(field_desc.name);
+			field.field_identifier = field_desc.field_identifier == 0 ? TO_SID(field.name) : field_desc.field_identifier;
+
+			if (field_desc.tooltip != nullptr)
+				field.tooltip = text_allocator.allocate(field_desc.tooltip);
+
+			if (field_desc.display_name != nullptr)
+				field.display_name = text_allocator.allocate(field_desc.display_name);
+
+			field.value_type  = field_desc.type;
+			field.sub_type_id = field_desc.sub_type_id;
+			field.flags		  = field_desc.flags;
+			field.offset	  = field_desc.offset;
+			field.size		  = field_desc.size;
+
+			field.ui_definition					  = field_desc.ui_definition;
+			field.ui_definition.min_clamp		  = field_desc.min_clamp;
+			field.ui_definition.max_clamp		  = field_desc.max_clamp;
+			field.ui_definition.clamp_granularity = field_desc.clamp_granularity;
+			field.container_ops					  = field_desc.container_ops;
+			field.custom_serialization			  = field_desc.custom_serialization;
+
+			_fields.push_back(field);
+		}
+
+		type.fields.end = static_cast<u32>(_fields.size());
+		_types.push_back(type);
+	}
+}

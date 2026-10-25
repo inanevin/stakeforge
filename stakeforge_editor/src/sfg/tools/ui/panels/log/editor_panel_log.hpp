@@ -1,0 +1,171 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+*/
+
+#pragma once
+
+#include "tools/ui/panels/editor_panel.hpp"
+#include "tools/ui/widgets/editor_widget_input_field.hpp"
+#include "tools/ui/widgets/editor_widgets_dropdown.hpp"
+#include "tools/ui/widgets/editor_widgets_icon_button.hpp"
+#include "tools/ui/widgets/editor_widgets_scrollbar.hpp"
+#include <sfg/core/data/mutex.hpp>
+#include <sfg/core/data/string.hpp>
+#include <sfg/core/data/vector.hpp>
+
+namespace sfg
+{
+	enum class log_level;
+	enum class log_source_e : u8;
+}
+
+namespace sfg
+{
+	enum class log_source_filter_e : u8
+	{
+		all,
+		engine,
+		game,
+	};
+
+	enum log_level_filter_flags_e : u8
+	{
+		log_level_filter_info  = 1 << 0,
+		log_level_filter_trace = 1 << 1,
+		log_level_filter_warn  = 1 << 2,
+		log_level_filter_err   = 1 << 3,
+		log_level_filter_all   = log_level_filter_info | log_level_filter_trace | log_level_filter_warn | log_level_filter_err,
+	};
+
+	class editor_panel_log_t final : public editor_panel_t
+	{
+	public:
+		editor_panel_log_t();
+		~editor_panel_log_t() override							 = default;
+		editor_panel_log_t(const editor_panel_log_t&)			 = delete;
+		editor_panel_log_t& operator=(const editor_panel_log_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		void init(ui::ui_context& ui, ui::widget_id_t parent) override;
+		void uninit() override;
+		void serialize(nlohmann::json& j) const override;
+		void deserialize(const nlohmann::json& j) override;
+		void make_visible(bool visible) override;
+
+	private:
+		static constexpr u32 FILTER_BUTTON_COUNT = 4;
+
+		struct log_record_t
+		{
+			string_t	 text;
+			u64			 sequence = 0;
+			log_level	 level	  = {};
+			log_source_e source	  = {};
+		};
+
+		struct log_row_t
+		{
+			string_t		raw_text;
+			u64				hash   = 0;
+			ui::widget_id_t root   = NULL_WIDGET;
+			ui::widget_id_t icon   = NULL_WIDGET;
+			ui::widget_id_t text   = NULL_WIDGET;
+			u32				count  = 1;
+			log_source_e	source = {};
+			u8				flag   = 0;
+		};
+
+		struct log_filter_button_data_t
+		{
+			editor_panel_log_t* panel = nullptr;
+			u8					flag  = 0;
+		};
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		void		drain_pending_logs();
+		void		add_log_row(log_source_e source, log_level level, const char* text);
+		void		update_log_row_text(log_row_t& row);
+		void		move_log_row_to_bottom(size_t index);
+		void		collapse_existing_rows();
+		void		clear_log_rows();
+		void		clear_logs();
+		void		request_clear_logs();
+		void		request_collapse_rows();
+		void		refresh_log_filter_visibility();
+		void		set_log_row_visible(const log_row_t& row, bool visible);
+		void		trim_log_rows();
+		static void install_log_listener();
+		static void append_pending_logs_to_storage();
+
+		// -----------------------------------------------------------------------------
+		// queries
+		// -----------------------------------------------------------------------------
+
+		bool is_log_row_visible(const log_row_t& row) const;
+		bool is_scrolled_to_end() const;
+
+		// -----------------------------------------------------------------------------
+		// handlers
+		// -----------------------------------------------------------------------------
+
+		static u16	get_selected_source(void* user_data);
+		static void on_source_pressed(u16 value, void* user_data);
+		static void on_filter_pressed(bool toggled, void* user_data);
+		static void on_collapse_pressed(bool toggled, void* user_data);
+		static void on_clear_pressed(bool toggled, void* user_data);
+		static void on_search_changed(void* user_data);
+		static void on_log(log_source_e source, log_level level, const char* msg, void* user_data);
+		static void on_log_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+
+	private:
+		editor_dropdown_t		 _source_dropdown = {};
+		editor_input_field_t	 _search_input	  = {};
+		editor_scrollbar_t		 _scrollbar		  = {};
+		editor_icon_button_t	 _filter_buttons[FILTER_BUTTON_COUNT];
+		editor_icon_button_t	 _collapse_button = {};
+		editor_icon_button_t	 _clear_button	  = {};
+		log_filter_button_data_t _filter_button_data[FILTER_BUTTON_COUNT];
+		vector_t<log_row_t>		 _rows				 = {};
+		vector_t<log_record_t>	 _drained_logs		 = {};
+		string_t				 _search_text		 = {};
+		string_t				 _search_text_lower	 = {};
+		ui::widget_id_t			 _top_row			 = NULL_WIDGET;
+		ui::widget_id_t			 _body				 = NULL_WIDGET;
+		u64						 _next_log_sequence	 = 0;
+		u32						 _storage_generation = 0;
+		log_source_filter_e		 _source_filter		 = log_source_filter_e::all;
+		u8						 _log_filter_flags	 = log_level_filter_all;
+		bool					 _is_collapsed		 = false;
+		bool					 _is_visible		 = true;
+
+		static vector_t<log_record_t> _stored_logs;
+		static vector_t<log_record_t> _pending_logs;
+		static mutex_t				  _log_storage_mtx;
+		static u64					  _next_stored_log_sequence;
+		static u32					  _log_storage_generation;
+		static bool					  _log_listener_installed;
+	};
+}

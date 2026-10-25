@@ -1,0 +1,153 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+*/
+
+#pragma once
+
+#include "core/common/sfg_exports.hpp"
+
+#include "core/common/size_definitions.hpp"
+#include "core/data/fixed_vector.hpp"
+#include "core/runtime/ui/ui_common.hpp"
+
+namespace sfg::ui
+{
+	class input_router_t;
+	class paint_layer_t;
+	class layout_tree_t;
+
+	struct paint_pipelines_t
+	{
+		resource_handle_t default_pipeline		  = 0;
+		resource_handle_t text_pipeline			  = 0;
+		resource_handle_t grayscale_text_pipeline = 0;
+		resource_handle_t sdf_pipeline			  = 0;
+	};
+
+	enum class paint_kind_e : u8
+	{
+		none,
+		rect,
+		text,
+		custom,
+	};
+
+	enum paint_state_flag_e : u8
+	{
+		psf_has_hover	 = 1 << 0,
+		psf_has_press	 = 1 << 1,
+		psf_has_focus	 = 1 << 2,
+		psf_has_disabled = 1 << 3,
+	};
+
+	class vg_canvas_t;
+
+	using paint_custom_fn = void (*)(paint_layer_t& paint, widget_id_t id, vg_canvas_t& canvas, void* user_data);
+
+	struct paint_def_t
+	{
+		paint_kind_e		 kind		  = paint_kind_e::none;
+		u8					 state_flags  = 0;
+		vg_rect_paint_t		 rect		  = {};
+		vg_text_style_t		 text		  = {};
+		ui_render_state_t	 render_state = {};
+		vg_text_run_handle_t text_run	  = {};
+		// paint layer does not own this memory.
+		const char* text_data = nullptr;
+		u32			text_len  = 0;
+
+		vec4f_t		hover_color	   = {0, 0, 0, 0};
+		vec4f_t		press_color	   = {0, 0, 0, 0};
+		vec4f_t		focus_color	   = {0, 0, 0, 0};
+		vec4f_t		disabled_color = {0, 0, 0, 0};
+		widget_id_t state_source   = NULL_WIDGET;
+
+		paint_custom_fn custom_fn = nullptr;
+		void*			custom_ud = nullptr;
+	};
+
+	class SFG_API paint_layer_t
+	{
+	public:
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		void init(u32 max_widgets);
+		void uninit();
+		void update_text_layout(layout_tree_t& tree, vg_canvas_t& canvas, f32 ui_scale, f32 dpi_scale);
+		void paint_all(const layout_tree_t& tree, const input_router_t& input, vg_canvas_t& canvas, f32 ui_scale, f32 dpi_scale);
+
+		// -----------------------------------------------------------------------------
+		// widget
+		// -----------------------------------------------------------------------------
+
+		paint_def_t&	   def(widget_id_t id);
+		const paint_def_t& def_const(widget_id_t id) const;
+		void			   clear(widget_id_t id);
+
+		// -----------------------------------------------------------------------------
+		// draw
+		// -----------------------------------------------------------------------------
+
+		void set_rect(widget_id_t id, const vg_rect_paint_t& p, const ui_render_state_t& state = {});
+		void set_text(widget_id_t id, const char* text, u32 len, const vg_text_style_t& s, const ui_render_state_t& state = {});
+		void mark_text_layout_dirty(widget_id_t id);
+		void set_text_raster_mode(glyph_raster_mode_e raster_mode);
+		void set_custom(widget_id_t id, paint_custom_fn fn, void* user_data, const ui_render_state_t& state = {});
+		void set_hover_color(widget_id_t id, const vec4f_t& c);
+		void set_press_color(widget_id_t id, const vec4f_t& c);
+		void set_focus_color(widget_id_t id, const vec4f_t& c);
+		void set_disabled_color(widget_id_t id, const vec4f_t& c);
+		void set_state_source(widget_id_t id, widget_id_t source);
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		inline void set_pipelines(const paint_pipelines_t& pipelines)
+		{
+			_pipelines = pipelines;
+		}
+
+		inline const paint_pipelines_t& get_pipelines() const
+		{
+			return _pipelines;
+		}
+
+	private:
+		struct clip_stack_entry_t
+		{
+			clip_mode_e mode  = clip_mode_e::none;
+			u8			depth = 0;
+		};
+
+		void mark_all_text_layout_dirty();
+
+		fixed_vector_t<paint_def_t>		   _defs;
+		fixed_vector_t<clip_stack_entry_t> _clip_stack;
+		fixed_vector_t<widget_id_t>		   _dirty_text_layout;
+		fixed_vector_t<u8>				   _text_layout_dirty;
+		paint_pipelines_t				   _pipelines			  = {};
+		f32								   _text_layout_ui_scale  = 0.0f;
+		f32								   _text_layout_dpi_scale = 0.0f;
+		u32								   _text_run_generation	  = 0;
+	};
+}

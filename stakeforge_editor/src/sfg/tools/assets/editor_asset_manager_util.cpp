@@ -1,0 +1,536 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+
+*/
+
+#include "tools/assets/editor_asset_manager_util.hpp"
+#include "tools/assets/editor_asset_manager.hpp"
+#include "tools/assets/editor_asset_cooker.hpp"
+#include "tools/assets/editor_asset_dependencies.hpp"
+#include "tools/assets/editor_asset_io.hpp"
+#include "tools/assets/thumbnail/editor_asset_thumbnailer.hpp"
+#include "tools/assets/editor_asset_util.hpp"
+#include "tools/assets/editor_asset_path.hpp"
+#include "tools/assets/editor_default_asset_seeder.hpp"
+#include "tools/assets/editor_mesh_generator.hpp"
+#include "tools/editor_project.hpp"
+#include "tools/editor_work_controller.hpp"
+#include <sfg/core/data/hash_map.hpp>
+#include <sfg/core/data/istream.hpp>
+#include <sfg/core/data/ostream.hpp>
+#include <sfg/core/data/string_util.hpp>
+#include <sfg/core/io/assert.hpp>
+#include <sfg/core/io/file_system.hpp>
+#include <sfg/core/io/log.hpp>
+#include <sfg/core/runtime/resources/resource_manager.hpp>
+#include <sfg/core/runtime/resources/resource_type.hpp>
+
+namespace sfg
+{
+	namespace
+	{
+		struct import_status_context_t
+		{
+			editor_work_context_t* work_context = nullptr;
+			f32					   progress		= 0.0f;
+		};
+
+		void report_import_status(void* user_data, const char* text)
+		{
+			import_status_context_t& context = *static_cast<import_status_context_t*>(user_data);
+
+			context.work_context->set_progress(context.progress, text);
+		}
+
+		bool contains_guid(span_t<const sid_t> guids, sid_t guid)
+		{
+			for (size_t i = 0; i < guids.size; ++i)
+			{
+				if (guids.data[i] == guid)
+					return true;
+			}
+			return false;
+		}
+	}
+
+	void editor_asset_manager_util_t::build_asset_database(editor_asset_manager_t& asset_manager, const char* assets_dir)
+	{
+		vector_t<file_system_entry_t> entries;
+		file_system_t::get_entries_recursive(assets_dir, entries);
+
+		editor_asset_database_t& database = asset_manager._database;
+		database.clear();
+		database.reserve(static_cast<u32>(entries.size() + 1), static_cast<u32>(entries.size()));
+		hash_map_t<u64, bool> found_assets;
+		found_assets.reserve(entries.size());
+		vector_t<sid_t> used_guids;
+		used_guids.reserve(entries.size() * 2);
+
+		const string_t					 root_name = file_system_t::get_last_folder_from_path(assets_dir);
+		const string_t					 root_path = assets_dir;
+		const editor_asset_node_handle_t root_node = database.emplace_node(editor_asset_node_t{.name = root_name, .full_path = root_path, .type = editor_asset_node_type_e::folder});
+		database.set_root_node(root_node);
+
+		vector_t<string_t> parts;
+		for (const file_system_entry_t& entry : entries)
+		{
+			const string_t relative = file_system_t::get_relative(assets_dir, entry.path.c_str());
+			parts.resize(0);
+			string_util::split(parts, relative, "/");
+
+			editor_asset_node_handle_t parent			 = root_node;
+			const size_t			   folder_part_count = entry.type == file_system_entry_type_e::directory ? parts.size() : parts.size() - 1;
+			for (size_t i = 0; i < folder_part_count; ++i)
+				parent = asset_manager.get_or_create_child_folder(parent, parts[i]);
+
+			if (entry.type == file_system_entry_type_e::directory)
+				continue;
+
+			editor_asset_t asset = {};
+			if (file_system_t::get_file_extension(entry.path) == "sfg_asset")
+			{
+				if (!editor_asset_io_t::read_asset(entry.path.c_str(), asset))
+					continue;
+
+				const u64 asset_id = asset.guid;
+				if (asset_id == NULL_SID)
+				{
+					SFG_ERR("asset {0} has an invalid guid", entry.path.c_str());
+					continue;
+				}
+				if (found_assets.find(asset_id) != found_assets.end())
+				{
+					SFG_ERR("asset {0} has a duplicate guid", entry.path.c_str());
+					continue;
+				}
+				if (contains_guid({.data = used_guids.data(), .size = used_guids.size()}, asset_id))
+				{
+					SFG_ERR("asset {0} has a guid that collides with another resource guid", entry.path.c_str());
+					continue;
+				}
+
+				used_guids.push_back(asset.guid);
+				bool		rewrite_asset		   = false;
+				const sid_t builtin_thumbnail_guid = editor_asset_thumbnailer_t::get_builtin_thumbnail_guid(asset.asset_type);
+				if (builtin_thumbnail_guid != NULL_SID)
+				{
+					if (asset.thumbnail_guid != builtin_thumbnail_guid)
+					{
+						asset.thumbnail_guid = builtin_thumbnail_guid;
+						rewrite_asset		 = true;
+					}
+				}
+				else if (asset.thumbnail_guid == NULL_SID || contains_guid({.data = used_guids.data(), .size = used_guids.size()}, asset.thumbnail_guid) || asset.thumbnail_guid == asset.guid)
+				{
+					asset.thumbnail_guid = editor_asset_thumbnailer_t::make_thumbnail_guid(asset.asset_type, {.data = used_guids.data(), .size = used_guids.size()});
+					rewrite_asset		 = true;
+				}
+				if (rewrite_asset && !editor_asset_io_t::write_asset(entry.path.c_str(), asset))
+				{
+					SFG_ERR("failed to update asset thumbnail guid {0}", entry.path.c_str());
+					continue;
+				}
+
+				found_assets.emplace(asset_id, true);
+				if (builtin_thumbnail_guid == NULL_SID)
+					used_guids.push_back(asset.thumbnail_guid);
+				database.upsert_asset(std::move(asset));
+
+				const string_t					 name		= file_system_t::remove_extensions_from_path(parts.back());
+				const editor_asset_node_handle_t asset_node = database.emplace_node(editor_asset_node_t{.asset_id = asset_id, .name = name, .full_path = entry.path, .type = editor_asset_node_type_e::asset});
+				database.attach_node(parent, asset_node);
+			}
+			else
+			{
+				const editor_asset_node_type_e	 node_type = file_system_t::get_file_extension(entry.path) == "cs" ? editor_asset_node_type_e::script_file : editor_asset_node_type_e::file;
+				const editor_asset_node_handle_t file_node = database.emplace_node(editor_asset_node_t{.name = parts.back(), .full_path = entry.path, .type = node_type});
+				database.attach_node(parent, file_node);
+			}
+		}
+
+		database.rebuild_indices();
+		asset_manager._generation++;
+	}
+
+	void editor_asset_manager_util_t::ensure_integrity(editor_asset_manager_t& asset_manager, sid_t asset_id)
+	{
+		const string_t&					 assets_path = editor_project_t::get()._runtime.assets_path;
+		hash_map_t<u64, editor_asset_t>& assets		 = asset_manager._database.get_assets();
+		auto							 asset_it	 = assets.find(asset_id);
+
+		SFG_ASSERT(asset_it != assets.end());
+
+		editor_asset_t& asset = asset_it->second;
+
+		asset.status = editor_asset_status_e::ok;
+
+		const editor_asset_node_t* asset_node = asset_manager._database.find_asset_node_value(asset.guid);
+
+		SFG_ASSERT(asset_node != nullptr);
+
+		const auto	descriptor_it  = asset_manager._asset_descriptors.find(asset.asset_type);
+		const char* asset_type_str = descriptor_it != asset_manager._asset_descriptors.end() && !descriptor_it->second.display_name.empty() ? descriptor_it->second.display_name.c_str() : "Unknown";
+
+		if (asset.source_type == editor_asset_source_type_e::embedded && asset.embedded_source.empty())
+		{
+			asset.status = editor_asset_status_e::missing_embedded_data;
+			SFG_WARN("asset {0}, {1}, {2} has missing embedded data", asset_node->full_path.c_str(), asset.guid, asset_type_str);
+		}
+		else if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
+		{
+			string_t source_path = file_system_t::get_absolute_path(assets_path.c_str());
+
+			source_path += asset.source_relative;
+
+			if (asset.source_relative.empty() || !file_system_t::exists(source_path.c_str()))
+			{
+				asset.status = editor_asset_status_e::missing_file_source;
+				SFG_WARN("asset {0}, {1}, {2} has missing file source {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, asset.source_relative.c_str());
+			}
+		}
+
+		vector_t<editor_asset_dependency_t> dependencies		 = {};
+		const bool							dependencies_fetched = editor_asset_dependencies_t::fetch_dependencies(asset, dependencies);
+
+		if (!dependencies_fetched)
+		{
+			SFG_WARN("asset {0}, {1}, {2} integrity check could not read dependencies", asset_node->full_path.c_str(), asset.guid, asset_type_str);
+
+			return;
+		}
+
+		for (const editor_asset_dependency_t& dependency : dependencies)
+		{
+			if (assets.find(dependency.sid) != assets.end())
+				continue;
+
+			// meh dont like this.
+			if (dependency.sid == DEFAULT_MESH_CUBE_GUID || dependency.sid == DEFAULT_MESH_SPHERE_GUID || dependency.sid == DEFAULT_MESH_CYLINDER_GUID || dependency.sid == DEFAULT_MESH_CAPSULE_GUID || dependency.sid == DEFAULT_MESH_PLANE_GUID)
+				continue;
+
+			if (asset.status == editor_asset_status_e::ok)
+				asset.status = editor_asset_status_e::missing_dependency;
+
+			SFG_WARN("asset {0}, {1}, {2} has missing dependency {3}", asset_node->full_path.c_str(), asset.guid, asset_type_str, dependency.sid);
+		}
+
+		if (asset.status == editor_asset_status_e::ok)
+			SFG_INFO("asset {0}, {1}, {2} passed integrity check", asset_node->full_path.c_str(), asset.guid, asset_type_str);
+		else
+			SFG_WARN("asset {0}, {1}, {2} failed integrity check", asset_node->full_path.c_str(), asset.guid, asset_type_str);
+	}
+
+	bool editor_asset_manager_util_t::ensure_project_assets(editor_asset_manager_t& asset_manager, editor_work_context_t& work_context)
+	{
+		const string_t def_assets_path = editor_project_t::get()._runtime.default_assets_path;
+		const string_t cache_path	   = editor_project_t::get()._runtime.cache_path;
+		const string_t assets_path	   = editor_project_t::get()._runtime.assets_path;
+
+		{
+			work_context.set_progress(0.0f, "Ensuring default assets");
+
+			if (!file_system_t::exists(def_assets_path.c_str()))
+				file_system_t::create_directory(def_assets_path.c_str());
+
+			editor_default_asset_seeder_t::ensure(def_assets_path.c_str());
+
+			work_context.set_progress(0.15f, "Scanning project assets");
+			editor_asset_manager_util_t::build_asset_database(asset_manager, assets_path.c_str());
+
+			work_context.set_progress(0.3f, "Cleaning asset cache");
+
+			// clean stale binarires
+			{
+				SFG_ASSERT(!cache_path.empty());
+
+				vector_t<file_system_entry_t> entries = {};
+				file_system_t::get_entries_recursive(cache_path.c_str(), entries);
+
+				for (const file_system_entry_t& entry : entries)
+				{
+					if (entry.type != file_system_entry_type_e::file)
+						continue;
+
+					const string_t guid_text = file_system_t::get_filename_from_path(entry.path);
+					u64			   guid		 = 0;
+					string_util::to_big_uint(guid_text, guid);
+
+					if (file_system_t::get_file_extension(entry.path) != "sfg_bin")
+						continue;
+
+					if (asset_manager.find_asset(guid) != nullptr)
+						continue;
+
+					bool found_thumbnail_asset = false;
+
+					for (const auto& asset_pair : asset_manager._database.get_assets())
+					{
+						if (asset_pair.second.thumbnail_guid == guid)
+						{
+							found_thumbnail_asset = true;
+							break;
+						}
+					}
+
+					if (found_thumbnail_asset)
+						continue;
+
+					if (file_system_t::delete_file(entry.path.c_str()))
+						SFG_ERR("failed deleting orphaned cache file {0}", entry.path.c_str());
+				}
+			}
+
+			work_context.set_progress(0.45f, "Cooking project assets");
+			// cook missing files.
+			{
+				hash_map_t<u64, editor_asset_t>& assets		 = asset_manager._database.get_assets();
+				const size_t					 asset_count = assets.size();
+				size_t							 index		 = 0;
+
+				for (auto& asset_pair : assets)
+				{
+					editor_asset_t& asset	 = asset_pair.second;
+					const f32		progress = asset_count != 0 ? 0.45f + (0.25f * static_cast<f32>(index) / static_cast<f32>(asset_count)) : 0.7f;
+					work_context.set_progress(progress, "Cooking project assets");
+					++index;
+
+					if (asset.status != editor_asset_status_e::ok)
+						continue;
+
+					if (!editor_asset_cooker_t::is_cookable(asset.asset_type))
+						continue;
+
+					if (editor_asset_cooker_t::is_asset_cooked(asset))
+						continue;
+
+					if (!editor_asset_cooker_t::cook_asset(asset))
+					{
+						SFG_ERR("failed cooking asset {0}", asset.guid);
+						continue;
+					}
+				}
+			}
+
+			work_context.set_progress(0.7f, "Preparing asset thumbnails");
+			// ensure thumbs
+			{
+				hash_map_t<u64, editor_asset_t>& assets		 = asset_manager._database.get_assets();
+				const size_t					 asset_count = assets.size();
+				size_t							 index		 = 0;
+
+				for (auto& asset_pair : assets)
+				{
+					editor_asset_t& asset	 = asset_pair.second;
+					const f32		progress = asset_count != 0 ? 0.7f + (0.25f * static_cast<f32>(index) / static_cast<f32>(asset_count)) : 0.95f;
+					work_context.set_progress(progress, "Preparing asset thumbnails");
+					++index;
+
+					const string_t thumb_cache = editor_asset_path_t::get_cache_path_for_guid(asset.thumbnail_guid);
+
+					if (!file_system_t::exists(thumb_cache.c_str()))
+						editor_asset_thumbnailer_t::generate_thumbnail(asset, nullptr);
+				}
+			}
+		}
+
+		work_context.set_progress(1.0f, "Project assets ready");
+
+		return true;
+	}
+
+	void editor_asset_manager_util_t::import_assets(const char* target_directory, span_t<const string_t> paths, span_t<const editor_asset_import_options_t> import_options, editor_work_context_t& work_context, vector_t<string_t>& out_imported_asset_paths)
+	{
+		import_status_context_t status_context{
+			.work_context = &work_context,
+		};
+		const editor_asset_import_context_t context{
+			.user_data	= &status_context,
+			.set_status = report_import_status,
+		};
+		vector_t<editor_asset_t>			 imported_assets	  = {};
+		vector_t<string_t>					 imported_asset_paths = {};
+		const editor_asset_import_options_t* orm_options		  = nullptr;
+
+		out_imported_asset_paths.resize(0);
+		out_imported_asset_paths.reserve(paths.size);
+
+		for (size_t i = 0; i < import_options.size; ++i)
+		{
+			if (import_options.data[i].type == editor_asset_import_type_e::orm_texture)
+			{
+				orm_options = &import_options.data[i];
+				break;
+			}
+		}
+
+		if (orm_options != nullptr)
+		{
+			work_context.set_progress(0.0f, "Importing ORM texture");
+
+			if (!editor_asset_importer_t::import_texture_orm(target_directory, paths, orm_options->texture_cook_config, context, imported_assets, imported_asset_paths))
+				SFG_ERR("failed importing ORM texture");
+			else
+			{
+				out_imported_asset_paths.reserve(imported_asset_paths.size());
+
+				for (string_t& asset_path : imported_asset_paths)
+					out_imported_asset_paths.push_back(std::move(asset_path));
+			}
+
+			work_context.set_progress(1.0f, "ORM texture import completed");
+			return;
+		}
+
+		for (size_t i = 0; i < paths.size; ++i)
+		{
+			const string_t& path	= paths.data[i];
+			status_context.progress = paths.size != 0 ? static_cast<f32>(i) / static_cast<f32>(paths.size) : 1.0f;
+
+			work_context.set_progress(status_context.progress, path.c_str());
+			imported_assets.resize(0);
+			imported_asset_paths.resize(0);
+
+			if (!editor_asset_importer_t::import_asset(target_directory, path.c_str(), import_options, context, imported_assets, imported_asset_paths))
+				SFG_ERR("failed importing asset {0}", path.c_str());
+			else
+			{
+				out_imported_asset_paths.reserve(out_imported_asset_paths.size() + imported_asset_paths.size());
+
+				for (string_t& asset_path : imported_asset_paths)
+					out_imported_asset_paths.push_back(std::move(asset_path));
+			}
+
+			const f32 done_progress = paths.size != 0 ? static_cast<f32>(i + 1) / static_cast<f32>(paths.size) : 1.0f;
+
+			work_context.set_progress(done_progress, path.c_str());
+		}
+
+		work_context.set_progress(1.0f, "Import completed");
+	}
+
+	void editor_asset_manager_util_t::ensure_default_meshes()
+	{
+		resource_manager_t& resource_manager = resource_manager_t::get();
+
+		if (resource_manager.find_entry(DEFAULT_MESH_CUBE_GUID) == nullptr)
+		{
+			ostream_t stream = {};
+
+			if (editor_mesh_generator_t::generate_cube({.size = vec3f_t::one}, stream))
+			{
+				istream_t istream = {};
+
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(DEFAULT_MESH_CUBE_GUID, resource_type_e::mesh, istream);
+			}
+		}
+
+		if (resource_manager.find_entry(DEFAULT_MESH_PLANE_GUID) == nullptr)
+		{
+			ostream_t stream = {};
+
+			if (editor_mesh_generator_t::generate_plane({.size = vec2f_t::one}, stream))
+			{
+				istream_t istream = {};
+
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(DEFAULT_MESH_PLANE_GUID, resource_type_e::mesh, istream);
+			}
+		}
+
+		if (resource_manager.find_entry(DEFAULT_MESH_SPHERE_GUID) == nullptr)
+		{
+			ostream_t stream = {};
+
+			if (editor_mesh_generator_t::generate_sphere({}, stream))
+			{
+				istream_t istream = {};
+
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(DEFAULT_MESH_SPHERE_GUID, resource_type_e::mesh, istream);
+			}
+		}
+
+		if (resource_manager.find_entry(DEFAULT_MESH_CYLINDER_GUID) == nullptr)
+		{
+			ostream_t stream = {};
+
+			if (editor_mesh_generator_t::generate_cylinder({}, stream))
+			{
+				istream_t istream = {};
+
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(DEFAULT_MESH_CYLINDER_GUID, resource_type_e::mesh, istream);
+			}
+		}
+
+		if (resource_manager.find_entry(DEFAULT_MESH_CAPSULE_GUID) == nullptr)
+		{
+			ostream_t stream = {};
+
+			if (editor_mesh_generator_t::generate_capsule({}, stream))
+			{
+				istream_t istream = {};
+
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(DEFAULT_MESH_CAPSULE_GUID, resource_type_e::mesh, istream);
+			}
+		}
+
+		if (resource_manager.find_entry(GIZMO_MESH_TRANSLATION) == nullptr)
+		{
+			ostream_t stream = {};
+
+			if (editor_mesh_generator_t::generate_translation_gizmo({}, stream))
+			{
+				istream_t istream = {};
+
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(GIZMO_MESH_TRANSLATION, resource_type_e::mesh, istream);
+			}
+		}
+
+		if (resource_manager.find_entry(GIZMO_MESH_ROTATION) == nullptr)
+		{
+			ostream_t stream = {};
+
+			if (editor_mesh_generator_t::generate_rotation_gizmo({}, stream))
+			{
+				istream_t istream = {};
+
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(GIZMO_MESH_ROTATION, resource_type_e::mesh, istream);
+			}
+		}
+
+		if (resource_manager.find_entry(GIZMO_MESH_SCALE) == nullptr)
+		{
+			ostream_t stream = {};
+
+			if (editor_mesh_generator_t::generate_scale_gizmo({}, stream))
+			{
+				istream_t istream = {};
+
+				istream.open(stream.get_raw(), stream.get_size());
+				resource_manager.load_resource_runtime(GIZMO_MESH_SCALE, resource_type_e::mesh, istream);
+			}
+		}
+	}
+}

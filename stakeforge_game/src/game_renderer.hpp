@@ -22,10 +22,10 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
-#include <sfg/data/atomic.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/gfx/common/semaphore_data.hpp>
-#include <sfg/math/vec2u16.hpp>
+#include <sfg/core/data/atomic.hpp>
+#include <sfg/core/gfx/common/gfx_constants.hpp>
+#include <sfg/core/gfx/common/semaphore_data.hpp>
+#include <sfg/core/math/vec2u16.hpp>
 
 #include <thread>
 

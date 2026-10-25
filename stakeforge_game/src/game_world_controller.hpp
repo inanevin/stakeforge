@@ -22,12 +22,12 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
-#include <sfg/data/atomic.hpp>
-#include <sfg/gfx/common/gfx_constants.hpp>
-#include <sfg/math/vec2u16.hpp>
-#include <sfg/runtime/render/world_render_context.hpp>
-#include <sfg/runtime/render/world_render_snapshot.hpp>
-#include <sfg/runtime/world/world.hpp>
+#include <sfg/core/data/atomic.hpp>
+#include <sfg/core/gfx/common/gfx_constants.hpp>
+#include <sfg/core/math/vec2u16.hpp>
+#include <sfg/core/runtime/render/world_render_context.hpp>
+#include <sfg/core/runtime/render/world_render_snapshot.hpp>
+#include <sfg/core/runtime/world/world.hpp>
 
 namespace sfg
 {

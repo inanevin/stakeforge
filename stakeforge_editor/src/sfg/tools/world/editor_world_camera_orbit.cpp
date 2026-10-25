@@ -1,0 +1,241 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+*/
+
+#include "tools/world/editor_world_camera_orbit.hpp"
+#include <sfg/core/math/aabb.hpp>
+#include <sfg/core/math/easing.hpp>
+#include <sfg/core/math/math.hpp>
+#include <sfg/core/memory/memory.hpp>
+#include <sfg/core/runtime/world/ecs.hpp>
+#include <sfg/core/runtime/world/engine_components.hpp>
+#include <sfg/core/runtime/world/world.hpp>
+#include <sfg/core/vendor/nhlohmann/json.hpp>
+
+namespace sfg
+{
+#define EDITOR_WORLD_CAMERA_ORBIT_MOUSE_SENSITIVITY 0.2f
+#define EDITOR_WORLD_CAMERA_ORBIT_PAN_SENSITIVITY	0.002f
+#define EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE		0.1f
+#define EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE		1000.0f
+#define EDITOR_WORLD_CAMERA_ORBIT_WHEEL_STEP		0.15f
+#define EDITOR_WORLD_CAMERA_ORBIT_ZOOM_SMOOTH_TIME	0.12f
+#define EDITOR_WORLD_CAMERA_ORBIT_ZOOM_MAX_SPEED	1000.0f
+
+	void editor_world_camera_orbit_t::init(world_t& world)
+	{
+		_camera_entity = world.create_entity("editor camera");
+
+		component_camera_t& camera = world.get_component_table(type_id_t<component_camera_t>::value).add_or_get_as<component_camera_t>(_camera_entity);
+		camera.priority			   = -1;
+		camera.near_plane		   = 0.01f;
+
+		world.get_component_table(type_id_t<component_post_process_t>::value).add_or_get_as<component_post_process_t>(_camera_entity);
+		world.get_component_table(type_id_t<component_no_serialize_t>::value).add(_camera_entity);
+
+		apply_transform(world);
+	}
+
+	void editor_world_camera_orbit_t::uninit(world_t& world)
+	{
+		cancel_focus();
+		world.destroy_entity(_camera_entity);
+
+		_camera_entity		  = NULL_ENTITY_ID;
+		_camera_roll_degrees  = 0.0f;
+		_target				  = vec3f_t::zero;
+		_mouse_delta		  = vec2f_t::zero;
+		_camera_yaw_degrees	  = 0.0f;
+		_camera_pitch_degrees = 25.0f;
+		_distance			  = 8.0f;
+		_distance_target	  = 8.0f;
+		_distance_velocity	  = 0.0f;
+	}
+
+	void editor_world_camera_orbit_t::pass_input(world_t& world, const editor_world_camera_input_t& input)
+	{
+		if (is_focus_enabled())
+		{
+			const quat_t  rotation = world.get_entity_rot_local(_camera_entity);
+			const vec2f_t angles   = get_camera_angles(rotation);
+
+			_camera_pitch_degrees = angles.x;
+			_camera_roll_degrees  = 0.0f;
+			_camera_yaw_degrees	  = angles.y;
+			_target				  = world.get_entity_pos_local(_camera_entity) + rotation.get_forward() * _distance;
+			_distance_target	  = _distance;
+			_distance_velocity	  = 0.0f;
+		}
+
+		cancel_focus();
+
+		if (input.reset)
+		{
+			_mouse_delta	   = vec2f_t::zero;
+			_distance_target   = _distance;
+			_distance_velocity = 0.0f;
+
+			return;
+		}
+
+		if (input.reset_target)
+		{
+			_target		 = vec3f_t::zero;
+			_mouse_delta = vec2f_t::zero;
+
+			return;
+		}
+
+		if (input.pan)
+		{
+			const quat_t rotation  = world.get_entity_rot_local(_camera_entity);
+			const f32	 pan_scale = _distance * EDITOR_WORLD_CAMERA_ORBIT_PAN_SENSITIVITY;
+
+			_target += (rotation.get_up() * input.mouse_delta.y - rotation.get_right() * input.mouse_delta.x) * pan_scale;
+		}
+		else
+			_mouse_delta += input.mouse_delta;
+
+		if (input.wheel_delta != 0.0f)
+			_distance_target = math::clamp(_distance_target - input.wheel_delta * _distance_target * EDITOR_WORLD_CAMERA_ORBIT_WHEEL_STEP, EDITOR_WORLD_CAMERA_ORBIT_MIN_DISTANCE, EDITOR_WORLD_CAMERA_ORBIT_MAX_DISTANCE);
+	}
+
+	void editor_world_camera_orbit_t::fit_to_bounds(world_t& world, const aabb_t& bounds)
+	{
+		vec3f_t target_position = vec3f_t::zero;
+		quat_t	target_rotation = quat_t::identity;
+
+		calculate_focus_target(world.get_entity_pos_local(_camera_entity), world.get_entity_rot_local(_camera_entity), bounds, target_position, target_rotation);
+
+		const vec2f_t angles = get_camera_angles(target_rotation);
+
+		_camera_pitch_degrees = angles.x;
+		_camera_roll_degrees  = 0.0f;
+		_camera_yaw_degrees	  = angles.y;
+		_target				  = (bounds.bounds_min + bounds.bounds_max) * 0.5f;
+		_distance			  = vec3f_t::distance(_target, target_position);
+		_distance_target	  = _distance;
+		_distance_velocity	  = 0.0f;
+		_mouse_delta		  = vec2f_t::zero;
+
+		begin_focus(world, target_position, target_rotation);
+	}
+
+	void editor_world_camera_orbit_t::tick(world_t& world, f32 dt_seconds)
+	{
+		if (tick_focus(world, dt_seconds))
+			return;
+
+		_camera_yaw_degrees -= _mouse_delta.x * EDITOR_WORLD_CAMERA_ORBIT_MOUSE_SENSITIVITY;
+		_camera_pitch_degrees -= _mouse_delta.y * EDITOR_WORLD_CAMERA_ORBIT_MOUSE_SENSITIVITY;
+
+		if (_mouse_delta.y != 0.0f)
+			_camera_pitch_degrees = math::clamp(_camera_pitch_degrees, -89.0f, 89.0f);
+
+		_mouse_delta = vec2f_t::zero;
+
+		_distance = easing_t::smooth_damp(_distance, _distance_target, &_distance_velocity, EDITOR_WORLD_CAMERA_ORBIT_ZOOM_SMOOTH_TIME, EDITOR_WORLD_CAMERA_ORBIT_ZOOM_MAX_SPEED, dt_seconds);
+
+		apply_transform(world);
+	}
+
+	void editor_world_camera_orbit_t::serialize(const world_t& world, nlohmann::json& out_json) const
+	{
+		const vec3f_t& position = world.get_entity_pos_local(_camera_entity);
+		const quat_t&  rotation = world.get_entity_rot_local(_camera_entity);
+
+		out_json = {
+			{"position", {{"x", position.x}, {"y", position.y}, {"z", position.z}}},
+			{"rotation", {{"x", rotation.x}, {"y", rotation.y}, {"z", rotation.z}, {"w", rotation.w}}},
+			{"target", {{"x", _target.x}, {"y", _target.y}, {"z", _target.z}}},
+			{"yaw_degrees", _camera_yaw_degrees},
+			{"pitch_degrees", _camera_pitch_degrees},
+			{"roll_degrees", _camera_roll_degrees},
+			{"distance", _distance},
+			{"distance_target", _distance_target},
+			{"distance_velocity", _distance_velocity},
+		};
+	}
+
+	void editor_world_camera_orbit_t::deserialize(world_t& world, const nlohmann::json& in_json)
+	{
+		cancel_focus();
+
+		vec3f_t position = world.get_entity_pos_local(_camera_entity);
+		quat_t	rotation = world.get_entity_rot_local(_camera_entity);
+
+		const nlohmann::json position_json = in_json.value<nlohmann::json>("position", nlohmann::json::object());
+		const nlohmann::json rotation_json = in_json.value<nlohmann::json>("rotation", nlohmann::json::object());
+
+		position.x = position_json.value<f32>("x", position.x);
+		position.y = position_json.value<f32>("y", position.y);
+		position.z = position_json.value<f32>("z", position.z);
+		rotation.x = rotation_json.value<f32>("x", rotation.x);
+		rotation.y = rotation_json.value<f32>("y", rotation.y);
+		rotation.z = rotation_json.value<f32>("z", rotation.z);
+		rotation.w = rotation_json.value<f32>("w", rotation.w);
+
+		const vec3f_t euler = quat_t::to_euler(rotation);
+
+		_camera_yaw_degrees	  = in_json.value<f32>("yaw_degrees", euler.y);
+		_camera_pitch_degrees = in_json.value<f32>("pitch_degrees", euler.x);
+		_camera_roll_degrees  = in_json.value<f32>("roll_degrees", euler.z);
+		_distance			  = in_json.value<f32>("distance", _distance);
+		_distance_target	  = in_json.value<f32>("distance_target", _distance);
+		_distance_velocity	  = in_json.value<f32>("distance_velocity", 0.0f);
+		_target				  = position + rotation.get_forward() * _distance;
+
+		const nlohmann::json target_json = in_json.value<nlohmann::json>("target", nlohmann::json::object());
+
+		_target.x	 = target_json.value<f32>("x", _target.x);
+		_target.y	 = target_json.value<f32>("y", _target.y);
+		_target.z	 = target_json.value<f32>("z", _target.z);
+		_mouse_delta = vec2f_t::zero;
+
+		apply_transform(world);
+	}
+
+	void editor_world_camera_orbit_t::apply_transform(world_t& world)
+	{
+		const quat_t rotation = quat_t::from_euler(_camera_pitch_degrees, _camera_yaw_degrees, _camera_roll_degrees);
+		world.set_entity_rot_local(_camera_entity, rotation);
+		world.set_entity_pos_local(_camera_entity, _target - rotation.get_forward() * _distance);
+	}
+
+	void editor_world_camera_orbit_t::set_transform(world_t& world, const vec3f_t& position, const quat_t& rotation)
+	{
+		cancel_focus();
+
+		const vec3f_t angles = quat_t::to_euler(rotation);
+
+		_camera_pitch_degrees = angles.x;
+		_camera_yaw_degrees	  = angles.y;
+		_camera_roll_degrees  = angles.z;
+		_mouse_delta		  = vec2f_t::zero;
+		_target				  = position + rotation.get_forward() * _distance;
+		_distance_target	  = _distance;
+		_distance_velocity	  = 0.0f;
+
+		world.set_entity_pos_local(_camera_entity, position);
+		world.set_entity_rot_local(_camera_entity, rotation);
+		world.set_entity_scale_local(_camera_entity, vec3f_t::one);
+		world.mark_entity_teleported(_camera_entity);
+	}
+}

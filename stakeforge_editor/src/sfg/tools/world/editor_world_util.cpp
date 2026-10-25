@@ -1,0 +1,824 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+*/
+
+#include "tools/world/editor_world_util.hpp"
+#include "tools/assets/editor_asset.hpp"
+#include "tools/ui/panels/editor_theme.hpp"
+#include <sfg/core/common/hashing.hpp>
+#include <sfg/core/data/char_util.hpp>
+#include <sfg/core/data/frame_vector.hpp>
+#include <sfg/core/io/assert.hpp>
+#include <sfg/core/math/color.hpp>
+#include <sfg/core/math/mat4x3.hpp>
+#include <sfg/core/math/math.hpp>
+#include <sfg/core/math/quat.hpp>
+#include <sfg/core/math/vec2u16.hpp>
+#include <sfg/core/runtime/render/world_render_snapshot.hpp>
+#include <sfg/core/runtime/resources/physics_collision_mesh.hpp>
+#include <sfg/core/runtime/resources/resource_manager.hpp>
+#include <sfg/core/runtime/world/ecs.hpp>
+#include <sfg/core/runtime/world/engine_components.hpp>
+#include <sfg/core/runtime/world/system_components.hpp>
+#include <sfg/core/runtime/world/world.hpp>
+#include <sfg/core/runtime/world/world_debug_draw.hpp>
+
+namespace sfg
+{
+#define EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS	  0.06f
+#define EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH	  0.5f
+#define EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH 0.12f
+#define EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS 0.05f
+#define EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS	  0.4f
+#define EDITOR_CONSTRAINT_GIZMO_CONE_LENGTH		  0.65f
+#define EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT	  999999.0f
+#define EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS	  0.05f
+#define EDITOR_WORLD_COMPONENT_ICON_SIZE_PX		  42.0f
+#define EDITOR_WORLD_COMPONENT_ICON_GAP_PX		  4.0f
+#define EDITOR_WORLD_ICON_AUDIO					  "editor/resource_pack/textures/icon_audio.png"_hs
+#define EDITOR_WORLD_ICON_BULB					  "editor/resource_pack/textures/icon_bulb.png"_hs
+#define EDITOR_WORLD_ICON_CAMERA				  "editor/resource_pack/textures/icon_camera.png"_hs
+#define EDITOR_WORLD_ICON_CONSTRAINT			  "editor/resource_pack/textures/icon_constraint.png"_hs
+#define EDITOR_WORLD_ICON_PROBE					  "editor/resource_pack/textures/icon_probe.png"_hs
+
+	namespace
+	{
+		void draw_physics_shape(world_debug_draw_t&	 debug_draw,
+								physics_shape_type_e shape,
+								const vec3f_t&		 half_extent,
+								f32					 radius,
+								f32					 half_height,
+								resource_handle_t	 collision_mesh_handle,
+								const vec3f_t&		 position,
+								const quat_t&		 rotation,
+								const vec3f_t&		 scale,
+								const color_t&		 color)
+		{
+			const vec3f_t abs_scale = vec3f_t::abs(scale);
+
+			switch (shape)
+			{
+			case physics_shape_type_e::box: {
+				const mat4x3_t shape_transform = mat4x3_t::transform(position, rotation, vec3f_t::one);
+
+				debug_draw.draw_box(shape_transform, vec3f_t::max(half_extent * abs_scale, {EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS, EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS, EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS}), color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			}
+			case physics_shape_type_e::sphere: {
+				const f32 scaled_radius = math::max(radius * math::max(abs_scale.x, math::max(abs_scale.y, abs_scale.z)), 0.001f);
+
+				debug_draw.draw_sphere(position, scaled_radius, color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			}
+			case physics_shape_type_e::capsule: {
+				const f32 scaled_radius		 = math::max(radius * math::max(abs_scale.x, abs_scale.z), 0.001f);
+				const f32 scaled_half_height = math::max(half_height * abs_scale.y, 0.001f);
+
+				debug_draw.draw_capsule(position, scaled_radius, scaled_half_height, rotation.get_up(), color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			}
+			case physics_shape_type_e::cylinder: {
+				const f32 scaled_radius		 = math::max(radius * math::max(abs_scale.x, abs_scale.z), EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS);
+				const f32 scaled_half_height = math::max(half_height * abs_scale.y, EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS);
+
+				debug_draw.draw_cylinder(position, scaled_radius, scaled_half_height, rotation.get_up(), color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			}
+			case physics_shape_type_e::mesh: {
+				const physics_collision_mesh_runtime_t* collision_mesh = resource_manager_t::get().find_runtime<physics_collision_mesh_runtime_t>(collision_mesh_handle);
+
+				if (collision_mesh == nullptr)
+					break;
+
+				const chunk_allocator_t& memory	  = resource_manager_t::get().get_memory();
+				const vec3f_t*			 vertices = memory.get<vec3f_t>(collision_mesh->vertices);
+				const primitive_index*	 indices  = memory.get<primitive_index>(collision_mesh->indices);
+
+				for (u32 index = 0; index < collision_mesh->index_count; index += 3)
+				{
+					const vec3f_t p0 = position + rotation * (vertices[indices[index]] * scale);
+					const vec3f_t p1 = position + rotation * (vertices[indices[index + 1]] * scale);
+					const vec3f_t p2 = position + rotation * (vertices[indices[index + 2]] * scale);
+
+					debug_draw.draw_triangle(p0, p1, p2, color);
+				}
+
+				break;
+			}
+			case physics_shape_type_e::compound:
+				break;
+			}
+		}
+	}
+
+	entity_id_t editor_world_util_t::install_default_scene_light(world_t& world)
+	{
+		const entity_id_t environment = world.create_entity("environment");
+		world.set_entity_rot_local(environment, quat_t::from_euler(-32.0f, 0.0f, 0.0f));
+
+		component_light_t& light = world.get_component_table(type_id_t<component_light_t>::value).add_or_get_as<component_light_t>(environment);
+		light.intensity			 = 4.5f;
+		light.range				 = 10.0f;
+		light.type				 = light_type_e::directional;
+		light.cast_shadows		 = 1;
+
+		component_environment_t& environment_component = world.get_component_table(type_id_t<component_environment_t>::value).add_or_get_as<component_environment_t>(environment);
+		environment_component.skybox_material		   = DEFAULT_GRADIENT_SKYBOX_MATERIAL_ASSET_GUID;
+		environment_component.ambient_color			   = color_t::white;
+		environment_component.intensity				   = 1.0f;
+
+		world.scan_for_resources(environment, true);
+
+		const entity_id_t ground = world.create_entity("ground");
+
+		component_mesh_renderer_t& mesh_renderer = world.get_component_table(type_id_t<component_mesh_renderer_t>::value).add_or_get_as<component_mesh_renderer_t>(ground);
+		mesh_renderer.mesh						 = DEFAULT_MESH_PLANE_GUID;
+		mesh_renderer.materials.push_back(DEFAULT_GRID_MATERIAL_ASSET_GUID);
+
+		component_transform_t& transform = world.get_component_table(type_id_t<component_transform_t>::value).add_or_get_as<component_transform_t>(ground);
+		transform.scale					 = vec3f_t(50, 1, 50);
+
+		world.scan_for_resources(ground, true);
+
+		return environment;
+	}
+
+	entity_id_t editor_world_util_t::install_default_scene_dark(world_t& world, f32 spotlight_y)
+	{
+		const entity_id_t environment = world.create_entity("environment");
+
+		world.set_entity_pos_local(environment, {0.0f, spotlight_y, 0.0f});
+		world.set_entity_rot_local(environment, quat_t::from_euler(-90.0f, 0.0f, 0.0f));
+
+		component_light_t& light = world.get_component_table(type_id_t<component_light_t>::value).add_or_get_as<component_light_t>(environment);
+
+		light.intensity	   = 25.0f;
+		light.range		   = math::max(10.0f, spotlight_y * 2.0f);
+		light.type		   = light_type_e::spot;
+		light.cast_shadows = 1;
+
+		component_environment_t& environment_component = world.get_component_table(type_id_t<component_environment_t>::value).add_or_get_as<component_environment_t>(environment);
+
+		environment_component.skybox_material = DEFAULT_GRADIENT_DARK_SKYBOX_MATERIAL_ASSET_GUID;
+		environment_component.ambient_color	  = {0.368139f, 0.368139f, 0.368139f, 1.0f};
+		environment_component.intensity		  = 1.0f;
+
+		component_fog_t& fog = world.get_component_table(type_id_t<component_fog_t>::value).add_or_get_as<component_fog_t>(environment);
+
+		fog = {
+			.color			= {0.015199f, 0.015199f, 0.015199f, 1.0f},
+			.intensity		= 5.0f,
+			.density		= 0.01f,
+			.start_distance = 15.0f,
+			.end_distance	= 100.0f,
+			.height			= 0.0f,
+			.height_falloff = 0.1f,
+			.max_opacity	= 1.0f,
+			.type			= fog_type_e::linear,
+		};
+
+		world.scan_for_resources(environment, true);
+
+		const entity_id_t		   ground		 = world.create_entity("ground");
+		component_mesh_renderer_t& mesh_renderer = world.get_component_table(type_id_t<component_mesh_renderer_t>::value).add_or_get_as<component_mesh_renderer_t>(ground);
+
+		mesh_renderer.mesh = DEFAULT_MESH_PLANE_GUID;
+		mesh_renderer.materials.push_back(DEFAULT_GRID_DARK_MATERIAL_ASSET_GUID);
+
+		component_transform_t& transform = world.get_component_table(type_id_t<component_transform_t>::value).add_or_get_as<component_transform_t>(ground);
+
+		transform.scale = vec3f_t(50, 1, 50);
+
+		world.scan_for_resources(ground, true);
+
+		return environment;
+	}
+
+	void editor_world_util_t::draw_bounding_boxes(world_t& world, const world_render_snapshot_t& snapshot, entity_id_t editor_camera_entity)
+	{
+		world_debug_draw_t&	  debug_draw   = world.get_debug_draw();
+		const editor_theme_t& theme		   = editor_theme_t::get();
+		const color_t		  bounds_color = {theme.color_highlight.x, theme.color_highlight.y, theme.color_highlight.z, theme.color_highlight.w};
+
+		for (const world_renderable_t& renderable : snapshot.renderables)
+		{
+			const world_render_entity_t& entity = snapshot.entities[renderable.entity_index];
+
+			if (entity.entity_id == editor_camera_entity)
+				continue;
+
+			const mat4x3_t& bounds_transform = (renderable.flags & world_renderable_flag_world_space_aabb) != 0 ? mat4x3_t::identity : entity.transform;
+			const vec3f_t	center			 = (renderable.aabb.bounds_min + renderable.aabb.bounds_max) * 0.5f;
+			const vec3f_t	dimensions		 = renderable.aabb.bounds_half_extent * 2.0f;
+			const mat4x3_t	box_transform	 = bounds_transform * mat4x3_t::translation(center);
+			const vec3f_t	text_position	 = bounds_transform * vec3f_t(center.x, renderable.aabb.bounds_max.y, center.z);
+
+			debug_draw.draw_box(box_transform, renderable.aabb.bounds_half_extent, bounds_color, 2.0f, debug_draw_depth_e::always_visible);
+
+			char  dimensions_text[96] = {};
+			char* text_cur			  = dimensions_text;
+			char* text_end			  = dimensions_text + sizeof(dimensions_text);
+
+			char_util::append_double(text_cur, text_end, dimensions.x, 2);
+			char_util::append(text_cur, text_end, " x ");
+			char_util::append_double(text_cur, text_end, dimensions.y, 2);
+			char_util::append(text_cur, text_end, " x ");
+			char_util::append_double(text_cur, text_end, dimensions.z, 2);
+			debug_draw.draw_text_3d(text_position, dimensions_text, bounds_color, theme.text_small_px_size, debug_draw_depth_e::always_visible, debug_draw_text_alignment_e::bottom_center, {0.0f, -4.0f});
+		}
+	}
+
+	void editor_world_util_t::draw_component_icons(world_t& world, entity_id_t editor_camera_entity)
+	{
+		world_debug_draw_t&			 debug_draw				= world.get_debug_draw();
+		const ecs_component_table_t& alive_table			= world.get_component_table(type_id_t<component_alive_t>::value);
+		const ecs_component_table_t& transform_table		= world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& disabled_table			= world.get_component_table(type_id_t<component_disabled_t>::value);
+		const ecs_component_table_t& audio_source_table		= world.get_component_table(type_id_t<component_audio_source_t>::value);
+		const ecs_component_table_t& audio_listener_table	= world.get_component_table(type_id_t<component_audio_listener_t>::value);
+		const ecs_component_table_t& camera_table			= world.get_component_table(type_id_t<component_camera_t>::value);
+		const ecs_component_table_t& light_table			= world.get_component_table(type_id_t<component_light_t>::value);
+		const ecs_component_table_t& reflection_probe_table = world.get_component_table(type_id_t<component_reflection_probe_t>::value);
+		const ecs_component_table_t& fixed_table			= world.get_component_table(type_id_t<component_fixed_constraint_t>::value);
+		const ecs_component_table_t& distance_table			= world.get_component_table(type_id_t<component_distance_constraint_t>::value);
+		const ecs_component_table_t& point_table			= world.get_component_table(type_id_t<component_point_constraint_t>::value);
+		const ecs_component_table_t& hinge_table			= world.get_component_table(type_id_t<component_hinge_constraint_t>::value);
+		const ecs_component_table_t& cone_table				= world.get_component_table(type_id_t<component_cone_constraint_t>::value);
+		const ecs_component_table_t& slider_table			= world.get_component_table(type_id_t<component_slider_constraint_t>::value);
+		const ecs_component_table_t& swing_twist_table		= world.get_component_table(type_id_t<component_swing_twist_constraint_t>::value);
+		const ecs_component_table_t& six_dof_table			= world.get_component_table(type_id_t<component_six_dof_constraint_t>::value);
+		const ecs_component_table_t& pulley_table			= world.get_component_table(type_id_t<component_pulley_constraint_t>::value);
+		const ecs_component_table_t& vehicle_table			= world.get_component_table(type_id_t<component_vehicle_constraint_t>::value);
+		const ecs_component_table_t* constraint_tables[]	= {
+			&fixed_table,
+			&distance_table,
+			&point_table,
+			&hinge_table,
+			&cone_table,
+			&slider_table,
+			&swing_twist_table,
+			&six_dof_table,
+			&pulley_table,
+			&vehicle_table,
+		};
+		const ecs_component_table_ref_t table_refs[] = {
+			alive_table.ref(),
+			transform_table.ref(),
+			!disabled_table.ref(),
+		};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+		{
+			if (row.id == editor_camera_entity)
+				continue;
+
+			const component_system_transform_t& transform  = row.get<component_system_transform_t>(1);
+			resource_handle_t					icons[5]   = {};
+			u32									icon_count = 0;
+
+			if (audio_source_table.has(row.id) || audio_listener_table.has(row.id))
+				icons[icon_count++] = EDITOR_WORLD_ICON_AUDIO;
+
+			if (light_table.has(row.id))
+				icons[icon_count++] = EDITOR_WORLD_ICON_BULB;
+
+			if (camera_table.has(row.id))
+				icons[icon_count++] = EDITOR_WORLD_ICON_CAMERA;
+
+			bool has_constraint = false;
+
+			for (const ecs_component_table_t* table : constraint_tables)
+			{
+				if (!table->has(row.id))
+					continue;
+
+				has_constraint = true;
+				break;
+			}
+
+			if (has_constraint)
+				icons[icon_count++] = EDITOR_WORLD_ICON_CONSTRAINT;
+
+			if (reflection_probe_table.has(row.id))
+				icons[icon_count++] = EDITOR_WORLD_ICON_PROBE;
+
+			if (icon_count == 0)
+				continue;
+
+			const f32 stride_px = EDITOR_WORLD_COMPONENT_ICON_SIZE_PX + EDITOR_WORLD_COMPONENT_ICON_GAP_PX;
+			const f32 start_x	= -static_cast<f32>(icon_count - 1) * stride_px * 0.5f;
+
+			for (u32 icon_index = 0; icon_index < icon_count; ++icon_index)
+			{
+				debug_draw.draw_texture_3d(
+					transform.abs_pos, icons[icon_index], {EDITOR_WORLD_COMPONENT_ICON_SIZE_PX, EDITOR_WORLD_COMPONENT_ICON_SIZE_PX}, color_t::white, row.id, debug_draw_depth_e::always_visible, {start_x + static_cast<f32>(icon_index) * stride_px, 0.0f});
+			}
+		}
+	}
+
+	void editor_world_util_t::draw_selection_gizmos(world_t& world, span_t<const entity_id_t> selected_entities, const vec2u16_t& render_resolution)
+	{
+		world_debug_draw_t&			 debug_draw				= world.get_debug_draw();
+		const editor_theme_t&		 theme					= editor_theme_t::get();
+		const vec4f_t&				 accent_warn			= theme.color_accent_warn;
+		const vec4f_t&				 accent1				= theme.color_accent1;
+		const color_t				 debug_color			= {accent_warn.x, accent_warn.y, accent_warn.z, accent_warn.w};
+		const color_t				 collider_color			= {accent1.x, accent1.y, accent1.z, accent1.w};
+		const ecs_component_table_t& system_transform_table = world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& transform_table		= world.get_component_table(type_id_t<component_transform_t>::value);
+		const ecs_component_table_t& hierarchy_table		= world.get_component_table(type_id_t<component_hierarchy_t>::value);
+		const ecs_component_table_t& camera_table			= world.get_component_table(type_id_t<component_camera_t>::value);
+		const ecs_component_table_t& audio_source_table		= world.get_component_table(type_id_t<component_audio_source_t>::value);
+		const ecs_component_table_t& light_table			= world.get_component_table(type_id_t<component_light_t>::value);
+		const ecs_component_table_t& reflection_probe_table = world.get_component_table(type_id_t<component_reflection_probe_t>::value);
+		const ecs_component_table_t& physical_table			= world.get_component_table(type_id_t<component_physical_t>::value);
+		const ecs_component_table_t& character_mover_table	= world.get_component_table(type_id_t<component_character_mover_t>::value);
+		const ecs_component_table_t& compound_shape_table	= world.get_component_table(type_id_t<component_compound_shape_t>::value);
+		const ecs_component_table_t& particle_emitter_table = world.get_component_table(type_id_t<component_particle_emitter_t>::value);
+		frame_vector_t<entity_id_t>	 compound_parents		= {};
+		compound_parents.reserve(selected_entities.size);
+
+		for (size_t i = 0; i < selected_entities.size; ++i)
+		{
+			const entity_id_t					entity		   = selected_entities.data[i];
+			const component_system_transform_t& transform	   = system_transform_table.get_as_const<component_system_transform_t>(entity);
+			const component_camera_t*			camera		   = camera_table.find_as_const<component_camera_t>(entity);
+			const component_compound_shape_t*	compound_shape = compound_shape_table.find_as_const<component_compound_shape_t>(entity);
+
+			if (compound_shape != nullptr)
+			{
+				const component_hierarchy_t& hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(entity);
+
+				if (hierarchy.parent != NULL_ENTITY_ID && std::find(compound_parents.begin(), compound_parents.end(), hierarchy.parent) == compound_parents.end())
+					compound_parents.push_back(hierarchy.parent);
+			}
+
+			if (camera != nullptr)
+			{
+				SFG_ASSERT(render_resolution.x != 0 && render_resolution.y != 0);
+
+				debug_draw.draw_frustum(transform.abs_pos,
+										transform.abs_rot.get_forward(),
+										transform.abs_rot.get_up(),
+										camera->fov_degrees,
+										static_cast<f32>(render_resolution.x) / static_cast<f32>(render_resolution.y),
+										camera->near_plane,
+										camera->far_plane,
+										debug_color,
+										2.0f,
+										debug_draw_depth_e::always_visible);
+			}
+
+			const component_audio_source_t* audio_source = audio_source_table.find_as_const<component_audio_source_t>(entity);
+
+			if (audio_source != nullptr && audio_source->spatialized != 0)
+			{
+				if (audio_source->min_distance > 0.0f)
+					debug_draw.draw_sphere(transform.abs_pos, audio_source->min_distance, debug_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+
+				if (audio_source->max_distance > 0.0f && audio_source->max_distance != audio_source->min_distance)
+					debug_draw.draw_sphere(transform.abs_pos, audio_source->max_distance, debug_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+			}
+
+			const component_physical_t* physical = physical_table.find_as_const<component_physical_t>(entity);
+
+			if (physical != nullptr)
+			{
+				const quat_t  body_rotation = transform.abs_rot * physical->local_rotation;
+				const vec3f_t body_position = transform.abs_pos + transform.abs_rot * (physical->local_position * transform.abs_scale);
+				draw_physics_shape(debug_draw, physical->shape, physical->half_extent, physical->radius, physical->half_height, physical->collision_mesh, body_position, body_rotation, transform.abs_scale, collider_color);
+
+				if (physical->shape == physics_shape_type_e::compound && std::find(compound_parents.begin(), compound_parents.end(), entity) == compound_parents.end())
+					compound_parents.push_back(entity);
+			}
+
+			const component_character_mover_t* character_mover = character_mover_table.find_as_const<component_character_mover_t>(entity);
+
+			if (character_mover != nullptr)
+			{
+				const vec3f_t shape_position = transform.abs_pos + transform.abs_rot * character_mover->shape_offset;
+
+				debug_draw.draw_capsule(shape_position, math::max(character_mover->radius, 0.001f), math::max(character_mover->half_height, 0.001f), transform.abs_rot.get_up(), collider_color, 2.0f, debug_draw_depth_e::always_visible);
+			}
+
+			draw_constraint_gizmos(world, entity, transform, debug_draw);
+
+			const component_particle_emitter_t* particle_emitter = particle_emitter_table.find_as_const<component_particle_emitter_t>(entity);
+
+			if (particle_emitter != nullptr)
+			{
+				const aabb_t* bounds = world.get_particle_simulation().find_bounds(entity);
+
+				if (bounds != nullptr)
+					debug_draw.draw_aabb(*bounds, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+
+				switch (particle_emitter->shape)
+				{
+				case particle_spawn_shape_e::point:
+					debug_draw.draw_sphere(transform.abs_pos, 0.05f, debug_color, 2.0f, debug_draw_depth_e::always_visible, 12);
+					break;
+				case particle_spawn_shape_e::box: {
+					const mat4x3_t shape_transform = mat4x3_t::transform(transform.abs_pos, transform.abs_rot, vec3f_t::one);
+					const vec3f_t  half_extents	   = vec3f_t::abs(particle_emitter->box_half_extents * transform.abs_scale);
+
+					debug_draw.draw_box(shape_transform, half_extents, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+					break;
+				}
+				case particle_spawn_shape_e::sphere: {
+					const f32 radius = particle_emitter->shape_radius * math::max(math::abs(transform.abs_scale.x), math::max(math::abs(transform.abs_scale.y), math::abs(transform.abs_scale.z)));
+
+					debug_draw.draw_sphere(transform.abs_pos, radius, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+					break;
+				}
+				case particle_spawn_shape_e::cone:
+					debug_draw.draw_cone(transform.abs_pos,
+										 transform.abs_rot.get_forward(),
+										 particle_emitter->cone_length * math::abs(transform.abs_scale.z),
+										 math::degrees_to_radians(particle_emitter->cone_angle_degrees),
+										 debug_color,
+										 2.0f,
+										 debug_draw_depth_e::always_visible,
+										 24);
+					break;
+				}
+			}
+
+			const component_reflection_probe_t* reflection_probe = reflection_probe_table.find_as_const<component_reflection_probe_t>(entity);
+
+			if (reflection_probe != nullptr && !reflection_probe->is_global)
+			{
+				const mat4x3_t box_transform = mat4x3_t::transform(transform.abs_pos, transform.abs_rot, vec3f_t::one);
+				const vec3f_t  half_extents	 = vec3f_t::abs(reflection_probe->extents * transform.abs_scale);
+
+				debug_draw.draw_box(box_transform, half_extents, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+			}
+
+			const component_light_t* light = light_table.find_as_const<component_light_t>(entity);
+
+			if (light == nullptr)
+				continue;
+
+			const vec3f_t forward = transform.abs_rot.get_forward();
+
+			switch (light->type)
+			{
+			case light_type_e::directional: {
+				const vec3f_t offset = transform.abs_rot.get_right() * 0.25f;
+
+				debug_draw.draw_line(transform.abs_pos - offset, transform.abs_pos - offset + forward * 2.0f, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+				debug_draw.draw_line(transform.abs_pos, transform.abs_pos + forward * 2.0f, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+				debug_draw.draw_line(transform.abs_pos + offset, transform.abs_pos + offset + forward * 2.0f, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			}
+			case light_type_e::point:
+				if (light->range > 0.0f)
+					debug_draw.draw_sphere(transform.abs_pos, light->range, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			case light_type_e::spot:
+				if (light->range > 0.0f && light->outer_cone_degrees > 0.0f)
+					debug_draw.draw_frustum(transform.abs_pos, forward, transform.abs_rot.get_up(), light->outer_cone_degrees * 2.0f, 1.0f, 0.0f, light->range, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			case light_type_e::area:
+				if (light->area_size.x > 0.0f && light->area_size.y > 0.0f)
+					debug_draw.draw_rectangle(transform.abs_pos, transform.abs_rot.get_right(), transform.abs_rot.get_up(), light->area_size, debug_color, 2.0f, debug_draw_depth_e::always_visible);
+				break;
+			}
+		}
+
+		for (entity_id_t parent : compound_parents)
+		{
+			const component_physical_t* physical = physical_table.find_as_const<component_physical_t>(parent);
+
+			if (physical == nullptr || physical->shape != physics_shape_type_e::compound)
+				continue;
+
+			const component_system_transform_t& parent_transform = system_transform_table.get_as_const<component_system_transform_t>(parent);
+			const component_hierarchy_t&		parent_hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(parent);
+			const quat_t						body_rotation	 = parent_transform.abs_rot * physical->local_rotation;
+			const vec3f_t						body_position	 = parent_transform.abs_pos + parent_transform.abs_rot * (physical->local_position * parent_transform.abs_scale);
+
+			for (entity_id_t child = parent_hierarchy.first_child; child != NULL_ENTITY_ID;)
+			{
+				const component_hierarchy_t&	  child_hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(child);
+				const component_compound_shape_t* compound_shape  = compound_shape_table.find_as_const<component_compound_shape_t>(child);
+
+				if (compound_shape != nullptr)
+				{
+					const component_transform_t& child_transform = transform_table.get_as_const<component_transform_t>(child);
+					const vec3f_t				 child_position	 = (child_transform.pos + child_transform.rot * (compound_shape->local_position * child_transform.scale)) * parent_transform.abs_scale;
+					const quat_t				 shape_rotation	 = body_rotation * child_transform.rot * compound_shape->local_rotation;
+					const vec3f_t				 shape_position	 = body_position + body_rotation * child_position;
+					const vec3f_t				 shape_scale	 = parent_transform.abs_scale * child_transform.scale;
+					draw_physics_shape(debug_draw, compound_shape->shape, compound_shape->half_extent, compound_shape->radius, compound_shape->half_height, compound_shape->collision_mesh, shape_position, shape_rotation, shape_scale, collider_color);
+				}
+
+				child = child_hierarchy.next_sibling;
+			}
+		}
+	}
+
+	void editor_world_util_t::draw_transform_axes(world_debug_draw_t& debug_draw, const mat4x3_t& transform, f32 axis_length, f32 thickness_px, debug_draw_depth_e depth)
+	{
+		const editor_theme_t& theme			 = editor_theme_t::get();
+		const color_t		  axis_colors[3] = {
+			{theme.color_accent0.x, theme.color_accent0.y, theme.color_accent0.z, theme.color_accent0.w},
+			{theme.color_accent_green.x, theme.color_accent_green.y, theme.color_accent_green.z, theme.color_accent_green.w},
+			{theme.color_accent1.x, theme.color_accent1.y, theme.color_accent1.z, theme.color_accent1.w},
+		};
+		const vec3f_t position = transform.get_translation();
+
+		for (u32 axis_index = 0; axis_index < 3; ++axis_index)
+		{
+			const vec3f_t axis = transform.get_column(axis_index).normalized();
+			debug_draw.draw_line(position, position + axis * axis_length, axis_colors[axis_index], thickness_px, depth);
+		}
+	}
+
+	void editor_world_util_t::draw_constraint_gizmos(world_t& world, entity_id_t entity, const component_system_transform_t& transform, world_debug_draw_t& debug_draw)
+	{
+		const editor_theme_t&		 theme			   = editor_theme_t::get();
+		const vec4f_t&				 accent2		   = theme.color_accent2;
+		const vec4f_t&				 accent2_dim	   = theme.color_accent2_dim;
+		const vec4f_t&				 accent1		   = theme.color_accent1;
+		const vec4f_t&				 highlight		   = theme.color_highlight;
+		const color_t				 enabled_color	   = {accent2.x, accent2.y, accent2.z, accent2.w};
+		const color_t				 disabled_color	   = {accent2_dim.x, accent2_dim.y, accent2_dim.z, accent2_dim.w};
+		const color_t				 secondary_color   = {accent1.x, accent1.y, accent1.z, accent1.w};
+		const color_t				 limit_color	   = {highlight.x, highlight.y, highlight.z, highlight.w};
+		const ecs_component_table_t& transform_table   = world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& fixed_table	   = world.get_component_table(type_id_t<component_fixed_constraint_t>::value);
+		const ecs_component_table_t& distance_table	   = world.get_component_table(type_id_t<component_distance_constraint_t>::value);
+		const ecs_component_table_t& point_table	   = world.get_component_table(type_id_t<component_point_constraint_t>::value);
+		const ecs_component_table_t& hinge_table	   = world.get_component_table(type_id_t<component_hinge_constraint_t>::value);
+		const ecs_component_table_t& cone_table		   = world.get_component_table(type_id_t<component_cone_constraint_t>::value);
+		const ecs_component_table_t& slider_table	   = world.get_component_table(type_id_t<component_slider_constraint_t>::value);
+		const ecs_component_table_t& swing_twist_table = world.get_component_table(type_id_t<component_swing_twist_constraint_t>::value);
+		const ecs_component_table_t& six_dof_table	   = world.get_component_table(type_id_t<component_six_dof_constraint_t>::value);
+		const ecs_component_table_t& pulley_table	   = world.get_component_table(type_id_t<component_pulley_constraint_t>::value);
+		const ecs_component_table_t& vehicle_table	   = world.get_component_table(type_id_t<component_vehicle_constraint_t>::value);
+
+		auto find_target_transform = [&world, &transform_table, entity](entity_guid_t target_guid) -> const component_system_transform_t* {
+			if (target_guid == NULL_ENTITY_GUID)
+				return nullptr;
+
+			const entity_id_t target_entity = world.find_by_guid(target_guid);
+
+			if (target_entity == NULL_ENTITY_ID || target_entity == entity)
+				return nullptr;
+
+			return transform_table.find_as_const<component_system_transform_t>(target_entity);
+		};
+
+		auto draw_anchor_pair = [&debug_draw](const vec3f_t& local_point, const vec3f_t& target_point, const color_t& color) {
+			debug_draw.draw_sphere(local_point, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			debug_draw.draw_sphere(target_point, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			debug_draw.draw_line(local_point, target_point, color, 2.0f, debug_draw_depth_e::always_visible);
+		};
+
+		auto draw_frame = [&debug_draw, &secondary_color, &limit_color](const vec3f_t& point, const quat_t& rotation, const color_t& color) {
+			debug_draw.draw_arrow(point, point + rotation.get_right() * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(point, point + rotation.get_up() * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, limit_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(point, point + rotation.get_forward() * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, secondary_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+		};
+
+		auto draw_angular_limit = [&debug_draw](const vec3f_t& point, const vec3f_t& axis, const vec3f_t& reference, f32 min_degrees, f32 max_degrees, const color_t& color) {
+			const vec3f_t start_direction = reference.rotate(axis, min_degrees).normalized();
+			const vec3f_t end_direction	  = reference.rotate(axis, max_degrees).normalized();
+			const f32	  angle_radians	  = math::degrees_to_radians(max_degrees - min_degrees);
+
+			if (math::abs(angle_radians) > MATH_EPS)
+				debug_draw.draw_arc(point, axis, start_direction, EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, angle_radians, color, 2.0f, debug_draw_depth_e::always_visible, 24);
+
+			debug_draw.draw_line(point, point + start_direction * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(point, point + end_direction * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible);
+		};
+
+		if (const component_fixed_constraint_t* component = fixed_table.find_as_const<component_fixed_constraint_t>(entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+			const quat_t						local_frame		 = transform.abs_rot * component->local_rotation;
+			const quat_t						target_frame	 = target_transform != nullptr ? target_transform->abs_rot * component->target_rotation : component->target_rotation;
+
+			draw_anchor_pair(local_point, target_point, color);
+			draw_frame(local_point, local_frame, color);
+			draw_frame(target_point, target_frame, color);
+		}
+
+		if (const component_distance_constraint_t* component = distance_table.find_as_const<component_distance_constraint_t>(entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+
+			draw_anchor_pair(local_point, target_point, color);
+
+			if (component->min_distance > 0.0f && component->min_distance < EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT)
+				debug_draw.draw_sphere(local_point, component->min_distance, limit_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+
+			if (component->max_distance > 0.0f && component->max_distance < EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT)
+				debug_draw.draw_sphere(local_point, component->max_distance, limit_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+		}
+
+		if (const component_point_constraint_t* component = point_table.find_as_const<component_point_constraint_t>(entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+
+			draw_anchor_pair(local_point, target_point, color);
+		}
+
+		if (const component_hinge_constraint_t* component = hinge_table.find_as_const<component_hinge_constraint_t>(entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+			const vec3f_t						local_axis		 = (transform.abs_rot * component->local_hinge_axis).normalized();
+			const vec3f_t						target_axis		 = (target_transform != nullptr ? target_transform->abs_rot * component->target_hinge_axis : component->target_hinge_axis).normalized();
+			const vec3f_t						local_normal	 = (transform.abs_rot * component->local_normal_axis).normalized();
+			const vec3f_t						target_normal	 = (target_transform != nullptr ? target_transform->abs_rot * component->target_normal_axis : component->target_normal_axis).normalized();
+
+			draw_anchor_pair(local_point, target_point, color);
+			debug_draw.draw_arrow(local_point, local_point + local_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(target_point, target_point + target_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, secondary_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(local_point, local_point + local_normal * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, limit_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(target_point, target_point + target_normal * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, limit_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			draw_angular_limit(local_point, local_axis, local_normal, component->limit_min_degrees, component->limit_max_degrees, limit_color);
+		}
+
+		if (const component_cone_constraint_t* component = cone_table.find_as_const<component_cone_constraint_t>(entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+			const vec3f_t						local_axis		 = (transform.abs_rot * component->local_twist_axis).normalized();
+			const vec3f_t						target_axis		 = (target_transform != nullptr ? target_transform->abs_rot * component->target_twist_axis : component->target_twist_axis).normalized();
+			const f32							half_angle		 = math::degrees_to_radians(component->half_cone_angle_degrees);
+
+			draw_anchor_pair(local_point, target_point, color);
+			debug_draw.draw_cone(local_point, local_axis, EDITOR_CONSTRAINT_GIZMO_CONE_LENGTH, half_angle, limit_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+			debug_draw.draw_arrow(target_point, target_point + target_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, secondary_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+		}
+
+		if (const component_slider_constraint_t* component = slider_table.find_as_const<component_slider_constraint_t>(entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+			const vec3f_t						local_axis		 = (transform.abs_rot * component->local_slider_axis).normalized();
+			const vec3f_t						target_axis		 = (target_transform != nullptr ? target_transform->abs_rot * component->target_slider_axis : component->target_slider_axis).normalized();
+			const vec3f_t						local_normal	 = (transform.abs_rot * component->local_normal_axis).normalized();
+			const vec3f_t						target_normal	 = (target_transform != nullptr ? target_transform->abs_rot * component->target_normal_axis : component->target_normal_axis).normalized();
+
+			draw_anchor_pair(local_point, target_point, color);
+			debug_draw.draw_arrow(local_point - local_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH,
+								  local_point + local_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH,
+								  color,
+								  EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH,
+								  EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS,
+								  2.0f,
+								  debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(target_point, target_point + target_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, secondary_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(local_point, local_point + local_normal * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(target_point, target_point + target_normal * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible);
+
+			if (math::abs(component->limit_min) < EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT && math::abs(component->limit_max) < EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT)
+			{
+				const vec3f_t limit_min = local_point + local_axis * component->limit_min;
+				const vec3f_t limit_max = local_point + local_axis * component->limit_max;
+
+				debug_draw.draw_line(limit_min, limit_max, limit_color, 3.0f, debug_draw_depth_e::always_visible);
+				debug_draw.draw_sphere(limit_min, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible, 12);
+				debug_draw.draw_sphere(limit_max, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			}
+		}
+
+		if (const component_swing_twist_constraint_t* component = swing_twist_table.find_as_const<component_swing_twist_constraint_t>(entity))
+		{
+			const component_system_transform_t* target_transform = find_target_transform(component->target_entity);
+			const color_t&						color			 = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		 = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	 = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+			const vec3f_t						local_axis		 = (transform.abs_rot * component->local_twist_axis).normalized();
+			const vec3f_t						target_axis		 = (target_transform != nullptr ? target_transform->abs_rot * component->target_twist_axis : component->target_twist_axis).normalized();
+			const vec3f_t						local_plane		 = (transform.abs_rot * component->local_plane_axis).normalized();
+			const vec3f_t						target_plane	 = (target_transform != nullptr ? target_transform->abs_rot * component->target_plane_axis : component->target_plane_axis).normalized();
+			const vec2f_t						half_angles		 = {math::degrees_to_radians(component->normal_half_cone_angle_degrees), math::degrees_to_radians(component->plane_half_cone_angle_degrees)};
+
+			draw_anchor_pair(local_point, target_point, color);
+			debug_draw.draw_cone(local_point, local_axis, local_plane, EDITOR_CONSTRAINT_GIZMO_CONE_LENGTH, half_angles, limit_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+			debug_draw.draw_arrow(target_point, target_point + target_axis * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, secondary_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(target_point, target_point + target_plane * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible);
+			draw_angular_limit(local_point, local_axis, local_plane, component->twist_min_angle_degrees, component->twist_max_angle_degrees, limit_color);
+		}
+
+		if (const component_six_dof_constraint_t* component = six_dof_table.find_as_const<component_six_dof_constraint_t>(entity))
+		{
+			const component_system_transform_t* target_transform   = find_target_transform(component->target_entity);
+			const color_t&						color			   = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		   = transform.abs_mat * component->local_point;
+			const vec3f_t						target_point	   = target_transform != nullptr ? target_transform->abs_mat * component->target_point : component->target_point;
+			const quat_t						local_frame		   = transform.abs_rot * component->local_rotation;
+			const quat_t						target_frame	   = target_transform != nullptr ? target_transform->abs_rot * component->target_rotation : component->target_rotation;
+			const vec3f_t						axes[3]			   = {local_frame.get_right(), local_frame.get_up(), local_frame.get_forward()};
+			const vec3f_t						references[3]	   = {local_frame.get_up(), local_frame.get_forward(), local_frame.get_right()};
+			const f32							translation_min[3] = {component->translation_limit_min.x, component->translation_limit_min.y, component->translation_limit_min.z};
+			const f32							translation_max[3] = {component->translation_limit_max.x, component->translation_limit_max.y, component->translation_limit_max.z};
+			const f32							rotation_min[3]	   = {component->rotation_limit_min_degrees.x, component->rotation_limit_min_degrees.y, component->rotation_limit_min_degrees.z};
+			const f32							rotation_max[3]	   = {component->rotation_limit_max_degrees.x, component->rotation_limit_max_degrees.y, component->rotation_limit_max_degrees.z};
+
+			draw_anchor_pair(local_point, target_point, color);
+			draw_frame(local_point, local_frame, color);
+			draw_frame(target_point, target_frame, color);
+
+			for (u32 axis_index = 0; axis_index < 3; ++axis_index)
+			{
+				if (math::abs(translation_min[axis_index]) < EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT && math::abs(translation_max[axis_index]) < EDITOR_CONSTRAINT_GIZMO_UNBOUNDED_LIMIT)
+				{
+					const vec3f_t limit_min = local_point + axes[axis_index] * translation_min[axis_index];
+					const vec3f_t limit_max = local_point + axes[axis_index] * translation_max[axis_index];
+
+					debug_draw.draw_line(limit_min, limit_max, limit_color, 3.0f, debug_draw_depth_e::always_visible);
+				}
+
+				draw_angular_limit(local_point, axes[axis_index], references[axis_index], rotation_min[axis_index], rotation_max[axis_index], limit_color);
+			}
+		}
+
+		if (const component_pulley_constraint_t* component = pulley_table.find_as_const<component_pulley_constraint_t>(entity))
+		{
+			const component_system_transform_t* target_transform   = find_target_transform(component->target_entity);
+			const color_t&						color			   = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t						local_point		   = transform.abs_mat * component->local_body_point;
+			const vec3f_t						target_point	   = target_transform != nullptr ? target_transform->abs_mat * component->target_body_point : component->target_body_point;
+			const vec3f_t						fixed_point		   = component->fixed_point;
+			const vec3f_t						target_fixed_point = component->target_fixed_point;
+
+			debug_draw.draw_sphere(local_point, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			debug_draw.draw_sphere(target_point, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			debug_draw.draw_sphere(fixed_point, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			debug_draw.draw_sphere(target_fixed_point, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, limit_color, 2.0f, debug_draw_depth_e::always_visible, 12);
+			debug_draw.draw_line(local_point, fixed_point, color, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(fixed_point, target_fixed_point, secondary_color, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_line(target_fixed_point, target_point, color, 2.0f, debug_draw_depth_e::always_visible);
+		}
+
+		if (const component_vehicle_constraint_t* component = vehicle_table.find_as_const<component_vehicle_constraint_t>(entity))
+		{
+			const color_t& color   = component->enabled != 0 ? enabled_color : disabled_color;
+			const vec3f_t  up	   = (transform.abs_rot * component->up).normalized();
+			const vec3f_t  forward = (transform.abs_rot * component->forward).normalized();
+
+			debug_draw.draw_arrow(transform.abs_pos, transform.abs_pos + up * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, limit_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_arrow(transform.abs_pos, transform.abs_pos + forward * EDITOR_CONSTRAINT_GIZMO_ARROW_LENGTH, color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+
+			if (component->max_pitch_roll_angle_degrees > 0.0f && component->max_pitch_roll_angle_degrees < 180.0f)
+				debug_draw.draw_cone(transform.abs_pos, up, EDITOR_CONSTRAINT_GIZMO_CONE_LENGTH, math::degrees_to_radians(component->max_pitch_roll_angle_degrees), limit_color, 2.0f, debug_draw_depth_e::always_visible, 24);
+
+			for (const physics_vehicle_wheel_t& wheel : component->wheels)
+			{
+				const vec3f_t wheel_position	   = transform.abs_mat * wheel.position;
+				const vec3f_t suspension_direction = (transform.abs_rot * wheel.suspension_direction).normalized();
+				const vec3f_t wheel_up			   = (transform.abs_rot * wheel.wheel_up).normalized();
+				const vec3f_t wheel_forward		   = (transform.abs_rot * wheel.wheel_forward).normalized();
+				const vec3f_t steering_axis		   = (transform.abs_rot * wheel.steering_axis).normalized();
+				const vec3f_t wheel_right		   = vec3f_t::cross(wheel_up, wheel_forward).normalized();
+				const vec3f_t suspension_min	   = wheel_position + suspension_direction * wheel.suspension_min_length;
+				const vec3f_t suspension_max	   = wheel_position + suspension_direction * wheel.suspension_max_length;
+				const vec3f_t wheel_center		   = (suspension_min + suspension_max) * 0.5f;
+
+				debug_draw.draw_line(suspension_min, suspension_max, color, 2.0f, debug_draw_depth_e::always_visible);
+				debug_draw.draw_sphere(wheel_position, EDITOR_CONSTRAINT_GIZMO_ANCHOR_RADIUS, color, 2.0f, debug_draw_depth_e::always_visible, 12);
+				debug_draw.draw_cylinder(wheel_center, wheel.radius, wheel.width * 0.5f, wheel_right, secondary_color, 2.0f, debug_draw_depth_e::always_visible, 20);
+				debug_draw.draw_arrow(
+					wheel_position, wheel_position + steering_axis * EDITOR_CONSTRAINT_GIZMO_LIMIT_RADIUS, limit_color, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_LENGTH, EDITOR_CONSTRAINT_GIZMO_ARROW_HEAD_RADIUS, 2.0f, debug_draw_depth_e::always_visible);
+				draw_angular_limit(wheel_position, steering_axis, wheel_forward, -wheel.max_steer_angle_degrees, wheel.max_steer_angle_degrees, limit_color);
+			}
+		}
+	}
+}

@@ -22,26 +22,26 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "game.hpp"
 
-#include <sfg/data/istream.hpp>
-#include <sfg/data/vector.hpp>
-#include <sfg/input/input_mappings.hpp>
-#include <sfg/io/assert.hpp>
-#include <sfg/io/file_system.hpp>
-#include <sfg/io/log.hpp>
-#include <sfg/memory/frame_allocator.hpp>
-#include <sfg/platform/process.hpp>
-#include <sfg/platform/time.hpp>
-#include <sfg/reflection/reflection_registry.hpp>
-#include <sfg/runtime/engine/engine_runtime.hpp>
-#include <sfg/runtime/engine/engine_threads.hpp>
-#include <sfg/runtime/engine/perf_metrics.hpp>
-#include <sfg/runtime/render/render_resources.hpp>
-#include <sfg/runtime/resources/common_resources.hpp>
-#include <sfg/runtime/resources/resource_manager.hpp>
-#include <sfg/runtime/scripting/api/script_api_game.hpp>
-#include <sfg/runtime/scripting/api/script_api_platform.hpp>
-#include <sfg/runtime/scripting/script_runtime.hpp>
-#include <sfg/serialization/serialization.hpp>
+#include <sfg/core/data/istream.hpp>
+#include <sfg/core/data/vector.hpp>
+#include <sfg/core/input/input_mappings.hpp>
+#include <sfg/core/io/assert.hpp>
+#include <sfg/core/io/file_system.hpp>
+#include <sfg/core/io/log.hpp>
+#include <sfg/core/memory/frame_allocator.hpp>
+#include <sfg/core/platform/process.hpp>
+#include <sfg/core/platform/time.hpp>
+#include <sfg/core/reflection/reflection_registry.hpp>
+#include <sfg/core/runtime/engine/engine_runtime.hpp>
+#include <sfg/core/runtime/engine/engine_threads.hpp>
+#include <sfg/core/runtime/engine/perf_metrics.hpp>
+#include <sfg/core/runtime/render/render_resources.hpp>
+#include <sfg/core/runtime/resources/common_resources.hpp>
+#include <sfg/core/runtime/resources/resource_manager.hpp>
+#include <sfg/core/runtime/scripting/api/script_api_game.hpp>
+#include <sfg/core/runtime/scripting/api/script_api_platform.hpp>
+#include <sfg/core/runtime/scripting/script_runtime.hpp>
+#include <sfg/core/serialization/serialization.hpp>
 #include <tracy/Tracy.hpp>
 
 namespace sfg

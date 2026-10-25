@@ -1,0 +1,70 @@
+// Copyright (c) 2025 Inan Evin
+#pragma once
+
+#include "core/common/sfg_exports.hpp"
+
+#include "core/runtime/resources/animation_common.hpp"
+#include "core/runtime/resources/common_resources.hpp"
+#include "core/runtime/animation/common_animation.hpp"
+
+namespace sfg
+{
+	struct animation_channel_v3_runtime_t
+	{
+		const animation_keyframe_v3_t*		  keyframes		   = nullptr;
+		const animation_keyframe_v3_spline_t* keyframes_spline = nullptr;
+		u32									  keyframe_count   = 0;
+		u32									  spline_count	   = 0;
+		i32									  node_index	   = -1;
+		animation_interpolation_e			  interpolation	   = animation_interpolation_e::linear;
+	};
+
+	struct animation_channel_q_runtime_t
+	{
+		const animation_keyframe_q_t*		 keyframes		  = nullptr;
+		const animation_keyframe_q_spline_t* keyframes_spline = nullptr;
+		u32									 keyframe_count	  = 0;
+		u32									 spline_count	  = 0;
+		i32									 node_index		  = -1;
+		animation_interpolation_e			 interpolation	  = animation_interpolation_e::linear;
+	};
+
+	struct animation_event_t
+	{
+		sid_t name_hash = NULL_SID;
+		u32	  time		= 0;
+	};
+
+	struct animation_runtime_t
+	{
+		animation_event_t					  events[MAX_CLIP_EVENTS] = {};
+		chunk_handle32_t					  data					  = {};
+		const animation_channel_v3_runtime_t* position_channels		  = nullptr;
+		const animation_channel_q_runtime_t*  rotation_channels		  = nullptr;
+		const animation_channel_v3_runtime_t* scale_channels		  = nullptr;
+		resource_handle_t					  preview_mesh			  = NULL_RESOURCE_HANDLE;
+		resource_handle_t					  preview_skeleton		  = NULL_RESOURCE_HANDLE;
+		u32									  event_count			  = 0;
+		u32									  position_count		  = 0;
+		u32									  rotation_count		  = 0;
+		u32									  scale_count			  = 0;
+		f32									  duration				  = 0.0f;
+	};
+
+	struct animation_internals_t
+	{
+		u32 reserved = 0;
+	};
+
+	class SFG_API animation_loader_t
+	{
+	public:
+		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('A', 'N', 'I', 'M');
+		static constexpr u32 WIRE_VERSION = 6;
+
+		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
+		static void unload(resource_entry_t& entry, resource_context_t& ctx);
+	};
+
+	extern SFG_API const resource_type_desc_t animation_resource_desc;
+}

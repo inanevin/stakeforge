@@ -1,0 +1,639 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+*/
+
+#include "core/io/file_system.hpp"
+#include "core/io/log.hpp"
+#include "core/data/string_util.hpp"
+#include <filesystem>
+#include <fstream>
+
+#ifdef SFG_PLATFORM_OSX
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+#endif
+
+#ifdef SFG_PLATFORM_WINDOWS
+#include <shlobj.h>
+#endif
+
+namespace sfg
+{
+	bool file_system_t::delete_file(const char* path)
+	{
+		return remove(path);
+	}
+
+	bool file_system_t::create_directory(const char* path)
+	{
+		vector_t<string_t> directories = {};
+		string_util::split(directories, path, "/");
+
+		string_t current_path = "";
+		for (const auto& dir : directories)
+		{
+			current_path += dir + "/";
+
+			if (!exists(current_path.c_str()))
+			{
+				bool success = std::filesystem::create_directory(current_path.c_str());
+				if (!success)
+				{
+					SFG_ERR("could not create directory: {0}", current_path);
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	bool file_system_t::ensure_directory(const char* path)
+	{
+		if (is_directory(path))
+			return true;
+		return create_directory(path);
+	}
+
+	bool file_system_t::delete_directory(const char* path)
+	{
+		try
+		{
+			bool success = std::filesystem::remove_all(path);
+		}
+		catch (const std::exception& err)
+		{
+			SFG_ERR("could not delete directory: {0}, {1}", path, err.what());
+			return false;
+		}
+
+		return true;
+	}
+
+	bool file_system_t::is_directory(const char* path)
+	{
+		return std::filesystem::is_directory(path);
+	}
+
+	bool file_system_t::change_directory_name(const char* old_path, const char* new_path)
+	{
+		if (std::rename(old_path, new_path) != 0)
+		{
+			SFG_ERR("failed to rename directory! Old Name: {0}, New Name: {1}", old_path, new_path);
+			return false;
+		}
+
+		return true;
+	}
+
+	bool file_system_t::exists(const char* path)
+	{
+		return std::filesystem::exists(path);
+	}
+
+	u64 file_system_t::get_file_size(const char* path)
+	{
+		std::error_code ec;
+		const u64		size = static_cast<u64>(std::filesystem::file_size(path, ec));
+		return ec ? 0 : size;
+	}
+
+	bool file_system_t::is_absolute_path(const char* path)
+	{
+		return std::filesystem::path(path).is_absolute();
+	}
+
+	string_t file_system_t::get_last_modified_date(const char* path)
+	{
+		std::filesystem::file_time_type ftime  = std::filesystem::last_write_time(path);
+		auto							sctp   = std::chrono::time_point_cast<std::chrono::system_clock::duration>(ftime - decltype(ftime)::clock::now() + std::chrono::system_clock::now());
+		std::time_t						cftime = std::chrono::system_clock::to_time_t(sctp);
+		const string_t					str	   = std::asctime(std::localtime(&cftime));
+		return str;
+	}
+
+	u64 file_system_t::get_last_modified_ticks(const char* path) noexcept
+	{
+		std::error_code					ec;
+		std::filesystem::file_time_type ft = std::filesystem::last_write_time(path, ec);
+		if (ec)
+			return 0;
+
+		using dur = std::chrono::nanoseconds;
+		return static_cast<uint64_t>(std::chrono::duration_cast<dur>(ft.time_since_epoch()).count());
+	}
+
+	u64 file_system_t::get_last_modified_ticks(const std::filesystem::path& path) noexcept
+	{
+		std::error_code					ec;
+		std::filesystem::file_time_type ft = std::filesystem::last_write_time(path, ec);
+		if (ec)
+			return 0;
+
+		using dur = std::chrono::nanoseconds;
+		return static_cast<uint64_t>(std::chrono::duration_cast<dur>(ft.time_since_epoch()).count());
+	}
+
+	string_t file_system_t::get_directory_of_file(const char* path)
+	{
+		string_t	 str	 = path;
+		const char*	 cstr	 = path;
+		unsigned int str_len = (unsigned int)str.length();
+		unsigned int end	 = str_len - 1;
+
+		while (end != 0)
+		{
+			if (cstr[end] == '/')
+				break;
+
+			end--;
+		}
+
+		if (end == 0)
+			return str;
+
+		else
+		{
+			unsigned int start = 0;
+			end				   = end + 1;
+			return str.substr(start, end - start).data();
+		}
+	}
+
+	string_t file_system_t::remove_extensions_from_path(const string_t& fileName)
+	{
+		const size_t last_index = fileName.find_last_of(".");
+		string_t	 path		= fileName.substr(0, last_index);
+		fix_path(path);
+		return path;
+	}
+
+	string_t file_system_t::get_filename_and_extension_from_path(const string_t& fileName)
+	{
+		string_t path = fileName.substr(fileName.find_last_of("/\\") + 1);
+		return path;
+	}
+
+	string_t file_system_t::get_file_extension(const string_t& file)
+	{
+		if (file.empty())
+			return "";
+		string_t path = file.substr(file.find_last_of(".") + 1);
+		return path;
+	}
+
+	string_t file_system_t::get_filename_from_path(const string_t& file)
+	{
+		return remove_extensions_from_path(get_filename_and_extension_from_path(file));
+	}
+
+	string_t file_system_t::get_last_folder_from_path(const char* path)
+	{
+		string_t	 fixed_path = path;
+		const size_t last_slash = fixed_path.find_last_of("/\\");
+
+		if (last_slash == fixed_path.size() || last_slash == fixed_path.size() - 1)
+			fixed_path = fixed_path.substr(0, last_slash);
+
+		const size_t actualLast = fixed_path.find_last_of("/\\");
+		if (actualLast != string_t::npos)
+			fixed_path = fixed_path.substr(actualLast + 1, fixed_path.size());
+		return fixed_path;
+	}
+
+	string_t file_system_t::read_file_as_string(const char* file)
+	{
+		std::ifstream ifs(file);
+		auto		  a = std::istreambuf_iterator<char>(ifs);
+		auto		  b = (std::istreambuf_iterator<char>());
+		return std::string(a, b);
+	}
+
+	void file_system_t::read_file(const char* file_path, char*& out_data, size_t& out_size)
+	{
+		std::ifstream file(file_path, std::ios::binary);
+		if (!file)
+		{
+			SFG_ERR("Could not open file! {0}", file_path);
+			return;
+		}
+
+		file.seekg(0, std::ios::end);
+		std::streampos length = file.tellg();
+		file.seekg(0, std::ios::beg);
+		out_size = length;
+
+		if (out_size > 0)
+		{
+			out_data = new char[length];
+			file.read(out_data, length);
+		}
+	}
+
+	void file_system_t::find_lines_with_keyword(const char* file, const char* keyword, vector_t<string_t>& out_lines)
+	{
+		std::ifstream ifs(file);
+		if (!ifs)
+			return;
+
+		std::string line;
+		while (std::getline(ifs, line))
+		{
+			if (line.find(keyword) != std::string::npos)
+				out_lines.push_back(line);
+		}
+	}
+
+	string_t file_system_t::get_running_directory()
+	{
+		try
+		{
+			auto	 path = std::filesystem::current_path();
+			string_t s	  = path.string();
+			fix_path(s);
+			fix_path_end_slash(s);
+			return s;
+		}
+		catch (std::exception e)
+		{
+			return "";
+		}
+	}
+
+	string_t file_system_t::get_user_directory()
+	{
+#ifdef SFG_PLATFORM_WINDOWS
+		char path[MAX_PATH];
+		if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, 0, path)))
+		{
+			string_t pp = string_t(path);
+			fix_path(pp);
+			return pp;
+		}
+		return std::string();
+#elif defined SFG_PLATFORM_OSX
+		struct passwd* pw	= getpwuid(getuid());
+		string_t	   path = string_t(pw->pw_dir);
+		return path + "/Library/Application Support/";
+#endif
+		return "";
+	}
+
+	void file_system_t::fix_path(string_t& str)
+	{
+		string_util::replace_all(str, "\\\\", "/");
+		string_util::replace_all(str, "\\", "/");
+	}
+
+	void file_system_t::fix_path_end_slash(string_t& str)
+	{
+		if (!str.empty() && str.back() != '/')
+			str += '/';
+	}
+
+	string_t file_system_t::get_absolute_path(const char* path)
+	{
+		try
+		{
+			string_t absolute_path = std::filesystem::absolute(path).lexically_normal().string();
+			fix_path(absolute_path);
+			return absolute_path;
+		}
+		catch (const std::exception&)
+		{
+			return "";
+		}
+	}
+
+	namespace
+	{
+		void SFGCopyFile(const std::filesystem::path& source, const std::filesystem::path& destination)
+		{
+			try
+			{
+				std::filesystem::copy_file(source, destination, std::filesystem::copy_options::overwrite_existing);
+			}
+			catch (std::filesystem::filesystem_error& e)
+			{
+				SFG_ERR("Error duplicating file! {0}", e.what());
+			}
+		}
+
+		void SFGCopyDirectory(const std::filesystem::path& source, const std::filesystem::path& destination)
+		{
+			try
+			{
+				std::filesystem::create_directory(destination);
+				for (const auto& entry_t : std::filesystem::recursive_directory_iterator(source))
+				{
+					const auto& path			= entry_t.path();
+					auto		relativePathStr = path.lexically_relative(source).string();
+					std::filesystem::copy(path, destination / relativePathStr, std::filesystem::copy_options::overwrite_existing | std::filesystem::copy_options::recursive);
+				}
+			}
+			catch (std::filesystem::filesystem_error& e)
+			{
+				SFG_ERR("Error duplicating directory! {0}", e.what());
+			}
+		}
+	} // namespace
+
+	string_t file_system_t::duplicate(const char* path)
+	{
+		try
+		{
+			if (std::filesystem::exists(path))
+			{
+				const bool	   is_dir		  = file_system_t::is_directory(path);
+				const string_t corrected_path = is_dir ? path : file_system_t::remove_extensions_from_path(path);
+				string_t	   final_path	  = corrected_path + " (Copy)";
+
+				size_t inster_before_ext = final_path.length();
+				if (!is_dir)
+				{
+					final_path += "." + file_system_t::get_file_extension(path);
+				}
+
+				while (file_system_t::exists(final_path.c_str()))
+				{
+					final_path.insert(inster_before_ext, " (Copy)");
+					inster_before_ext += 7;
+				}
+
+				std::filesystem::path destination = final_path;
+
+				if (std::filesystem::is_regular_file(path))
+				{
+					SFGCopyFile(path, destination);
+					return final_path;
+				}
+				else if (std::filesystem::is_directory(path))
+				{
+					SFGCopyDirectory(path, destination);
+					return final_path;
+				}
+				else
+				{
+					SFG_ERR("Unsupported file type! {0}", path);
+				}
+			}
+			else
+			{
+				SFG_ERR("Path doesn't exist! {0}", path);
+			}
+		}
+		catch (std::filesystem::filesystem_error&)
+		{
+			SFG_ERR("Exception processing path! {0}", path);
+		}
+
+		return "";
+	}
+
+	string_t file_system_t::get_relative(const char* src, const char* target)
+	{
+		std::filesystem::path src_path(src);
+		std::filesystem::path dst_path(target);
+		std::filesystem::path relative_path = std::filesystem::relative(dst_path, src_path);
+		string_t			  result		= relative_path.string();
+		fix_path(result);
+		return result;
+	}
+
+	void file_system_t::perform_move(const char* target_file, const char* target_dir)
+	{
+		try
+		{
+			if (!std::filesystem::exists(target_dir))
+			{
+				SFG_ERR("Target directory does not exist! {0}", target_dir);
+				return;
+			}
+
+			std::filesystem::path file		  = std::filesystem::path(target_file);
+			std::filesystem::path destination = std::filesystem::path(target_dir) / file.filename();
+
+			std::filesystem::rename(target_file, destination);
+		}
+		catch (const std::filesystem::filesystem_error& e)
+		{
+			SFG_ERR("::perform_move error {0}", e.what());
+		}
+	}
+
+	string_t file_system_t::get_system_time_str()
+	{
+		std::time_t		   now		 = std::time(nullptr);
+		std::tm*		   localTime = std::localtime(&now);
+		std::ostringstream oss;
+		oss << std::setw(2) << std::setfill('0') << localTime->tm_hour << ":" << std::setw(2) << std::setfill('0') << localTime->tm_min << ":" << std::setw(2) << std::setfill('0') << localTime->tm_sec;
+		return oss.str();
+	}
+
+	string_t file_system_t::get_system_time_tag_str(u32 count)
+	{
+		string_t out = "[";
+		out += get_system_time_str();
+		if (count > 1)
+			out += "x" + std::to_string(count);
+		out += "]";
+		return out;
+	}
+
+	void file_system_t::get_sys_time_ints(i32& hours, i32& minutes, i32& seconds)
+	{
+		std::time_t now		   = std::time(nullptr);
+		std::tm*	local_time = std::localtime(&now);
+		hours				   = local_time->tm_hour;
+		minutes				   = local_time->tm_min;
+		seconds				   = local_time->tm_sec;
+	}
+
+	string_t file_system_t::get_time_str_from_microseconds(i64 microseconds)
+	{
+		i64 total_seconds = microseconds / 1000000;
+
+		int hours	= (total_seconds / 3600) % 24;
+		int minutes = (total_seconds / 60) % 60;
+		int seconds = total_seconds % 60;
+
+		std::ostringstream oss;
+		oss << std::setw(2) << std::setfill('0') << hours << ":" << std::setw(2) << std::setfill('0') << minutes << ":" << std::setw(2) << std::setfill('0') << seconds;
+
+		return oss.str();
+	}
+
+	void file_system_t::copy_directory(const char* directory, const char* targetParentFolder)
+	{
+		namespace fs = std::filesystem;
+
+		try
+		{
+			std::filesystem::path source(directory);
+			if (!std::filesystem::exists(source))
+			{
+				throw std::runtime_error("Source directory does not exist or is not a directory.");
+			}
+
+			std::filesystem::path destination = std::filesystem::path(targetParentFolder) / source.filename();
+
+			if (std::filesystem::exists(destination))
+				std::filesystem::remove_all(destination);
+
+			std::filesystem::create_directories(destination);
+			for (const auto& entry_t : std::filesystem::recursive_directory_iterator(source))
+			{
+				const auto& src_path	  = entry_t.path();
+				auto		relative_path = std::filesystem::relative(src_path, source);
+				auto		dest_path	  = destination / relative_path;
+
+				if (std::filesystem::is_directory(src_path))
+					std::filesystem::create_directory(dest_path);
+				else if (std::filesystem::is_regular_file(src_path))
+					std::filesystem::copy_file(src_path, dest_path, std::filesystem::copy_options::overwrite_existing);
+			}
+		}
+		catch (const std::exception& ex)
+		{
+			SFG_ERR("error while copying directory {0}", ex.what());
+		}
+	}
+
+	bool file_system_t::copy_file(const char* file, const char* target_file)
+	{
+		try
+		{
+			const std::filesystem::path src_file		 = file;
+			const std::filesystem::path destination_file = target_file;
+
+			if (!std::filesystem::exists(src_file) || !std::filesystem::is_regular_file(src_file))
+			{
+				SFG_ERR("source file does not exist or is not a valid file. {0}", file);
+				return false;
+			}
+
+			std::filesystem::copy_file(src_file, destination_file, std::filesystem::copy_options::overwrite_existing);
+		}
+		catch (const std::filesystem::filesystem_error& e)
+		{
+			SFG_ERR("could not copy file {0} to {1}: {2}", file, target_file, e.what());
+			return false;
+		}
+
+		return true;
+	}
+
+	bool file_system_t::replace_file(const char* source_path, const char* target_path)
+	{
+#ifdef SFG_PLATFORM_WINDOWS
+		if (!MoveFileExA(source_path, target_path, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+		{
+			SFG_ERR("failed to replace file {0} with {1}, error {2}", target_path, source_path, GetLastError());
+			return false;
+		}
+#else
+		if (std::rename(source_path, target_path) != 0)
+		{
+			SFG_ERR("failed to replace file {0} with {1}", target_path, source_path);
+			return false;
+		}
+#endif
+
+		return true;
+	}
+
+	void file_system_t::copy_file_to_directory(const char* file, const char* targetParentFolder)
+	{
+		try
+		{
+			std::filesystem::path src_file = file;
+			std::filesystem::path dest_dir = targetParentFolder;
+
+			if (!std::filesystem::exists(src_file) || !std::filesystem::is_regular_file(src_file))
+			{
+				SFG_ERR("source file does not exist or is not a valid file. {0} {1}", file, targetParentFolder);
+				return;
+			}
+
+			if (!std::filesystem::exists(dest_dir))
+			{
+				SFG_ERR("target directory does not exist. {0} {1}", file, targetParentFolder);
+				return;
+			}
+
+			if (!std::filesystem::is_directory(dest_dir))
+			{
+				SFG_ERR("target path is not a directory. {0} {1}", file, targetParentFolder);
+				return;
+			}
+
+			std::filesystem::path destinationFile = dest_dir / src_file.filename();
+
+			std::filesystem::copy_file(src_file, destinationFile, std::filesystem::copy_options::overwrite_existing);
+		}
+		catch (const std::filesystem::filesystem_error& e)
+		{
+			SFG_ERR("Filesystem error : {0} { 1 }", file, targetParentFolder);
+		}
+	}
+
+	void file_system_t::get_files_recursive(const char* directory, vector_t<string_t>& out_files)
+	{
+		try
+		{
+			for (const auto& entry_t : std::filesystem::recursive_directory_iterator(directory, std::filesystem::directory_options::skip_permission_denied))
+			{
+				if (!entry_t.is_regular_file())
+					continue;
+
+				string_t path = entry_t.path().lexically_normal().string();
+				fix_path(path);
+				out_files.push_back(std::move(path));
+			}
+		}
+		catch (const std::exception& ex)
+		{
+			SFG_ERR("Error while reading directory recursively {0} {1}", directory, ex.what());
+		}
+	}
+
+	void file_system_t::get_entries_recursive(const char* directory, vector_t<file_system_entry_t>& out_entries)
+	{
+		try
+		{
+			for (const auto& entry_t : std::filesystem::recursive_directory_iterator(directory, std::filesystem::directory_options::skip_permission_denied))
+			{
+				file_system_entry_type_e type = file_system_entry_type_e::file;
+				if (entry_t.is_directory())
+					type = file_system_entry_type_e::directory;
+				else if (!entry_t.is_regular_file())
+					continue;
+
+				string_t path = entry_t.path().lexically_normal().string();
+				fix_path(path);
+				out_entries.push_back(file_system_entry_t{.path = std::move(path), .type = type});
+			}
+		}
+		catch (const std::exception& ex)
+		{
+			SFG_ERR("error while reading directory recursively {0} {1}", directory, ex.what());
+		}
+	}
+}

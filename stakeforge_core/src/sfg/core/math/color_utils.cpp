@@ -1,0 +1,208 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+*/
+
+#include "core/math/color_utils.hpp"
+#include "core/math/color.hpp"
+#include "core/math/math.hpp"
+#include "core/math/easing.hpp"
+#include "core/common/size_definitions.hpp"
+
+namespace sfg
+{
+	color_t color_utils_t::lerp(const color_t& c1, const color_t& c2, f32 a)
+	{
+		return color_t(easing_t::lerp(c1.x, c2.x, a), easing_t::lerp(c1.y, c2.y, a), easing_t::lerp(c1.z, c2.z, a), easing_t::lerp(c1.w, c2.w, a));
+	}
+
+	color_t color_utils_t::from_hex(const string_t& hex)
+	{
+		if (hex.size() != 7)
+			return color_t::black;
+
+		if (hex[0] != '#')
+			return color_t::black;
+
+		u32 r, g, b;
+
+#ifdef SFG_PLATFORM_WINDOWS
+		sscanf_s(hex.c_str(), "#%02x%02x%02x", &r, &g, &b);
+#else
+		const int ret = std::sscanf(hex.c_str(), "#%02x%02x%02x", &r, &g, &b);
+#endif
+		return color_t{static_cast<f32>(r) / 255.0f, static_cast<f32>(g) / 255.0f, static_cast<f32>(b) / 255.0f, 1.0f};
+	}
+
+	string_t color_utils_t::to_hex(const color_t& color_t)
+	{
+		char out[8] = {};
+		to_hex(color_t, out, sizeof(out));
+		return out;
+	}
+
+	void color_utils_t::to_hex(const color_t& col, char* out, size_t capacity)
+	{
+		if (capacity == 0)
+			return;
+
+		const i32 r = static_cast<i32>(math::clamp(col.x, 0.0f, 1.0f) * 255.0f + 0.5f);
+		const i32 g = static_cast<i32>(math::clamp(col.y, 0.0f, 1.0f) * 255.0f + 0.5f);
+		const i32 b = static_cast<i32>(math::clamp(col.z, 0.0f, 1.0f) * 255.0f + 0.5f);
+		std::snprintf(out, capacity, "#%02X%02X%02X", r, g, b);
+	}
+
+	// possible hue-to-RGB reference: Ian Taylor / Chilliant - https://www.chilliant.com/rgb2hsv.html
+	color_t color_utils_t::hs_to_srgb(const color_t& col)
+	{
+		const f32 hue		 = col.x;
+		const f32 saturation = col.y;
+		const f32 angle		 = hue * 6.0f;
+		const f32 r			 = math::clamp(math::abs(angle - 3.0f) - 1.0f, 0.0f, 1.0f);
+		const f32 g			 = math::clamp(2.0f - math::abs(angle - 2.0f), 0.0f, 1.0f);
+		const f32 b			 = math::clamp(2.0f - math::abs(angle - 4.0f), 0.0f, 1.0f);
+
+		return lerp(color_t::white, color_t(r, g, b, 1.0f), saturation);
+	}
+
+	color_t color_utils_t::srgb_to_hsv(const color_t& col)
+	{
+		color_t hsv = color_t::black;
+
+		const f32 min_value = math::min(col.x, math::min(col.y, col.z));
+		const f32 max_value = math::max(col.x, math::max(col.y, col.z));
+		const f32 delta		= max_value - min_value;
+
+		if (delta == 0.0f)
+			hsv.x = 0.0f;
+		else if (max_value == col.x)
+			hsv.x = 60.0f * math::fmodf((col.y - col.z) / delta, 6.0f);
+		else if (max_value == col.y)
+			hsv.x = 60.0f * (((col.z - col.x) / delta) + 2.0f);
+		else if (max_value == col.z)
+			hsv.x = 60.0f * (((col.x - col.y) / delta) + 4.0f);
+
+		if (hsv.x < 0.0f)
+			hsv.x += 360.0f;
+
+		hsv.y = max_value == 0.0f ? 0.0f : delta / max_value;
+		hsv.z = max_value;
+		hsv.w = col.w;
+
+		return hsv;
+	}
+
+	color_t color_utils_t::hsv_to_srgb(const color_t& col)
+	{
+		color_t	  rgb = color_t::black;
+		const f32 C	  = col.z * col.y;
+		const f32 X	  = C * (1.0f - math::abs(math::fmodf(col.x / 60.0f, 2.0f) - 1.0f));
+		const f32 m	  = col.z - C;
+		f32		  R1  = 0.0f;
+		f32		  G1  = 0.0f;
+		f32		  B1  = 0.0f;
+
+		if (col.x >= 0 && col.x < 60)
+		{
+			R1 = C;
+			G1 = X;
+			B1 = 0;
+		}
+		else if (col.x >= 60 && col.x < 120)
+		{
+			R1 = X;
+			G1 = C;
+			B1 = 0;
+		}
+		else if (col.x >= 120 && col.x < 180)
+		{
+			R1 = 0;
+			G1 = C;
+			B1 = X;
+		}
+		else if (col.x >= 180 && col.x < 240)
+		{
+			R1 = 0;
+			G1 = X;
+			B1 = C;
+		}
+		else if (col.x >= 240 && col.x < 300)
+		{
+			R1 = X;
+			G1 = 0;
+			B1 = C;
+		}
+		else
+		{
+			R1 = C;
+			G1 = 0;
+			B1 = X;
+		}
+
+		rgb.x = R1 + m;
+		rgb.y = G1 + m;
+		rgb.z = B1 + m;
+		rgb.w = col.w;
+
+		return rgb;
+	}
+
+	color_t color_utils_t::srgb_to_linear(const color_t& col)
+	{
+		auto convert = [](f32 value) {
+			if (value <= 0.04045f)
+			{
+				return value / 12.92f;
+			}
+			else
+			{
+				return math::pow((value + 0.055f) / 1.055f, 2.4f);
+			}
+		};
+
+		return color_t(convert(col.x), convert(col.y), convert(col.z), convert(col.w));
+	}
+
+	color_t color_utils_t::linear_to_srgb(const color_t& col)
+	{
+		auto convert = [](f32 value) {
+			if (value <= 0.0031308f)
+			{
+				return value * 12.92f;
+			}
+			else
+			{
+				return 1.055f * math::pow(value, 1.0f / 2.4f) - 0.055f;
+			}
+		};
+
+		return color_t(convert(col.x), convert(col.y), convert(col.z), convert(col.w));
+	}
+
+	color_t color_utils_t::brighten(const color_t& color_t, f32 amt)
+	{
+		return lerp(color_t, color_t::white, amt);
+	}
+
+	color_t color_utils_t::darken(const color_t& color_t, f32 amt)
+	{
+		return lerp(color_t, color_t::white, amt);
+	}
+
+} // namespace sfg

@@ -1,0 +1,151 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+*/
+
+#pragma once
+
+#include "core/common/sfg_exports.hpp"
+
+#include "core/common/type_id.hpp"
+
+#include "core/math/math_common.hpp"
+#include "core/common/size_definitions.hpp"
+
+#undef min
+#undef max
+
+namespace sfg
+{
+	class istream_t;
+	class ostream_t;
+
+	struct vec2u16_t;
+
+	struct SFG_API vec2f_t
+	{
+		f32 x;
+		f32 y;
+
+		static vec2f_t zero;
+		static vec2f_t one;
+
+		static vec2f_t clamp(const vec2f_t& vector_t, const vec2f_t& min, const vec2f_t& max);
+		static vec2f_t clamp_magnitude(const vec2f_t& vector_t, f32 max_length);
+		static vec2f_t abs(const vec2f_t& vector_t);
+		static vec2f_t min(const vec2f_t& a, const vec2f_t& b);
+		static vec2f_t max(const vec2f_t& a, const vec2f_t& b);
+		static f32	   dot(const vec2f_t& a, const vec2f_t& b);
+		static f32	   distance(const vec2f_t& a, const vec2f_t& b);
+		static f32	   distance_sqr_to_segment(const vec2f_t& point, const vec2f_t& a, const vec2f_t& b);
+		static f32	   angle(const vec2f_t& a, const vec2f_t& b);
+
+		vec2f_t normalized() const;
+		bool	equals(const vec2f_t& other, f32 epsilon = MATH_EPS) const;
+		bool	is_zero(f32 epsilon = MATH_EPS) const;
+		f32		magnitude() const;
+		f32		magnitude_sqr() const;
+
+		void serialize(ostream_t& stream) const;
+		void deserialize(istream_t& stream);
+
+		inline vec2f_t operator+(const vec2f_t& other) const
+		{
+			return {x + other.x, y + other.y};
+		}
+		inline vec2f_t operator-(const vec2f_t& other) const
+		{
+			return {x - other.x, y - other.y};
+		}
+		inline vec2f_t operator*(const vec2f_t& other) const
+		{
+			return {x * other.x, y * other.y};
+		}
+		inline vec2f_t operator/(const vec2f_t& other) const
+		{
+			return {x / other.x, y / other.y};
+		}
+		inline vec2f_t operator*(f32 scalar) const
+		{
+			return {x * scalar, y * scalar};
+		}
+
+		inline vec2f_t operator/(f32 scalar) const
+		{
+			if (scalar == 0.0f)
+			{
+				return {std::numeric_limits<f32>::infinity(), std::numeric_limits<f32>::infinity()};
+			}
+			return {x / scalar, y / scalar};
+		}
+
+		inline vec2f_t& operator+=(const vec2f_t& other)
+		{
+			x += other.x;
+			y += other.y;
+			return *this;
+		}
+
+		inline vec2f_t& operator-=(const vec2f_t& other)
+		{
+			x -= other.x;
+			y -= other.y;
+			return *this;
+		}
+
+		inline vec2f_t& operator*=(f32 scalar)
+		{
+			x *= scalar;
+			y *= scalar;
+			return *this;
+		}
+
+		inline vec2f_t& operator/=(f32 scalar)
+		{
+			if (scalar == 0.0f)
+			{
+				x = MATH_INF_F;
+				y = MATH_INF_F;
+			}
+			else
+			{
+				x /= scalar;
+				y /= scalar;
+			}
+			return *this;
+		}
+
+		inline bool operator==(const vec2f_t& other) const
+		{
+			return equals(other);
+		}
+		inline bool operator!=(const vec2f_t& other) const
+		{
+			return !(*this == other);
+		}
+	};
+
+	SFG_DEFINE_TYPE_ID(vec2f_t);
+
+	struct vec2f_reflection_t
+	{
+		vec2f_reflection_t();
+	};
+
+}

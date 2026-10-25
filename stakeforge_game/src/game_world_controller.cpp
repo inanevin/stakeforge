@@ -22,20 +22,20 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "game_world_controller.hpp"
 
-#include <sfg/data/ostream.hpp>
-#include <sfg/gfx/backend/backend.hpp>
-#include <sfg/io/assert.hpp>
-#include <sfg/io/log.hpp>
-#include <sfg/platform/time.hpp>
-#include <sfg/runtime/project/project_package_meta.hpp>
-#include <sfg/runtime/engine/engine_runtime.hpp>
-#include <sfg/runtime/engine/engine_threads.hpp>
-#include <sfg/runtime/project/project_settings.hpp>
-#include <sfg/runtime/render/world_rendering.hpp>
-#include <sfg/runtime/resources/world_cook.hpp>
-#include <sfg/runtime/world/world_init_config.hpp>
-#include <sfg/runtime/world/world_snapshot_producer.hpp>
-#include <sfg/vendor/nhlohmann/json.hpp>
+#include <sfg/core/data/ostream.hpp>
+#include <sfg/core/gfx/backend/backend.hpp>
+#include <sfg/core/io/assert.hpp>
+#include <sfg/core/io/log.hpp>
+#include <sfg/core/platform/time.hpp>
+#include <sfg/core/runtime/project/project_package_meta.hpp>
+#include <sfg/core/runtime/engine/engine_runtime.hpp>
+#include <sfg/core/runtime/engine/engine_threads.hpp>
+#include <sfg/core/runtime/project/project_settings.hpp>
+#include <sfg/core/runtime/render/world_rendering.hpp>
+#include <sfg/core/runtime/resources/world_cook.hpp>
+#include <sfg/core/runtime/world/world_init_config.hpp>
+#include <sfg/core/runtime/world/world_snapshot_producer.hpp>
+#include <sfg/core/vendor/nhlohmann/json.hpp>
 #include <tracy/Tracy.hpp>
 
 namespace sfg

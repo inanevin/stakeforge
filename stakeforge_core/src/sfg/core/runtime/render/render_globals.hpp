@@ -1,0 +1,31 @@
+// Copyright (c) 2025 Inan Evin
+#pragma once
+
+#include "core/common/sfg_exports.hpp"
+
+#include "core/gfx/common/gfx_constants.hpp"
+
+namespace sfg
+{
+	class engine_runtime_t;
+
+	class SFG_API render_globals_t
+	{
+	public:
+		static gfx_handle_t get_global_bind_layout()
+		{
+			return s_global_bind_layout;
+		}
+
+		static gfx_handle_t get_global_compute_bind_layout()
+		{
+			return s_global_compute_bind_layout;
+		}
+
+	private:
+		friend class engine_runtime_t;
+
+		static gfx_handle_t s_global_bind_layout;
+		static gfx_handle_t s_global_compute_bind_layout;
+	};
+}

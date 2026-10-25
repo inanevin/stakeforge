@@ -25,10 +25,10 @@ in GAME-LINKING-EXCEPTION.md.
 #include "game_renderer.hpp"
 #include "game_world_controller.hpp"
 
-#include <sfg/data/string.hpp>
-#include <sfg/platform/common_window.hpp>
-#include <sfg/runtime/engine/engine_runtime_config.hpp>
-#include <sfg/runtime/project/project_package_meta.hpp>
+#include <sfg/core/data/string.hpp>
+#include <sfg/core/platform/common_window.hpp>
+#include <sfg/core/runtime/engine/engine_runtime_config.hpp>
+#include <sfg/core/runtime/project/project_package_meta.hpp>
 
 namespace sfg
 {
