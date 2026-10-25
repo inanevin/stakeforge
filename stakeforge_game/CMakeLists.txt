@@ -61,6 +61,7 @@ target_sources(${SFG_GAME_TARGET} PRIVATE
     ${HEADERS}
     ${PLATFORM_HEADERS}
     ${PLATFORM_SOURCES}
+    ${SFG_CORE_DIR}/src/sfg/core/memory/memory_operators.cpp
 )
 
 if(APPLE)
@@ -72,7 +73,7 @@ if(MSVC)
 endif()
     
 target_include_directories(${SFG_GAME_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(${SFG_GAME_TARGET} PRIVATE stakeforge_core stakeforge_memory_overrides)
+target_link_libraries(${SFG_GAME_TARGET} PRIVATE stakeforge_core)
 
 include(${SFG_CORE_DIR}/cmake/common_functions.cmake)
 sfg_add_copy_commands(${SFG_GAME_TARGET} ${SFG_CORE_DIR})

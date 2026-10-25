@@ -28,37 +28,6 @@ set(SFG_EDITOR_TARGET stakeforge_editor)
 set(SFG_CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../stakeforge_core)
 include(${SFG_CORE_DIR}/cmake/compile_definitions.cmake)
 
-file(GLOB SOURCES
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/assets/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/assets/*/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/commands/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/scripting/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/world/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/panels/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/panels/*/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/widgets/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/widgets/*/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/docking/*.cpp
-)
-
-file(GLOB HEADERS
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/assets/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/assets/*/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/commands/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/scripting/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/world/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/panels/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/panels/*/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/widgets/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/widgets/*/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/tools/ui/docking/*.hpp
-)
-
-
 if(WIN32)
     file(GLOB PLATFORM_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/win32/*.cpp
@@ -74,10 +43,9 @@ else()
 endif()
 
 target_sources(${SFG_EDITOR_TARGET} PRIVATE
-    ${SOURCES}
-    ${HEADERS}
     ${PLATFORM_HEADERS}
     ${PLATFORM_SOURCES}
+    ${SFG_CORE_DIR}/src/sfg/core/memory/memory_operators.cpp
 )
 
 
@@ -92,9 +60,8 @@ endif()
     
 target_include_directories(${SFG_EDITOR_TARGET} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg
 )
-target_link_libraries(${SFG_EDITOR_TARGET} PRIVATE stakeforge_core stakeforge_memory_overrides)
+target_link_libraries(${SFG_EDITOR_TARGET} PRIVATE stakeforge_tools)
 
 include(${SFG_CORE_DIR}/cmake/common_functions.cmake)
 sfg_add_copy_commands(${SFG_EDITOR_TARGET} ${SFG_CORE_DIR})
@@ -140,5 +107,5 @@ add_custom_command(
         "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor/resource_pack"
 )
 set_target_properties(${SFG_EDITOR_TARGET} PROPERTIES FOLDER "stakeforge")
-sfg_group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)
+sfg_group_sources(PLATFORM_HEADERS PLATFORM_SOURCES)
 sfg_group_generated(${SFG_EDITOR_TARGET})

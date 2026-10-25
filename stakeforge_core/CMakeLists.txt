@@ -265,7 +265,3 @@ set_target_properties(${SFG_CORE_TARGET} PROPERTIES FOLDER "stakeforge")
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common_functions.cmake)
 sfg_group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)
 sfg_group_generated(${SFG_CORE_TARGET})
-
-add_library(stakeforge_memory_overrides OBJECT src/sfg/core/memory/memory_operators.cpp)
-target_link_libraries(stakeforge_memory_overrides PUBLIC stakeforge_core)
-set_target_properties(stakeforge_memory_overrides PROPERTIES FOLDER "stakeforge")

@@ -1,0 +1,168 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+
+*/
+
+#pragma once
+
+#include "tools/tools_exports.hpp"
+
+#include "tools/ui/panels/editor_panel.hpp"
+#include "tools/ui/widgets/editor_split_border.hpp"
+#include "tools/ui/widgets/editor_widget_button.hpp"
+#include <sfg/core/runtime/world/ecs_defs.hpp>
+#include "tools/ui/widgets/editor_widget_reflection.hpp"
+#include "tools/ui/widgets/editor_widget_world_view.hpp"
+#include "tools/ui/widgets/editor_widgets_scrollbar.hpp"
+#include "tools/world/editor_world_handle.hpp"
+
+#include <sfg/core/data/string.hpp>
+#include <sfg/core/data/vector.hpp>
+#include <sfg/core/math/mat4x3.hpp>
+#include <sfg/core/memory/chunk_handle.hpp>
+#include <sfg/core/memory/pool_handle.hpp>
+#include <sfg/core/runtime/resources/ragdoll_def.hpp>
+#include <sfg/core/runtime/resources/skeleton_def.hpp>
+
+namespace sfg
+{
+	class editor_asset_manager_t;
+	class editor_command_ragdoll_edit_t;
+	class world_t;
+	struct editor_asset_deletion_listener_tag_t;
+
+	class SFG_TOOLS_API editor_panel_ragdoll_viewer_t final : public editor_panel_t
+	{
+	public:
+		editor_panel_ragdoll_viewer_t();
+		~editor_panel_ragdoll_viewer_t() override									   = default;
+		editor_panel_ragdoll_viewer_t(const editor_panel_ragdoll_viewer_t&)			   = delete;
+		editor_panel_ragdoll_viewer_t& operator=(const editor_panel_ragdoll_viewer_t&) = delete;
+
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		void serialize(nlohmann::json& j) const override;
+		void deserialize(const nlohmann::json& j) override;
+		void init(ui::ui_context& ui, ui::widget_id_t parent) override;
+		void uninit() override;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		void set_ragdoll(sid_t ragdoll_guid, const char* asset_name);
+		void apply_ragdoll_def(ragdoll_def_t&& ragdoll);
+
+		inline ragdoll_def_t& get_ragdoll_def()
+		{
+			return _ragdoll;
+		}
+
+		inline sid_t get_ragdoll_guid() const
+		{
+			return _ragdoll_guid;
+		}
+
+	private:
+		friend class editor_command_ragdoll_edit_t;
+
+		void create_preview_world();
+		void refresh_scene();
+		bool start_simulation();
+		void reset_simulation();
+		void refresh_actions();
+		void finish_edit();
+		void mark_dirty();
+		void destroy_preview_world();
+		void reload_skeleton();
+		void rebuild_preview();
+		void refresh_reflection();
+		void apply_pane_split();
+		void draw_ragdoll(world_t& world) const;
+
+		static void on_action(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static void on_part_selected(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e button, void* user_data);
+		static bool on_preview_drag_begin(const vec2f_t& relative_position, void* user_data);
+		static void on_preview_drag_update(const vec2f_t& relative_position, void* user_data);
+		static void on_preview_drag_end(void* user_data);
+
+		static span_t<const editor_widget_reflection_dropdown_item_t> resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, u32 element_index, void* user_data);
+		static void													  on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data);
+		static void													  on_edit_begin(void* user_data);
+		static void													  on_edited(void* user_data);
+		static void													  on_edit_submitted(void* user_data);
+		static void													  on_world_tick(world_t& world, f32 delta_time, void* user_data);
+		static void													  on_split_border_drag(editor_split_border_t& border, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+
+	private:
+		editor_widget_button_t									 _save_button					 = {};
+		editor_widget_button_t									 _simulate_button				 = {};
+		editor_widget_button_t									 _reset_button					 = {};
+		editor_widget_button_t									 _generate_button				 = {};
+		editor_widget_button_t									 _add_button					 = {};
+		editor_widget_button_t									 _remove_button					 = {};
+		editor_widget_button_t									 _mesh_button					 = {};
+		editor_widget_button_t									 _skeleton_button				 = {};
+		editor_widget_button_t									 _capsules_button				 = {};
+		editor_widget_button_t									 _limits_button					 = {};
+		editor_widget_button_t									 _status						 = {};
+		editor_widget_button_t									 _part_buttons[RAGDOLL_PART_MAX] = {};
+		editor_widget_reflection_t								 _part_reflection				 = {};
+		editor_scrollbar_t										 _parts_scrollbar				 = {};
+		editor_widget_world_view_t								 _world_view					 = {};
+		editor_widget_reflection_t								 _reflection					 = {};
+		editor_split_border_t									 _split_border					 = {};
+		editor_scrollbar_t										 _right_scrollbar				 = {};
+		ragdoll_def_t											 _ragdoll						 = {};
+		skeleton_def_t											 _skeleton						 = {};
+		vector_t<mat4x3_t>										 _joint_globals					 = {};
+		vector_t<editor_widget_reflection_dropdown_item_t>		 _joint_dropdown_items			 = {};
+		vector_t<editor_widget_reflection_dropdown_item_t>		 _part_dropdown_items			 = {};
+		vector_t<string_t>										 _part_dropdown_names			 = {};
+		vector_t<editor_widget_reflection_fold_state_t>			 _fold_states					 = {};
+		string_t												 _asset_name					 = {};
+		editor_world_handle_t									 _world							 = {};
+		pool_handle_t<u32, editor_asset_deletion_listener_tag_t> _asset_deletion_listener		 = {};
+		chunk_handle32_t										 _edit_previous_stream			 = {};
+		resource_handle_t										 _preview_skeleton				 = NULL_RESOURCE_HANDLE;
+		sid_t													 _ragdoll_guid					 = NULL_SID;
+		ui::widget_id_t											 _left_pane						 = NULL_WIDGET;
+		ui::widget_id_t											 _right_pane					 = NULL_WIDGET;
+		ui::widget_id_t											 _right_content					 = NULL_WIDGET;
+		vec3f_t													 _drag_plane_point				 = vec3f_t::zero;
+		vec3f_t													 _drag_plane_normal				 = vec3f_t::zero;
+		entity_id_t												 _display_entity				 = NULL_ENTITY_ID;
+		ui::widget_id_t											 _part_list						 = NULL_WIDGET;
+		u32														 _selected_part					 = UINT32_MAX;
+		u32														 _part_button_count				 = 0;
+		f32														 _pane_split					 = 0.68f;
+		bool													 _dirty							 = false;
+		bool													 _refresh_pending				 = false;
+		bool													 _simulating					 = false;
+		bool													 _show_mesh						 = true;
+		bool													 _show_skeleton					 = false;
+		bool													 _show_capsules					 = true;
+		bool													 _show_limits					 = true;
+
+		bool _edit_active = false;
+	};
+}
