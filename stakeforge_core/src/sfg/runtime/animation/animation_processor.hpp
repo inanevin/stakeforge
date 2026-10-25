@@ -39,6 +39,7 @@ namespace sfg
 	class world_t;
 	struct skeleton_runtime_t;
 	struct component_system_skinned_mesh_renderer_t;
+	struct component_system_animation_slot_t;
 
 	// tags
 	struct animator_state_tag_t
@@ -134,6 +135,9 @@ namespace sfg
 		void calculate_skinning_matrices(f32 dt);
 		void reset_skinning_pose(entity_id_t entity);
 		void destroy_entity(entity_id_t id);
+		bool attach_entity_to_slot(entity_id_t animated_entity, sid_t slot_name, entity_id_t attached_entity);
+		void detach_entity_from_slot(entity_id_t attached_entity);
+		void sync_slot_attachments();
 
 		void					switch_layer_state(animator_library_handle_t library, u32 layer_index, animator_state_handle_t state, f32 transition_duration);
 		animator_state_handle_t find_state_handle(animator_library_handle_t library, sid_t name_hash, u32 layer = UINT32_MAX);
@@ -195,6 +199,8 @@ namespace sfg
 		};
 
 		void		alloc_for_entity(entity_id_t id);
+		void		dealloc_entity(entity_id_t id);
+		static bool resolve_slot_attachment(component_system_animation_slot_t& attachment, resource_handle_t skeleton_handle, const skeleton_runtime_t& skeleton);
 		static void on_resource_reload(resource_manager_t& resource_manager, sid_t resource_id, resource_type_e resource_type, void* user_data);
 		void		dealloc_for_entity(entity_id_t id);
 		void		alloc_for_skinned_renderer(entity_id_t id);

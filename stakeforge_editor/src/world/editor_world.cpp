@@ -365,7 +365,9 @@ namespace sfg
 
 		const entity_id_t camera_entity = _camera->get_entity();
 		vec3f_t			  scale			= vec3f_t::one;
-		_world.calculate_entity_abs_transform(camera_entity, view.pos, view.rot, scale);
+		mat4x3_t		  matrix		= mat4x3_t::identity;
+
+		_world.calculate_entity_abs_transform(camera_entity, view.pos, view.rot, scale, matrix);
 
 		const component_camera_t& camera = _world.get_component_table(type_id_t<component_camera_t>::value).get_as_const<component_camera_t>(camera_entity);
 		view.prev_pos					 = view.pos;

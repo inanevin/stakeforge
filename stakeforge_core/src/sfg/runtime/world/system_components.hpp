@@ -202,6 +202,22 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_system_animation_library_t);
 
+	struct component_system_animation_slot_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_animation_slot";
+
+		mat4x3_t		  local_transform			= mat4x3_t::identity;
+		mat4x3_t		  skinning_to_slot			= mat4x3_t::identity;
+		resource_handle_t skeleton					= NULL_RESOURCE_HANDLE;
+		sid_t			  slot_name					= NULL_SID;
+		vec2f_t			  motion_reference_position = vec2f_t::zero;
+		entity_id_t		  animated_entity			= NULL_ENTITY_ID;
+		u32				  joint_index				= UINT32_MAX;
+		u32				  motion_joint_index		= UINT32_MAX;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_animation_slot_t);
+
 	struct component_system_audio_source_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_audio_source";

@@ -73,19 +73,13 @@ namespace sfg
 		refresh_component_table_cache();
 
 		_logic_helper.init(*this);
-
 		_animation_processor.init(*this, config.animation_processor_page_size);
-
 		_audio_controller.init(*this);
-
 		_canvas_controller.init(*this);
-
 		_particle_simulation.init(*this, particle_simulation_config);
 
 		if (physics_config.physics_enabled)
-		{
 			_physics_world.init(*this, physics_config);
-		}
 	}
 
 	void world_t::uninit()
@@ -95,22 +89,15 @@ namespace sfg
 		SFG_ASSERT(_world_script_instance == nullptr);
 
 		_particle_simulation.uninit();
-
 		_canvas_controller.uninit();
-
 		_screen.uninit();
-
 		_audio_controller.uninit();
-
 		_animation_processor.uninit();
 
 		if (_physics_world.is_init())
-		{
 			_physics_world.uninit();
-		}
 
 		_logic_helper.uninit();
-
 		_debug_draw.uninit();
 
 		for (ecs_component_table_t& table : _component_tables)
@@ -258,6 +245,7 @@ namespace sfg
 
 		_animation_processor.tick(scaled_dt);
 		_animation_processor.calculate_skinning_matrices(scaled_dt);
+		_animation_processor.sync_slot_attachments();
 	}
 
 	void world_t::tick_logic(f32 dt)
@@ -838,45 +826,55 @@ namespace sfg
 		return transform.scale;
 	}
 
-	void world_t::calculate_entity_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale) const
+	void world_t::calculate_entity_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale, mat4x3_t& out_matrix) const
 	{
+		ZoneScoped;
+
 		SFG_ASSERT(is_alive(id));
 
-		out_pos	  = vec3f_t::zero;
-		out_rot	  = quat_t::identity;
-		out_scale = vec3f_t::one;
+		out_matrix = mat4x3_t::identity;
+		out_rot	   = quat_t::identity;
+		out_scale  = vec3f_t::one;
 
 		for (entity_id_t current = id; current != NULL_ENTITY_ID;)
 		{
 			const component_transform_t& transform = _engine_components.transform_table->get_as_const<component_transform_t>(current);
 			const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as_const<component_hierarchy_t>(current);
 
-			out_pos	  = mat4x3_t::transform(transform.pos, transform.rot, transform.scale) * out_pos;
-			out_rot	  = (transform.rot * out_rot).normalized();
-			out_scale = transform.scale * out_scale;
-			current	  = hierarchy.parent;
+			out_matrix = mat4x3_t::transform(transform.pos, transform.rot, transform.scale) * out_matrix;
+			out_rot	   = (transform.rot * out_rot).normalized();
+			out_scale  = transform.scale * out_scale;
+			current	   = hierarchy.parent;
 		}
+
+		out_pos = out_matrix.get_translation();
 	}
 
-	void world_t::calculate_entity_parent_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale) const
+	void world_t::calculate_entity_parent_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale, mat4x3_t& out_matrix) const
 	{
+		ZoneScoped;
+
 		SFG_ASSERT(is_alive(id));
 
 		const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as_const<component_hierarchy_t>(id);
 
 		if (hierarchy.parent == NULL_ENTITY_ID)
 		{
-			out_pos	  = vec3f_t::zero;
-			out_rot	  = quat_t::identity;
-			out_scale = vec3f_t::one;
+			out_pos	   = vec3f_t::zero;
+			out_rot	   = quat_t::identity;
+			out_scale  = vec3f_t::one;
+			out_matrix = mat4x3_t::identity;
+
 			return;
 		}
 
-		calculate_entity_abs_transform(hierarchy.parent, out_pos, out_rot, out_scale);
+		calculate_entity_abs_transform(hierarchy.parent, out_pos, out_rot, out_scale, out_matrix);
 	}
 
 	mat4x3_t world_t::calculate_entity_abs_matrix(entity_id_t id) const
 	{
+		ZoneScoped;
+
 		SFG_ASSERT(is_alive(id));
 
 		mat4x3_t matrix = mat4x3_t::identity;
@@ -895,6 +893,8 @@ namespace sfg
 
 	mat4x3_t world_t::calculate_entity_parent_abs_matrix(entity_id_t id) const
 	{
+		ZoneScoped;
+
 		SFG_ASSERT(is_alive(id));
 
 		const component_hierarchy_t& hierarchy = _engine_components.hierarchy_table->get_as_const<component_hierarchy_t>(id);
@@ -962,14 +962,6 @@ namespace sfg
 
 			update_entity_transform_from_physics(row.id, hierarchy, quat_t::identity, vec3f_t::one, mat4x3_t::identity, false);
 		}
-	}
-
-	void world_t::sync_entity_hierarchy(entity_id_t id)
-	{
-		SFG_ASSERT(is_alive(id));
-
-		if (_physics_world.is_init())
-			_physics_world.sync_body_create_destroy();
 	}
 
 	bool world_t::add_resource(resource_type_e type, resource_handle_t handle)

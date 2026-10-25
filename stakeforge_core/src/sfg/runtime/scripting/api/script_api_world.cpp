@@ -157,13 +157,13 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		vec3f_t parent_position = vec3f_t::zero;
-		quat_t	parent_rotation = quat_t::identity;
-		vec3f_t parent_scale	= vec3f_t::one;
+		vec3f_t	 parent_position = vec3f_t::zero;
+		quat_t	 parent_rotation = quat_t::identity;
+		vec3f_t	 parent_scale	 = vec3f_t::one;
+		mat4x3_t parent_matrix	 = mat4x3_t::identity;
 
-		world->calculate_entity_parent_abs_transform(entity, parent_position, parent_rotation, parent_scale);
+		world->calculate_entity_parent_abs_transform(entity, parent_position, parent_rotation, parent_scale, parent_matrix);
 
-		const mat4x3_t parent_matrix = world->calculate_entity_parent_abs_matrix(entity);
 		world->set_entity_pos_local(entity, world_t::abs_pos_to_local(*position, parent_matrix));
 		world->set_entity_rot_local(entity, world_t::abs_rot_to_local(*rotation, parent_rotation));
 		world->set_entity_scale_local(entity, world_t::abs_scale_to_local(*scale, parent_scale));
@@ -335,11 +335,12 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		vec3f_t parent_position = vec3f_t::zero;
-		quat_t	parent_rotation = quat_t::identity;
-		vec3f_t parent_scale	= vec3f_t::one;
+		vec3f_t	 parent_position = vec3f_t::zero;
+		quat_t	 parent_rotation = quat_t::identity;
+		vec3f_t	 parent_scale	 = vec3f_t::one;
+		mat4x3_t parent_matrix	 = mat4x3_t::identity;
 
-		world->calculate_entity_parent_abs_transform(entity, parent_position, parent_rotation, parent_scale);
+		world->calculate_entity_parent_abs_transform(entity, parent_position, parent_rotation, parent_scale, parent_matrix);
 		*out_rotation = world_t::abs_rot_to_local(*rotation, parent_rotation);
 		return 1;
 	}
@@ -355,11 +356,12 @@ namespace sfg
 		if (entity >= ECS_MAX_ENTITIES || !world->is_alive(entity))
 			return 0;
 
-		vec3f_t parent_position = vec3f_t::zero;
-		quat_t	parent_rotation = quat_t::identity;
-		vec3f_t parent_scale	= vec3f_t::one;
+		vec3f_t	 parent_position = vec3f_t::zero;
+		quat_t	 parent_rotation = quat_t::identity;
+		vec3f_t	 parent_scale	 = vec3f_t::one;
+		mat4x3_t parent_matrix	 = mat4x3_t::identity;
 
-		world->calculate_entity_parent_abs_transform(entity, parent_position, parent_rotation, parent_scale);
+		world->calculate_entity_parent_abs_transform(entity, parent_position, parent_rotation, parent_scale, parent_matrix);
 		*out_scale = world_t::abs_scale_to_local(*scale, parent_scale);
 		return 1;
 	}

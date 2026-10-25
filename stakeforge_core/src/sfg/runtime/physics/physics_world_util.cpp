@@ -299,15 +299,14 @@ namespace sfg
 		SFG_ASSERT(system_physics != nullptr && system_physics->body_id != UINT32_MAX);
 
 		out_context = {
-			.transform = world.calculate_entity_abs_matrix(entity),
-			.body_id   = system_physics->body_id,
-			.entity	   = entity,
+			.body_id = system_physics->body_id,
+			.entity	 = entity,
 		};
 
 		vec3f_t position = vec3f_t::zero;
 		vec3f_t scale	 = vec3f_t::one;
 
-		world.calculate_entity_abs_transform(entity, position, out_context.rotation, scale);
+		world.calculate_entity_abs_transform(entity, position, out_context.rotation, scale, out_context.transform);
 
 		if (target_guid == NULL_ENTITY_GUID)
 			return true;
@@ -322,8 +321,7 @@ namespace sfg
 		if (target_physics == nullptr || target_physics->body_id == UINT32_MAX)
 			return false;
 
-		out_context.target_transform = world.calculate_entity_abs_matrix(target_entity);
-		world.calculate_entity_abs_transform(target_entity, position, out_context.target_rotation, scale);
+		world.calculate_entity_abs_transform(target_entity, position, out_context.target_rotation, scale, out_context.target_transform);
 
 		out_context.target_body_id = target_physics->body_id;
 		out_context.target_entity  = target_entity;

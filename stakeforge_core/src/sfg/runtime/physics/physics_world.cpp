@@ -825,11 +825,12 @@ namespace sfg
 			system_physics.local_rotation			= physical.local_rotation;
 			system_physics.physical_material		= physical.physical_material;
 
-			vec3f_t entity_position = vec3f_t::zero;
-			quat_t	entity_rotation = quat_t::identity;
-			vec3f_t entity_scale	= vec3f_t::one;
+			vec3f_t	 entity_position = vec3f_t::zero;
+			quat_t	 entity_rotation = quat_t::identity;
+			vec3f_t	 entity_scale	 = vec3f_t::one;
+			mat4x3_t entity_matrix	 = mat4x3_t::identity;
 
-			_world->calculate_entity_abs_transform(entity, entity_position, entity_rotation, entity_scale);
+			_world->calculate_entity_abs_transform(entity, entity_position, entity_rotation, entity_scale, entity_matrix);
 
 			JPH::RefConst<JPH::Shape> shape = physics_world_util_t::create_shape(*_world, entity, physical, entity_scale);
 
@@ -909,11 +910,12 @@ namespace sfg
 
 		bool create_character(entity_id_t entity, component_system_physics_t& system_physics, const component_character_mover_t& mover)
 		{
-			vec3f_t entity_position = vec3f_t::zero;
-			quat_t	entity_rotation = quat_t::identity;
-			vec3f_t entity_scale	= vec3f_t::one;
+			vec3f_t	 entity_position = vec3f_t::zero;
+			quat_t	 entity_rotation = quat_t::identity;
+			vec3f_t	 entity_scale	 = vec3f_t::one;
+			mat4x3_t entity_matrix	 = mat4x3_t::identity;
 
-			_world->calculate_entity_abs_transform(entity, entity_position, entity_rotation, entity_scale);
+			_world->calculate_entity_abs_transform(entity, entity_position, entity_rotation, entity_scale, entity_matrix);
 			system_physics.motion_type = static_cast<u8>(physics_motion_type_e::kinematic_body);
 
 			JPH::CapsuleShapeSettings		shape_settings(math::max(mover.half_height, 0.001f), math::max(mover.radius, 0.001f));
@@ -1255,8 +1257,7 @@ namespace sfg
 			const ecs_component_table_t& system_physics_table = _world->get_component_table(type_id_t<component_system_physics_t>::value);
 			const ecs_component_table_t& disabled_table		  = _world->get_component_table(type_id_t<component_disabled_t>::value);
 
-			ecs_component_table_t& system_transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
-			ecs_component_table_t& transform_table		  = _world->get_component_table(type_id_t<component_transform_t>::value);
+			const ecs_component_table_t& system_transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
 
 			JPH::BodyInterface& body_interface = _system->GetBodyInterface();
 
@@ -1273,21 +1274,17 @@ namespace sfg
 				JPH::Quat  body_rotation = JPH::Quat::sIdentity();
 				body_interface.GetPositionAndRotation(JPH::BodyID(system_physics.body_id), body_position, body_rotation);
 
-				component_system_transform_t& system_transform = row.get_mutable<component_system_transform_t>(1);
-				const quat_t				  entity_rotation  = physics_world_util_t::from_jolt(body_rotation) * system_physics.local_rotation.inverse();
-				const vec3f_t				  entity_position  = physics_world_util_t::from_jolt(body_position) - entity_rotation * (system_physics.local_position * system_transform.abs_scale);
+				const component_system_transform_t& system_transform = row.get<component_system_transform_t>(1);
+				const quat_t						entity_rotation	 = physics_world_util_t::from_jolt(body_rotation) * system_physics.local_rotation.inverse();
+				const vec3f_t						entity_position	 = physics_world_util_t::from_jolt(body_position) - entity_rotation * (system_physics.local_position * system_transform.abs_scale);
 
-				system_transform.abs_pos = entity_position;
-				system_transform.abs_rot = entity_rotation;
-				system_transform.abs_mat = mat4x3_t::transform(entity_position, entity_rotation, system_transform.abs_scale);
+				vec3f_t	 parent_position = vec3f_t::zero;
+				quat_t	 parent_rotation = quat_t::identity;
+				vec3f_t	 parent_scale	 = vec3f_t::one;
+				mat4x3_t parent_matrix	 = mat4x3_t::identity;
 
-				vec3f_t parent_position = vec3f_t::zero;
-				quat_t	parent_rotation = quat_t::identity;
-				vec3f_t parent_scale	= vec3f_t::one;
+				_world->calculate_entity_parent_abs_transform(row.id, parent_position, parent_rotation, parent_scale, parent_matrix);
 
-				_world->calculate_entity_parent_abs_transform(row.id, parent_position, parent_rotation, parent_scale);
-
-				const mat4x3_t parent_matrix = _world->calculate_entity_parent_abs_matrix(row.id);
 				_world->set_entity_pos_local(row.id, world_t::abs_pos_to_local(entity_position, parent_matrix));
 				_world->set_entity_rot_local(row.id, world_t::abs_rot_to_local(entity_rotation, parent_rotation));
 			}
@@ -1298,16 +1295,15 @@ namespace sfg
 			ZoneScoped;
 
 			const ecs_component_table_t&	system_ragdoll_table   = _world->get_component_table(type_id_t<component_system_ragdoll_t>::value);
-			ecs_component_table_t&			system_transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
+			const ecs_component_table_t&	system_transform_table = _world->get_component_table(type_id_t<component_system_transform_t>::value);
 			resource_manager_t&				resource_manager	   = resource_manager_t::get();
 			const chunk_allocator32_t&		resource_memory		   = resource_manager.get_memory();
 			const ecs_component_table_ref_t refs[]				   = {system_ragdoll_table.ref(), system_transform_table.ref()};
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 			{
-				component_system_ragdoll_t&	  system_ragdoll   = row.get_mutable<component_system_ragdoll_t>(0);
-				component_system_transform_t& system_transform = row.get_mutable<component_system_transform_t>(1);
-				const skeleton_runtime_t*	  skeleton		   = resource_manager.find_runtime<skeleton_runtime_t>(system_ragdoll.skeleton);
+				component_system_ragdoll_t& system_ragdoll = row.get_mutable<component_system_ragdoll_t>(0);
+				const skeleton_runtime_t*	skeleton	   = resource_manager.find_runtime<skeleton_runtime_t>(system_ragdoll.skeleton);
 
 				SFG_ASSERT(skeleton != nullptr);
 
@@ -1384,17 +1380,13 @@ namespace sfg
 					joint_globals[joint_index] = parent_index == SKELETON_JOINT_NO_PARENT ? frozen_locals[joint_index] : joint_globals[parent_index] * frozen_locals[joint_index];
 				}
 
-				system_transform.abs_pos = entity_position;
-				system_transform.abs_rot = entity_rotation;
-				system_transform.abs_mat = mat4x3_t::transform(entity_position, entity_rotation, system_transform.abs_scale);
+				vec3f_t	 parent_position = vec3f_t::zero;
+				quat_t	 parent_rotation = quat_t::identity;
+				vec3f_t	 parent_scale	 = vec3f_t::one;
+				mat4x3_t parent_matrix	 = mat4x3_t::identity;
 
-				vec3f_t parent_position = vec3f_t::zero;
-				quat_t	parent_rotation = quat_t::identity;
-				vec3f_t parent_scale	= vec3f_t::one;
+				_world->calculate_entity_parent_abs_transform(row.id, parent_position, parent_rotation, parent_scale, parent_matrix);
 
-				_world->calculate_entity_parent_abs_transform(row.id, parent_position, parent_rotation, parent_scale);
-
-				const mat4x3_t parent_matrix = _world->calculate_entity_parent_abs_matrix(row.id);
 				_world->set_entity_pos_local(row.id, world_t::abs_pos_to_local(entity_position, parent_matrix));
 				_world->set_entity_rot_local(row.id, world_t::abs_rot_to_local(entity_rotation, parent_rotation));
 

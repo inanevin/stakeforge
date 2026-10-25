@@ -79,7 +79,9 @@ namespace sfg
 
 		const component_system_transform_t& transform = _world->get_component_table(type_id_t<component_system_transform_t>::value).get_as_const<component_system_transform_t>(anchor);
 		vec3f_t								scale	  = vec3f_t::one;
-		_world->calculate_entity_abs_transform(anchor, target.position, target.rotation, scale);
+		mat4x3_t							matrix	  = mat4x3_t::identity;
+
+		_world->calculate_entity_abs_transform(anchor, target.position, target.rotation, scale, matrix);
 		target.prev_position = transform.prev_abs_pos;
 		target.prev_rotation = transform.prev_abs_rot;
 		target.generation	 = _context->get_selection_generation();

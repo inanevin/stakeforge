@@ -157,8 +157,8 @@ namespace sfg
 			return {scale.x / parent_abs_scale.x, scale.y / parent_abs_scale.y, scale.z / parent_abs_scale.z};
 		}
 
-		void	 calculate_entity_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale) const;
-		void	 calculate_entity_parent_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale) const;
+		void	 calculate_entity_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale, mat4x3_t& out_matrix) const;
+		void	 calculate_entity_parent_abs_transform(entity_id_t id, vec3f_t& out_pos, quat_t& out_rot, vec3f_t& out_scale, mat4x3_t& out_matrix) const;
 		mat4x3_t calculate_entity_abs_matrix(entity_id_t id) const;
 		mat4x3_t calculate_entity_parent_abs_matrix(entity_id_t id) const;
 		void	 update_world_transforms();

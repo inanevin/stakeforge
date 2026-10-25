@@ -81,6 +81,233 @@ namespace sfg
 
 	void animation_processor_t::destroy_entity(entity_id_t id)
 	{
+		ecs_component_table_t&			slots	 = _world->get_component_table<component_system_animation_slot_t>();
+		const ecs_component_table_ref_t refs[]	 = {slots.ref()};
+		frame_vector_t<entity_id_t>		detached = {};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+		{
+			if (row.id == id || row.get<component_system_animation_slot_t>().animated_entity == id)
+				detached.push_back(row.id);
+		}
+
+		for (entity_id_t entity : detached)
+			slots.remove(entity);
+
+		dealloc_entity(id);
+	}
+
+	bool animation_processor_t::attach_entity_to_slot(entity_id_t animated_entity, sid_t slot_name, entity_id_t attached_entity)
+	{
+		SFG_ASSERT(_world->is_alive(animated_entity));
+		SFG_ASSERT(_world->is_alive(attached_entity));
+		SFG_ASSERT(animated_entity != attached_entity);
+
+		const component_animation_library_t* library	= _world->get_component_table<component_animation_library_t>().find_as_const<component_animation_library_t>(animated_entity);
+		const bool							 has_player = _world->get_component_table<component_animation_player_t>().has(animated_entity);
+
+		if (library == nullptr && !has_player)
+		{
+			SFG_WARN("entity {0} has no animation library or player", animated_entity);
+			return false;
+		}
+
+		resource_manager_t& resources		= resource_manager_t::get();
+		resource_handle_t	skeleton_handle = NULL_RESOURCE_HANDLE;
+
+		if (library != nullptr)
+		{
+			const animation_library_runtime_t* runtime = resources.find_runtime<animation_library_runtime_t>(library->animation_library);
+
+			if (runtime != nullptr)
+				skeleton_handle = runtime->skeleton;
+		}
+		else
+		{
+			const component_skinned_mesh_renderer_t* renderer = _world->get_component_table<component_skinned_mesh_renderer_t>().find_as_const<component_skinned_mesh_renderer_t>(animated_entity);
+
+			if (renderer != nullptr)
+				skeleton_handle = renderer->skeleton;
+		}
+
+		const skeleton_runtime_t* skeleton = resources.find_runtime<skeleton_runtime_t>(skeleton_handle);
+
+		if (skeleton == nullptr)
+		{
+			SFG_WARN("animation entity {0} has no available skeleton", animated_entity);
+			return false;
+		}
+
+		component_system_animation_slot_t attachment{.slot_name = slot_name, .animated_entity = animated_entity};
+
+		if (!resolve_slot_attachment(attachment, skeleton_handle, *skeleton))
+			return false;
+
+		_world->get_component_table<component_system_animation_slot_t>().add_or_get_as<component_system_animation_slot_t>(attached_entity) = attachment;
+		return true;
+	}
+
+	void animation_processor_t::detach_entity_from_slot(entity_id_t attached_entity)
+	{
+		SFG_ASSERT(_world->is_alive(attached_entity));
+
+		ecs_component_table_t& slots = _world->get_component_table<component_system_animation_slot_t>();
+
+		if (!slots.has(attached_entity))
+		{
+			SFG_WARN("entity {0} is not attached to an animation slot", attached_entity);
+			return;
+		}
+
+		slots.remove(attached_entity);
+	}
+
+	bool animation_processor_t::resolve_slot_attachment(component_system_animation_slot_t& attachment, resource_handle_t skeleton_handle, const skeleton_runtime_t& skeleton)
+	{
+		const chunk_allocator_t&	   memory = resource_manager_t::get().get_memory();
+		const skeleton_slot_runtime_t* slots  = skeleton.slot_count == 0 ? nullptr : memory.get<skeleton_slot_runtime_t>(skeleton.slots);
+
+		for (u32 i = 0; i < skeleton.slot_count; ++i)
+		{
+			const skeleton_slot_runtime_t& slot = slots[i];
+
+			if (slot.slot_name_hash != attachment.slot_name || slot.slot_joint_index == SKELETON_JOINT_NO_PARENT)
+				continue;
+
+			const skeleton_joint_runtime_t* joints			 = memory.get<skeleton_joint_runtime_t>(skeleton.joints);
+			const u32						motion_joint	 = skeleton.motion_joint_index == SKELETON_JOINT_NO_PARENT ? skeleton.root_joint_index : skeleton.motion_joint_index;
+			mat4x3_t						motion_transform = mat4x3_t::identity;
+
+			for (u32 joint = motion_joint; joint != SKELETON_JOINT_NO_PARENT; joint = joints[joint].parent_index)
+				motion_transform = joints[joint].local * motion_transform;
+
+			const vec3f_t reference_position = skeleton.skinning_transform * motion_transform.get_translation();
+
+			attachment.local_transform			 = mat4x3_t::transform(slot.local_position, slot.local_rotation, vec3f_t::one);
+			attachment.skinning_to_slot			 = joints[slot.slot_joint_index].bind_global * attachment.local_transform;
+			attachment.skeleton					 = skeleton_handle;
+			attachment.motion_reference_position = {reference_position.x, reference_position.z};
+			attachment.joint_index				 = slot.slot_joint_index;
+			attachment.motion_joint_index		 = motion_joint;
+			return true;
+		}
+
+		SFG_WARN("slot {0} is missing or has no joint on animation entity {1}", attachment.slot_name, attachment.animated_entity);
+		return false;
+	}
+
+	void animation_processor_t::sync_slot_attachments()
+	{
+		ecs_component_table_t&			slots			 = _world->get_component_table<component_system_animation_slot_t>();
+		const ecs_component_table_t&	libraries		 = _world->get_component_table<component_animation_library_t>();
+		const ecs_component_table_t&	players			 = _world->get_component_table<component_animation_player_t>();
+		const ecs_component_table_t&	system_libraries = _world->get_component_table<component_system_animation_library_t>();
+		const ecs_component_table_t&	renderers		 = _world->get_component_table<component_system_skinned_mesh_renderer_t>();
+		const ecs_component_table_t&	skinned			 = _world->get_component_table<component_skinned_mesh_renderer_t>();
+		const ecs_component_table_t&	disabled		 = _world->get_component_table<component_disabled_t>();
+		const ecs_component_table_t&	ragdolls		 = _world->get_component_table<component_system_ragdoll_t>();
+		const ecs_component_table_ref_t refs[]			 = {slots.ref(), !disabled.ref()};
+		frame_vector_t<entity_id_t>		detached		 = {};
+		bool							changed			 = false;
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+		{
+			component_system_animation_slot_t&	 attachment = row.get_mutable<component_system_animation_slot_t>();
+			const entity_id_t					 source		= attachment.animated_entity;
+			const component_animation_library_t* library	= libraries.find_as_const<component_animation_library_t>(source);
+
+			if (library == nullptr && (!players.has(source) || !skinned.has(source)))
+			{
+				SFG_WARN("detaching entity {0}: animation source {1} was removed", row.id, source);
+				detached.push_back(row.id);
+				continue;
+			}
+
+			if (disabled.has(source))
+				continue;
+
+			const component_system_animation_library_t*		system_library = library == nullptr ? nullptr : system_libraries.find_as_const<component_system_animation_library_t>(source);
+			const component_system_skinned_mesh_renderer_t* renderer	   = renderers.find_as_const<component_system_skinned_mesh_renderer_t>(source);
+
+			if ((library != nullptr && system_library == nullptr) || (library == nullptr && renderer == nullptr))
+				continue;
+
+			const resource_handle_t skeleton_handle = library != nullptr ? _libraries.get({system_library->lib_alloc.index, system_library->lib_alloc.generation}).skeleton_handle : renderer->skeleton;
+
+			if (attachment.skeleton != skeleton_handle)
+			{
+				const skeleton_runtime_t& skeleton = *resource_manager_t::get().find_runtime<skeleton_runtime_t>(skeleton_handle);
+
+				if (!resolve_slot_attachment(attachment, skeleton_handle, skeleton))
+				{
+					detached.push_back(row.id);
+					continue;
+				}
+			}
+
+			const component_system_ragdoll_t* ragdoll		 = ragdolls.find_as_const<component_system_ragdoll_t>(source);
+			mat4x3_t						  slot_transform = mat4x3_t::identity;
+
+			if (ragdoll != nullptr && ragdoll->skeleton == skeleton_handle)
+				slot_transform = _world->get_physics().get_ragdoll_joint_globals(source)[attachment.joint_index] * attachment.local_transform;
+			else if (library != nullptr)
+			{
+				const mat4x3_t* matrices = _bone_aux.get<mat4x3_t>(system_library->bone_alloc);
+				const mat4x3_t* joints	 = matrices + 1 + system_library->joint_count;
+				mat4x3_t		skinning = matrices[0];
+
+				if (library->in_place)
+				{
+					const vec3f_t position = skinning * joints[attachment.motion_joint_index].get_translation();
+
+					skinning[9] += attachment.motion_reference_position.x - position.x;
+					skinning[11] += attachment.motion_reference_position.y - position.z;
+				}
+
+				slot_transform = skinning * joints[attachment.joint_index] * attachment.local_transform;
+			}
+			else
+				slot_transform = _bone_aux.get<mat4x3_t>(renderer->bone_alloc)[attachment.joint_index] * attachment.skinning_to_slot;
+
+			const mat4x3_t slot_world = _world->calculate_entity_abs_matrix(source) * slot_transform;
+			vec3f_t		   position	  = vec3f_t::zero;
+			quat_t		   rotation	  = quat_t::identity;
+			vec3f_t		   scale	  = vec3f_t::one;
+
+			slot_world.decompose(position, rotation, scale);
+
+			vec3f_t	 parent_position = vec3f_t::zero;
+			quat_t	 parent_rotation = quat_t::identity;
+			vec3f_t	 parent_scale	 = vec3f_t::one;
+			mat4x3_t parent_matrix	 = mat4x3_t::identity;
+
+			_world->calculate_entity_parent_abs_transform(row.id, parent_position, parent_rotation, parent_scale, parent_matrix);
+
+			const vec3f_t local_position = world_t::abs_pos_to_local(position, parent_matrix);
+			const quat_t  local_rotation = world_t::abs_rot_to_local(rotation, parent_rotation);
+
+			if (!_world->get_entity_pos_local(row.id).equals(local_position))
+			{
+				_world->set_entity_pos_local(row.id, local_position);
+				changed = true;
+			}
+
+			if (!_world->get_entity_rot_local(row.id).equals(local_rotation))
+			{
+				_world->set_entity_rot_local(row.id, local_rotation);
+				changed = true;
+			}
+		}
+
+		for (entity_id_t entity : detached)
+			slots.remove(entity);
+
+		if (changed)
+			_world->update_world_transforms();
+	}
+
+	void animation_processor_t::dealloc_entity(entity_id_t id)
+	{
 		const ecs_component_table_t& system_table		  = _world->get_component_table<component_system_animation_library_t>();
 		const ecs_component_table_t& system_skinned_table = _world->get_component_table<component_system_skinned_mesh_renderer_t>();
 		const ecs_component_table_t& system_player_table  = _world->get_component_table<component_system_animation_player_t>();
@@ -747,11 +974,25 @@ namespace sfg
 			}
 		}
 
+		if (resource_type == resource_type_e::skeleton)
+		{
+			ecs_component_table_t&			slots  = processor._world->get_component_table<component_system_animation_slot_t>();
+			const ecs_component_table_ref_t refs[] = {slots.ref()};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+			{
+				component_system_animation_slot_t& attachment = row.get_mutable<component_system_animation_slot_t>();
+
+				if (attachment.skeleton == resource_id)
+					attachment.skeleton = NULL_RESOURCE_HANDLE;
+			}
+		}
+
 		std::sort(entities.begin(), entities.end());
 		const auto end = std::unique(entities.begin(), entities.end());
 
 		for (auto it = entities.begin(); it != end; ++it)
-			processor.destroy_entity(*it);
+			processor.dealloc_entity(*it);
 	}
 
 	void animation_processor_t::alloc_for_entity(entity_id_t id)
