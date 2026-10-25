@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
@@ -51,7 +53,7 @@ namespace sfg
 		u32		parent_part_index			   = RAGDOLL_PART_NO_PARENT;
 	};
 
-	struct ragdoll_def_t
+	struct SFG_API ragdoll_def_t
 	{
 		vector_t<ragdoll_part_def_t> parts			   = {};
 		resource_handle_t			 target_skeleton   = NULL_RESOURCE_HANDLE;
@@ -72,5 +74,4 @@ namespace sfg
 		ragdoll_def_reflection_t();
 	};
 
-	inline ragdoll_def_reflection_t g_reflect_ragdoll_def;
 }

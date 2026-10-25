@@ -28,6 +28,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	animation_library_def_reflection_t g_reflect_animation_library_def = {};
+
 	animation_library_def_reflection_t::animation_library_def_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();

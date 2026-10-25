@@ -21,12 +21,14 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
 
 namespace sfg
 {
-	class text_allocator_t
+	class SFG_API text_allocator_t
 	{
 
 	private:

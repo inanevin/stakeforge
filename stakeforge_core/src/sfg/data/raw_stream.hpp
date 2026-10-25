@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "span.hpp"
 #include <sfg/common/size_definitions.hpp>
 
@@ -29,7 +31,7 @@ namespace sfg
 	class ostream_t;
 	class istream_t;
 
-	class raw_stream_t
+	class SFG_API raw_stream_t
 	{
 	public:
 		raw_stream_t() : _data({}) {};

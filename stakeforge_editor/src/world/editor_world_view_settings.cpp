@@ -26,6 +26,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	editor_world_view_settings_reflection_t g_reflect_editor_world_view_settings = {};
+
 	editor_world_view_settings_reflection_t::editor_world_view_settings_reflection_t()
 	{
 		reflection_registry_t::get().register_type({

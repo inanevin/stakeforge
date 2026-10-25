@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include "font.hpp"
@@ -15,7 +17,7 @@ namespace sfg
 		u32 reserved = 0;
 	};
 
-	class font_cooker
+	class SFG_API font_cooker
 	{
 	public:
 		static bool cook_from_file(const font_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream);
@@ -28,5 +30,4 @@ namespace sfg
 		font_cook_config_reflection_t();
 	};
 
-	inline font_cook_config_reflection_t g_reflect_font_cook_config;
 }

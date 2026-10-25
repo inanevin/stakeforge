@@ -21,11 +21,13 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
 	struct shader_desc_t;
 
-	class vertex_inputs_t
+	class SFG_API vertex_inputs_t
 	{
 	public:
 		static void get_pos_normal_tangent_uv(shader_desc_t& out_desc);

@@ -17,6 +17,8 @@
 
 namespace sfg
 {
+	shader_cook_config_reflection_t g_reflect_shader_cook_config = {};
+
 	namespace
 	{
 		void append_include_dir(const string_t& include_dir, vector_t<string_t>& out)

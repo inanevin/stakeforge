@@ -45,5 +45,4 @@ namespace sfg
 		editor_world_view_settings_reflection_t();
 	};
 
-	inline editor_world_view_settings_reflection_t g_reflect_editor_world_view_settings;
 }

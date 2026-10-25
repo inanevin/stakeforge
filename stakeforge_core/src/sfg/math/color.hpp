@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 #include "vec4f.hpp"
 
@@ -29,7 +31,7 @@ namespace sfg
 	class ostream_t;
 	class istream_t;
 
-	class color_t
+	class SFG_API color_t
 	{
 
 	public:
@@ -106,5 +108,4 @@ namespace sfg
 		color_reflection_t();
 	};
 
-	inline color_reflection_t g_reflect_color;
 } // namespace sfg

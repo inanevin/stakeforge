@@ -31,6 +31,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	mat4x3_reflection_t g_reflect_mat4x3 = {};
 
 	mat4x3_t::mat4x3_t(f32 m00, f32 m10, f32 m20, f32 m01, f32 m11, f32 m21, f32 m02, f32 m12, f32 m22, f32 m03, f32 m13, f32 m23)
 	{

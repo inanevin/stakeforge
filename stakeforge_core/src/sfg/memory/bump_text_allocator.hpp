@@ -21,11 +21,13 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
 {
-	class bump_text_allocator_t
+	class SFG_API bump_text_allocator_t
 	{
 	public:
 		struct string_view_t

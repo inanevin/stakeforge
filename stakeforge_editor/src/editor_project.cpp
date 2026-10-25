@@ -33,6 +33,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	editor_project_reflection_t g_reflect_editor_project = {};
+
 	editor_project_t editor_project_t::make_default_project(const char* path)
 	{
 		editor_project_t project = {};

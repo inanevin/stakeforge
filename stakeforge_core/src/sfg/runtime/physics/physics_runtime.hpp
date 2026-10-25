@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace JPH
 {
 	class JobSystem;
@@ -32,7 +34,7 @@ namespace sfg
 {
 	class world_debug_draw_t;
 
-	class physics_runtime_t final
+	class SFG_API physics_runtime_t final
 	{
 	public:
 		physics_runtime_t() = delete;

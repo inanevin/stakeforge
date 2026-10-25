@@ -27,6 +27,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	animation_graph_def_reflection_t g_reflect_animation_graph_def = {};
+
 	animation_graph_node_def_t* animation_graph_def_t::find_node(u32 node_id)
 	{
 		const auto node_it = std::find_if(nodes.begin(), nodes.end(), [node_id](const animation_graph_node_def_t& node) { return node.id == node_id; });

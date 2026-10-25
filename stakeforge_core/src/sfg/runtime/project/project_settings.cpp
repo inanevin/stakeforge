@@ -28,6 +28,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	project_settings_reflection_t g_reflect_project_settings = {};
+
 	void project_settings_t::normalize(const project_settings_t* previous)
 	{
 		if (tags.size() > ENTITY_TAG_MAX)

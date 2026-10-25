@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <cstddef>
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
@@ -29,7 +31,7 @@ namespace sfg
 {
 	class color_t;
 
-	class color_utils_t final
+	class SFG_API color_utils_t final
 	{
 	public:
 		static color_t	lerp(const color_t& c1, const color_t& c2, f32 a);

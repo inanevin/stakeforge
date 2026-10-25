@@ -27,6 +27,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	system_component_reflection_t g_reflect_system_component = {};
+
 	system_component_reflection_t::system_component_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();

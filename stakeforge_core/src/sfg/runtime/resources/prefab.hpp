@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 
 namespace sfg
@@ -15,7 +17,7 @@ namespace sfg
 		chunk_handle32_t source = {};
 	};
 
-	class prefab_loader_t
+	class SFG_API prefab_loader_t
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('P', 'R', 'F', 'B');
@@ -28,5 +30,5 @@ namespace sfg
 		static bool read_source(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset, chunk_handle32_t& out_source);
 	};
 
-	extern const resource_type_desc_t prefab_resource_desc;
+	extern SFG_API const resource_type_desc_t prefab_resource_desc;
 }

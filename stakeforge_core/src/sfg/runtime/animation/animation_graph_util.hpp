@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "animation_graph_types.hpp"
 
 namespace sfg
@@ -29,7 +31,7 @@ namespace sfg
 	class chunk_allocator_t;
 	struct skeleton_runtime_t;
 
-	class animation_graph_util_t final
+	class SFG_API animation_graph_util_t final
 	{
 	public:
 		static chunk_handle32_t create_pose_from_skeleton(const skeleton_runtime_t& skeleton, const chunk_allocator_t& skeleton_memory, chunk_allocator_t& pose_memory, chunk_allocator_t& pose_bone_memory, chunk_allocator_t& aux_memory);

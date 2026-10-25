@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/common/type_id.hpp>
 #include <sfg/math/vec3f.hpp>
@@ -90,7 +92,7 @@ namespace sfg
 		bool				   auto_destroy = false;
 	};
 
-	class audio_engine_t final
+	class SFG_API audio_engine_t final
 	{
 	public:
 		audio_engine_t()								 = default;

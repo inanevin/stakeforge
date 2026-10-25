@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
@@ -28,7 +30,7 @@ namespace sfg
 	class ostream_t;
 	class istream_t;
 
-	struct vec4i16_t
+	struct SFG_API vec4i16_t
 	{
 		void serialize(ostream_t& stream) const;
 		void deserialize(istream_t& stream);

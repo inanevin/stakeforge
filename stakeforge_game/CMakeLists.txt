@@ -72,7 +72,7 @@ if(MSVC)
 endif()
     
 target_include_directories(${SFG_GAME_TARGET} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_link_libraries(${SFG_GAME_TARGET} PRIVATE stakeforge_core)
+target_link_libraries(${SFG_GAME_TARGET} PRIVATE stakeforge_core stakeforge_memory_overrides)
 
 include(${SFG_CORE_DIR}/cmake/common_functions.cmake)
 sfg_add_copy_commands(${SFG_GAME_TARGET} ${SFG_CORE_DIR})

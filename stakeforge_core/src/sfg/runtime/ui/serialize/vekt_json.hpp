@@ -21,12 +21,14 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg::ui
 {
 	class ui_context;
 
-	nlohmann::json widget_hierarchy_to_json(const ui_context& ui);
-	bool		   widget_hierarchy_from_json(ui_context& ui, const nlohmann::json& j);
+	SFG_API nlohmann::json widget_hierarchy_to_json(const ui_context& ui);
+	SFG_API bool		   widget_hierarchy_from_json(ui_context& ui, const nlohmann::json& j);
 }

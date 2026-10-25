@@ -1,12 +1,14 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include "skeleton_def.hpp"
 
 namespace sfg
 {
-	class skeleton_loader_t
+	class SFG_API skeleton_loader_t
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('S', 'K', 'E', 'L');
@@ -61,5 +63,5 @@ namespace sfg
 		u32 reserved = 0;
 	};
 
-	extern const resource_type_desc_t skeleton_resource_desc;
+	extern SFG_API const resource_type_desc_t skeleton_resource_desc;
 }

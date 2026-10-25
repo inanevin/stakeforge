@@ -27,6 +27,13 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	simple_file_watcher_t::simple_file_watcher_t() = default;
+
+	simple_file_watcher_t::~simple_file_watcher_t()
+	{
+		clear();
+	}
+
 	simple_file_watcher_t::entry_t::entry_t(unique_t<std::filesystem::path> p, const char* s, u64 lm, u16 i) : path(std::move(p)), str(s), last_modified(lm), id(i)
 	{
 	}

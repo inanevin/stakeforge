@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -40,7 +42,7 @@ namespace sfg
 		reflected_value_type_e value_type  = reflected_value_type_e::invalid;
 	};
 
-	struct script_component_desc_t
+	struct SFG_API script_component_desc_t
 	{
 		vector_t<script_component_field_desc_t> fields	  = {};
 		string_t								name	  = {};
@@ -61,7 +63,7 @@ namespace sfg
 		sid_t	 type_id   = 0;
 	};
 
-	struct script_component_schema_delta_t
+	struct SFG_API script_component_schema_delta_t
 	{
 		vector_t<sid_t> added			   = {};
 		vector_t<sid_t> removed			   = {};
@@ -71,7 +73,7 @@ namespace sfg
 		bool has_changes() const;
 	};
 
-	class script_component_schema_t final
+	class SFG_API script_component_schema_t final
 	{
 	public:
 		// -----------------------------------------------------------------------------

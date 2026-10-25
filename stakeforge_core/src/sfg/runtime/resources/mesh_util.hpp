@@ -22,11 +22,13 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "mesh_def.hpp"
 
 namespace sfg
 {
-	class mesh_util_t final
+	class SFG_API mesh_util_t final
 	{
 	public:
 		static bool generate_tangents(primitive_static_def_t& primitive);

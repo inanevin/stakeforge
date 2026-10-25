@@ -64,8 +64,6 @@ namespace sfg
 		editor_texture_orm_import_sources_reflection_t();
 	};
 
-	inline editor_texture_orm_import_sources_reflection_t g_reflect_editor_texture_orm_import_sources;
-
 	struct editor_asset_import_options_t
 	{
 		texture_cook_config_t	   texture_cook_config = {};

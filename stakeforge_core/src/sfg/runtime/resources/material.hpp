@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include "material_limits.hpp"
 #include "shader_data_definition.hpp"
@@ -9,7 +11,7 @@
 
 namespace sfg
 {
-	class material_loader_t
+	class SFG_API material_loader_t
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('M', 'A', 'T', 'L');
@@ -57,7 +59,7 @@ namespace sfg
 		render_resource_handle_t parameter_buffers[BACK_BUFFER_COUNT] = {};
 	};
 
-	void pack_material_parameters(const material_runtime_t& material, u8* data);
+	SFG_API void pack_material_parameters(const material_runtime_t& material, u8* data);
 
-	extern const resource_type_desc_t material_resource_desc;
+	extern SFG_API const resource_type_desc_t material_resource_desc;
 }

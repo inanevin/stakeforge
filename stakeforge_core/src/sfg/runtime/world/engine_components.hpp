@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 #include <sfg/audio/audio_engine.hpp>
 #include <sfg/data/inplace_vector.hpp>
@@ -67,7 +69,7 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_transform_t);
 
-	struct component_name_t
+	struct SFG_API component_name_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_name";
 
@@ -950,5 +952,4 @@ namespace sfg
 		engine_component_reflection_t();
 	};
 
-	inline engine_component_reflection_t g_reflect_engine_component;
 }

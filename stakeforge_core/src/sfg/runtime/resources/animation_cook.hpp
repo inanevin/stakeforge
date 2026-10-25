@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
 	class istream_t;
@@ -29,7 +31,7 @@ namespace sfg
 	struct animation_def_t;
 	struct resource_header_t;
 
-	class animation_cooker
+	class SFG_API animation_cooker
 	{
 	public:
 		static bool serialize_def_blob(const animation_def_t& def, ostream_t& stream);

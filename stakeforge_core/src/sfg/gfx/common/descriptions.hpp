@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include "barrier_description.hpp"
@@ -166,7 +168,7 @@ namespace sfg
 		bitmask_t<u8> flags		  = 0;
 	};
 
-	struct resource_desc_t
+	struct SFG_API resource_desc_t
 	{
 		static constexpr size_t MAX_DEBUG_NAME = 64;
 
@@ -198,7 +200,7 @@ namespace sfg
 		u8		  read_only		 = 0;
 	};
 
-	struct texture_desc_t
+	struct SFG_API texture_desc_t
 	{
 		static constexpr size_t MAX_DEBUG_NAME = 256;
 		static constexpr size_t MAX_VIEWS	   = TEXTURE_MAX_VIEWS;
@@ -219,7 +221,7 @@ namespace sfg
 		void set_name(const char* name);
 	};
 
-	struct sampler_desc_t
+	struct SFG_API sampler_desc_t
 	{
 		static constexpr size_t MAX_DEBUG_NAME = 64;
 
@@ -339,8 +341,4 @@ namespace sfg
 		sampler_desc_reflection_t();
 	};
 
-	inline sampler_filter_reflection_t g_reflect_sampler_filter;
-	inline sampler_border_reflection_t g_reflect_sampler_border;
-	inline address_mode_reflection_t   g_reflect_address_mode;
-	inline sampler_desc_reflection_t   g_reflect_sampler_desc;
 }

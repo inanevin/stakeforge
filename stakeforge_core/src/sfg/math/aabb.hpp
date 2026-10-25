@@ -20,6 +20,8 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #pragma once
+
+#include <sfg/common/sfg_exports.hpp>
 #include <sfg/common/type_id.hpp>
 
 #include "vec3f.hpp"
@@ -31,7 +33,7 @@ namespace sfg
 	class ostream_t;
 	class istream_t;
 
-	struct aabb_t
+	struct SFG_API aabb_t
 	{
 		aabb_t() = default;
 		aabb_t(vec3f_t min, vec3f_t max)
@@ -73,5 +75,4 @@ namespace sfg
 		aabb_reflection_t();
 	};
 
-	inline aabb_reflection_t g_reflect_aabb;
 }

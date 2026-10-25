@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
@@ -31,7 +33,7 @@ namespace sfg
 	struct texture_buffer_t;
 	class ostream_t;
 
-	class image_util_t
+	class SFG_API image_util_t
 	{
 	public:
 		enum class mip_gen_filter

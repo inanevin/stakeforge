@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include <sfg/common/type_id.hpp>
 #include <cstddef>
@@ -28,7 +30,7 @@ namespace sfg
 	SFG_DEFINE_TYPE_ID(audio_encoding_e);
 	SFG_DEFINE_TYPE_ID(audio_sample_format_e);
 
-	struct audio_header_t
+	struct SFG_API audio_header_t
 	{
 		u64					  frame_count	= 0;
 		u64					  payload_size	= 0;
@@ -54,7 +56,7 @@ namespace sfg
 		chunk_handle32_t resident_data = {};
 	};
 
-	class audio_loader_t
+	class SFG_API audio_loader_t
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC			 = make_resource_wire_magic('A', 'U', 'D', 'R');
@@ -66,5 +68,5 @@ namespace sfg
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
-	extern const resource_type_desc_t audio_resource_desc;
+	extern SFG_API const resource_type_desc_t audio_resource_desc;
 }

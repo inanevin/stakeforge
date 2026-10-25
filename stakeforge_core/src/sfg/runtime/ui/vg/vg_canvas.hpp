@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
@@ -81,7 +83,7 @@ namespace sfg::ui
 		u32 text_cache_initial_capacity	   = 256;
 	};
 
-	class vg_canvas_t final
+	class SFG_API vg_canvas_t final
 	{
 	public:
 		vg_canvas_t() = default;

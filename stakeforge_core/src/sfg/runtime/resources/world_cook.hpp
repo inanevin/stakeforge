@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
@@ -33,7 +35,7 @@ namespace sfg
 	class ostream_t;
 	class world_t;
 
-	class world_cooker_t
+	class SFG_API world_cooker_t
 	{
 	public:
 		static void		   world_to_stream(const world_t& world, ostream_t& out_stream);

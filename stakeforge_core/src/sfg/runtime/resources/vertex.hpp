@@ -61,9 +61,6 @@ namespace sfg
 		vertex_skinned_reflection_t();
 	};
 
-	inline vertex_static_reflection_t  g_reflect_vertex_static;
-	inline vertex_skinned_reflection_t g_reflect_vertex_skinned;
-
 	struct vertex_debug_line_t
 	{
 		vec4f_t color				= vec4f_t::zero;

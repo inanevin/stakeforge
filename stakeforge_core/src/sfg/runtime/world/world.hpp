@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
@@ -40,7 +42,7 @@ namespace sfg
 		vec3f_t		local_scale = vec3f_t::one;
 	};
 
-	class world_t
+	class SFG_API world_t
 	{
 	public:
 		world_t();

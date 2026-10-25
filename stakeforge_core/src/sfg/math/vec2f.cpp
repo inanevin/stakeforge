@@ -30,6 +30,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	vec2f_reflection_t g_reflect_vec2f = {};
+
 	vec2f_t vec2f_t::zero = {0.f, 0.f};
 	vec2f_t vec2f_t::one  = {1.f, 1.f};
 

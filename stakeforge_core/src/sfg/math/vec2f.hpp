@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include "math_common.hpp"
@@ -36,7 +38,7 @@ namespace sfg
 
 	struct vec2u16_t;
 
-	struct vec2f_t
+	struct SFG_API vec2f_t
 	{
 		f32 x;
 		f32 y;
@@ -146,5 +148,4 @@ namespace sfg
 		vec2f_reflection_t();
 	};
 
-	inline vec2f_reflection_t g_reflect_vec2f;
 }

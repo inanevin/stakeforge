@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -118,7 +120,7 @@ namespace sfg
 		animation_graph_node_type_e				type			  = animation_graph_node_type_e::asm_node;
 	};
 
-	struct animation_graph_def_t
+	struct SFG_API animation_graph_def_t
 	{
 		vector_t<animation_graph_param_def_t> parameters		 = {};
 		vector_t<animation_graph_node_def_t>  nodes				 = {};
@@ -150,5 +152,4 @@ namespace sfg
 		animation_graph_def_reflection_t();
 	};
 
-	inline animation_graph_def_reflection_t g_reflect_animation_graph_def;
 }

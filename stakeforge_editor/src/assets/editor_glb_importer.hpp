@@ -82,6 +82,4 @@ namespace sfg
 		glb_cook_config_reflection_t();
 	};
 
-	inline glb_axis_reflection_t		g_reflect_glb_axis;
-	inline glb_cook_config_reflection_t g_reflect_glb_cook_config;
 }

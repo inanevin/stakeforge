@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "animation_graph.hpp"
 
 namespace sfg
@@ -30,7 +32,7 @@ namespace sfg
 	struct animation_graph_def_t;
 	struct resource_header_t;
 
-	class animation_graph_cooker final
+	class SFG_API animation_graph_cooker final
 	{
 	public:
 		static bool cook_from_def(const animation_graph_def_t& def, resource_header_t& out_header, ostream_t& stream);

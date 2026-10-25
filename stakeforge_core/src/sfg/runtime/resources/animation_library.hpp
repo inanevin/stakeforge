@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include <sfg/math/vec2f.hpp>
 #include <sfg/runtime/animation/common_animation.hpp>
@@ -83,7 +85,7 @@ namespace sfg
 		u32 reserved = 0;
 	};
 
-	class animation_library_loader_t final
+	class SFG_API animation_library_loader_t final
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('A', 'L', 'I', 'B');
@@ -97,5 +99,5 @@ namespace sfg
 		static bool load_definition(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);
 	};
 
-	extern const resource_type_desc_t animation_library_resource_desc;
+	extern SFG_API const resource_type_desc_t animation_library_resource_desc;
 }

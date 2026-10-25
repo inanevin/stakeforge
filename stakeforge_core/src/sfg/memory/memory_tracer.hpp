@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #ifdef SFG_ENABLE_MEMORY_TRACER
 
 #include "malloc_allocator_map.hpp"
@@ -53,12 +55,13 @@ namespace sfg
 		u8			id		   = 0;
 	};
 
-	class memory_tracer_t
+	class SFG_API memory_tracer_t
 	{
 	public:
 		static memory_tracer_t& get()
 		{
-			static memory_tracer_t instance;
+			static memory_tracer_t instance = {};
+
 			return instance;
 		}
 
@@ -103,7 +106,7 @@ namespace sfg
 		static u8 s_category_counter;
 	};
 
-	class memory_category_scope_t
+	class SFG_API memory_category_scope_t
 	{
 	public:
 		explicit memory_category_scope_t(const char* name)

@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "material_limits.hpp"
 #include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/string.hpp>
@@ -96,20 +98,20 @@ namespace sfg
 		inplace_vector_t<shader_param_definition_t, SFG_MATERIAL_MAX_PARAMS>	 parameters = {};
 	};
 
-	const char*			  shader_texture_type_to_string(shader_texture_type_e type);
-	resource_type_e		  shader_texture_type_to_resource_type(shader_texture_type_e type);
-	const char*			  shader_param_type_to_string(shader_param_type_e type);
-	const char*			  shader_param_hint_to_string(shader_param_hint_e hint);
-	shader_texture_type_e shader_texture_type_from_string(const string_t& value);
-	shader_param_type_e	  shader_param_type_from_string(const string_t& value);
-	shader_param_hint_e	  shader_param_hint_from_string(const string_t& value);
+	SFG_API const char*			  shader_texture_type_to_string(shader_texture_type_e type);
+	SFG_API resource_type_e		  shader_texture_type_to_resource_type(shader_texture_type_e type);
+	SFG_API const char*			  shader_param_type_to_string(shader_param_type_e type);
+	SFG_API const char*			  shader_param_hint_to_string(shader_param_hint_e hint);
+	SFG_API shader_texture_type_e shader_texture_type_from_string(const string_t& value);
+	SFG_API shader_param_type_e	  shader_param_type_from_string(const string_t& value);
+	SFG_API shader_param_hint_e	  shader_param_hint_from_string(const string_t& value);
 
-	void to_json(nlohmann::json& j, const shader_texture_definition_t& definition);
-	void from_json(const nlohmann::json& j, shader_texture_definition_t& definition);
-	void to_json(nlohmann::json& j, const shader_sampler_definition_t& definition);
-	void from_json(const nlohmann::json& j, shader_sampler_definition_t& definition);
-	void to_json(nlohmann::json& j, const shader_param_definition_t& definition);
-	void from_json(const nlohmann::json& j, shader_param_definition_t& definition);
-	void to_json(nlohmann::json& j, const shader_data_definition_t& definition);
-	void from_json(const nlohmann::json& j, shader_data_definition_t& definition);
+	SFG_API void to_json(nlohmann::json& j, const shader_texture_definition_t& definition);
+	SFG_API void from_json(const nlohmann::json& j, shader_texture_definition_t& definition);
+	SFG_API void to_json(nlohmann::json& j, const shader_sampler_definition_t& definition);
+	SFG_API void from_json(const nlohmann::json& j, shader_sampler_definition_t& definition);
+	SFG_API void to_json(nlohmann::json& j, const shader_param_definition_t& definition);
+	SFG_API void from_json(const nlohmann::json& j, shader_param_definition_t& definition);
+	SFG_API void to_json(nlohmann::json& j, const shader_data_definition_t& definition);
+	SFG_API void from_json(const nlohmann::json& j, shader_data_definition_t& definition);
 }

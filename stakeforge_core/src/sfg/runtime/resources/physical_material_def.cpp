@@ -26,6 +26,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	physical_material_reflection_t g_reflect_physical_material = {};
 
 }
 

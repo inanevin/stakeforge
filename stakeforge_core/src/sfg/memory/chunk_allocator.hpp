@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "chunk_handle.hpp"
 #include "memory.hpp"
 
@@ -38,7 +40,7 @@ namespace sfg
 		release,
 	};
 
-	class chunk_allocator_t final
+	class SFG_API chunk_allocator_t final
 	{
 	public:
 		chunk_allocator_t() = default;

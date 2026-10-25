@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/vector.hpp>
@@ -48,7 +50,7 @@ namespace sfg::ui
 		u32 shelf_initial_capacity		 = 64;
 	};
 
-	class glyph_atlas_t final
+	class SFG_API glyph_atlas_t final
 	{
 	public:
 		glyph_atlas_t() = default;

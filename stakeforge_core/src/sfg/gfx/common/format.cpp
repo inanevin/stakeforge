@@ -25,6 +25,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	format_reflection_t g_reflect_format = {};
+
 	u8 format_get_bpp(format_e fmt)
 	{
 		switch (fmt)

@@ -21,12 +21,14 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/io/assert.hpp>
 
 namespace sfg
 {
-	class frame_allocator_tls_t
+	class SFG_API frame_allocator_tls_t
 	{
 	public:
 		struct frame_allocator_state_t
@@ -50,8 +52,6 @@ namespace sfg
 		static size_t get_capacity();
 		static size_t get_head();
 	};
-
-	extern thread_local frame_allocator_tls_t::frame_allocator_state_t g_frame_allocator_state;
 
 	template <class T> struct frame_allocator_t
 	{

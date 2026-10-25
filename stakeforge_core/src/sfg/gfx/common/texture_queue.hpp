@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/data/inplace_vector.hpp>
@@ -74,7 +76,7 @@ namespace sfg
 		semaphore_data_t* semaphore		 = nullptr;
 	};
 
-	class texture_queue_t
+	class SFG_API texture_queue_t
 	{
 	public:
 		static constexpr u32 MAX_MIPS = 16;

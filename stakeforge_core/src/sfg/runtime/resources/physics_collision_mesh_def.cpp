@@ -29,6 +29,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	physics_collision_mesh_def_reflection_t g_reflect_physics_collision_mesh_def = {};
+
 	physics_collision_mesh_def_reflection_t::physics_collision_mesh_def_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();

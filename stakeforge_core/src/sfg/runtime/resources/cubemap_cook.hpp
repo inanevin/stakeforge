@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "cubemap.hpp"
 #include <sfg/common/type_id.hpp>
 
@@ -35,7 +37,7 @@ namespace sfg
 		f32 resolution = 512.0f;
 	};
 
-	class cubemap_cooker final
+	class SFG_API cubemap_cooker final
 	{
 	public:
 		static bool cook_from_file(const cubemap_cook_config_t& config, const char* full_path, resource_header_t& out_header, ostream_t& stream);
@@ -48,5 +50,4 @@ namespace sfg
 		cubemap_cook_config_reflection_t();
 	};
 
-	inline cubemap_cook_config_reflection_t g_reflect_cubemap_cook_config;
 }

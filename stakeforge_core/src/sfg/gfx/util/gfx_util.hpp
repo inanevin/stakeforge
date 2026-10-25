@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
 
@@ -82,7 +84,7 @@ namespace sfg
 		constant_max,
 	};
 
-	class gfx_util_t
+	class SFG_API gfx_util_t
 	{
 	public:
 		static gfx_handle_t	  create_bind_layout_global(bool is_compute);

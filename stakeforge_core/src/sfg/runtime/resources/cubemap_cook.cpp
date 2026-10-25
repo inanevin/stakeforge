@@ -37,6 +37,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	cubemap_cook_config_reflection_t g_reflect_cubemap_cook_config = {};
+
 #define CUBEMAP_MIN_RESOLUTION 16.0f
 #define CUBEMAP_MAX_RESOLUTION 8192.0f
 

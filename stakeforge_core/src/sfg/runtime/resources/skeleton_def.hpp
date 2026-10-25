@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include <sfg/common/size_definitions.hpp>
@@ -46,7 +48,7 @@ namespace sfg
 		u32		 parent_index = SKELETON_JOINT_NO_PARENT;
 	};
 
-	struct skeleton_slot_def_t
+	struct SFG_API skeleton_slot_def_t
 	{
 		resource_handle_t preview_mesh	   = NULL_RESOURCE_HANDLE;
 		char			  slot_name[128]   = {};
@@ -56,13 +58,13 @@ namespace sfg
 		vec3f_t			  preview_scale	   = vec3f_t::one;
 	};
 
-	struct skeleton_mask_def_t
+	struct SFG_API skeleton_mask_def_t
 	{
 		vector_t<u32> joint_indices = {};
 		char		  name[256]		= {};
 	};
 
-	struct skeleton_def_t
+	struct SFG_API skeleton_def_t
 	{
 		vector_t<skeleton_joint_def_t> joints			  = {};
 		vector_t<u32>				   evaluation_order	  = {};
@@ -105,8 +107,4 @@ namespace sfg
 		skeleton_def_reflection_t();
 	};
 
-	inline skeleton_joint_def_reflection_t g_reflect_skeleton_joint_def;
-	inline skeleton_slot_def_reflection_t  g_reflect_skeleton_slot_def;
-	inline skeleton_mask_def_reflection_t  g_reflect_skeleton_mask_def;
-	inline skeleton_def_reflection_t	   g_reflect_skeleton_def;
 }

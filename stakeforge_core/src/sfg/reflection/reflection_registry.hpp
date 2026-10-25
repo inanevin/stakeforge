@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/common/type_id.hpp>
 #include <sfg/data/bitmask.hpp>
@@ -232,7 +234,7 @@ namespace sfg
 		reflection_owner_e					   owner		= reflection_owner_e::engine;
 	};
 
-	class reflection_registry_t
+	class SFG_API reflection_registry_t
 	{
 	public:
 		// size_t reflected as u64 from most users atm.
@@ -243,7 +245,8 @@ namespace sfg
 
 		static inline reflection_registry_t& get()
 		{
-			static reflection_registry_t instance;
+			static reflection_registry_t instance = {};
+
 			return instance;
 		}
 

@@ -10,6 +10,8 @@
 
 namespace sfg
 {
+	resource_manifest_entry_reflection_t g_reflect_resource_manifest_entry = {};
+
 }
 
 namespace sfg

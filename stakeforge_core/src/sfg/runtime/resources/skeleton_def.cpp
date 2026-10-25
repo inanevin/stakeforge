@@ -30,6 +30,11 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	skeleton_joint_def_reflection_t g_reflect_skeleton_joint_def = {};
+	skeleton_slot_def_reflection_t	g_reflect_skeleton_slot_def	 = {};
+	skeleton_mask_def_reflection_t	g_reflect_skeleton_mask_def	 = {};
+	skeleton_def_reflection_t		g_reflect_skeleton_def		 = {};
+
 	bool skeleton_def_t::build_evaluation_order()
 	{
 		evaluation_order.resize(0);

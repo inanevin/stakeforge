@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/data/string.hpp>
@@ -55,7 +57,7 @@ namespace sfg
 		bool	 started   = false;
 	};
 
-	class process
+	class SFG_API process
 	{
 
 	public:

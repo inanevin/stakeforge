@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include "resource_reload_listener.hpp"
 #include "texture_streamer.hpp"
@@ -26,7 +28,7 @@ namespace sfg
 		u32	   resource_initial_capacity = 128;
 	};
 
-	class resource_manager_t final
+	class SFG_API resource_manager_t final
 	{
 	public:
 		static resource_manager_t& get();

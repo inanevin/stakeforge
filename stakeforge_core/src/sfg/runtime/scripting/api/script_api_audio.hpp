@@ -22,17 +22,19 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
 	class world_t;
 
-	u8	 api_audio_play(world_t* world, entity_id_t entity);
-	u8	 api_audio_pause(world_t* world, entity_id_t entity);
-	u8	 api_audio_stop(world_t* world, entity_id_t entity);
-	void api_audio_pause_all(world_t* world);
-	void api_audio_resume_all(world_t* world);
+	SFG_API u8	 api_audio_play(world_t* world, entity_id_t entity);
+	SFG_API u8	 api_audio_pause(world_t* world, entity_id_t entity);
+	SFG_API u8	 api_audio_stop(world_t* world, entity_id_t entity);
+	SFG_API void api_audio_pause_all(world_t* world);
+	SFG_API void api_audio_resume_all(world_t* world);
 
 	struct script_api_audio_t
 	{
@@ -45,5 +47,5 @@ namespace sfg
 		void (*resume_all)(world_t* world)				= nullptr;
 	};
 
-	const script_api_audio_t& get_script_api_audio();
+	SFG_API const script_api_audio_t& get_script_api_audio();
 }

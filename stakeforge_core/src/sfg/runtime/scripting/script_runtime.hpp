@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "script_component_schema.hpp"
 
 #include <sfg/common/size_definitions.hpp>
@@ -79,7 +81,7 @@ namespace sfg
 	typedef i32 (*script_host_world_script_physics_contact_fn)(void* instance, const physics_contact_event_t* contact, u8 contact_type, u8 is_sensor);
 	typedef i32 (*script_host_world_script_canvas_event_fn)(void* instance, const canvas_event_t* event);
 
-	class script_runtime_t final
+	class SFG_API script_runtime_t final
 	{
 	public:
 		static script_runtime_t& get();

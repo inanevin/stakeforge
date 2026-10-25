@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "texture_payload_type.hpp"
 #include <sfg/data/span.hpp>
 #include <sfg/gfx/common/format.hpp>
@@ -39,7 +41,7 @@ namespace sfg
 		u8		  mip_count = 0;
 	};
 
-	class ktx2_util_t final
+	class SFG_API ktx2_util_t final
 	{
 	public:
 		ktx2_util_t()							   = delete;

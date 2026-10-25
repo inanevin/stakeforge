@@ -33,6 +33,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	ragdoll_def_reflection_t g_reflect_ragdoll_def = {};
+
 	bool ragdoll_def_t::is_valid(u32 joint_count) const
 	{
 		if (target_skeleton == NULL_RESOURCE_HANDLE)

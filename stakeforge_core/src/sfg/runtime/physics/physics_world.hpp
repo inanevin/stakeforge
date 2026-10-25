@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/data/span.hpp>
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/quat.hpp>
@@ -54,7 +56,7 @@ namespace sfg
 
 	struct ragdoll_def_t;
 
-	class physics_world_t final
+	class SFG_API physics_world_t final
 	{
 	public:
 		physics_world_t();

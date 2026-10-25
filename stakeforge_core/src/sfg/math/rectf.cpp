@@ -29,6 +29,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	rectf_reflection_t g_reflect_rectf = {};
+
 	const rectf_t rectf_t::zero = {0.0f, 0.0f, 0.0f, 0.0f};
 	const rectf_t rectf_t::one	= {0.0f, 0.0f, 1.0f, 1.0f};
 

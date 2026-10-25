@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/descriptions.hpp>
@@ -95,7 +97,7 @@ namespace sfg
 		u16						 data_size							  = 0;
 	};
 
-	class render_resources_t
+	class SFG_API render_resources_t
 	{
 	public:
 		static render_resources_t& get();

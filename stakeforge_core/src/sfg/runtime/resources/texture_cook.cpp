@@ -42,6 +42,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	texture_cook_config_reflection_t g_reflect_texture_cook_config = {};
+
 #define TEXTURE_AVERAGE_COLOR_SAMPLE_COUNT 1024
 
 	namespace

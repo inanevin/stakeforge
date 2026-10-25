@@ -22,13 +22,15 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
 	class ostream_t;
 	struct physical_material_def_t;
 	struct resource_header_t;
 
-	class physical_material_cooker
+	class SFG_API physical_material_cooker
 	{
 	public:
 		static bool cook_from_def(const physical_material_def_t& def, resource_header_t& out_header, ostream_t& stream);

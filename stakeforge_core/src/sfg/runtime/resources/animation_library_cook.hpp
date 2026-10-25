@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
 	class ostream_t;
@@ -30,6 +32,6 @@ namespace sfg
 
 	namespace animation_library_cooker
 	{
-		bool cook_from_def(const animation_library_def_t& def, resource_header_t& out_header, ostream_t& stream);
+		SFG_API bool cook_from_def(const animation_library_def_t& def, resource_header_t& out_header, ostream_t& stream);
 	}
 }

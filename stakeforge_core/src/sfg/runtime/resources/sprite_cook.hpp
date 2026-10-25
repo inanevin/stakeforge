@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "sprite.hpp"
 #include <sfg/common/type_id.hpp>
 
@@ -40,7 +42,7 @@ namespace sfg
 		sprite_payload_type_e	   payload_type		= sprite_payload_type_e::ktx2_uastc;
 	};
 
-	class sprite_cooker final
+	class SFG_API sprite_cooker final
 	{
 	public:
 		sprite_cooker()								   = delete;
@@ -58,5 +60,4 @@ namespace sfg
 		sprite_cook_reflection_t();
 	};
 
-	inline sprite_cook_reflection_t g_reflect_sprite_cook;
 }

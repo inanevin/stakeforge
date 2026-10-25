@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include "texture_payload_type.hpp"
 #include <sfg/math/vec2f.hpp>
@@ -38,7 +40,7 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(sprite_payload_type_e);
 
-	class sprite_loader_t final
+	class SFG_API sprite_loader_t final
 	{
 	public:
 		sprite_loader_t()								   = delete;
@@ -53,7 +55,7 @@ namespace sfg
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
-	struct sprite_header_t
+	struct SFG_API sprite_header_t
 	{
 		u32						   data_size		= 0;
 		vec2u16_t				   size				= vec2u16_t::zero;
@@ -81,5 +83,5 @@ namespace sfg
 		render_resource_handle_t staging = {};
 	};
 
-	extern const resource_type_desc_t sprite_resource_desc;
+	extern SFG_API const resource_type_desc_t sprite_resource_desc;
 }

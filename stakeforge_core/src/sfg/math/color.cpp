@@ -27,6 +27,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	color_reflection_t g_reflect_color = {};
+
 	color_t color_t::red	= color_t(1, 0, 0, 1);
 	color_t color_t::green	= color_t(0, 1, 0);
 	color_t color_t::blue	= color_t(0, 0, 1);

@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/runtime/resources/resource_handle.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
@@ -73,70 +75,70 @@ namespace sfg
 	static_assert(sizeof(script_world_query_t) == 768);
 	static_assert(sizeof(script_world_query_row_t) == 272);
 
-	entity_id_t api_world_create_entity(world_t* world, const char* name);
-	u8			api_world_destroy_entity(world_t* world, entity_id_t entity);
-	entity_id_t api_world_duplicate_entity(world_t* world, entity_id_t entity);
-	u8			api_world_attach_entity(world_t* world, entity_id_t entity, entity_id_t parent);
-	u8			api_world_detach_entity(world_t* world, entity_id_t entity);
-	u8			api_world_set_entity_pos_local(world_t* world, entity_id_t entity, const vec3f_t* position);
-	u8			api_world_set_entity_rot_local(world_t* world, entity_id_t entity, const quat_t* rotation);
-	u8			api_world_set_entity_scale_local(world_t* world, entity_id_t entity, const vec3f_t* scale);
-	u8			api_world_teleport_entity(world_t* world, entity_id_t entity, const vec3f_t* position, const quat_t* rotation, const vec3f_t* scale);
-	u8			api_world_mark_entity_teleported(world_t* world, entity_id_t entity);
-	u8			api_world_get_entity_pos_local(const world_t* world, entity_id_t entity, vec3f_t* out_position);
-	u8			api_world_get_entity_rot_local(const world_t* world, entity_id_t entity, quat_t* out_rotation);
-	u8			api_world_get_entity_scale_local(const world_t* world, entity_id_t entity, vec3f_t* out_scale);
-	u8			api_world_get_entity_pos_abs(const world_t* world, entity_id_t entity, vec3f_t* out_position);
-	u8			api_world_get_entity_rot_abs(const world_t* world, entity_id_t entity, quat_t* out_rotation);
-	u8			api_world_get_entity_scale_abs(const world_t* world, entity_id_t entity, vec3f_t* out_scale);
-	u8			api_world_get_entity_pos_last_abs(const world_t* world, entity_id_t entity, vec3f_t* out_position);
-	u8			api_world_get_entity_rot_last_abs(const world_t* world, entity_id_t entity, quat_t* out_rotation);
-	u8			api_world_get_entity_scale_last_abs(const world_t* world, entity_id_t entity, vec3f_t* out_scale);
-	u8			api_world_abs_pos_to_local(world_t* world, entity_id_t entity, const vec3f_t* position, vec3f_t* out_position);
-	u8			api_world_abs_rot_to_local(world_t* world, entity_id_t entity, const quat_t* rotation, quat_t* out_rotation);
-	u8			api_world_abs_scale_to_local(world_t* world, entity_id_t entity, const vec3f_t* scale, vec3f_t* out_scale);
-	entity_id_t api_world_get_entity_with_name(const world_t* world, const char* name);
-	u32			api_world_get_all_entities_with_name(const world_t* world, const char* name, entity_id_t* out_entities, u32 capacity);
-	entity_id_t api_world_get_entity_with_component(const world_t* world, sid_t component_type);
-	u32			api_world_get_all_entities_with_component(const world_t* world, sid_t component_type, entity_id_t* out_entities, u32 capacity);
-	u8			api_world_is_alive(const world_t* world, entity_id_t entity);
-	u8			api_world_has_component(const world_t* world, entity_id_t entity, sid_t component_type);
-	u8			api_world_get_component(const world_t* world, entity_id_t entity, sid_t component_type, void* out_component, u32 component_size);
-	u8			api_world_add_component(world_t* world, entity_id_t entity, sid_t component_type, const void* component, u32 component_size);
-	u8			api_world_set_component(world_t* world, entity_id_t entity, sid_t component_type, const void* component, u32 component_size);
-	u8			api_world_remove_component(world_t* world, entity_id_t entity, sid_t component_type);
-	entity_id_t api_world_get_entity_with_tag(const world_t* world, u64 tag);
-	u32			api_world_get_all_entities_with_tag(const world_t* world, u64 tag, entity_id_t* out_entities, u32 capacity);
-	u8			api_world_set_entity_tag(world_t* world, entity_id_t entity, u64 tag, u8 enabled);
-	u8			api_world_hide_entity(world_t* world, entity_id_t entity);
-	u8			api_world_show_entity(world_t* world, entity_id_t entity);
-	entity_id_t api_world_find_entity_by_guid(const world_t* world, entity_guid_t guid);
-	entity_id_t api_world_spawn_prefab(world_t* world, resource_handle_t prefab, entity_id_t parent, const vec3f_t* local_position, const quat_t* local_rotation, const vec3f_t* local_scale);
-	u8			api_world_query_begin(world_t* world, const script_world_query_component_t* components, u32 component_count, script_world_query_t* out_query);
-	u8			api_world_query_next(script_world_query_t* query, script_world_query_row_t* out_row);
-	void		api_world_query_end(script_world_query_t* query);
-	void		api_world_debug_draw_line(world_t* world, const vec3f_t* from, const vec3f_t* to, const color_t* color, f32 thickness_px, debug_draw_depth_e depth);
-	void		api_world_debug_draw_arrow(world_t* world, const vec3f_t* from, const vec3f_t* to, const color_t* color, f32 head_length, f32 head_radius, f32 thickness_px, debug_draw_depth_e depth);
-	void		api_world_debug_draw_triangle(world_t* world, const vec3f_t* p0, const vec3f_t* p1, const vec3f_t* p2, const color_t* color);
-	void		api_world_debug_draw_polyline(world_t* world, const vec3f_t* points, u32 point_count, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u8 closed);
-	void		api_world_debug_draw_aabb(world_t* world, const vec3f_t* bounds_min, const vec3f_t* bounds_max, const color_t* color, f32 thickness_px, debug_draw_depth_e depth);
-	void		api_world_debug_draw_box(world_t* world, const mat4x3_t* transform, const vec3f_t* half_extents, const color_t* color, f32 thickness_px, debug_draw_depth_e depth);
-	void		api_world_debug_draw_rectangle(world_t* world, const vec3f_t* center, const vec3f_t* right, const vec3f_t* up, const vec2f_t* size, const color_t* color, f32 thickness_px, debug_draw_depth_e depth);
-	void		api_world_debug_draw_arc(world_t* world, const vec3f_t* center, const vec3f_t* normal, const vec3f_t* start_direction, f32 radius, f32 angle_radians, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
-	void		api_world_debug_draw_circle(world_t* world, const vec3f_t* center, f32 radius, const vec3f_t* normal, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
-	void		api_world_debug_draw_sphere(world_t* world, const vec3f_t* center, f32 radius, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
-	void		api_world_debug_draw_capsule(world_t* world, const vec3f_t* center, f32 radius, f32 half_height, const vec3f_t* direction, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
-	void		api_world_debug_draw_cylinder(world_t* world, const vec3f_t* center, f32 radius, f32 half_height, const vec3f_t* direction, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
-	void		api_world_debug_draw_cone(world_t* world, const vec3f_t* origin, const vec3f_t* direction, f32 length, f32 half_angle_radians, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
-	void		api_world_debug_draw_text_2d(world_t* world, const vec2f_t* position, const char* text, const color_t* color, f32 size_px, debug_draw_text_alignment_e alignment, resource_handle_t font);
-	void		api_world_debug_draw_text_3d(world_t* world, const vec3f_t* position, const char* text, const color_t* color, f32 size_px, debug_draw_depth_e depth, debug_draw_text_alignment_e alignment, const vec2f_t* screen_offset, resource_handle_t font);
-	void		api_world_debug_draw_texture_3d(world_t* world, const vec3f_t* position, resource_handle_t texture, const vec2f_t* size_px, const color_t* color, entity_id_t entity, debug_draw_depth_e depth, const vec2f_t* screen_offset, u8 linear_sample);
-	void		api_world_set_time_scale(world_t* world, f32 time_scale);
-	f32			api_world_get_time_scale(const world_t* world);
-	f32			api_world_get_elapsed_time(const world_t* world);
-	f32			api_world_get_real_elapsed_time(const world_t* world);
-	u8			api_world_set_view_model(world_t* world, entity_id_t entity, u8 enabled);
-	const char* api_world_get_entity_name(const world_t* world, entity_id_t entity);
+	SFG_API entity_id_t api_world_create_entity(world_t* world, const char* name);
+	SFG_API u8			api_world_destroy_entity(world_t* world, entity_id_t entity);
+	SFG_API entity_id_t api_world_duplicate_entity(world_t* world, entity_id_t entity);
+	SFG_API u8			api_world_attach_entity(world_t* world, entity_id_t entity, entity_id_t parent);
+	SFG_API u8			api_world_detach_entity(world_t* world, entity_id_t entity);
+	SFG_API u8			api_world_set_entity_pos_local(world_t* world, entity_id_t entity, const vec3f_t* position);
+	SFG_API u8			api_world_set_entity_rot_local(world_t* world, entity_id_t entity, const quat_t* rotation);
+	SFG_API u8			api_world_set_entity_scale_local(world_t* world, entity_id_t entity, const vec3f_t* scale);
+	SFG_API u8			api_world_teleport_entity(world_t* world, entity_id_t entity, const vec3f_t* position, const quat_t* rotation, const vec3f_t* scale);
+	SFG_API u8			api_world_mark_entity_teleported(world_t* world, entity_id_t entity);
+	SFG_API u8			api_world_get_entity_pos_local(const world_t* world, entity_id_t entity, vec3f_t* out_position);
+	SFG_API u8			api_world_get_entity_rot_local(const world_t* world, entity_id_t entity, quat_t* out_rotation);
+	SFG_API u8			api_world_get_entity_scale_local(const world_t* world, entity_id_t entity, vec3f_t* out_scale);
+	SFG_API u8			api_world_get_entity_pos_abs(const world_t* world, entity_id_t entity, vec3f_t* out_position);
+	SFG_API u8			api_world_get_entity_rot_abs(const world_t* world, entity_id_t entity, quat_t* out_rotation);
+	SFG_API u8			api_world_get_entity_scale_abs(const world_t* world, entity_id_t entity, vec3f_t* out_scale);
+	SFG_API u8			api_world_get_entity_pos_last_abs(const world_t* world, entity_id_t entity, vec3f_t* out_position);
+	SFG_API u8			api_world_get_entity_rot_last_abs(const world_t* world, entity_id_t entity, quat_t* out_rotation);
+	SFG_API u8			api_world_get_entity_scale_last_abs(const world_t* world, entity_id_t entity, vec3f_t* out_scale);
+	SFG_API u8			api_world_abs_pos_to_local(world_t* world, entity_id_t entity, const vec3f_t* position, vec3f_t* out_position);
+	SFG_API u8			api_world_abs_rot_to_local(world_t* world, entity_id_t entity, const quat_t* rotation, quat_t* out_rotation);
+	SFG_API u8			api_world_abs_scale_to_local(world_t* world, entity_id_t entity, const vec3f_t* scale, vec3f_t* out_scale);
+	SFG_API entity_id_t api_world_get_entity_with_name(const world_t* world, const char* name);
+	SFG_API u32			api_world_get_all_entities_with_name(const world_t* world, const char* name, entity_id_t* out_entities, u32 capacity);
+	SFG_API entity_id_t api_world_get_entity_with_component(const world_t* world, sid_t component_type);
+	SFG_API u32			api_world_get_all_entities_with_component(const world_t* world, sid_t component_type, entity_id_t* out_entities, u32 capacity);
+	SFG_API u8			api_world_is_alive(const world_t* world, entity_id_t entity);
+	SFG_API u8			api_world_has_component(const world_t* world, entity_id_t entity, sid_t component_type);
+	SFG_API u8			api_world_get_component(const world_t* world, entity_id_t entity, sid_t component_type, void* out_component, u32 component_size);
+	SFG_API u8			api_world_add_component(world_t* world, entity_id_t entity, sid_t component_type, const void* component, u32 component_size);
+	SFG_API u8			api_world_set_component(world_t* world, entity_id_t entity, sid_t component_type, const void* component, u32 component_size);
+	SFG_API u8			api_world_remove_component(world_t* world, entity_id_t entity, sid_t component_type);
+	SFG_API entity_id_t api_world_get_entity_with_tag(const world_t* world, u64 tag);
+	SFG_API u32			api_world_get_all_entities_with_tag(const world_t* world, u64 tag, entity_id_t* out_entities, u32 capacity);
+	SFG_API u8			api_world_set_entity_tag(world_t* world, entity_id_t entity, u64 tag, u8 enabled);
+	SFG_API u8			api_world_hide_entity(world_t* world, entity_id_t entity);
+	SFG_API u8			api_world_show_entity(world_t* world, entity_id_t entity);
+	SFG_API entity_id_t api_world_find_entity_by_guid(const world_t* world, entity_guid_t guid);
+	SFG_API entity_id_t api_world_spawn_prefab(world_t* world, resource_handle_t prefab, entity_id_t parent, const vec3f_t* local_position, const quat_t* local_rotation, const vec3f_t* local_scale);
+	SFG_API u8			api_world_query_begin(world_t* world, const script_world_query_component_t* components, u32 component_count, script_world_query_t* out_query);
+	SFG_API u8			api_world_query_next(script_world_query_t* query, script_world_query_row_t* out_row);
+	SFG_API void		api_world_query_end(script_world_query_t* query);
+	SFG_API void		api_world_debug_draw_line(world_t* world, const vec3f_t* from, const vec3f_t* to, const color_t* color, f32 thickness_px, debug_draw_depth_e depth);
+	SFG_API void		api_world_debug_draw_arrow(world_t* world, const vec3f_t* from, const vec3f_t* to, const color_t* color, f32 head_length, f32 head_radius, f32 thickness_px, debug_draw_depth_e depth);
+	SFG_API void		api_world_debug_draw_triangle(world_t* world, const vec3f_t* p0, const vec3f_t* p1, const vec3f_t* p2, const color_t* color);
+	SFG_API void		api_world_debug_draw_polyline(world_t* world, const vec3f_t* points, u32 point_count, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u8 closed);
+	SFG_API void		api_world_debug_draw_aabb(world_t* world, const vec3f_t* bounds_min, const vec3f_t* bounds_max, const color_t* color, f32 thickness_px, debug_draw_depth_e depth);
+	SFG_API void		api_world_debug_draw_box(world_t* world, const mat4x3_t* transform, const vec3f_t* half_extents, const color_t* color, f32 thickness_px, debug_draw_depth_e depth);
+	SFG_API void		api_world_debug_draw_rectangle(world_t* world, const vec3f_t* center, const vec3f_t* right, const vec3f_t* up, const vec2f_t* size, const color_t* color, f32 thickness_px, debug_draw_depth_e depth);
+	SFG_API void		api_world_debug_draw_arc(world_t* world, const vec3f_t* center, const vec3f_t* normal, const vec3f_t* start_direction, f32 radius, f32 angle_radians, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
+	SFG_API void		api_world_debug_draw_circle(world_t* world, const vec3f_t* center, f32 radius, const vec3f_t* normal, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
+	SFG_API void		api_world_debug_draw_sphere(world_t* world, const vec3f_t* center, f32 radius, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
+	SFG_API void		api_world_debug_draw_capsule(world_t* world, const vec3f_t* center, f32 radius, f32 half_height, const vec3f_t* direction, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
+	SFG_API void		api_world_debug_draw_cylinder(world_t* world, const vec3f_t* center, f32 radius, f32 half_height, const vec3f_t* direction, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
+	SFG_API void		api_world_debug_draw_cone(world_t* world, const vec3f_t* origin, const vec3f_t* direction, f32 length, f32 half_angle_radians, const color_t* color, f32 thickness_px, debug_draw_depth_e depth, u32 segments);
+	SFG_API void		api_world_debug_draw_text_2d(world_t* world, const vec2f_t* position, const char* text, const color_t* color, f32 size_px, debug_draw_text_alignment_e alignment, resource_handle_t font);
+	SFG_API void api_world_debug_draw_text_3d(world_t* world, const vec3f_t* position, const char* text, const color_t* color, f32 size_px, debug_draw_depth_e depth, debug_draw_text_alignment_e alignment, const vec2f_t* screen_offset, resource_handle_t font);
+	SFG_API void api_world_debug_draw_texture_3d(world_t* world, const vec3f_t* position, resource_handle_t texture, const vec2f_t* size_px, const color_t* color, entity_id_t entity, debug_draw_depth_e depth, const vec2f_t* screen_offset, u8 linear_sample);
+	SFG_API void api_world_set_time_scale(world_t* world, f32 time_scale);
+	SFG_API f32	 api_world_get_time_scale(const world_t* world);
+	SFG_API f32	 api_world_get_elapsed_time(const world_t* world);
+	SFG_API f32	 api_world_get_real_elapsed_time(const world_t* world);
+	SFG_API u8	 api_world_set_view_model(world_t* world, entity_id_t entity, u8 enabled);
+	SFG_API const char* api_world_get_entity_name(const world_t* world, entity_id_t entity);
 
 	struct script_api_world_t
 	{
@@ -208,5 +210,5 @@ namespace sfg
 		decltype(&api_world_get_entity_name)				 get_entity_name				 = nullptr;
 	};
 
-	const script_api_world_t& get_script_api_world();
+	SFG_API const script_api_world_t& get_script_api_world();
 }

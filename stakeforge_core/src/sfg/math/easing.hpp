@@ -21,9 +21,11 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
-	class easing_t
+	class SFG_API easing_t
 	{
 	public:
 		static f32 smooth_damp(f32 current, f32 target, f32* currentVelocity, f32 smoothTime, f32 maxSpeed, f32 deltaTime);

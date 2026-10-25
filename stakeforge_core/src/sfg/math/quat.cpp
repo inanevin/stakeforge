@@ -28,6 +28,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	quat_reflection_t g_reflect_quat = {};
+
 	const quat_t quat_t::identity(0.0f, 0.0f, 0.0f, 1.0f);
 
 	vec3f_t quat_t::get_right() const

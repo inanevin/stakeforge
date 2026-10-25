@@ -46,8 +46,9 @@ add_subdirectory(deps/freetype-2.14.3)
 set_target_properties(freetype PROPERTIES FOLDER "stakeforge/dependencies")
 
 set(TRACY_ENABLE OFF CACHE BOOL "" FORCE)
+set(TRACY_STATIC ON CACHE BOOL "" FORCE)
 add_subdirectory(deps/tracy-0.13.1)
-target_compile_definitions(TracyClient PUBLIC $<$<CONFIG:Profile>:TRACY_ENABLE>)
+target_compile_definitions(TracyClient PUBLIC $<$<CONFIG:Profile>:TRACY_ENABLE> PRIVATE TRACY_EXPORTS)
 set_target_properties(TracyClient PROPERTIES FOLDER "stakeforge/dependencies")
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
@@ -196,7 +197,13 @@ endif()
 
 set(SFG_CORE_TARGET stakeforge_core)
 
-add_library(${SFG_CORE_TARGET} STATIC)
+add_library(${SFG_CORE_TARGET} SHARED)
+
+target_compile_definitions(${SFG_CORE_TARGET}
+    PUBLIC SFG_CORE_SHARED
+    PRIVATE SFG_CORE_BUILDING TRACY_EXPORTS
+    INTERFACE TRACY_IMPORTS
+)
 
 target_sources(${SFG_CORE_TARGET} PRIVATE
     ${SOURCES}
@@ -228,6 +235,19 @@ endif()
 
 if(WIN32)
     target_include_directories(${SFG_CORE_TARGET} PRIVATE ${SFG_DOTNET_NATIVE_HOST_DIR})
+    add_custom_command(
+        TARGET ${SFG_CORE_TARGET}
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${SFG_DOTNET_NATIVE_HOST_DIR}/nethost.dll"
+            "$<TARGET_FILE_DIR:${SFG_CORE_TARGET}>"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/deps/dx12_bin"
+            "$<TARGET_FILE_DIR:${SFG_CORE_TARGET}>"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/deps/pix/bin"
+            "$<TARGET_FILE_DIR:${SFG_CORE_TARGET}>"
+    )
 endif()
 
 target_link_libraries(${SFG_CORE_TARGET} PUBLIC lz4 freetype)
@@ -242,3 +262,7 @@ set_target_properties(${SFG_CORE_TARGET} PROPERTIES FOLDER "stakeforge")
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/common_functions.cmake)
 sfg_group_sources(HEADERS SOURCES PLATFORM_HEADERS PLATFORM_SOURCES)
 sfg_group_generated(${SFG_CORE_TARGET})
+
+add_library(stakeforge_memory_overrides OBJECT src/sfg/memory/memory_operators.cpp)
+target_link_libraries(stakeforge_memory_overrides PUBLIC stakeforge_core)
+set_target_properties(stakeforge_memory_overrides PROPERTIES FOLDER "stakeforge")

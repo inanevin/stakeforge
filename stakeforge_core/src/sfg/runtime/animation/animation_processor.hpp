@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/math/mat4x3.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/data/span.hpp>
@@ -110,7 +112,7 @@ namespace sfg
 		u32				  layer_count	  = 0;
 	};
 
-	class animation_processor_t final
+	class SFG_API animation_processor_t final
 	{
 	public:
 		animation_processor_t()												 = default;

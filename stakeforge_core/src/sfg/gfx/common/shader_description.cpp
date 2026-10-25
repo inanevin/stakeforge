@@ -29,6 +29,18 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	vertex_input_reflection_t  g_reflect_vertex_input  = {};
+	cull_mode_reflection_t	   g_reflect_cull_mode	   = {};
+	fill_mode_reflection_t	   g_reflect_fill_mode	   = {};
+	front_face_reflection_t	   g_reflect_front_face	   = {};
+	blend_factor_reflection_t  g_reflect_blend_factor  = {};
+	blend_op_reflection_t	   g_reflect_blend_op	   = {};
+	stencil_op_reflection_t	   g_reflect_stencil_op	   = {};
+	compare_op_reflection_t	   g_reflect_compare_op	   = {};
+	store_op_reflection_t	   g_reflect_store_op	   = {};
+	load_op_reflection_t	   g_reflect_load_op	   = {};
+	stencil_state_reflection_t g_reflect_stencil_state = {};
+
 	namespace
 	{
 		void set_desc_name(char* dst, size_t capacity, const char* src)

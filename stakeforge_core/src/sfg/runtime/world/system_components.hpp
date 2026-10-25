@@ -281,6 +281,4 @@ namespace sfg
 		system_component_reflection_t();
 	};
 
-	inline system_component_reflection_t g_reflect_system_component;
-
 }

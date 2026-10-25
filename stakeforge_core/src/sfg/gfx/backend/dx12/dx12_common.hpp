@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/data/string.hpp>
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/io/log.hpp>
@@ -36,7 +38,7 @@ namespace sfg
 		return string_t(s_str);
 	}
 
-	class HrException : public std::runtime_error
+	class SFG_API HrException : public std::runtime_error
 	{
 	public:
 		HrException(HRESULT hr) : std::runtime_error(HrToString(hr).c_str()), m_hr(hr)

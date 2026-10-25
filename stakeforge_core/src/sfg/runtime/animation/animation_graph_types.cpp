@@ -25,6 +25,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	animation_graph_types_reflection_t g_reflect_animation_graph_types = {};
+
 	animation_graph_types_reflection_t::animation_graph_types_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();

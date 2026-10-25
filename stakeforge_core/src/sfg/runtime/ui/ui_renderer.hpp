@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/vec2u16.hpp>
@@ -35,7 +37,7 @@ namespace sfg::ui
 		u32 index_buffer_max_bytes	= 1u << 20;
 	};
 
-	class ui_renderer_t final
+	class SFG_API ui_renderer_t final
 	{
 	public:
 		ui_renderer_t()								   = default;

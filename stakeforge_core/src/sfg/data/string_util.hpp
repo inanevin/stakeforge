@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "vector.hpp"
 #include "string.hpp"
 #include <sfg/common/size_definitions.hpp>
@@ -30,26 +32,26 @@ namespace sfg
 {
 	namespace string_util
 	{
-		string_t					 remove_all_except_first(const string_t& str, const string_t& delimiter);
-		int							 append_float(f32 value, char* target_bufffer, u32 max_chars, u32 decimals, bool null_term);
-		void						 replace_all(string_t& str, const string_t& to_replace, const string_t& replacement);
-		void						 to_upper(string_t& str);
-		void						 to_lower(string_t& str);
-		string_t					 to_pascal_case(const char* str);
+		SFG_API string_t			 remove_all_except_first(const string_t& str, const string_t& delimiter);
+		SFG_API int					 append_float(f32 value, char* target_bufffer, u32 max_chars, u32 decimals, bool null_term);
+		SFG_API void				 replace_all(string_t& str, const string_t& to_replace, const string_t& replacement);
+		SFG_API void				 to_upper(string_t& str);
+		SFG_API void				 to_lower(string_t& str);
+		SFG_API string_t			 to_pascal_case(const char* str);
 		template <class STRING> void to_lower(STRING& input)
 		{
 			for (char& c : input)
 				c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
 		}
-		void		   remove_whitespace(string_t& str);
-		wstring_t	   to_wstr(const string_t& string_t);
-		void		   split(vector_t<string_t>& out, const string_t& str, const string_t& split);
-		char*		   wchar_to_char(const wchar_t* wch);
-		const wchar_t* char_to_wchar(const char* ch);
-		bool		   to_float(const string_t& str, f32& out_f, u32& out_decimals, char seperator = '.');
-		bool		   to_int(const string_t& str, int& out_i);
-		bool		   to_big_uint(const string_t& str, u64& out_i);
-		bool		   to_bool(const string_t& str, bool& out_b);
+		SFG_API void		   remove_whitespace(string_t& str);
+		SFG_API wstring_t	   to_wstr(const string_t& string_t);
+		SFG_API void		   split(vector_t<string_t>& out, const string_t& str, const string_t& split);
+		SFG_API char*		   wchar_to_char(const wchar_t* wch);
+		SFG_API const wchar_t* char_to_wchar(const char* ch);
+		SFG_API bool		   to_float(const string_t& str, f32& out_f, u32& out_decimals, char seperator = '.');
+		SFG_API bool		   to_int(const string_t& str, int& out_i);
+		SFG_API bool		   to_big_uint(const string_t& str, u64& out_i);
+		SFG_API bool		   to_bool(const string_t& str, bool& out_b);
 	}
 
 }

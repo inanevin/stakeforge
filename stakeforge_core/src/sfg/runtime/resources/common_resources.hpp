@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "resource_handle.hpp"
 #include "resource_type.hpp"
 #include <sfg/common/size_definitions.hpp>
@@ -124,7 +126,7 @@ namespace sfg
 	}
 
 #pragma pack(push, 1)
-	struct resource_dependency_t
+	struct SFG_API resource_dependency_t
 	{
 		resource_handle_t handle;
 		resource_type_e	  type;
@@ -133,7 +135,7 @@ namespace sfg
 		void deserialize(istream_t& stream);
 	};
 
-	struct resource_header_t
+	struct SFG_API resource_header_t
 	{
 		char			debug_name[MAX_DEBUG_NAME_SIZE] = {};
 		resource_type_e type							= resource_type_e::invalid;
@@ -195,10 +197,10 @@ namespace sfg
 		unload_fn_t		  unload	   = nullptr;
 	};
 
-	extern const resource_type_desc_t* const g_resource_type_descs[RESOURCE_TYPE_MAX];
+	extern SFG_API const resource_type_desc_t* const g_resource_type_descs[RESOURCE_TYPE_MAX];
 
-	const char* resource_state_to_string(resource_state_e state);
-	const char* resource_type_to_string(resource_type_e type);
+	SFG_API const char* resource_state_to_string(resource_state_e state);
+	SFG_API const char* resource_type_to_string(resource_type_e type);
 
 	inline const resource_type_desc_t* find_resource_type_desc(resource_type_e type)
 	{
@@ -213,5 +215,4 @@ namespace sfg
 		resource_type_reflection_t();
 	};
 
-	inline resource_type_reflection_t g_reflect_resource_type;
 }

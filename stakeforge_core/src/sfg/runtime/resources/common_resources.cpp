@@ -32,6 +32,8 @@
 
 namespace sfg
 {
+	resource_type_reflection_t g_reflect_resource_type = {};
+
 	void resource_header_t::serialize(ostream_t& stream) const
 	{
 		stream.write_raw(reinterpret_cast<const u8*>(debug_name), sizeof(debug_name));

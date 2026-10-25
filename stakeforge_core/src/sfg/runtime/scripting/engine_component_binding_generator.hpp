@@ -22,9 +22,11 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
-	class engine_component_binding_generator_t final
+	class SFG_API engine_component_binding_generator_t final
 	{
 	public:
 		engine_component_binding_generator_t()														 = delete;

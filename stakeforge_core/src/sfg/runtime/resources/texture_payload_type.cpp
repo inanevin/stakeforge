@@ -26,6 +26,9 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	texture_payload_type_reflection_t	  g_reflect_texture_payload_type	 = {};
+	texture_ktx2_compression_reflection_t g_reflect_texture_ktx2_compression = {};
+
 	texture_payload_type_reflection_t::texture_payload_type_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();

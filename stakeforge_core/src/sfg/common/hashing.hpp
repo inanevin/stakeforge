@@ -20,6 +20,8 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #pragma once
+
+#include <sfg/common/sfg_exports.hpp>
 #include "size_definitions.hpp"
 
 namespace sfg
@@ -28,7 +30,7 @@ namespace sfg
 
 	// FNV-1a: Glenn Fowler, Landon Curt Noll, Kiem-Phong Vo - https://github.com/lcn2/fnv/blob/master/hash_64a.c
 	// SID hashing uses a different offset basis.
-	class hashing_t
+	class SFG_API hashing_t
 	{
 	public:
 		static inline u64 hash_u64(const void* ptr, size_t len) noexcept

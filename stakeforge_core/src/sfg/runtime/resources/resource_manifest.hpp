@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include "common_resources.hpp"
@@ -18,7 +20,7 @@ namespace sfg
 		nlohmann::json	config;
 	};
 
-	struct resource_manifest_t
+	struct SFG_API resource_manifest_t
 	{
 		vector_t<resource_manifest_entry_t> resources;
 
@@ -32,5 +34,4 @@ namespace sfg
 		resource_manifest_entry_reflection_t();
 	};
 
-	inline resource_manifest_entry_reflection_t g_reflect_resource_manifest_entry;
 }

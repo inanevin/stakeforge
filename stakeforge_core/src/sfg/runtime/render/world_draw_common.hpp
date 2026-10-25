@@ -49,5 +49,4 @@ namespace sfg
 	{
 		world_pass_flags_reflection_t();
 	};
-	inline world_pass_flags_reflection_t g_reflect_world_pass_flags;
 }

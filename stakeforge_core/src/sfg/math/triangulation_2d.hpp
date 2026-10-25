@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "vec2f.hpp"
 #include "vec3f.hpp"
 
@@ -37,8 +39,8 @@ namespace sfg
 
 	namespace math
 	{
-		bool	triangulate_2d(span_t<const vec2f_t> points, vector_t<triangle_indices_t>& out_triangles);
-		bool	triangle_barycentric_2d(const vec2f_t& point, const vec2f_t& a, const vec2f_t& b, const vec2f_t& c, vec3f_t& out_weights);
-		vec3f_t closest_triangle_barycentric_2d(const vec2f_t& point, const vec2f_t& a, const vec2f_t& b, const vec2f_t& c);
+		SFG_API bool	triangulate_2d(span_t<const vec2f_t> points, vector_t<triangle_indices_t>& out_triangles);
+		SFG_API bool	triangle_barycentric_2d(const vec2f_t& point, const vec2f_t& a, const vec2f_t& b, const vec2f_t& c, vec3f_t& out_weights);
+		SFG_API vec3f_t closest_triangle_barycentric_2d(const vec2f_t& point, const vec2f_t& a, const vec2f_t& b, const vec2f_t& c);
 	}
 }

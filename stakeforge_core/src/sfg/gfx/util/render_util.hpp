@@ -21,11 +21,13 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
 	struct vec2u16_t;
 
-	class render_util_t final
+	class SFG_API render_util_t final
 	{
 	public:
 		static void ensure_world_resolution(vec2u16_t& resolution);

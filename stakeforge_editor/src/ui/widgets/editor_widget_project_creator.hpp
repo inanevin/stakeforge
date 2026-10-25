@@ -60,9 +60,6 @@ namespace sfg
 		editor_widget_project_load_config_reflection_t();
 	};
 
-	inline editor_widget_project_create_config_reflection_t g_reflect_editor_widget_project_create_config;
-	inline editor_widget_project_load_config_reflection_t	g_reflect_editor_widget_project_load_config;
-
 	using editor_widget_project_ready_fn = void (*)(void* user_data);
 
 	struct editor_widget_project_creator_config_t

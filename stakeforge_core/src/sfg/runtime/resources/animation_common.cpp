@@ -28,6 +28,12 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	animation_interpolation_reflection_t	  g_reflect_animation_interpolation		 = {};
+	animation_keyframe_v3_reflection_t		  g_reflect_animation_keyframe_v3		 = {};
+	animation_keyframe_v3_spline_reflection_t g_reflect_animation_keyframe_v3_spline = {};
+	animation_keyframe_q_reflection_t		  g_reflect_animation_keyframe_q		 = {};
+	animation_keyframe_q_spline_reflection_t  g_reflect_animation_keyframe_q_spline	 = {};
+
 	animation_interpolation_reflection_t::animation_interpolation_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();

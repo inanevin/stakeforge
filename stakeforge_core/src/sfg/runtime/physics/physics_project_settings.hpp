@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -39,7 +41,7 @@ namespace sfg
 		bool operator==(const physics_collision_layer_definition_t&) const = default;
 	};
 
-	struct physics_project_settings_t
+	struct SFG_API physics_project_settings_t
 	{
 		physics_project_settings_t();
 
@@ -61,5 +63,4 @@ namespace sfg
 		physics_project_settings_reflection_t();
 	};
 
-	inline physics_project_settings_reflection_t g_reflect_physics_project_settings;
 }

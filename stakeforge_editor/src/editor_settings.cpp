@@ -31,6 +31,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	editor_settings_reflection_t g_reflect_editor_settings = {};
+
 	namespace
 	{
 		template <typename T> nlohmann::json reflected_to_json(const T& value)

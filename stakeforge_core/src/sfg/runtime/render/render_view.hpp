@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/math/frustum.hpp>
 #include <sfg/math/mat4x4.hpp>
 #include <sfg/math/vec3f.hpp>
@@ -31,7 +33,7 @@ namespace sfg
 	struct vec2u16_t;
 	struct world_render_view_t;
 
-	struct render_view_t
+	struct SFG_API render_view_t
 	{
 		frustum_t frustum		= {};
 		mat4x4_t  view			= {};

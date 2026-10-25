@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #ifdef SFG_COMPILER_MSVC
 #include <malloc.h>
 #else
@@ -35,10 +37,42 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	void* malloc_traced(size_t size);
-	void  free_traced(void* ptr);
-	void* aligned_malloc_traced(size_t alignment, size_t size);
-	void  aligned_free_traced(void* ptr);
+	SFG_API void* malloc_traced(size_t size);
+	SFG_API void  free_traced(void* ptr);
+	SFG_API void* aligned_malloc_traced(size_t alignment, size_t size);
+	SFG_API void  aligned_free_traced(void* ptr);
+
+	template <typename T, typename... Args> T* sfg_new(Args&&... args)
+	{
+		static_assert(!std::is_array_v<T>);
+
+		T* const object = static_cast<T*>(aligned_malloc_traced(alignof(T), sizeof(T)));
+
+		if (object == nullptr)
+			throw std::bad_alloc{};
+
+		try
+		{
+			return std::construct_at(object, std::forward<Args>(args)...);
+		}
+		catch (...)
+		{
+			aligned_free_traced(object);
+
+			throw;
+		}
+	}
+
+	template <typename T> void sfg_delete(T* object)
+	{
+		static_assert(!std::is_array_v<T>);
+
+		if (object == nullptr)
+			return;
+
+		std::destroy_at(object);
+		aligned_free_traced(object);
+	}
 }
 
 #define SFG_MALLOC(SIZE)					sfg::malloc_traced(SIZE)

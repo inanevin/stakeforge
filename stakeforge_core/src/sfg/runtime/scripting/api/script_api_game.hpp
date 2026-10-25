@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
@@ -34,13 +36,13 @@ namespace sfg
 	typedef u8 (*script_api_game_restart_world_fn)();
 	typedef void (*script_api_game_quit_fn)();
 
-	void set_script_api_game_callbacks(
+	SFG_API void set_script_api_game_callbacks(
 		script_api_game_get_render_resolution_fn get_resolution, script_api_game_set_render_resolution_fn set_resolution, script_api_game_load_world_fn load_world, script_api_game_restart_world_fn restart_world, script_api_game_quit_fn quit);
-	u8	 api_game_get_render_resolution(vec2u16_t* out_resolution);
-	u8	 api_game_set_render_resolution(u16 width, u16 height);
-	u8	 api_game_load_world(sid_t world_name_hash);
-	u8	 api_game_restart_world();
-	void api_game_quit();
+	SFG_API u8	 api_game_get_render_resolution(vec2u16_t* out_resolution);
+	SFG_API u8	 api_game_set_render_resolution(u16 width, u16 height);
+	SFG_API u8	 api_game_load_world(sid_t world_name_hash);
+	SFG_API u8	 api_game_restart_world();
+	SFG_API void api_game_quit();
 
 	struct script_api_game_t
 	{
@@ -53,5 +55,5 @@ namespace sfg
 		decltype(&api_game_quit)				  quit					= nullptr;
 	};
 
-	const script_api_game_t& get_script_api_game();
+	SFG_API const script_api_game_t& get_script_api_game();
 }

@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "string.hpp"
 #include "span.hpp"
 #include <sfg/common/size_definitions.hpp>
@@ -31,7 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	class ostream_t
+	class SFG_API ostream_t
 	{
 	public:
 		ostream_t() = default;

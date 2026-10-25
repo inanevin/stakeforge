@@ -201,5 +201,4 @@ namespace sfg
 		animation_graph_types_reflection_t();
 	};
 
-	inline animation_graph_types_reflection_t g_reflect_animation_graph_types;
 }

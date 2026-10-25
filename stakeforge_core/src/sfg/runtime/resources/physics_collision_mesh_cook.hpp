@@ -22,13 +22,15 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
 	class ostream_t;
 	struct physics_collision_mesh_def_t;
 	struct resource_header_t;
 
-	class physics_collision_mesh_cooker final
+	class SFG_API physics_collision_mesh_cooker final
 	{
 	public:
 		physics_collision_mesh_cooker() = delete;

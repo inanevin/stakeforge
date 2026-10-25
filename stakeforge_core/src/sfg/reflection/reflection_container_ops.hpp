@@ -22,13 +22,15 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/data/inplace_vector.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/reflection/reflection_registry.hpp>
 
 namespace sfg
 {
-	class reflection_container_ops_t
+	class SFG_API reflection_container_ops_t
 	{
 	public:
 		template <typename T> static inline u8* vector_get_element_ptr(void* obj, u32 index)

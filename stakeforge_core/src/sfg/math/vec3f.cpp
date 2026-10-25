@@ -29,6 +29,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	vec3f_reflection_t g_reflect_vec3f = {};
+
 	const vec3f_t vec3f_t::zero	   = {0.0f, 0.0f, 0.0f};
 	const vec3f_t vec3f_t::one	   = {1.0f, 1.0f, 1.0f};
 	const vec3f_t vec3f_t::up	   = {0.0f, 1.0f, 0.0f};

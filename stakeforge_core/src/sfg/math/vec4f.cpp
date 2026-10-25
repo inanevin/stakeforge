@@ -28,6 +28,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	vec4f_reflection_t g_reflect_vec4f = {};
+
 	const vec4f_t vec4f_t::zero = {0.0f, 0.0f, 0.0f, 0.0f};
 	const vec4f_t vec4f_t::one	= {1.0f, 1.0f, 1.0f, 1.0f};
 

@@ -42,6 +42,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	editor_texture_orm_import_sources_reflection_t g_reflect_editor_texture_orm_import_sources = {};
+
 	namespace
 	{
 		editor_asset_import_type_e get_import_type_from_extension(string_t extension)

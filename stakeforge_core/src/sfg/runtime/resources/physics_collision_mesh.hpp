@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 
 namespace sfg
@@ -35,7 +37,7 @@ namespace sfg
 		u32				 index_count  = 0;
 	};
 
-	class physics_collision_mesh_loader_t final
+	class SFG_API physics_collision_mesh_loader_t final
 	{
 	public:
 		physics_collision_mesh_loader_t() = delete;
@@ -48,5 +50,5 @@ namespace sfg
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
-	extern const resource_type_desc_t physics_collision_mesh_resource_desc;
+	extern SFG_API const resource_type_desc_t physics_collision_mesh_resource_desc;
 }

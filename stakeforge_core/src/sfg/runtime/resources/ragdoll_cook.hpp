@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 
 namespace sfg
@@ -29,7 +31,7 @@ namespace sfg
 	class ostream_t;
 	struct ragdoll_def_t;
 
-	class ragdoll_cooker
+	class SFG_API ragdoll_cooker
 	{
 	public:
 		static bool cook_from_def(const ragdoll_def_t& def, resource_header_t& out_header, ostream_t& stream);

@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include "shader_data_definition.hpp"
@@ -19,7 +21,7 @@ namespace sfg
 		shader_type_e	   type			= shader_type_e::invalid;
 	};
 
-	class shader_cooker
+	class SFG_API shader_cooker
 	{
 	public:
 		static bool cook_from_file(const shader_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream, shader_data_definition_t& out_definition);
@@ -34,5 +36,4 @@ namespace sfg
 		shader_cook_config_reflection_t();
 	};
 
-	inline shader_cook_config_reflection_t g_reflect_shader_cook_config;
 }

@@ -1,12 +1,14 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include <sfg/memory/chunk_handle.hpp>
 
 namespace sfg
 {
-	class font_loader_t
+	class SFG_API font_loader_t
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('F', 'O', 'N', 'T');
@@ -33,5 +35,5 @@ namespace sfg
 		u32 reserved = 0;
 	};
 
-	extern const resource_type_desc_t font_resource_desc;
+	extern SFG_API const resource_type_desc_t font_resource_desc;
 }

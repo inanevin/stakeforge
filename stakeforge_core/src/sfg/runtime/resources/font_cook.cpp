@@ -11,6 +11,8 @@
 
 namespace sfg
 {
+	font_cook_config_reflection_t g_reflect_font_cook_config = {};
+
 	bool font_cooker::cook_from_file(const font_cook_config_t&, const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
 		char*  ttf_data = nullptr;

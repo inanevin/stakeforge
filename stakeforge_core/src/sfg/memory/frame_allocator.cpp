@@ -25,7 +25,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	thread_local frame_allocator_tls_t::frame_allocator_state_t g_frame_allocator_state;
+	static thread_local frame_allocator_tls_t::frame_allocator_state_t g_frame_allocator_state = {};
 
 	void frame_allocator_tls_t::init(size_t size, size_t alignment)
 	{

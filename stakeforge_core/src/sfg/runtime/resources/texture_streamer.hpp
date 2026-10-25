@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "texture.hpp"
 #include <sfg/data/atomic.hpp>
 #include <sfg/vendor/moodycamel/concurrentqueue.h>
@@ -43,7 +45,7 @@ namespace sfg
 		bool			 success						  = false;
 	};
 
-	class texture_streamer_t final
+	class SFG_API texture_streamer_t final
 	{
 	public:
 		texture_streamer_t()									 = default;

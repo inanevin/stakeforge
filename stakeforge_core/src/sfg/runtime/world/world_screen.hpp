@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/math/mat4x4.hpp>
 #include <sfg/math/vec2f.hpp>
 #include <sfg/math/vec2u16.hpp>
@@ -30,7 +32,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	class world_screen_t final
+	class SFG_API world_screen_t final
 	{
 	public:
 		world_screen_t()								 = default;

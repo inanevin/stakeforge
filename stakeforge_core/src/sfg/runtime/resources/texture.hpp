@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include "texture_payload_type.hpp"
 #include <sfg/gfx/common/format.hpp>
@@ -32,7 +34,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	class texture_loader_t
+	class SFG_API texture_loader_t
 	{
 	public:
 		static constexpr u8	 MAX_MIPS	  = 16;
@@ -43,7 +45,7 @@ namespace sfg
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
-	struct texture_mip_header_t
+	struct SFG_API texture_mip_header_t
 	{
 		u32		  byte_offset = 0;
 		u32		  data_size	  = 0;
@@ -55,7 +57,7 @@ namespace sfg
 		void deserialize(istream_t& stream);
 	};
 
-	struct texture_header_t
+	struct SFG_API texture_header_t
 	{
 		texture_mip_header_t	   mips[texture_loader_t::MAX_MIPS] = {};
 		vec4f_t					   average_color					= vec4f_t::zero;
@@ -93,5 +95,5 @@ namespace sfg
 		render_resource_handle_t staging = {};
 	};
 
-	extern const resource_type_desc_t texture_resource_desc;
+	extern SFG_API const resource_type_desc_t texture_resource_desc;
 }

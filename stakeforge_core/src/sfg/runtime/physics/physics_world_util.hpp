@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/math/quat.hpp>
 #include <sfg/math/vec3f.hpp>
 #include <sfg/runtime/physics/physics_types.hpp>
@@ -56,7 +58,7 @@ namespace sfg
 	struct component_swing_twist_constraint_t;
 	struct component_vehicle_constraint_t;
 
-	class physics_world_util_t final
+	class SFG_API physics_world_util_t final
 	{
 	public:
 		physics_world_util_t() = delete;

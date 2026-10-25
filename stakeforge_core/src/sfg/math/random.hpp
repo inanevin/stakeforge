@@ -20,24 +20,26 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #pragma once
+
+#include <sfg/common/sfg_exports.hpp>
 #include <random>
 
 namespace sfg
 {
 	namespace random_t
 	{
-		std::mt19937& rng();
-		void		  seed_rng(uint64_t seed);
+		SFG_API std::mt19937& rng();
+		SFG_API void		  seed_rng(uint64_t seed);
 
 		// Uniform real in [0, 1).
-		f32 random_01();
+		SFG_API f32 random_01();
 
 		// [min_inclusive, max_inclusive].
-		int random_int(int min_inclusive, int max_inclusive);
+		SFG_API int random_int(int min_inclusive, int max_inclusive);
 
-		u32 next_u32(u32& state);
-		f32 random_01(u32& state);
-		f32 random_range(u32& state, f32 minimum, f32 maximum);
+		SFG_API u32 next_u32(u32& state);
+		SFG_API f32 random_01(u32& state);
+		SFG_API f32 random_range(u32& state, f32 minimum, f32 maximum);
 	}
 
 }

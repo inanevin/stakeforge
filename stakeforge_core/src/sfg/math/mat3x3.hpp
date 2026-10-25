@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "vec3f.hpp"
 #include "vec4f.hpp"
 
@@ -32,7 +34,7 @@ namespace sfg
 	class mat4x4_t;
 
 	// Column-major 3x3: m[col * 3 + row]
-	class mat3x3_t
+	class SFG_API mat3x3_t
 	{
 	public:
 		f32 m[9];

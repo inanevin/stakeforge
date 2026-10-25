@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #ifdef SFG_DEBUG
 
 #define SFG_ERR(...)		sfg::log_t::instance().log_msg_func(sfg::log_source_e::engine, sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
@@ -73,14 +75,15 @@ namespace sfg
 		progress,
 	};
 
-	class log_t
+	class SFG_API log_t
 	{
 	public:
 		typedef void (*callback_function)(log_source_e source, log_level lvl, const char* msg, void* user_data);
 
 		static log_t& instance()
 		{
-			static log_t log_t;
+			static log_t log_t = {};
+
 			return log_t;
 		}
 

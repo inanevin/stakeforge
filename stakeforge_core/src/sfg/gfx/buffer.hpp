@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/data/bitmask.hpp>
@@ -29,7 +31,7 @@ namespace sfg
 {
 	struct resource_desc_t;
 
-	class buffer_gpu_t
+	class SFG_API buffer_gpu_t
 	{
 	public:
 		void create(const resource_desc_t& desc);
@@ -57,7 +59,7 @@ namespace sfg
 		gfx_handle_t _hw = {};
 	};
 
-	class buffer_cpu_gpu_t
+	class SFG_API buffer_cpu_gpu_t
 	{
 	public:
 		void create(const resource_desc_t& desc_cpu, const resource_desc_t& desc_gpu);
@@ -91,7 +93,7 @@ namespace sfg
 		gfx_handle_t _hw_gpu	 = {};
 	};
 
-	class buffer_t
+	class SFG_API buffer_t
 	{
 	public:
 		void create(const resource_desc_t& staging, const resource_desc_t& hw);

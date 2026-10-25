@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include "mesh_def.hpp"
 
@@ -43,7 +45,7 @@ namespace sfg
 		u8						 is_skinned		 = 0;
 	};
 
-	class mesh_loader_t
+	class SFG_API mesh_loader_t
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('M', 'E', 'S', 'H');
@@ -54,5 +56,5 @@ namespace sfg
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
-	extern const resource_type_desc_t mesh_resource_desc;
+	extern SFG_API const resource_type_desc_t mesh_resource_desc;
 }

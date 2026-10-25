@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "dx12_heap.hpp"
 #include "sdk/d3dx12.h"
 #include <sfg/common/size_definitions.hpp>
@@ -125,7 +127,7 @@ namespace sfg
 		u32		 scratch_initial_capacity				= 100;
 	};
 
-	class dx12_backend_t final
+	class SFG_API dx12_backend_t final
 	{
 	private:
 		struct resource_t

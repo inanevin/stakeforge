@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
 #include <sfg/math/vec2u16.hpp>
@@ -48,7 +50,7 @@ namespace sfg
 		u8			 layer_count   = 0;
 	};
 
-	class world_render_shadow_context_t final
+	class SFG_API world_render_shadow_context_t final
 	{
 	public:
 		world_render_shadow_context_t()												   = default;

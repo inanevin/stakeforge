@@ -21,11 +21,13 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
 	struct color_blend_attachment_t;
 
-	class blend_attachments_t
+	class SFG_API blend_attachments_t
 	{
 	public:
 		static color_blend_attachment_t get_none();

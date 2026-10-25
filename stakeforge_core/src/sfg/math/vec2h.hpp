@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "math_common.hpp"
 #include <sfg/vendor/um/umHalf.h>
 
@@ -32,7 +34,7 @@ namespace sfg
 	class istream_t;
 	class ostream_t;
 
-	struct vec2h_t
+	struct SFG_API vec2h_t
 	{
 		half x;
 		half y;

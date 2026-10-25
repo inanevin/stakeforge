@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/hash_map.hpp>
 #include <sfg/data/string.hpp>
@@ -42,7 +44,7 @@ namespace sfg
 		size_t size	  = 0;
 	};
 
-	class resource_stream_t final
+	class SFG_API resource_stream_t final
 	{
 	public:
 		resource_stream_t() = default;
@@ -88,7 +90,7 @@ namespace sfg
 		u64	  _cursor	   = 0;
 	};
 
-	class resource_file_system_t final
+	class SFG_API resource_file_system_t final
 	{
 	public:
 		resource_file_system_t()										 = default;

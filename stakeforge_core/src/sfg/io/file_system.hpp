@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -47,7 +49,7 @@ namespace sfg
 		file_system_entry_type_e type = file_system_entry_type_e::file;
 	};
 
-	class file_system_t
+	class SFG_API file_system_t
 	{
 	public:
 		static bool		delete_file(const char* path);

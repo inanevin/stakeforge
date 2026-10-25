@@ -28,6 +28,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	editor_project_cook_options_reflection_t g_reflect_editor_project_cook_options = {};
+
 	editor_project_cook_options_reflection_t::editor_project_cook_options_reflection_t()
 	{
 		reflection_registry_t::get().register_type({

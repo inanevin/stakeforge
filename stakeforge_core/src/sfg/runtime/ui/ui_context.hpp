@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/atomic.hpp>
 #include <sfg/data/fixed_vector.hpp>
@@ -57,7 +59,7 @@ namespace sfg::ui
 		u32			len = 0;
 	};
 
-	class ui_context final
+	class SFG_API ui_context final
 	{
 	public:
 		ui_context()							 = default;

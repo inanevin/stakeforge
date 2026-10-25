@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/runtime/render/render_resource_handle.hpp>
 
@@ -31,7 +33,7 @@ namespace sfg
 	class render_resources_t;
 	struct vec2u16_t;
 
-	struct render_resources_util_t
+	struct SFG_API render_resources_util_t
 	{
 		static render_resource_handle_t create_uploaded_texture(render_resources_t& resources, format_e format, vec2u16_t size, const u8* pixels, const char* name, render_resource_handle_t& out_staging);
 		static render_resource_handle_t create_brdf_lut(render_resources_t& resources, render_resource_handle_t& out_staging);

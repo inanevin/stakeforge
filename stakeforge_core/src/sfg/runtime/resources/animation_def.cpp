@@ -30,6 +30,11 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	animation_event_def_reflection_t	  g_reflect_animation_event_def		 = {};
+	animation_channel_v3_def_reflection_t g_reflect_animation_channel_v3_def = {};
+	animation_channel_q_def_reflection_t  g_reflect_animation_channel_q_def	 = {};
+	animation_def_reflection_t			  g_reflect_animation_def			 = {};
+
 	animation_channel_v3_def_reflection_t::animation_channel_v3_def_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();

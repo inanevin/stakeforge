@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/span.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
@@ -51,7 +53,7 @@ namespace sfg
 		u32			cluster_count_z = 0;
 	};
 
-	class world_rendering_t final
+	class SFG_API world_rendering_t final
 	{
 	public:
 		static void render_world(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);

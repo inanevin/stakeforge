@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "memory.hpp"
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/io/assert.hpp>
@@ -28,7 +30,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	class bump_allocator_t
+	class SFG_API bump_allocator_t
 	{
 	public:
 		void init(size_t sz, size_t alignment);

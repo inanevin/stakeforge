@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/data/span.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
@@ -65,7 +67,7 @@ namespace sfg
 		bottom_right,
 	};
 
-	class world_debug_draw_t final
+	class SFG_API world_debug_draw_t final
 	{
 	public:
 		world_debug_draw_t();

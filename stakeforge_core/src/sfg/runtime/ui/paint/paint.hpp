@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/fixed_vector.hpp>
 #include <sfg/runtime/ui/ui_common.hpp>
@@ -81,7 +83,7 @@ namespace sfg::ui
 		void*			custom_ud = nullptr;
 	};
 
-	class paint_layer_t
+	class SFG_API paint_layer_t
 	{
 	public:
 		// -----------------------------------------------------------------------------

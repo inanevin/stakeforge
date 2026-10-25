@@ -71,8 +71,6 @@ namespace sfg
 		panel_animation_data_reflection_t();
 	};
 
-	inline panel_animation_data_reflection_t g_reflect_panel_animation_data;
-
 	class editor_panel_animation_t final : public editor_panel_t
 	{
 	public:

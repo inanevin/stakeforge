@@ -46,5 +46,4 @@ namespace sfg
 		editor_project_cook_options_reflection_t();
 	};
 
-	inline editor_project_cook_options_reflection_t g_reflect_editor_project_cook_options;
 }

@@ -27,6 +27,10 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	primitive_static_def_reflection_t  g_reflect_primitive_static_def  = {};
+	primitive_skinned_def_reflection_t g_reflect_primitive_skinned_def = {};
+	mesh_def_reflection_t			   g_reflect_mesh_def			   = {};
+
 	primitive_static_def_reflection_t::primitive_static_def_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();

@@ -27,6 +27,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	vec3u_reflection_t g_reflect_vec3u = {};
+
 	vec3u_t vec3u_t::zero = {0, 0, 0};
 	vec3u_t vec3u_t::one  = {1, 1, 1};
 

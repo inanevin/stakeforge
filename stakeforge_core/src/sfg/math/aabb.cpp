@@ -30,6 +30,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	aabb_reflection_t g_reflect_aabb = {};
+
 	bool aabb_t::is_inside_plane(const vec3f_t& center, const plane_t& plane_t)
 	{
 		const f32 r = bounds_half_extent.x * math::abs(plane_t.normal.x) + bounds_half_extent.y * math::abs(plane_t.normal.y) + bounds_half_extent.z * math::abs(plane_t.normal.z);

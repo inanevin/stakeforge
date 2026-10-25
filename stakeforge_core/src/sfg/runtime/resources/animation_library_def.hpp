@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "resource_handle.hpp"
 #include <sfg/common/type_id.hpp>
 #include <sfg/math/vec2f.hpp>
@@ -31,7 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 
-	struct animation_library_clip_def_t
+	struct SFG_API animation_library_clip_def_t
 	{
 		resource_handle_t animation_clip = NULL_RESOURCE_HANDLE;
 		vec2f_t			  blend_position = vec2f_t::zero;
@@ -39,7 +41,7 @@ namespace sfg
 		f32				  playback_speed = 1.0f;
 	};
 
-	struct animation_library_state_def_t
+	struct SFG_API animation_library_state_def_t
 	{
 		char						   name[256]								= "New State";
 		animation_library_clip_def_t   clips[MAX_ANIMATION_LIBRARY_STATE_CLIPS] = {};
@@ -50,7 +52,7 @@ namespace sfg
 		bool						   loop										= true;
 	};
 
-	struct animation_library_layer_def_t
+	struct SFG_API animation_library_layer_def_t
 	{
 		char									name[256] = "New Layer";
 		sid_t									mask	  = NULL_SID;
@@ -59,7 +61,7 @@ namespace sfg
 		float									weight				 = 1.0f;
 	};
 
-	struct animation_library_def_t
+	struct SFG_API animation_library_def_t
 	{
 		animation_library_layer_def_t layers[MAX_ANIMATION_LIBRARY_LAYERS] = {};
 		resource_handle_t			  skeleton							   = NULL_RESOURCE_HANDLE;
@@ -77,5 +79,4 @@ namespace sfg
 		animation_library_def_reflection_t();
 	};
 
-	inline animation_library_def_reflection_t g_reflect_animation_library_def;
 }

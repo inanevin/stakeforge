@@ -56,6 +56,4 @@ namespace sfg
 		texture_ktx2_compression_reflection_t();
 	};
 
-	inline texture_payload_type_reflection_t	 g_reflect_texture_payload_type;
-	inline texture_ktx2_compression_reflection_t g_reflect_texture_ktx2_compression;
 }

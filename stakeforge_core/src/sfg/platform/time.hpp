@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 #ifdef SFG_PLATFORM_OSX
@@ -29,7 +31,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	class time_t
+	class SFG_API time_t
 	{
 	public:
 		static void	  init();

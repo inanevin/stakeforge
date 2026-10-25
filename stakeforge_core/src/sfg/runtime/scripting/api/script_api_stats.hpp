@@ -22,15 +22,17 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
 {
-	f32 api_stats_get_main_thread_time_ms();
-	f32 api_stats_get_main_thread_fps();
-	f32 api_stats_get_render_work_time_ms();
-	f32 api_stats_get_render_thread_time_ms();
-	f32 api_stats_get_render_thread_fps();
+	SFG_API f32 api_stats_get_main_thread_time_ms();
+	SFG_API f32 api_stats_get_main_thread_fps();
+	SFG_API f32 api_stats_get_render_work_time_ms();
+	SFG_API f32 api_stats_get_render_thread_time_ms();
+	SFG_API f32 api_stats_get_render_thread_fps();
 
 	struct script_api_stats_t
 	{
@@ -43,5 +45,5 @@ namespace sfg
 		decltype(&api_stats_get_render_thread_fps)	   get_render_thread_fps	 = nullptr;
 	};
 
-	const script_api_stats_t& get_script_api_stats();
+	SFG_API const script_api_stats_t& get_script_api_stats();
 }

@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include "shader_types.hpp"
 #include "shader_limits.hpp"
@@ -9,7 +11,7 @@
 
 namespace sfg
 {
-	class shader_loader_t
+	class SFG_API shader_loader_t
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('S', 'H', 'D', 'R');
@@ -47,7 +49,7 @@ namespace sfg
 		u8								 pso_variant_count								   = 0;
 	};
 
-	struct shader_internals_t
+	struct SFG_API shader_internals_t
 	{
 		render_resource_handle_t psos[SFG_SHADER_MAX_PSO_VARIANTS]		= {};
 		bitmask_t<u32>			 pso_flags[SFG_SHADER_MAX_PSO_VARIANTS] = {};
@@ -56,5 +58,5 @@ namespace sfg
 		render_resource_handle_t find_pso(bitmask_t<u32> flags) const;
 	};
 
-	extern const resource_type_desc_t shader_resource_desc;
+	extern SFG_API const resource_type_desc_t shader_resource_desc;
 }

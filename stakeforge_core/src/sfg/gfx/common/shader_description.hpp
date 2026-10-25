@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include "gfx_constants.hpp"
@@ -163,7 +165,7 @@ namespace sfg
 		shf_enable_blend_logic_op = 1 << 3,
 	};
 
-	struct vertex_input_t
+	struct SFG_API vertex_input_t
 	{
 		static constexpr size_t MAX_NAME = 32;
 
@@ -237,7 +239,7 @@ namespace sfg
 		bitmask_t<u8>	flags				 = 0;
 	};
 
-	struct shader_desc_t
+	struct SFG_API shader_desc_t
 	{
 		static constexpr size_t MAX_DEBUG_NAME	  = 64;
 		static constexpr size_t MAX_ENTRY_NAME	  = 32;
@@ -290,7 +292,7 @@ namespace sfg
 	SFG_DEFINE_TYPE_ID(load_op);
 	SFG_DEFINE_TYPE_ID(stencil_state_t);
 
-	struct compile_variant_t
+	struct SFG_API compile_variant_t
 	{
 		vector_t<shader_blob_t> blobs;
 		void					destroy();
@@ -299,7 +301,7 @@ namespace sfg
 		void deserialize(istream_t& stream, bool address_only = false);
 	};
 
-	struct pso_variant_t
+	struct SFG_API pso_variant_t
 	{
 		shader_desc_t  desc;
 		u32			   compile_variant_t = 0;
@@ -364,15 +366,4 @@ namespace sfg
 		stencil_state_reflection_t();
 	};
 
-	inline vertex_input_reflection_t  g_reflect_vertex_input;
-	inline cull_mode_reflection_t	  g_reflect_cull_mode;
-	inline fill_mode_reflection_t	  g_reflect_fill_mode;
-	inline front_face_reflection_t	  g_reflect_front_face;
-	inline blend_factor_reflection_t  g_reflect_blend_factor;
-	inline blend_op_reflection_t	  g_reflect_blend_op;
-	inline stencil_op_reflection_t	  g_reflect_stencil_op;
-	inline compare_op_reflection_t	  g_reflect_compare_op;
-	inline store_op_reflection_t	  g_reflect_store_op;
-	inline load_op_reflection_t		  g_reflect_load_op;
-	inline stencil_state_reflection_t g_reflect_stencil_state;
 }

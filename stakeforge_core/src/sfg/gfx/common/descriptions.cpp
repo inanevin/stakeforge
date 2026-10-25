@@ -30,6 +30,11 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	sampler_filter_reflection_t g_reflect_sampler_filter = {};
+	sampler_border_reflection_t g_reflect_sampler_border = {};
+	address_mode_reflection_t	g_reflect_address_mode	 = {};
+	sampler_desc_reflection_t	g_reflect_sampler_desc	 = {};
+
 	namespace
 	{
 		void set_desc_name(char* dst, size_t capacity, const char* src)

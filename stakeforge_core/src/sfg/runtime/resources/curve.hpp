@@ -21,13 +21,15 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include "curve_def.hpp"
 #include <sfg/memory/chunk_handle.hpp>
 
 namespace sfg
 {
-	struct curve_runtime_t
+	struct SFG_API curve_runtime_t
 	{
 		const vec4f_t*		  samples		= nullptr;
 		chunk_handle32_t	  samples_chunk = {};
@@ -43,7 +45,7 @@ namespace sfg
 		u32 reserved = 0;
 	};
 
-	class curve_loader_t
+	class SFG_API curve_loader_t
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('C', 'U', 'R', 'V');
@@ -53,5 +55,5 @@ namespace sfg
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
-	extern const resource_type_desc_t curve_resource_desc;
+	extern SFG_API const resource_type_desc_t curve_resource_desc;
 }

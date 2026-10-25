@@ -35,6 +35,9 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	editor_widget_project_create_config_reflection_t g_reflect_editor_widget_project_create_config = {};
+	editor_widget_project_load_config_reflection_t	 g_reflect_editor_widget_project_load_config   = {};
+
 	editor_widget_project_create_config_reflection_t::editor_widget_project_create_config_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();

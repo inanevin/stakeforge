@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string_view.hpp>
 
@@ -29,7 +31,7 @@ namespace sfg
 	class ostream_t;
 	class istream_t;
 
-	class serializer_t
+	class SFG_API serializer_t
 	{
 	public:
 		static bool		 write_to_file(string_view_t file_input, const char* target_path);

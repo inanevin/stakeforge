@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "animation_bone.hpp"
 #include "animation_graph_types.hpp"
 
@@ -43,7 +45,7 @@ namespace sfg
 		u32				 node_count		 = 0;
 	};
 
-	class animation_graph_storage_t final
+	class SFG_API animation_graph_storage_t final
 	{
 	public:
 		animation_graph_storage_t() = default;

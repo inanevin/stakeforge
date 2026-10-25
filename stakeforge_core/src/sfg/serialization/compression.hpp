@@ -21,12 +21,14 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
 	class ostream_t;
 	class istream_t;
 
-	class compressor_t
+	class SFG_API compressor_t
 	{
 	public:
 		static ostream_t compress(const ostream_t& stream);

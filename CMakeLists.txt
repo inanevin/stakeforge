@@ -26,6 +26,8 @@
 
 cmake_minimum_required(VERSION 4.0)
 
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+
 project(stakeforge)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Profile;" CACHE STRING "" FORCE)
@@ -92,6 +94,13 @@ endif()
 add_subdirectory(stakeforge_core)
 add_subdirectory(stakeforge_editor)
 add_subdirectory(stakeforge_game)
+
+option(SFG_BUILD_TESTS "Build Stakeforge DLL boundary tests" OFF)
+
+if(SFG_BUILD_TESTS AND WIN32)
+    enable_testing()
+    add_subdirectory(utils/tests/core_dll)
+endif()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CustomTargets")

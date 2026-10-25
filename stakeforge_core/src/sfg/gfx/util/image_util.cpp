@@ -28,6 +28,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/memory/memory.hpp>
 #include <sfg/memory/memory_tracer.hpp>
 
+#define STBIDEF	 SFG_API
+#define STBIWDEF extern "C" SFG_API
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_RESIZE_IMPLEMENTATION

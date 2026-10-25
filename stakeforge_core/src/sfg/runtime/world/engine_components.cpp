@@ -34,6 +34,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	engine_component_reflection_t g_reflect_engine_component = {};
+
 	SFG_DEFINE_TYPE_ID(debug_widgets_enum);
 	SFG_DEFINE_TYPE_ID(debug_widgets_enum2);
 

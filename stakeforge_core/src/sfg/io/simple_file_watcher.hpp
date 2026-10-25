@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/string.hpp>
 #include <sfg/data/unique.hpp>
@@ -39,8 +41,14 @@ namespace sfg
 
 	typedef void (*simple_file_watcher_callback)(const char* p, u64 last_modified, u16 id, void* user_data);
 
-	class simple_file_watcher_t
+	class SFG_API simple_file_watcher_t final
 	{
+	public:
+		simple_file_watcher_t();
+		~simple_file_watcher_t();
+		simple_file_watcher_t(const simple_file_watcher_t&)			   = delete;
+		simple_file_watcher_t& operator=(const simple_file_watcher_t&) = delete;
+
 	private:
 		struct entry_t
 		{
@@ -54,11 +62,6 @@ namespace sfg
 		};
 
 	public:
-		~simple_file_watcher_t()
-		{
-			clear();
-		}
-
 		void add_path(const char* path, u16 optional_id = 0);
 		void remove_path(const char* path);
 		void clear();

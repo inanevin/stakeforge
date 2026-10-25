@@ -45,5 +45,4 @@ namespace sfg
 		physical_material_reflection_t();
 	};
 
-	inline physical_material_reflection_t g_reflect_physical_material;
 }

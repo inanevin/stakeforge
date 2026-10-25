@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/quat.hpp>
@@ -35,7 +37,7 @@ namespace sfg
 	class istream_t;
 	class ostream_t;
 
-	struct world_cook_entity_header_t
+	struct SFG_API world_cook_entity_header_t
 	{
 		vector_t<entity_guid_t> prefab_entity_guids;
 		entity_guid_t			guid		= NULL_ENTITY_GUID;
@@ -50,6 +52,6 @@ namespace sfg
 		void deserialize(istream_t& stream);
 	};
 
-	void to_json(nlohmann::json& j, const world_cook_entity_header_t& header);
-	void from_json(const nlohmann::json& j, world_cook_entity_header_t& header);
+	SFG_API void to_json(nlohmann::json& j, const world_cook_entity_header_t& header);
+	SFG_API void from_json(const nlohmann::json& j, world_cook_entity_header_t& header);
 }

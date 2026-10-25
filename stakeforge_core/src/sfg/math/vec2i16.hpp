@@ -20,11 +20,13 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #pragma once
+
+#include <sfg/common/sfg_exports.hpp>
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
 {
-	struct vec2i16_t
+	struct SFG_API vec2i16_t
 	{
 		static vec2i16_t zero;
 		static vec2i16_t one;

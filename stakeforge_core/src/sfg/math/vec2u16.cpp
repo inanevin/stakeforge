@@ -27,6 +27,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	vec2u16_reflection_t g_reflect_vec2u16 = {};
 
 	vec2u16_t vec2u16_t::zero = {};
 	vec2u16_t vec2u16_t::one  = {.x = 1, .y = 1};

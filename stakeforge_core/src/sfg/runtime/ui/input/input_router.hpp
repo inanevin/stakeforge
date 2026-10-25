@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/fixed_vector.hpp>
 #include <sfg/data/hash_map.hpp>
@@ -100,7 +102,7 @@ namespace sfg::ui
 		f32 drag_threshold_pixels	 = 3.0f;
 	};
 
-	class input_router_t
+	class SFG_API input_router_t
 	{
 	public:
 		// -----------------------------------------------------------------------------

@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
@@ -34,7 +36,7 @@ namespace sfg
 	struct world_render_reflection_probe_t;
 	struct world_render_snapshot_t;
 
-	class world_rendering_util_t final
+	class SFG_API world_rendering_util_t final
 	{
 	public:
 		// -----------------------------------------------------------------------------

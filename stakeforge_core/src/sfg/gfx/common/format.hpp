@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include <sfg/common/size_definitions.hpp>
@@ -103,13 +105,13 @@ namespace sfg
 		format_max,
 	};
 
-	u8	 format_get_bpp(format_e fmt);
-	u8	 format_get_channels(format_e fmt);
-	bool format_is_block_compressed(format_e fmt);
-	bool format_is_linear(format_e fmt);
-	u32	 format_get_row_pitch(format_e fmt, u16 width);
-	u32	 format_get_row_count(format_e fmt, u16 height);
-	u32	 format_get_data_size(format_e fmt, u16 width, u16 height);
+	SFG_API u8	 format_get_bpp(format_e fmt);
+	SFG_API u8	 format_get_channels(format_e fmt);
+	SFG_API bool format_is_block_compressed(format_e fmt);
+	SFG_API bool format_is_linear(format_e fmt);
+	SFG_API u32	 format_get_row_pitch(format_e fmt, u16 width);
+	SFG_API u32	 format_get_row_count(format_e fmt, u16 height);
+	SFG_API u32	 format_get_data_size(format_e fmt, u16 width, u16 height);
 
 	SFG_DEFINE_TYPE_ID(format_e);
 
@@ -118,5 +120,4 @@ namespace sfg
 		format_reflection_t();
 	};
 
-	inline format_reflection_t g_reflect_format;
 }

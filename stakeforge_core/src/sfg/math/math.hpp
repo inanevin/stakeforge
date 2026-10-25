@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "math_common.hpp"
 #include <cmath>
 
@@ -31,8 +33,8 @@ namespace sfg
 {
 	namespace math
 	{
-		unsigned int floor_log2(unsigned int val);
-		double		 fast_pow(double base, double exponent);
+		SFG_API unsigned int floor_log2(unsigned int val);
+		SFG_API double		 fast_pow(double base, double exponent);
 
 		template <typename T> inline bool is_nan(T val)
 		{

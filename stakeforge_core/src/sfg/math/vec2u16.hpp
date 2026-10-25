@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include <sfg/common/size_definitions.hpp>
@@ -31,7 +33,7 @@ namespace sfg
 	class istream_t;
 	class ostream_t;
 
-	struct vec2u16_t
+	struct SFG_API vec2u16_t
 	{
 	public:
 		static vec2u16_t zero;
@@ -56,5 +58,4 @@ namespace sfg
 		vec2u16_reflection_t();
 	};
 
-	inline vec2u16_reflection_t g_reflect_vec2u16;
 }

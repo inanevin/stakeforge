@@ -60,6 +60,9 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	glb_axis_reflection_t		 g_reflect_glb_axis		   = {};
+	glb_cook_config_reflection_t g_reflect_glb_cook_config = {};
+
 	namespace
 	{
 		struct glb_texture_transform_t

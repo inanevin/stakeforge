@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
 	class world_t;
@@ -29,7 +31,7 @@ namespace sfg
 	struct project_settings_t;
 	struct world_render_snapshot_t;
 
-	class world_snapshot_producer_t final
+	class SFG_API world_snapshot_producer_t final
 	{
 	public:
 		static void produce(world_t& world, world_render_snapshot_t& snapshot, const project_settings_t& project_settings, const world_render_context_t& render_context);

@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
@@ -38,15 +40,15 @@ namespace sfg
 
 	typedef void (*script_api_platform_lock_cursor_fn)(script_cursor_lock_mode_e mode);
 
-	extern bool g_window_api_enabled;
+	extern SFG_API bool g_window_api_enabled;
 
-	void set_script_api_platform_window_runtime(window_runtime_t* window);
-	void set_script_api_platform_lock_cursor_callback(script_api_platform_lock_cursor_fn lock_cursor);
-	void reset_script_api_platform_cursor_state();
-	void api_platform_set_cursor_visible(u8 visible);
-	void api_platform_lock_cursor(script_cursor_lock_mode_e mode);
-	void api_platform_set_window_size(u16 width, u16 height);
-	void api_platform_set_window_style(window_style_e style);
+	SFG_API void set_script_api_platform_window_runtime(window_runtime_t* window);
+	SFG_API void set_script_api_platform_lock_cursor_callback(script_api_platform_lock_cursor_fn lock_cursor);
+	SFG_API void reset_script_api_platform_cursor_state();
+	SFG_API void api_platform_set_cursor_visible(u8 visible);
+	SFG_API void api_platform_lock_cursor(script_cursor_lock_mode_e mode);
+	SFG_API void api_platform_set_window_size(u16 width, u16 height);
+	SFG_API void api_platform_set_window_style(window_style_e style);
 
 	struct script_api_platform_t
 	{
@@ -58,5 +60,5 @@ namespace sfg
 		void (*set_window_style)(window_style_e style)		= nullptr;
 	};
 
-	const script_api_platform_t& get_script_api_platform();
+	SFG_API const script_api_platform_t& get_script_api_platform();
 }

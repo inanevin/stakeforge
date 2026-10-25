@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
 
@@ -29,7 +31,7 @@ namespace sfg
 {
 	class world_t;
 
-	class world_audio_controller_t final
+	class SFG_API world_audio_controller_t final
 	{
 	public:
 		world_audio_controller_t()											 = default;

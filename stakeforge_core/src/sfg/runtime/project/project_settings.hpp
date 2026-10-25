@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/common/type_id.hpp>
 #include <sfg/data/string.hpp>
@@ -51,7 +53,7 @@ namespace sfg
 		bool operator==(const engine_shadow_settings_t&) const = default;
 	};
 
-	struct project_settings_t
+	struct SFG_API project_settings_t
 	{
 		physics_project_settings_t physics			  = {};
 		vector_t<string_t>		   tags				  = {};
@@ -76,5 +78,4 @@ namespace sfg
 		project_settings_reflection_t();
 	};
 
-	inline project_settings_reflection_t g_reflect_project_settings;
 }

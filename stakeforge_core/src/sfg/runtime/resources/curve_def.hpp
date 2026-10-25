@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 #include <sfg/data/vector.hpp>
 #include <sfg/math/vec4f.hpp>
@@ -56,7 +58,7 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(curve_key_t);
 
-	struct curve_def_t
+	struct SFG_API curve_def_t
 	{
 		vector_t<curve_key_t> keys = {
 			{.value = vec4f_t::zero, .time = 0.0f},
@@ -77,5 +79,4 @@ namespace sfg
 		curve_reflection_t();
 	};
 
-	inline curve_reflection_t g_reflect_curve;
 }

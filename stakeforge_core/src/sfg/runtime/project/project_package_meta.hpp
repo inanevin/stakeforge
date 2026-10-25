@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "project_settings.hpp"
 
 #include <sfg/data/hash_map.hpp>
@@ -42,7 +44,7 @@ namespace sfg
 		sid_t name_hash = NULL_SID;
 	};
 
-	struct project_package_meta_t
+	struct SFG_API project_package_meta_t
 	{
 		static inline constexpr const char* FILE_NAME					 = "project_meta.sfg_bin";
 		static inline constexpr const char* RESOURCE_FILE_NAME			 = "resources.sfg_bin";

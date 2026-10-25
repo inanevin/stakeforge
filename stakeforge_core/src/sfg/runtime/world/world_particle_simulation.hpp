@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "world_particle_simulation_config.hpp"
 #include <sfg/math/aabb.hpp>
 #include <sfg/math/color.hpp>
@@ -48,7 +50,7 @@ namespace sfg
 		u32		random			  = 0;
 	};
 
-	class world_particle_simulation_t final
+	class SFG_API world_particle_simulation_t final
 	{
 	public:
 		world_particle_simulation_t()											   = default;

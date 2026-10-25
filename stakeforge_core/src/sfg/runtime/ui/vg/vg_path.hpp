@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/frame_vector.hpp>
 #include <sfg/data/span.hpp>
@@ -28,12 +30,12 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg::ui
 {
-	void	vg_path_sharp_rect(frame_vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max);
-	void	vg_path_rounded_rect(frame_vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max, f32 rounding, u32 segments);
-	void	vg_path_inset_rect_4(frame_vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max, f32 amount);
-	void	vg_path_expand(frame_vector_t<vec2f_t>& out_path, span_t<const vec2f_t> base_path, f32 expand);
-	void	vg_path_circle(frame_vector_t<vec2f_t>& out_path, const vec2f_t& center, f32 radius, u32 segments);
-	void	vg_path_arc(frame_vector_t<vec2f_t>& out_path, const vec2f_t& center, f32 radius, f32 start, f32 end, u32 segments);
-	vec2f_t vg_cubic_bezier_point(const vec2f_t& p0, const vec2f_t& p1, const vec2f_t& p2, const vec2f_t& p3, f32 t);
-	void	vg_path_cubic_bezier(frame_vector_t<vec2f_t>& out_path, const vec2f_t& p0, const vec2f_t& p1, const vec2f_t& p2, const vec2f_t& p3, u32 segments);
+	SFG_API void	vg_path_sharp_rect(frame_vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max);
+	SFG_API void	vg_path_rounded_rect(frame_vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max, f32 rounding, u32 segments);
+	SFG_API void	vg_path_inset_rect_4(frame_vector_t<vec2f_t>& out_path, const vec2f_t& min, const vec2f_t& max, f32 amount);
+	SFG_API void	vg_path_expand(frame_vector_t<vec2f_t>& out_path, span_t<const vec2f_t> base_path, f32 expand);
+	SFG_API void	vg_path_circle(frame_vector_t<vec2f_t>& out_path, const vec2f_t& center, f32 radius, u32 segments);
+	SFG_API void	vg_path_arc(frame_vector_t<vec2f_t>& out_path, const vec2f_t& center, f32 radius, f32 start, f32 end, u32 segments);
+	SFG_API vec2f_t vg_cubic_bezier_point(const vec2f_t& p0, const vec2f_t& p1, const vec2f_t& p2, const vec2f_t& p3, f32 t);
+	SFG_API void	vg_path_cubic_bezier(frame_vector_t<vec2f_t>& out_path, const vec2f_t& p0, const vec2f_t& p1, const vec2f_t& p2, const vec2f_t& p3, u32 segments);
 }

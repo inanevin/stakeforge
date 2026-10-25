@@ -76,8 +76,6 @@ namespace sfg
 		editor_settings_reflection_t();
 	};
 
-	inline editor_settings_reflection_t g_reflect_editor_settings;
-
 	void to_json(nlohmann::json& j, const editor_import_settings_t& settings);
 	void from_json(const nlohmann::json& j, editor_import_settings_t& settings);
 	void to_json(nlohmann::json& j, const editor_settings_t& settings);

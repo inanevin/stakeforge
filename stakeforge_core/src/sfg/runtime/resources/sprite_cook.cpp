@@ -36,6 +36,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	sprite_cook_reflection_t g_reflect_sprite_cook = {};
+
 	bool sprite_cooker::cook_from_file(const sprite_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
 		string_t extension = file_system_t::get_file_extension(full_path);

@@ -21,11 +21,13 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "vec3f.hpp"
 
 namespace sfg
 {
-	struct plane_t
+	struct SFG_API plane_t
 	{
 		plane_t()  = default;
 		~plane_t() = default;

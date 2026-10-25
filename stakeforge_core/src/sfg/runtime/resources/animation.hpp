@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "animation_common.hpp"
 #include "common_resources.hpp"
 #include <sfg/runtime/animation/common_animation.hpp>
@@ -54,7 +56,7 @@ namespace sfg
 		u32 reserved = 0;
 	};
 
-	class animation_loader_t
+	class SFG_API animation_loader_t
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('A', 'N', 'I', 'M');
@@ -64,5 +66,5 @@ namespace sfg
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
 	};
 
-	extern const resource_type_desc_t animation_resource_desc;
+	extern SFG_API const resource_type_desc_t animation_resource_desc;
 }

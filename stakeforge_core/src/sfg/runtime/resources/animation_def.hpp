@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "animation_common.hpp"
 
 #include <sfg/common/type_id.hpp>
@@ -50,13 +52,13 @@ namespace sfg
 		i32										node_index		 = -1;
 	};
 
-	struct animation_event_def_t
+	struct SFG_API animation_event_def_t
 	{
 		char name[256] = {};
 		f32	 time	   = 0.0f;
 	};
 
-	struct animation_def_t
+	struct SFG_API animation_def_t
 	{
 		vector_t<animation_channel_v3_def_t> position_channels		 = {};
 		vector_t<animation_channel_q_def_t>	 rotation_channels		 = {};
@@ -90,14 +92,9 @@ namespace sfg
 		animation_event_def_reflection_t();
 	};
 
-	inline animation_event_def_reflection_t g_reflect_animation_event_def;
-
 	struct animation_def_reflection_t
 	{
 		animation_def_reflection_t();
 	};
 
-	inline animation_channel_v3_def_reflection_t g_reflect_animation_channel_v3_def;
-	inline animation_channel_q_def_reflection_t	 g_reflect_animation_channel_q_def;
-	inline animation_def_reflection_t			 g_reflect_animation_def;
 }

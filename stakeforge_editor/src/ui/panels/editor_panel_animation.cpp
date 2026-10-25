@@ -65,6 +65,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	panel_animation_data_reflection_t g_reflect_panel_animation_data = {};
+
 #define ANIMATION_VIEWER_EVENT_GRANULARITY 0.01f
 #define ANIMATION_VIEWER_EVENT_SIZE		   6.0f
 #define ANIMATION_VIEWER_ADD_EVENT		   1

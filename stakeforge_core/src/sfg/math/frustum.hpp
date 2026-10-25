@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "plane.hpp"
 
 #undef near
@@ -42,7 +44,7 @@ namespace sfg
 	struct aabb_t;
 	struct plane_t;
 
-	struct frustum_t
+	struct SFG_API frustum_t
 	{
 		static frustum_result test(const frustum_t& fr, const aabb_t& local_box);
 		static frustum_result test(const frustum_t& fr, const vec3f_t& position, f32 sphere_radius);

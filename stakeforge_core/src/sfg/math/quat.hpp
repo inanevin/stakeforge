@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include "vec3f.hpp"
@@ -30,7 +32,7 @@ namespace sfg
 	class ostrem;
 	class istream_t;
 
-	class quat_t
+	class SFG_API quat_t
 	{
 	public:
 		f32 x = 0.0f;
@@ -147,5 +149,4 @@ namespace sfg
 		quat_reflection_t();
 	};
 
-	inline quat_reflection_t g_reflect_quat;
 }

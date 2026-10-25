@@ -21,13 +21,15 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "size_definitions.hpp"
 #include <sfg/math/math.hpp>
 #include <sfg/memory/memory.hpp>
 
 namespace sfg
 {
-	class packing_t
+	class SFG_API packing_t
 	{
 	public:
 		static inline u16 float_to_half(f32 f)

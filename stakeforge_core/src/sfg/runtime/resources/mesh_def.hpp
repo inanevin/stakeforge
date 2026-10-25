@@ -74,7 +74,4 @@ namespace sfg
 		mesh_def_reflection_t();
 	};
 
-	inline primitive_static_def_reflection_t  g_reflect_primitive_static_def;
-	inline primitive_skinned_def_reflection_t g_reflect_primitive_skinned_def;
-	inline mesh_def_reflection_t			  g_reflect_mesh_def;
 }

@@ -15,6 +15,8 @@
 
 namespace sfg
 {
+	audio_cook_config_reflection_t g_reflect_audio_cook_config = {};
+
 	bool audio_cooker::cook_from_file(const audio_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
 		const ma_decoder_config decoder_config = ma_decoder_config_init(ma_format_s16, 0, audio_loader_t::RUNTIME_SAMPLE_RATE);

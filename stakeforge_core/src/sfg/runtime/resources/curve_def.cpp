@@ -26,6 +26,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	curve_reflection_t g_reflect_curve = {};
+
 	vec4f_t curve_def_t::evaluate(f32 time) const
 	{
 		if (keys.empty())

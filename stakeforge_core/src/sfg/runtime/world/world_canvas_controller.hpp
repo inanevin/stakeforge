@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/unique.hpp>
 #include <sfg/math/vec2f.hpp>
@@ -76,7 +78,7 @@ namespace sfg
 		u8					   from_nav	   = 0;
 	};
 
-	class world_canvas_controller_t final
+	class SFG_API world_canvas_controller_t final
 	{
 	public:
 		world_canvas_controller_t();

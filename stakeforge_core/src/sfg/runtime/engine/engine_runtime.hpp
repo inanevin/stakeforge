@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/audio/audio_engine.hpp>
 #include <sfg/runtime/project/project_settings.hpp>
 #include <sfg/runtime/resources/resource_file_system.hpp>
@@ -15,7 +17,7 @@ namespace sfg
 	struct engine_global_config_t;
 	struct engine_backend_config_t;
 
-	class engine_runtime_t final
+	class SFG_API engine_runtime_t final
 	{
 	public:
 		static engine_runtime_t& get();

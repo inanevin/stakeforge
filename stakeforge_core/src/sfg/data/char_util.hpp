@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <cstdarg>
 
@@ -28,15 +30,15 @@ namespace sfg
 {
 	namespace char_util
 	{
-		bool append(char*& cur, char* end, const char* data, size_t len);
-		bool append(char*& cur, char* end, const char* cstr);
-		bool append_char(char*& cur, char* end, char c);
-		bool append_i32(char*& cur, char* end, i32 v);
-		bool append_u32(char*& cur, char* end, u32 v);
-		bool append_i64(char*& cur, char* end, i64 v);
-		bool append_u64(char*& cur, char* end, u64 v);
-		bool append_double(char*& cur, char* end, double v, int precision);
-		bool appendf_va(char*& cur, char* end, const char* fmt, va_list args);
-		void replace_all(char* c, char to_replace, char replacement);
+		SFG_API bool append(char*& cur, char* end, const char* data, size_t len);
+		SFG_API bool append(char*& cur, char* end, const char* cstr);
+		SFG_API bool append_char(char*& cur, char* end, char c);
+		SFG_API bool append_i32(char*& cur, char* end, i32 v);
+		SFG_API bool append_u32(char*& cur, char* end, u32 v);
+		SFG_API bool append_i64(char*& cur, char* end, i64 v);
+		SFG_API bool append_u64(char*& cur, char* end, u64 v);
+		SFG_API bool append_double(char*& cur, char* end, double v, int precision);
+		SFG_API bool appendf_va(char*& cur, char* end, const char* fmt, va_list args);
+		SFG_API void replace_all(char* c, char to_replace, char replacement);
 	}
 }

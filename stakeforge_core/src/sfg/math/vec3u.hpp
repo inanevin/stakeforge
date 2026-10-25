@@ -21,12 +21,14 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/common/type_id.hpp>
 
 namespace sfg
 {
-	struct vec3u_t
+	struct SFG_API vec3u_t
 	{
 		static vec3u_t zero;
 		static vec3u_t one;
@@ -42,7 +44,5 @@ namespace sfg
 	{
 		vec3u_reflection_t();
 	};
-
-	inline vec3u_reflection_t g_reflect_vec3u;
 
 }

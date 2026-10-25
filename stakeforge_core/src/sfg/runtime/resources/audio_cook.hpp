@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include "audio.hpp"
@@ -17,7 +19,7 @@ namespace sfg
 		bool operator==(const audio_cook_config_t&) const = default;
 	};
 
-	class audio_cooker
+	class SFG_API audio_cooker
 	{
 	public:
 		static bool cook_from_file(const audio_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream);
@@ -30,5 +32,4 @@ namespace sfg
 		audio_cook_config_reflection_t();
 	};
 
-	inline audio_cook_config_reflection_t g_reflect_audio_cook_config;
 }

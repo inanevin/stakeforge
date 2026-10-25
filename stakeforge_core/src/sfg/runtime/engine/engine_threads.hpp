@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/atomic.hpp>
 
@@ -15,9 +17,9 @@ namespace sfg
 		atomic_t<u64> render_thread_id = 0;
 	};
 
-	extern engine_thread_ids_t g_engine_thread_ids;
+	extern SFG_API engine_thread_ids_t g_engine_thread_ids;
 
-	class render_access_scope_t final
+	class SFG_API render_access_scope_t final
 	{
 	public:
 		render_access_scope_t();
@@ -26,7 +28,7 @@ namespace sfg
 		render_access_scope_t& operator=(const render_access_scope_t&) = delete;
 	};
 
-	class main_thread_scope_t final
+	class SFG_API main_thread_scope_t final
 	{
 	public:
 		main_thread_scope_t();
@@ -35,9 +37,9 @@ namespace sfg
 		main_thread_scope_t& operator=(const main_thread_scope_t&) = delete;
 	};
 
-	bool is_main_thread();
-	bool is_render_thread();
-	bool is_render_access_thread();
+	SFG_API bool is_main_thread();
+	SFG_API bool is_render_thread();
+	SFG_API bool is_render_access_thread();
 }
 
 #define SFG_THIS_THREAD_ID()	static_cast<u64>(std::hash<std::thread::id>{}(std::this_thread::get_id()))

@@ -21,13 +21,15 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "math_common.hpp"
 #include <sfg/vendor/um/umHalf.h>
 
 namespace sfg
 {
 
-	struct vec3h_t
+	struct SFG_API vec3h_t
 	{
 		half x;
 		half y;

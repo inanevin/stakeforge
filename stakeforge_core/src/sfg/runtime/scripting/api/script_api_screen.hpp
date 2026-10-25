@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 
 namespace sfg
@@ -30,8 +32,8 @@ namespace sfg
 	struct vec2f_t;
 	struct vec3f_t;
 
-	u8 api_screen_world_to_screen(const world_t* world, const vec3f_t* world_position, vec2f_t* out_screen_position);
-	u8 api_screen_screen_to_world(const world_t* world, const vec2f_t* screen_position, f32 ndc_depth, vec3f_t* out_world_position);
+	SFG_API u8 api_screen_world_to_screen(const world_t* world, const vec3f_t* world_position, vec2f_t* out_screen_position);
+	SFG_API u8 api_screen_screen_to_world(const world_t* world, const vec2f_t* screen_position, f32 ndc_depth, vec3f_t* out_world_position);
 
 	struct script_api_screen_t
 	{
@@ -41,5 +43,5 @@ namespace sfg
 		decltype(&api_screen_screen_to_world) screen_to_world = nullptr;
 	};
 
-	const script_api_screen_t& get_script_api_screen();
+	SFG_API const script_api_screen_t& get_script_api_screen();
 }

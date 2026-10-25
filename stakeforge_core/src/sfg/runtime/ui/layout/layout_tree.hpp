@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/fixed_vector.hpp>
 #include <sfg/data/span.hpp>
@@ -130,7 +132,7 @@ namespace sfg::ui
 
 	using custom_solve_fn = void (*)(layout_tree_t& tree, widget_id_t id, void* user_data);
 
-	class layout_tree_t
+	class SFG_API layout_tree_t
 	{
 	public:
 		layout_tree_t()								   = default;

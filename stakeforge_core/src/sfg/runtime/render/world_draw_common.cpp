@@ -25,6 +25,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	world_pass_flags_reflection_t g_reflect_world_pass_flags = {};
+
 }
 
 namespace sfg

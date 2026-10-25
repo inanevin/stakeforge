@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include "texture_payload_type.hpp"
@@ -44,7 +46,7 @@ namespace sfg
 		bool					   force_4_channels = false;
 	};
 
-	class texture_cooker
+	class SFG_API texture_cooker
 	{
 	public:
 		static bool cook_from_file(const texture_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream);
@@ -58,5 +60,4 @@ namespace sfg
 		texture_cook_config_reflection_t();
 	};
 
-	inline texture_cook_config_reflection_t g_reflect_texture_cook_config;
 }

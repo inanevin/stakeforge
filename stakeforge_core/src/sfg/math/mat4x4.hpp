@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/type_id.hpp>
 
 #include "vec3f.hpp"
@@ -33,7 +35,7 @@ namespace sfg
 	class ostream_t;
 	class istream_t;
 
-	class mat4x4_t
+	class SFG_API mat4x4_t
 	{
 	public:
 		f32 m[16]; // Column-major storage: m[col * 4 + row]
@@ -160,5 +162,4 @@ namespace sfg
 		mat4x4_reflection_t();
 	};
 
-	inline mat4x4_reflection_t g_reflect_mat4x4;
 }

@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/runtime/world/ecs_defs.hpp>
 
 namespace sfg
@@ -37,25 +39,25 @@ namespace sfg
 	struct vec3f_t;
 	class world_t;
 
-	u8	 api_physics_set_body_linear_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity);
-	u8	 api_physics_set_body_angular_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity);
-	u8	 api_physics_add_body_force(world_t* world, entity_id_t entity, const vec3f_t* force);
-	u8	 api_physics_add_body_impulse(world_t* world, entity_id_t entity, const vec3f_t* impulse);
-	u8	 api_physics_wake_body(world_t* world, entity_id_t entity);
-	u8	 api_physics_get_body_state(const world_t* world, entity_id_t entity, physics_body_state_t* out_state);
-	u8	 api_physics_raycast_any(const world_t* world, const physics_raycast_t* ray, const physics_query_filter_t* filter);
-	u8	 api_physics_raycast_closest(const world_t* world, const physics_raycast_t* ray, const physics_query_filter_t* filter, physics_hit_t* out_hit);
-	u8	 api_physics_raycast_all(const world_t* world, const physics_raycast_t* ray, const physics_query_filter_t* filter, physics_hit_t* out_hits, u32 capacity, physics_query_result_t* out_result);
-	u8	 api_physics_linecast_closest(const world_t* world, const physics_linecast_t* line, const physics_query_filter_t* filter, physics_hit_t* out_hit);
-	void api_physics_linecast_closest_batch(const world_t* world, const physics_linecast_t* lines, physics_hit_t* out_hits, u32 count, const physics_query_filter_t* filter);
-	u8	 api_physics_spherecast_any(const world_t* world, const physics_spherecast_t* sphere, const physics_query_filter_t* filter);
-	u8	 api_physics_spherecast_closest(const world_t* world, const physics_spherecast_t* sphere, const physics_query_filter_t* filter, physics_hit_t* out_hit);
-	u8	 api_physics_spherecast_all(const world_t* world, const physics_spherecast_t* sphere, const physics_query_filter_t* filter, physics_hit_t* out_hits, u32 capacity, physics_query_result_t* out_result);
-	u8	 api_physics_set_character_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity);
-	u8	 api_physics_add_character_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity);
-	u8	 api_physics_jump_character(world_t* world, entity_id_t entity, f32 speed);
-	u8	 api_physics_teleport_character(world_t* world, entity_id_t entity, const vec3f_t* position);
-	u8	 api_physics_get_character_state(const world_t* world, entity_id_t entity, character_mover_state_t* out_state);
+	SFG_API u8	 api_physics_set_body_linear_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity);
+	SFG_API u8	 api_physics_set_body_angular_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity);
+	SFG_API u8	 api_physics_add_body_force(world_t* world, entity_id_t entity, const vec3f_t* force);
+	SFG_API u8	 api_physics_add_body_impulse(world_t* world, entity_id_t entity, const vec3f_t* impulse);
+	SFG_API u8	 api_physics_wake_body(world_t* world, entity_id_t entity);
+	SFG_API u8	 api_physics_get_body_state(const world_t* world, entity_id_t entity, physics_body_state_t* out_state);
+	SFG_API u8	 api_physics_raycast_any(const world_t* world, const physics_raycast_t* ray, const physics_query_filter_t* filter);
+	SFG_API u8	 api_physics_raycast_closest(const world_t* world, const physics_raycast_t* ray, const physics_query_filter_t* filter, physics_hit_t* out_hit);
+	SFG_API u8	 api_physics_raycast_all(const world_t* world, const physics_raycast_t* ray, const physics_query_filter_t* filter, physics_hit_t* out_hits, u32 capacity, physics_query_result_t* out_result);
+	SFG_API u8	 api_physics_linecast_closest(const world_t* world, const physics_linecast_t* line, const physics_query_filter_t* filter, physics_hit_t* out_hit);
+	SFG_API void api_physics_linecast_closest_batch(const world_t* world, const physics_linecast_t* lines, physics_hit_t* out_hits, u32 count, const physics_query_filter_t* filter);
+	SFG_API u8	 api_physics_spherecast_any(const world_t* world, const physics_spherecast_t* sphere, const physics_query_filter_t* filter);
+	SFG_API u8	 api_physics_spherecast_closest(const world_t* world, const physics_spherecast_t* sphere, const physics_query_filter_t* filter, physics_hit_t* out_hit);
+	SFG_API u8	 api_physics_spherecast_all(const world_t* world, const physics_spherecast_t* sphere, const physics_query_filter_t* filter, physics_hit_t* out_hits, u32 capacity, physics_query_result_t* out_result);
+	SFG_API u8	 api_physics_set_character_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity);
+	SFG_API u8	 api_physics_add_character_velocity(world_t* world, entity_id_t entity, const vec3f_t* velocity);
+	SFG_API u8	 api_physics_jump_character(world_t* world, entity_id_t entity, f32 speed);
+	SFG_API u8	 api_physics_teleport_character(world_t* world, entity_id_t entity, const vec3f_t* position);
+	SFG_API u8	 api_physics_get_character_state(const world_t* world, entity_id_t entity, character_mover_state_t* out_state);
 
 	struct script_api_physics_t
 	{
@@ -82,5 +84,5 @@ namespace sfg
 		decltype(&api_physics_get_character_state)		 get_character_state	   = nullptr;
 	};
 
-	const script_api_physics_t& get_script_api_physics();
+	SFG_API const script_api_physics_t& get_script_api_physics();
 }

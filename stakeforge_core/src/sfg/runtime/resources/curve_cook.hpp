@@ -21,13 +21,15 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
 	class ostream_t;
 	struct curve_def_t;
 	struct resource_header_t;
 
-	class curve_cooker
+	class SFG_API curve_cooker
 	{
 	public:
 		static bool cook_from_def(const curve_def_t& def, resource_header_t& out_header, ostream_t& stream);

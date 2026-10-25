@@ -22,12 +22,14 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/common/size_definitions.hpp>
 #include <sfg/data/atomic.hpp>
 
 namespace sfg
 {
-	class perf_metrics_t final
+	class SFG_API perf_metrics_t final
 	{
 	public:
 		static void update_main_thread(i64 time_us);

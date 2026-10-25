@@ -65,5 +65,4 @@ namespace sfg
 		shader_type_reflection_t();
 	};
 
-	inline shader_type_reflection_t g_reflect_shader_type;
 }

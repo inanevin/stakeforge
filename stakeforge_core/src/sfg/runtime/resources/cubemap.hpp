@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include <sfg/gfx/common/format.hpp>
 #include <sfg/gfx/common/gfx_constants.hpp>
@@ -30,7 +32,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	class cubemap_loader_t final
+	class SFG_API cubemap_loader_t final
 	{
 	public:
 		static inline constexpr u32 WIRE_MAGIC		 = make_resource_wire_magic('C', 'U', 'B', 'E');
@@ -56,5 +58,5 @@ namespace sfg
 		render_resource_handle_t texture							   = {};
 	};
 
-	extern const resource_type_desc_t cubemap_resource_desc;
+	extern SFG_API const resource_type_desc_t cubemap_resource_desc;
 }

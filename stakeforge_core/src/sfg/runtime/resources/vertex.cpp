@@ -28,6 +28,9 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	vertex_static_reflection_t	g_reflect_vertex_static	 = {};
+	vertex_skinned_reflection_t g_reflect_vertex_skinned = {};
+
 	vertex_static_reflection_t::vertex_static_reflection_t()
 	{
 		reflection_registry_t& registry = reflection_registry_t::get();

@@ -645,6 +645,7 @@ namespace sfg
 
 		const file_copy_t runtime_files[] = {
 			{.source_name = "stakeforge_game.exe", .target_name = nullptr},
+			{.source_name = "stakeforge_core.dll", .target_name = "stakeforge_core.dll"},
 			{.source_name = "nethost.dll", .target_name = "nethost.dll"},
 			{.source_name = "dxcompiler.dll", .target_name = "dxcompiler.dll"},
 			{.source_name = "dxil.dll", .target_name = "dxil.dll"},

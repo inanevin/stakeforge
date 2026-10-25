@@ -96,9 +96,4 @@ namespace sfg
 		animation_keyframe_q_spline_reflection_t();
 	};
 
-	inline animation_interpolation_reflection_t		 g_reflect_animation_interpolation;
-	inline animation_keyframe_v3_reflection_t		 g_reflect_animation_keyframe_v3;
-	inline animation_keyframe_v3_spline_reflection_t g_reflect_animation_keyframe_v3_spline;
-	inline animation_keyframe_q_reflection_t		 g_reflect_animation_keyframe_q;
-	inline animation_keyframe_q_spline_reflection_t	 g_reflect_animation_keyframe_q_spline;
 }

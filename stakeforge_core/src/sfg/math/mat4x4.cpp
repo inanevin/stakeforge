@@ -30,6 +30,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	mat4x4_reflection_t g_reflect_mat4x4 = {};
+
 	mat4x4_t::mat4x4_t(f32 m00,
 					   f32 m10,
 					   f32 m20,

@@ -42,5 +42,4 @@ namespace sfg
 		physics_collision_mesh_def_reflection_t();
 	};
 
-	inline physics_collision_mesh_def_reflection_t g_reflect_physics_collision_mesh_def;
 }

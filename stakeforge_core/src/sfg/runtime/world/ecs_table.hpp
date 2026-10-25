@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "ecs_component_type.hpp"
 #include "ecs_defs.hpp"
 
@@ -61,7 +63,7 @@ namespace sfg
 		}
 	};
 
-	class ecs_component_table_t final
+	class SFG_API ecs_component_table_t final
 	{
 		friend class ecs_t;
 		friend struct ecs_query_range_t;

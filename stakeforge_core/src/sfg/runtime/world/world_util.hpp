@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/math/vec3f.hpp>
 
 namespace sfg
@@ -35,7 +37,7 @@ namespace sfg
 		vec3f_t direction = vec3f_t::forward;
 	};
 
-	class world_util_t final
+	class SFG_API world_util_t final
 	{
 	public:
 		static bool world_position_to_relative_position(const mat4x4_t& view_proj, const vec3f_t& world_position, vec2f_t& out_relative_position);

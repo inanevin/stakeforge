@@ -21,6 +21,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/data/vector.hpp>
 #include <sfg/gfx/common/descriptor_handle.hpp>
 
@@ -29,7 +31,7 @@ struct ID3D12Device;
 
 namespace sfg
 {
-	class dx12_heap_t final
+	class SFG_API dx12_heap_t final
 	{
 	private:
 		struct block_t

@@ -28,6 +28,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	physics_project_settings_reflection_t g_reflect_physics_project_settings = {};
+
 	namespace
 	{
 		u32 get_collision_layer_bitmask_option_count(void* user_data)

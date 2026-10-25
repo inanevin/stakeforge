@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "material_limits.hpp"
 #include "shader_data_definition.hpp"
 #include <sfg/common/type_id.hpp>
@@ -74,7 +76,7 @@ namespace sfg
 		shader_param_hint_e hint = shader_param_hint_e::none;
 	};
 
-	struct material_def_t
+	struct SFG_API material_def_t
 	{
 		inplace_vector_t<material_texture_value_t, SFG_MATERIAL_MAX_TEXTURES> textures			= {};
 		inplace_vector_t<material_sampler_value_t, SFG_MATERIAL_MAX_TEXTURES> samplers			= {};
@@ -92,16 +94,16 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(material_def_t);
 
-	material_def_t material_def_from_shader_def(const shader_data_definition_t& shader_def, resource_handle_t shader);
+	SFG_API material_def_t material_def_from_shader_def(const shader_data_definition_t& shader_def, resource_handle_t shader);
 
-	void to_json(nlohmann::json& j, const material_texture_value_t& value);
-	void from_json(const nlohmann::json& j, material_texture_value_t& value);
-	void to_json(nlohmann::json& j, const material_sampler_value_t& value);
-	void from_json(const nlohmann::json& j, material_sampler_value_t& value);
-	void to_json(nlohmann::json& j, const material_param_value_t& value);
-	void from_json(const nlohmann::json& j, material_param_value_t& value);
-	void to_json(nlohmann::json& j, material_blend_mode_e value);
-	void from_json(const nlohmann::json& j, material_blend_mode_e& value);
-	void to_json(nlohmann::json& j, const material_def_t& value);
-	void from_json(const nlohmann::json& j, material_def_t& value);
+	SFG_API void to_json(nlohmann::json& j, const material_texture_value_t& value);
+	SFG_API void from_json(const nlohmann::json& j, material_texture_value_t& value);
+	SFG_API void to_json(nlohmann::json& j, const material_sampler_value_t& value);
+	SFG_API void from_json(const nlohmann::json& j, material_sampler_value_t& value);
+	SFG_API void to_json(nlohmann::json& j, const material_param_value_t& value);
+	SFG_API void from_json(const nlohmann::json& j, material_param_value_t& value);
+	SFG_API void to_json(nlohmann::json& j, material_blend_mode_e value);
+	SFG_API void from_json(const nlohmann::json& j, material_blend_mode_e& value);
+	SFG_API void to_json(nlohmann::json& j, const material_def_t& value);
+	SFG_API void from_json(const nlohmann::json& j, material_def_t& value);
 }

@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include "common_resources.hpp"
 #include <sfg/data/string.hpp>
 #include <sfg/data/vector.hpp>
@@ -10,7 +12,7 @@ namespace sfg
 {
 	class resource_manager_t;
 
-	class resource_preload_t final
+	class SFG_API resource_preload_t final
 	{
 	public:
 		resource_preload_t()									 = default;

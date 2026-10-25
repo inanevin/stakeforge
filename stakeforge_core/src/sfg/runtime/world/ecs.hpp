@@ -22,6 +22,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 #include <sfg/data/span.hpp>
 #include <sfg/runtime/world/ecs_table.hpp>
 #include <sfg/runtime/world/ecs_defs.hpp>
@@ -55,7 +57,7 @@ namespace sfg
 		bool					  done									 = true;
 	};
 
-	struct ecs_query_range_t
+	struct SFG_API ecs_query_range_t
 	{
 		ecs_component_table_ref_t table_refs[ECS_INNER_JOIN_MAX_TABLES] = {};
 		u32						  table_count							= 0;
@@ -63,7 +65,7 @@ namespace sfg
 		ecs_query_range_t() = default;
 		ecs_query_range_t(span_t<const ecs_component_table_ref_t> in_table_refs);
 
-		struct iterator_t
+		struct SFG_API iterator_t
 		{
 			ecs_query_cursor_t cursor = {};
 
@@ -83,7 +85,7 @@ namespace sfg
 		iterator_t end();
 	};
 
-	struct ecs_query_chunk_range_t
+	struct SFG_API ecs_query_chunk_range_t
 	{
 		ecs_component_table_ref_t table_refs[ECS_INNER_JOIN_MAX_TABLES] = {};
 		u32						  table_count							= 0;
@@ -91,7 +93,7 @@ namespace sfg
 		ecs_query_chunk_range_t() = default;
 		ecs_query_chunk_range_t(span_t<const ecs_component_table_ref_t> in_table_refs);
 
-		struct iterator_t
+		struct SFG_API iterator_t
 		{
 			span_t<const ecs_component_table_ref_t> table_refs							   = {};
 			const ecs_node_t*						l1_nodes[ECS_INNER_JOIN_MAX_TABLES]	   = {};
@@ -123,7 +125,7 @@ namespace sfg
 		iterator_t end();
 	};
 
-	class ecs_t final
+	class SFG_API ecs_t final
 	{
 		friend struct ecs_query_range_t::iterator_t;
 		friend struct ecs_query_chunk_range_t::iterator_t;

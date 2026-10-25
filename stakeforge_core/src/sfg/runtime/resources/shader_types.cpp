@@ -5,6 +5,8 @@
 
 namespace sfg
 {
+	shader_type_reflection_t g_reflect_shader_type = {};
+
 }
 
 namespace sfg

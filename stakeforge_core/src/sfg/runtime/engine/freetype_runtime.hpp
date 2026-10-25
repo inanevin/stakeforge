@@ -1,9 +1,11 @@
 // Copyright (c) 2025 Inan Evin
 #pragma once
 
+#include <sfg/common/sfg_exports.hpp>
+
 namespace sfg
 {
-	class freetype_runtime_t
+	class SFG_API freetype_runtime_t
 	{
 	public:
 		static bool	 init();
