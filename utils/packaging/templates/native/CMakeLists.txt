@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 4.0)
 project(stakeforge_game LANGUAGES CXX)
 
+# use Packaged for optimized game DLLs; the editor configuration keeps gameplay unoptimized with symbols.
 find_package(Stakeforge CONFIG REQUIRED)
 
 file(GLOB_RECURSE GAME_SOURCES CONFIGURE_DEPENDS

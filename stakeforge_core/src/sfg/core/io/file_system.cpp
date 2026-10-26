@@ -67,9 +67,16 @@ namespace sfg
 
 	bool file_system_t::ensure_directory(const char* path)
 	{
-		if (is_directory(path))
-			return true;
-		return create_directory(path);
+		std::error_code error = {};
+		std::filesystem::create_directories(path, error);
+
+		if (error)
+		{
+			SFG_ERR("could not ensure directory {0}: {1}", path, error.message());
+			return false;
+		}
+
+		return true;
 	}
 
 	bool file_system_t::delete_directory(const char* path)

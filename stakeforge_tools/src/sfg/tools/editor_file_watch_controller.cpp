@@ -79,7 +79,7 @@ namespace sfg
 	};
 #endif
 
-	bool editor_file_watch_controller_t::init(const char* assets_path, const char* cache_path)
+	bool editor_file_watch_controller_t::init(const char* assets_path, const char* cache_path, const char* library_path)
 	{
 		SFG_ASSERT(is_main_thread());
 		SFG_ASSERT(_platform_state == nullptr);
@@ -90,6 +90,7 @@ namespace sfg
 #else
 		_root_paths[static_cast<u8>(editor_file_watch_root_e::assets)] = file_system_t::get_absolute_path(assets_path);
 		_root_paths[static_cast<u8>(editor_file_watch_root_e::cache)]  = file_system_t::get_absolute_path(cache_path);
+		_root_paths[static_cast<u8>(editor_file_watch_root_e::native)] = file_system_t::get_absolute_path(library_path);
 
 		for (u8 i = 0; i < static_cast<u8>(editor_file_watch_root_e::count); ++i)
 		{
@@ -253,9 +254,15 @@ namespace sfg
 			editor_file_watch_platform_state_t::watch_t& watch		= _platform_state->watches[root_index];
 
 			if (completed == FALSE)
+			{
 				SFG_ERR("file watch notification failed for {0}, error {1}; file changes were lost", _root_paths[root_index], GetLastError());
+				_raw_changes.enqueue(_raw_change_producer, {.path_id = NULL_SID, .root = static_cast<editor_file_watch_root_e>(root_index)});
+			}
 			else if (bytes_transferred == 0)
+			{
 				SFG_ERR("file watch notification buffer overflowed for {0}; file changes were lost", _root_paths[root_index]);
+				_raw_changes.enqueue(_raw_change_producer, {.path_id = NULL_SID, .root = static_cast<editor_file_watch_root_e>(root_index)});
+			}
 			else
 			{
 				u32	 offset		  = 0;

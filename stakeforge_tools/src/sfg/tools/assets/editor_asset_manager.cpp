@@ -30,6 +30,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/editor_app.hpp"
 #include "tools/editor_file_watch_controller.hpp"
 #include "tools/scripting/editor_script_manager.hpp"
+#include "tools/scripting/editor_native_manager.hpp"
 #include "tools/editor_surface_controller.hpp"
 #include "tools/editor_project.hpp"
 #include "tools/ui/editor_modal_controller.hpp"
@@ -205,7 +206,7 @@ namespace sfg
 
 		if (_script_file_track_inited)
 		{
-			if (_script_compile_requested && editor_script_manager_t::get().is_compile_idle())
+			if (_script_compile_requested && editor_script_manager_t::get().is_compile_idle() && editor_native_manager_t::get().is_idle())
 			{
 				_script_compile_requested = false;
 				editor_script_manager_t::get().compile_scripts();
@@ -777,6 +778,9 @@ namespace sfg
 		for (size_t i = 0; i < changes.size; ++i)
 		{
 			const editor_file_change_t& change = changes.data[i];
+
+			if (change.root == editor_file_watch_root_e::native)
+				continue;
 
 			if (change.root == editor_file_watch_root_e::cache)
 			{

@@ -34,6 +34,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/editor_app.hpp"
 #include "tools/editor_project_cooker.hpp"
 #include "tools/editor_surface_controller.hpp"
+#include "tools/scripting/editor_native_manager.hpp"
 
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/platform/common_window.hpp>
@@ -70,6 +71,9 @@ namespace sfg
 			none,
 			project_switch,
 			project_cook,
+			project_open_native,
+			project_recompile_native,
+			project_reload_native,
 			file_exit,
 			edit_undo,
 			edit_redo,
@@ -120,6 +124,22 @@ namespace sfg
 			{.text = "Switch Projects", .command = static_cast<u16>(editor_file_menu_commands_e::project_switch)},
 			{.text = editor_panel_type_to_string(editor_panel_type_e::project_settings), .command = panel_menu_command(editor_panel_type_e::project_settings)},
 			{.text = "Cook Project", .command = static_cast<u16>(editor_file_menu_commands_e::project_cook)},
+			{.text = "C++", .kind = editor_action_menu_row_kind_e::title},
+			{
+				.text			= "Open C++ Project",
+				.disabled_query = [](void* user_data) { return !editor_native_manager_t::get().is_idle(); },
+				.command		= static_cast<u16>(editor_file_menu_commands_e::project_open_native),
+			},
+			{
+				.text			= "Recompile C++ Project",
+				.disabled_query = [](void* user_data) { return !editor_native_manager_t::get().is_operation_allowed(); },
+				.command		= static_cast<u16>(editor_file_menu_commands_e::project_recompile_native),
+			},
+			{
+				.text			= "Reload C++ Project",
+				.disabled_query = [](void* user_data) { return !editor_native_manager_t::get().is_operation_allowed(); },
+				.command		= static_cast<u16>(editor_file_menu_commands_e::project_reload_native),
+			},
 			{.text = "Session", .kind = editor_action_menu_row_kind_e::title},
 			{.text = "Exit", .shortcut = "Alt+F4", .command = static_cast<u16>(editor_file_menu_commands_e::file_exit)},
 		};
@@ -277,6 +297,15 @@ namespace sfg
 				break;
 			case editor_file_menu_commands_e::project_cook:
 				editor_project_cooker_t::get().request_cook();
+				break;
+			case editor_file_menu_commands_e::project_open_native:
+				editor_native_manager_t::get().open_project();
+				break;
+			case editor_file_menu_commands_e::project_recompile_native:
+				editor_native_manager_t::get().compile_project();
+				break;
+			case editor_file_menu_commands_e::project_reload_native:
+				editor_native_manager_t::get().reload_project();
 				break;
 			case editor_file_menu_commands_e::file_exit:
 				editor_surface_controller_t::get().get_main_surface().runtime->set_flag(window_runtime_flags_e::close_requested);

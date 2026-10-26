@@ -41,6 +41,7 @@ namespace sfg
 	{
 		assets,
 		cache,
+		native,
 		count,
 	};
 
@@ -62,7 +63,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		bool init(const char* assets_path, const char* cache_path);
+		bool init(const char* assets_path, const char* cache_path, const char* library_path);
 		void uninit();
 		void tick();
 

@@ -30,6 +30,7 @@ import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import shutil
 import stat
 import sys
@@ -172,14 +173,16 @@ def sdk_config(settings, definitions, options, flags):
         "TOOLSET": settings["toolset"],
         "WINDOWS_SDK": settings["windows_sdk"],
         "MSVC_RUNTIME": settings["msvc_runtime"],
-        "DEBUG_INFORMATION_FORMAT": settings["debug_information_format"],
         "CORE_LIBRARY": Path(settings["core_import_library"]).name,
         "TOOLS_LIBRARY": Path(settings["tools_import_library"]).name,
         "INCLUDE_DIRECTORIES": ";".join(f"{root}/{path}" for path in settings["include_directories"]),
         "DEFINITIONS": ";".join(definitions).replace('"', '\\"'),
-        "OPTIONS": ";".join(options).replace('"', '\\"'),
+        "OPTIONS": ";".join(option for option in options if not re.fullmatch(r"[/\-](?:O[a-zA-Z0-9-]+|GL-?|Zi|ZI|Z7)", option)).replace('"', '\\"'),
         "LIBRARIES": ";".join(libraries),
-        **{key.upper(): value for key, value in flags.items()},
+        **{key.upper(): re.sub(
+            r"(?<!\S)[/\-](?:O[a-zA-Z0-9-]+|GL-?|Zi|ZI|Z7)(?=\s|$)" if key.startswith("cxx_")
+            else r"(?i)(?<!\S)[/\-](?:DEBUG(?::\S+)?|INCREMENTAL(?::\S+)?|OPT:\S+|LTCG(?::\S+)?)(?=\s|$)",
+            "", value).strip() for key, value in flags.items()},
     }
     contents = Path(__file__).with_name("StakeforgeConfig.cmake.in").read_text(encoding="utf-8")
 
@@ -250,6 +253,7 @@ def package(manifest):
 
     desired["build_info.txt"] = info.serialize().encode("utf-8")
     desired["cmake/StakeforgeConfig.cmake"] = sdk_config(settings, definitions, options, flags)
+    desired["tools/visual_studio/open_project.ps1"] = source_root / "utils/packaging/visual_studio/open_project.ps1"
     template_root = source_root / "utils/packaging/templates/native"
 
     for name in ("CMakeLists.txt", "game.cpp"):

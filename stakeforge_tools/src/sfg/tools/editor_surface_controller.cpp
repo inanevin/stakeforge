@@ -118,7 +118,6 @@ namespace sfg
 		_payload_controller = &payload_controller;
 
 		_debug_mode				= false;
-		_close					= false;
 		_cursor_capture_surface = {};
 		_cursor_capture			= editor_cursor_capture_e::none;
 	}
@@ -133,7 +132,6 @@ namespace sfg
 		_payload_controller = nullptr;
 
 		_debug_mode				= false;
-		_close					= false;
 		_cursor_capture_surface = {};
 		_cursor_capture			= editor_cursor_capture_e::none;
 	}
@@ -702,12 +700,16 @@ namespace sfg
 			const surface_handle_t handle  = _surfaces.get_handle(i);
 			editor_surface_t&	   surface = _surfaces.get(handle);
 
-			if (surface.runtime->has_flag(window_runtime_flags_e::close_requested) || _close)
+			if (surface.runtime->has_flag(window_runtime_flags_e::close_requested))
 			{
 				_renderer->end_render();
 
 				if (surface.type == editor_surface_type_e::primary)
-					_close = true;
+				{
+					destroy_surface(handle);
+					destroy_all_surfaces();
+					return;
+				}
 
 				destroy_surface(handle);
 				continue;

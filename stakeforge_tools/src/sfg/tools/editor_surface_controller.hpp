@@ -154,7 +154,6 @@ namespace sfg
 		editor_payload_controller_t*									_payload_controller		= nullptr;
 		surface_handle_t												_cursor_capture_surface = {};
 		bool															_debug_mode				= false;
-		bool															_close					= false;
 		editor_cursor_capture_e											_cursor_capture			= editor_cursor_capture_e::none;
 	};
 }

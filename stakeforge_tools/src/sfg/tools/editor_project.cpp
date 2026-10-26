@@ -283,11 +283,6 @@ namespace sfg
 
 		if (!ensure_script_project())
 			SFG_ERR("could not ensure the C# script project.");
-
-#ifdef SFG_PLATFORM_WINDOWS
-		if (!ensure_native_project())
-			SFG_ERR("could not generate the native game project. Fix the reported SDK or Visual Studio setup errors and reopen the project to retry.");
-#endif
 	}
 
 }

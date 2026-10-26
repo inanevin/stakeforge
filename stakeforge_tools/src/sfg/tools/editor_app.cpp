@@ -29,6 +29,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/editor_settings.hpp"
 #include "tools/editor_surface_controller.hpp"
 #include "tools/scripting/editor_script_manager.hpp"
+#include "tools/scripting/editor_native_manager.hpp"
 #include "tools/ui/editor_text_rasterization.hpp"
 #include "tools/ui/panels/editor_panel_world.hpp"
 #include "tools/ui/panels/editor_primary_base.hpp"
@@ -259,11 +260,15 @@ namespace sfg
 
 		stop_render();
 		resource_manager_t::get().flush();
+		editor_native_manager_t::get().begin_shutdown();
 
 		if (_mode == editor_app_mode_e::normal)
 			uninit_normal_mode();
 		else
+		{
 			_work_controller.wait_for_all();
+			editor_native_manager_t::get().uninit();
+		}
 
 		_work_controller.uninit();
 		_renderer.uninit();
@@ -299,7 +304,7 @@ namespace sfg
 
 		SFG_ASSERT(surfaces.is_empty());
 
-		if (!_file_watch_controller.init(proj._runtime.assets_path.c_str(), proj._runtime.cache_path.c_str()))
+		if (!_file_watch_controller.init(proj._runtime.assets_path.c_str(), proj._runtime.cache_path.c_str(), proj._runtime.library_path.c_str()))
 			return false;
 
 		editor_asset_manager_util_t::ensure_default_meshes();
@@ -418,6 +423,7 @@ namespace sfg
 
 	void editor_app_t::uninit_normal_mode()
 	{
+		editor_native_manager_t::get().begin_shutdown();
 		_file_watch_controller.uninit();
 
 		_asset_manager.flush_asset_cook_jobs();
@@ -431,6 +437,7 @@ namespace sfg
 		editor_asset_thumbnail_manager_t::get().uninit();
 		_world_controller.uninit();
 		_command_system.uninit();
+		editor_native_manager_t::get().uninit();
 
 		_normal_world_load_pending = false;
 	}
@@ -444,6 +451,7 @@ namespace sfg
 
 		if (_mode == editor_app_mode_e::normal)
 		{
+			editor_native_manager_t::get().begin_shutdown();
 			set_script_api_platform_lock_cursor_callback(nullptr);
 			set_script_api_platform_window_runtime(nullptr);
 			set_script_api_game_callbacks(nullptr, nullptr, nullptr, nullptr, nullptr);
@@ -458,6 +466,8 @@ namespace sfg
 		{
 			if (!init_normal_mode())
 			{
+				editor_native_manager_t::get().begin_shutdown();
+				editor_native_manager_t::get().uninit();
 				_mode = editor_app_mode_e::none;
 				return;
 			}
@@ -481,6 +491,7 @@ namespace sfg
 			if (mode == editor_app_mode_e::splash)
 			{
 				editor_project_t& proj = editor_project_t::get();
+				editor_native_manager_t::get().init(proj._runtime);
 
 				engine_runtime_t::get().get_resource_file_system().set_mode_directory(proj._runtime.cache_path.c_str(), editor_directories_t::get_editor_resource_cache().c_str());
 
@@ -489,8 +500,11 @@ namespace sfg
 				_splash_work = _work_controller.submit_work({
 					.fn =
 						[](editor_work_context_t& context, void* user_data) {
-							editor_app_t& app = *static_cast<editor_app_t*>(user_data);
-							return editor_asset_manager_util_t::ensure_project_assets(app._asset_manager, context);
+							editor_app_t& app		   = *static_cast<editor_app_t*>(user_data);
+							const bool	  assets_ready = editor_asset_manager_util_t::ensure_project_assets(app._asset_manager, context);
+
+							editor_native_manager_t::get().prepare_startup(context);
+							return assets_ready;
 						},
 					.completed =
 						[](editor_work_handle_t handle, editor_work_state_e state, void* user_data) {
@@ -499,6 +513,7 @@ namespace sfg
 							SFG_ASSERT(handle == app._splash_work);
 
 							app._splash_work = {};
+							editor_native_manager_t::get().complete_startup();
 							app.request_switch_mode(editor_app_mode_e::normal);
 						},
 					.user_data		= this,
@@ -569,6 +584,7 @@ namespace sfg
 
 				_file_watch_controller.tick();
 				_asset_manager.process_file_changes(_file_watch_controller.get_changes());
+				editor_native_manager_t::get().process_file_changes(_file_watch_controller.get_changes());
 
 				if (_normal_world_load_pending && script_manager.is_initial_activation_completed())
 				{
@@ -589,6 +605,7 @@ namespace sfg
 				const project_settings_t& settings = engine_runtime_t::get().get_project_settings();
 
 				_world_controller.tick(settings.world_tick_rate, settings.world_physics_rate, settings.max_sim_steps);
+				editor_native_manager_t::get().tick();
 			}
 
 			if (_mode == editor_app_mode_e::splash)
