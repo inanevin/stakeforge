@@ -169,9 +169,6 @@ namespace sfg
 		{
 			script_runtime.discard_staged_project_assembly();
 
-			if (editor_world_controller_t::is_initialized())
-				editor_world_controller_t::get().complete_script_assembly_reload();
-
 			SFG_ERR("could not activate the compiled C# project assembly.");
 			return false;
 		}
@@ -185,7 +182,6 @@ namespace sfg
 		if (editor_world_controller_t::is_initialized())
 		{
 			editor_world_controller_t::get().apply_script_component_schema(current_schema, active_schema, delta);
-			editor_world_controller_t::get().complete_script_assembly_reload();
 		}
 
 		editor_panel_t* inspector_panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::inspector);

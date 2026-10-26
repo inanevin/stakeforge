@@ -40,7 +40,7 @@ namespace sfg
 
 	void editor_native_manager_t::init(const editor_project_runtime_t& project)
 	{
-		SFG_ASSERT(_module.handle == nullptr && _work.is_null());
+		SFG_ASSERT(!plugin_runtime_t::get().is_loaded() && _work.is_null());
 
 		_build_directory   = project.native_intermediate_path;
 		_output_dll		   = file_system_t::get_absolute_path((project.native_library_path + SFG_CONFIGURATION + "/stakeforge_game.dll").c_str());
@@ -115,8 +115,8 @@ namespace sfg
 	{
 		SFG_ASSERT(_work.is_null());
 
-		if (_module.handle != nullptr)
-			native_compiler_t::unload(_module, _diagnostics);
+		if (plugin_runtime_t::get().is_loaded())
+			plugin_runtime_t::get().unload(_diagnostics);
 
 		_state		   = state_e::idle;
 		_ide_session   = {};
@@ -364,15 +364,15 @@ namespace sfg
 
 	void editor_native_manager_t::activate_staged_module()
 	{
-		const string_t previous_path = _module.path;
+		const string_t previous_path = plugin_runtime_t::get().get_path();
 
-		if (_module.handle != nullptr && !native_compiler_t::unload(_module, _diagnostics))
+		if (plugin_runtime_t::get().is_loaded() && !plugin_runtime_t::get().unload(_diagnostics))
 		{
 			_error_pending = true;
 			return;
 		}
 
-		if (!native_compiler_t::load(_stage_result.path.c_str(), _module, _diagnostics))
+		if (!plugin_runtime_t::get().load(_stage_result.path.c_str(), _diagnostics))
 		{
 			_error_pending = true;
 
@@ -380,7 +380,7 @@ namespace sfg
 			{
 				string_t restore_diagnostics = {};
 
-				if (!native_compiler_t::load(previous_path.c_str(), _module, restore_diagnostics))
+				if (!plugin_runtime_t::get().load(previous_path.c_str(), restore_diagnostics))
 					_diagnostics += "\nPrevious DLL could not be restored: " + restore_diagnostics;
 			}
 		}

@@ -73,15 +73,10 @@ namespace sfg
 		void reset_world_state();
 		void tick_physics(f32 dt);
 		void tick_animation_logic(f32 dt);
-		void on_animation_callback(entity_id_t entity, sid_t anim_name_sid);
+		void on_animation_callback(entity_id_t entity, sid_t event);
 		void tick_logic(f32 dt);
-		void tick_logic_post(f32 dt);
-		void tick_logic_post_physics(f32 dt);
-		void tick_logic_post_animation(f32 dt);
-		void draw_world_script_debug();
+		void draw_plugin_debug();
 		void tick_post(f32 dt);
-		void begin_world_script_play();
-		void end_world_script_play();
 		void key_event(u16 key, u16 scan_code, u8 action);
 		void focus_event(bool focused);
 		void mouse_button_event(u8 button, u8 action, f32 position_x, f32 position_y);
@@ -330,13 +325,12 @@ namespace sfg
 
 		struct engine_components_t
 		{
-			ecs_component_table_t* hierarchy_table	  = nullptr;
-			ecs_component_table_t* guid_table		  = nullptr;
-			ecs_component_table_t* transform_table	  = nullptr;
-			ecs_component_table_t* name_table		  = nullptr;
-			ecs_component_table_t* alive_table		  = nullptr;
-			ecs_component_table_t* prefab_table		  = nullptr;
-			ecs_component_table_t* world_script_table = nullptr;
+			ecs_component_table_t* hierarchy_table = nullptr;
+			ecs_component_table_t* guid_table	   = nullptr;
+			ecs_component_table_t* transform_table = nullptr;
+			ecs_component_table_t* name_table	   = nullptr;
+			ecs_component_table_t* alive_table	   = nullptr;
+			ecs_component_table_t* prefab_table	   = nullptr;
 		};
 
 		struct system_components_t
@@ -364,7 +358,6 @@ namespace sfg
 		world_particle_simulation_t		_particle_simulation		  = {};
 		engine_components_t				_engine_components			  = {};
 		system_components_t				_system_components			  = {};
-		void*							_world_script_instance		  = nullptr;
 		key_state_t						_key_states[256]			  = {};
 		f32								_elapsed_time				  = 0.0f;
 		f32								_real_elapsed_time			  = 0.0f;

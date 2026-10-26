@@ -229,25 +229,6 @@ namespace sfg
 	{
 		if (component_layout_changed)
 			stop_main_world_play_mode();
-
-		for (editor_world_t* editor_world : _worlds)
-		{
-			world_t& world = editor_world->get_world();
-
-			if (world.is_playing())
-				world.end_world_script_play();
-		}
-	}
-
-	void editor_world_controller_t::complete_script_assembly_reload()
-	{
-		for (editor_world_t* editor_world : _worlds)
-		{
-			world_t& world = editor_world->get_world();
-
-			if (world.is_playing())
-				world.begin_world_script_play();
-		}
 	}
 
 	void editor_world_controller_t::resize_world(editor_world_handle_t handle, vec2u16_t render_resolution)
@@ -376,7 +357,7 @@ namespace sfg
 
 			editor_world->invoke_tick_callback(frame_delta_seconds);
 
-			editor_world->get_world().draw_world_script_debug();
+			editor_world->get_world().draw_plugin_debug();
 			editor_world->draw_debug();
 
 			world_t& world = editor_world->get_world();
@@ -483,7 +464,6 @@ namespace sfg
 			editor_world.tick_camera(dt_seconds);
 			world.update_world_transforms_for_tick();
 			world.tick_physics(dt_seconds);
-			world.update_world_transforms_from_physics();
 
 			world.tick_animation_logic(dt_seconds);
 			world.tick_post(dt_seconds);
@@ -501,15 +481,11 @@ namespace sfg
 			break;
 		case editor_play_mode_e::play:
 			world.tick_logic(dt_seconds);
-			world.tick_logic_post(dt_seconds);
 			world.update_world_transforms_for_tick();
 			world.tick_physics(dt_seconds);
-			world.update_world_transforms_from_physics();
-			world.tick_logic_post_physics(dt_seconds);
 			world.update_world_transforms();
 
 			world.tick_animation_logic(dt_seconds);
-			world.tick_logic_post_animation(dt_seconds);
 			world.update_world_transforms();
 
 			break;
@@ -517,7 +493,6 @@ namespace sfg
 			editor_world.tick_camera(dt_seconds);
 			world.update_world_transforms_for_tick();
 			world.tick_physics(dt_seconds);
-			world.update_world_transforms_from_physics();
 
 			world.tick_animation_logic(dt_seconds);
 			break;
@@ -525,15 +500,11 @@ namespace sfg
 			if (force_simulation)
 			{
 				world.tick_logic(dt_seconds);
-				world.tick_logic_post(dt_seconds);
 				world.update_world_transforms_for_tick();
 				world.tick_physics(dt_seconds);
-				world.update_world_transforms_from_physics();
-				world.tick_logic_post_physics(dt_seconds);
 				world.update_world_transforms();
 
 				world.tick_animation_logic(dt_seconds);
-				world.tick_logic_post_animation(dt_seconds);
 				world.update_world_transforms();
 			}
 
@@ -544,7 +515,6 @@ namespace sfg
 				editor_world.tick_camera(dt_seconds);
 				world.update_world_transforms_for_tick();
 				world.tick_physics(dt_seconds);
-				world.update_world_transforms_from_physics();
 
 				world.tick_animation_logic(dt_seconds);
 			}

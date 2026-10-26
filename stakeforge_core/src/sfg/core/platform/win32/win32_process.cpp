@@ -827,6 +827,49 @@ namespace
 
 namespace sfg
 {
+	void* process::load_library(const char* path, string_t& diagnostics)
+	{
+		const wstring_t absolute_path = string_util::to_wstr(file_system_t::get_absolute_path(path));
+		const HMODULE	library		  = LoadLibraryExW(absolute_path.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+
+		if (library == nullptr)
+		{
+			diagnostics = "Cannot load library " + string_t(path) + ", Windows error " + std::to_string(GetLastError());
+			SFG_ERR("{0}", diagnostics);
+		}
+
+		return library;
+	}
+
+	void* process::get_library_symbol(void* library, const char* name, string_t& diagnostics)
+	{
+		SFG_ASSERT(library != nullptr);
+
+		const FARPROC symbol = GetProcAddress(static_cast<HMODULE>(library), name);
+
+		if (symbol == nullptr)
+		{
+			diagnostics = "Cannot find library symbol " + string_t(name) + ", Windows error " + std::to_string(GetLastError());
+			SFG_ERR("{0}", diagnostics);
+		}
+
+		return reinterpret_cast<void*>(symbol);
+	}
+
+	bool process::unload_library(void* library, string_t& diagnostics)
+	{
+		SFG_ASSERT(library != nullptr);
+
+		if (!FreeLibrary(static_cast<HMODULE>(library)))
+		{
+			diagnostics = "Cannot unload library, Windows error " + std::to_string(GetLastError());
+			SFG_ERR("{0}", diagnostics);
+			return false;
+		}
+
+		return true;
+	}
+
 	void process::init()
 	{
 		SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);

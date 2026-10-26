@@ -239,40 +239,4 @@ namespace sfg
 		return result;
 	}
 
-	bool native_compiler_t::load(const char* path, native_module_t& module, string_t& diagnostics)
-	{
-		SFG_ASSERT(module.handle == nullptr);
-
-		const wstring_t absolute_path = string_util::to_wstr(file_system_t::get_absolute_path(path));
-		const HMODULE	handle		  = LoadLibraryExW(absolute_path.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
-
-		if (handle == nullptr)
-		{
-			diagnostics = "Cannot load game DLL " + string_t(path) + ", Windows error " + std::to_string(GetLastError());
-			SFG_ERR("{0}", diagnostics);
-			return false;
-		}
-
-		module.path	  = path;
-		module.handle = handle;
-		SFG_INFO("loaded native game DLL: {0}", module.path);
-		return true;
-	}
-
-	bool native_compiler_t::unload(native_module_t& module, string_t& diagnostics)
-	{
-		SFG_ASSERT(module.handle != nullptr);
-
-		if (!FreeLibrary(static_cast<HMODULE>(module.handle)))
-		{
-			diagnostics = "Cannot unload game DLL " + module.path + ", Windows error " + std::to_string(GetLastError());
-			SFG_ERR("{0}", diagnostics);
-			return false;
-		}
-
-		SFG_INFO("unloaded native game DLL: {0}", module.path);
-		module.handle = nullptr;
-		module.path.resize(0);
-		return true;
-	}
 }

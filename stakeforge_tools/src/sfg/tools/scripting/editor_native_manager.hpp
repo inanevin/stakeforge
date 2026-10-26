@@ -26,6 +26,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/ui/editor_modal_progress_bar.hpp"
 
 #include <sfg/core/data/span.hpp>
+#include <sfg/core/runtime/scripting/plugin_runtime.hpp>
 
 namespace sfg
 {
@@ -80,7 +81,7 @@ namespace sfg
 
 		bool is_loaded() const
 		{
-			return _module.handle != nullptr;
+			return plugin_runtime_t::get().is_loaded();
 		}
 
 		const native_ide_session_t& get_ide_session() const
@@ -105,7 +106,6 @@ namespace sfg
 	private:
 		native_compile_result_t		_compile_result = {};
 		native_stage_result_t		_stage_result	= {};
-		native_module_t				_module			= {};
 		editor_work_status_t		_work_status	= {};
 		editor_modal_progress_bar_t _progress_modal = {};
 		string_t					_build_directory;

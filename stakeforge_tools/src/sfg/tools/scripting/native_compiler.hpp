@@ -60,12 +60,6 @@ namespace sfg
 		native_stage_state_e  state = native_stage_state_e::failed;
 	};
 
-	struct native_module_t
-	{
-		string_t path;
-		void*	 handle = nullptr;
-	};
-
 	struct native_ide_session_t
 	{
 		u64 creation_time = 0;
@@ -82,8 +76,6 @@ namespace sfg
 
 		static native_compile_result_t compile(const char* build_directory, const char* output_dll);
 		static native_stage_result_t   stage(const char* output_dll, const char* shadow_directory, const native_binary_stamp_t& previous_stamp);
-		static bool					   load(const char* path, native_module_t& module, string_t& diagnostics);
-		static bool					   unload(native_module_t& module, string_t& diagnostics);
 		static bool					   open_project(const char* solution_path, native_ide_session_t& session, string_t& diagnostics);
 	};
 }

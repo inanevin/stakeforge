@@ -35,7 +35,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/resources/world_cook.hpp"
 #include "core/runtime/resources/world_cook_entity_header.hpp"
 #include "core/runtime/scripting/script_component_schema.hpp"
-#include "core/runtime/scripting/script_runtime.hpp"
+#include "core/runtime/scripting/plugin_runtime.hpp"
 #include "core/runtime/world/ecs.hpp"
 #include "core/runtime/world/engine_components.hpp"
 #include "core/runtime/world/system_components.hpp"
@@ -86,7 +86,6 @@ namespace sfg
 	{
 		SFG_ASSERT(!_is_playing);
 		SFG_ASSERT(_active_component_query_count == 0);
-		SFG_ASSERT(_world_script_instance == nullptr);
 
 		_particle_simulation.uninit();
 		_canvas_controller.uninit();
@@ -113,7 +112,6 @@ namespace sfg
 		_main_camera_entity			  = NULL_ENTITY_ID;
 		_play_resource_count		  = 0;
 		_active_component_query_count = 0;
-		_world_script_instance		  = nullptr;
 		_elapsed_time				  = 0.0f;
 		_real_elapsed_time			  = 0.0f;
 		_is_playing					  = false;
@@ -142,7 +140,7 @@ namespace sfg
 		if (_physics_world.is_init())
 			_physics_world.sync_body_create_destroy();
 
-		begin_world_script_play();
+		plugin_runtime_t::get().begin_play(*this);
 	}
 
 	void world_t::end_play()
@@ -150,7 +148,7 @@ namespace sfg
 		SFG_ASSERT(_is_playing);
 
 		flush_pressed_keys();
-		end_world_script_play();
+		plugin_runtime_t::get().end_play(*this);
 		_canvas_controller.clear_widgets();
 
 		_audio_controller.end_play();
@@ -160,12 +158,15 @@ namespace sfg
 			_physics_world.clear();
 
 		resource_manager_t& resource_manager = resource_manager_t::get();
+
 		for (size_t i = _used_resources.size(); i > _play_resource_count; --i)
 		{
 			world_resource_t& resource = _used_resources[i - 1];
+
 			if (resource.loaded)
 				resource_manager.unload_resource(resource.handle, false);
 		}
+
 		_used_resources.resize(_play_resource_count);
 		_play_resource_count = 0;
 		_is_playing			 = false;
@@ -229,12 +230,26 @@ namespace sfg
 	{
 		ZoneScoped;
 
-		if (!_physics_world.is_init())
-			return;
-
 		const f32 scaled_dt = dt * _time_scale;
 
-		_physics_world.tick(scaled_dt);
+		if (_physics_world.is_init())
+		{
+			_physics_world.tick(scaled_dt);
+			update_world_transforms_from_physics();
+		}
+
+		if (!_is_playing)
+			return;
+
+		plugin_runtime_t& plugin = plugin_runtime_t::get();
+
+		if (_physics_world.is_init())
+		{
+			for (const physics_contact_event_t& contact : _physics_world.get_contact_events())
+				plugin.physics_contact(*this, contact);
+		}
+
+		plugin.tick_physics(*this, scaled_dt);
 	}
 
 	void world_t::tick_animation_logic(f32 dt)
@@ -246,10 +261,15 @@ namespace sfg
 		_animation_processor.tick(scaled_dt);
 		_animation_processor.calculate_skinning_matrices(scaled_dt);
 		_animation_processor.sync_slot_attachments();
+
+		if (_is_playing)
+			plugin_runtime_t::get().tick_animation(*this, scaled_dt);
 	}
 
-	void world_t::on_animation_callback(entity_id_t entity, sid_t anim_name_sid)
+	void world_t::on_animation_callback(entity_id_t entity, sid_t event)
 	{
+		if (_is_playing)
+			plugin_runtime_t::get().animation_event(*this, entity, event);
 	}
 
 	void world_t::tick_logic(f32 dt)
@@ -263,118 +283,18 @@ namespace sfg
 		_elapsed_time += scaled_dt;
 		_real_elapsed_time += dt;
 
-		if (_world_script_instance != nullptr)
-			script_runtime_t::get().tick_world_script(_world_script_instance, scaled_dt);
+		plugin_runtime_t::get().tick_logic(*this, scaled_dt);
 
 		_logic_helper.sync_destroyers(scaled_dt);
 		_audio_controller.tick(scaled_dt);
 	}
 
-	void world_t::tick_logic_post(f32 dt)
+	void world_t::draw_plugin_debug()
 	{
 		ZoneScoped;
 
-		SFG_ASSERT(_is_playing);
-
-		const f32 scaled_dt = dt * _time_scale;
-
-		if (_world_script_instance != nullptr)
-			script_runtime_t::get().post_tick_world_script(_world_script_instance, scaled_dt);
-	}
-
-	void world_t::tick_logic_post_physics(f32 dt)
-	{
-		ZoneScoped;
-
-		SFG_ASSERT(_is_playing);
-
-		if (_world_script_instance == nullptr)
-			return;
-
-		const f32		  scaled_dt		 = dt * _time_scale;
-		script_runtime_t& script_runtime = script_runtime_t::get();
-
-		if (_physics_world.is_init())
-		{
-			const span_t<const physics_contact_event_t> contact_events = _physics_world.get_contact_events();
-
-			for (const physics_contact_event_t& contact : contact_events)
-				script_runtime.physics_contact_world_script(_world_script_instance, contact);
-		}
-
-		script_runtime.post_physics_tick_world_script(_world_script_instance, scaled_dt);
-	}
-
-	void world_t::tick_logic_post_animation(f32 dt)
-	{
-		ZoneScoped;
-
-		SFG_ASSERT(_is_playing);
-
-		const f32 scaled_dt = dt * _time_scale;
-
-		if (_world_script_instance != nullptr)
-			script_runtime_t::get().post_animation_tick_world_script(_world_script_instance, scaled_dt);
-	}
-
-	void world_t::draw_world_script_debug()
-	{
-		ZoneScoped;
-
-		if (_world_script_instance != nullptr)
-			script_runtime_t::get().draw_debug_world_script(_world_script_instance);
-	}
-
-	void world_t::begin_world_script_play()
-	{
-		SFG_ASSERT(_is_playing);
-		SFG_ASSERT(_world_script_instance == nullptr);
-
-		script_runtime_t& script_runtime = script_runtime_t::get();
-
-		if (!script_runtime.is_project_assembly_loaded())
-			return;
-
-		const ecs_component_table_ref_t table_refs[] = {
-			_engine_components.world_script_table->ref(),
-		};
-
-		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
-		{
-			const component_world_script_t& world_script = *static_cast<const component_world_script_t*>(row.components[0]);
-
-			if (world_script.script_type_id == 0 || world_script.script_type_id == NULL_SID || script_runtime.get_component_schema().find_world_script(world_script.script_type_id) == nullptr)
-				return;
-
-			void* const instance = script_runtime.create_world_script(world_script.script_type_id, this);
-
-			if (instance == nullptr)
-				return;
-
-			_world_script_instance = instance;
-
-			if (!script_runtime.begin_play_world_script(_world_script_instance))
-			{
-				script_runtime.destroy_world_script(_world_script_instance);
-				_world_script_instance = nullptr;
-			}
-
-			return;
-		}
-	}
-
-	void world_t::end_world_script_play()
-	{
-		SFG_ASSERT(_is_playing);
-
-		if (_world_script_instance == nullptr)
-			return;
-
-		script_runtime_t& script_runtime = script_runtime_t::get();
-
-		script_runtime.end_play_world_script(_world_script_instance);
-		script_runtime.destroy_world_script(_world_script_instance);
-		_world_script_instance = nullptr;
+		if (_is_playing)
+			plugin_runtime_t::get().draw_debug(*this);
 	}
 
 	void world_t::key_event(u16 key, u16 scan_code, u8 action)
@@ -388,8 +308,7 @@ namespace sfg
 
 		update_key_state(key, scan_code, action);
 
-		if (_world_script_instance != nullptr)
-			script_runtime_t::get().key_event_world_script(_world_script_instance, key, scan_code, action);
+		plugin_runtime_t::get().key_event(*this, key, scan_code, action);
 	}
 
 	void world_t::focus_event(bool focused)
@@ -398,6 +317,8 @@ namespace sfg
 
 		if (!focused)
 			flush_pressed_keys();
+
+		plugin_runtime_t::get().focus_event(*this, focused);
 	}
 
 	void world_t::mouse_button_event(u8 button, u8 action, f32 position_x, f32 position_y)
@@ -410,8 +331,8 @@ namespace sfg
 		if (!had_canvas_focus && _canvas_controller.is_keyboard_focus_active())
 			flush_pressed_keys();
 
-		if (!consumed && _world_script_instance != nullptr)
-			script_runtime_t::get().mouse_button_event_world_script(_world_script_instance, button, action, position_x, position_y);
+		if (!consumed)
+			plugin_runtime_t::get().mouse_button_event(*this, button, action, position_x, position_y);
 	}
 
 	void world_t::mouse_move_event(f32 position_x, f32 position_y, f32 delta_x, f32 delta_y)
@@ -420,8 +341,8 @@ namespace sfg
 
 		const bool consumed = _canvas_controller.mouse_move_event({position_x, position_y});
 
-		if (!consumed && _world_script_instance != nullptr)
-			script_runtime_t::get().mouse_move_event_world_script(_world_script_instance, position_x, position_y, delta_x, delta_y);
+		if (!consumed)
+			plugin_runtime_t::get().mouse_move_event(*this, position_x, position_y, delta_x, delta_y);
 	}
 
 	void world_t::mouse_wheel_event(f32 position_x, f32 position_y, f32 delta)
@@ -430,8 +351,8 @@ namespace sfg
 
 		const bool consumed = _canvas_controller.mouse_wheel_event({position_x, position_y}, delta);
 
-		if (!consumed && _world_script_instance != nullptr)
-			script_runtime_t::get().mouse_wheel_event_world_script(_world_script_instance, position_x, position_y, delta);
+		if (!consumed)
+			plugin_runtime_t::get().mouse_wheel_event(*this, position_x, position_y, delta);
 	}
 
 	void world_t::flush_pressed_keys()
@@ -445,8 +366,7 @@ namespace sfg
 
 			state.pressed = false;
 
-			if (_world_script_instance != nullptr)
-				script_runtime_t::get().key_event_world_script(_world_script_instance, key, state.scan_code, static_cast<u8>(window_event_sub_type_e::release));
+			plugin_runtime_t::get().key_event(*this, key, state.scan_code, static_cast<u8>(window_event_sub_type_e::release));
 		}
 	}
 
@@ -478,7 +398,7 @@ namespace sfg
 
 		_particle_simulation.tick(scaled_dt);
 		_canvas_controller.tick(dt);
-		_canvas_controller.dispatch_events(_world_script_instance);
+		_canvas_controller.dispatch_events();
 
 		_logic_helper.sync_sprite_renderers();
 		_logic_helper.sync_reflection_probes(_tick_count);
@@ -1362,14 +1282,13 @@ namespace sfg
 
 	void world_t::refresh_component_table_cache()
 	{
-		_engine_components.hierarchy_table	  = &get_component_table(type_id_t<component_hierarchy_t>::value);
-		_engine_components.guid_table		  = &get_component_table(type_id_t<component_guid_t>::value);
-		_engine_components.transform_table	  = &get_component_table(type_id_t<component_transform_t>::value);
-		_engine_components.name_table		  = &get_component_table(type_id_t<component_name_t>::value);
-		_engine_components.alive_table		  = &get_component_table(type_id_t<component_alive_t>::value);
-		_engine_components.prefab_table		  = &get_component_table(type_id_t<component_prefab_reference_t>::value);
-		_engine_components.world_script_table = &get_component_table(type_id_t<component_world_script_t>::value);
-		_system_components.transform_table	  = &get_component_table(type_id_t<component_system_transform_t>::value);
+		_engine_components.hierarchy_table = &get_component_table(type_id_t<component_hierarchy_t>::value);
+		_engine_components.guid_table	   = &get_component_table(type_id_t<component_guid_t>::value);
+		_engine_components.transform_table = &get_component_table(type_id_t<component_transform_t>::value);
+		_engine_components.name_table	   = &get_component_table(type_id_t<component_name_t>::value);
+		_engine_components.alive_table	   = &get_component_table(type_id_t<component_alive_t>::value);
+		_engine_components.prefab_table	   = &get_component_table(type_id_t<component_prefab_reference_t>::value);
+		_system_components.transform_table = &get_component_table(type_id_t<component_system_transform_t>::value);
 	}
 
 	const ecs_component_table_t* world_t::find_component_table(sid_t type_id) const

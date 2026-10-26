@@ -31,7 +31,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/math/math.hpp"
 #include "core/runtime/render/world_canvas_render_snapshot.hpp"
 #include "core/runtime/resources/shader_types.hpp"
-#include "core/runtime/scripting/script_runtime.hpp"
+#include "core/runtime/scripting/plugin_runtime.hpp"
 #include "core/runtime/ui/ui_context.hpp"
 
 namespace sfg
@@ -597,16 +597,16 @@ namespace sfg
 		return false;
 	}
 
-	void world_canvas_controller_t::dispatch_events(void* world_script_instance)
+	void world_canvas_controller_t::dispatch_events()
 	{
 		for (const unique_t<impl_t::runtime_t>& runtime_ptr : _impl->runtimes)
 		{
 			impl_t::runtime_t& runtime = *runtime_ptr;
 
-			if (world_script_instance != nullptr)
+			if (_impl->world->is_playing())
 			{
 				for (const canvas_event_t& event : runtime.events)
-					script_runtime_t::get().canvas_event_world_script(world_script_instance, event);
+					plugin_runtime_t::get().canvas_event(*_impl->world, event);
 			}
 
 			runtime.events.resize(0);

@@ -113,7 +113,7 @@ namespace sfg
 		bool mouse_move_event(const vec2f_t& position);
 		bool mouse_wheel_event(const vec2f_t& position, f32 delta);
 		bool is_keyboard_focus_active() const;
-		void dispatch_events(void* world_script_instance);
+		void dispatch_events();
 
 		// -----------------------------------------------------------------------------
 		// widgets

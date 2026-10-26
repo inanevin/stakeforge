@@ -69,6 +69,10 @@ namespace sfg
 		static void uninit();
 		static void pump_os_messages();
 
+		static void* load_library(const char* path, string_t& diagnostics);
+		static void* get_library_symbol(void* library, const char* name, string_t& diagnostics);
+		static bool	 unload_library(void* library, string_t& diagnostics);
+
 		// -----------------------------------------------------------------------------
 		// io
 		// -----------------------------------------------------------------------------
