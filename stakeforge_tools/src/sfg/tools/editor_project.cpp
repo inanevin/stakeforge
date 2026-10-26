@@ -23,6 +23,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/data/string_util.hpp>
 #include <sfg/core/io/file_system.hpp>
 #include <sfg/core/io/log.hpp>
+#include <sfg/core/platform/process.hpp>
 #include <sfg/core/reflection/reflection_registry.hpp>
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
 #include <sfg/core/runtime/scripting/engine_component_binding_generator.hpp>
@@ -128,6 +129,119 @@ namespace sfg
 		return serializer_t::write_to_file(contents, _runtime.script_project_path.c_str());
 	}
 
+	bool editor_project_t::ensure_native_project()
+	{
+		const string_t executable_path = process::get_executable_path();
+
+		if (executable_path.empty())
+			return false;
+
+		const string_t sdk_path		 = file_system_t::get_directory_of_file(executable_path.c_str()) + "stakeforge_sdk/";
+		const string_t settings_path = sdk_path + "build_settings.json";
+		const string_t cmake_path	 = sdk_path + "tools/cmake/bin/cmake.exe";
+		const string_t package_path	 = sdk_path + "cmake/StakeforgeConfig.cmake";
+
+		if (!file_system_t::exists(settings_path.c_str()) || !file_system_t::exists(cmake_path.c_str()) || !file_system_t::exists(package_path.c_str()))
+		{
+			SFG_ERR("native project generation needs a complete SDK at {0}", sdk_path);
+			return false;
+		}
+
+		const string_t		 settings_text = file_system_t::read_file_as_string(settings_path.c_str());
+		const nlohmann::json settings	   = nlohmann::json::parse(settings_text, nullptr, false);
+
+		if (settings.is_discarded() || !settings.is_object())
+		{
+			SFG_ERR("could not read SDK build settings at {0}", settings_path);
+			return false;
+		}
+
+		const nlohmann::json build_info	  = settings.value<nlohmann::json>("build_info", nlohmann::json::object());
+		const string_t		 generator	  = settings.value<string_t>("generator", "");
+		const string_t		 architecture = settings.value<string_t>("architecture", "");
+		const string_t		 toolset	  = settings.value<string_t>("toolset", "");
+		const string_t		 windows_sdk  = settings.value<string_t>("windows_sdk", "");
+
+		if (settings.value<i32>("sdk_format", 0) != 1 || settings.value<string_t>("configuration", "") != SFG_CONFIGURATION || build_info.value<string_t>("build_id", "") != SFG_BUILD)
+		{
+			SFG_ERR("SDK does not match this editor build ({0}, {1}): {2}", SFG_BUILD, SFG_CONFIGURATION, settings_path);
+			return false;
+		}
+
+		if (!generator.starts_with("Visual Studio ") || architecture.empty() || toolset.empty() || windows_sdk.empty())
+		{
+			SFG_ERR("SDK does not contain the Visual Studio generator, architecture, toolset and Windows SDK settings needed to generate a solution: {0}", settings_path);
+			return false;
+		}
+
+		const string_t source_path	= file_system_t::get_absolute_path(_runtime.native_source_path.c_str());
+		const string_t build_path	= file_system_t::get_absolute_path(_runtime.native_intermediate_path.c_str());
+		const string_t library_path = file_system_t::get_absolute_path(_runtime.native_library_path.c_str());
+
+		if (source_path.empty() || build_path.empty() || library_path.empty() || !file_system_t::ensure_directory(source_path.c_str()) || !file_system_t::ensure_directory(build_path.c_str()))
+		{
+			SFG_ERR("could not create native project directories for {0}", _runtime.path);
+			return false;
+		}
+
+		for (const char* name : {"CMakeLists.txt", "game.cpp"})
+		{
+			const string_t destination = _runtime.native_source_path + name;
+
+			if (file_system_t::exists(destination.c_str()))
+				continue;
+
+			const string_t source = sdk_path + "templates/native/" + name;
+
+			if (!file_system_t::copy_file(source.c_str(), destination.c_str()))
+			{
+				SFG_ERR("could not create native project source {0}", destination);
+				return false;
+			}
+		}
+
+		const string_t signature_path = _runtime.native_intermediate_path + "stakeforge_generation.txt";
+		const string_t signature	  = sdk_path + "\n" + source_path + "\n" + library_path + "\n" + settings_text;
+		const bool	   fresh		  = !file_system_t::exists(signature_path.c_str()) || file_system_t::read_file_as_string(signature_path.c_str()) != signature;
+		string_t	   command		  = "\"" + cmake_path + "\" -S \"" + source_path + "\" -B \"" + build_path + "\"";
+		command += " -G \"" + generator + "\" -A \"" + architecture + ",version=" + windows_sdk + "\" -T \"" + toolset + "\"";
+		command += " \"-DStakeforge_DIR=" + sdk_path + "cmake\"";
+		command += " \"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=" + library_path + "\"";
+		command += " \"-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=" + library_path + "\"";
+
+		if (fresh)
+			command += " --fresh";
+
+		SFG_INFO("generating native game solution in {0}", build_path);
+
+		const process_execute_result_t result	= process::execute(command.c_str());
+		const string_t				   log_path = _runtime.native_intermediate_path + "generation.log";
+		const string_t				   log		= command + "\n\n" + result.output;
+
+		if (!serializer_t::write_to_file(log, log_path.c_str()))
+			SFG_ERR("could not save native project generation log to {0}", log_path);
+
+		if (!result.started || result.exit_code != 0)
+		{
+			SFG_ERR("native project generation failed (exit {0}). Install the Visual Studio C++ tools ({1}) and Windows SDK {2} required by this engine, or fix the CMake errors below. Log: {3}\n{4}",
+					result.exit_code,
+					toolset,
+					windows_sdk,
+					log_path,
+					result.output);
+			return false;
+		}
+
+		if (!serializer_t::write_to_file(signature, signature_path.c_str()))
+		{
+			SFG_ERR("could not save native project generation settings to {0}", signature_path);
+			return false;
+		}
+
+		SFG_INFO("native game solution ready in {0}", build_path);
+		return true;
+	}
+
 	void editor_project_t::refresh_runtime(const char* path)
 	{
 		_runtime = {};
@@ -148,6 +262,9 @@ namespace sfg
 		_runtime.script_project_path	  = _runtime.csharp_intermediate_path + _runtime.name + ".csproj";
 		_runtime.library_path			  = dir + "Library/";
 		_runtime.script_library_path	  = _runtime.library_path + "Scripts/";
+		_runtime.native_source_path		  = dir + "Source/";
+		_runtime.native_intermediate_path = _runtime.intermediate_path + "Native/" + SFG_BUILD + "/" + SFG_CONFIGURATION + "/";
+		_runtime.native_library_path	  = _runtime.library_path + "Native/" + SFG_BUILD + "/";
 
 		if (!file_system_t::exists(_runtime.assets_path.c_str()))
 			file_system_t::create_directory(_runtime.assets_path.c_str());
@@ -166,6 +283,11 @@ namespace sfg
 
 		if (!ensure_script_project())
 			SFG_ERR("could not ensure the C# script project.");
+
+#ifdef SFG_PLATFORM_WINDOWS
+		if (!ensure_native_project())
+			SFG_ERR("could not generate the native game project. Fix the reported SDK or Visual Studio setup errors and reopen the project to retry.");
+#endif
 	}
 
 }

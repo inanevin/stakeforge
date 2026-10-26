@@ -23,6 +23,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/common/hashing.hpp"
 #include "core/data/string_util.hpp"
 #include "core/io/assert.hpp"
+#include "core/io/file_system.hpp"
 #include "core/io/log.hpp"
 #include "core/input/input_mappings.hpp"
 #include "core/platform/common_window.hpp"
@@ -1742,6 +1743,37 @@ namespace sfg
 
 		if (runtime->has_flag(window_runtime_flags_e::has_focus))
 			apply_cursor_visibility(visible);
+	}
+
+	string_t process::get_executable_path()
+	{
+		wstring_t	path(32768, L'\0');
+		const DWORD length = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
+
+		if (length == 0 || length >= path.size())
+		{
+			SFG_ERR("could not get executable path, error {0}", GetLastError());
+			return {};
+		}
+
+		const int bytes = WideCharToMultiByte(CP_UTF8, 0, path.data(), static_cast<int>(length), nullptr, 0, nullptr, nullptr);
+
+		if (bytes == 0)
+		{
+			SFG_ERR("could not convert executable path to UTF-8, error {0}", GetLastError());
+			return {};
+		}
+
+		string_t result(static_cast<size_t>(bytes), '\0');
+
+		if (WideCharToMultiByte(CP_UTF8, 0, path.data(), static_cast<int>(length), result.data(), bytes, nullptr, nullptr) == 0)
+		{
+			SFG_ERR("could not convert executable path to UTF-8, error {0}", GetLastError());
+			return {};
+		}
+
+		file_system_t::fix_path(result);
+		return result;
 	}
 
 	process_execute_result_t process::execute(const char* command_line)

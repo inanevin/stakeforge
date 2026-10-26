@@ -250,8 +250,13 @@ def package(manifest):
 
     desired["build_info.txt"] = info.serialize().encode("utf-8")
     desired["cmake/StakeforgeConfig.cmake"] = sdk_config(settings, definitions, options, flags)
+    template_root = source_root / "utils/packaging/templates/native"
+
+    for name in ("CMakeLists.txt", "game.cpp"):
+        desired[f"templates/native/{name}"] = template_root / name
+
     metadata = {key: settings[key] for key in (
-        "build_info", "configuration", "architecture", "pointer_size", "compiler_id", "compiler_version",
+        "build_info", "configuration", "generator", "architecture", "pointer_size", "compiler_id", "compiler_version",
         "toolset", "toolset_version", "windows_sdk", "msvc_runtime", "debug_information_format",
     )}
     metadata.update({"sdk_format": 1, "cmake_version": distribution["version"], "definitions": definitions, "options": options, "flags": flags})

@@ -8,6 +8,7 @@
         "build_id": "@SFG_BUILD@"
     },
     "configuration": "$<CONFIG>",
+    "generator": "@CMAKE_GENERATOR@",
     "architecture": "@SFG_SDK_PLATFORM@",
     "pointer_size": @CMAKE_SIZEOF_VOID_P@,
     "compiler_id": "@CMAKE_CXX_COMPILER_ID@",

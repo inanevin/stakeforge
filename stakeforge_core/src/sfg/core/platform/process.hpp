@@ -85,6 +85,7 @@ namespace sfg
 		static string_t					select_file(const char* title, const char* extension);
 		static string_t					save_file(const char* title, const char* extension);
 		static string_t					get_clipboard();
+		static string_t					get_executable_path();
 
 		// -----------------------------------------------------------------------------
 		// os query

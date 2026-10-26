@@ -59,4 +59,28 @@ if(NOT TARGET Stakeforge::tools)
     )
 endif()
 
+if(CMAKE_GENERATOR MATCHES "^Visual Studio ")
+    set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+    foreach(_stakeforge_module IN ITEMS core tools)
+        if(NOT TARGET stakeforge_${_stakeforge_module})
+            file(GLOB_RECURSE _stakeforge_headers CONFIGURE_DEPENDS
+                "${_stakeforge_sdk_root}/include/sfg/${_stakeforge_module}/*.h"
+                "${_stakeforge_sdk_root}/include/sfg/${_stakeforge_module}/*.hpp"
+                "${_stakeforge_sdk_root}/include/sfg/${_stakeforge_module}/*.hxx"
+                "${_stakeforge_sdk_root}/include/sfg/${_stakeforge_module}/*.inl"
+                "${_stakeforge_sdk_root}/include/sfg/${_stakeforge_module}/*.ipp"
+                "${_stakeforge_sdk_root}/include/sfg/${_stakeforge_module}/*.inc"
+                "${_stakeforge_sdk_root}/include/sfg/${_stakeforge_module}/*.def"
+            )
+            add_custom_target(stakeforge_${_stakeforge_module} SOURCES ${_stakeforge_headers})
+            source_group(TREE "${_stakeforge_sdk_root}/include" PREFIX src FILES ${_stakeforge_headers})
+            set_target_properties(stakeforge_${_stakeforge_module} PROPERTIES FOLDER stakeforge)
+        endif()
+    endforeach()
+
+    unset(_stakeforge_headers)
+    unset(_stakeforge_module)
+endif()
+
 unset(_stakeforge_sdk_root)
