@@ -96,6 +96,13 @@ namespace sfg
 	typedef void (*fn_container_reset)(void* obj);
 	typedef void (*fn_container_remove_index)(void* obj, u32 index);
 
+	enum class reflected_container_storage_e : u8
+	{
+		dynamic,
+		fixed_array,
+		sized_array,
+	};
+
 	struct reflected_field_container_ops_t
 	{
 		fn_container_add_element_ptr  add_element_ptr_fn  = nullptr;
@@ -106,6 +113,10 @@ namespace sfg
 		reflected_value_type_e		  element_value_type  = reflected_value_type_e::invalid;
 		sid_t						  element_sub_type_id = 0;
 		size_t						  element_value_size  = 0;
+		u32							  element_offset	  = 0;
+		u32							  count_offset		  = 0;
+		u32							  capacity			  = 0;
+		reflected_container_storage_e storage			  = reflected_container_storage_e::dynamic;
 	};
 
 	typedef void (*fn_field_custom_to_stream)(void* obj, void* user_data, ostream_t& out_stream);
@@ -190,6 +201,7 @@ namespace sfg
 	{
 		engine,
 		game_scripts,
+		game_native,
 	};
 
 	struct reflected_field_span_t
@@ -242,6 +254,9 @@ namespace sfg
 		static inline constexpr u32 SCRIPT_TYPE_CAPACITY  = 1024;
 		static inline constexpr u32 SCRIPT_FIELD_CAPACITY = 2048;
 		static inline constexpr u32 SCRIPT_TEXT_CAPACITY  = 256 * 1024;
+		static inline constexpr u32 NATIVE_TYPE_CAPACITY  = 1024;
+		static inline constexpr u32 NATIVE_FIELD_CAPACITY = 8192;
+		static inline constexpr u32 NATIVE_TEXT_CAPACITY  = 256 * 1024;
 
 		static inline reflection_registry_t& get()
 		{
@@ -265,6 +280,7 @@ namespace sfg
 		bool type_from_json(sid_t type_id, void* obj, void* user_data, const nlohmann::json& in_json);
 		void initialize_type(sid_t type_id, void* obj) const;
 		void remove_script_types();
+		void remove_native_types();
 		void reserve_script_capacity();
 		bool is_script_capacity_valid(size_t type_count, size_t field_count) const;
 
@@ -277,6 +293,11 @@ namespace sfg
 		}
 
 		void register_type(const reflected_type_descriptor_t& descriptor);
+
+		const vector_t<reflected_type_t>& get_native_types() const
+		{
+			return _native_types;
+		}
 
 		template <typename T> void register_type(const char* name, const char* tooltip, bitmask32 flags, const vector_t<reflected_field_descriptor_t>& fields)
 		{
@@ -294,6 +315,9 @@ namespace sfg
 		}
 
 	private:
+		vector_t<reflected_type_t>	_native_types		   = {};
+		vector_t<reflected_field_t> _native_fields		   = {};
+		text_allocator_t			_native_text_allocator = {};
 		vector_t<reflected_type_t>	_types;
 		vector_t<reflected_field_t> _fields;
 		text_allocator_t			_text_allocator		   = {};

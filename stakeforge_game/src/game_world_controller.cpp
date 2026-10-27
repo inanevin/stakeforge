@@ -154,8 +154,6 @@ namespace sfg
 		_render_alpha	  = 0.0f;
 		_producer_slot	  = 0;
 		_consumer_slot	  = 0;
-		_current_world	  = NULL_SID;
-		_pending_world	  = NULL_SID;
 		_initialized	  = false;
 	}
 
@@ -232,18 +230,18 @@ namespace sfg
 		SFG_ASSERT(_initialized);
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		bool world_exists = false;
+		const world_meta_t* selected_world = nullptr;
 
 		for (const world_meta_t& world_meta : _package_meta->worlds)
 		{
 			if (world_meta.sid != world)
 				continue;
 
-			world_exists = true;
+			selected_world = &world_meta;
 			break;
 		}
 
-		if (!world_exists)
+		if (selected_world == nullptr)
 		{
 			SFG_ERR("requested world is not included in the project package: {0}", world);
 			return false;
@@ -272,10 +270,9 @@ namespace sfg
 
 		_main_world.clear_used_resources();
 		_main_world.reset_world_state();
-		_pending_world = NULL_SID;
 
 		world_cooker_t::world_from_json(_main_world, world_json);
-		_current_world = world;
+		_main_world.set_world_name(selected_world->name_hash);
 		_main_world.update_world_transforms();
 		_main_world.begin_play();
 
@@ -305,48 +302,6 @@ namespace sfg
 
 		SFG_ERR("requested world name is not included in the project package: {0}", name_hash);
 		return false;
-	}
-
-	bool game_world_controller_t::queue_world_load_by_name_hash(sid_t name_hash)
-	{
-		SFG_ASSERT(_initialized);
-
-		if (_pending_world != NULL_SID)
-			return false;
-
-		for (const world_meta_t& world : _package_meta->worlds)
-		{
-			if (world.name_hash != name_hash)
-				continue;
-
-			_pending_world = world.sid;
-			return true;
-		}
-
-		return false;
-	}
-
-	bool game_world_controller_t::queue_world_restart()
-	{
-		SFG_ASSERT(_initialized);
-
-		if (_pending_world != NULL_SID || _current_world == NULL_SID)
-			return false;
-
-		_pending_world = _current_world;
-		return true;
-	}
-
-	bool game_world_controller_t::apply_pending_world_load()
-	{
-		SFG_ASSERT(_initialized);
-		SFG_ASSERT(_pending_world != NULL_SID);
-		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-
-		const sid_t pending_world = _pending_world;
-		_pending_world			  = NULL_SID;
-
-		return load_world(pending_world);
 	}
 
 	bool game_world_controller_t::acquire_render_world()

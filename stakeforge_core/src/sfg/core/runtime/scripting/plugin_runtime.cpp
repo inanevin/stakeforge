@@ -20,6 +20,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 */
 #include "core/runtime/scripting/plugin_runtime.hpp"
+#include "core/runtime/scripting/native_component_schema.hpp"
 
 #include "core/io/assert.hpp"
 #include "core/io/log.hpp"
@@ -27,9 +28,21 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	plugin_runtime_t::plugin_runtime_t()  = default;
+	plugin_runtime_t::~plugin_runtime_t() = default;
+
 	bool plugin_runtime_t::load(const char* path, string_t& diagnostics)
 	{
 		SFG_ASSERT(_library == nullptr);
+
+		return stage(path, diagnostics) && activate_staged(diagnostics);
+	}
+
+	bool plugin_runtime_t::stage(const char* path, string_t& diagnostics)
+	{
+		if (_staged_library != nullptr && !discard_staged(diagnostics))
+			return false;
+
 		SFG_ASSERT(_playing_world_count == 0);
 
 		void* const library = process::load_library(path, diagnostics);
@@ -37,12 +50,14 @@ namespace sfg
 		if (library == nullptr)
 			return false;
 
+		_staged_library = library;
+
 		const plugin_entry_fn entry		 = reinterpret_cast<plugin_entry_fn>(process::get_library_symbol(library, "sfg_get_plugin_callbacks", diagnostics));
 		plugin_callbacks_t	  callbacks	 = {};
 		const bool			  compatible = entry != nullptr && entry(PLUGIN_API_VERSION, callbacks);
-		const bool			  complete	 = compatible && callbacks.load != nullptr && callbacks.unload != nullptr && callbacks.begin_play != nullptr && callbacks.end_play != nullptr && callbacks.tick_logic != nullptr && callbacks.tick_physics != nullptr &&
-										   callbacks.tick_animation != nullptr && callbacks.draw_debug != nullptr && callbacks.key_event != nullptr && callbacks.mouse_button_event != nullptr && callbacks.mouse_move_event != nullptr &&
-										   callbacks.mouse_wheel_event != nullptr && callbacks.focus_event != nullptr && callbacks.physics_contact != nullptr && callbacks.animation_event != nullptr && callbacks.canvas_event != nullptr;
+		const bool complete = compatible && callbacks.register_types != nullptr && callbacks.load != nullptr && callbacks.unload != nullptr && callbacks.begin_play != nullptr && callbacks.end_play != nullptr && callbacks.tick_logic != nullptr &&
+							  callbacks.tick_physics != nullptr && callbacks.tick_animation != nullptr && callbacks.draw_debug != nullptr && callbacks.key_event != nullptr && callbacks.mouse_button_event != nullptr && callbacks.mouse_move_event != nullptr &&
+							  callbacks.mouse_wheel_event != nullptr && callbacks.focus_event != nullptr && callbacks.physics_contact != nullptr && callbacks.animation_event != nullptr && callbacks.canvas_event != nullptr;
 
 		if (!complete)
 		{
@@ -53,18 +68,81 @@ namespace sfg
 
 			string_t unload_diagnostics = {};
 
-			if (!process::unload_library(library, unload_diagnostics))
+			if (!discard_staged(unload_diagnostics))
 				diagnostics += "\n" + unload_diagnostics;
 
 			return false;
 		}
 
-		_library   = library;
-		_path	   = path;
-		_callbacks = callbacks;
+		_staged_callbacks = callbacks;
+		_staged_path	  = path;
+		_staged_schema.reset(new native_component_schema_t());
+		callbacks.register_types(*_staged_schema);
+
+		if (!_staged_schema->validate(diagnostics))
+		{
+			string_t unload_diagnostics = {};
+
+			if (!discard_staged(unload_diagnostics))
+				diagnostics += "\n" + unload_diagnostics;
+
+			return false;
+		}
+
+		return true;
+	}
+
+	bool plugin_runtime_t::discard_staged(string_t& diagnostics)
+	{
+		SFG_ASSERT(_staged_library != nullptr);
+
+		if (!process::unload_library(_staged_library, diagnostics))
+			return false;
+
+		_staged_library	  = nullptr;
+		_staged_callbacks = {};
+		_staged_schema.reset();
+		_staged_path.resize(0);
+
+		return true;
+	}
+
+	bool plugin_runtime_t::activate_staged(string_t& diagnostics, native_plugin_activated_fn activated)
+	{
+		SFG_ASSERT(_staged_library != nullptr);
+		SFG_ASSERT(_playing_world_count == 0);
+
+		const native_component_schema_t		  empty_schema	  = {};
+		const native_component_schema_t&	  previous_schema = _schema ? *_schema : empty_schema;
+		const native_component_schema_delta_t delta			  = previous_schema.compare(*_staged_schema);
+		reflection_registry_t&				  registry		  = reflection_registry_t::get();
+
+		if (_library != nullptr)
+		{
+			_callbacks.unload();
+			registry.remove_native_types();
+
+			if (!process::unload_library(_library, diagnostics))
+			{
+				_schema->register_reflection_types();
+				_callbacks.load();
+				return false;
+			}
+		}
+
+		unique_t<native_component_schema_t> previous = std::move(_schema);
+		_schema										 = std::move(_staged_schema);
+		_library									 = std::exchange(_staged_library, nullptr);
+		_callbacks									 = std::exchange(_staged_callbacks, {});
+		_path										 = std::move(_staged_path);
+		_schema->register_reflection_types();
+
+		if (activated != nullptr)
+			activated(previous_schema, *_schema, delta);
+
 		_callbacks.load();
 
-		SFG_INFO("loaded native game plugin: {0}", _path);
+		SFG_INFO("loaded native game plugin: {0}. Components: {1} added, {2} removed, {3} migrated.", _path, delta.added.size(), delta.removed.size(), delta.layout_changed.size());
 		return true;
 	}
 
@@ -73,18 +151,25 @@ namespace sfg
 		SFG_ASSERT(_library != nullptr);
 		SFG_ASSERT(_playing_world_count == 0);
 
-		if (_callbacks.unload != nullptr)
-		{
-			_callbacks.unload();
-			_callbacks = {};
-		}
-
-		if (!process::unload_library(_library, diagnostics))
+		if (_staged_library != nullptr && !discard_staged(diagnostics))
 			return false;
 
+		_callbacks.unload();
+		reflection_registry_t::get().remove_native_types();
+
+		if (!process::unload_library(_library, diagnostics))
+		{
+			_schema->register_reflection_types();
+			_callbacks.load();
+			return false;
+		}
+
 		SFG_INFO("unloaded native game plugin: {0}", _path);
-		_library = nullptr;
+		_library   = nullptr;
+		_callbacks = {};
+		_schema.reset();
 		_path.resize(0);
+
 		return true;
 	}
 

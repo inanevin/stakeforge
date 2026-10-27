@@ -244,14 +244,24 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_physics";
 
-		JPH::CharacterVirtual* character			= nullptr;
-		quat_t				   local_rotation		= quat_t::identity;
-		vec3f_t				   local_position		= vec3f_t::zero;
-		vec3f_t				   last_ground_velocity = vec3f_t::zero;
-		resource_handle_t	   physical_material	= NULL_RESOURCE_HANDLE;
-		u32					   body_id				= UINT32_MAX;
-		entity_id_t			   single_sub_entity	= NULL_ENTITY_ID;
-		u8					   motion_type			= 0;
+		JPH::CharacterVirtual* character				 = nullptr;
+		quat_t				   local_rotation			 = quat_t::identity;
+		vec3f_t				   local_position			 = vec3f_t::zero;
+		vec3f_t				   half_extent				 = {0.5f, 0.5f, 0.5f};
+		vec3f_t				   last_ground_velocity		 = vec3f_t::zero;
+		resource_handle_t	   physical_material		 = NULL_RESOURCE_HANDLE;
+		f32					   mass						 = 1.0f;
+		f32					   gravity_factor			 = 1.0f;
+		f32					   linear_damping			 = 0.05f;
+		f32					   angular_damping			 = 0.05f;
+		f32					   radius					 = 0.5f;
+		f32					   half_height				 = 0.5f;
+		u32					   body_id					 = UINT32_MAX;
+		entity_id_t			   single_sub_entity		 = NULL_ENTITY_ID;
+		u8					   motion_type				 = 0;
+		u8					   is_sensor				 = 0;
+		u8					   motion_quality_continuous = 0;
+		u8					   allow_sleep				 = 1;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_physics_t);

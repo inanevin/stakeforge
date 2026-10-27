@@ -33,6 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+#define NATIVE_FIELD_BASE		   0x80000000u
 #define FLOAT_ROUND_PRECISION_JSON 1'000'000.0f
 
 	namespace
@@ -122,14 +123,21 @@ namespace sfg
 				u32 item_size = 0;
 				in_stream >> item_size;
 
-				if (field.container_ops.reset_fn == nullptr || field.container_ops.add_element_ptr_fn == nullptr)
+				const bool fixed_array = field.container_ops.storage == reflected_container_storage_e::fixed_array;
+
+				if (!fixed_array && (field.container_ops.reset_fn == nullptr || field.container_ops.add_element_ptr_fn == nullptr))
 					return false;
 
-				field.container_ops.reset_fn(data);
+				if (fixed_array && item_size > field.container_ops.capacity)
+					return false;
+
+				if (!fixed_array)
+					field.container_ops.reset_fn(data);
 
 				for (size_t i = 0; i < item_size; i++)
 				{
-					u8* element_data = field.container_ops.add_element_ptr_fn(data);
+					u8* element_data = fixed_array ? field.container_ops.get_element_ptr_fn(data, static_cast<u32>(i)) : field.container_ops.add_element_ptr_fn(data);
+
 					if (element_data == nullptr)
 						return false;
 
@@ -387,22 +395,28 @@ namespace sfg
 
 			if (field.value_type == reflected_value_type_e::container)
 			{
-				if (field.container_ops.reset_fn == nullptr || field.container_ops.add_element_ptr_fn == nullptr)
+				const bool fixed_array = field.container_ops.storage == reflected_container_storage_e::fixed_array;
+
+				if (!fixed_array && (field.container_ops.reset_fn == nullptr || field.container_ops.add_element_ptr_fn == nullptr))
 					return false;
 
 				if (!in_json.contains(field.name))
 					return true;
 
 				const nlohmann::json container_json = in_json.value<nlohmann::json>(field.name, nlohmann::json::array());
+
 				if (!container_json.is_array())
 					return false;
 
-				const size_t sz = container_json.size();
-				field.container_ops.reset_fn(data);
+				const size_t sz = field.container_ops.storage == reflected_container_storage_e::dynamic ? container_json.size() : std::min(container_json.size(), static_cast<size_t>(field.container_ops.capacity));
+
+				if (!fixed_array)
+					field.container_ops.reset_fn(data);
 
 				for (size_t i = 0; i < sz; i++)
 				{
-					u8* element_data = field.container_ops.add_element_ptr_fn(data);
+					u8* element_data = fixed_array ? field.container_ops.get_element_ptr_fn(data, static_cast<u32>(i)) : field.container_ops.add_element_ptr_fn(data);
+
 					if (element_data == nullptr)
 						return false;
 
@@ -411,6 +425,7 @@ namespace sfg
 						.size		 = field.container_ops.element_value_size,
 						.value_type	 = field.container_ops.element_value_type,
 					};
+
 					if (!field_from_json(temp_field, element_data, user_data, container_json[i], true))
 						return false;
 				}
@@ -426,7 +441,9 @@ namespace sfg
 				{
 					if (!in_json.contains(field.name))
 						return true;
+
 					const nlohmann::json child_json = in_json.value<nlohmann::json>(field.name, {});
+
 					if (!reflection_registry_t::get().type_from_json(field.sub_type_id, data, user_data, child_json))
 						return false;
 				}
@@ -437,14 +454,17 @@ namespace sfg
 			if (field.value_type == reflected_value_type_e::string)
 			{
 				string_t& str = *reinterpret_cast<string_t*>(data);
+
 				if (dismiss_name)
 					str = in_json;
 				else
 				{
 					if (!in_json.contains(field.name))
 						return true;
+
 					str = in_json.value<string_t>(field.name, "");
 				}
+
 				return true;
 			}
 
@@ -455,14 +475,17 @@ namespace sfg
 			{
 			case reflected_value_type_e::char_array: {
 				string_t val = "";
+
 				if (dismiss_name)
 					val = in_json;
 				else
 					val = in_json.value<string_t>(field.name, "");
 				const size_t copy_size = val.size() > field.size ? field.size : val.size();
+
 				if (copy_size != 0)
 				{
 					SFG_MEMCPY(data, &val[0], copy_size);
+
 					if (copy_size < field.size)
 						reinterpret_cast<char*>(data)[copy_size] = '\0';
 				}
@@ -484,6 +507,7 @@ namespace sfg
 			case reflected_value_type_e::u64:
 			case reflected_value_type_e::bitmask: {
 				const u64 value = dismiss_name ? in_json.get<u64>() : in_json.value<u64>(field.name, 0);
+
 				switch (field.size)
 				{
 				case sizeof(u8):
@@ -558,6 +582,7 @@ namespace sfg
 				SFG_ERR("unsupported reflected value type");
 				return false;
 			}
+
 			return true;
 		}
 	}
@@ -579,6 +604,9 @@ namespace sfg
 
 		_text_allocator.init(2 * 1024 * 1024);
 		_script_text_allocator.init(SCRIPT_TEXT_CAPACITY);
+		_native_text_allocator.init(NATIVE_TEXT_CAPACITY);
+		_native_types.reserve(NATIVE_TYPE_CAPACITY);
+		_native_fields.reserve(NATIVE_FIELD_CAPACITY);
 	}
 
 	void reflection_registry_t::uninit()
@@ -586,6 +614,9 @@ namespace sfg
 		_types.clear();
 		_fields.clear();
 
+		_native_types.resize(0);
+		_native_fields.resize(0);
+		_native_text_allocator.uninit();
 		_script_text_allocator.uninit();
 		_text_allocator.uninit();
 
@@ -610,7 +641,7 @@ namespace sfg
 
 		for (u32 field_index = type->fields.start; field_index < type->fields.end; ++field_index)
 		{
-			const reflected_field_t& field = _fields[field_index];
+			const reflected_field_t& field = *get_field(field_index);
 
 			if (field.value_type != reflected_value_type_e::u64 || field.sub_type_id == 0)
 				continue;
@@ -653,6 +684,7 @@ namespace sfg
 	void reflection_registry_t::type_field_to_stream(sid_t type_id, sid_t field_id, void* obj, void* user_data, ostream_t& out_stream)
 	{
 		const reflected_type_t* type = find_type(type_id);
+
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -661,7 +693,8 @@ namespace sfg
 
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
-			const reflected_field_t& field = _fields[i];
+			const reflected_field_t& field = *get_field(static_cast<u32>(i));
+
 			if (field.field_identifier == field_id)
 			{
 				if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_serialization))
@@ -678,6 +711,7 @@ namespace sfg
 	void reflection_registry_t::type_field_to_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, nlohmann::json& out_json)
 	{
 		const reflected_type_t* type = find_type(type_id);
+
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -686,7 +720,8 @@ namespace sfg
 
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
-			const reflected_field_t& field = _fields[i];
+			const reflected_field_t& field = *get_field(static_cast<u32>(i));
+
 			if (field.field_identifier == field_id)
 			{
 				if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_serialization))
@@ -704,14 +739,17 @@ namespace sfg
 	{
 		const reflected_type_t* type = find_type(type_id);
 		(type_id);
+
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
 			return;
 		}
+
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
-			const reflected_field_t& field = _fields[i];
+			const reflected_field_t& field = *get_field(static_cast<u32>(i));
+
 			if (field.field_identifier == field_id)
 			{
 				if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_serialization))
@@ -728,6 +766,7 @@ namespace sfg
 	void reflection_registry_t::type_field_from_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, const nlohmann::json& in_json)
 	{
 		const reflected_type_t* type = find_type(type_id);
+
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -736,7 +775,8 @@ namespace sfg
 
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
-			const reflected_field_t& field = _fields[i];
+			const reflected_field_t& field = *get_field(static_cast<u32>(i));
+
 			if (field.field_identifier == field_id)
 			{
 				if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_serialization))
@@ -753,6 +793,7 @@ namespace sfg
 	bool reflection_registry_t::type_to_stream(sid_t type_id, void* obj, void* user_data, ostream_t& out_stream)
 	{
 		const reflected_type_t* type = find_type(type_id);
+
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -767,16 +808,19 @@ namespace sfg
 
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
-			const reflected_field_t& field = _fields[i];
+			const reflected_field_t& field = *get_field(static_cast<u32>(i));
+
 			if (!field_to_stream(field, obj, user_data, out_stream))
 				return false;
 		}
+
 		return true;
 	}
 
 	bool reflection_registry_t::type_to_json(sid_t type_id, void* obj, void* user_data, nlohmann::json& out_json)
 	{
 		const reflected_type_t* type = find_type(type_id);
+
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -802,6 +846,7 @@ namespace sfg
 				SFG_ERR("enum type size mismatch!");
 				return false;
 			}
+
 			return true;
 		}
 
@@ -809,7 +854,8 @@ namespace sfg
 
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
-			const reflected_field_t& field = _fields[i];
+			const reflected_field_t& field = *get_field(static_cast<u32>(i));
+
 			if (!field_to_json(field, obj, user_data, type_json))
 				return false;
 		}
@@ -821,6 +867,7 @@ namespace sfg
 	bool reflection_registry_t::type_from_stream(sid_t type_id, void* obj, void* user_data, istream_t& in_stream)
 	{
 		const reflected_type_t* type = find_type(type_id);
+
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -836,16 +883,19 @@ namespace sfg
 
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
-			const reflected_field_t& field = _fields[i];
+			const reflected_field_t& field = *get_field(static_cast<u32>(i));
+
 			if (!field_from_stream(field, obj, user_data, in_stream))
 				return false;
 		}
+
 		return true;
 	}
 
 	bool reflection_registry_t::type_from_json(sid_t type_id, void* obj, void* user_data, const nlohmann::json& in_json)
 	{
 		const reflected_type_t* type = find_type(type_id);
+
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
@@ -871,31 +921,47 @@ namespace sfg
 				SFG_ERR("enum type size mismatch!");
 				return false;
 			}
+
 			return true;
 		}
 
 		for (size_t i = type->fields.start; i < type->fields.end; i++)
 		{
-			const reflected_field_t& field = _fields[i];
+			const reflected_field_t& field = *get_field(static_cast<u32>(i));
+
 			if (!field_from_json(field, obj, user_data, in_json))
 				return false;
 		}
+
 		return true;
+	}
+
+	void reflection_registry_t::remove_native_types()
+	{
+		_native_types.resize(0);
+		_native_fields.resize(0);
+		_native_text_allocator.reset();
 	}
 
 	const reflected_type_t* reflection_registry_t::find_type(sid_t type_id) const
 	{
-		auto it = std::find_if(_types.begin(), _types.end(), [type_id](const reflected_type_t& t) -> bool { return t.type_id == type_id; });
-		if (it == _types.end())
-			return nullptr;
-		return &*it;
+		const auto it = std::find_if(_types.begin(), _types.end(), [type_id](const reflected_type_t& type) { return type.type_id == type_id; });
+
+		if (it != _types.end())
+			return &*it;
+
+		const auto native_it = std::find_if(_native_types.begin(), _native_types.end(), [type_id](const reflected_type_t& type) { return type.type_id == type_id; });
+
+		return native_it == _native_types.end() ? nullptr : &*native_it;
 	}
 
 	const reflected_field_t* reflection_registry_t::get_field(u32 index) const
 	{
-		if (index >= _fields.size())
-			return nullptr;
-		return &_fields[index];
+		const bool						   native	   = index >= NATIVE_FIELD_BASE;
+		const vector_t<reflected_field_t>& fields	   = native ? _native_fields : _fields;
+		const u32						   field_index = native ? index - NATIVE_FIELD_BASE : index;
+
+		return field_index < fields.size() ? &fields[field_index] : nullptr;
 	}
 
 	void reflection_registry_t::register_type(const reflected_type_descriptor_t& descriptor)
@@ -903,7 +969,7 @@ namespace sfg
 		SFG_ASSERT(descriptor.name != nullptr);
 		SFG_ASSERT(descriptor.type_id != 0);
 		SFG_ASSERT(descriptor.size != 0);
-		SFG_ASSERT(!_script_capacity_ready || descriptor.owner == reflection_owner_e::game_scripts);
+		SFG_ASSERT(!_script_capacity_ready || descriptor.owner != reflection_owner_e::engine);
 		SFG_ASSERT(descriptor.owner != reflection_owner_e::game_scripts || is_script_capacity_valid(_types.size() - _script_type_begin + 1, _fields.size() - _script_field_begin + descriptor.fields.size()));
 
 		const reflected_type_t* existing_type = find_type(descriptor.type_id);
@@ -914,8 +980,14 @@ namespace sfg
 			return;
 		}
 
-		reflected_type_t  type			 = {};
-		text_allocator_t& text_allocator = descriptor.owner == reflection_owner_e::game_scripts ? _script_text_allocator : _text_allocator;
+		const bool					 native			= descriptor.owner == reflection_owner_e::game_native;
+		vector_t<reflected_type_t>&	 types			= native ? _native_types : _types;
+		vector_t<reflected_field_t>& fields			= native ? _native_fields : _fields;
+		text_allocator_t&			 text_allocator = native ? _native_text_allocator : descriptor.owner == reflection_owner_e::game_scripts ? _script_text_allocator : _text_allocator;
+		const u32					 field_base		= native ? NATIVE_FIELD_BASE : 0;
+		reflected_type_t			 type			= {};
+
+		SFG_ASSERT(!native || (types.size() < NATIVE_TYPE_CAPACITY && fields.size() + descriptor.fields.size() <= NATIVE_FIELD_CAPACITY));
 
 		type.name = text_allocator.allocate(descriptor.name);
 
@@ -941,7 +1013,7 @@ namespace sfg
 			SFG_ASSERT(descriptor.size == sizeof(u8) || descriptor.size == sizeof(u16) || descriptor.size == sizeof(u32));
 		}
 
-		type.fields.start	 = static_cast<u32>(_fields.size());
+		type.fields.start	 = field_base + static_cast<u32>(fields.size());
 		type.default_init_fn = descriptor.default_init_fn;
 
 		if (descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_component) || descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_system_component) ||
@@ -957,9 +1029,9 @@ namespace sfg
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::object || field_desc.sub_type_id != 0);
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.get_element_ptr_fn != nullptr);
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.get_element_size_fn != nullptr);
-			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.add_element_ptr_fn != nullptr);
-			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.reset_fn != nullptr);
-			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.remove_index_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.storage == reflected_container_storage_e::fixed_array || field_desc.container_ops.add_element_ptr_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.storage == reflected_container_storage_e::fixed_array || field_desc.container_ops.reset_fn != nullptr);
+			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.storage == reflected_container_storage_e::fixed_array || field_desc.container_ops.remove_index_fn != nullptr);
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || (field_desc.container_ops.element_value_type != reflected_value_type_e::invalid && field_desc.container_ops.element_value_type != reflected_value_type_e::container));
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::container || field_desc.container_ops.element_value_type != reflected_value_type_e::object || field_desc.container_ops.element_sub_type_id != 0);
 			SFG_ASSERT(field_desc.type != reflected_value_type_e::bitmask || field_desc.size == sizeof(u8) || field_desc.size == sizeof(u16) || field_desc.size == sizeof(u32) || field_desc.size == sizeof(u64));
@@ -989,10 +1061,10 @@ namespace sfg
 			field.container_ops					  = field_desc.container_ops;
 			field.custom_serialization			  = field_desc.custom_serialization;
 
-			_fields.push_back(field);
+			fields.push_back(field);
 		}
 
-		type.fields.end = static_cast<u32>(_fields.size());
-		_types.push_back(type);
+		type.fields.end = field_base + static_cast<u32>(fields.size());
+		types.push_back(type);
 	}
 }

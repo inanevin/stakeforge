@@ -84,6 +84,7 @@ namespace sfg
 		void set_display_entity(entity_id_t entity);
 		void set_display_entity(span_t<const entity_id_t> entities);
 		void refresh_display();
+		void prepare_component_reload();
 		void refresh_from_selection();
 		void refresh_from_assets();
 		void refresh_component_reflection(sid_t component_type);

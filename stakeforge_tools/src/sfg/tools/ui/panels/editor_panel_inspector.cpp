@@ -200,6 +200,14 @@ namespace sfg
 		restore_entity_scroll_state();
 	}
 
+	void editor_panel_inspector_t::prepare_component_reload()
+	{
+		if (_display == editor_panel_inspector_display_e::entity)
+			save_entity_scroll_state();
+
+		_entity_inspector.prepare_component_reload();
+	}
+
 	void editor_panel_inspector_t::refresh_display()
 	{
 		if (_display == editor_panel_inspector_display_e::entity)

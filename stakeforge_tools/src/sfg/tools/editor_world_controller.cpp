@@ -54,7 +54,9 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/engine/engine_threads.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
 #include <sfg/core/runtime/scripting/script_component_schema.hpp>
+#include <sfg/core/runtime/scripting/native_component_schema.hpp>
 #include <sfg/core/runtime/world/world.hpp>
+#include <sfg/core/runtime/world/world_component_util.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 #include <tracy/Tracy.hpp>
@@ -200,6 +202,22 @@ namespace sfg
 			editor_world->get_world().apply_script_component_schema(current_schema, candidate_schema, delta);
 
 		if ((!delta.removed.empty() || !delta.layout_changed.empty()) && !_main_world.is_null())
+			set_main_world_dirty(true);
+	}
+
+	void editor_world_controller_t::apply_native_component_schema(const native_component_schema_t& previous, const native_component_schema_t& current, const native_component_schema_delta_t& delta)
+	{
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
+		const bool changed = !delta.removed.empty() || !delta.layout_changed.empty();
+
+		if (changed)
+			editor_command_system_t::get().clear();
+
+		for (editor_world_t* editor_world : _worlds)
+			world_component_util_t::apply_native_component_schema(editor_world->get_world(), previous, current, delta);
+
+		if (changed && !_main_world.is_null())
 			set_main_world_dirty(true);
 	}
 
@@ -532,6 +550,8 @@ namespace sfg
 			return false;
 		}
 
+		editor_world->get_world().set_world_name(TO_SID(asset_name));
+		_main_world_name	   = asset_name;
 		_main_world_asset_guid = asset.guid;
 		set_main_world_dirty(false);
 
@@ -570,6 +590,10 @@ namespace sfg
 		_pending_main_world_asset_guid = NULL_SID;
 		_main_world_name			   = name;
 		_main_world_dirty			   = false;
+
+		if (!handle.is_null())
+			_worlds.get(handle)->get_world().set_world_name(asset_guid == NULL_SID ? NULL_SID : TO_SID(name));
+
 		notify_main_world_changed();
 		notify_main_world_dirty_changed();
 	}

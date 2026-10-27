@@ -23,15 +23,19 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "core/common/sfg_exports.hpp"
 #include "core/data/string.hpp"
+#include "core/data/unique.hpp"
 #include "core/runtime/scripting/plugin_api.hpp"
 
 namespace sfg
 {
+	struct native_component_schema_delta_t;
+	using native_plugin_activated_fn = void (*)(const native_component_schema_t& previous, const native_component_schema_t& current, const native_component_schema_delta_t& delta);
+
 	class SFG_API plugin_runtime_t final
 	{
 	public:
-		plugin_runtime_t()										   = default;
-		~plugin_runtime_t()										   = default;
+		plugin_runtime_t();
+		~plugin_runtime_t();
 		plugin_runtime_t(const plugin_runtime_t& other)			   = delete;
 		plugin_runtime_t& operator=(const plugin_runtime_t& other) = delete;
 
@@ -48,6 +52,9 @@ namespace sfg
 
 		bool load(const char* path, string_t& diagnostics);
 		bool unload(string_t& diagnostics);
+		bool stage(const char* path, string_t& diagnostics);
+		bool activate_staged(string_t& diagnostics, native_plugin_activated_fn activated = nullptr);
+		bool discard_staged(string_t& diagnostics);
 		void begin_play(world_t& world);
 		void end_play(world_t& world);
 
@@ -77,15 +84,25 @@ namespace sfg
 			return _library != nullptr;
 		}
 
+		bool is_staged() const
+		{
+			return _staged_library != nullptr;
+		}
+
 		const string_t& get_path() const
 		{
 			return _path;
 		}
 
 	private:
-		plugin_callbacks_t _callbacks = {};
-		string_t		   _path;
-		void*			   _library				= nullptr;
-		u32				   _playing_world_count = 0;
+		unique_t<native_component_schema_t> _schema			  = {};
+		unique_t<native_component_schema_t> _staged_schema	  = {};
+		plugin_callbacks_t					_staged_callbacks = {};
+		string_t							_staged_path	  = {};
+		void*								_staged_library	  = nullptr;
+		plugin_callbacks_t					_callbacks		  = {};
+		string_t							_path;
+		void*								_library			 = nullptr;
+		u32									_playing_world_count = 0;
 	};
 }

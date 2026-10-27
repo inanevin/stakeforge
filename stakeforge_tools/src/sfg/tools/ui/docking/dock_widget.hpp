@@ -94,6 +94,11 @@ namespace sfg
 		{
 			return _root;
 		}
+		const auto& get_nodes() const
+		{
+			return _dock_nodes;
+		}
+
 		editor_panel_t* find_panel(editor_panel_type_e type, sid_t sub_item_id = 0) const;
 		bool			select_panel(editor_panel_t* panel);
 

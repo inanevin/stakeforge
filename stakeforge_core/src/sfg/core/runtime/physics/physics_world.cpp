@@ -820,10 +820,21 @@ namespace sfg
 		bool create_body(entity_id_t entity, component_system_physics_t& system_physics, const component_physical_t& physical)
 		{
 			const physics_motion_type_e motion_type = physical.motion_type;
-			system_physics.motion_type				= static_cast<u8>(motion_type);
-			system_physics.local_position			= physical.local_position;
-			system_physics.local_rotation			= physical.local_rotation;
-			system_physics.physical_material		= physical.physical_material;
+
+			system_physics.motion_type				 = static_cast<u8>(motion_type);
+			system_physics.local_position			 = physical.local_position;
+			system_physics.local_rotation			 = physical.local_rotation;
+			system_physics.half_extent				 = physical.half_extent;
+			system_physics.physical_material		 = physical.physical_material;
+			system_physics.mass						 = physical.mass;
+			system_physics.gravity_factor			 = physical.gravity_factor;
+			system_physics.linear_damping			 = physical.linear_damping;
+			system_physics.angular_damping			 = physical.angular_damping;
+			system_physics.radius					 = physical.radius;
+			system_physics.half_height				 = physical.half_height;
+			system_physics.is_sensor				 = physical.is_sensor;
+			system_physics.motion_quality_continuous = physical.motion_quality_continuous;
+			system_physics.allow_sleep				 = physical.allow_sleep;
 
 			vec3f_t	 entity_position = vec3f_t::zero;
 			quat_t	 entity_rotation = quat_t::identity;
@@ -1155,6 +1166,30 @@ namespace sfg
 
 				for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
 					destroy_entities.push_back(row.id);
+
+				for (entity_id_t id : destroy_entities)
+					destroy_entity_physics(id);
+			}
+
+			{
+				destroy_entities.resize(0);
+
+				const ecs_component_table_ref_t refs[] = {physical_table.ref(), system_physics_table.ref(), !mover_table.ref(), !disabled_table.ref(), !ragdoll_table.ref()};
+
+				for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+				{
+					const component_physical_t&		  physical		 = row.get<component_physical_t>(0);
+					const component_system_physics_t& system_physics = row.get<component_system_physics_t>(1);
+
+					if (system_physics.character != nullptr)
+						continue;
+
+					if (physical.local_position != system_physics.local_position || physical.local_rotation != system_physics.local_rotation || physical.half_extent != system_physics.half_extent ||
+						physical.physical_material != system_physics.physical_material || physical.mass != system_physics.mass || physical.gravity_factor != system_physics.gravity_factor || physical.linear_damping != system_physics.linear_damping ||
+						physical.angular_damping != system_physics.angular_damping || physical.radius != system_physics.radius || physical.half_height != system_physics.half_height || physical.is_sensor != system_physics.is_sensor ||
+						physical.motion_quality_continuous != system_physics.motion_quality_continuous || physical.allow_sleep != system_physics.allow_sleep)
+						destroy_entities.push_back(row.id);
+				}
 
 				for (entity_id_t id : destroy_entities)
 					destroy_entity_physics(id);

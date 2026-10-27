@@ -184,7 +184,7 @@ namespace sfg
 			return false;
 		}
 
-		for (const char* name : {"CMakeLists.txt", "game.cpp"})
+		for (const char* name : {"CMakeLists.txt", "game.cpp", "game_components.hpp", "game_type_registry.hpp", "game_type_registry.cpp"})
 		{
 			const string_t destination = _runtime.native_source_path + name;
 

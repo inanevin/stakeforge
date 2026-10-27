@@ -27,6 +27,10 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/editor_surface_controller.hpp"
 #include "tools/editor_world_controller.hpp"
 #include "tools/world/editor_world.hpp"
+#include "tools/ui/panels/editor_panel_inspector.hpp"
+#include "tools/ui/panels/editor_primary_base.hpp"
+#include "tools/ui/panels/editor_secondary_base.hpp"
+#include "tools/ui/editor_action_menu_controller.hpp"
 
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/io/file_system.hpp>
@@ -115,6 +119,9 @@ namespace sfg
 	{
 		SFG_ASSERT(_work.is_null());
 
+		if (plugin_runtime_t::get().is_staged())
+			plugin_runtime_t::get().discard_staged(_diagnostics);
+
 		if (plugin_runtime_t::get().is_loaded())
 			plugin_runtime_t::get().unload(_diagnostics);
 
@@ -126,7 +133,7 @@ namespace sfg
 
 	bool editor_native_manager_t::is_operation_allowed() const
 	{
-		if (_stopping || _state != state_e::idle || !editor_world_controller_t::is_initialized())
+		if (_stopping || _state != state_e::idle || !editor_world_controller_t::is_initialized() || editor_surface_controller_t::get().is_any_modal_active())
 			return false;
 
 		const editor_world_controller_t& worlds		= editor_world_controller_t::get();
@@ -365,27 +372,54 @@ namespace sfg
 
 	void editor_native_manager_t::activate_staged_module()
 	{
-		const string_t previous_path = plugin_runtime_t::get().get_path();
+		plugin_runtime_t& plugin = plugin_runtime_t::get();
+		_observed_stamp			 = _stage_result.stamp;
 
-		if (plugin_runtime_t::get().is_loaded() && !plugin_runtime_t::get().unload(_diagnostics))
+		if (!plugin.stage(_stage_result.path.c_str(), _diagnostics))
 		{
 			_error_pending = true;
 			return;
 		}
 
-		if (!plugin_runtime_t::get().load(_stage_result.path.c_str(), _diagnostics))
+		editor_app_t::get().stop_render();
+
+		vector_t<editor_panel_inspector_t*> inspectors = {};
+
+		for (editor_surface_t& surface : editor_surface_controller_t::get())
 		{
-			_error_pending = true;
+			if (surface.type != editor_surface_type_e::primary && surface.type != editor_surface_type_e::secondary)
+				continue;
 
-			if (!previous_path.empty())
+			surface.action_menu_controller->close_action_menu();
+			const dock_widget_t& dock = surface.type == editor_surface_type_e::primary ? surface.primary->get_dock_widget() : surface.secondary->get_dock_widget();
+
+			for (const dock_node_t& node : dock.get_nodes())
 			{
-				string_t restore_diagnostics = {};
+				for (editor_panel_t* panel : node.panels)
+				{
+					if (panel->get_type() != editor_panel_type_e::inspector)
+						continue;
 
-				if (!plugin_runtime_t::get().load(previous_path.c_str(), restore_diagnostics))
-					_diagnostics += "\nPrevious DLL could not be restored: " + restore_diagnostics;
+					editor_panel_inspector_t* inspector = static_cast<editor_panel_inspector_t*>(panel);
+					inspector->prepare_component_reload();
+					inspectors.push_back(inspector);
+				}
 			}
 		}
 
-		_observed_stamp = _stage_result.stamp;
+		if (!plugin.activate_staged(_diagnostics, [](const native_component_schema_t& previous, const native_component_schema_t& current, const native_component_schema_delta_t& delta) {
+				if (editor_world_controller_t::is_initialized())
+					editor_world_controller_t::get().apply_native_component_schema(previous, current, delta);
+			}))
+		{
+			_error_pending				 = true;
+			string_t discard_diagnostics = {};
+
+			if (!plugin.discard_staged(discard_diagnostics))
+				_diagnostics += "\n" + discard_diagnostics;
+		}
+
+		for (editor_panel_inspector_t* inspector : inspectors)
+			inspector->refresh_display();
 	}
 }

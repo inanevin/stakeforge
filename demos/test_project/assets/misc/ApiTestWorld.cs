@@ -14,9 +14,7 @@ public sealed class ApiTestWorld : WorldScript
     private const ushort KeyD = 0x44;
     private const ushort KeyE = 0x45;
     private const ushort KeyH = 0x48;
-    private const ushort KeyK = 0x4B;
     private const ushort KeyM = 0x4D;
-    private const ushort KeyR = 0x52;
     private const ushort KeyS = 0x53;
     private const ushort KeyT = 0x54;
     private const ushort KeyW = 0x57;
@@ -104,7 +102,7 @@ public sealed class ApiTestWorld : WorldScript
       _checks.Pass("world/time", "scaled and real clocks available");
        _checks.Draw(
            world,
-           $"WASD move | Space jump | E spawn crate | LMB ray | MMB line | RMB sphere | M material | H hide/show | T timescale | R reload | K load new_w | Delete crate | time {world.ElapsedTime:0.00}/{world.RealElapsedTime:0.00}");
+           $"WASD move | Space jump | E spawn crate | LMB ray | MMB line | RMB sphere | M material | H hide/show | T timescale | Delete crate | time {world.ElapsedTime:0.00}/{world.RealElapsedTime:0.00}");
     }
 
     public override void PostPhysicsTick(World world, float deltaTime)
@@ -177,12 +175,6 @@ public sealed class ApiTestWorld : WorldScript
             case KeyM:
                 _materialAlternate = !_materialAlternate;
                 RunMaterialChecks(_materialAlternate);
-                break;
-            case KeyR:
-                Game.RestartWorld();
-                break;
-            case KeyK:
-                Game.LoadWorld(Hash.StringId("new_w"));
                 break;
             case KeyT:
                 world.TimeScale = world.TimeScale < 0.9f ? 1.0f : 0.25f;

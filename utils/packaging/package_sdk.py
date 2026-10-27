@@ -256,7 +256,7 @@ def package(manifest):
     desired["tools/visual_studio/open_project.ps1"] = source_root / "utils/packaging/visual_studio/open_project.ps1"
     template_root = source_root / "utils/packaging/templates/native"
 
-    for name in ("CMakeLists.txt", "game.cpp"):
+    for name in ("CMakeLists.txt", "game.cpp", "game_components.hpp", "game_type_registry.hpp", "game_type_registry.cpp"):
         desired[f"templates/native/{name}"] = template_root / name
 
     metadata = {key: settings[key] for key in (

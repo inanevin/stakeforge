@@ -58,18 +58,21 @@ namespace sfg
 		_used_resources.reserve(512);
 		_screen.init(config.render_resolution);
 
-		const vector_t<reflected_type_t>& types = reflection_registry_t::get().get_types();
+		const reflection_registry_t& registry = reflection_registry_t::get();
 
-		for (const reflected_type_t& type : types)
+		for (const vector_t<reflected_type_t>* types : {&registry.get_types(), &registry.get_native_types()})
 		{
-			const bool is_component		   = type.flags.is_set(reflected_type_flags_e::reflected_type_flag_component);
-			const bool is_tag_component	   = type.flags.is_set(reflected_type_flags_e::reflected_type_flag_tag_component);
-			const bool is_system_component = type.flags.is_set(reflected_type_flags_e::reflected_type_flag_system_component);
+			for (const reflected_type_t& type : *types)
+			{
+				const bool is_component		   = type.flags.is_set(reflected_type_flag_component);
+				const bool is_tag_component	   = type.flags.is_set(reflected_type_flag_tag_component);
+				const bool is_system_component = type.flags.is_set(reflected_type_flag_system_component);
 
-			if (!is_component && !is_tag_component && !is_system_component)
-				continue;
+				if (!is_component && !is_tag_component && !is_system_component)
+					continue;
 
-			add_component_table(ecs_component_table_t::make_component_desc(type.type_id, is_tag_component ? 0 : type.size, is_tag_component ? 1 : type.alignment, is_tag_component ? ecs_component_type_flags_tag : ecs_component_type_flags_none, type.name));
+				add_component_table(ecs_component_table_t::make_component_desc(type.type_id, is_tag_component ? 0 : type.size, is_tag_component ? 1 : type.alignment, is_tag_component ? ecs_component_type_flags_tag : ecs_component_type_flags_none, type.name));
+			}
 		}
 
 		refresh_component_table_cache();
@@ -121,6 +124,9 @@ namespace sfg
 
 		for (key_state_t& state : _key_states)
 			state = {};
+
+		_world_name			  = NULL_SID;
+		_requested_level_load = NULL_SID;
 	}
 
 	void world_t::begin_play()
@@ -175,6 +181,8 @@ namespace sfg
 		_is_playing			 = false;
 
 		set_time_scale(1.0f);
+
+		_requested_level_load = NULL_SID;
 	}
 
 	void world_t::pause_audio()
@@ -196,6 +204,22 @@ namespace sfg
 		_time_scale = math::max(0.0f, time_scale);
 
 		_audio_controller.set_time_scale(_time_scale);
+	}
+
+	void world_t::load_level(sid_t name_hash)
+	{
+		SFG_ASSERT(name_hash != NULL_SID);
+
+		_requested_level_load = name_hash;
+	}
+
+	sid_t world_t::consume_requested_level_load()
+	{
+		const sid_t requested = _requested_level_load;
+
+		_requested_level_load = NULL_SID;
+
+		return requested;
 	}
 
 	void world_t::reset_world_state()
@@ -227,6 +251,8 @@ namespace sfg
 
 		for (key_state_t& state : _key_states)
 			state = {};
+
+		_requested_level_load = NULL_SID;
 	}
 
 	void world_t::tick_physics(f32 dt)

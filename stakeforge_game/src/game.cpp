@@ -151,26 +151,6 @@ namespace sfg
 		return 1;
 	}
 
-	u8 game_t::load_script_game_world(sid_t world_name_hash)
-	{
-		SFG_ASSERT(s_instance != nullptr);
-
-		if (!s_instance->_world_controller.is_initialized())
-			return 0;
-
-		return s_instance->_world_controller.queue_world_load_by_name_hash(world_name_hash) ? 1 : 0;
-	}
-
-	u8 game_t::restart_script_game_world()
-	{
-		SFG_ASSERT(s_instance != nullptr);
-
-		if (!s_instance->_world_controller.is_initialized())
-			return 0;
-
-		return s_instance->_world_controller.queue_world_restart() ? 1 : 0;
-	}
-
 	void game_t::quit_script_game()
 	{
 		SFG_ASSERT(s_instance != nullptr);
@@ -263,7 +243,7 @@ namespace sfg
 
 		g_window_api_enabled = true;
 		set_script_api_platform_window_runtime(&_window);
-		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, load_script_game_world, restart_script_game_world, quit_script_game);
+		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, quit_script_game);
 		_script_api_bound = true;
 
 		if (!_world_controller.init(_window.size, _package_meta))
@@ -470,12 +450,15 @@ namespace sfg
 
 	bool game_t::apply_pending_world_load()
 	{
-		if (!_world_controller.has_pending_world_load())
+		world_t& world = _world_controller.get_main_world();
+
+		if (world.get_requested_level_load() == NULL_SID)
 			return true;
 
 		_renderer.end_render();
 
-		const bool loaded = _world_controller.apply_pending_world_load();
+		const sid_t name_hash = world.consume_requested_level_load();
+		const bool	loaded	  = _world_controller.load_world_by_name_hash(name_hash);
 
 		resource_manager_t::get().flush();
 		render_resources_t::get().drain_requests();
@@ -510,7 +493,7 @@ namespace sfg
 			reset_script_api_platform_cursor_state();
 			set_script_api_platform_lock_cursor_callback(nullptr);
 			set_script_api_platform_window_runtime(nullptr);
-			set_script_api_game_callbacks(nullptr, nullptr, nullptr, nullptr, nullptr);
+			set_script_api_game_callbacks(nullptr, nullptr, nullptr);
 			_script_api_bound = false;
 		}
 

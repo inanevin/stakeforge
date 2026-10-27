@@ -59,6 +59,14 @@ namespace sfg
 		refresh_display();
 	}
 
+	void editor_widget_inspector_t::prepare_component_reload()
+	{
+		save_display_state();
+		clear_display();
+		_copied_component_stream.destroy();
+		_copied_component_type = 0;
+	}
+
 	void editor_widget_inspector_t::refresh_display()
 	{
 		save_display_state();

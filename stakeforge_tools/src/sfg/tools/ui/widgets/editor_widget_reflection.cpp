@@ -866,39 +866,46 @@ namespace sfg
 		create_fields(fold->get_body(), objects, field->sub_type_id, world, false, true, indentation + editor_theme_t::get().margin_horizontal, false, element_index);
 	}
 
-	void editor_widget_reflection_t::create_container(ui::widget_id_t parent, sid_t type_id, const reflected_field_t* field, span_t<void*> containers, editor_world_handle_t world, bool, bool sub_item, f32 indentation)
+	void editor_widget_reflection_t::create_container(ui::widget_id_t parent, sid_t type_id, const reflected_field_t* field, span_t<void*> containers, editor_world_handle_t world, bool track_row, bool sub_item, f32 indentation)
 	{
 		const reflected_value_type_e element_value_type	 = field->container_ops.element_value_type;
 		const sid_t					 element_sub_type_id = field->container_ops.element_sub_type_id;
+
 		SFG_ASSERT(is_container_type_allowed(element_value_type, element_sub_type_id));
 
-		bool folded = false;
+		const bool fixed_array = field->container_ops.storage == reflected_container_storage_e::fixed_array;
+		bool	   folded	   = false;
+
 		get_fold_state(type_id, field->field_identifier, folded);
 
 		editor_widget_fold_label_t* fold = new editor_widget_fold_label_t();
+
 		fold->init(*_ui,
 				   parent,
 				   {
 					   .label		 = field->display_name ? field->display_name : "missing_display_name",
 					   .indentation	 = indentation,
-					   .button_style = editor_widget_fold_label_button_style_e::container_buttons,
+					   .button_style = fixed_array ? editor_widget_fold_label_button_style_e::none : editor_widget_fold_label_button_style_e::container_buttons,
 					   .folded		 = folded,
 					   .sub_item	 = sub_item,
 				   });
+
 		install_tooltip(fold->get_root(), field->tooltip);
-		install_tooltip(fold->get_add_button(), "Add Element");
-		install_tooltip(fold->get_reset_button(), "Reset Container");
+
 		container_user_data_t* user_data = create_container_user_data(field, containers, world, type_id, indentation, fold);
 
-		ui::listener_bundle_t add_listener = {};
-		add_listener.user_data			   = user_data;
-		add_listener.on_click			   = on_container_add;
-		_ui->get_input().set_listener(fold->get_add_button(), add_listener);
+		if (!fixed_array)
+		{
+			install_tooltip(fold->get_add_button(), "Add Element");
+			install_tooltip(fold->get_reset_button(), "Reset Container");
 
-		ui::listener_bundle_t reset_listener = {};
-		reset_listener.user_data			 = user_data;
-		reset_listener.on_click				 = on_container_reset;
-		_ui->get_input().set_listener(fold->get_reset_button(), reset_listener);
+			const ui::listener_bundle_t add_listener   = {.on_click = on_container_add, .user_data = user_data};
+			const ui::listener_bundle_t reset_listener = {.on_click = on_container_reset, .user_data = user_data};
+
+			_ui->get_input().set_listener(fold->get_add_button(), add_listener);
+			_ui->get_input().set_listener(fold->get_reset_button(), reset_listener);
+		}
+
 		_fold_labels.push_back(fold);
 		_field_folds.push_back({.fold = fold, .type_id = type_id, .field_id = field->field_identifier});
 
@@ -914,10 +921,14 @@ namespace sfg
 		const reflected_value_type_e   element_value_type  = field->container_ops.element_value_type;
 		const sid_t					   element_sub_type_id = field->container_ops.element_sub_type_id;
 
+		const bool removable = field->container_ops.storage != reflected_container_storage_e::fixed_array;
+
 		size_t element_count = field->container_ops.get_element_size_fn(containers.data[0]);
+
 		for (size_t i = 1; i < containers.size; ++i)
 		{
 			const size_t container_size = field->container_ops.get_element_size_fn(containers.data[i]);
+
 			if (container_size < element_count)
 				element_count = container_size;
 		}
@@ -939,31 +950,34 @@ namespace sfg
 			switch (element_value_type)
 			{
 			case reflected_value_type_e::boolean: {
-				frame_vector_t<u8*> element_fields;
+				frame_vector_t<u8*> element_fields = {};
 				element_fields.reserve(containers.size);
+
 				for (size_t i = 0; i < containers.size; ++i)
 					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
 
-				create_checkbox(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
+				create_checkbox(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, removable, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
 				break;
 			}
 			case reflected_value_type_e::string:
 			case reflected_value_type_e::char_array: {
-				frame_vector_t<u8*> element_fields;
+				frame_vector_t<u8*> element_fields = {};
 				element_fields.reserve(containers.size);
+
 				for (size_t i = 0; i < containers.size; ++i)
 					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
 
-				create_input_field(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
+				create_input_field(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, removable, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
 				break;
 			}
 			case reflected_value_type_e::object: {
-				frame_vector_t<void*> element_fields;
+				frame_vector_t<void*> element_fields = {};
 				element_fields.reserve(containers.size);
+
 				for (size_t i = 0; i < containers.size; ++i)
 					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
 
-				create_object(parent, container_data->type_id, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, world, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
+				create_object(parent, container_data->type_id, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, world, false, true, removable, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
 				break;
 			}
 			case reflected_value_type_e::f32:
@@ -977,24 +991,26 @@ namespace sfg
 			case reflected_value_type_e::i64: {
 				if (element_value_type == reflected_value_type_e::u64)
 				{
-					frame_vector_t<u64*> reference_fields;
+					frame_vector_t<u64*> reference_fields = {};
 					reference_fields.reserve(containers.size);
+
 					for (size_t i = 0; i < containers.size; ++i)
 						reference_fields.push_back(reinterpret_cast<u64*>(field->container_ops.get_element_ptr_fn(containers.data[i], element_index)));
 
-					if (create_reference(parent, &element_field, {.data = reference_fields.data(), .size = reference_fields.size()}, world, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index))
+					if (create_reference(parent, &element_field, {.data = reference_fields.data(), .size = reference_fields.size()}, world, false, true, removable, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index))
 						break;
 				}
 
-				frame_vector_t<u8*> element_fields;
+				frame_vector_t<u8*> element_fields = {};
 				element_fields.reserve(containers.size);
+
 				for (size_t i = 0; i < containers.size; ++i)
 					element_fields.push_back(field->container_ops.get_element_ptr_fn(containers.data[i], element_index));
 
-				if (create_dropdown(parent, &element_field, field->field_identifier, {.data = element_fields.data(), .size = element_fields.size()}, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index))
+				if (create_dropdown(parent, &element_field, field->field_identifier, {.data = element_fields.data(), .size = element_fields.size()}, false, true, removable, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index))
 					break;
 
-				create_input_field(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, true, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
+				create_input_field(parent, &element_field, {.data = element_fields.data(), .size = element_fields.size()}, false, true, removable, indentation + editor_theme_t::get().margin_horizontal, container_data, element_index);
 				break;
 			}
 			default:

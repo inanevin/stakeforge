@@ -63,8 +63,6 @@ namespace sfg
 		void apply_requests();
 		void tick_world(editor_world_t& editor_world, f32 dt_seconds);
 		void step(f32 dt_seconds);
-		bool queue_world_load(sid_t world_name_hash);
-		bool queue_world_restart();
 		void queue_quit();
 		void process_game_requests();
 
@@ -118,14 +116,6 @@ namespace sfg
 		}
 
 	private:
-		enum class game_request_e : u8
-		{
-			none,
-			load_world,
-			restart,
-			quit,
-		};
-
 		void enter_play(editor_play_state_e state);
 		void change_controls(editor_play_state_e state);
 		void change_pause(bool paused);
@@ -135,18 +125,17 @@ namespace sfg
 		void refresh_panels();
 
 	private:
-		editor_play_edits_t	  _edits					= {};
-		string_t			  _world_snapshot			= {};
-		sid_t				  _pending_world_asset_guid = NULL_SID;
-		editor_world_handle_t _world					= {};
-		editor_play_state_e	  _state					= editor_play_state_e::not_playing;
-		editor_play_state_e	  _requested_state			= editor_play_state_e::not_playing;
-		game_request_e		  _game_request				= game_request_e::none;
-		bool				  _edit_mode				= false;
-		bool				  _save_edits				= false;
-		bool				  _saved_world_dirty		= false;
-		bool				  _paused					= false;
-		bool				  _pause_requested			= false;
-		bool				  _step_requested			= false;
+		editor_play_edits_t	  _edits			 = {};
+		string_t			  _world_snapshot	 = {};
+		editor_world_handle_t _world			 = {};
+		editor_play_state_e	  _state			 = editor_play_state_e::not_playing;
+		editor_play_state_e	  _requested_state	 = editor_play_state_e::not_playing;
+		bool				  _quit_requested	 = false;
+		bool				  _edit_mode		 = false;
+		bool				  _save_edits		 = false;
+		bool				  _saved_world_dirty = false;
+		bool				  _paused			 = false;
+		bool				  _pause_requested	 = false;
+		bool				  _step_requested	 = false;
 	};
 }

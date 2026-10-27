@@ -44,6 +44,8 @@ namespace sfg
 
 	class SFG_API world_t
 	{
+		friend class world_component_util_t;
+
 	public:
 		world_t();
 		~world_t();
@@ -63,25 +65,27 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const world_init_config_t& config, const world_debug_draw_config_t& debug_draw_config, const physics_runtime_config_t& physics_config, const world_particle_simulation_config_t& particle_simulation_config);
-		void uninit();
-		void begin_play();
-		void end_play();
-		void pause_audio();
-		void resume_audio();
-		void set_time_scale(f32 time_scale);
-		void reset_world_state();
-		void tick_physics(f32 dt);
-		void tick_animation_logic(f32 dt);
-		void on_animation_callback(entity_id_t entity, sid_t event);
-		void tick_logic(f32 dt);
-		void draw_plugin_debug();
-		void tick_post(f32 dt);
-		void key_event(u16 key, u16 scan_code, u8 action);
-		void focus_event(bool focused);
-		void mouse_button_event(u8 button, u8 action, f32 position_x, f32 position_y);
-		void mouse_move_event(f32 position_x, f32 position_y, f32 delta_x, f32 delta_y);
-		void mouse_wheel_event(f32 position_x, f32 position_y, f32 delta);
+		void  init(const world_init_config_t& config, const world_debug_draw_config_t& debug_draw_config, const physics_runtime_config_t& physics_config, const world_particle_simulation_config_t& particle_simulation_config);
+		void  uninit();
+		void  begin_play();
+		void  end_play();
+		void  pause_audio();
+		void  resume_audio();
+		void  set_time_scale(f32 time_scale);
+		void  reset_world_state();
+		void  load_level(sid_t name_hash);
+		sid_t consume_requested_level_load();
+		void  tick_physics(f32 dt);
+		void  tick_animation_logic(f32 dt);
+		void  on_animation_callback(entity_id_t entity, sid_t event);
+		void  tick_logic(f32 dt);
+		void  draw_plugin_debug();
+		void  tick_post(f32 dt);
+		void  key_event(u16 key, u16 scan_code, u8 action);
+		void  focus_event(bool focused);
+		void  mouse_button_event(u8 button, u8 action, f32 position_x, f32 position_y);
+		void  mouse_move_event(f32 position_x, f32 position_y, f32 delta_x, f32 delta_y);
+		void  mouse_wheel_event(f32 position_x, f32 position_y, f32 delta);
 
 		// -----------------------------------------------------------------------------
 		// entity
@@ -288,6 +292,21 @@ namespace sfg
 			return _main_camera_entity;
 		}
 
+		inline sid_t get_world_name() const
+		{
+			return _world_name;
+		}
+
+		inline void set_world_name(sid_t world_name)
+		{
+			_world_name = world_name;
+		}
+
+		inline sid_t get_requested_level_load() const
+		{
+			return _requested_level_load;
+		}
+
 		inline bool is_playing() const
 		{
 			return _is_playing;
@@ -359,6 +378,8 @@ namespace sfg
 		engine_components_t				_engine_components			  = {};
 		system_components_t				_system_components			  = {};
 		key_state_t						_key_states[256]			  = {};
+		sid_t							_world_name					  = NULL_SID;
+		sid_t							_requested_level_load		  = NULL_SID;
 		f32								_elapsed_time				  = 0.0f;
 		f32								_real_elapsed_time			  = 0.0f;
 		u64								_tick_count					  = 0;

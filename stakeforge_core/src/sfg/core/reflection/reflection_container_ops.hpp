@@ -161,6 +161,21 @@ namespace sfg
 			--(values.*Size);
 		}
 
+		template <typename T, size_t N> static reflected_field_container_ops_t array_ops(reflected_value_type_e value_type, sid_t sub_type_id = 0)
+		{
+			static_assert(N > 0 && N <= UINT32_MAX);
+
+			return {
+				.get_element_ptr_fn	 = [](void* obj, u32 index) { return reinterpret_cast<u8*>(&static_cast<T*>(obj)[index]); },
+				.get_element_size_fn = [](const void* obj) -> size_t { return N; },
+				.element_value_type	 = value_type,
+				.element_sub_type_id = sub_type_id,
+				.element_value_size	 = sizeof(T),
+				.capacity			 = static_cast<u32>(N),
+				.storage			 = reflected_container_storage_e::fixed_array,
+			};
+		}
+
 		template <typename T> static inline reflected_field_container_ops_t vector_ops(reflected_value_type_e value_type, sid_t sub_type_id = 0)
 		{
 			return {
@@ -205,6 +220,11 @@ namespace sfg
 
 		template <typename TContainer, typename T, size_t N, T (TContainer::*Data)[N], size_t TContainer::* Size> static inline reflected_field_container_ops_t sized_array_ops(reflected_value_type_e value_type, sid_t sub_type_id = 0)
 		{
+			static_assert(N > 0 && N <= UINT32_MAX && sizeof(TContainer) <= UINT32_MAX);
+
+			TContainer container = {};
+			const u8*  base		 = reinterpret_cast<const u8*>(&container);
+
 			return {
 				.add_element_ptr_fn	 = &sized_array_add_element_ptr<TContainer, T, N, Data, Size>,
 				.reset_fn			 = &sized_array_reset<TContainer, T, N, Data, Size>,
@@ -214,6 +234,10 @@ namespace sfg
 				.element_value_type	 = value_type,
 				.element_sub_type_id = sub_type_id,
 				.element_value_size	 = sizeof(T),
+				.element_offset		 = static_cast<u32>(reinterpret_cast<const u8*>(&(container.*Data)[0]) - base),
+				.count_offset		 = static_cast<u32>(reinterpret_cast<const u8*>(&(container.*Size)) - base),
+				.capacity			 = static_cast<u32>(N),
+				.storage			 = reflected_container_storage_e::sized_array,
 			};
 		}
 

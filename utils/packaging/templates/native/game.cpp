@@ -19,6 +19,8 @@ holders grant the Stakeforge Game Linking Exception, version 1.0,
 in GAME-LINKING-EXCEPTION.md.
 
 */
+#include "game_type_registry.hpp"
+
 #include <sfg/core/input/input_common.hpp>
 #include <sfg/core/runtime/scripting/plugin_api.hpp>
 #include <sfg/core/runtime/world/world.hpp>
@@ -99,6 +101,7 @@ SFG_PLUGIN_ENTRY bool sfg_get_plugin_callbacks(u32 api_version, sfg::plugin_call
 		return false;
 
 	callbacks = {
+		.register_types		= game::game_type_registry_t::register_types,
 		.load				= game::load,
 		.unload				= game::unload,
 		.begin_play			= game::begin_play,

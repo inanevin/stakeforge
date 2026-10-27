@@ -37,16 +37,6 @@ public static unsafe class Game
         return SetRenderResolution(resolution.Width, resolution.Height);
     }
 
-    public static bool LoadWorld(ulong worldNameHash)
-    {
-        return ManagedRuntime.GetApi()->Game->LoadWorld(worldNameHash) != 0;
-    }
-
-    public static bool RestartWorld()
-    {
-        return ManagedRuntime.GetApi()->Game->RestartWorld() != 0;
-    }
-
     public static void Quit()
     {
         ManagedRuntime.GetApi()->Game->Quit();

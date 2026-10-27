@@ -413,17 +413,14 @@ namespace sfg
 				entities.push_back(selected.data[i]);
 		}
 
-		for (const reflected_type_t& type : reflection_registry_t::get().get_types())
+		for (const ecs_component_table_t& component_table : world.get_component_tables())
 		{
+			const reflected_type_t& type = *reflection_registry_t::get().find_type(component_table.get_type_id());
+
 			if (!type.flags.is_set(reflected_type_flag_renderable))
 				continue;
 
-			const ecs_component_table_t* table = world.find_component_table(type.type_id);
-
-			if (table == nullptr)
-				continue;
-
-			const ecs_component_table_ref_t table_refs[] = {table->ref()};
+			const ecs_component_table_ref_t table_refs[] = {component_table.ref()};
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{

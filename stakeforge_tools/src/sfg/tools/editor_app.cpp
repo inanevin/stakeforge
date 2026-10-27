@@ -90,16 +90,6 @@ namespace sfg
 		return 1;
 	}
 
-	u8 editor_app_t::load_script_game_world(sid_t world_name_hash)
-	{
-		return editor_app_t::get().get_world_controller().get_play_session().queue_world_load(world_name_hash) ? 1 : 0;
-	}
-
-	u8 editor_app_t::restart_script_game_world()
-	{
-		return editor_app_t::get().get_world_controller().get_play_session().queue_world_restart() ? 1 : 0;
-	}
-
 	void editor_app_t::quit_script_game()
 	{
 		editor_app_t::get().get_world_controller().get_play_session().queue_quit();
@@ -229,7 +219,7 @@ namespace sfg
 
 		set_script_api_platform_lock_cursor_callback(nullptr);
 		set_script_api_platform_window_runtime(nullptr);
-		set_script_api_game_callbacks(nullptr, nullptr, nullptr, nullptr, nullptr);
+		set_script_api_game_callbacks(nullptr, nullptr, nullptr);
 
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
 		SFG_ASSERT(surfaces.is_empty());
@@ -386,7 +376,7 @@ namespace sfg
 		_normal_world_load_pending = proj.settings.last_world_guid != NULL_SID;
 
 		set_script_api_platform_window_runtime(surfaces.get_main_surface().runtime.get());
-		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, load_script_game_world, restart_script_game_world, quit_script_game);
+		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, quit_script_game);
 
 		editor_script_manager_t::get().init();
 		_asset_manager.initialize_script_file_tracking();
@@ -429,7 +419,7 @@ namespace sfg
 			editor_native_manager_t::get().begin_shutdown();
 			set_script_api_platform_lock_cursor_callback(nullptr);
 			set_script_api_platform_window_runtime(nullptr);
-			set_script_api_game_callbacks(nullptr, nullptr, nullptr, nullptr, nullptr);
+			set_script_api_game_callbacks(nullptr, nullptr, nullptr);
 		}
 
 		surfaces.destroy_all_surfaces();

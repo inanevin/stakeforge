@@ -107,6 +107,9 @@ namespace sfg
 
 		editor_world_t& editor_world = *worlds.get_editor_world(_world);
 
+		const editor_asset_node_t* asset_node = editor_asset_manager_t::get().find_asset_node(worlds._main_world_asset_guid);
+
+		editor_world.get_world().set_world_name(asset_node == nullptr ? NULL_SID : TO_SID(asset_node->name));
 		editor_world.reset_input();
 		capture_snapshot(editor_world);
 		_saved_world_dirty = worlds.is_main_world_dirty();
@@ -123,11 +126,10 @@ namespace sfg
 
 	void editor_play_session_t::stop()
 	{
-		_requested_state		  = editor_play_state_e::not_playing;
-		_pause_requested		  = false;
-		_step_requested			  = false;
-		_game_request			  = game_request_e::none;
-		_pending_world_asset_guid = NULL_SID;
+		_requested_state = editor_play_state_e::not_playing;
+		_pause_requested = false;
+		_step_requested	 = false;
+		_quit_requested	 = false;
 
 		if (!is_playing())
 			return;
@@ -294,10 +296,31 @@ namespace sfg
 		tick_simulation(editor_world, dt_seconds);
 	}
 
-	bool editor_play_session_t::queue_world_load(sid_t world_name_hash)
+	void editor_play_session_t::queue_quit()
 	{
-		if (!is_playing() || world_name_hash == 0 || world_name_hash == NULL_SID || _game_request != game_request_e::none)
-			return false;
+		if (!is_playing())
+			return;
+
+		_quit_requested = true;
+	}
+
+	void editor_play_session_t::process_game_requests()
+	{
+		if (!is_playing())
+			return;
+
+		if (_quit_requested)
+		{
+			stop();
+			return;
+		}
+
+		editor_world_controller_t& worlds	 = editor_world_controller_t::get();
+		world_t&				   world	 = worlds.get_editor_world(_world)->get_world();
+		const sid_t				   name_hash = world.consume_requested_level_load();
+
+		if (name_hash == NULL_SID)
+			return;
 
 		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
 		sid_t						  asset_guid	= NULL_SID;
@@ -308,61 +331,30 @@ namespace sfg
 				continue;
 
 			const editor_asset_node_t* node = asset_manager.find_asset_node(candidate_guid);
+
 			SFG_ASSERT(node != nullptr);
 
-			if (TO_SID(node->name) != world_name_hash)
+			if (TO_SID(node->name) != name_hash)
 				continue;
 
 			if (asset_guid != NULL_SID)
 			{
-				SFG_ERR("multiple world assets have the requested name hash {0}", world_name_hash);
-				return false;
+				SFG_ERR("multiple world assets have the requested name hash {0}", name_hash);
+				return;
 			}
 
 			asset_guid = candidate_guid;
 		}
 
 		if (asset_guid == NULL_SID)
-			return false;
-
-		_pending_world_asset_guid = asset_guid;
-		_game_request			  = game_request_e::load_world;
-		return true;
-	}
-
-	bool editor_play_session_t::queue_world_restart()
-	{
-		if (!is_playing() || _game_request != game_request_e::none)
-			return false;
-
-		_game_request = game_request_e::restart;
-		return true;
-	}
-
-	void editor_play_session_t::queue_quit()
-	{
-		if (!is_playing())
+		{
+			SFG_ERR("requested world name was not found: {0}", name_hash);
 			return;
-
-		_game_request			  = game_request_e::quit;
-		_pending_world_asset_guid = NULL_SID;
-	}
-
-	void editor_play_session_t::process_game_requests()
-	{
-		const game_request_e request = _game_request;
-
-		if (request == game_request_e::none)
-			return;
-
-		const sid_t asset_guid = _pending_world_asset_guid;
+		}
 
 		stop();
 
-		if (request == game_request_e::quit)
-			return;
-
-		if (request == game_request_e::load_world && !editor_world_controller_t::get().load_main_world_now(asset_guid))
+		if (!worlds.load_main_world_now(asset_guid))
 			return;
 
 		request_play(true);
