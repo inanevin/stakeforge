@@ -29,8 +29,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/assets/thumbnail/editor_asset_thumbnailer.hpp"
 #include "tools/editor_app.hpp"
 #include "tools/editor_file_watch_controller.hpp"
-#include "tools/scripting/editor_script_manager.hpp"
-#include "tools/scripting/editor_native_manager.hpp"
 #include "tools/editor_surface_controller.hpp"
 #include "tools/editor_project.hpp"
 #include "tools/ui/editor_modal_controller.hpp"
@@ -170,8 +168,6 @@ namespace sfg
 		_import_work_progress		  = 0.0f;
 		_cooked_file_track_inited	  = false;
 		_source_file_track_inited	  = false;
-		_script_file_track_inited	  = false;
-		_script_compile_requested	  = false;
 		_import_target_directory_node = {};
 
 		s_instance = nullptr;
@@ -203,15 +199,6 @@ namespace sfg
 
 		if (!_changed_source_assets.empty())
 			process_changed_source_files();
-
-		if (_script_file_track_inited)
-		{
-			if (_script_compile_requested && editor_script_manager_t::get().is_compile_idle() && editor_native_manager_t::get().is_idle())
-			{
-				_script_compile_requested = false;
-				editor_script_manager_t::get().compile_scripts();
-			}
-		}
 	}
 
 	void editor_asset_manager_t::clear()
@@ -225,15 +212,12 @@ namespace sfg
 		_cooked_resource_tracking_states.clear();
 		_cooked_path_to_resource.clear();
 		_source_file_to_tracking.clear();
-		_script_file_tracking_states.clear();
 		_asset_to_source_tracking.clear();
 		_changed_cooked_resources.resize(0);
 		_changed_source_assets.resize(0);
 		_latest_asset_cook_revisions.clear();
 		_cooked_file_track_inited = false;
 		_source_file_track_inited = false;
-		_script_file_track_inited = false;
-		_script_compile_requested = false;
 		_generation++;
 	}
 
@@ -278,38 +262,6 @@ namespace sfg
 		_source_file_track_inited = true;
 	}
 
-	void editor_asset_manager_t::initialize_script_file_tracking()
-	{
-		SFG_ASSERT(!_script_file_track_inited);
-
-		const editor_asset_tree_t&		 tree = _database.get_asset_tree();
-		const editor_asset_node_handle_t root = _database.get_root_node();
-
-		SFG_ASSERT(tree.is_valid(root));
-
-		_script_file_tracking_states.clear();
-		_script_file_tracking_states.reserve(tree.size());
-
-		tree.for_each_depth_first(root, [&](editor_asset_node_handle_t node, u32 depth) {
-			const editor_asset_node_t& asset_node = tree.value(node);
-
-			if (asset_node.type == editor_asset_node_type_e::script_file)
-				track_script_file(asset_node.full_path.c_str());
-		});
-
-		_script_file_track_inited = true;
-		_script_compile_requested = false;
-	}
-
-	void editor_asset_manager_t::uninitialize_script_file_tracking()
-	{
-		SFG_ASSERT(_script_file_track_inited);
-
-		_script_file_tracking_states.clear();
-		_script_file_track_inited = false;
-		_script_compile_requested = false;
-	}
-
 	void editor_asset_manager_t::register_descriptor(const editor_asset_descriptor_t& desc)
 	{
 		_asset_descriptors[desc.asset_type] = desc;
@@ -330,6 +282,7 @@ namespace sfg
 		if (file_system_t::get_file_extension(path) == "sfg_asset")
 		{
 			editor_asset_t asset = {};
+
 			if (!editor_asset_io_t::read_asset(path, asset))
 				return {};
 
@@ -367,15 +320,9 @@ namespace sfg
 		}
 
 		const string_t					 name	   = file_system_t::get_filename_and_extension_from_path(path);
-		const editor_asset_node_type_e	 node_type = file_system_t::get_file_extension(path) == "cs" ? editor_asset_node_type_e::script_file : editor_asset_node_type_e::file;
+		const editor_asset_node_type_e	 node_type = editor_asset_node_type_e::file;
 		const editor_asset_node_handle_t node	   = _database.emplace_node(editor_asset_node_t{.name = name, .full_path = path, .type = node_type});
 		_database.attach_node(parent, node);
-
-		if (_script_file_track_inited && node_type == editor_asset_node_type_e::script_file)
-		{
-			track_script_file(path);
-			_script_compile_requested = true;
-		}
 
 		notify_changed();
 		return node;
@@ -554,8 +501,6 @@ namespace sfg
 		frame_vector_t<sid_t> deleted_asset_guids = {};
 		deleted_asset_guids.reserve(deleted_asset_count);
 
-		frame_vector_t<sid_t> deleted_script_ids = {};
-
 		frame_hash_map_t<sid_t, bool> deleted_asset_ids = {};
 		deleted_asset_ids.reserve(deleted_asset_count);
 
@@ -564,12 +509,6 @@ namespace sfg
 
 		tree.for_each_depth_first(node, [&](editor_asset_node_handle_t current, u32 depth) {
 			const editor_asset_node_t& current_node = tree.value(current);
-
-			if (current_node.type == editor_asset_node_type_e::script_file)
-			{
-				deleted_script_ids.push_back(editor_asset_path_t::hash_path(current_node.full_path.c_str()));
-				return;
-			}
 
 			if (current_node.type != editor_asset_node_type_e::asset)
 				return;
@@ -655,14 +594,9 @@ namespace sfg
 		}
 
 		// commit deletion to the asset database
-		for (const sid_t script_id : deleted_script_ids)
-			_script_file_tracking_states.erase(script_id);
 
 		_database.remove_node_subtree(node);
 		notify_changed();
-
-		if (_script_file_track_inited && !deleted_script_ids.empty())
-			_script_compile_requested = true;
 
 		// remove cooked binaries and unowned blobs
 		for (const deleted_asset_t& asset : deleted_assets)
@@ -733,14 +667,6 @@ namespace sfg
 		if (_source_file_track_inited && (node_type == editor_asset_node_type_e::folder || node_type == editor_asset_node_type_e::file))
 			update_moved_source_paths(old_path.c_str(), new_path, node_type == editor_asset_node_type_e::folder);
 
-		bool scripts_changed = false;
-
-		if (_script_file_track_inited && (node_type == editor_asset_node_type_e::folder || node_type == editor_asset_node_type_e::script_file))
-			scripts_changed = update_moved_script_paths(old_path.c_str(), new_path, node_type == editor_asset_node_type_e::folder);
-
-		if (scripts_changed)
-			_script_compile_requested = true;
-
 		notify_changed();
 	}
 
@@ -755,14 +681,6 @@ namespace sfg
 		if (_source_file_track_inited && (node_type == editor_asset_node_type_e::folder || node_type == editor_asset_node_type_e::file))
 			update_moved_source_paths(old_path.c_str(), new_path, node_type == editor_asset_node_type_e::folder);
 
-		bool scripts_changed = false;
-
-		if (_script_file_track_inited && (node_type == editor_asset_node_type_e::folder || node_type == editor_asset_node_type_e::script_file))
-			scripts_changed = update_moved_script_paths(old_path.c_str(), new_path, node_type == editor_asset_node_type_e::folder);
-
-		if (scripts_changed)
-			_script_compile_requested = true;
-
 		notify_changed();
 	}
 
@@ -773,8 +691,6 @@ namespace sfg
 
 	void editor_asset_manager_t::process_file_changes(span_t<const editor_file_change_t> changes)
 	{
-		bool scripts_changed = false;
-
 		for (size_t i = 0; i < changes.size; ++i)
 		{
 			const editor_file_change_t& change = changes.data[i];
@@ -793,11 +709,7 @@ namespace sfg
 			}
 
 			process_source_file_change(change.path_id);
-			scripts_changed = process_script_file_change(change.path_id) || scripts_changed;
 		}
-
-		if (scripts_changed)
-			_script_compile_requested = true;
 	}
 
 	bool editor_asset_manager_t::save_and_cook_embedded_asset_async(sid_t asset_id, const nlohmann::json& embedded_source)
@@ -1323,76 +1235,6 @@ namespace sfg
 			asset.source_relative = editor_asset_path_t::get_source_relative(assets_path.c_str(), moved_source_path.c_str());
 			track_source_asset(asset);
 		}
-	}
-
-	void editor_asset_manager_t::track_script_file(const char* path)
-	{
-		const string_t absolute_path = file_system_t::get_absolute_path(path);
-		const sid_t	   path_id		 = editor_asset_path_t::hash_path(absolute_path.c_str());
-		auto [tracking_it, inserted] = _script_file_tracking_states.try_emplace(path_id);
-
-		SFG_ASSERT(inserted);
-
-		script_file_tracking_state_t& tracking_state = tracking_it->second;
-		tracking_state.full_path					 = absolute_path;
-	}
-
-	bool editor_asset_manager_t::process_script_file_change(sid_t script_id)
-	{
-		const auto tracking_it = _script_file_tracking_states.find(script_id);
-
-		if (tracking_it == _script_file_tracking_states.end())
-			return false;
-
-		const script_file_tracking_state_t& tracking_state = tracking_it->second;
-
-		SFG_TRACE("detected C# script file change: {0}", tracking_state.full_path);
-		return true;
-	}
-
-	bool editor_asset_manager_t::update_moved_script_paths(const char* old_path, const char* new_path, bool directory)
-	{
-		struct moved_script_file_t
-		{
-			string_t path	= {};
-			sid_t	 old_id = NULL_SID;
-		};
-
-		const string_t				  old_absolute_path = file_system_t::get_absolute_path(old_path);
-		const string_t				  new_absolute_path = file_system_t::get_absolute_path(new_path);
-		const string_t				  old_directory		= directory ? editor_asset_path_t::normalize_directory(old_absolute_path.c_str()) : "";
-		const string_t				  new_directory		= directory ? editor_asset_path_t::normalize_directory(new_absolute_path.c_str()) : "";
-		vector_t<moved_script_file_t> moved_files		= {};
-
-		for (const auto& tracking_pair : _script_file_tracking_states)
-		{
-			const script_file_tracking_state_t& tracking_state = tracking_pair.second;
-			const bool script_moved = directory ? editor_asset_path_t::is_path_in_directory(tracking_state.full_path.c_str(), old_directory.c_str()) : editor_asset_path_t::is_same_path(tracking_state.full_path.c_str(), old_absolute_path.c_str());
-
-			if (!script_moved)
-				continue;
-
-			string_t moved_path = new_absolute_path;
-
-			if (directory)
-			{
-				moved_path = new_directory;
-				moved_path += tracking_state.full_path.substr(old_directory.size());
-			}
-
-			moved_files.push_back({
-				.path	= std::move(moved_path),
-				.old_id = tracking_pair.first,
-			});
-		}
-
-		for (const moved_script_file_t& moved_file : moved_files)
-		{
-			_script_file_tracking_states.erase(moved_file.old_id);
-			track_script_file(moved_file.path.c_str());
-		}
-
-		return !moved_files.empty();
 	}
 
 	const editor_asset_descriptor_t* editor_asset_manager_t::find_asset_descriptor(const string_t& extension) const

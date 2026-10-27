@@ -63,7 +63,6 @@ namespace sfg
 		void apply_requests();
 		void tick_world(editor_world_t& editor_world, f32 dt_seconds);
 		void step(f32 dt_seconds);
-		void queue_quit();
 		void process_game_requests();
 
 		// -----------------------------------------------------------------------------
@@ -130,7 +129,6 @@ namespace sfg
 		editor_world_handle_t _world			 = {};
 		editor_play_state_e	  _state			 = editor_play_state_e::not_playing;
 		editor_play_state_e	  _requested_state	 = editor_play_state_e::not_playing;
-		bool				  _quit_requested	 = false;
 		bool				  _edit_mode		 = false;
 		bool				  _save_edits		 = false;
 		bool				  _saved_world_dirty = false;

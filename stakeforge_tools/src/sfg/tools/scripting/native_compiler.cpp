@@ -118,7 +118,7 @@ namespace sfg
 		return true;
 	}
 
-	native_compile_result_t native_compiler_t::compile(const char* build_directory, const char* output_dll)
+	native_compile_result_t native_compiler_t::compile(const char* build_directory, const char* output_dll, const char* configuration)
 	{
 		native_compile_result_t result	   = {};
 		const string_t			executable = process::get_executable_path();
@@ -127,7 +127,7 @@ namespace sfg
 			return result;
 
 		const string_t			 cmake	   = file_system_t::get_directory_of_file(executable.c_str()) + "stakeforge_sdk/tools/cmake/bin/cmake.exe";
-		const string_t			 command   = "\"" + cmake + "\" --build \"" + build_directory + "\" --config " + SFG_CONFIGURATION + " --target stakeforge_game";
+		const string_t			 command   = "\"" + cmake + "\" --build \"" + build_directory + "\" --config " + configuration + " --target stakeforge_game";
 		process_execute_result_t execution = process::execute(command.c_str());
 		result.exit_code				   = execution.exit_code;
 		result.diagnostics				   = std::move(execution.output);

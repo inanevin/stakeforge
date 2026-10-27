@@ -10,13 +10,13 @@
 
 Stakeforge is my on-going engine project, successor to [Lina Engine](https://github.com/inanevin/LinaEngine). This is a project I develop & maintain in my personal time. PRs, discussions & contributions are always welcome. A stable release is planned for the last quarter of 2026.
 
-This is new architecture of Stakeforge. Still a performance oriented C++ engine, now extended with a proper editor, asset workflows and scripting to make building games with it a little more comfortable :)
+This is new architecture of Stakeforge. Still a performance oriented C++ engine, now extended with a proper editor, asset workflows and native game plugins to make building games with it a little more comfortable :)
 
 > [original compact engine Stakeforge 1 is preserved here](https://github.com/inanevin/stakeforge/releases/tag/v1.0.0), with its simpler, code-first approach to making games.
 
 <div align="center">
 
-![Saunastein 3 open in the Stakeforge editor, with the world viewport and script component inspector](docs/imgs/ss6.png)
+![Saunastein 3 open in the Stakeforge editor, with the world viewport and component inspector](docs/imgs/ss6.png)
 
 [Saunastein 3: Beneath the Seat](https://kauheaa.itch.io/saunastein-3), made with Stakeforge v2 for Assembly Game Jam 2026. sauna car, drifting & gollums, go give it a try!
 
@@ -69,7 +69,7 @@ pretty cute PBR renderer running on DX12 on Windows;
 - mesh and skeleton viewers, joint hierarchy, joint masks and attachment slots.
 - animation previews, event timelines, animation libraries and a visual animation graph editor.
 - project settings, collision layer editing, play controls and project cooking.
-- C# script compilation and reloading, with script component fields exposed in the inspector.
+- C++ game plugin compilation and reloading, with explicitly registered component fields exposed in the inspector.
 
 <div align="center">
 
@@ -85,12 +85,9 @@ skeletons, joint masks & animation graphs.
 
 </div>
 
-### a note on scripting
+### game plugins
 
-C# scripting is currently a **test case** for the gameplay workflow. It lets me try out script components, editor integration and iteration while making games with the engine.
-
-I'm planning to **replace it fully with C++ scripting**. C# works, was a nice learning experience, but I just don't feel comfortable maintaining such a big scripting layer/environment. especially editor workflow, editor reflection and once I introduce C++ plugin system, I feel like not drowning under that.
-
+Gameplay lives in a native C++ plugin. Plugins explicitly register components with the reflection system, exposing their fields to the editor and world serialization. The editor builds and reloads the game DLL, and project cooking builds and includes its packaged variant.
 
 ## Misc
 
@@ -100,7 +97,7 @@ stuff is constantly under development, I am seeing what's needed on the way. [Sa
 
 CMake based build system, using C++23. Currently Windows/MSVC only, with DX12 and Shader Model 6.6 or newer required for rendering.
 
-You'll need a recent Visual Studio C++ toolchain with the Windows SDK, **CMake 4.0+**, and the **.NET 10 x64 SDK** for the current C# script host.
+You'll need a recent Visual Studio C++ toolchain with the Windows SDK and **CMake 4.0+**.
 
 From the repository root:
 

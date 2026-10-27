@@ -43,7 +43,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/ui/widgets/editor_widget_window_frame.hpp"
 #include "tools/world/editor_world.hpp"
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
-#include <sfg/core/runtime/scripting/api/script_api_platform.hpp>
 #include <sfg/core/common/hashing.hpp>
 #include <sfg/core/data/frame_vector.hpp>
 #include <sfg/core/io/log.hpp>
@@ -450,7 +449,6 @@ namespace sfg
 
 		if (surface.type == editor_surface_type_e::primary)
 		{
-			set_script_api_platform_window_runtime(nullptr);
 			save_layout();
 		}
 

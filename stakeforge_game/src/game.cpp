@@ -38,9 +38,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/render/render_resources.hpp>
 #include <sfg/core/runtime/resources/common_resources.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
-#include <sfg/core/runtime/scripting/api/script_api_game.hpp>
-#include <sfg/core/runtime/scripting/api/script_api_platform.hpp>
-#include <sfg/core/runtime/scripting/script_runtime.hpp>
 #include <sfg/core/runtime/scripting/plugin_runtime.hpp>
 #include <sfg/core/serialization/serialization.hpp>
 #include <tracy/Tracy.hpp>
@@ -117,56 +114,12 @@ namespace sfg
 		}
 	}
 
-	u8 game_t::get_script_game_render_resolution(vec2u16_t& out_resolution)
-	{
-		SFG_ASSERT(s_instance != nullptr);
-
-		if (!s_instance->_world_controller.is_initialized())
-			return 0;
-
-		out_resolution = s_instance->_world_controller.get_render_resolution();
-		return 1;
-	}
-
-	u8 game_t::set_script_game_render_resolution(const vec2u16_t& resolution)
-	{
-		SFG_ASSERT(s_instance != nullptr);
-
-		if (!s_instance->_world_controller.is_initialized())
-			return 0;
-
-		if (s_instance->_world_controller.get_render_resolution() == resolution)
-			return 1;
-
-		const bool restart_render = SFG_IS_RENDER_RUNNING();
-
-		if (restart_render)
-			s_instance->_renderer.end_render();
-
-		s_instance->_world_controller.resize(resolution);
-
-		if (restart_render)
-			s_instance->_renderer.start();
-
-		return 1;
-	}
-
-	void game_t::quit_script_game()
-	{
-		SFG_ASSERT(s_instance != nullptr);
-
-		s_instance->_window.set_flag(window_runtime_flags_e::close_requested);
-	}
-
 	bool game_t::init(const game_config_t& config)
 	{
 		SFG_ASSERT(config.main_frame_budget_bytes != 0);
 		SFG_ASSERT(config.renderer.frame_budget_bytes != 0);
 		SFG_ASSERT(!_initialized);
-		SFG_ASSERT(s_instance == nullptr);
-
-		s_instance = this;
-		_config	   = config;
+		_config = config;
 		_init_failure_reason.resize(0);
 		_package_directory = file_system_t::get_running_directory();
 
@@ -203,9 +156,6 @@ namespace sfg
 		_runtime_initialized = true;
 		runtime.update_project_settings(_package_meta.project_settings);
 
-		if (!load_project_scripts())
-			return false;
-
 		frame_allocator_tls_t::init(config.main_frame_budget_bytes);
 		_frame_allocator_initialized = true;
 
@@ -234,17 +184,13 @@ namespace sfg
 		const window_style_e  window_style	  = _package_meta.is_fullscreen ? window_style_e::borderless : _package_meta.window_style;
 
 		_window.set_flag(window_runtime_flags_e::high_frequency_input);
+
 		if (!process::create_window("Stakeforge Game", window_position, window_size, window_style, 1.0f, false, _window))
 			return fail_init("Failed to create the game window.");
 
 		_window_initialized				 = true;
 		_window.event_callback			 = &game_t::on_window_event;
 		_window.event_callback_user_data = this;
-
-		g_window_api_enabled = true;
-		set_script_api_platform_window_runtime(&_window);
-		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, quit_script_game);
-		_script_api_bound = true;
 
 		if (!_world_controller.init(_window.size, _package_meta))
 			return fail_init("Failed to load the main world.");
@@ -422,32 +368,6 @@ namespace sfg
 		return true;
 	}
 
-	bool game_t::load_project_scripts()
-	{
-		if (_package_meta.script_assembly_name.empty())
-			return fail_init("The packaged C# project assembly name is missing.");
-
-		const string_t assembly_path = _package_directory + "scripts/" + _package_meta.script_assembly_name;
-
-		if (!file_system_t::exists(assembly_path.c_str()))
-			return fail_init("The packaged C# project assembly is missing.");
-
-		script_runtime_t& script_runtime = script_runtime_t::get();
-
-		if (!script_runtime.stage_project_assembly(assembly_path.c_str()))
-			return fail_init("Failed to stage the packaged C# project assembly.");
-
-		if (!script_runtime.activate_staged_project_assembly())
-		{
-			script_runtime.discard_staged_project_assembly();
-			return fail_init("Failed to activate the packaged C# project assembly.");
-		}
-
-		reflection_registry_t::get().remove_script_types();
-		script_runtime.get_component_schema().register_reflection_types();
-		return true;
-	}
-
 	bool game_t::apply_pending_world_load()
 	{
 		world_t& world = _world_controller.get_main_world();
@@ -486,15 +406,6 @@ namespace sfg
 		{
 			_world_controller.uninit();
 			_world_controller_initialized = false;
-		}
-
-		if (_script_api_bound)
-		{
-			reset_script_api_platform_cursor_state();
-			set_script_api_platform_lock_cursor_callback(nullptr);
-			set_script_api_platform_window_runtime(nullptr);
-			set_script_api_game_callbacks(nullptr, nullptr, nullptr);
-			_script_api_bound = false;
 		}
 
 		if (_window_initialized)
@@ -540,6 +451,5 @@ namespace sfg
 		_config		  = {};
 		_package_directory.resize(0);
 		_initialized = false;
-		s_instance	 = nullptr;
 	}
 }

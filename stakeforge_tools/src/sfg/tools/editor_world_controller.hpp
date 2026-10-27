@@ -51,8 +51,6 @@ namespace sfg
 	struct editor_command_t;
 	class native_component_schema_t;
 	struct native_component_schema_delta_t;
-	class script_component_schema_t;
-	struct script_component_schema_delta_t;
 
 	class SFG_TOOLS_API editor_world_controller_t final
 	{
@@ -89,8 +87,6 @@ namespace sfg
 		bool				  load_main_world(sid_t asset_guid);
 		bool				  save_main_world();
 		void				  mark_world_dirty(editor_world_handle_t handle);
-		void				  prepare_script_assembly_reload(bool component_layout_changed);
-		void				  apply_script_component_schema(const script_component_schema_t& current_schema, const script_component_schema_t& candidate_schema, const script_component_schema_delta_t& delta);
 		void				  apply_native_component_schema(const native_component_schema_t& previous, const native_component_schema_t& current, const native_component_schema_delta_t& delta);
 
 		// -----------------------------------------------------------------------------

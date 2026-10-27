@@ -32,8 +32,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	enum class script_cursor_lock_mode_e : u8;
-
 	struct game_config_t
 	{
 		engine_runtime_config_t engine					= {};
@@ -68,17 +66,11 @@ namespace sfg
 
 	private:
 		static void on_window_event(void* window_handle, const window_event_t& event, void* user_data);
-		static u8	get_script_game_render_resolution(vec2u16_t& out_resolution);
-		static u8	set_script_game_render_resolution(const vec2u16_t& resolution);
-		static void quit_script_game();
 
 		bool load_package_resources();
-		bool load_project_scripts();
 		bool apply_pending_world_load();
 		bool fail_init(const char* reason);
 		void cleanup();
-
-		static inline game_t* s_instance = nullptr;
 
 		game_config_t			_config				 = {};
 		project_package_meta_t	_package_meta		 = {};
@@ -94,7 +86,6 @@ namespace sfg
 		bool					_runtime_initialized		  = false;
 		bool					_backend_initialized		  = false;
 		bool					_globals_initialized		  = false;
-		bool					_script_api_bound			  = false;
 		bool					_initialized				  = false;
 	};
 }

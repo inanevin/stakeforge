@@ -50,40 +50,6 @@ namespace sfg
 		return true;
 	}
 
-	bool editor_directories_t::is_valid_csharp_identifier(const char* name)
-	{
-		static constexpr const char* reserved_keywords[] = {
-			"abstract", "as",		"base",	  "bool",	  "break",	 "byte",	 "case",   "catch",	  "char",	   "checked",	"class",	"const",	"continue", "decimal", "default",	"delegate", "do",	  "double",		"else",	  "enum",
-			"event",	"explicit", "extern", "false",	  "finally", "fixed",	 "float",  "for",	  "foreach",   "goto",		"if",		"implicit", "in",		"int",	   "interface", "internal", "is",	  "lock",		"long",	  "namespace",
-			"new",		"null",		"object", "operator", "out",	 "override", "params", "private", "protected", "public",	"readonly", "ref",		"return",	"sbyte",   "sealed",	"short",	"sizeof", "stackalloc", "static", "string",
-			"struct",	"switch",	"this",	  "throw",	  "true",	 "try",		 "typeof", "uint",	  "ulong",	   "unchecked", "unsafe",	"ushort",	"using",	"virtual", "void",		"volatile", "while",
-		};
-
-		if (name == nullptr || name[0] == '\0')
-			return false;
-
-		const unsigned char first = static_cast<unsigned char>(name[0]);
-
-		if (std::isalpha(first) == 0 && name[0] != '_')
-			return false;
-
-		for (const char* it = name + 1; *it != '\0'; ++it)
-		{
-			const unsigned char character = static_cast<unsigned char>(*it);
-
-			if (std::isalnum(character) == 0 && *it != '_')
-				return false;
-		}
-
-		for (const char* keyword : reserved_keywords)
-		{
-			if (std::strcmp(name, keyword) == 0)
-				return false;
-		}
-
-		return true;
-	}
-
 	void editor_directories_t::init_paths()
 	{
 		// user dir

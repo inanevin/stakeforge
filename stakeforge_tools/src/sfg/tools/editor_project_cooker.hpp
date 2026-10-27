@@ -69,25 +69,24 @@ namespace sfg
 		enum class cook_state_e : u8
 		{
 			idle,
-			compiling_scripts,
+			compiling_native,
 			cooking,
 		};
 
-		bool compile_scripts_worker();
-		bool validate_release_script_schema();
+		bool compile_native_worker();
 		bool cook_project_worker();
 		void complete_work(pool_handle_t<u32, editor_work_handle_tag_t> work_handle, bool succeeded);
-		bool publish_game_files(const char* script_output_directory);
+		bool publish_game_files();
 
 	private:
-		string_t									 _cook_failure_reason			  = {};
-		string_t									 _release_script_output_directory = {};
-		string_t									 _target_path					  = {};
-		editor_project_cook_options_t*				 _cook_options					  = nullptr;
-		project_package_meta_t*						 _package_meta					  = nullptr;
-		editor_modal_project_cooker_t*				 _options_modal					  = nullptr;
-		editor_modal_progress_bar_t*				 _progress_modal				  = nullptr;
-		pool_handle_t<u32, editor_work_handle_tag_t> _work_handle					  = {};
-		cook_state_e								 _cook_state					  = cook_state_e::idle;
+		string_t									 _cook_failure_reason  = {};
+		string_t									 _packaged_plugin_path = {};
+		string_t									 _target_path		   = {};
+		editor_project_cook_options_t*				 _cook_options		   = nullptr;
+		project_package_meta_t*						 _package_meta		   = nullptr;
+		editor_modal_project_cooker_t*				 _options_modal		   = nullptr;
+		editor_modal_progress_bar_t*				 _progress_modal	   = nullptr;
+		pool_handle_t<u32, editor_work_handle_tag_t> _work_handle		   = {};
+		cook_state_e								 _cook_state		   = cook_state_e::idle;
 	};
 }

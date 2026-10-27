@@ -35,7 +35,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/assets/editor_asset_creator.hpp"
 #include "tools/editor_directories.hpp"
 #include "tools/editor_project.hpp"
-#include "tools/scripting/editor_script_manager.hpp"
 #include <sfg/core/data/string_util.hpp>
 #include <sfg/core/input/input_mappings.hpp>
 #include <sfg/core/io/assert.hpp>
@@ -203,9 +202,6 @@ namespace sfg
 		case assets_action_menu_create_particle_material:
 		case assets_action_menu_create_post_process_material:
 		case assets_action_menu_create_physical_material:
-		case assets_action_menu_create_csharp_component:
-		case assets_action_menu_create_csharp_world_script:
-		case assets_action_menu_create_csharp_class:
 			panel._create_asset_popup_command = command;
 			return;
 		case assets_action_menu_import:
@@ -243,6 +239,7 @@ namespace sfg
 
 				panel.refresh_folder_rows();
 			}
+
 			return;
 		case assets_action_menu_open_directory: {
 			const string_t folder_path = panel.get_action_menu_target_folder_path();
@@ -251,16 +248,6 @@ namespace sfg
 				process::open_directory(folder_path.c_str());
 			return;
 		}
-		case assets_action_menu_open_csharp_project: {
-			const editor_project_runtime_t& runtime		 = editor_project_t::get()._runtime;
-			const string_t					project_root = file_system_t::get_directory_of_file(runtime.path.c_str());
-
-			process::open_file_in_vscode(project_root.c_str(), runtime.script_project_path.c_str());
-			return;
-		}
-		case assets_action_menu_recompile_csharp_project:
-			editor_script_manager_t::get().compile_scripts();
-			return;
 		default:
 			return;
 		}
@@ -333,12 +320,9 @@ namespace sfg
 
 				panel.refresh_asset_favourite_icons();
 			}
+
 			return;
 		}
-		case assets_action_menu_open_csharp_project:
-		case assets_action_menu_recompile_csharp_project:
-			on_action_menu_command(command, user_data);
-			return;
 		default:
 			return;
 		}

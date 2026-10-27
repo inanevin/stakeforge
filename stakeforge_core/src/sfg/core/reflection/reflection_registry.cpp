@@ -603,7 +603,6 @@ namespace sfg
 		_fields.reserve(1024);
 
 		_text_allocator.init(2 * 1024 * 1024);
-		_script_text_allocator.init(SCRIPT_TEXT_CAPACITY);
 		_native_text_allocator.init(NATIVE_TEXT_CAPACITY);
 		_native_types.reserve(NATIVE_TYPE_CAPACITY);
 		_native_fields.reserve(NATIVE_FIELD_CAPACITY);
@@ -617,68 +616,16 @@ namespace sfg
 		_native_types.resize(0);
 		_native_fields.resize(0);
 		_native_text_allocator.uninit();
-		_script_text_allocator.uninit();
 		_text_allocator.uninit();
-
-		_script_type_begin	   = 0;
-		_script_field_begin	   = 0;
-		_script_capacity_ready = false;
 	}
 
 	void reflection_registry_t::initialize_type(sid_t type_id, void* obj) const
 	{
 		const reflected_type_t* type = find_type(type_id);
-		SFG_ASSERT(type != nullptr);
 
-		if (type->default_init_fn != nullptr)
-		{
-			type->default_init_fn(obj);
-			return;
-		}
+		SFG_ASSERT(type != nullptr && type->default_init_fn != nullptr);
 
-		SFG_ASSERT(type->owner == reflection_owner_e::game_scripts);
-		SFG_MEMSET(obj, 0, type->size);
-
-		for (u32 field_index = type->fields.start; field_index < type->fields.end; ++field_index)
-		{
-			const reflected_field_t& field = *get_field(field_index);
-
-			if (field.value_type != reflected_value_type_e::u64 || field.sub_type_id == 0)
-				continue;
-
-			SFG_ASSERT(field.size == sizeof(u64));
-			*reinterpret_cast<u64*>(static_cast<u8*>(obj) + field.offset) = NULL_SID;
-		}
-	}
-
-	void reflection_registry_t::reserve_script_capacity()
-	{
-		SFG_ASSERT(!_script_capacity_ready);
-
-		_script_type_begin	= _types.size();
-		_script_field_begin = _fields.size();
-		_types.reserve(_script_type_begin + SCRIPT_TYPE_CAPACITY);
-		_fields.reserve(_script_field_begin + SCRIPT_FIELD_CAPACITY);
-		_script_capacity_ready = true;
-	}
-
-	bool reflection_registry_t::is_script_capacity_valid(size_t type_count, size_t field_count) const
-	{
-		SFG_ASSERT(_script_capacity_ready);
-
-		return type_count <= SCRIPT_TYPE_CAPACITY && field_count <= SCRIPT_FIELD_CAPACITY;
-	}
-
-	void reflection_registry_t::remove_script_types()
-	{
-		SFG_ASSERT(_script_capacity_ready);
-
-		for (size_t type_index = _script_type_begin; type_index < _types.size(); ++type_index)
-			SFG_ASSERT(_types[type_index].owner == reflection_owner_e::game_scripts);
-
-		_types.resize(_script_type_begin);
-		_fields.resize(_script_field_begin);
-		_script_text_allocator.reset();
+		type->default_init_fn(obj);
 	}
 
 	void reflection_registry_t::type_field_to_stream(sid_t type_id, sid_t field_id, void* obj, void* user_data, ostream_t& out_stream)
@@ -969,8 +916,6 @@ namespace sfg
 		SFG_ASSERT(descriptor.name != nullptr);
 		SFG_ASSERT(descriptor.type_id != 0);
 		SFG_ASSERT(descriptor.size != 0);
-		SFG_ASSERT(!_script_capacity_ready || descriptor.owner != reflection_owner_e::engine);
-		SFG_ASSERT(descriptor.owner != reflection_owner_e::game_scripts || is_script_capacity_valid(_types.size() - _script_type_begin + 1, _fields.size() - _script_field_begin + descriptor.fields.size()));
 
 		const reflected_type_t* existing_type = find_type(descriptor.type_id);
 
@@ -983,7 +928,7 @@ namespace sfg
 		const bool					 native			= descriptor.owner == reflection_owner_e::game_native;
 		vector_t<reflected_type_t>&	 types			= native ? _native_types : _types;
 		vector_t<reflected_field_t>& fields			= native ? _native_fields : _fields;
-		text_allocator_t&			 text_allocator = native ? _native_text_allocator : descriptor.owner == reflection_owner_e::game_scripts ? _script_text_allocator : _text_allocator;
+		text_allocator_t&			 text_allocator = native ? _native_text_allocator : _text_allocator;
 		const u32					 field_base		= native ? NATIVE_FIELD_BASE : 0;
 		reflected_type_t			 type			= {};
 
@@ -1019,7 +964,7 @@ namespace sfg
 		if (descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_component) || descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_system_component) ||
 			descriptor.flags.is_set(reflected_type_flags_e::reflected_type_flag_tag_component))
 		{
-			SFG_ASSERT(descriptor.default_init_fn != nullptr || descriptor.owner == reflection_owner_e::game_scripts);
+			SFG_ASSERT(descriptor.default_init_fn != nullptr);
 		}
 
 		for (const reflected_field_descriptor_t& field_desc : descriptor.fields)

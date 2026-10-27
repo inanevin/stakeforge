@@ -47,7 +47,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/platform/process.hpp>
 #include <sfg/core/reflection/reflection_registry.hpp>
-#include <sfg/core/runtime/scripting/script_runtime.hpp>
 #include <sfg/core/runtime/ui/ui_context.hpp>
 #include <sfg/core/runtime/world/engine_components.hpp>
 
@@ -475,18 +474,7 @@ namespace sfg
 
 		if (items.empty())
 		{
-			if (field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_WORLD_SCRIPT)
-			{
-				const vector_t<script_world_script_desc_t>& world_scripts = script_runtime_t::get().get_component_schema().get_world_scripts();
-				SFG_ASSERT(world_scripts.size() + 1 <= editor_popup_controller_t::MAX_ITEMS);
-
-				items.reserve(world_scripts.size() + 1);
-				items.push_back({.text = "None", .value = NULL_SID});
-
-				for (const script_world_script_desc_t& world_script : world_scripts)
-					items.push_back({.text = world_script.full_name.c_str(), .value = world_script.type_id});
-			}
-			else if (field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER)
+			if (field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER)
 			{
 				const vector_t<physics_collision_layer_definition_t>& layers = editor_project_t::get().settings.project_settings.physics.collision_layers;
 				items.reserve(layers.size());

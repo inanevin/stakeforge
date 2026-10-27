@@ -26,7 +26,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/platform/process.hpp>
 #include <sfg/core/reflection/reflection_registry.hpp>
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
-#include <sfg/core/runtime/scripting/engine_component_binding_generator.hpp>
 #include <sfg/core/serialization/serialization.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 
@@ -72,61 +71,6 @@ namespace sfg
 		refresh_runtime(path);
 		engine_runtime_t::get().update_project_settings(settings.project_settings);
 		return true;
-	}
-
-	bool editor_project_t::ensure_script_project()
-	{
-		if (!file_system_t::ensure_directory(_runtime.csharp_intermediate_path.c_str()))
-			return false;
-
-		if (!file_system_t::ensure_directory(_runtime.script_library_path.c_str()))
-			return false;
-
-		const string_t engine_component_bindings_path = _runtime.csharp_intermediate_path + "EngineComponents.g.cs";
-
-		if (!engine_component_binding_generator_t::generate(engine_component_bindings_path.c_str()))
-			return false;
-
-		string_t managed_assembly_path = file_system_t::get_running_directory() + "managed/Stakeforge.Managed.dll";
-		file_system_t::fix_path(managed_assembly_path);
-		string_util::replace_all(managed_assembly_path, "&", "&amp;");
-		string_util::replace_all(managed_assembly_path, "\"", "&quot;");
-		string_util::replace_all(managed_assembly_path, "<", "&lt;");
-		string_util::replace_all(managed_assembly_path, ">", "&gt;");
-
-		string_t contents = R"(<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-    <OutputPath>Build/$(Configuration)/</OutputPath>
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-  </PropertyGroup>
-  <ItemGroup>
-    <Compile Include="EngineComponents.g.cs" />
-    <Compile Include="../../assets/**/*.cs" Exclude="../../assets/_cache/**;../../assets/_sfg_assets/**;../../assets/_game_assets/**" />
-    <Reference Include="Stakeforge.Managed">
-      <HintPath>)";
-		contents += managed_assembly_path;
-		contents += R"(</HintPath>
-      <Private>false</Private>
-    </Reference>
-  </ItemGroup>
-</Project>
-)";
-
-		if (file_system_t::exists(_runtime.script_project_path.c_str()))
-		{
-			const string_t existing_contents = file_system_t::read_file_as_string(_runtime.script_project_path.c_str());
-
-			if (existing_contents == contents)
-				return true;
-		}
-
-		return serializer_t::write_to_file(contents, _runtime.script_project_path.c_str());
 	}
 
 	bool editor_project_t::ensure_native_project()
@@ -258,10 +202,7 @@ namespace sfg
 		_runtime.game_assets_path		  = _runtime.assets_path + "_game_assets/";
 		_runtime.cook_path				  = dir + "Cooked/";
 		_runtime.intermediate_path		  = dir + "Intermediate/";
-		_runtime.csharp_intermediate_path = _runtime.intermediate_path + "CSharp/";
-		_runtime.script_project_path	  = _runtime.csharp_intermediate_path + _runtime.name + ".csproj";
 		_runtime.library_path			  = dir + "Library/";
-		_runtime.script_library_path	  = _runtime.library_path + "Scripts/";
 		_runtime.native_source_path		  = dir + "Source/";
 		_runtime.native_intermediate_path = _runtime.intermediate_path + "Native/" + SFG_BUILD + "/" + SFG_CONFIGURATION + "/";
 		_runtime.native_library_path	  = _runtime.library_path + "Native/" + SFG_BUILD + "/";
@@ -280,9 +221,6 @@ namespace sfg
 
 		if (!file_system_t::exists(_runtime.cook_path.c_str()))
 			file_system_t::create_directory(_runtime.cook_path.c_str());
-
-		if (!ensure_script_project())
-			SFG_ERR("could not ensure the C# script project.");
 	}
 
 }

@@ -35,7 +35,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/runtime/engine/engine_threads.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
-#include <sfg/core/runtime/scripting/api/script_api_platform.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 
 namespace sfg
@@ -129,7 +128,6 @@ namespace sfg
 		_requested_state = editor_play_state_e::not_playing;
 		_pause_requested = false;
 		_step_requested	 = false;
-		_quit_requested	 = false;
 
 		if (!is_playing())
 			return;
@@ -152,7 +150,6 @@ namespace sfg
 		const bool kept_edits = restore_snapshot(editor_world);
 
 		editor_world.produce_snapshot();
-		reset_script_api_platform_cursor_state();
 		editor_surface_controller_t::get().get_input_router().reset_game_cursor();
 
 		worlds.set_main_world_dirty(_saved_world_dirty || kept_edits);
@@ -179,7 +176,6 @@ namespace sfg
 			editor_surface_controller_t::get().request_focus_main_world_view();
 		else
 		{
-			reset_script_api_platform_cursor_state();
 			editor_surface_controller_t::get().get_input_router().reset_game_cursor();
 		}
 
@@ -296,24 +292,10 @@ namespace sfg
 		tick_simulation(editor_world, dt_seconds);
 	}
 
-	void editor_play_session_t::queue_quit()
-	{
-		if (!is_playing())
-			return;
-
-		_quit_requested = true;
-	}
-
 	void editor_play_session_t::process_game_requests()
 	{
 		if (!is_playing())
 			return;
-
-		if (_quit_requested)
-		{
-			stop();
-			return;
-		}
 
 		editor_world_controller_t& worlds	 = editor_world_controller_t::get();
 		world_t&				   world	 = worlds.get_editor_world(_world)->get_world();

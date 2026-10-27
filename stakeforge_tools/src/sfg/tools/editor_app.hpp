@@ -39,8 +39,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	enum class script_cursor_lock_mode_e : u8;
-
 	enum class editor_app_mode_e : u8
 	{
 		none,
@@ -116,11 +114,8 @@ namespace sfg
 		}
 
 	private:
-		bool		init_normal_mode();
-		void		uninit_normal_mode();
-		static u8	get_script_game_render_resolution(vec2u16_t& out_resolution);
-		static u8	set_script_game_render_resolution(const vec2u16_t& resolution);
-		static void quit_script_game();
+		bool init_normal_mode();
+		void uninit_normal_mode();
 
 	private:
 		editor_app_config_t			   _config = {};

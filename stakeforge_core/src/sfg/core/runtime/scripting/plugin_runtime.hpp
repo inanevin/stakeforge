@@ -94,6 +94,16 @@ namespace sfg
 			return _path;
 		}
 
+		const native_component_schema_t& get_schema() const
+		{
+			return *_schema;
+		}
+
+		const native_component_schema_t& get_staged_schema() const
+		{
+			return *_staged_schema;
+		}
+
 	private:
 		unique_t<native_component_schema_t> _schema			  = {};
 		unique_t<native_component_schema_t> _staged_schema	  = {};

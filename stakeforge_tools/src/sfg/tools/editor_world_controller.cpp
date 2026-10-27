@@ -53,7 +53,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/physics/physics_world.hpp>
 #include <sfg/core/runtime/engine/engine_threads.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
-#include <sfg/core/runtime/scripting/script_component_schema.hpp>
 #include <sfg/core/runtime/scripting/native_component_schema.hpp>
 #include <sfg/core/runtime/world/world.hpp>
 #include <sfg/core/runtime/world/world_component_util.hpp>
@@ -188,23 +187,6 @@ namespace sfg
 		_main_world_dirty = false;
 	}
 
-	void editor_world_controller_t::apply_script_component_schema(const script_component_schema_t& current_schema, const script_component_schema_t& candidate_schema, const script_component_schema_delta_t& delta)
-	{
-		editor_app_t::get().stop_render();
-		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-
-		// TODO:
-		// need to eventually stop clearing, but fix in place with component deltas :/
-		if (!delta.removed.empty() || !delta.layout_changed.empty())
-			editor_command_system_t::get().clear();
-
-		for (editor_world_t* editor_world : _worlds)
-			editor_world->get_world().apply_script_component_schema(current_schema, candidate_schema, delta);
-
-		if ((!delta.removed.empty() || !delta.layout_changed.empty()) && !_main_world.is_null())
-			set_main_world_dirty(true);
-	}
-
 	void editor_world_controller_t::apply_native_component_schema(const native_component_schema_t& previous, const native_component_schema_t& current, const native_component_schema_delta_t& delta)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
@@ -219,12 +201,6 @@ namespace sfg
 
 		if (changed && !_main_world.is_null())
 			set_main_world_dirty(true);
-	}
-
-	void editor_world_controller_t::prepare_script_assembly_reload(bool component_layout_changed)
-	{
-		if (component_layout_changed)
-			_play_session.stop();
 	}
 
 	void editor_world_controller_t::resize_world(editor_world_handle_t handle, vec2u16_t render_resolution)

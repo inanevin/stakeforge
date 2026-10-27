@@ -105,7 +105,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/engine/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/render/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/resources/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/scripting/*.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/scripting/api/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/world/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/physics/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/project/*.cpp
@@ -156,7 +155,6 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/engine/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/render/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/resources/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/scripting/*.hpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/scripting/api/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/world/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/reflection/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/serialization/*.hpp
@@ -226,7 +224,6 @@ if(WIN32)
 
     target_link_libraries(${SFG_CORE_TARGET}
         PUBLIC Jolt
-        PUBLIC ${SFG_DOTNET_NATIVE_HOST_DIR}/nethost.lib
         PUBLIC d3d12.lib
         PUBLIC dxgi.lib
         PUBLIC dxguid.lib
@@ -237,13 +234,9 @@ if(WIN32)
 endif()
 
 if(WIN32)
-    target_include_directories(${SFG_CORE_TARGET} PRIVATE ${SFG_DOTNET_NATIVE_HOST_DIR})
     add_custom_command(
         TARGET ${SFG_CORE_TARGET}
         POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${SFG_DOTNET_NATIVE_HOST_DIR}/nethost.dll"
-            "$<TARGET_FILE_DIR:${SFG_CORE_TARGET}>"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/deps/dx12_bin"
             "$<TARGET_FILE_DIR:${SFG_CORE_TARGET}>"

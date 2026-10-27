@@ -74,7 +74,7 @@ namespace sfg
 		native_compiler_t(const native_compiler_t& other)			 = delete;
 		native_compiler_t& operator=(const native_compiler_t& other) = delete;
 
-		static native_compile_result_t compile(const char* build_directory, const char* output_dll);
+		static native_compile_result_t compile(const char* build_directory, const char* output_dll, const char* configuration);
 		static native_stage_result_t   stage(const char* output_dll, const char* shadow_directory, const native_binary_stamp_t& previous_stamp);
 		static bool					   open_project(const char* solution_path, native_ide_session_t& session, string_t& diagnostics);
 	};

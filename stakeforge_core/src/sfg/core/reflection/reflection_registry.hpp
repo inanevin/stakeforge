@@ -42,7 +42,6 @@ namespace sfg
 #define REFLECTION_SUB_TYPE_IDENTIFIER_PATH					"reflection_subtype_path"_hs
 #define REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER		"reflection_subtype_collision_layer"_hs
 #define REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER_MASK "reflection_subtype_collision_layer_mask"_hs
-#define REFLECTION_SUB_TYPE_IDENTIFIER_WORLD_SCRIPT			"reflection_subtype_world_script"_hs
 
 	enum class reflected_value_type_e : u8
 	{
@@ -188,7 +187,6 @@ namespace sfg
 	{
 		reflected_type_flag_component		 = 1 << 0,
 		reflected_type_flag_resource		 = 1 << 1,
-		reflected_type_flag_script			 = 1 << 2,
 		reflected_type_flag_no_ui			 = 1 << 3,
 		reflected_type_flag_no_serialization = 1 << 4,
 		reflected_type_flag_enum			 = 1 << 5,
@@ -200,7 +198,6 @@ namespace sfg
 	enum class reflection_owner_e : u8
 	{
 		engine,
-		game_scripts,
 		game_native,
 	};
 
@@ -251,9 +248,6 @@ namespace sfg
 	public:
 		// size_t reflected as u64 from most users atm.
 		static_assert(sizeof(size_t) == sizeof(u64));
-		static inline constexpr u32 SCRIPT_TYPE_CAPACITY  = 1024;
-		static inline constexpr u32 SCRIPT_FIELD_CAPACITY = 2048;
-		static inline constexpr u32 SCRIPT_TEXT_CAPACITY  = 256 * 1024;
 		static inline constexpr u32 NATIVE_TYPE_CAPACITY  = 1024;
 		static inline constexpr u32 NATIVE_FIELD_CAPACITY = 8192;
 		static inline constexpr u32 NATIVE_TEXT_CAPACITY  = 256 * 1024;
@@ -279,10 +273,7 @@ namespace sfg
 		bool type_from_stream(sid_t type_id, void* obj, void* user_data, istream_t& in_stream);
 		bool type_from_json(sid_t type_id, void* obj, void* user_data, const nlohmann::json& in_json);
 		void initialize_type(sid_t type_id, void* obj) const;
-		void remove_script_types();
 		void remove_native_types();
-		void reserve_script_capacity();
-		bool is_script_capacity_valid(size_t type_count, size_t field_count) const;
 
 		const reflected_type_t*	 find_type(sid_t type_id) const;
 		const reflected_field_t* get_field(u32 index) const;
@@ -320,10 +311,6 @@ namespace sfg
 		text_allocator_t			_native_text_allocator = {};
 		vector_t<reflected_type_t>	_types;
 		vector_t<reflected_field_t> _fields;
-		text_allocator_t			_text_allocator		   = {};
-		text_allocator_t			_script_text_allocator = {};
-		size_t						_script_type_begin	   = 0;
-		size_t						_script_field_begin	   = 0;
-		bool						_script_capacity_ready = false;
+		text_allocator_t			_text_allocator = {};
 	};
 }

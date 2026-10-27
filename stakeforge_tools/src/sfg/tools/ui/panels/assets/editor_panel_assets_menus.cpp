@@ -64,12 +64,6 @@ namespace sfg
 			{.text = "Post Process Material", .command = assets_action_menu_create_post_process_material},
 		};
 
-		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GAMEPLAY_ROWS[] = {
-			{.text = "C# Component", .command = assets_action_menu_create_csharp_component},
-			{.text = "C# World Script", .command = assets_action_menu_create_csharp_world_script},
-			{.text = "C# Class", .command = assets_action_menu_create_csharp_class},
-		};
-
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_PHYSICS_ROWS[] = {
 			{.text = "Physical Material", .command = assets_action_menu_create_physical_material},
 			{.text = "Ragdoll", .command = assets_action_menu_create_ragdoll},
@@ -80,7 +74,6 @@ namespace sfg
 			{.text = "World", .command = assets_action_menu_create_world},
 			{.text = "Animation", .children = ASSETS_ACTION_MENU_ANIMATION_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_ANIMATION_ROWS) / sizeof(ASSETS_ACTION_MENU_ANIMATION_ROWS[0]))},
 			{.text = "Graphics", .children = ASSETS_ACTION_MENU_GRAPHICS_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_GRAPHICS_ROWS) / sizeof(ASSETS_ACTION_MENU_GRAPHICS_ROWS[0]))},
-			{.text = "Gameplay", .children = ASSETS_ACTION_MENU_GAMEPLAY_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_GAMEPLAY_ROWS) / sizeof(ASSETS_ACTION_MENU_GAMEPLAY_ROWS[0]))},
 			{.text = "Physics", .children = ASSETS_ACTION_MENU_PHYSICS_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_PHYSICS_ROWS) / sizeof(ASSETS_ACTION_MENU_PHYSICS_ROWS[0]))},
 		};
 
@@ -94,8 +87,6 @@ namespace sfg
 			{.text = "Rename", .shortcut = "F2", .command = assets_action_menu_rename},
 			{.text = "Toggle Favourite", .icon = ICON_STAR, .command = assets_action_menu_toggle_favourite, .has_icon_color = true},
 			{.text = "Open In OS", .command = assets_action_menu_open_directory},
-			{.text = "Open C# Project", .command = assets_action_menu_open_csharp_project},
-			{.text = "Recompile C# Project", .command = assets_action_menu_recompile_csharp_project},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ITEM_ACTION_MENU_ROWS[] = {
@@ -106,8 +97,6 @@ namespace sfg
 			{.text = "Delete", .shortcut = "DEL", .command = assets_item_action_menu_delete},
 			{.text = "Show in OS", .command = assets_item_action_menu_open_directory},
 			{.text = "Toggle Favourite", .icon = ICON_STAR, .command = assets_item_action_menu_toggle_favourite, .has_icon_color = true},
-			{.text = "Open C# Project", .command = assets_action_menu_open_csharp_project},
-			{.text = "Recompile C# Project", .command = assets_action_menu_recompile_csharp_project},
 			{.text = "Create Ragdoll", .command = assets_item_action_menu_create_ragdoll},
 		};
 	}
@@ -173,14 +162,13 @@ namespace sfg
 	{
 		editor_action_menu_controller_t* menu = editor_action_menu_controller_t::find(*_ui);
 
-		_create_asset_popup_command				 = 0;
-		_create_folder_popup_pending			 = false;
-		const editor_asset_tree_t& tree			 = editor_asset_manager_t::get().get_asset_tree();
-		const bool				   is_asset_node = !_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && tree.value(_selected_asset_node).type == editor_asset_node_type_e::asset;
-		const bool				   is_file_node =
-			!_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && (tree.value(_selected_asset_node).type == editor_asset_node_type_e::file || tree.value(_selected_asset_node).type == editor_asset_node_type_e::script_file);
-		const bool			  multi_selected	   = _selected_asset_nodes.size() > 1;
-		const editor_asset_t* selected_asset	   = is_asset_node ? editor_asset_manager_t::get().find_asset(tree.value(_selected_asset_node).asset_id) : nullptr;
+		_create_asset_popup_command				   = 0;
+		_create_folder_popup_pending			   = false;
+		const editor_asset_tree_t& tree			   = editor_asset_manager_t::get().get_asset_tree();
+		const bool				   is_asset_node   = !_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && tree.value(_selected_asset_node).type == editor_asset_node_type_e::asset;
+		const bool				   is_file_node	   = !_selected_asset_node.is_null() && tree.is_valid(_selected_asset_node) && (tree.value(_selected_asset_node).type == editor_asset_node_type_e::file);
+		const bool				   multi_selected  = _selected_asset_nodes.size() > 1;
+		const editor_asset_t*	   selected_asset  = is_asset_node ? editor_asset_manager_t::get().find_asset(tree.value(_selected_asset_node).asset_id) : nullptr;
 		ASSETS_ITEM_ACTION_MENU_ROWS[0].disabled   = multi_selected;
 		ASSETS_ITEM_ACTION_MENU_ROWS[1].disabled   = multi_selected || selected_asset == nullptr;
 		ASSETS_ITEM_ACTION_MENU_ROWS[2].disabled   = multi_selected || selected_asset == nullptr || selected_asset->status == editor_asset_status_e::ok;

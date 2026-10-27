@@ -32,7 +32,6 @@ namespace sfg
 	{
 		folder,
 		file,
-		script_file,
 		asset,
 	};
 

@@ -32,8 +32,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/editor_project_cook_options.hpp"
 #include "tools/editor_settings.hpp"
 #include "tools/editor_surface_controller.hpp"
-#include "tools/scripting/editor_script_manager.hpp"
-#include "tools/scripting/script_compiler.hpp"
+#include "tools/scripting/editor_native_manager.hpp"
+#include "tools/scripting/native_compiler.hpp"
 #include "tools/ui/editor_modal_progress_bar.hpp"
 #include "tools/ui/editor_modal_project_cooker.hpp"
 
@@ -45,7 +45,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/runtime/project/project_package_meta.hpp>
 #include <sfg/core/runtime/resources/resource_manifest.hpp>
-#include <sfg/core/runtime/scripting/script_runtime.hpp>
+#include <sfg/core/runtime/scripting/native_component_schema.hpp>
 #include <sfg/core/serialization/serialization.hpp>
 
 namespace sfg
@@ -81,7 +81,7 @@ namespace sfg
 		_cook_options	= nullptr;
 
 		_cook_failure_reason.resize(0);
-		_release_script_output_directory.resize(0);
+		_packaged_plugin_path.resize(0);
 		_target_path.resize(0);
 		_cook_state = cook_state_e::idle;
 	}
@@ -110,27 +110,21 @@ namespace sfg
 			return;
 		}
 
-		const editor_script_manager_t& script_manager = editor_script_manager_t::get();
+		const editor_native_manager_t& native_manager = editor_native_manager_t::get();
 
-		if (!script_manager.is_initial_activation_completed())
+		if (!native_manager.is_loaded() || !native_manager.is_idle())
 		{
-			modal.request_modal("Cook Project", "C# scripts have not compiled and activated successfully.", buttons, static_cast<u16>(std::size(buttons)), editor_modal_severity_e::error);
-			return;
-		}
-
-		if (!script_manager.is_compile_idle())
-		{
-			modal.request_modal("Cook Project", "Wait for C# script compilation to finish.", buttons, static_cast<u16>(std::size(buttons)), editor_modal_severity_e::error);
-			return;
-		}
-
-		if (!script_manager.is_active_assembly_current())
-		{
-			modal.request_modal("Cook Project", "The active C# assembly does not match the published script files. Compile the scripts successfully before cooking.", buttons, static_cast<u16>(std::size(buttons)), editor_modal_severity_e::error);
+			modal.request_modal("Cook Project", "Load the native game plugin and wait for its build to finish before cooking.", buttons, static_cast<u16>(std::size(buttons)), editor_modal_severity_e::error);
 			return;
 		}
 
 		editor_world_controller_t& world_controller = editor_app_t::get().get_world_controller();
+
+		if (world_controller.get_play_session().is_playing() || world_controller.get_play_session().is_play_requested())
+		{
+			modal.request_modal("Cook Project", "Stop play mode before cooking.", buttons, static_cast<u16>(std::size(buttons)), editor_modal_severity_e::error);
+			return;
+		}
 
 		if (!world_controller.get_main_world_handle().is_null() && !world_controller.save_main_world())
 		{
@@ -140,76 +134,34 @@ namespace sfg
 
 		*_cook_options = options;
 		_cook_failure_reason.resize(0);
-		_release_script_output_directory.resize(0);
+		_packaged_plugin_path.resize(0);
 		_target_path.resize(0);
 
-		_cook_state = cook_state_e::compiling_scripts;
+		_cook_state = cook_state_e::compiling_native;
 
 		_progress_modal->set_progress(0.0f);
 		const editor_modal_content_desc_t content = _progress_modal->get_content_desc();
-		modal.request_modal("Cooking Project", "Compiling Release C# scripts.", false, nullptr, 0, &content);
+		modal.request_modal("Cooking Project", "Compiling the packaged C++ plugin.", false, nullptr, 0, &content);
 
 		_work_handle = editor_app_t::get().get_work_controller().submit_work({
-			.fn				= [](editor_work_context_t& context, void* user_data) { return static_cast<editor_project_cooker_t*>(user_data)->compile_scripts_worker(); },
+			.fn				= [](editor_work_context_t& context, void* user_data) { return static_cast<editor_project_cooker_t*>(user_data)->compile_native_worker(); },
 			.completed		= [](editor_work_handle_t handle, editor_work_state_e state, void* user_data) { static_cast<editor_project_cooker_t*>(user_data)->complete_work(handle, state == editor_work_state_e::succeeded); },
 			.user_data		= this,
-			.initial_status = "Compiling Release C# scripts",
+			.initial_status = "Compiling the packaged C++ plugin",
 		});
 	}
 
-	bool editor_project_cooker_t::compile_scripts_worker()
+	bool editor_project_cooker_t::compile_native_worker()
 	{
-		const string_t			script_project_path = editor_project_t::get()._runtime.script_project_path;
-		script_compile_result_t result				= script_compiler_t::compile(script_project_path.c_str(), script_build_configuration_e::release);
+		const editor_project_runtime_t& project = editor_project_t::get()._runtime;
+
+		_packaged_plugin_path = project.native_library_path + "Packaged/" + SFG_CONFIGURATION + "/stakeforge_game.dll";
+
+		native_compile_result_t result = native_compiler_t::compile(project.native_intermediate_path.c_str(), _packaged_plugin_path.c_str(), "Packaged");
 
 		if (!result.success)
 		{
-			_cook_failure_reason = "Release C# script compilation failed.";
-
-			if (!result.diagnostics.empty())
-				_cook_failure_reason += string_t("\n\n") + result.diagnostics;
-
-			return false;
-		}
-
-		_release_script_output_directory = std::move(result.output_directory);
-
-		return true;
-	}
-
-	bool editor_project_cooker_t::validate_release_script_schema()
-	{
-		const editor_script_manager_t& script_manager = editor_script_manager_t::get();
-
-		if (!script_manager.is_compile_idle() || !script_manager.is_active_assembly_current())
-		{
-			_cook_failure_reason = "The active Debug C# assembly changed while Release scripts were compiling. Restart the cook.";
-			return false;
-		}
-
-		script_runtime_t& script_runtime = script_runtime_t::get();
-
-		if (script_runtime.is_project_assembly_staged())
-		{
-			_cook_failure_reason = "A C# project assembly is already staged. Restart the cook after script compilation finishes.";
-			return false;
-		}
-
-		const editor_project_runtime_t& project_runtime		  = editor_project_t::get()._runtime;
-		const string_t					release_assembly_path = _release_script_output_directory + project_runtime.name + ".dll";
-
-		if (!script_runtime.stage_project_assembly(release_assembly_path.c_str()))
-		{
-			_cook_failure_reason = "The Release C# script assembly could not be staged for schema validation.";
-			return false;
-		}
-
-		const bool schemas_match = script_runtime.get_component_schema().is_equivalent(script_runtime.get_staged_component_schema());
-		script_runtime.discard_staged_project_assembly();
-
-		if (!schemas_match)
-		{
-			_cook_failure_reason = "The Debug and Release C# script schemas do not match. Components, component fields, and world scripts must be identical in both configurations.";
+			_cook_failure_reason = "Packaged C++ plugin compilation failed.\n\n" + result.diagnostics;
 			return false;
 		}
 
@@ -235,12 +187,11 @@ namespace sfg
 		}
 
 		// build package metadata from the cook options
-		*_package_meta						= {};
-		_package_meta->project_settings		= editor_project_t::get().settings.project_settings;
-		_package_meta->window_resolution	= _cook_options->resolution;
-		_package_meta->window_style			= _cook_options->is_borderless ? window_style_e::borderless : window_style_e::app_window;
-		_package_meta->is_fullscreen		= _cook_options->is_fullscreen;
-		_package_meta->script_assembly_name = editor_project_t::get()._runtime.name + ".dll";
+		*_package_meta					 = {};
+		_package_meta->project_settings	 = editor_project_t::get().settings.project_settings;
+		_package_meta->window_resolution = _cook_options->resolution;
+		_package_meta->window_style		 = _cook_options->is_borderless ? window_style_e::borderless : window_style_e::app_window;
+		_package_meta->is_fullscreen	 = _cook_options->is_fullscreen;
 		_package_meta->worlds.reserve(_cook_options->worlds.size());
 
 		// make sure every selected world exists and record its name hash
@@ -572,7 +523,7 @@ namespace sfg
 			return false;
 		}
 
-		if (!publish_game_files(_release_script_output_directory.c_str()))
+		if (!publish_game_files())
 			return false;
 
 		return true;
@@ -581,18 +532,35 @@ namespace sfg
 	void editor_project_cooker_t::complete_work(editor_work_handle_t work_handle, bool succeeded)
 	{
 		SFG_ASSERT(work_handle == _work_handle);
-		SFG_ASSERT(_cook_state == cook_state_e::compiling_scripts || _cook_state == cook_state_e::cooking);
+		SFG_ASSERT(_cook_state == cook_state_e::compiling_native || _cook_state == cook_state_e::cooking);
 
 		_work_handle = {};
 
 		editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
 
-		if (_cook_state == cook_state_e::compiling_scripts && succeeded)
+		if (_cook_state == cook_state_e::compiling_native && succeeded)
 		{
 			_progress_modal->set_progress(0.2f);
-			modal.set_body_text("Validating the Release C# script schema.");
+			modal.set_body_text("Validating the packaged native plugin.");
 
-			if (validate_release_script_schema())
+			plugin_runtime_t& plugin = plugin_runtime_t::get();
+
+			succeeded = plugin.stage(_packaged_plugin_path.c_str(), _cook_failure_reason);
+
+			if (succeeded)
+			{
+				const native_component_schema_delta_t delta = plugin.get_schema().compare(plugin.get_staged_schema());
+
+				succeeded = plugin.discard_staged(_cook_failure_reason);
+
+				if (succeeded && (!delta.added.empty() || !delta.removed.empty() || !delta.layout_changed.empty()))
+				{
+					_cook_failure_reason = "The packaged plugin components differ from the loaded editor plugin. Recompile the C++ project in the editor before cooking, and keep component definitions consistent across build configurations.";
+					succeeded			 = false;
+				}
+			}
+
+			if (succeeded)
 			{
 				_progress_modal->set_progress(0.3f);
 				modal.set_body_text("Preparing the project package.");
@@ -624,19 +592,10 @@ namespace sfg
 		}
 	}
 
-	bool editor_project_cooker_t::publish_game_files(const char* script_output_directory)
+	bool editor_project_cooker_t::publish_game_files()
 	{
 		const editor_project_runtime_t& project_runtime = editor_project_t::get()._runtime;
 		const string_t					running_path	= file_system_t::get_running_directory();
-		const string_t					managed_path	= project_runtime.cook_path + "managed/";
-		const string_t					scripts_path	= project_runtime.cook_path + "scripts/";
-
-		if (!file_system_t::ensure_directory(managed_path.c_str()) || !file_system_t::ensure_directory(scripts_path.c_str()))
-		{
-			_cook_failure_reason = "Failed to create the packaged managed directories.";
-			return false;
-		}
-
 		struct file_copy_t
 		{
 			const char* source_name = nullptr;
@@ -646,7 +605,6 @@ namespace sfg
 		const file_copy_t runtime_files[] = {
 			{.source_name = "stakeforge_game.exe", .target_name = nullptr},
 			{.source_name = "stakeforge_core.dll", .target_name = "stakeforge_core.dll"},
-			{.source_name = "nethost.dll", .target_name = "nethost.dll"},
 			{.source_name = "dxcompiler.dll", .target_name = "dxcompiler.dll"},
 			{.source_name = "dxil.dll", .target_name = "dxil.dll"},
 			{.source_name = "WinPixEventRuntime.dll", .target_name = "WinPixEventRuntime.dll"},
@@ -665,42 +623,12 @@ namespace sfg
 			}
 		}
 
-		const char* managed_files[] = {
-			"Stakeforge.ScriptHost.dll",
-			"Stakeforge.ScriptHost.deps.json",
-			"Stakeforge.ScriptHost.runtimeconfig.json",
-			"Stakeforge.Managed.dll",
-		};
+		const string_t plugin_path = project_runtime.cook_path + "stakeforge_game.dll";
 
-		for (const char* file : managed_files)
+		if (!file_system_t::copy_file(_packaged_plugin_path.c_str(), plugin_path.c_str()))
 		{
-			const string_t source_path = running_path + "managed/" + file;
-			const string_t target_path = managed_path + file;
-
-			if (!file_system_t::copy_file(source_path.c_str(), target_path.c_str()))
-			{
-				_cook_failure_reason = string_t("Failed to publish managed runtime file: ") + file;
-				return false;
-			}
-		}
-
-		const char* script_extensions[] = {
-			".dll",
-			".deps.json",
-			".pdb",
-		};
-
-		for (const char* extension : script_extensions)
-		{
-			const string_t file_name   = project_runtime.name + extension;
-			const string_t source_path = string_t(script_output_directory) + file_name;
-			const string_t target_path = scripts_path + file_name;
-
-			if (!file_system_t::copy_file(source_path.c_str(), target_path.c_str()))
-			{
-				_cook_failure_reason = string_t("Failed to publish C# project file: ") + file_name;
-				return false;
-			}
+			_cook_failure_reason = "Failed to publish the native game plugin.";
+			return false;
 		}
 
 		return true;

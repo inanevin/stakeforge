@@ -40,8 +40,7 @@
     "dependency_libraries": [
         "$<TARGET_FILE:Jolt>", "$<TARGET_FILE:lz4>", "$<TARGET_FILE:freetype>",
         "@CMAKE_SOURCE_DIR@/stakeforge_core/deps/dxc/Win64/$<IF:$<CONFIG:Debug>,Debug,Release>/dxcompiler.lib",
-        "@CMAKE_SOURCE_DIR@/stakeforge_core/deps/pix/lib/WinPixEventRuntime.lib",
-        "@SFG_SDK_DOTNET_NATIVE_HOST_DIR@/nethost.lib"
+        "@CMAKE_SOURCE_DIR@/stakeforge_core/deps/pix/lib/WinPixEventRuntime.lib"
     ],
     "system_libraries": ["d3d12", "dxgi", "dxguid", "Dwmapi", "Shcore", "Winmm"],
     "runtime_files": [

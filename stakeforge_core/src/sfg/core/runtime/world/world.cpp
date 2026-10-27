@@ -36,7 +36,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/resources/resource_manager.hpp"
 #include "core/runtime/resources/world_cook.hpp"
 #include "core/runtime/resources/world_cook_entity_header.hpp"
-#include "core/runtime/scripting/script_component_schema.hpp"
 #include "core/runtime/scripting/plugin_runtime.hpp"
 #include "core/runtime/world/ecs.hpp"
 #include "core/runtime/world/engine_components.hpp"
@@ -1214,92 +1213,6 @@ namespace sfg
 		ecs_component_table_t& table = _component_tables.emplace_back();
 		table.init(desc);
 		return table;
-	}
-
-	void world_t::apply_script_component_schema(const script_component_schema_t& current_schema, const script_component_schema_t& candidate_schema, const script_component_schema_delta_t& delta)
-	{
-		SFG_ASSERT(!is_component_query_active());
-
-		_component_tables.reserve(_component_tables.size() + delta.added.size());
-
-		for (sid_t type_id : delta.removed)
-		{
-			const auto table_it = std::find_if(_component_tables.begin(), _component_tables.end(), [type_id](const ecs_component_table_t& table) { return table.get_type_id() == type_id; });
-			SFG_ASSERT(table_it != _component_tables.end());
-
-			table_it->uninit();
-			_component_tables.erase(table_it);
-		}
-
-		for (sid_t type_id : delta.layout_changed)
-		{
-			const script_component_desc_t* current_component   = current_schema.find_component(type_id);
-			const script_component_desc_t* candidate_component = candidate_schema.find_component(type_id);
-			ecs_component_table_t*		   current_table	   = find_component_table(type_id);
-
-			SFG_ASSERT(current_component != nullptr);
-			SFG_ASSERT(candidate_component != nullptr);
-			SFG_ASSERT(current_table != nullptr);
-
-			ecs_component_table_t	candidate_table = {};
-			const reflected_type_t* reflected_type	= reflection_registry_t::get().find_type(type_id);
-			SFG_ASSERT(reflected_type != nullptr);
-
-			const ecs_component_type_desc_t type_desc = ecs_component_table_t::make_component_desc(candidate_component->type_id, candidate_component->size, candidate_component->alignment, ecs_component_type_flags_none, reflected_type->name);
-			candidate_table.init(type_desc);
-
-			const ecs_component_table_ref_t table_refs[] = {
-				current_table->ref(),
-			};
-
-			// replace data
-			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
-			{
-				void* candidate_data = candidate_table.add(row.id);
-
-				SFG_MEMSET(candidate_data, 0, candidate_component->size);
-
-				for (const script_component_field_desc_t& candidate_field : candidate_component->fields)
-				{
-					const script_component_field_desc_t* current_field = current_component->find_field(candidate_field.field_id);
-
-					if (current_field == nullptr || current_field->value_type != candidate_field.value_type || current_field->sub_type_id != candidate_field.sub_type_id || current_field->size != candidate_field.size)
-						continue;
-
-					const u8* current_field_data   = static_cast<const u8*>(row.components[0]) + current_field->offset;
-					u8*		  candidate_field_data = static_cast<u8*>(candidate_data) + candidate_field.offset;
-
-					SFG_MEMCPY(candidate_field_data, current_field_data, candidate_field.size);
-				}
-			}
-
-			current_table->uninit();
-			*current_table = std::move(candidate_table);
-		}
-
-		for (sid_t type_id : delta.added)
-		{
-			const script_component_desc_t* component	  = candidate_schema.find_component(type_id);
-			const reflected_type_t*		   reflected_type = reflection_registry_t::get().find_type(type_id);
-
-			SFG_ASSERT(component != nullptr);
-			SFG_ASSERT(reflected_type != nullptr);
-
-			add_component_table(ecs_component_table_t::make_component_desc(component->type_id, component->size, component->alignment, ecs_component_type_flags_none, reflected_type->name));
-		}
-
-		for (const script_component_desc_t& component : candidate_schema.get_components())
-		{
-			const reflected_type_t* reflected_type = reflection_registry_t::get().find_type(component.type_id);
-			ecs_component_table_t*	table		   = find_component_table(component.type_id);
-
-			SFG_ASSERT(reflected_type != nullptr);
-			SFG_ASSERT(table != nullptr);
-
-			table->set_type_desc(ecs_component_table_t::make_component_desc(component.type_id, component.size, component.alignment, ecs_component_type_flags_none, reflected_type->name));
-		}
-
-		refresh_component_table_cache();
 	}
 
 	void world_t::begin_component_query()

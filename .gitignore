@@ -19,8 +19,6 @@ Library
 [Gg]enerated_project_files
 _build
 docs
-stakeforge_managed/Stakeforge.ScriptHost/bin
-stakeforge_managed/Stakeforge.Managed/bin
 [Oo]bj
 *.DS_Store
 _stakeforge_cache
@@ -204,7 +202,6 @@ ClientBin/
 *.pfx
 *.publishsettings
 node_modules/
-orleans.codegen.cs
 
 # Since there are multiple workflows, uncomment next line to ignore bower_components
 # (https://github.com/github/gitignore/pull/1529#issuecomment-104372622)

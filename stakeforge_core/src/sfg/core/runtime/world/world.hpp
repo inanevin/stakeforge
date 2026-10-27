@@ -31,8 +31,6 @@ namespace sfg
 	struct world_particle_simulation_config_t;
 	struct component_hierarchy_t;
 	struct prefab_internals_t;
-	class script_component_schema_t;
-	struct script_component_schema_delta_t;
 
 	struct prefab_spawn_params_t
 	{
@@ -172,7 +170,6 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		ecs_component_table_t&				   add_component_table(const ecs_component_type_desc_t& desc);
-		void								   apply_script_component_schema(const script_component_schema_t& current_schema, const script_component_schema_t& candidate_schema, const script_component_schema_delta_t& delta);
 		void								   refresh_component_table_cache();
 		const ecs_component_table_t*		   find_component_table(sid_t type_id) const;
 		ecs_component_table_t*				   find_component_table(sid_t type_id);

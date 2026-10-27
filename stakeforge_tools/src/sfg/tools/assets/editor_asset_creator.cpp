@@ -111,21 +111,6 @@ namespace sfg
 			}
 		}
 
-		const char* get_script_template_relative(editor_script_template_e script_template)
-		{
-			switch (script_template)
-			{
-			case editor_script_template_e::component:
-				return EDITOR_TEMPLATE_SCRIPTS "component.cs";
-			case editor_script_template_e::world_script:
-				return EDITOR_TEMPLATE_SCRIPTS "world_script.cs";
-			case editor_script_template_e::class_script:
-				return EDITOR_TEMPLATE_SCRIPTS "class.cs";
-			default:
-				return nullptr;
-			}
-		}
-
 		bool create_shader_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			const shader_type_e shader_type	 = static_cast<shader_type_e>(desc.sub_type);
@@ -463,60 +448,5 @@ namespace sfg
 			*out_asset = asset;
 
 		return result;
-	}
-
-	bool editor_asset_creator_t::create_script(const editor_script_create_desc_t& desc, string_t* out_path)
-	{
-		if (!editor_directories_t::is_valid_csharp_identifier(desc.name))
-			return false;
-
-		const char* template_relative = get_script_template_relative(desc.script_template);
-
-		if (template_relative == nullptr)
-			return false;
-
-		const editor_asset_tree_t& tree		   = editor_asset_manager_t::get().get_asset_tree();
-		const editor_asset_node_t& parent_node = tree.value(desc.parent_node);
-		SFG_ASSERT(parent_node.type == editor_asset_node_type_e::folder);
-
-		string_t script_path = editor_asset_path_t::normalize_directory(parent_node.full_path.c_str());
-		script_path += desc.name;
-		script_path += ".cs";
-
-		if (!desc.allow_overwrite && file_system_t::exists(script_path.c_str()))
-			return false;
-
-		string_t template_path = file_system_t::get_running_directory();
-		template_path += template_relative;
-
-		if (!file_system_t::exists(template_path.c_str()))
-		{
-			SFG_ERR("C# script template does not exist: {0}", template_path);
-			return false;
-		}
-
-		string_t contents = file_system_t::read_file_as_string(template_path.c_str());
-		string_util::replace_all(contents, "#SCRIPT_NAME#", desc.name);
-
-		if (desc.script_template == editor_script_template_e::component)
-		{
-			sid_t component_guid = NULL_SID;
-
-			do
-			{
-				component_guid = hashing_t::generate_guid64();
-			} while (component_guid == NULL_SID);
-
-			const string_t component_id = std::to_string(component_guid).c_str();
-			string_util::replace_all(contents, "#COMPONENT_ID#", component_id.c_str());
-		}
-
-		if (!serializer_t::write_to_file(contents, script_path.c_str()))
-			return false;
-
-		if (out_path != nullptr)
-			*out_path = std::move(script_path);
-
-		return true;
 	}
 }

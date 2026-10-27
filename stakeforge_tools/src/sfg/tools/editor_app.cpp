@@ -28,7 +28,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/editor_project_cooker.hpp"
 #include "tools/editor_settings.hpp"
 #include "tools/editor_surface_controller.hpp"
-#include "tools/scripting/editor_script_manager.hpp"
 #include "tools/scripting/editor_native_manager.hpp"
 #include "tools/ui/editor_text_rasterization.hpp"
 #include "tools/ui/panels/editor_panel_world.hpp"
@@ -48,8 +47,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/engine/perf_metrics.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
 #include <sfg/core/runtime/render/render_resources.hpp>
-#include <sfg/core/runtime/scripting/api/script_api_game.hpp>
-#include <sfg/core/runtime/scripting/api/script_api_platform.hpp>
 #include <sfg/core/runtime/ui/input/input_router.hpp>
 #include <sfg/core/runtime/ui/ui_context.hpp>
 #include <tracy/Tracy.hpp>
@@ -64,37 +61,6 @@ namespace sfg
 	editor_app_t::editor_app_t()  = default;
 	editor_app_t::~editor_app_t() = default;
 
-	u8 editor_app_t::get_script_game_render_resolution(vec2u16_t& out_resolution)
-	{
-		out_resolution = vec2u16_t::zero;
-
-		editor_world_controller_t&	world_controller = editor_app_t::get().get_world_controller();
-		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
-
-		if (main_world.is_null())
-			return 0;
-
-		out_resolution = world_controller.get_editor_world(main_world)->get_render_resolution();
-		return 1;
-	}
-
-	u8 editor_app_t::set_script_game_render_resolution(const vec2u16_t& resolution)
-	{
-		editor_world_controller_t&	world_controller = editor_app_t::get().get_world_controller();
-		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
-
-		if (main_world.is_null())
-			return 0;
-
-		world_controller.resize_world(main_world, resolution);
-		return 1;
-	}
-
-	void editor_app_t::quit_script_game()
-	{
-		editor_app_t::get().get_world_controller().get_play_session().queue_quit();
-	}
-
 	bool editor_app_t::init(const editor_app_config_t& config)
 	{
 		SFG_ASSERT(config.main_frame_budget_bytes != 0);
@@ -102,12 +68,11 @@ namespace sfg
 
 		_config = config;
 
-		g_window_api_enabled = false;
-
 		engine_runtime_t& runtime = engine_runtime_t::get();
 
 		editor_text_rasterization_t::set_subpixel_enabled(true);
 		editor_directories_t::init_paths();
+
 		if (!editor_settings_t::get().ensure_loaded())
 			return false;
 
@@ -138,6 +103,7 @@ namespace sfg
 			.assets_dir	   = editor_directories_t::get_editor_assets(),
 			.cache_dir	   = editor_directories_t::get_editor_resource_cache(),
 		};
+
 		if (!_engine_resource_preload.init(resource_manager_t::get(), engine_preload_params))
 		{
 			_world_controller.uninit();
@@ -152,6 +118,7 @@ namespace sfg
 			.assets_dir	   = editor_directories_t::get_editor_assets(),
 			.cache_dir	   = editor_directories_t::get_editor_resource_cache(),
 		};
+
 		if (!_editor_resource_preload.init(resource_manager_t::get(), editor_preload_params))
 		{
 			_engine_resource_preload.uninit();
@@ -164,6 +131,7 @@ namespace sfg
 
 		render_resources_t::get().drain_requests();
 		resource_manager_t::get().flush();
+
 		if (!_renderer.init(config.renderer))
 		{
 			_editor_resource_preload.uninit();
@@ -174,12 +142,14 @@ namespace sfg
 			runtime.uninit_backend();
 			return false;
 		}
+
 		editor_surface_controller_t::get().init(_renderer, _payload_controller);
 
 		frame_allocator_tls_t::init(config.main_frame_budget_bytes);
 		_work_controller.init();
 
 		const string_t& last_project = editor_settings_t::get().last_project_path;
+
 		if (!last_project.empty() && file_system_t::exists(last_project.c_str()))
 		{
 			if (editor_project_t::get().try_load(last_project.c_str()))
@@ -216,10 +186,6 @@ namespace sfg
 	void editor_app_t::uninit()
 	{
 		engine_runtime_t& runtime = engine_runtime_t::get();
-
-		set_script_api_platform_lock_cursor_callback(nullptr);
-		set_script_api_platform_window_runtime(nullptr);
-		set_script_api_game_callbacks(nullptr, nullptr, nullptr);
 
 		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
 		SFG_ASSERT(surfaces.is_empty());
@@ -375,13 +341,7 @@ namespace sfg
 		_world_controller.load_dummy_world();
 		_normal_world_load_pending = proj.settings.last_world_guid != NULL_SID;
 
-		set_script_api_platform_window_runtime(surfaces.get_main_surface().runtime.get());
-		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, quit_script_game);
-
-		editor_script_manager_t::get().init();
-		_asset_manager.initialize_script_file_tracking();
 		editor_project_cooker_t::get().init();
-		editor_script_manager_t::get().compile_scripts();
 
 		return true;
 	}
@@ -394,8 +354,6 @@ namespace sfg
 		_asset_manager.flush_asset_cook_jobs();
 		_work_controller.wait_for_all();
 
-		_asset_manager.uninitialize_script_file_tracking();
-		editor_script_manager_t::get().uninit();
 		editor_project_cooker_t::get().uninit();
 
 		editor_thumbnail_render_service_t::get().uninit();
@@ -417,9 +375,6 @@ namespace sfg
 		if (_mode == editor_app_mode_e::normal)
 		{
 			editor_native_manager_t::get().begin_shutdown();
-			set_script_api_platform_lock_cursor_callback(nullptr);
-			set_script_api_platform_window_runtime(nullptr);
-			set_script_api_game_callbacks(nullptr, nullptr, nullptr);
 		}
 
 		surfaces.destroy_all_surfaces();
@@ -545,13 +500,11 @@ namespace sfg
 
 			if (_mode == editor_app_mode_e::normal)
 			{
-				editor_script_manager_t& script_manager = editor_script_manager_t::get();
-
 				_file_watch_controller.tick();
 				_asset_manager.process_file_changes(_file_watch_controller.get_changes());
 				editor_native_manager_t::get().process_file_changes(_file_watch_controller.get_changes());
 
-				if (_normal_world_load_pending && script_manager.is_initial_activation_completed())
+				if (_normal_world_load_pending && editor_native_manager_t::get().is_loaded() && editor_native_manager_t::get().is_idle())
 				{
 					_normal_world_load_pending = false;
 
@@ -590,6 +543,7 @@ namespace sfg
 						_splash_displayed_progress_text = _splash_work_status.text;
 						surface.splash->update_progress_text(_splash_displayed_progress_text.c_str());
 					}
+
 					break;
 				}
 			}

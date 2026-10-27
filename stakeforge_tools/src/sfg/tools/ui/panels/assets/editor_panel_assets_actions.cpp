@@ -461,7 +461,7 @@ namespace sfg
 				if (auto it = std::find(_favourite_asset_guids.begin(), _favourite_asset_guids.end(), guid); it != _favourite_asset_guids.end())
 					_favourite_asset_guids.erase(it);
 			}
-			else if (asset_node.type == editor_asset_node_type_e::file || asset_node.type == editor_asset_node_type_e::script_file)
+			else if (asset_node.type == editor_asset_node_type_e::file)
 				asset_manager.delete_node_subtree(node);
 		}
 
@@ -505,11 +505,9 @@ namespace sfg
 
 		const editor_asset_node_t& asset_node = tree.value(node);
 
-		if (asset_node.type == editor_asset_node_type_e::script_file)
+		if (asset_node.type == editor_asset_node_type_e::file)
 		{
-			const string_t project_root = file_system_t::get_directory_of_file(editor_project_t::get()._runtime.path.c_str());
-
-			process::open_file_in_vscode(project_root.c_str(), asset_node.full_path.c_str());
+			process::open_file(asset_node.full_path.c_str());
 			return;
 		}
 
@@ -739,15 +737,6 @@ namespace sfg
 		case assets_action_menu_create_physical_material:
 			text = "physical_material";
 			break;
-		case assets_action_menu_create_csharp_component:
-			text = "NewComponent";
-			break;
-		case assets_action_menu_create_csharp_world_script:
-			text = "NewWorldScript";
-			break;
-		case assets_action_menu_create_csharp_class:
-			text = "NewClass";
-			break;
 		default:
 			SFG_ASSERT(false);
 			return;
@@ -758,7 +747,7 @@ namespace sfg
 		desc.cancelled				   = on_create_asset_popup_cancelled;
 		desc.user_data				   = this;
 		desc.text					   = text;
-		desc.placeholder			   = command >= assets_action_menu_create_csharp_component && command <= assets_action_menu_create_csharp_class ? "Class Name" : "Asset Name";
+		desc.placeholder			   = "Asset Name";
 		desc.pos					   = _action_menu_pos;
 		desc.width					   = editor_theme_t::get().item_width;
 		popup->request_input_popup(desc);
@@ -812,39 +801,15 @@ namespace sfg
 		if (name == nullptr || name[0] == '\0')
 			return;
 
-		if (command >= assets_action_menu_create_csharp_component && command <= assets_action_menu_create_csharp_class)
-		{
-			editor_script_create_desc_t desc = {};
-
-			if (!make_create_script_desc(command, name, false, desc))
-				return;
-
-			string_t script_path = editor_asset_path_t::normalize_directory(get_selected_folder_path());
-			script_path += name;
-			script_path += ".cs";
-
-			if (file_system_t::exists(script_path.c_str()))
-			{
-				vector_t<string_t> rows = {};
-				rows.push_back(file_system_t::get_filename_and_extension_from_path(script_path));
-				_pending_override_create_command = command;
-				_pending_override_asset_name	 = name;
-				_pending_override_target_folder	 = _selected_folder_node;
-				request_assets_override(asset_override_operation_e::create_asset, "A C# script with this name already exists. Overwrite it?", rows);
-				return;
-			}
-
-			create_asset_item_internal(command, name, false);
-			return;
-		}
-
 		editor_asset_create_desc_t desc = {};
+
 		if (!make_create_asset_desc(command, name, false, desc))
 			return;
 
 		vector_t<string_t> rows		  = {};
 		const string_t	   asset_path = editor_asset_path_t::make_asset_path(get_selected_folder_path(), name);
 		string_t		   row		  = {};
+
 		if (find_matching_asset_override(asset_path.c_str(), desc.asset_type, &row))
 		{
 			rows.push_back(row);
@@ -862,31 +827,8 @@ namespace sfg
 	{
 		string_t asset_name = name != nullptr ? name : "";
 
-		if (command >= assets_action_menu_create_csharp_component && command <= assets_action_menu_create_csharp_class)
-		{
-			editor_script_create_desc_t desc = {};
-
-			if (!make_create_script_desc(command, asset_name.c_str(), allow_overwrite, desc))
-				return false;
-
-			string_t script_path = {};
-
-			if (!editor_asset_creator_t::create_script(desc, &script_path))
-				return false;
-
-			editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
-			const editor_asset_node_handle_t existing	   = asset_manager.find_node_by_path(script_path.c_str());
-
-			if (existing.is_null())
-				asset_manager.add_path_node(_selected_folder_node, script_path.c_str());
-			else
-				asset_manager.notify_changed();
-
-			refresh_folder_rows();
-			return true;
-		}
-
 		editor_asset_create_desc_t desc = {};
+
 		if (!make_create_asset_desc(command, asset_name.c_str(), allow_overwrite, desc))
 			return false;
 
@@ -896,10 +838,12 @@ namespace sfg
 		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
 		const string_t					 asset_path	   = editor_asset_path_t::make_asset_path(get_selected_folder_path(), asset_name.c_str());
 		const editor_asset_node_handle_t existing	   = asset_manager.find_node_by_path(asset_path.c_str());
+
 		if (!existing.is_null())
 			asset_manager.reload_asset_node(existing);
 		else
 			asset_manager.add_path_node(_selected_folder_node, asset_path.c_str());
+
 		refresh_folder_rows();
 		return true;
 	}
@@ -1007,31 +951,6 @@ namespace sfg
 			return true;
 		case assets_action_menu_create_physical_material:
 			out_desc.asset_type = editor_asset_type_e::physical_material;
-			return true;
-		default:
-			SFG_ASSERT(false);
-			return false;
-		}
-	}
-
-	bool editor_panel_assets_t::make_create_script_desc(u16 command, const char* name, bool allow_overwrite, editor_script_create_desc_t& out_desc) const
-	{
-		out_desc = {
-			.parent_node	 = _selected_folder_node,
-			.name			 = name,
-			.allow_overwrite = allow_overwrite,
-		};
-
-		switch (command)
-		{
-		case assets_action_menu_create_csharp_component:
-			out_desc.script_template = editor_script_template_e::component;
-			return true;
-		case assets_action_menu_create_csharp_world_script:
-			out_desc.script_template = editor_script_template_e::world_script;
-			return true;
-		case assets_action_menu_create_csharp_class:
-			out_desc.script_template = editor_script_template_e::class_script;
 			return true;
 		default:
 			SFG_ASSERT(false);
@@ -1199,7 +1118,7 @@ namespace sfg
 		editor_input_popup_desc_t desc = {};
 		desc.submitted				   = on_asset_rename_popup_submitted;
 		desc.user_data				   = this;
-		const bool	   is_file		   = asset_node.type == editor_asset_node_type_e::file || asset_node.type == editor_asset_node_type_e::script_file;
+		const bool	   is_file		   = asset_node.type == editor_asset_node_type_e::file;
 		const string_t file_name_stem  = is_file ? file_system_t::remove_extensions_from_path(asset_node.name) : "";
 		desc.text					   = is_file ? file_name_stem.c_str() : asset_node.name.c_str();
 		desc.pos					   = item_out.pos;
@@ -1212,20 +1131,20 @@ namespace sfg
 		editor_asset_manager_t&	   asset_manager = editor_asset_manager_t::get();
 		const editor_asset_tree_t& tree			 = asset_manager.get_asset_tree();
 
-		const editor_asset_node_t& asset_node	  = tree.value(_selected_asset_node);
-		const bool				   is_script_file = asset_node.type == editor_asset_node_type_e::script_file;
-		string_t				   new_name		  = name != nullptr ? name : "";
+		const editor_asset_node_t& asset_node = tree.value(_selected_asset_node);
+		string_t				   new_name	  = name != nullptr ? name : "";
 
-		if (is_script_file ? !editor_directories_t::is_valid_csharp_identifier(new_name.c_str()) : !editor_directories_t::is_valid_asset_name(new_name.c_str()))
+		if (!editor_directories_t::is_valid_asset_name(new_name.c_str()))
 			return;
 
-		const bool	   is_file			  = asset_node.type == editor_asset_node_type_e::file || asset_node.type == editor_asset_node_type_e::script_file;
+		const bool	   is_file			  = asset_node.type == editor_asset_node_type_e::file;
 		const string_t old_file_extension = is_file ? file_system_t::get_file_extension(asset_node.name) : "";
+
 		if (is_file)
 		{
 			new_name = file_system_t::remove_extensions_from_path(new_name);
 
-			if (is_script_file ? !editor_directories_t::is_valid_csharp_identifier(new_name.c_str()) : !editor_directories_t::is_valid_asset_name(new_name.c_str()))
+			if (!editor_directories_t::is_valid_asset_name(new_name.c_str()))
 				return;
 		}
 
@@ -1236,6 +1155,7 @@ namespace sfg
 		const string_t	parent_path = file_system_t::get_directory_of_file(old_path.c_str());
 
 		string_t new_path = parent_path + new_name;
+
 		if (asset_node.type == editor_asset_node_type_e::asset)
 			new_path += ".sfg_asset";
 		else if (!old_file_extension.empty())

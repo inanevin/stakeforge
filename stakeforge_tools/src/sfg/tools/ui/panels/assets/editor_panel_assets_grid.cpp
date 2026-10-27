@@ -227,16 +227,18 @@ namespace sfg
 		const editor_asset_node_t&		 asset_node = editor_asset_manager_t::get().get_asset_tree().value(node);
 		const editor_asset_t*			 asset		= asset_node.type == editor_asset_node_type_e::asset ? editor_asset_manager_t::get().find_asset(asset_node.asset_id) : nullptr;
 		const editor_asset_descriptor_t* descriptor = nullptr;
+
 		if (asset != nullptr)
 		{
 			const auto& descriptors	  = editor_asset_manager_t::get().get_asset_descriptors();
 			const auto	descriptor_it = descriptors.find(asset->asset_type);
 			descriptor				  = descriptor_it != descriptors.end() ? &descriptor_it->second : nullptr;
 		}
-		const char*	  type_text	 = descriptor != nullptr && !descriptor->display_name.empty() ? descriptor->display_name.c_str() : asset_node.type == editor_asset_node_type_e::script_file ? "C# Script" : "File";
+
+		const char*	  type_text	 = descriptor != nullptr && !descriptor->display_name.empty() ? descriptor->display_name.c_str() : "File";
 		const vec4f_t item_color = descriptor != nullptr ? descriptor->color : theme.color_outline_light;
 		const bool	  has_status = asset != nullptr && asset->status != editor_asset_status_e::ok;
-		const sid_t	  thumbnail	 = asset != nullptr ? asset->thumbnail_guid : asset_node.type == editor_asset_node_type_e::script_file ? "editor/resource_pack/textures/thumbnails/csharp.png"_hs : NULL_SID;
+		const sid_t	  thumbnail	 = asset != nullptr ? asset->thumbnail_guid : NULL_SID;
 
 		asset_grid_item_t item = {};
 		item.node			   = node;
@@ -274,6 +276,7 @@ namespace sfg
 		ui.get_input().set_listener(item.root, listener);
 
 		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(ui);
+
 		if (asset != nullptr)
 		{
 			const string_t				guid_text = std::to_string(asset->guid);
@@ -433,16 +436,18 @@ namespace sfg
 		const editor_asset_node_t&		 asset_node = editor_asset_manager_t::get().get_asset_tree().value(node);
 		const editor_asset_t*			 asset		= asset_node.type == editor_asset_node_type_e::asset ? editor_asset_manager_t::get().find_asset(asset_node.asset_id) : nullptr;
 		const editor_asset_descriptor_t* descriptor = nullptr;
+
 		if (asset != nullptr)
 		{
 			const auto& descriptors	  = editor_asset_manager_t::get().get_asset_descriptors();
 			const auto	descriptor_it = descriptors.find(asset->asset_type);
 			descriptor				  = descriptor_it != descriptors.end() ? &descriptor_it->second : nullptr;
 		}
-		const char*	  type_text	 = descriptor != nullptr && !descriptor->display_name.empty() ? descriptor->display_name.c_str() : asset_node.type == editor_asset_node_type_e::script_file ? "C# Script" : "File";
+
+		const char*	  type_text	 = descriptor != nullptr && !descriptor->display_name.empty() ? descriptor->display_name.c_str() : "File";
 		const vec4f_t item_color = descriptor != nullptr ? descriptor->color : theme.color_outline_light;
 		const bool	  has_status = asset != nullptr && asset->status != editor_asset_status_e::ok;
-		const sid_t	  thumbnail	 = asset != nullptr ? asset->thumbnail_guid : asset_node.type == editor_asset_node_type_e::script_file ? "editor/resource_pack/textures/thumbnails/csharp.png"_hs : NULL_SID;
+		const sid_t	  thumbnail	 = asset != nullptr ? asset->thumbnail_guid : NULL_SID;
 
 		asset_grid_item_t item = {};
 		item.node			   = node;
@@ -482,6 +487,7 @@ namespace sfg
 		ui.get_input().set_listener(item.root, listener);
 
 		editor_tooltip_controller_t* tooltip_controller = editor_tooltip_controller_t::find(ui);
+
 		if (asset != nullptr)
 		{
 			const string_t				guid_text = std::to_string(asset->guid);
@@ -570,6 +576,7 @@ namespace sfg
 		status_in.size_mode_y	   = ui::axis_mode_e::fixed;
 		status_in.size_value	   = {theme.item_height, theme.item_height};
 		const f32 root_w		   = _ui->get_tree().out(_assets_body_pane_mid).size.x;
+
 		if (root_w > 0.0f)
 			status_in.pos_value.x = 1.0f - theme.item_height / root_w;
 		tree.set_visible(item.status_text, has_status, false);

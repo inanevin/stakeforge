@@ -35,7 +35,7 @@ namespace sfg
 	struct physics_contact_event_t;
 	struct canvas_event_t;
 
-	inline constexpr u32 PLUGIN_API_VERSION = 5;
+	inline constexpr u32 PLUGIN_API_VERSION = 6;
 
 	struct plugin_callbacks_t
 	{

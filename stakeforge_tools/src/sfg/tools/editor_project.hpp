@@ -41,10 +41,7 @@ namespace sfg
 		string_t game_assets_path;
 		string_t cook_path;
 		string_t intermediate_path;
-		string_t csharp_intermediate_path;
-		string_t script_project_path;
 		string_t library_path;
-		string_t script_library_path;
 		string_t native_source_path;
 		string_t native_intermediate_path;
 		string_t native_library_path;
@@ -79,7 +76,6 @@ namespace sfg
 
 		bool					save(const char* path);
 		bool					try_load(const char* path);
-		bool					ensure_script_project();
 		bool					ensure_native_project();
 		void					refresh_runtime(const char* path);
 		static editor_project_t make_default_project(const char* path);

@@ -72,15 +72,17 @@ namespace sfg
 
 	void editor_asset_manager_util_t::build_asset_database(editor_asset_manager_t& asset_manager, const char* assets_dir)
 	{
-		vector_t<file_system_entry_t> entries;
+		vector_t<file_system_entry_t> entries = {};
 		file_system_t::get_entries_recursive(assets_dir, entries);
 
 		editor_asset_database_t& database = asset_manager._database;
 		database.clear();
 		database.reserve(static_cast<u32>(entries.size() + 1), static_cast<u32>(entries.size()));
-		hash_map_t<u64, bool> found_assets;
+
+		hash_map_t<u64, bool> found_assets = {};
 		found_assets.reserve(entries.size());
-		vector_t<sid_t> used_guids;
+
+		vector_t<sid_t> used_guids = {};
 		used_guids.reserve(entries.size() * 2);
 
 		const string_t					 root_name = file_system_t::get_last_folder_from_path(assets_dir);
@@ -88,7 +90,8 @@ namespace sfg
 		const editor_asset_node_handle_t root_node = database.emplace_node(editor_asset_node_t{.name = root_name, .full_path = root_path, .type = editor_asset_node_type_e::folder});
 		database.set_root_node(root_node);
 
-		vector_t<string_t> parts;
+		vector_t<string_t> parts = {};
+
 		for (const file_system_entry_t& entry : entries)
 		{
 			const string_t relative = file_system_t::get_relative(assets_dir, entry.path.c_str());
@@ -97,6 +100,7 @@ namespace sfg
 
 			editor_asset_node_handle_t parent			 = root_node;
 			const size_t			   folder_part_count = entry.type == file_system_entry_type_e::directory ? parts.size() : parts.size() - 1;
+
 			for (size_t i = 0; i < folder_part_count; ++i)
 				parent = asset_manager.get_or_create_child_folder(parent, parts[i]);
 
@@ -104,22 +108,26 @@ namespace sfg
 				continue;
 
 			editor_asset_t asset = {};
+
 			if (file_system_t::get_file_extension(entry.path) == "sfg_asset")
 			{
 				if (!editor_asset_io_t::read_asset(entry.path.c_str(), asset))
 					continue;
 
 				const u64 asset_id = asset.guid;
+
 				if (asset_id == NULL_SID)
 				{
 					SFG_ERR("asset {0} has an invalid guid", entry.path.c_str());
 					continue;
 				}
+
 				if (found_assets.find(asset_id) != found_assets.end())
 				{
 					SFG_ERR("asset {0} has a duplicate guid", entry.path.c_str());
 					continue;
 				}
+
 				if (contains_guid({.data = used_guids.data(), .size = used_guids.size()}, asset_id))
 				{
 					SFG_ERR("asset {0} has a guid that collides with another resource guid", entry.path.c_str());
@@ -129,6 +137,7 @@ namespace sfg
 				used_guids.push_back(asset.guid);
 				bool		rewrite_asset		   = false;
 				const sid_t builtin_thumbnail_guid = editor_asset_thumbnailer_t::get_builtin_thumbnail_guid(asset.asset_type);
+
 				if (builtin_thumbnail_guid != NULL_SID)
 				{
 					if (asset.thumbnail_guid != builtin_thumbnail_guid)
@@ -142,6 +151,7 @@ namespace sfg
 					asset.thumbnail_guid = editor_asset_thumbnailer_t::make_thumbnail_guid(asset.asset_type, {.data = used_guids.data(), .size = used_guids.size()});
 					rewrite_asset		 = true;
 				}
+
 				if (rewrite_asset && !editor_asset_io_t::write_asset(entry.path.c_str(), asset))
 				{
 					SFG_ERR("failed to update asset thumbnail guid {0}", entry.path.c_str());
@@ -149,8 +159,10 @@ namespace sfg
 				}
 
 				found_assets.emplace(asset_id, true);
+
 				if (builtin_thumbnail_guid == NULL_SID)
 					used_guids.push_back(asset.thumbnail_guid);
+
 				database.upsert_asset(std::move(asset));
 
 				const string_t					 name		= file_system_t::remove_extensions_from_path(parts.back());
@@ -159,7 +171,7 @@ namespace sfg
 			}
 			else
 			{
-				const editor_asset_node_type_e	 node_type = file_system_t::get_file_extension(entry.path) == "cs" ? editor_asset_node_type_e::script_file : editor_asset_node_type_e::file;
+				const editor_asset_node_type_e	 node_type = editor_asset_node_type_e::file;
 				const editor_asset_node_handle_t file_node = database.emplace_node(editor_asset_node_t{.name = parts.back(), .full_path = entry.path, .type = node_type});
 				database.attach_node(parent, file_node);
 			}

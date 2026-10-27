@@ -307,32 +307,7 @@
                 ]
             },
             {
-                "components": [
-                    {
-                        "data": {
-                            "script_type_id": 8364970167699149327
-                        },
-                        "entity": 10752993706792769278,
-                        "type": 7756474127823202258
-                    },
-                    {
-                        "data": {
-                            "CanvasEntity": 16636058531523229301,
-                            "CastRadius": 4.0,
-                            "CrateImpulse": 2.0,
-                            "CratePrefab": 10759720565375796104,
-                            "JumpSpeed": 5.0,
-                            "MoveSpeed": 4.0,
-                            "SamplerA": 1009,
-                            "SamplerB": 1011,
-                            "TestMaterial": 8670553799616717449,
-                            "TextureA": 17363291138167837728,
-                            "TextureB": 9196711287224636523
-                        },
-                        "entity": 10752993706792769278,
-                        "type": 6740644036173207099
-                    }
-                ],
+                "components": [],
                 "local_entities": [
                     {
                         "guid": 10752993706792769278,

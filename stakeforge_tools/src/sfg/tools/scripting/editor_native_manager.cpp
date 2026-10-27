@@ -77,7 +77,7 @@ namespace sfg
 		if (!file_system_t::exists(_output_dll.c_str()))
 		{
 			context.set_progress(0.4f, "Building C++ project for the first time");
-			_compile_result = native_compiler_t::compile(_build_directory.c_str(), _output_dll.c_str());
+			_compile_result = native_compiler_t::compile(_build_directory.c_str(), _output_dll.c_str(), SFG_CONFIGURATION);
 
 			if (!_compile_result.success)
 			{
@@ -288,7 +288,7 @@ namespace sfg
 						}
 
 						context.set_progress(0.3f, "Building C++ project");
-						manager._compile_result = native_compiler_t::compile(manager._build_directory.c_str(), manager._output_dll.c_str());
+						manager._compile_result = native_compiler_t::compile(manager._build_directory.c_str(), manager._output_dll.c_str(), SFG_CONFIGURATION);
 
 						if (!manager._compile_result.success)
 							return false;
