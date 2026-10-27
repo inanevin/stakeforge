@@ -142,7 +142,7 @@ namespace sfg
 		editor_world_t&				 editor_world = *controller.get_editor_world(handle);
 		editor_world_edit_context_t& context	  = editor_world.get_edit_context();
 
-		if (context.get_play_mode() != editor_play_mode_e::none || context.get_edit_type() != editor_world_edit_type_e::full_control)
+		if (!editor_world.is_editor_control_enabled() || context.get_edit_type() != editor_world_edit_type_e::full_control)
 			return true;
 
 		if (parent != NULL_ENTITY_ID && !context.is_entity_child_insertion_allowed(editor_world.get_world(), parent))

@@ -24,6 +24,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/world/world_debug_draw.hpp"
 
 #include "core/io/assert.hpp"
+#include "core/input/input_common.hpp"
+#include "core/input/input_mappings.hpp"
 #include "core/math/math.hpp"
 #include "core/memory/memory.hpp"
 #include "core/platform/common_window.hpp"
@@ -149,6 +151,7 @@ namespace sfg
 
 		flush_pressed_keys();
 		plugin_runtime_t::get().end_play(*this);
+		_screen.reset_cursor();
 		_canvas_controller.clear_widgets();
 
 		_audio_controller.end_play();
@@ -308,7 +311,7 @@ namespace sfg
 
 		update_key_state(key, scan_code, action);
 
-		plugin_runtime_t::get().key_event(*this, key, scan_code, action);
+		plugin_runtime_t::get().key_event(*this, static_cast<input_code>(key), scan_code, static_cast<input_action>(action));
 	}
 
 	void world_t::focus_event(bool focused)
@@ -332,7 +335,12 @@ namespace sfg
 			flush_pressed_keys();
 
 		if (!consumed)
-			plugin_runtime_t::get().mouse_button_event(*this, button, action, position_x, position_y);
+		{
+			constexpr input_code button_codes[] = {input_code::mouse_0, input_code::mouse_1, input_code::mouse_2, input_code::mouse_3, input_code::mouse_4};
+			SFG_ASSERT(button < std::size(button_codes));
+
+			plugin_runtime_t::get().mouse_button_event(*this, button_codes[button], static_cast<input_action>(action), position_x, position_y);
+		}
 	}
 
 	void world_t::mouse_move_event(f32 position_x, f32 position_y, f32 delta_x, f32 delta_y)
@@ -366,7 +374,7 @@ namespace sfg
 
 			state.pressed = false;
 
-			plugin_runtime_t::get().key_event(*this, key, state.scan_code, static_cast<u8>(window_event_sub_type_e::release));
+			plugin_runtime_t::get().key_event(*this, static_cast<input_code>(key), state.scan_code, input_action::released);
 		}
 	}
 

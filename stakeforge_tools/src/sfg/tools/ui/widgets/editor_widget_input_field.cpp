@@ -379,6 +379,9 @@ namespace sfg
 
 		begin_edit();
 
+		if (_config.callbacks.edit_changing != nullptr)
+			_config.callbacks.edit_changing(_config.callbacks.user_data);
+
 		switch (_config.field.type)
 		{
 		case editor_input_field_field_type_e::string:
@@ -387,6 +390,7 @@ namespace sfg
 			break;
 		case editor_input_field_field_type_e::char_array: {
 			const size_t copy_size = math::min(static_cast<size_t>(_text_len), _config.field.field_size - 1);
+
 			for (size_t i = 0; i < _config.field.fields.size; ++i)
 			{
 				SFG_MEMCPY(_config.field.fields.data[i], _text, copy_size);
@@ -401,6 +405,7 @@ namespace sfg
 		}
 
 		_edit_dirty = true;
+
 		if (_config.callbacks.edited != nullptr)
 			_config.callbacks.edited(_config.callbacks.user_data);
 	}

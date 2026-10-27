@@ -135,8 +135,9 @@ namespace sfg
 		if (main_world.is_null())
 			return true;
 
-		const editor_world_t& world = *worlds.get_editor_world(main_world);
-		return world.get_play_mode() == editor_play_mode_e::none && world.get_edit_context().get_play_mode() == editor_play_mode_e::none;
+		const editor_play_session_t& session = worlds.get_play_session();
+
+		return !session.is_playing() && !session.is_play_requested();
 	}
 
 	void editor_native_manager_t::compile_project()

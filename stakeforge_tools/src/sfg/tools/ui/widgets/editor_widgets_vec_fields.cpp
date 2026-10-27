@@ -415,21 +415,27 @@ namespace sfg
 		_euler_values.push_back(vec3f_t::zero);
 
 		ui::layout_tree_t& tree = ui.get_tree();
-		_root					= ui.allocate_widget();
+
+		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "quat_field");
 		tree.attach(parent, _root);
 		make_root_row(ui, _root, config.width);
 
 		const char* names[3] = {"X", "Y", "Z"};
+
 		for (u8 i = 0; i < 3; ++i)
 		{
 			_fields[i].reserve(config.field.fields.size > 0 ? config.field.fields.size : 1);
 			_fields[i].push_back(reinterpret_cast<u8*>(&(&_euler_values[0].x)[i]));
+
 			editor_widget_callbacks_t callbacks = config.callbacks;
-			callbacks.edit_begin				= on_euler_edit_begin;
-			callbacks.edited					= on_euler_data_changed;
-			callbacks.edit_submitted			= on_euler_edit_submitted;
-			callbacks.user_data					= this;
+
+			callbacks.edit_begin	 = on_euler_edit_begin;
+			callbacks.edited		 = on_euler_data_changed;
+			callbacks.edit_submitted = on_euler_edit_submitted;
+			callbacks.edit_changing	 = nullptr;
+			callbacks.user_data		 = this;
+
 			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, false, callbacks));
 			set_input_fill(ui, _inputs[i].get_root());
 		}
@@ -514,6 +520,9 @@ namespace sfg
 
 	void editor_quat_field_t::modify_field()
 	{
+		if (_config.callbacks.edit_changing != nullptr)
+			_config.callbacks.edit_changing(_config.callbacks.user_data);
+
 		for (size_t i = 0; i < _field_values.size(); ++i)
 			*_field_values[i] = quat_t::from_euler(_euler_values[i].x, _euler_values[i].y, _euler_values[i].z);
 

@@ -50,7 +50,8 @@ namespace sfg
 	{
 		_ui						= &ui;
 		_pending_world_view		= editor_world_view_e::final;
-		_displayed_mode			= editor_play_mode_e::none;
+		_displayed_state		= editor_play_state_e::not_playing;
+		_displayed_paused		= false;
 		_has_pending_world_view = false;
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
@@ -148,7 +149,7 @@ namespace sfg
 							  .icon_color		   = theme.color_accent2,
 							  .disabled_color	   = theme.color_text_disabled,
 							  .icon				   = ICON_PLAY,
-							  .toggled_icon		   = ICON_PLAY,
+							  .toggled_icon		   = ICON_PAUSE,
 							  .tooltip			   = "Play",
 							  .on_clicked		   = on_play_toggled,
 							  .user_data		   = this,
@@ -157,48 +158,6 @@ namespace sfg
 							  .rounding			   = theme.item_rounding,
 							  .toggle_enabled	   = true,
 						  });
-
-		_play_physics_button.init(ui,
-								  _play_frame,
-								  {
-									  .frame_color		   = {},
-									  .toggled_frame_color = theme.color_accent1_dim,
-									  .hover_color		   = theme.color_panel_light1,
-									  .toggled_hover_color = theme.color_accent1_dim,
-									  .press_color		   = theme.color_frame_light,
-									  .icon_color		   = theme.color_accent1,
-									  .disabled_color	   = theme.color_text_disabled,
-									  .icon				   = ICON_PLAY,
-									  .toggled_icon		   = ICON_PLAY,
-									  .tooltip			   = "Play Physics",
-									  .on_clicked		   = on_play_physics_toggled,
-									  .user_data		   = this,
-									  .size				   = button_size,
-									  .icon_size		   = theme.text_big_px_size,
-									  .rounding			   = theme.item_rounding,
-									  .toggle_enabled	   = true,
-								  });
-
-		_pause_button.init(ui,
-						   _play_frame,
-						   {
-							   .frame_color			= {},
-							   .toggled_frame_color = theme.color_panel_light1,
-							   .hover_color			= theme.color_panel_light1,
-							   .toggled_hover_color = theme.color_light,
-							   .press_color			= theme.color_frame_light,
-							   .icon_color			= theme.color_text0,
-							   .disabled_color		= theme.color_text_disabled,
-							   .icon				= ICON_PAUSE,
-							   .toggled_icon		= ICON_PAUSE,
-							   .tooltip				= "Pause",
-							   .on_clicked			= on_pause_toggled,
-							   .user_data			= this,
-							   .size				= button_size,
-							   .icon_size			= theme.text_big_px_size,
-							   .rounding			= theme.item_rounding,
-							   .toggle_enabled		= true,
-						   });
 
 		_step_button.init(ui,
 						  _play_frame,
@@ -209,7 +168,7 @@ namespace sfg
 							  .icon_color	  = theme.color_text0,
 							  .disabled_color = theme.color_text_disabled,
 							  .icon			  = ICON_PLAY_STEP,
-							  .tooltip		  = "Step",
+							  .tooltip		  = "Step Forward",
 							  .on_clicked	  = on_step_pressed,
 							  .user_data	  = this,
 							  .size			  = button_size,
@@ -217,15 +176,70 @@ namespace sfg
 							  .rounding		  = theme.item_rounding,
 						  });
 
+		tree.in(_play_button.get_root()).size_mode_x = ui::axis_mode_e::fixed;
+		tree.in(_step_button.get_root()).size_mode_x = ui::axis_mode_e::fixed;
+
+		_edit_mode	= editor_world_controller_t::get().get_play_session().is_edit_mode_enabled();
+		_save_edits = editor_world_controller_t::get().get_play_session().is_save_edits_enabled();
+		init_play_option("Edit Mode", _edit_mode_checkbox, _edit_mode, {.edited = on_edit_mode_changed, .user_data = this});
+		init_play_option("Save Edits", _save_edits_checkbox, _save_edits, {.edited = on_save_edits_changed, .user_data = this});
+
 		refresh_play_controls();
 		ui.set_pre_layout_tick(_play_frame, on_play_controls_tick, this);
 	}
 
+	void editor_main_toolbar_t::init_play_option(const char* label, editor_checkbox_t& checkbox, bool& value, const editor_widget_callbacks_t& callbacks)
+	{
+		ui::ui_context&		  ui	= *_ui;
+		ui::layout_tree_t&	  tree	= ui.get_tree();
+		const editor_theme_t& theme = editor_theme_t::get();
+		const ui::widget_id_t frame = ui.allocate_widget();
+
+		ui.set_widget_debug_name(frame, label);
+		tree.attach(_play_frame, frame);
+
+		ui::layout_in_t& frame_in = tree.in(frame);
+		frame_in.size_mode_x	  = ui::axis_mode_e::sum_children;
+		frame_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
+		frame_in.size_value.y	  = 1.0f;
+		frame_in.flow			  = ui::flow_e::row;
+		frame_in.child_spacing	  = theme.item_spacing;
+		frame_in.child_margins	  = {theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
+
+		const ui::widget_id_t text = ui.allocate_widget();
+		tree.attach(frame, text);
+		ui.set_widget_text(text, label);
+
+		ui::layout_in_t& text_in = tree.in(text);
+		text_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		text_in.pos_value.y		 = 0.5f;
+		text_in.anchor_y		 = ui::anchor_e::center;
+		text_in.size_mode_x		 = ui::axis_mode_e::fixed;
+		text_in.size_mode_y		 = ui::axis_mode_e::fixed;
+		text_in.size_value		 = {static_cast<f32>(ui.widget_text_len(text)) * theme.text_default_px_size * 0.7f, theme.text_default_px_size};
+		ui.get_paint().set_text(
+			text, ui.widget_text(text), ui.widget_text_len(text), {.font = theme.font_default, .color = theme.color_text1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		u8* field = reinterpret_cast<u8*>(&value);
+
+		checkbox.init(ui,
+					  frame,
+					  {
+						  .field	 = {.fields = {.data = &field, .size = 1}, .field_size = sizeof(value)},
+						  .callbacks = callbacks,
+					  });
+
+		ui::layout_in_t& checkbox_in = tree.in(checkbox.get_root());
+		checkbox_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
+		checkbox_in.pos_value.y		 = 0.5f;
+		checkbox_in.anchor_y		 = ui::anchor_e::center;
+	}
+
 	void editor_main_toolbar_t::uninit()
 	{
+		_save_edits_checkbox.uninit();
+		_edit_mode_checkbox.uninit();
 		_step_button.uninit();
-		_pause_button.uninit();
-		_play_physics_button.uninit();
 		_play_button.uninit();
 		_world_view_dropdown.uninit();
 		_ui->deallocate_widget(_root);
@@ -236,7 +250,8 @@ namespace sfg
 		_world_label			= NULL_WIDGET;
 		_play_frame				= NULL_WIDGET;
 		_pending_world_view		= editor_world_view_e::final;
-		_displayed_mode			= editor_play_mode_e::none;
+		_displayed_state		= editor_play_state_e::not_playing;
+		_displayed_paused		= false;
 		_has_pending_world_view = false;
 	}
 
@@ -293,20 +308,15 @@ namespace sfg
 	{
 		const editor_world_controller_t& world_controller = editor_world_controller_t::get();
 		const editor_world_handle_t		 main_world		  = world_controller.get_main_world_handle();
-		const editor_play_mode_e		 mode			  = main_world.is_null() ? editor_play_mode_e::none : world_controller.get_editor_world(main_world)->get_edit_context().get_play_mode();
-		const bool						 is_play		  = mode == editor_play_mode_e::play || mode == editor_play_mode_e::play_paused;
-		const bool						 is_play_physics  = mode == editor_play_mode_e::play_physics || mode == editor_play_mode_e::play_physics_paused;
-		const bool						 is_paused		  = mode == editor_play_mode_e::play_paused || mode == editor_play_mode_e::play_physics_paused;
+		const editor_play_session_t&	 session		  = world_controller.get_play_session();
+		const editor_play_state_e		 state			  = session.get_requested_state();
 
-		_play_button.set_toggled(is_play);
-		_play_button.set_disabled(is_play_physics);
-		_play_physics_button.set_toggled(is_play_physics);
-		_play_physics_button.set_disabled(is_play);
-		_pause_button.set_toggled(is_paused);
-		_pause_button.set_disabled(mode == editor_play_mode_e::none);
-		_step_button.set_disabled(!is_paused);
+		_play_button.set_toggled(state != editor_play_state_e::not_playing);
+		_play_button.set_disabled(main_world.is_null());
+		_step_button.set_disabled(!session.is_playing() || !session.is_paused());
 
-		_displayed_mode = mode;
+		_displayed_state  = state;
+		_displayed_paused = session.is_paused();
 	}
 
 	u16 editor_main_toolbar_t::get_selected_world_view(void* user_data)
@@ -335,44 +345,23 @@ namespace sfg
 		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
 
 		SFG_ASSERT(!main_world.is_null());
-		world_controller.get_editor_world(main_world)->get_edit_context().set_play_mode(toggled ? editor_play_mode_e::play : editor_play_mode_e::none);
+		world_controller.get_play_session().request_play(toggled);
 		toolbar.refresh_play_controls();
 	}
 
-	void editor_main_toolbar_t::on_play_physics_toggled(bool toggled, void* user_data)
+	void editor_main_toolbar_t::on_edit_mode_changed(void* user_data)
 	{
-		editor_main_toolbar_t&		toolbar			 = *static_cast<editor_main_toolbar_t*>(user_data);
-		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
-		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+		editor_main_toolbar_t& toolbar = *static_cast<editor_main_toolbar_t*>(user_data);
 
-		SFG_ASSERT(!main_world.is_null());
-		world_controller.get_editor_world(main_world)->get_edit_context().set_play_mode(toggled ? editor_play_mode_e::play_physics : editor_play_mode_e::none);
+		editor_world_controller_t::get().get_play_session().set_edit_mode(toolbar._edit_mode);
 		toolbar.refresh_play_controls();
 	}
 
-	void editor_main_toolbar_t::on_pause_toggled(bool toggled, void* user_data)
+	void editor_main_toolbar_t::on_save_edits_changed(void* user_data)
 	{
-		editor_main_toolbar_t&		toolbar			 = *static_cast<editor_main_toolbar_t*>(user_data);
-		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
-		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+		editor_main_toolbar_t& toolbar = *static_cast<editor_main_toolbar_t*>(user_data);
 
-		SFG_ASSERT(!main_world.is_null());
-
-		editor_world_edit_context_t& context = world_controller.get_editor_world(main_world)->get_edit_context();
-		const editor_play_mode_e	 mode	 = context.get_play_mode();
-
-		if (toggled)
-		{
-			SFG_ASSERT(mode == editor_play_mode_e::play || mode == editor_play_mode_e::play_physics);
-			context.set_play_mode(mode == editor_play_mode_e::play ? editor_play_mode_e::play_paused : editor_play_mode_e::play_physics_paused);
-		}
-		else
-		{
-			SFG_ASSERT(mode == editor_play_mode_e::play_paused || mode == editor_play_mode_e::play_physics_paused);
-			context.set_play_mode(mode == editor_play_mode_e::play_paused ? editor_play_mode_e::play : editor_play_mode_e::play_physics);
-		}
-
-		toolbar.refresh_play_controls();
+		editor_world_controller_t::get().get_play_session().set_save_edits(toolbar._save_edits);
 	}
 
 	void editor_main_toolbar_t::on_step_pressed(bool toggled, void* user_data)
@@ -381,7 +370,7 @@ namespace sfg
 		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
 
 		SFG_ASSERT(!main_world.is_null());
-		world_controller.get_editor_world(main_world)->get_edit_context().set_do_step(true);
+		world_controller.get_play_session().request_step();
 	}
 
 	void editor_main_toolbar_t::on_play_controls_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
@@ -389,6 +378,23 @@ namespace sfg
 		editor_main_toolbar_t&		toolbar			 = *static_cast<editor_main_toolbar_t*>(user_data);
 		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
 		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+
+		const editor_play_session_t& session = world_controller.get_play_session();
+
+		if (toolbar._edit_mode != session.is_edit_mode_enabled())
+		{
+			toolbar._edit_mode = session.is_edit_mode_enabled();
+			toolbar._edit_mode_checkbox.refresh_field_data();
+		}
+
+		if (toolbar._save_edits != session.is_save_edits_enabled())
+		{
+			toolbar._save_edits = session.is_save_edits_enabled();
+			toolbar._save_edits_checkbox.refresh_field_data();
+		}
+
+		if (toolbar._displayed_state != session.get_requested_state() || toolbar._displayed_paused != session.is_paused() || ui.get_tree().is_disabled(toolbar._play_button.get_root()) != main_world.is_null())
+			toolbar.refresh_play_controls();
 
 		if (main_world.is_null())
 			return;
@@ -406,9 +412,6 @@ namespace sfg
 			toolbar._pending_world_view = context.get_world_view();
 			toolbar._world_view_dropdown.refresh_title();
 		}
-
-		if (toolbar._displayed_mode != context.get_play_mode())
-			toolbar.refresh_play_controls();
 	}
 
 	void to_json(nlohmann::json& j, const editor_world_view_e& view)

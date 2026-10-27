@@ -145,6 +145,10 @@ namespace sfg
 		static void													  on_add_component_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void													  on_component_edit_begin(void* user_data);
 		static void													  on_component_edit_submitted(void* user_data);
+		static void													  on_component_edit_changing(void* user_data);
+		static void													  on_component_edited(void* user_data);
+		static void													  on_entity_info_edit_changing(void* user_data);
+		static void													  on_entity_info_edited(void* user_data);
 		static span_t<const editor_widget_reflection_dropdown_item_t> resolve_dropdown_items(sid_t field_id, sid_t owner_field_id, u32 element_index, void* user_data);
 		static void													  on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 

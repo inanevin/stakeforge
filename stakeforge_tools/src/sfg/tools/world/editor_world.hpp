@@ -31,7 +31,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/world/editor_world_input_controller.hpp"
 #include "tools/world/editor_world_render_context.hpp"
 #include <sfg/core/data/atomic.hpp>
-#include <sfg/core/data/ostream.hpp>
 #include <sfg/core/data/vector.hpp>
 #include <sfg/core/math/quat.hpp>
 #include <sfg/core/runtime/physics/physics_config.hpp>
@@ -116,6 +115,8 @@ namespace sfg
 		void						   resize(vec2u16_t render_resolution);
 		void						   install_camera(editor_world_camera_type_e type);
 		void						   uninstall_camera();
+		void						   recreate_camera_entity();
+		void						   set_editor_control_enabled(bool enabled);
 		void						   serialize_camera(nlohmann::json& out_json) const;
 		void						   deserialize_camera(const nlohmann::json& in_json);
 		void						   pass_camera_input(const editor_world_camera_input_t& input);
@@ -133,10 +134,10 @@ namespace sfg
 		void						   request_entity_pick(vec2f_t relative_position, bool incremental_selection);
 		void						   shoot_ray_from_camera(vec2f_t relative_position);
 		bool						   get_camera_ray(vec2f_t relative_position, physics_raycast_t& ray) const;
+		void						   reset_input();
 		void						   begin_frame();
 		void						   invoke_tick_callback(f32 delta_time);
 		void						   draw_debug();
-		void						   update_play_mode(editor_play_mode_e mode);
 		void						   update_world_transforms();
 		void						   produce_snapshot();
 		const world_render_snapshot_t& acquire_render_snapshot();
@@ -191,9 +192,9 @@ namespace sfg
 			return _render_resolution;
 		}
 
-		inline editor_play_mode_e get_play_mode() const
+		inline bool is_editor_control_enabled() const
 		{
-			return _play_mode;
+			return _editor_control_enabled;
 		}
 
 		inline editor_world_camera_type_e get_camera_type() const
@@ -221,8 +222,6 @@ namespace sfg
 		bool get_gizmo_view(world_render_view_t& view);
 		void publish_snapshot();
 		void consume_entity_pick_result();
-		void save_play_snapshot();
-		void restore_play_snapshot(bool keep_current_camera);
 
 	private:
 		world_render_snapshot_t _snapshot_slots[3] = {};
@@ -230,8 +229,8 @@ namespace sfg
 		editor_world_tick_callback_t _tick_callback			  = nullptr;
 		void*						 _tick_callback_user_data = nullptr;
 		editor_world_camera_t*		 _camera				  = nullptr;
-		ostream_t					 _play_snapshot;
-		editor_world_camera_type_e	 _camera_type = editor_world_camera_type_e::fly;
+		editor_world_camera_type_e	 _camera_type			  = editor_world_camera_type_e::fly;
+		bool						 _editor_control_enabled  = false;
 
 		editor_world_render_context_t _render_context = {};
 
@@ -254,6 +253,5 @@ namespace sfg
 		u8								_producer_slot								 = 0;
 		u8								_consumer_slot								 = 0;
 		u8								_latest_snapshot_slot						 = UINT8_MAX;
-		editor_play_mode_e				_play_mode									 = editor_play_mode_e::none;
 	};
 }

@@ -46,8 +46,8 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	editor_world_input_controller_t* editor_world_input_controller_t::s_active_camera_controller = nullptr;
-	editor_world_input_controller_t* editor_world_input_controller_t::s_active_drag_controller = nullptr;
-	window_runtime_t* editor_world_input_controller_t::s_event_runtime = nullptr;
+	editor_world_input_controller_t* editor_world_input_controller_t::s_active_drag_controller	 = nullptr;
+	window_runtime_t*				 editor_world_input_controller_t::s_event_runtime			 = nullptr;
 
 #define EDITOR_WORLD_INPUT_CAMERA_BASE_MOVE_SPEED  12.0f
 #define EDITOR_WORLD_INPUT_CAMERA_BOOST_MULTIPLIER 8.0f
@@ -90,6 +90,9 @@ namespace sfg
 
 	void editor_world_input_controller_t::pointer_press(const vec2f_t& relative_position, editor_world_input_pointer_button_e button)
 	{
+		if (!_world->is_editor_control_enabled())
+			return;
+
 		SFG_ASSERT(s_event_runtime != nullptr);
 
 		if (_camera_control)
@@ -121,10 +124,7 @@ namespace sfg
 			return;
 		}
 
-		const editor_play_mode_e play_mode		   = _world->get_edit_context().get_play_mode();
-		const bool				 physics_play_mode = play_mode == editor_play_mode_e::play_physics || play_mode == editor_play_mode_e::play_physics_paused;
-
-		if (physics_play_mode && _world->get_edit_context().is_shoot_rays_enabled())
+		if (_world->get_world().is_playing() && _world->get_edit_context().is_shoot_rays_enabled())
 		{
 			_shoot_ray_press_consumed = true;
 			return;
@@ -135,6 +135,9 @@ namespace sfg
 
 	void editor_world_input_controller_t::pointer_release(const vec2f_t& relative_position, editor_world_input_pointer_button_e button, bool hovered)
 	{
+		if (!_world->is_editor_control_enabled())
+			return;
+
 		if (button == editor_world_input_pointer_button_e::right)
 		{
 			if (!_camera_pan_control)
@@ -221,8 +224,11 @@ namespace sfg
 		deactivate();
 	}
 
-	void editor_world_input_controller_t::key_press(u16 key)
+	bool editor_world_input_controller_t::key_press(u16 key)
 	{
+		if (!_world->is_editor_control_enabled())
+			return false;
+
 		if (key == static_cast<u16>(input_code::key_escape))
 		{
 			cancel_pointer_drag();
@@ -230,7 +236,7 @@ namespace sfg
 			if (_gizmo_press_consumed)
 				cancel_gizmo_action();
 
-			return;
+			return true;
 		}
 
 		const bool ctrl_pressed = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
@@ -240,19 +246,19 @@ namespace sfg
 		if (ctrl_pressed && !shift_pressed && key == static_cast<u16>(input_code::key_g))
 		{
 			_world->align_camera_to_selection();
-			return;
+			return true;
 		}
 
 		if (ctrl_pressed && !shift_pressed && key == static_cast<u16>(input_code::key_f))
 		{
 			editor_commands_world_view_t::snap_selection_to_camera(_handle);
-			return;
+			return true;
 		}
 
 		if (key == static_cast<u16>(input_code::key_r) && !ctrl_pressed && _world->get_camera_type() == editor_world_camera_type_e::orbit)
 		{
 			pass_camera_input({.reset_target = true});
-			return;
+			return true;
 		}
 
 		if (key == static_cast<u16>(input_code::key_x) || (key == static_cast<u16>(input_code::key_d) && ctrl_pressed))
@@ -262,7 +268,7 @@ namespace sfg
 			const span_t<const entity_id_t> selected = _world->get_edit_context().get_selected_entities();
 
 			if (selected.size == 0)
-				return;
+				return true;
 
 			frame_vector_t<entity_id_t> entities = {};
 
@@ -280,13 +286,13 @@ namespace sfg
 				editor_commands_entity_t::duplicate(_handle, entities, duplicates);
 			}
 
-			return;
+			return true;
 		}
 
 		if (key == static_cast<u16>(input_code::key_f) && !ctrl_pressed)
 		{
 			focus_selection();
-			return;
+			return true;
 		}
 
 		if (key == static_cast<u16>(input_code::key_h))
@@ -298,7 +304,7 @@ namespace sfg
 			else
 				hide_selection();
 
-			return;
+			return true;
 		}
 
 		editor_world_edit_context_t& context = _world->get_edit_context();
@@ -331,6 +337,10 @@ namespace sfg
 			project.settings.world_view_snapping_enabled = context.get_transform_snapping() == editor_transform_snapping_e::default_;
 			project.save(project._runtime.path.c_str());
 		}
+		else
+			return false;
+
+		return true;
 	}
 
 	void editor_world_input_controller_t::wheel(f32 delta)
@@ -511,9 +521,7 @@ namespace sfg
 
 	void editor_world_input_controller_t::begin_camera_control(window_runtime_t& runtime, bool pan)
 	{
-		const editor_play_mode_e play_mode = _world->get_edit_context().get_play_mode();
-
-		if (play_mode == editor_play_mode_e::play || play_mode == editor_play_mode_e::play_paused)
+		if (!_world->is_editor_control_enabled())
 			return;
 
 		if (s_active_camera_controller != nullptr && s_active_camera_controller != this)

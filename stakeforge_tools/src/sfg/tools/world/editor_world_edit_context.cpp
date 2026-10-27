@@ -69,13 +69,11 @@ namespace sfg
 		_transform_locality		= editor_transform_locality_e::local;
 		_transform_snapping		= editor_transform_snapping_e::none;
 		_world_view				= editor_world_view_e::final;
-		_play_mode				= editor_play_mode_e::none;
 
 		_grid_enabled			= false;
 		_bounding_boxes_enabled = false;
 		_physics_debug_enabled	= false;
 		_shoot_rays_enabled		= false;
-		_do_step				= false;
 
 		_edit_type = editor_world_edit_type_e::full_control;
 	}

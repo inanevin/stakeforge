@@ -205,6 +205,7 @@ namespace sfg
 		static void on_container_element_remove(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_path_picker(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_field_edit_begin(void* user_data);
+		static void on_field_edit_changing(void* user_data);
 		static void on_field_edited(void* user_data);
 		static void on_field_edit_submitted(void* user_data);
 

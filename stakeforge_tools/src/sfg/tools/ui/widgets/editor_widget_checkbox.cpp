@@ -152,6 +152,9 @@ namespace sfg
 
 	void editor_checkbox_t::modify_field()
 	{
+		if (_config.callbacks.edit_changing != nullptr)
+			_config.callbacks.edit_changing(_config.callbacks.user_data);
+
 		for (size_t i = 0; i < _config.field.fields.size; ++i)
 		{
 			if (_config.field.field_size == sizeof(u32))

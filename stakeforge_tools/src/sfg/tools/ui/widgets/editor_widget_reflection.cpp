@@ -144,6 +144,7 @@ namespace sfg
 			.edit_begin		= on_field_edit_begin,
 			.edited			= on_field_edited,
 			.edit_submitted = on_field_edit_submitted,
+			.edit_changing	= on_field_edit_changing,
 			.user_data		= this,
 		};
 
@@ -1338,16 +1339,22 @@ namespace sfg
 		_ui->get_input().set_listener(button, listener);
 	}
 
-	void editor_widget_reflection_t::on_container_add(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_widget_reflection_t::on_container_add(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
 		container_user_data_t& data = *static_cast<container_user_data_t*>(user_data);
+
 		if (data.reflection->_callbacks.edit_begin != nullptr)
 			data.reflection->_callbacks.edit_begin(data.reflection->_callbacks.user_data);
+
+		if (data.reflection->_callbacks.edit_changing != nullptr)
+			data.reflection->_callbacks.edit_changing(data.reflection->_callbacks.user_data);
+
 		for (void* container : data.containers)
 			data.field->container_ops.add_element_ptr_fn(container);
+
 		if (data.reflection->_callbacks.edited != nullptr)
 			data.reflection->_callbacks.edited(data.reflection->_callbacks.user_data);
 
@@ -1359,16 +1366,22 @@ namespace sfg
 			edit_submitted(callback_user_data);
 	}
 
-	void editor_widget_reflection_t::on_container_reset(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_widget_reflection_t::on_container_reset(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
 		container_user_data_t& data = *static_cast<container_user_data_t*>(user_data);
+
 		if (data.reflection->_callbacks.edit_begin != nullptr)
 			data.reflection->_callbacks.edit_begin(data.reflection->_callbacks.user_data);
+
+		if (data.reflection->_callbacks.edit_changing != nullptr)
+			data.reflection->_callbacks.edit_changing(data.reflection->_callbacks.user_data);
+
 		for (void* container : data.containers)
 			data.field->container_ops.reset_fn(container);
+
 		if (data.reflection->_callbacks.edited != nullptr)
 			data.reflection->_callbacks.edited(data.reflection->_callbacks.user_data);
 
@@ -1380,17 +1393,23 @@ namespace sfg
 			edit_submitted(callback_user_data);
 	}
 
-	void editor_widget_reflection_t::on_container_element_remove(ui::input_router_t&, ui::widget_id_t, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	void editor_widget_reflection_t::on_container_element_remove(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
 	{
 		if (btn != ui::mouse_button_e::left)
 			return;
 
 		container_element_user_data_t& data			  = *static_cast<container_element_user_data_t*>(user_data);
 		container_user_data_t&		   container_data = *data.container_data;
+
 		if (container_data.reflection->_callbacks.edit_begin != nullptr)
 			container_data.reflection->_callbacks.edit_begin(container_data.reflection->_callbacks.user_data);
+
+		if (container_data.reflection->_callbacks.edit_changing != nullptr)
+			container_data.reflection->_callbacks.edit_changing(container_data.reflection->_callbacks.user_data);
+
 		for (void* container : container_data.containers)
 			container_data.field->container_ops.remove_index_fn(container, data.element_index);
+
 		if (container_data.reflection->_callbacks.edited != nullptr)
 			container_data.reflection->_callbacks.edited(container_data.reflection->_callbacks.user_data);
 
@@ -1420,6 +1439,14 @@ namespace sfg
 		editor_widget_reflection_t& reflection = *static_cast<editor_widget_reflection_t*>(user_data);
 		if (reflection._callbacks.edit_begin != nullptr)
 			reflection._callbacks.edit_begin(reflection._callbacks.user_data);
+	}
+
+	void editor_widget_reflection_t::on_field_edit_changing(void* user_data)
+	{
+		editor_widget_reflection_t& reflection = *static_cast<editor_widget_reflection_t*>(user_data);
+
+		if (reflection._callbacks.edit_changing != nullptr)
+			reflection._callbacks.edit_changing(reflection._callbacks.user_data);
 	}
 
 	void editor_widget_reflection_t::on_field_edited(void* user_data)

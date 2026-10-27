@@ -26,7 +26,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/world/editor_world_util.hpp"
 #include "tools/ui/panels/editor_theme.hpp"
 #include <sfg/core/data/frame_vector.hpp>
-#include <sfg/core/data/istream.hpp>
 #include <sfg/core/math/aabb.hpp>
 #include <sfg/core/math/color.hpp>
 #include <sfg/core/math/math.hpp>
@@ -36,7 +35,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/render/world_render_view.hpp>
 #include <sfg/core/runtime/render/world_rendering.hpp>
 #include <sfg/core/runtime/resources/common_resources.hpp>
-#include <sfg/core/runtime/resources/world_cook.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/runtime/world/world_debug_draw.hpp>
 #include <sfg/core/io/assert.hpp>
@@ -161,8 +159,6 @@ namespace sfg
 		_next_pick_request_id		 = 0;
 		_view_rotation				 = quat_t::identity;
 		_camera_type				 = editor_world_camera_type_e::fly;
-		_play_mode					 = editor_play_mode_e::none;
-		_play_snapshot.shrink(0);
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 			_object_id_readback_valid[i] = false;
@@ -185,13 +181,7 @@ namespace sfg
 	{
 		_input_controller.uninit();
 
-		if (_play_mode != editor_play_mode_e::none)
-		{
-			_world.end_play();
-			_play_mode = editor_play_mode_e::none;
-		}
-
-		_play_snapshot.shrink(0);
+		SFG_ASSERT(!_world.is_playing());
 
 		_gizmo.uninit();
 		_entity_gizmo.uninit();
@@ -258,8 +248,7 @@ namespace sfg
 			break;
 		}
 
-		_camera->init(_world);
-		_edit_context.set_editor_camera_entity(_camera->get_entity());
+		recreate_camera_entity();
 	}
 
 	void editor_world_t::uninstall_camera()
@@ -271,8 +260,36 @@ namespace sfg
 
 		_camera->uninit(_world);
 		delete _camera;
-		_camera = nullptr;
+		_camera					= nullptr;
+		_editor_control_enabled = false;
 		_edit_context.set_editor_camera_entity(NULL_ENTITY_ID);
+	}
+
+	void editor_world_t::recreate_camera_entity()
+	{
+		SFG_ASSERT(_camera != nullptr);
+
+		_camera->init(_world);
+		_edit_context.set_editor_camera_entity(_camera->get_entity());
+		_editor_control_enabled = true;
+	}
+
+	void editor_world_t::set_editor_control_enabled(bool enabled)
+	{
+		SFG_ASSERT(_camera != nullptr);
+
+		reset_input();
+		_camera->pass_input(_world, {.reset = true});
+
+		ecs_component_table_t& disabled = _world.get_component_table<component_disabled_t>();
+		const entity_id_t	   camera	= _camera->get_entity();
+
+		if (enabled)
+			disabled.remove(camera);
+		else
+			disabled.add_or_get_as<component_disabled_t>(camera);
+
+		_editor_control_enabled = enabled;
 	}
 
 	void editor_world_t::serialize_camera(nlohmann::json& out_json) const
@@ -289,7 +306,7 @@ namespace sfg
 
 	void editor_world_t::pass_camera_input(const editor_world_camera_input_t& input)
 	{
-		if (_camera != nullptr)
+		if (_editor_control_enabled)
 			_camera->pass_input(_world, input);
 	}
 
@@ -300,7 +317,7 @@ namespace sfg
 
 	void editor_world_t::tick_camera(f32 dt_seconds)
 	{
-		if (_camera != nullptr)
+		if (_editor_control_enabled)
 			_camera->tick(_world, dt_seconds);
 	}
 
@@ -319,7 +336,7 @@ namespace sfg
 
 	void editor_world_t::fit_camera_to_bounds(const aabb_t& bounds)
 	{
-		if (_camera != nullptr)
+		if (_editor_control_enabled)
 			_camera->fit_to_bounds(_world, bounds);
 	}
 
@@ -337,7 +354,7 @@ namespace sfg
 
 	bool editor_world_t::get_gizmo_input(editor_gizmo_input_t& input) const
 	{
-		if (!is_gizmo_editing_supported() || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+		if (!is_gizmo_editing_supported() || !is_editor_control_enabled())
 			return false;
 
 		input.control_type = _edit_context.get_transform_control_type();
@@ -360,7 +377,7 @@ namespace sfg
 
 	bool editor_world_t::get_gizmo_view(world_render_view_t& view)
 	{
-		if (_camera == nullptr)
+		if (!_editor_control_enabled)
 			return false;
 
 		const entity_id_t camera_entity = _camera->get_entity();
@@ -438,7 +455,7 @@ namespace sfg
 	{
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
-		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control || _play_mode == editor_play_mode_e::play || _play_mode == editor_play_mode_e::play_paused)
+		if (_edit_context.get_edit_type() != editor_world_edit_type_e::full_control || !is_editor_control_enabled())
 			return;
 
 		++_next_pick_request_id;
@@ -562,101 +579,17 @@ namespace sfg
 		_edit_context.issue_entity_selection({.data = selection.data(), .size = selection.size()}, selection.empty() ? NULL_ENTITY_ID : entity);
 	}
 
-	void editor_world_t::save_play_snapshot()
+	void editor_world_t::reset_input()
 	{
-		SFG_ASSERT(_camera != nullptr);
+		_input_controller.deactivate();
+		clear_gizmo_hover();
 
-		nlohmann::json snapshot = nlohmann::json::object();
-		world_cooker_t::world_to_json(_world, snapshot);
-		serialize_camera(snapshot["editor_camera"]);
-
-		const string_t snapshot_text = snapshot.dump();
-
-		_play_snapshot.shrink(0);
-		_play_snapshot << snapshot_text;
-	}
-
-	void editor_world_t::restore_play_snapshot(bool keep_current_camera)
-	{
-		SFG_ASSERT(_play_snapshot.get_size() != 0);
-
-		istream_t snapshot_stream(_play_snapshot.get_raw(), _play_snapshot.get_size());
-		string_t  snapshot_text = {};
-
-		snapshot_stream >> snapshot_text;
-
-		const nlohmann::json snapshot = nlohmann::json::parse(snapshot_text, nullptr, false);
-		SFG_ASSERT(!snapshot.is_discarded());
-		nlohmann::json camera = snapshot.value<nlohmann::json>("editor_camera", nlohmann::json::object());
-
-		if (keep_current_camera)
-			serialize_camera(camera);
-
-		// reset
-		uninstall_camera();
-		_world.reset_world_state();
-		world_cooker_t::world_from_json(_world, snapshot);
-
-		// cam
-		install_camera(_camera_type);
-		deserialize_camera(camera);
-
-		// reset
-		_world.update_world_transforms();
-		_play_snapshot.shrink(0);
 		_pending_pick_request		 = {};
 		_last_render_pick_request_id = 0;
 		_pick_result.store(0, std::memory_order_relaxed);
-	}
 
-	void editor_world_t::update_play_mode(editor_play_mode_e mode)
-	{
-		if (_play_mode == mode)
-			return;
-
-		if (_play_mode == editor_play_mode_e::none)
-		{
-			SFG_ASSERT(mode == editor_play_mode_e::play || mode == editor_play_mode_e::play_physics);
-
-			if (mode == editor_play_mode_e::play)
-			{
-				cancel_gizmo_action();
-				clear_gizmo_hover();
-				_pending_pick_request = {};
-				_pick_result.store(0, std::memory_order_relaxed);
-			}
-
-			save_play_snapshot();
-
-			if (mode == editor_play_mode_e::play)
-				uninstall_camera();
-
-			_world.begin_play();
-			_play_mode = mode;
-			return;
-		}
-
-		if (mode == editor_play_mode_e::none)
-		{
-			const bool keep_current_camera = _play_mode == editor_play_mode_e::play_physics || _play_mode == editor_play_mode_e::play_physics_paused;
-			cancel_gizmo_action();
-			clear_gizmo_hover();
-			_world.end_play();
-			_play_mode = editor_play_mode_e::none;
-			restore_play_snapshot(keep_current_camera);
-			return;
-		}
-
-		const bool full_pause_transition	= (_play_mode == editor_play_mode_e::play && mode == editor_play_mode_e::play_paused) || (_play_mode == editor_play_mode_e::play_paused && mode == editor_play_mode_e::play);
-		const bool physics_pause_transition = (_play_mode == editor_play_mode_e::play_physics && mode == editor_play_mode_e::play_physics_paused) || (_play_mode == editor_play_mode_e::play_physics_paused && mode == editor_play_mode_e::play_physics);
-		SFG_ASSERT(full_pause_transition || physics_pause_transition);
-
-		if (full_pause_transition && mode == editor_play_mode_e::play_paused)
-			_world.pause_audio();
-		else if (full_pause_transition)
-			_world.resume_audio();
-
-		_play_mode = mode;
+		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
+			_object_id_readback_valid[i] = false;
 	}
 
 	void editor_world_t::begin_frame()
@@ -686,7 +619,7 @@ namespace sfg
 		const span_t<const entity_id_t> selected			 = _edit_context.get_selected_entities();
 		const entity_id_t				editor_camera_entity = _edit_context.get_editor_camera_entity();
 
-		if (_play_mode == editor_play_mode_e::none)
+		if (is_editor_control_enabled())
 		{
 			editor_world_util_t::draw_component_icons(_world, editor_camera_entity);
 
@@ -711,7 +644,7 @@ namespace sfg
 		_view_rotation = snapshot.main_view.rot;
 
 		editor_world_snapshot_data_t&	data			= *static_cast<editor_world_snapshot_data_t*>(snapshot.user_data);
-		const span_t<const entity_id_t> selected		= _edit_context.get_selected_entities();
+		const span_t<const entity_id_t> selected		= is_editor_control_enabled() ? _edit_context.get_selected_entities() : span_t<const entity_id_t>{};
 		const ecs_component_table_t&	hierarchy_table = _world.get_component_table(type_id_t<component_hierarchy_t>::value);
 
 		data.pick_request = _pending_pick_request;

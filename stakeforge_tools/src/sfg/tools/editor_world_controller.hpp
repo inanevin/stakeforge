@@ -25,6 +25,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/tools_exports.hpp"
 
 #include "tools/common_editor.hpp"
+#include "tools/editor_play_session.hpp"
 #include "tools/world/editor_world_handle.hpp"
 #include <sfg/core/common/size_definitions.hpp>
 #include <sfg/core/data/atomic.hpp>
@@ -43,7 +44,6 @@ namespace sfg
 	class editor_command_system_t;
 	class editor_world_t;
 	class world_t;
-	enum class editor_play_mode_e : u8;
 	struct editor_world_init_config_t;
 	struct world_render_snapshot_t;
 	struct editor_asset_deletion_listener_tag_t;
@@ -85,9 +85,6 @@ namespace sfg
 		void				  install_default_world(editor_world_handle_t handle);
 		void				  load_dummy_world();
 		bool				  load_main_world(sid_t asset_guid);
-		bool				  queue_game_world_load(sid_t world_name_hash);
-		bool				  queue_game_world_restart();
-		void				  queue_game_quit();
 		bool				  save_main_world();
 		void				  mark_world_dirty(editor_world_handle_t handle);
 		void				  prepare_script_assembly_reload(bool component_layout_changed);
@@ -96,6 +93,16 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
+		inline editor_play_session_t& get_play_session()
+		{
+			return _play_session;
+		}
+
+		inline const editor_play_session_t& get_play_session() const
+		{
+			return _play_session;
+		}
+
 		inline editor_world_t* get_editor_world(editor_world_handle_t handle)
 		{
 			return _worlds.get(handle);
@@ -142,6 +149,8 @@ namespace sfg
 		}
 
 	private:
+		friend class editor_play_session_t;
+
 		struct acquired_render_world_t
 		{
 			editor_world_t*				   world	= nullptr;
@@ -149,17 +158,15 @@ namespace sfg
 		};
 
 		f32	 calculate_render_alpha() const;
+		void tick_preview_world(editor_world_t& editor_world, f32 dt_seconds);
 		void destroy_world_internal(editor_world_handle_t handle);
 		void destroy_main_world_internal();
 		void destroy_worlds_internal(bool notify_panels);
-		void stop_main_world_play_mode();
 		void set_main_world(editor_world_handle_t handle, sid_t asset_guid, const char* name);
 		bool load_main_world_now(sid_t asset_guid);
 		void notify_main_world_changed();
 		void notify_main_world_dirty_changed();
 		void set_main_world_dirty(bool dirty);
-		void update_main_world_play_mode(editor_play_mode_e mode);
-		void tick_editor_world(editor_world_t& editor_world, bool is_main_world, editor_play_mode_e mode, f32 dt_seconds, bool force_simulation);
 
 		static void on_save_dirty_world_modal(void* user_data);
 		static void on_dont_save_dirty_world_modal(void* user_data);
@@ -169,11 +176,11 @@ namespace sfg
 
 	private:
 		dynamic_gen_pool_t<editor_world_t*, u32, editor_world_handle_tag_t> _worlds;
+		editor_play_session_t												_play_session = {};
 		string_t															_main_world_name;
 		vector_t<acquired_render_world_t>									_render_worlds;
 		sid_t																_main_world_asset_guid		   = NULL_SID;
 		sid_t																_pending_main_world_asset_guid = NULL_SID;
-		sid_t																_pending_game_world_asset_guid = NULL_SID;
 		i64																	_previous_time_us			   = 0;
 		i64																	_accumulator_us				   = 0;
 		editor_world_handle_t												_main_world					   = {};
@@ -183,9 +190,6 @@ namespace sfg
 		atomic_t<i64>														_fixed_step_us				   = 0;
 		f32																	_render_alpha				   = 0.0f;
 		bool																_main_world_dirty			   = false;
-		bool																_play_main_world_dirty		   = false;
-		bool																_pending_game_world_restart	   = false;
-		bool																_pending_game_quit			   = false;
 
 		static editor_world_controller_t* s_instance;
 	};

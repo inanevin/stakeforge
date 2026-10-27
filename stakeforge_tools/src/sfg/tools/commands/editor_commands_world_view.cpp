@@ -40,7 +40,7 @@ namespace sfg
 		editor_world_edit_context_t& context	  = editor_world.get_edit_context();
 		world_t&					 world		  = editor_world.get_world();
 
-		if (context.get_play_mode() != editor_play_mode_e::none || context.get_edit_type() != editor_world_edit_type_e::full_control)
+		if (!editor_world.is_editor_control_enabled() || context.get_edit_type() != editor_world_edit_type_e::full_control)
 			return false;
 
 		editor_world.get_input_controller().deactivate();

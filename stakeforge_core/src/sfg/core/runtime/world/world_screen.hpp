@@ -26,12 +26,16 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "core/math/mat4x4.hpp"
 #include "core/math/vec2f.hpp"
+#include "core/math/vec2i16.hpp"
 #include "core/math/vec2u16.hpp"
 #include "core/math/vec4f.hpp"
 #include "core/runtime/render/world_render_view.hpp"
 
 namespace sfg
 {
+	struct window_runtime_t;
+	enum class window_cursor_confinement_e : u8;
+
 	class SFG_API world_screen_t final
 	{
 	public:
@@ -58,6 +62,11 @@ namespace sfg
 		bool	world_to_screen(const vec3f_t& world_position, vec2f_t& out_screen_position) const;
 		bool	screen_to_world(const vec2f_t& screen_position, f32 ndc_depth, vec3f_t& out_world_position) const;
 		vec2f_t screen_to_render_position(const vec2f_t& screen_position) const;
+		void	set_cursor_confinement(window_cursor_confinement_e confinement);
+		void	set_cursor_confinement_position(const vec2i16_t& position);
+		void	set_cursor_visible(bool visible);
+		void	reset_cursor();
+		void	apply_cursor(window_runtime_t& runtime, bool enabled = true);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -83,13 +92,32 @@ namespace sfg
 			return _has_camera;
 		}
 
+		inline window_cursor_confinement_e get_cursor_confinement() const
+		{
+			return _cursor_confinement;
+		}
+
+		inline const vec2i16_t& get_cursor_confinement_position() const
+		{
+			return _cursor_confinement_position;
+		}
+
+		inline bool is_cursor_visible() const
+		{
+			return _cursor_visible;
+		}
+
 	private:
-		world_render_view_t _camera		   = {};
-		mat4x4_t			_view_proj	   = mat4x4_t::identity;
-		mat4x4_t			_inv_view_proj = mat4x4_t::identity;
-		vec4f_t				_input_rect	   = vec4f_t::zero;
-		vec2u16_t			_render_size   = vec2u16_t::zero;
-		f32					_dpi_scale	   = 1.0f;
-		bool				_has_camera	   = false;
+		world_render_view_t			_camera						 = {};
+		mat4x4_t					_view_proj					 = mat4x4_t::identity;
+		mat4x4_t					_inv_view_proj				 = mat4x4_t::identity;
+		vec4f_t						_input_rect					 = vec4f_t::zero;
+		vec2i16_t					_cursor_confinement_position = vec2i16_t::zero;
+		vec2u16_t					_render_size				 = vec2u16_t::zero;
+		f32							_dpi_scale					 = 1.0f;
+		bool						_has_camera					 = false;
+		window_cursor_confinement_e _cursor_confinement			 = {};
+		bool						_cursor_visible				 = true;
+		bool						_cursor_position_pending	 = false;
 	};
 }

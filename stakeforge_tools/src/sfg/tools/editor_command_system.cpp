@@ -147,17 +147,18 @@ namespace sfg
 		const chunk_handle32_t		  payload = copy_payload(desc, payload_data);
 		const editor_command_handle_t handle  = _commands.emplace();
 		editor_command_t&			  command = _commands.get(handle);
-		command.payload						  = payload;
-		command.user_data					  = desc.user_data;
-		command.debug_name					  = desc.debug_name;
-		command.undo						  = desc.undo;
-		command.redo						  = desc.redo;
-		command.cleanup						  = desc.cleanup;
-		command.sequence					  = _next_sequence++;
-		command.type						  = desc.type;
-		command.world						  = desc.world;
-		command.state						  = editor_command_state_e::done;
-		command.entity_generation			  = desc.entity_generation;
+
+		command.payload			  = payload;
+		command.user_data		  = desc.user_data;
+		command.debug_name		  = desc.debug_name;
+		command.undo			  = desc.undo;
+		command.redo			  = desc.redo;
+		command.cleanup			  = desc.cleanup;
+		command.sequence		  = _next_sequence++;
+		command.type			  = desc.type;
+		command.world			  = desc.world;
+		command.state			  = editor_command_state_e::done;
+		command.entity_generation = desc.entity_generation;
 
 		if (desc.run_redo && !command.redo(*this, command))
 		{
@@ -169,8 +170,9 @@ namespace sfg
 		_history.push_back(handle);
 		_cursor = static_cast<u32>(_history.size());
 		bump_generation(command);
-		if (desc.notify)
-			notify_listeners(command);
+
+		notify_listeners(command, !desc.notify);
+
 		return handle;
 	}
 
@@ -240,13 +242,17 @@ namespace sfg
 		return false;
 	}
 
-	editor_command_listener_handle_t editor_command_system_t::add_listener(editor_command_listener_fn fn, void* user_data)
+	editor_command_listener_handle_t editor_command_system_t::add_listener(editor_command_listener_fn fn, void* user_data, bool receive_silent_commands)
 	{
 		SFG_ASSERT(fn != nullptr);
+
 		const editor_command_listener_handle_t handle	= _listeners.emplace();
 		editor_command_listener_t&			   listener = _listeners.get(handle);
-		listener.fn										= fn;
-		listener.user_data								= user_data;
+
+		listener.fn						 = fn;
+		listener.user_data				 = user_data;
+		listener.receive_silent_commands = receive_silent_commands;
+
 		return handle;
 	}
 
@@ -296,13 +302,14 @@ namespace sfg
 			++_entity_generation;
 	}
 
-	void editor_command_system_t::notify_listeners(const editor_command_t& command)
+	void editor_command_system_t::notify_listeners(const editor_command_t& command, bool silent)
 	{
 		for (auto it = _listeners.begin_handle(); it != _listeners.end_handle(); ++it)
 		{
 			const editor_command_listener_handle_t handle	= *it;
 			const editor_command_listener_t&	   listener = _listeners.get(handle);
-			if (listener.fn != nullptr)
+
+			if (listener.fn != nullptr && (!silent || listener.receive_silent_commands))
 				listener.fn(*this, command, listener.user_data);
 		}
 	}

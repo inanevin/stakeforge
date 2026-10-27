@@ -46,21 +46,17 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/scripting/api/script_api_platform.hpp>
 #include <sfg/core/common/hashing.hpp>
 #include <sfg/core/data/frame_vector.hpp>
-#include <sfg/core/input/input_mappings.hpp>
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/math/math.hpp>
 #include <sfg/core/platform/common_window.hpp>
 #include <sfg/core/platform/process.hpp>
 #include <sfg/core/runtime/engine/engine_threads.hpp>
-#include <sfg/core/runtime/ui/input/input_router.hpp>
 #include <sfg/core/runtime/ui/ui_context.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 #include <tracy/Tracy.hpp>
 
 namespace sfg
 {
-#define EDITOR_RAW_WHEEL_DELTA 120.0f
-
 	namespace
 	{
 		bool g_focus_main_world_view = false;
@@ -83,12 +79,6 @@ namespace sfg
 			if (surface.type == editor_surface_type_e::secondary)
 				return surface.secondary->get_dock_widget().select_panel(panel);
 			return false;
-		}
-
-		bool is_main_world_view_focused(editor_surface_controller_t& surfaces, surface_handle_t surface, ui::ui_context& ui)
-		{
-			editor_panel_world_t* const world_panel = static_cast<editor_panel_world_t*>(surfaces.find_panel_on_surface(editor_panel_type_e::world, surface));
-			return world_panel != nullptr && ui.get_input().get_focused() == world_panel->get_world_view().get_view_widget();
 		}
 
 		bool add_panel_to_existing_type_leaf(editor_surface_t& surface, editor_panel_t* panel)
@@ -243,184 +233,9 @@ namespace sfg
 
 	void editor_surface_controller_t::on_window_event(void* hwnd, const window_event_t& ev, void* user_data)
 	{
-		window_runtime_t&			 runtime		= *static_cast<window_runtime_t*>(user_data);
-		editor_app_t&				 app			= editor_app_t::get();
-		editor_surface_controller_t& surfaces		= editor_surface_controller_t::get();
-		const surface_handle_t		 surface_handle = surfaces.get_surface_handle_by_runtime(runtime);
-		editor_surface_t&			 surface		= surfaces.get_surface(surface_handle);
-		ui::ui_context&				 ui				= *surface.ui;
+		window_runtime_t& runtime = *static_cast<window_runtime_t*>(user_data);
 
-		if (surface.type == editor_surface_type_e::splash || surface.type == editor_surface_type_e::project_creator)
-		{
-			switch (ev.type)
-			{
-			case window_event_type_e::delta:
-			case window_event_type_e::mouse: {
-
-				const vec2i16_t mp = runtime.mouse_position;
-				ui.on_mouse_move({static_cast<f32>(mp.x), static_cast<f32>(mp.y)});
-
-				if (ev.type == window_event_type_e::mouse)
-				{
-					if (ev.sub_type == window_event_sub_type_e::press)
-						ui.on_mouse_button(ui::input_router_t::map_button(ev.button), true);
-					else if (ev.sub_type == window_event_sub_type_e::release)
-						ui.on_mouse_button(ui::input_router_t::map_button(ev.button), false);
-				}
-
-				break;
-			}
-			case window_event_type_e::wheel: {
-				const f32 delta = ev.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(ev.value.y) / EDITOR_RAW_WHEEL_DELTA : static_cast<f32>(ev.value.y);
-				ui.on_wheel(delta);
-				break;
-			}
-			case window_event_type_e::key: {
-				if (!runtime.has_flag(window_runtime_flags_e::has_focus))
-					return;
-
-				ui::key_event_t k = {};
-				k.key			  = ev.button;
-				k.scan_code		  = static_cast<u16>(ev.value.x);
-				k.action		  = ev.sub_type == window_event_sub_type_e::press ? ui::key_action_e::press : (ev.sub_type == window_event_sub_type_e::release ? ui::key_action_e::release : ui::key_action_e::repeat);
-				k.shift			  = process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
-				ui.on_key(k);
-				break;
-			}
-			default:
-				break;
-			}
-
-			return;
-		}
-
-		editor_world_controller_t&	world_controller  = app.get_world_controller();
-		const editor_world_handle_t main_world_handle = world_controller.get_main_world_handle();
-		editor_world_t* const		game_world		  = main_world_handle.is_null() ? nullptr : world_controller.get_editor_world(main_world_handle);
-
-		switch (ev.type)
-		{
-		case window_event_type_e::delta:
-		case window_event_type_e::mouse: {
-
-			const vec2i16_t mp = runtime.mouse_position;
-			ui.on_mouse_move({static_cast<f32>(mp.x), static_cast<f32>(mp.y)});
-
-			if (ev.type == window_event_type_e::mouse)
-			{
-				if (ev.sub_type == window_event_sub_type_e::press)
-					ui.on_mouse_button(ui::input_router_t::map_button(ev.button), true);
-				else if (ev.sub_type == window_event_sub_type_e::release)
-					ui.on_mouse_button(ui::input_router_t::map_button(ev.button), false);
-			}
-
-			const bool modal_active		  = surfaces.is_any_modal_active();
-			const bool popup_active		  = ui.get_input().is_popup_scope_active();
-			const bool game_input_focused = is_main_world_view_focused(surfaces, surface_handle, ui);
-
-			if (!modal_active && !popup_active && game_input_focused && game_world != nullptr && game_world->get_world().is_playing())
-			{
-				if (ev.type == window_event_type_e::delta)
-					game_world->get_world().mouse_move_event(static_cast<f32>(runtime.mouse_position.x), static_cast<f32>(runtime.mouse_position.y), static_cast<f32>(ev.value.x), static_cast<f32>(ev.value.y));
-				else
-				{
-					u8 button = UINT8_MAX;
-
-					if (ev.button == static_cast<u16>(input_code::mouse_0))
-						button = 0;
-					else if (ev.button == static_cast<u16>(input_code::mouse_1))
-						button = 1;
-					else if (ev.button == static_cast<u16>(input_code::mouse_2))
-						button = 2;
-					else if (ev.button == static_cast<u16>(input_code::mouse_3))
-						button = 3;
-					else if (ev.button == static_cast<u16>(input_code::mouse_4))
-						button = 4;
-
-					game_world->get_world().mouse_button_event(button, static_cast<u8>(ev.sub_type), static_cast<f32>(runtime.mouse_position.x), static_cast<f32>(runtime.mouse_position.y));
-				}
-			}
-
-			if (modal_active || popup_active)
-				editor_widget_world_view_t::reset_camera_input(runtime);
-			else if (editor_widget_world_view_t::on_window_event(runtime, ev))
-				return;
-
-			break;
-		}
-		case window_event_type_e::wheel: {
-
-			const bool modal_active		  = surfaces.is_any_modal_active();
-			const bool popup_active		  = ui.get_input().is_popup_scope_active();
-			const bool game_input_focused = is_main_world_view_focused(surfaces, surface_handle, ui);
-			const f32  delta			  = ev.flags.is_set(static_cast<u8>(wef_high_freq)) ? static_cast<f32>(ev.value.y) / EDITOR_RAW_WHEEL_DELTA : static_cast<f32>(ev.value.y);
-
-			if (!modal_active && !popup_active && game_input_focused && game_world != nullptr && game_world->get_world().is_playing())
-				game_world->get_world().mouse_wheel_event(static_cast<f32>(runtime.mouse_position.x), static_cast<f32>(runtime.mouse_position.y), delta);
-
-			if (modal_active || popup_active)
-				editor_widget_world_view_t::reset_camera_input(runtime);
-			else if (editor_widget_world_view_t::on_window_event(runtime, ev))
-				return;
-
-			ui.on_wheel(delta);
-			break;
-		}
-		case window_event_type_e::key: {
-			if (!runtime.has_flag(window_runtime_flags_e::has_focus))
-				return;
-
-			const bool modal_active		  = surfaces.is_any_modal_active();
-			const bool popup_active		  = ui.get_input().is_popup_scope_active();
-			const bool game_input_focused = is_main_world_view_focused(surfaces, surface_handle, ui);
-
-			if (!modal_active && !popup_active && game_input_focused && game_world != nullptr && game_world->get_world().is_playing())
-				game_world->get_world().key_event(ev.button, static_cast<u16>(ev.value.x), static_cast<u8>(ev.sub_type));
-
-			if (modal_active || popup_active)
-				editor_widget_world_view_t::reset_camera_input(runtime);
-			else if (editor_widget_world_view_t::on_window_event(runtime, ev))
-				return;
-
-			const bool					ctrl	   = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
-			const editor_world_handle_t main_world = world_controller.get_main_world_handle();
-
-			if (!modal_active && !popup_active && ctrl && ev.button == static_cast<u16>(input_code::key_s) && ev.sub_type == window_event_sub_type_e::press && !main_world.is_null() &&
-				world_controller.get_editor_world(main_world)->get_edit_context().get_play_mode() == editor_play_mode_e::none)
-			{
-				world_controller.save_main_world();
-				return;
-			}
-
-			if (!modal_active && !popup_active)
-			{
-				if (ctrl && (ev.button == static_cast<u16>(input_code::key_z) || ev.button == static_cast<u16>(input_code::key_r)) && (ev.sub_type == window_event_sub_type_e::press || ev.sub_type == window_event_sub_type_e::repeat))
-					ui.get_input().set_focus(NULL_WIDGET, false);
-
-				if (app.get_command_system().on_window_event(ev))
-					return;
-			}
-
-			if (ev.button == static_cast<u16>(input_code::key_f3) && ev.sub_type == window_event_sub_type_e::press)
-				app.set_debug_mode(!app.is_debug_mode_enabled());
-
-			ui::key_event_t k = {};
-			k.key			  = ev.button;
-			k.scan_code		  = static_cast<u16>(ev.value.x);
-			k.action		  = ev.sub_type == window_event_sub_type_e::press ? ui::key_action_e::press : (ev.sub_type == window_event_sub_type_e::release ? ui::key_action_e::release : ui::key_action_e::repeat);
-			k.shift			  = process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
-			ui.on_key(k);
-			break;
-		}
-		case window_event_type_e::focus:
-			if (game_world != nullptr && game_world->get_world().is_playing())
-				game_world->get_world().focus_event(ev.sub_type == window_event_sub_type_e::press);
-
-			editor_widget_world_view_t::on_window_event(runtime, ev);
-			break;
-		default:
-			break;
-		}
+		editor_surface_controller_t::get()._input_router.on_window_event(runtime, ev);
 	}
 
 	bool editor_surface_controller_t::on_window_client_hit_test(window_runtime_t& runtime, const vec2i16_t& pos, void*)
@@ -621,6 +436,14 @@ namespace sfg
 		_renderer->end_render();
 
 		editor_surface_t& surface = _surfaces.get(handle);
+
+		surface.runtime->event_callback			   = nullptr;
+		surface.runtime->event_callback_user_data  = nullptr;
+		surface.runtime->client_hit_test_callback  = nullptr;
+		surface.runtime->client_hit_test_user_data = nullptr;
+
+		_input_router.release_game_input(handle);
+		_input_router.reset_game_cursor(handle);
 
 		if (handle == _cursor_capture_surface)
 			editor_widget_world_view_t::reset_camera_input(*surface.runtime);

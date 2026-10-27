@@ -22,9 +22,14 @@ in GAME-LINKING-EXCEPTION.md.
 #pragma once
 
 #ifdef SFG_PLATFORM_WINDOWS
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <Xinput.h>
+#include <stdint.h>
 #endif
 
 namespace sfg

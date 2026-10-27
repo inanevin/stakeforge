@@ -55,9 +55,15 @@ namespace sfg
 		void		init(ui::ui_context& ui, ui::widget_id_t parent);
 		void		uninit();
 		void		set_edit_world(editor_world_handle_t world);
+		bool		key_press(u16 key);
 		static bool on_window_event(window_runtime_t& runtime, const window_event_t& ev);
 		static void reset_camera_input(window_runtime_t& runtime);
 		vec2i16_t	get_center() const;
+
+		inline editor_world_handle_t get_edit_world() const
+		{
+			return _edit_world;
+		}
 
 		inline ui::widget_id_t get_root() const
 		{
@@ -81,6 +87,7 @@ namespace sfg
 		static void on_world_view_hover_move(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_world_view_hover_exit(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
 		static void on_world_view_drag(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_world_view_focus_gained(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
 		static void on_world_view_focus_lost(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data);
 		static void on_world_view_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data);
 		static void on_world_view_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);

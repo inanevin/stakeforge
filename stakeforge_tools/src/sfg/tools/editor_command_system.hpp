@@ -115,8 +115,9 @@ namespace sfg
 
 	struct editor_command_listener_t
 	{
-		editor_command_listener_fn fn		 = nullptr;
-		void*					   user_data = nullptr;
+		editor_command_listener_fn fn					   = nullptr;
+		void*					   user_data			   = nullptr;
+		bool					   receive_silent_commands = false;
 	};
 
 	struct editor_command_issue_desc_t
@@ -169,7 +170,7 @@ namespace sfg
 		bool							 undo();
 		bool							 redo();
 		bool							 on_window_event(const window_event_t& ev);
-		editor_command_listener_handle_t add_listener(editor_command_listener_fn fn, void* user_data);
+		editor_command_listener_handle_t add_listener(editor_command_listener_fn fn, void* user_data, bool receive_silent_commands = false);
 		void							 remove_listener(editor_command_listener_handle_t handle);
 
 		template <typename T> editor_command_handle_t issue_command(const editor_command_issue_desc_t& desc, const T& payload)
@@ -278,7 +279,7 @@ namespace sfg
 		void			 trim_history_for_new_command();
 		void			 destroy_command(editor_command_handle_t handle);
 		void			 bump_generation(const editor_command_t& command);
-		void			 notify_listeners(const editor_command_t& command);
+		void			 notify_listeners(const editor_command_t& command, bool silent = false);
 		chunk_handle32_t copy_payload(const editor_command_issue_desc_t& desc, const void* payload_data);
 
 	private:

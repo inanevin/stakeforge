@@ -92,41 +92,17 @@ namespace sfg
 
 	u8 editor_app_t::load_script_game_world(sid_t world_name_hash)
 	{
-		return editor_app_t::get().get_world_controller().queue_game_world_load(world_name_hash) ? 1 : 0;
+		return editor_app_t::get().get_world_controller().get_play_session().queue_world_load(world_name_hash) ? 1 : 0;
 	}
 
 	u8 editor_app_t::restart_script_game_world()
 	{
-		return editor_app_t::get().get_world_controller().queue_game_world_restart() ? 1 : 0;
+		return editor_app_t::get().get_world_controller().get_play_session().queue_world_restart() ? 1 : 0;
 	}
 
 	void editor_app_t::quit_script_game()
 	{
-		editor_app_t::get().get_world_controller().queue_game_quit();
-	}
-
-	void editor_app_t::lock_script_cursor(script_cursor_lock_mode_e mode)
-	{
-		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
-
-		for (editor_surface_t& surface : surfaces)
-			process::set_cursor_confinement(surface.runtime->window_handle, window_cursor_confinement_e::none);
-
-		if (mode == script_cursor_lock_mode_e::none)
-			return;
-
-		editor_panel_world_t* const world_panel = static_cast<editor_panel_world_t*>(surfaces.find_panel(editor_panel_type_e::world));
-		if (world_panel == nullptr)
-			return;
-
-		ui::ui_context& world_ui = world_panel->get_ui();
-		world_ui.get_input().set_focus(world_panel->get_world_view().get_view_widget(), false);
-
-		editor_surface_t& surface = surfaces.get_surface_by_ui(world_panel->get_ui());
-		if (mode == script_cursor_lock_mode_e::center)
-			process::set_cursor_confinement_position(surface.runtime->window_handle, world_panel->get_world_view().get_center());
-		else
-			process::set_cursor_confinement(surface.runtime->window_handle, window_cursor_confinement_e::pointer);
+		editor_app_t::get().get_world_controller().get_play_session().queue_quit();
 	}
 
 	bool editor_app_t::init(const editor_app_config_t& config)
@@ -410,7 +386,6 @@ namespace sfg
 		_normal_world_load_pending = proj.settings.last_world_guid != NULL_SID;
 
 		set_script_api_platform_window_runtime(surfaces.get_main_surface().runtime.get());
-		set_script_api_platform_lock_cursor_callback(lock_script_cursor);
 		set_script_api_game_callbacks(get_script_game_render_resolution, set_script_game_render_resolution, load_script_game_world, restart_script_game_world, quit_script_game);
 
 		editor_script_manager_t::get().init();

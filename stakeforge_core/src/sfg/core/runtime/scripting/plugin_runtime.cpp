@@ -130,13 +130,13 @@ namespace sfg
 			_callbacks.draw_debug(world);
 	}
 
-	void plugin_runtime_t::key_event(world_t& world, u16 key, u16 scan_code, u8 action)
+	void plugin_runtime_t::key_event(world_t& world, input_code key, u16 scan_code, input_action action)
 	{
 		if (_callbacks.key_event != nullptr)
 			_callbacks.key_event(world, key, scan_code, action);
 	}
 
-	void plugin_runtime_t::mouse_button_event(world_t& world, u8 button, u8 action, f32 position_x, f32 position_y)
+	void plugin_runtime_t::mouse_button_event(world_t& world, input_code button, input_action action, f32 position_x, f32 position_y)
 	{
 		if (_callbacks.mouse_button_event != nullptr)
 			_callbacks.mouse_button_event(world, button, action, position_x, position_y);

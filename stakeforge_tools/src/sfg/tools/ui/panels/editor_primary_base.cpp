@@ -206,6 +206,15 @@ namespace sfg
 			{.text = "Help", .rows = HELP_ROWS, .row_count = static_cast<u16>(sizeof(HELP_ROWS) / sizeof(HELP_ROWS[0]))},
 		};
 
+		void on_bottom_section_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
+		{
+			const editor_theme_t& theme	  = editor_theme_t::get();
+			const bool			  playing = editor_world_controller_t::get().get_play_session().is_playing();
+			const vec4f_t		  color	  = playing ? theme.color_accent2_dark : theme.color_frame_light;
+
+			ui.get_paint().set_rect(id, {.fill_color_a = color, .fill_color_b = color});
+		}
+
 		void draw_top_row_strikes(ui::paint_layer_t& paint, ui::widget_id_t id, ui::vg_canvas_t& canvas, void* user_data)
 		{
 			ui::ui_context&			ui	  = *static_cast<ui::ui_context*>(user_data);
@@ -628,6 +637,7 @@ namespace sfg
 			rect.fill_color_a		 = theme.color_frame_light;
 			rect.fill_color_b		 = theme.color_frame_light;
 			paint.set_rect(bottom_section, rect);
+			ui.set_pre_layout_tick(bottom_section, on_bottom_section_tick, this);
 		}
 	}
 

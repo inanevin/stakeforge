@@ -393,16 +393,22 @@ namespace sfg
 
 	void editor_widget_reference_t::modify_reference(u64 value)
 	{
+		if (_config.callbacks.edit_changing != nullptr)
+			_config.callbacks.edit_changing(_config.callbacks.user_data);
+
 		for (size_t i = 0; i < _config.fields.size; ++i)
 			*_config.fields.data[i] = value;
 
 		_mixed = false;
+
 		if (_config.type == editor_widget_reference_type_e::asset)
 			_config.selected_asset = value;
 		else
 			_config.selected_entity = value;
+
 		refresh_thumbnail();
 		refresh_title();
+
 		if (_config.callbacks.edited != nullptr)
 			_config.callbacks.edited(_config.callbacks.user_data);
 	}

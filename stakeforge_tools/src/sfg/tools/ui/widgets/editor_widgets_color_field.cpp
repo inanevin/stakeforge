@@ -203,6 +203,9 @@ namespace sfg
 
 	void editor_color_field_t::modify_field()
 	{
+		if (_config.callbacks.edit_changing != nullptr)
+			_config.callbacks.edit_changing(_config.callbacks.user_data);
+
 		if (_config.field.fields.size > 0)
 		{
 			for (size_t i = 0; i < _config.field.fields.size; ++i)
@@ -213,10 +216,11 @@ namespace sfg
 			for (size_t i = 0; i < _config.field.float4_fields.size; ++i)
 			{
 				f32* value = _config.field.float4_fields.data[i];
-				value[0]   = _color.x;
-				value[1]   = _color.y;
-				value[2]   = _color.z;
-				value[3]   = _color.w;
+
+				value[0] = _color.x;
+				value[1] = _color.y;
+				value[2] = _color.z;
+				value[3] = _color.w;
 			}
 		}
 

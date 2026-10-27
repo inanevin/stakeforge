@@ -53,7 +53,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/physics/physics_world.hpp>
 #include <sfg/core/runtime/engine/engine_threads.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
-#include <sfg/core/runtime/scripting/api/script_api_platform.hpp>
 #include <sfg/core/runtime/scripting/script_component_schema.hpp>
 #include <sfg/core/runtime/world/world.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
@@ -78,7 +77,6 @@ namespace sfg
 		_accumulator_us	  = 0;
 		_last_fixed_step_us.store(_previous_time_us, std::memory_order_relaxed);
 		_fixed_step_us.store(0, std::memory_order_relaxed);
-		_play_main_world_dirty = false;
 	}
 
 	void editor_world_controller_t::uninit()
@@ -132,7 +130,7 @@ namespace sfg
 
 		if (was_main_world)
 		{
-			stop_main_world_play_mode();
+			_play_session.stop();
 			set_main_world({}, NULL_SID, "");
 		}
 
@@ -154,7 +152,7 @@ namespace sfg
 		if (_main_world.is_null())
 			return;
 
-		stop_main_world_play_mode();
+		_play_session.stop();
 
 		const editor_world_handle_t handle = _main_world;
 		set_main_world({}, NULL_SID, "");
@@ -169,7 +167,7 @@ namespace sfg
 	void editor_world_controller_t::destroy_worlds_internal(bool notify_panels)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-		stop_main_world_play_mode();
+		_play_session.stop();
 
 		if (notify_panels && !_main_world.is_null())
 			set_main_world({}, NULL_SID, "");
@@ -184,28 +182,8 @@ namespace sfg
 		_main_world					   = {};
 		_main_world_asset_guid		   = NULL_SID;
 		_pending_main_world_asset_guid = NULL_SID;
-		_pending_game_world_asset_guid = NULL_SID;
 		_main_world_name.resize(0);
-		_main_world_dirty			= false;
-		_play_main_world_dirty		= false;
-		_pending_game_world_restart = false;
-		_pending_game_quit			= false;
-	}
-
-	void editor_world_controller_t::stop_main_world_play_mode()
-	{
-		if (_main_world.is_null())
-			return;
-
-		editor_world_t* const		 editor_world = _worlds.get(_main_world);
-		editor_world_edit_context_t& context	  = editor_world->get_edit_context();
-		context.set_play_mode(editor_play_mode_e::none);
-		context.set_do_step(false);
-
-		if (editor_world->get_play_mode() == editor_play_mode_e::none)
-			return;
-
-		update_main_world_play_mode(editor_play_mode_e::none);
+		_main_world_dirty = false;
 	}
 
 	void editor_world_controller_t::apply_script_component_schema(const script_component_schema_t& current_schema, const script_component_schema_t& candidate_schema, const script_component_schema_delta_t& delta)
@@ -228,7 +206,7 @@ namespace sfg
 	void editor_world_controller_t::prepare_script_assembly_reload(bool component_layout_changed)
 	{
 		if (component_layout_changed)
-			stop_main_world_play_mode();
+			_play_session.stop();
 	}
 
 	void editor_world_controller_t::resize_world(editor_world_handle_t handle, vec2u16_t render_resolution)
@@ -289,18 +267,7 @@ namespace sfg
 	{
 		ZoneScoped;
 
-		editor_play_mode_e play_mode = editor_play_mode_e::none;
-		bool			   do_step	 = false;
-
-		if (!_main_world.is_null())
-		{
-			editor_world_edit_context_t& context = _worlds.get(_main_world)->get_edit_context();
-			play_mode							 = context.get_play_mode();
-			do_step								 = context.is_do_step();
-			context.set_do_step(false);
-		}
-
-		update_main_world_play_mode(play_mode);
+		_play_session.apply_requests();
 
 		for (editor_world_t* editor_world : _worlds)
 			editor_world->begin_frame();
@@ -327,14 +294,17 @@ namespace sfg
 				{
 					const editor_world_handle_t handle		 = *it;
 					editor_world_t*				editor_world = _worlds.get(handle);
-					tick_editor_world(*editor_world, handle == _main_world, play_mode, dt_seconds, false);
+
+					if (handle == _main_world)
+						_play_session.tick_world(*editor_world, dt_seconds);
+					else
+						tick_preview_world(*editor_world, dt_seconds);
 				}
 
 				++steps;
 			}
 
-			if (do_step && !_main_world.is_null() && (play_mode == editor_play_mode_e::play_paused || play_mode == editor_play_mode_e::play_physics_paused))
-				tick_editor_world(*_worlds.get(_main_world), true, play_mode, dt_seconds, true);
+			_play_session.step(dt_seconds);
 
 			_fixed_step_us.store(fixed_us, std::memory_order_relaxed);
 			_last_fixed_step_us.store(now - _accumulator_us, std::memory_order_release);
@@ -350,7 +320,7 @@ namespace sfg
 		{
 			const editor_world_handle_t handle			  = *it;
 			editor_world_t* const		editor_world	  = _worlds.get(handle);
-			const bool					main_world_paused = handle == _main_world && (play_mode == editor_play_mode_e::play_paused || play_mode == editor_play_mode_e::play_physics_paused);
+			const bool					main_world_paused = handle == _main_world && _play_session.is_paused();
 
 			if (steps == 0 && !main_world_paused)
 				editor_world->update_world_transforms();
@@ -367,163 +337,19 @@ namespace sfg
 			editor_world->produce_snapshot();
 		}
 
-		if (_pending_game_quit)
-		{
-			_pending_game_quit			   = false;
-			_pending_game_world_restart	   = false;
-			_pending_game_world_asset_guid = NULL_SID;
-			stop_main_world_play_mode();
-		}
-		else if (_pending_game_world_restart)
-		{
-			_pending_game_world_restart = false;
-
-			editor_world_t&				 editor_world = *_worlds.get(_main_world);
-			editor_world_edit_context_t& context	  = editor_world.get_edit_context();
-
-			context.set_play_mode(editor_play_mode_e::none);
-			context.set_do_step(false);
-			update_main_world_play_mode(editor_play_mode_e::none);
-
-			context.set_play_mode(editor_play_mode_e::play);
-			update_main_world_play_mode(editor_play_mode_e::play);
-		}
-		else if (_pending_game_world_asset_guid != NULL_SID)
-		{
-			const sid_t asset_guid = _pending_game_world_asset_guid;
-
-			_pending_game_world_asset_guid = NULL_SID;
-
-			if (load_main_world_now(asset_guid))
-			{
-				editor_world_t* const loaded_world = _worlds.get(_main_world);
-
-				loaded_world->get_edit_context().set_play_mode(editor_play_mode_e::play);
-				update_main_world_play_mode(editor_play_mode_e::play);
-			}
-		}
+		_play_session.process_game_requests();
 	}
 
-	void editor_world_controller_t::update_main_world_play_mode(editor_play_mode_e mode)
-	{
-		if (_main_world.is_null())
-			return;
-
-		editor_world_t&			 editor_world  = *_worlds.get(_main_world);
-		const editor_play_mode_e previous_mode = editor_world.get_play_mode();
-
-		if (previous_mode == mode)
-			return;
-
-		const bool entering_play = previous_mode == editor_play_mode_e::none;
-		const bool exiting_play	 = mode == editor_play_mode_e::none;
-		const bool exiting_full	 = exiting_play && (previous_mode == editor_play_mode_e::play || previous_mode == editor_play_mode_e::play_paused);
-
-		if (entering_play)
-			_play_main_world_dirty = _main_world_dirty;
-
-		if (exiting_play)
-		{
-			editor_app_t::get().stop_render();
-			SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-		}
-
-		editor_world.update_play_mode(mode);
-
-		if (exiting_play)
-			editor_world.produce_snapshot();
-
-		if (entering_play && mode == editor_play_mode_e::play)
-			editor_surface_controller_t::get().request_focus_main_world_view();
-
-		if (exiting_full)
-			reset_script_api_platform_cursor_state();
-
-		if (!exiting_play)
-			return;
-
-		_main_world_dirty	   = _play_main_world_dirty;
-		_play_main_world_dirty = false;
-		notify_main_world_dirty_changed();
-
-		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
-
-		if (editor_panel_t* panel = surfaces.find_panel(editor_panel_type_e::entities))
-			static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
-
-		if (editor_panel_t* panel = surfaces.find_panel(editor_panel_type_e::inspector))
-			static_cast<editor_panel_inspector_t*>(panel)->refresh_from_selection();
-	}
-
-	void editor_world_controller_t::tick_editor_world(editor_world_t& editor_world, bool is_main_world, editor_play_mode_e mode, f32 dt_seconds, bool force_simulation)
+	void editor_world_controller_t::tick_preview_world(editor_world_t& editor_world, f32 dt_seconds)
 	{
 		world_t& world = editor_world.get_world();
 
-		if (!is_main_world)
-		{
-			editor_world.tick_camera(dt_seconds);
-			world.update_world_transforms_for_tick();
-			world.tick_physics(dt_seconds);
+		editor_world.tick_camera(dt_seconds);
+		world.update_world_transforms_for_tick();
+		world.tick_physics(dt_seconds);
 
-			world.tick_animation_logic(dt_seconds);
-			world.tick_post(dt_seconds);
-			return;
-		}
-
-		switch (mode)
-		{
-		case editor_play_mode_e::none:
-			editor_world.tick_camera(dt_seconds);
-			world.update_world_transforms_for_tick();
-
-			world.tick_animation_logic(dt_seconds);
-
-			break;
-		case editor_play_mode_e::play:
-			world.tick_logic(dt_seconds);
-			world.update_world_transforms_for_tick();
-			world.tick_physics(dt_seconds);
-			world.update_world_transforms();
-
-			world.tick_animation_logic(dt_seconds);
-			world.update_world_transforms();
-
-			break;
-		case editor_play_mode_e::play_physics:
-			editor_world.tick_camera(dt_seconds);
-			world.update_world_transforms_for_tick();
-			world.tick_physics(dt_seconds);
-
-			world.tick_animation_logic(dt_seconds);
-			break;
-		case editor_play_mode_e::play_paused:
-			if (force_simulation)
-			{
-				world.tick_logic(dt_seconds);
-				world.update_world_transforms_for_tick();
-				world.tick_physics(dt_seconds);
-				world.update_world_transforms();
-
-				world.tick_animation_logic(dt_seconds);
-				world.update_world_transforms();
-			}
-
-			break;
-		case editor_play_mode_e::play_physics_paused:
-			if (force_simulation)
-			{
-				editor_world.tick_camera(dt_seconds);
-				world.update_world_transforms_for_tick();
-				world.tick_physics(dt_seconds);
-
-				world.tick_animation_logic(dt_seconds);
-			}
-
-			break;
-		}
-
-		const bool simulation_paused = mode == editor_play_mode_e::play_paused || mode == editor_play_mode_e::play_physics_paused;
-		world.tick_post(simulation_paused && !force_simulation ? 0.0f : dt_seconds);
+		world.tick_animation_logic(dt_seconds);
+		world.tick_post(dt_seconds);
 	}
 
 	void editor_world_controller_t::update_physics_settings(const u64* collision_masks, u64 active_layers, u32 physics_rate, u32 max_sub_steps, bool kinematic_sensors_collide_with_non_dynamic)
@@ -554,7 +380,7 @@ namespace sfg
 
 	bool editor_world_controller_t::load_main_world(sid_t asset_guid)
 	{
-		if (!_main_world.is_null() && _worlds.get(_main_world)->get_edit_context().get_play_mode() != editor_play_mode_e::none)
+		if (_play_session.is_playing() || _play_session.is_play_requested())
 			return false;
 
 		editor_app_t::get().stop_render();
@@ -572,69 +398,6 @@ namespace sfg
 		}
 
 		return load_main_world_now(asset_guid);
-	}
-
-	bool editor_world_controller_t::queue_game_world_load(sid_t world_name_hash)
-	{
-		if (world_name_hash == 0 || world_name_hash == NULL_SID || _main_world.is_null() || _pending_game_world_asset_guid != NULL_SID || _pending_game_world_restart || _pending_game_quit)
-			return false;
-
-		if (!_worlds.get(_main_world)->get_world().is_playing())
-			return false;
-
-		const editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
-		sid_t						  asset_guid	= NULL_SID;
-
-		for (const auto& [candidate_guid, asset] : asset_manager.get_assets())
-		{
-			if (asset.asset_type != editor_asset_type_e::world)
-				continue;
-
-			const editor_asset_node_t* node = asset_manager.find_asset_node(candidate_guid);
-			SFG_ASSERT(node != nullptr);
-
-			if (TO_SID(node->name) != world_name_hash)
-				continue;
-
-			if (asset_guid != NULL_SID)
-			{
-				SFG_ERR("multiple world assets have the requested name hash {0}", world_name_hash);
-				return false;
-			}
-
-			asset_guid = candidate_guid;
-		}
-
-		if (asset_guid == NULL_SID)
-			return false;
-
-		_pending_game_world_asset_guid = asset_guid;
-		return true;
-	}
-
-	bool editor_world_controller_t::queue_game_world_restart()
-	{
-		if (_main_world.is_null() || _pending_game_world_asset_guid != NULL_SID || _pending_game_world_restart || _pending_game_quit)
-			return false;
-
-		const editor_world_t* const editor_world = _worlds.get(_main_world);
-		const editor_play_mode_e	play_mode	 = editor_world->get_edit_context().get_play_mode();
-
-		if (!editor_world->get_world().is_playing() || (play_mode != editor_play_mode_e::play && play_mode != editor_play_mode_e::play_paused))
-			return false;
-
-		_pending_game_world_restart = true;
-		return true;
-	}
-
-	void editor_world_controller_t::queue_game_quit()
-	{
-		if (_main_world.is_null() || !_worlds.get(_main_world)->get_world().is_playing())
-			return;
-
-		_pending_game_quit			   = true;
-		_pending_game_world_restart	   = false;
-		_pending_game_world_asset_guid = NULL_SID;
 	}
 
 	void editor_world_controller_t::load_dummy_world()
@@ -710,7 +473,7 @@ namespace sfg
 		nlohmann::json		  world_json   = nlohmann::json::object();
 		editor_world_t* const editor_world = _worlds.get(_main_world);
 
-		if (editor_world->get_edit_context().get_play_mode() != editor_play_mode_e::none)
+		if (_play_session.is_playing() || _play_session.is_play_requested())
 			return false;
 
 		world_cooker_t::world_to_json(editor_world->get_world(), world_json);

@@ -65,15 +65,6 @@ namespace sfg
 		post_process,
 	};
 
-	enum class editor_play_mode_e : u8
-	{
-		none,
-		play,
-		play_physics,
-		play_paused,
-		play_physics_paused,
-	};
-
 	struct editor_selection_listener_t
 	{
 		editor_selection_listener_fn fn		   = nullptr;
@@ -255,6 +246,10 @@ namespace sfg
 			return _world_view;
 		}
 
+		// -----------------------------------------------------------------------------
+		// editor camera
+		// -----------------------------------------------------------------------------
+
 		inline void set_editor_camera_entity(entity_id_t entity)
 		{
 			_editor_camera_entity = entity;
@@ -263,30 +258,6 @@ namespace sfg
 		inline entity_id_t get_editor_camera_entity() const
 		{
 			return _editor_camera_entity;
-		}
-
-		// -----------------------------------------------------------------------------
-		// play
-		// -----------------------------------------------------------------------------
-
-		inline void set_play_mode(editor_play_mode_e mode)
-		{
-			_play_mode = mode;
-		}
-
-		inline editor_play_mode_e get_play_mode() const
-		{
-			return _play_mode;
-		}
-
-		inline void set_do_step(bool do_step)
-		{
-			_do_step = do_step;
-		}
-
-		inline bool is_do_step() const
-		{
-			return _do_step;
 		}
 
 		// -----------------------------------------------------------------------------
@@ -400,13 +371,11 @@ namespace sfg
 		editor_transform_locality_e													  _transform_locality	  = editor_transform_locality_e::local;
 		editor_transform_snapping_e													  _transform_snapping	  = editor_transform_snapping_e::none;
 		editor_world_view_e															  _world_view			  = editor_world_view_e::final;
-		editor_play_mode_e															  _play_mode			  = editor_play_mode_e::none;
 		bool																		  _grid_enabled			  = false;
 		bool																		  _bounding_boxes_enabled = false;
 		editor_world_view_settings_t												  _world_view_settings	  = {};
 		bool																		  _physics_debug_enabled  = false;
 		bool																		  _shoot_rays_enabled	  = false;
-		bool																		  _do_step				  = false;
 		editor_world_edit_type_e													  _edit_type			  = editor_world_edit_type_e::full_control;
 	};
 }

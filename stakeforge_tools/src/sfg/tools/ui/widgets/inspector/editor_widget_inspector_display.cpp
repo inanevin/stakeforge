@@ -133,7 +133,7 @@ namespace sfg
 		_entity_info_fold->init(*_ui, _column, {.label = "Entity Info", .folded = false, .settings_button = !prefab_blocked});
 		_entity_info->init(*_ui, _entity_info_fold->get_body(), {.break_prefab = on_entity_info_break_prefab, .user_data = this, .world = _edit_world, .is_prefab = prefab_referenced, .block_edits = prefab_blocked});
 		_entity_info->set_name_submitted_callback(on_entity_info_name_submitted, this);
-		_entity_info->set_edit_callbacks({.edit_begin = on_entity_info_edit_begin, .edit_submitted = on_entity_info_edit_submitted, .user_data = this});
+		_entity_info->set_edit_callbacks({.edit_begin = on_entity_info_edit_begin, .edited = on_entity_info_edited, .edit_submitted = on_entity_info_edit_submitted, .edit_changing = on_entity_info_edit_changing, .user_data = this});
 		_entity_info->set_entities(world, {.data = _display_entities.data(), .size = _display_entities.size()});
 
 		if (!prefab_blocked)
@@ -194,7 +194,9 @@ namespace sfg
 									  .callbacks =
 										  {
 											  .edit_begin	  = on_component_edit_begin,
+											  .edited		  = on_component_edited,
 											  .edit_submitted = on_component_edit_submitted,
+											  .edit_changing  = on_component_edit_changing,
 											  .user_data	  = display.edit_user_data,
 										  },
 									  .objects					= {.data = display.objects.data(), .size = display.objects.size()},
@@ -239,6 +241,7 @@ namespace sfg
 									   {
 										   .edit_begin	   = on_component_edit_begin,
 										   .edit_submitted = on_component_edit_submitted,
+										   .edit_changing  = on_component_edit_changing,
 										   .user_data	   = display->edit_user_data,
 									   },
 								   .objects					 = {.data = display->objects.data(), .size = display->objects.size()},
@@ -465,6 +468,9 @@ namespace sfg
 
 	void editor_widget_inspector_t::clear_entity_info_edit()
 	{
+		if (_entity_info_edit_active)
+			editor_world_controller_t::get().get_play_session().get_edits().clear_pending(_edit_world, type_id_t<component_transform_t>::value);
+
 		_entity_info_edit_entities.resize(0);
 		_entity_info_edit_prev_infos.resize(0);
 		_entity_info_edit_active = false;
@@ -509,6 +515,9 @@ namespace sfg
 
 	void editor_widget_inspector_t::clear_component_edit()
 	{
+		if (_component_edit_active)
+			editor_world_controller_t::get().get_play_session().get_edits().clear_pending(_edit_world, _component_edit_type);
+
 		_component_edit_entities.resize(0);
 		_component_edit_prev_streams.resize(0);
 		_component_edit_type   = 0;

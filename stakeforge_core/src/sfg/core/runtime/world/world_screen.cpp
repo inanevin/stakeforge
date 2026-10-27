@@ -24,6 +24,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/world/world_util.hpp"
 
 #include "core/io/assert.hpp"
+#include "core/platform/common_window.hpp"
+#include "core/platform/process.hpp"
 #include "core/runtime/render/render_view.hpp"
 
 namespace sfg
@@ -38,6 +40,8 @@ namespace sfg
 
 	void world_screen_t::uninit()
 	{
+		reset_cursor();
+
 		_camera		   = {};
 		_view_proj	   = mat4x4_t::identity;
 		_inv_view_proj = mat4x4_t::identity;
@@ -45,6 +49,63 @@ namespace sfg
 		_render_size   = vec2u16_t::zero;
 		_dpi_scale	   = 1.0f;
 		_has_camera	   = false;
+	}
+
+	void world_screen_t::set_cursor_confinement(window_cursor_confinement_e confinement)
+	{
+		if (_cursor_confinement == confinement)
+			return;
+
+		_cursor_confinement		 = confinement;
+		_cursor_position_pending = confinement == window_cursor_confinement_e::pointer;
+	}
+
+	void world_screen_t::set_cursor_confinement_position(const vec2i16_t& position)
+	{
+		_cursor_confinement			 = window_cursor_confinement_e::position;
+		_cursor_confinement_position = position;
+		_cursor_position_pending	 = false;
+	}
+
+	void world_screen_t::set_cursor_visible(bool visible)
+	{
+		_cursor_visible = visible;
+	}
+
+	void world_screen_t::reset_cursor()
+	{
+		_cursor_confinement			 = window_cursor_confinement_e::none;
+		_cursor_confinement_position = vec2i16_t::zero;
+		_cursor_visible				 = true;
+		_cursor_position_pending	 = false;
+	}
+
+	void world_screen_t::apply_cursor(window_runtime_t& runtime, bool enabled)
+	{
+		window_cursor_confinement_e confinement = enabled ? _cursor_confinement : window_cursor_confinement_e::none;
+		const bool					visible		= !enabled || _cursor_visible;
+
+		if (confinement == window_cursor_confinement_e::pointer)
+		{
+			if (_cursor_position_pending)
+			{
+				_cursor_confinement_position = runtime.mouse_position;
+				_cursor_position_pending	 = false;
+			}
+
+			confinement = window_cursor_confinement_e::position;
+		}
+
+		if (confinement == window_cursor_confinement_e::position)
+		{
+			if (runtime.cursor_confinement != confinement || runtime.cursor_confinement_position != _cursor_confinement_position)
+				process::set_cursor_confinement_position(runtime.window_handle, _cursor_confinement_position);
+		}
+		else if (runtime.cursor_confinement != confinement)
+			process::set_cursor_confinement(runtime.window_handle, confinement);
+
+		if (runtime.cursor_visible != visible)
+			process::set_cursor_visible(runtime.window_handle, visible);
 	}
 
 	void world_screen_t::set_viewport(const vec4f_t& input_rect, vec2u16_t render_size, f32 dpi_scale)

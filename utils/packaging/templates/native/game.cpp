@@ -19,8 +19,10 @@ holders grant the Stakeforge Game Linking Exception, version 1.0,
 in GAME-LINKING-EXCEPTION.md.
 
 */
+#include <sfg/core/input/input_common.hpp>
 #include <sfg/core/runtime/scripting/plugin_api.hpp>
 #include <sfg/core/runtime/world/world.hpp>
+#include <sfg/core/input/input_mappings.hpp>
 
 namespace game
 {
@@ -58,11 +60,11 @@ namespace game
 	{
 	}
 
-	void key_event(world_t& world, u16 key, u16 scan_code, u8 action)
+	void key_event(world_t& world, input_code key, u16 scan_code, input_action action)
 	{
 	}
 
-	void mouse_button_event(world_t& world, u8 button, u8 action, f32 position_x, f32 position_y)
+	void mouse_button_event(world_t& world, input_code button, input_action action, f32 position_x, f32 position_y)
 	{
 	}
 

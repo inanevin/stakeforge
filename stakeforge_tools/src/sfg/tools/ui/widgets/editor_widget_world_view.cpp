@@ -22,6 +22,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/ui/widgets/editor_widget_world_view.hpp"
 #include "tools/ui/editor_payload_controller.hpp"
 #include "tools/editor_world_controller.hpp"
+#include "tools/editor_surface_controller.hpp"
 #include "tools/world/editor_world.hpp"
 #include "tools/ui/editor_text_rasterization.hpp"
 #include "tools/ui/panels/editor_theme.hpp"
@@ -112,6 +113,7 @@ namespace sfg
 		listener.on_hover_move		   = on_world_view_hover_move;
 		listener.on_hover_exit		   = on_world_view_hover_exit;
 		listener.on_drag			   = on_world_view_drag;
+		listener.on_focus_gain		   = on_world_view_focus_gained;
 		listener.on_focus_lose		   = on_world_view_focus_lost;
 		listener.on_key				   = on_world_view_key;
 		listener.on_wheel			   = on_world_view_wheel;
@@ -266,7 +268,7 @@ namespace sfg
 		def.render_state.constants[0] = texture_ref;
 	}
 
-	void editor_widget_world_view_t::on_world_view_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
+	void editor_widget_world_view_t::on_world_view_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
 	{
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
 
@@ -281,16 +283,15 @@ namespace sfg
 			widget.request_world_resize(false);
 		}
 
-		const bool				 hovered		   = widget._ui->get_input().get_hovered() == widget._world_view;
-		const vec2f_t			 relative_position = hovered ? widget.calculate_relative_position(widget._ui->get_input().get_mouse_position()) : vec2f_t::zero;
-		const ui::layout_out_t&	 out			   = widget._ui->get_tree().out(widget._world_view);
-		editor_world_t* const	 editor_world	   = editor_world_controller_t::get().get_editor_world(widget._edit_world);
-		const editor_play_mode_e play_mode		   = editor_world->get_play_mode();
-		const bool				 full_play_mode	   = play_mode == editor_play_mode_e::play || play_mode == editor_play_mode_e::play_paused;
-		ui::layout_tree_t&		 tree			   = widget._ui->get_tree();
+		const bool				hovered			  = widget._ui->get_input().get_hovered() == widget._world_view;
+		const vec2f_t			relative_position = hovered ? widget.calculate_relative_position(widget._ui->get_input().get_mouse_position()) : vec2f_t::zero;
+		const ui::layout_out_t& out				  = widget._ui->get_tree().out(widget._world_view);
+		editor_world_t* const	editor_world	  = editor_world_controller_t::get().get_editor_world(widget._edit_world);
+		const bool				editor_controls	  = editor_world->is_editor_control_enabled();
+		ui::layout_tree_t&		tree			  = widget._ui->get_tree();
 
-		tree.set_visible(widget._world_axes, !full_play_mode);
-		tree.set_visible(widget._toolbars.get_root(), !full_play_mode && editor_world->get_edit_context().get_edit_type() != editor_world_edit_type_e::view_only);
+		tree.set_visible(widget._world_axes, editor_controls);
+		tree.set_visible(widget._toolbars.get_root(), editor_controls && editor_world->get_edit_context().get_edit_type() != editor_world_edit_type_e::view_only);
 
 		if (out.size.x > 0.0f && out.size.y > 0.0f)
 		{
@@ -299,6 +300,11 @@ namespace sfg
 
 		editor_world->get_input_controller().tick(relative_position, hovered);
 		widget.refresh_world_texture();
+
+		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
+		editor_surface_t&			 surface  = surfaces.get_surface_by_ui(ui);
+
+		surfaces.get_input_router().update_game_cursor(widget._edit_world, surfaces.get_surface_handle_by_runtime(*surface.runtime));
 	}
 
 	void editor_widget_world_view_t::on_world_view_press(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
@@ -356,6 +362,15 @@ namespace sfg
 			editor_world_controller_t::get().get_editor_world(widget._edit_world)->get_input_controller().pointer_drag(widget.calculate_relative_position(pos));
 	}
 
+	void editor_widget_world_view_t::on_world_view_focus_gained(ui::input_router_t& router, ui::widget_id_t id, bool from_nav, void* user_data)
+	{
+		editor_widget_world_view_t&	 widget	  = *static_cast<editor_widget_world_view_t*>(user_data);
+		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
+		editor_surface_t&			 surface  = surfaces.get_surface_by_ui(*widget._ui);
+
+		surfaces.get_input_router().resume_game_cursor(widget._edit_world, surfaces.get_surface_handle_by_runtime(*surface.runtime));
+	}
+
 	void editor_widget_world_view_t::on_world_view_focus_lost(ui::input_router_t&, ui::widget_id_t, bool, void* user_data)
 	{
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
@@ -364,15 +379,27 @@ namespace sfg
 			editor_world_controller_t::get().get_editor_world(widget._edit_world)->get_input_controller().focus_lost();
 	}
 
-	void editor_widget_world_view_t::on_world_view_key(ui::input_router_t&, ui::widget_id_t, const ui::key_event_t& ev, void* user_data)
+	bool editor_widget_world_view_t::key_press(u16 key)
+	{
+		if (_edit_world.is_null())
+			return false;
+
+		const bool consumed = editor_world_controller_t::get().get_editor_world(_edit_world)->get_input_controller().key_press(key);
+
+		if (consumed)
+			_toolbars.refresh();
+
+		return consumed;
+	}
+
+	void editor_widget_world_view_t::on_world_view_key(ui::input_router_t& router, ui::widget_id_t id, const ui::key_event_t& ev, void* user_data)
 	{
 		editor_widget_world_view_t& widget = *static_cast<editor_widget_world_view_t*>(user_data);
 
 		if (ev.action != ui::key_action_e::press || widget._edit_world.is_null())
 			return;
 
-		editor_world_controller_t::get().get_editor_world(widget._edit_world)->get_input_controller().key_press(ev.key);
-		widget._toolbars.refresh();
+		widget.key_press(ev.key);
 	}
 
 	void editor_widget_world_view_t::on_world_view_wheel(ui::input_router_t&, ui::widget_id_t, f32 delta, void* user_data)
@@ -387,9 +414,8 @@ namespace sfg
 	{
 		const editor_widget_world_view_t& widget	   = *static_cast<editor_widget_world_view_t*>(user_data);
 		const editor_world_t* const		  editor_world = editor_world_controller_t::get().get_editor_world(widget._edit_world);
-		const editor_play_mode_e		  play_mode	   = editor_world->get_play_mode();
 
-		if (play_mode == editor_play_mode_e::play || play_mode == editor_play_mode_e::play_paused)
+		if (!editor_world->is_editor_control_enabled())
 			return;
 
 		const ui::layout_out_t& out		   = widget._ui->get_tree().out(id);

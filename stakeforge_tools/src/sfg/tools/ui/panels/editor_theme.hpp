@@ -65,6 +65,7 @@ namespace sfg
 		vec4f_t color_accent_green_dim = color_utils_t::srgb_to_linear(color_t::from255(90.0f, 210.0f, 125.0f, 100.0f)).to_vector();
 		vec4f_t color_accent2		   = color_utils_t::srgb_to_linear(color_t::from255(255.0f, 102.0f, 0.0f, 255.0f)).to_vector();
 		vec4f_t color_accent2_dim	   = color_utils_t::srgb_to_linear(color_t::from255(255.0f, 102.0f, 0.0f, 125.0f)).to_vector();
+		vec4f_t color_accent2_dark	   = color_utils_t::srgb_to_linear(color_t::from255(160.0f, 64.0f, 0.0f, 255.0f)).to_vector();
 		vec4f_t color_highlight		   = color_utils_t::srgb_to_linear(color_t::from255(245.0f, 194.0f, 82.0f, 255.0f)).to_vector();
 		vec4f_t color_accent_warn	   = color_utils_t::srgb_to_linear(color_t::from255(245.0f, 194.0f, 82.0f, 255.0f)).to_vector();
 		vec4f_t color_accent_err	   = color_utils_t::srgb_to_linear(color_t::from255(214.0f, 65.0f, 57.0f, 255.0f)).to_vector();

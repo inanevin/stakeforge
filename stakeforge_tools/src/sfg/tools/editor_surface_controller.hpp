@@ -24,6 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/tools_exports.hpp"
 
 #include "tools/common_editor.hpp"
+#include "tools/editor_input_router.hpp"
 #include "tools/editor_surface.hpp"
 #include "tools/ui/editor_payload_type.hpp"
 #include "tools/ui/panels/editor_panel_types.hpp"
@@ -98,6 +99,18 @@ namespace sfg
 		editor_surface_t& get_surface_by_ui(ui::ui_context& ui);
 		surface_handle_t  get_surface_handle_by_runtime(window_runtime_t& runtime);
 
+		inline editor_input_router_t& get_input_router()
+		{
+			return _input_router;
+		}
+
+		bool is_any_modal_active() const;
+
+		inline bool is_editor_camera_cursor_captured(surface_handle_t surface) const
+		{
+			return _cursor_capture == editor_cursor_capture_e::editor_camera && _cursor_capture_surface == surface;
+		}
+
 		inline bool is_empty() const
 		{
 			return _surfaces.empty();
@@ -141,7 +154,6 @@ namespace sfg
 		};
 
 	private:
-		bool is_any_modal_active() const;
 		void capture_cursor(surface_handle_t surface, editor_cursor_capture_e capture);
 		void release_cursor();
 
@@ -155,5 +167,6 @@ namespace sfg
 		surface_handle_t												_cursor_capture_surface = {};
 		bool															_debug_mode				= false;
 		editor_cursor_capture_e											_cursor_capture			= editor_cursor_capture_e::none;
+		editor_input_router_t											_input_router			= {};
 	};
 }

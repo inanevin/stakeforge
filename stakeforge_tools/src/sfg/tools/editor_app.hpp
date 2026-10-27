@@ -123,7 +123,6 @@ namespace sfg
 		static u8	load_script_game_world(sid_t world_name_hash);
 		static u8	restart_script_game_world();
 		static void quit_script_game();
-		static void lock_script_cursor(script_cursor_lock_mode_e mode);
 
 	private:
 		editor_app_config_t			   _config = {};

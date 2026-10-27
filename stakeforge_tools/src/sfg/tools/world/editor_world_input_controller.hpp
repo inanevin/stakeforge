@@ -80,7 +80,7 @@ namespace sfg
 		void		pointer_drag(const vec2f_t& relative_position);
 		void		cancel_pointer_drag();
 		void		focus_lost();
-		void		key_press(u16 key);
+		bool		key_press(u16 key);
 		void		wheel(f32 delta);
 		void		hide_selection();
 		void		hide(entity_id_t entity);
@@ -140,6 +140,6 @@ namespace sfg
 
 		static editor_world_input_controller_t* s_active_camera_controller;
 		static editor_world_input_controller_t* s_active_drag_controller;
-		static window_runtime_t* s_event_runtime;
+		static window_runtime_t*				s_event_runtime;
 	};
 }

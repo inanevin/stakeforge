@@ -29,6 +29,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/commands/editor_command_component_edit.hpp"
 #include "tools/commands/editor_commands_component.hpp"
 #include <sfg/core/reflection/reflection_registry.hpp>
+#include <sfg/core/runtime/world/engine_components.hpp>
 #include <sfg/core/runtime/ui/ui_context.hpp>
 
 namespace sfg
@@ -193,6 +194,48 @@ namespace sfg
 	{
 		component_edit_callback_data_t& data = *static_cast<component_edit_callback_data_t*>(user_data);
 		data.panel->submit_component_edit(data.component_type);
+	}
+
+	void editor_widget_inspector_t::on_component_edit_changing(void* user_data)
+	{
+		component_edit_callback_data_t& data  = *static_cast<component_edit_callback_data_t*>(user_data);
+		editor_widget_inspector_t&		panel = *data.panel;
+
+		if (!panel._component_edit_active)
+			return;
+
+		editor_world_controller_t::get().get_play_session().get_edits().capture_before(panel._edit_world, {.data = panel._component_edit_entities.data(), .size = panel._component_edit_entities.size()}, data.component_type);
+	}
+
+	void editor_widget_inspector_t::on_component_edited(void* user_data)
+	{
+		component_edit_callback_data_t& data  = *static_cast<component_edit_callback_data_t*>(user_data);
+		editor_widget_inspector_t&		panel = *data.panel;
+
+		if (!panel._component_edit_active)
+			return;
+
+		editor_world_controller_t::get().get_play_session().get_edits().capture_after(panel._edit_world, {.data = panel._component_edit_entities.data(), .size = panel._component_edit_entities.size()}, data.component_type);
+	}
+
+	void editor_widget_inspector_t::on_entity_info_edit_changing(void* user_data)
+	{
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
+
+		if (!panel._entity_info_edit_active)
+			return;
+
+		editor_world_controller_t::get().get_play_session().get_edits().capture_before(panel._edit_world, {.data = panel._entity_info_edit_entities.data(), .size = panel._entity_info_edit_entities.size()}, type_id_t<component_transform_t>::value);
+	}
+
+	void editor_widget_inspector_t::on_entity_info_edited(void* user_data)
+	{
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
+
+		if (!panel._entity_info_edit_active)
+			return;
+
+		editor_world_controller_t::get().get_play_session().get_edits().capture_after(panel._edit_world, {.data = panel._entity_info_edit_entities.data(), .size = panel._entity_info_edit_entities.size()}, type_id_t<component_transform_t>::value);
 	}
 
 	void editor_widget_inspector_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)

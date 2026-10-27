@@ -281,10 +281,15 @@ namespace sfg
 
 	void editor_dropdown_t::modify_field(u64 value)
 	{
+		if (_config.callbacks.edit_changing != nullptr)
+			_config.callbacks.edit_changing(_config.callbacks.user_data);
+
 		bool all_selected = false;
+
 		if (_config.is_bitmask && value != 0)
 		{
 			all_selected = true;
+
 			for (const u8* field : _fields)
 				all_selected &= (read_field_value(field) & value) == value;
 		}
@@ -294,17 +299,20 @@ namespace sfg
 			if (_config.is_bitmask)
 			{
 				u64 field_value = read_field_value(field);
+
 				if (value == 0)
 					field_value = 0;
 				else if (all_selected)
 					field_value &= ~value;
 				else
 					field_value |= value;
+
 				write_field_value(field, field_value);
 			}
 			else
 				write_field_value(field, value);
 		}
+
 		refresh_field_data();
 	}
 
