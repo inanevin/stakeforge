@@ -558,6 +558,15 @@ namespace sfg
 
 		const editor_world_handle_t previous_main_world = _main_world;
 
+		if (previous_main_world != handle)
+		{
+			if (!previous_main_world.is_null())
+				_worlds.get(previous_main_world)->free_plugin_snapshot_data();
+
+			if (!handle.is_null())
+				_worlds.get(handle)->allocate_plugin_snapshot_data();
+		}
+
 		if (!previous_main_world.is_null())
 			editor_command_system_t::get().clear_world(previous_main_world);
 

@@ -35,10 +35,17 @@ namespace sfg
 	struct physics_contact_event_t;
 	struct canvas_event_t;
 
-	inline constexpr u32 PLUGIN_API_VERSION = 6;
+	inline constexpr u32 PLUGIN_API_VERSION = 7;
+
+	struct plugin_render_snapshot_config_t
+	{
+		u32 size	  = 0;
+		u32 alignment = 1;
+	};
 
 	struct plugin_callbacks_t
 	{
+		plugin_render_snapshot_config_t (*get_render_snapshot_config)()													   = nullptr;
 		void (*register_types)(native_component_schema_t& schema)														   = nullptr;
 		void (*load)()																									   = nullptr;
 		void (*unload)()																								   = nullptr;

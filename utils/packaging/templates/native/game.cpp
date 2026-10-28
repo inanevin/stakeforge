@@ -30,6 +30,11 @@ namespace game
 {
 	using namespace sfg;
 
+	plugin_render_snapshot_config_t get_render_snapshot_config()
+	{
+		return {};
+	}
+
 	void load()
 	{
 	}
@@ -101,23 +106,24 @@ SFG_PLUGIN_ENTRY bool sfg_get_plugin_callbacks(u32 api_version, sfg::plugin_call
 		return false;
 
 	callbacks = {
-		.register_types		= game::game_type_registry_t::register_types,
-		.load				= game::load,
-		.unload				= game::unload,
-		.begin_play			= game::begin_play,
-		.end_play			= game::end_play,
-		.tick_logic			= game::tick_logic,
-		.tick_physics		= game::tick_physics,
-		.tick_animation		= game::tick_animation,
-		.draw_debug			= game::draw_debug,
-		.key_event			= game::key_event,
-		.mouse_button_event = game::mouse_button_event,
-		.mouse_move_event	= game::mouse_move_event,
-		.mouse_wheel_event	= game::mouse_wheel_event,
-		.focus_event		= game::focus_event,
-		.physics_contact	= game::physics_contact,
-		.animation_event	= game::animation_event,
-		.canvas_event		= game::canvas_event,
+		.get_render_snapshot_config = game::get_render_snapshot_config,
+		.register_types				= game::game_type_registry_t::register_types,
+		.load						= game::load,
+		.unload						= game::unload,
+		.begin_play					= game::begin_play,
+		.end_play					= game::end_play,
+		.tick_logic					= game::tick_logic,
+		.tick_physics				= game::tick_physics,
+		.tick_animation				= game::tick_animation,
+		.draw_debug					= game::draw_debug,
+		.key_event					= game::key_event,
+		.mouse_button_event			= game::mouse_button_event,
+		.mouse_move_event			= game::mouse_move_event,
+		.mouse_wheel_event			= game::mouse_wheel_event,
+		.focus_event				= game::focus_event,
+		.physics_contact			= game::physics_contact,
+		.animation_event			= game::animation_event,
+		.canvas_event				= game::canvas_event,
 	};
 
 	return true;

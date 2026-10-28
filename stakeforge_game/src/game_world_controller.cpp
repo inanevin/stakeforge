@@ -33,6 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/project/project_settings.hpp>
 #include <sfg/core/runtime/render/world_rendering.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
+#include <sfg/core/runtime/scripting/plugin_runtime.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/runtime/world/world_snapshot_producer.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
@@ -109,6 +110,10 @@ namespace sfg
 			};
 		}
 
+		const plugin_render_snapshot_config_t plugin_snapshot_config = plugin_runtime_t::get().get_render_snapshot_config();
+
+		world_render_snapshot_t::allocate_plugin_data({.data = _snapshot_slots, .size = GAME_WORLD_SNAPSHOT_SLOT_COUNT}, plugin_snapshot_config.size, plugin_snapshot_config.alignment);
+
 		_producer_slot = 0;
 		_consumer_slot = 1;
 		_snapshot_mailbox.store(2, std::memory_order_relaxed);
@@ -140,6 +145,8 @@ namespace sfg
 		_render_context.uninit();
 		_main_world.unload_all_used_resources();
 		_main_world.uninit();
+
+		world_render_snapshot_t::free_plugin_data({.data = _snapshot_slots, .size = GAME_WORLD_SNAPSHOT_SLOT_COUNT});
 
 		for (u32 slot_index = 0; slot_index < GAME_WORLD_SNAPSHOT_SLOT_COUNT; ++slot_index)
 			_snapshot_slots[slot_index] = {};

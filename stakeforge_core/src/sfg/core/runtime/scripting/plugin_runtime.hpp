@@ -84,6 +84,11 @@ namespace sfg
 			return _library != nullptr;
 		}
 
+		plugin_render_snapshot_config_t get_render_snapshot_config() const
+		{
+			return _callbacks.get_render_snapshot_config != nullptr ? _callbacks.get_render_snapshot_config() : plugin_render_snapshot_config_t{};
+		}
+
 		bool is_staged() const
 		{
 			return _staged_library != nullptr;

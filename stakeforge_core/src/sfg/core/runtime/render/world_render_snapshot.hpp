@@ -286,6 +286,7 @@ namespace sfg
 
 	struct world_render_snapshot_t
 	{
+		void*									  plugin_data		= nullptr;
 		void*									  user_data			= nullptr;
 		engine_shadow_settings_t				  shadows			= {};
 		world_render_view_t						  main_view			= {};
@@ -305,6 +306,9 @@ namespace sfg
 		vector_t<world_particle_draw_t>			  particle_draws	= {};
 		vector_t<world_particle_t>				  particles			= {};
 		engine_quality_level_e					  quality_level		= engine_quality_level_e::high;
+
+		static SFG_API void allocate_plugin_data(span_t<world_render_snapshot_t> snapshots, u32 size, u32 alignment);
+		static SFG_API void free_plugin_data(span_t<world_render_snapshot_t> snapshots);
 
 		inline void reserve()
 		{

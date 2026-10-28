@@ -21,3 +21,44 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #include "core/runtime/render/world_render_snapshot.hpp"
+
+#include "core/io/assert.hpp"
+#include "core/io/log.hpp"
+#include "core/memory/memory.hpp"
+
+namespace sfg
+{
+	void world_render_snapshot_t::allocate_plugin_data(span_t<world_render_snapshot_t> snapshots, u32 size, u32 alignment)
+	{
+		for (const world_render_snapshot_t& snapshot : snapshots)
+			SFG_ASSERT(snapshot.plugin_data == nullptr);
+
+		if (size == 0)
+			return;
+
+		SFG_ASSERT(alignment != 0 && (alignment & (alignment - 1)) == 0);
+
+		for (world_render_snapshot_t& snapshot : snapshots)
+		{
+			snapshot.plugin_data = SFG_ALIGNED_MALLOC(alignment, size);
+
+			if (snapshot.plugin_data == nullptr)
+			{
+				free_plugin_data(snapshots);
+				SFG_ERR("failed to allocate {0} bytes for plugin render snapshot data", size);
+				throw std::bad_alloc{};
+			}
+
+			SFG_MEMSET(snapshot.plugin_data, 0, size);
+		}
+	}
+
+	void world_render_snapshot_t::free_plugin_data(span_t<world_render_snapshot_t> snapshots)
+	{
+		for (world_render_snapshot_t& snapshot : snapshots)
+		{
+			SFG_ALIGNED_FREE(snapshot.plugin_data);
+			snapshot.plugin_data = nullptr;
+		}
+	}
+}

@@ -35,6 +35,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/render/world_render_view.hpp>
 #include <sfg/core/runtime/render/world_rendering.hpp>
 #include <sfg/core/runtime/resources/common_resources.hpp>
+#include <sfg/core/runtime/scripting/plugin_runtime.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/runtime/world/world_debug_draw.hpp>
 #include <sfg/core/io/assert.hpp>
@@ -179,6 +180,8 @@ namespace sfg
 
 	void editor_world_t::uninit()
 	{
+		free_plugin_snapshot_data();
+
 		_input_controller.uninit();
 
 		SFG_ASSERT(!_world.is_playing());
@@ -215,6 +218,20 @@ namespace sfg
 		_producer_slot		  = 0;
 		_consumer_slot		  = 0;
 		_latest_snapshot_slot = UINT8_MAX;
+	}
+
+	void editor_world_t::allocate_plugin_snapshot_data()
+	{
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
+		const plugin_render_snapshot_config_t config = plugin_runtime_t::get().get_render_snapshot_config();
+		world_render_snapshot_t::allocate_plugin_data({.data = _snapshot_slots, .size = EDITOR_WORLD_SNAPSHOT_SLOT_COUNT}, config.size, config.alignment);
+	}
+
+	void editor_world_t::free_plugin_snapshot_data()
+	{
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+		world_render_snapshot_t::free_plugin_data({.data = _snapshot_slots, .size = EDITOR_WORLD_SNAPSHOT_SLOT_COUNT});
 	}
 
 	void editor_world_t::resize(vec2u16_t render_resolution)
