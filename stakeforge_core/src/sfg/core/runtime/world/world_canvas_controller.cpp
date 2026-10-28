@@ -232,7 +232,7 @@ namespace sfg
 			runtime.widgets.resize(component.max_widgets);
 			runtime.events.init(static_cast<u32>(component.max_widgets) * 2u);
 
-			const u32 pipeline_flags = component.render_stage == canvas_render_stage_e::before_post_process ? shader_variant_flags_post_process_hdr : shader_variant_flags_post_process_ldr;
+			const u32 pipeline_flags = component.render_stage == canvas_render_stage_e::before_post_process ? shader_variant_flags_canvas_hdr : shader_variant_flags_canvas_ldr;
 			const f32 dpi_scale		 = world->get_screen().get_dpi_scale();
 
 			runtime.context->init({

@@ -58,7 +58,8 @@ namespace sfg
 		for (world_render_snapshot_t& snapshot : snapshots)
 		{
 			SFG_ALIGNED_FREE(snapshot.plugin_data);
-			snapshot.plugin_data = nullptr;
+			snapshot.plugin_data		   = nullptr;
+			snapshot.plugin_snapshot_ready = false;
 		}
 	}
 }

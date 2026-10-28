@@ -44,7 +44,6 @@ namespace sfg
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GRAPHICS_ROWS[] = {
 			{.text = "Lit Shader", .command = assets_action_menu_create_lit_shader},
 			{.text = "Unlit Shader", .command = assets_action_menu_create_unlit_shader},
-			{.text = "Post Process Shader", .command = assets_action_menu_create_post_process_shader},
 			{.text = "UI Shader", .command = assets_action_menu_create_ui_shader},
 			{.text = "UI Text Shader", .command = assets_action_menu_create_ui_text_shader},
 			{.text = "Skybox Shader", .command = assets_action_menu_create_skybox_shader},
@@ -61,7 +60,6 @@ namespace sfg
 			{.text = "Sprite Lit Material", .command = assets_action_menu_create_sprite_lit_material},
 			{.text = "Sprite Unlit Material", .command = assets_action_menu_create_sprite_unlit_material},
 			{.text = "Particle Material", .command = assets_action_menu_create_particle_material},
-			{.text = "Post Process Material", .command = assets_action_menu_create_post_process_material},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_PHYSICS_ROWS[] = {

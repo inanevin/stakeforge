@@ -195,7 +195,15 @@ namespace sfg
 		if (_stopping || !is_idle())
 			return;
 
-		_solution_path = _build_directory + "stakeforge_game.slnx";
+		const string_t& project_name = editor_project_t::get()._runtime.name;
+
+		_solution_path = _build_directory + project_name + ".slnx";
+
+		if (!file_system_t::exists(_solution_path.c_str()))
+			_solution_path = _build_directory + project_name + ".sln";
+
+		if (!file_system_t::exists(_solution_path.c_str()))
+			_solution_path = _build_directory + "stakeforge_game.slnx";
 
 		if (!file_system_t::exists(_solution_path.c_str()))
 			_solution_path = _build_directory + "stakeforge_game.sln";

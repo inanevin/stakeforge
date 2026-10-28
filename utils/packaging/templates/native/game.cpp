@@ -19,83 +19,19 @@ holders grant the Stakeforge Game Linking Exception, version 1.0,
 in GAME-LINKING-EXCEPTION.md.
 
 */
+#include "game_render.hpp"
 #include "game_type_registry.hpp"
+#include "game_world.hpp"
 
-#include <sfg/core/input/input_common.hpp>
 #include <sfg/core/runtime/scripting/plugin_api.hpp>
-#include <sfg/core/runtime/world/world.hpp>
-#include <sfg/core/input/input_mappings.hpp>
 
 namespace game
 {
-	using namespace sfg;
-
-	plugin_render_snapshot_config_t get_render_snapshot_config()
-	{
-		return {};
-	}
-
 	void load()
 	{
 	}
 
 	void unload()
-	{
-	}
-
-	void begin_play(world_t& world)
-	{
-	}
-
-	void end_play(world_t& world)
-	{
-	}
-
-	void tick_logic(world_t& world, f32 dt)
-	{
-	}
-
-	void tick_physics(world_t& world, f32 dt)
-	{
-	}
-
-	void tick_animation(world_t& world, f32 dt)
-	{
-	}
-
-	void draw_debug(world_t& world)
-	{
-	}
-
-	void key_event(world_t& world, input_code key, u16 scan_code, input_action action)
-	{
-	}
-
-	void mouse_button_event(world_t& world, input_code button, input_action action, f32 position_x, f32 position_y)
-	{
-	}
-
-	void mouse_move_event(world_t& world, f32 position_x, f32 position_y, f32 delta_x, f32 delta_y)
-	{
-	}
-
-	void mouse_wheel_event(world_t& world, f32 position_x, f32 position_y, f32 delta)
-	{
-	}
-
-	void focus_event(world_t& world, bool focused)
-	{
-	}
-
-	void physics_contact(world_t& world, const physics_contact_event_t& contact)
-	{
-	}
-
-	void animation_event(world_t& world, entity_id_t entity, sid_t event)
-	{
-	}
-
-	void canvas_event(world_t& world, const canvas_event_t& event)
 	{
 	}
 }
@@ -106,24 +42,30 @@ SFG_PLUGIN_ENTRY bool sfg_get_plugin_callbacks(u32 api_version, sfg::plugin_call
 		return false;
 
 	callbacks = {
-		.get_render_snapshot_config = game::get_render_snapshot_config,
+		.produce_render_snapshot	= game::game_render_t::produce_render_snapshot,
+		.render_after_gbuffer		= game::game_render_t::render_after_gbuffer,
+		.render_before_forward		= game::game_render_t::render_before_forward,
+		.render_before_post_process = game::game_render_t::render_before_post_process,
+		.render_before_tonemap		= game::game_render_t::render_before_tonemap,
+		.render_after_post_process	= game::game_render_t::render_after_post_process,
+		.get_render_snapshot_config = game::game_render_t::get_render_snapshot_config,
 		.register_types				= game::game_type_registry_t::register_types,
 		.load						= game::load,
 		.unload						= game::unload,
-		.begin_play					= game::begin_play,
-		.end_play					= game::end_play,
-		.tick_logic					= game::tick_logic,
-		.tick_physics				= game::tick_physics,
-		.tick_animation				= game::tick_animation,
-		.draw_debug					= game::draw_debug,
-		.key_event					= game::key_event,
-		.mouse_button_event			= game::mouse_button_event,
-		.mouse_move_event			= game::mouse_move_event,
-		.mouse_wheel_event			= game::mouse_wheel_event,
-		.focus_event				= game::focus_event,
-		.physics_contact			= game::physics_contact,
-		.animation_event			= game::animation_event,
-		.canvas_event				= game::canvas_event,
+		.begin_play					= game::game_world_t::begin_play,
+		.end_play					= game::game_world_t::end_play,
+		.tick_logic					= game::game_world_t::tick_logic,
+		.tick_physics				= game::game_world_t::tick_physics,
+		.tick_animation				= game::game_world_t::tick_animation,
+		.draw_debug					= game::game_world_t::draw_debug,
+		.key_event					= game::game_world_t::key_event,
+		.mouse_button_event			= game::game_world_t::mouse_button_event,
+		.mouse_move_event			= game::game_world_t::mouse_move_event,
+		.mouse_wheel_event			= game::game_world_t::mouse_wheel_event,
+		.focus_event				= game::game_world_t::focus_event,
+		.physics_contact			= game::game_world_t::physics_contact,
+		.animation_event			= game::game_world_t::animation_event,
+		.canvas_event				= game::game_world_t::canvas_event,
 	};
 
 	return true;

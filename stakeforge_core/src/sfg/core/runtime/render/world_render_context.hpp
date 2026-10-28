@@ -197,7 +197,7 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 		void ensure_light_cluster_capacity(u8 frame_index, u32 cluster_count);
-		void ensure_post_process_scratch(bool hdr, bool ldr);
+		void ensure_fxaa_texture();
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -337,14 +337,9 @@ namespace sfg
 			return _pfd[frame_index].post_process_texture;
 		}
 
-		inline gfx_handle_t get_post_process_hdr_scratch(u8 frame_index) const
+		inline gfx_handle_t get_fxaa_texture(u8 frame_index) const
 		{
-			return _pfd[frame_index].post_process_hdr_scratch;
-		}
-
-		inline gfx_handle_t get_post_process_ldr_scratch(u8 frame_index) const
-		{
-			return _pfd[frame_index].post_process_ldr_scratch;
+			return _pfd[frame_index].fxaa_texture;
 		}
 
 		inline gfx_handle_t get_gbuffer_albedo_texture(u8 frame_index) const
@@ -422,14 +417,9 @@ namespace sfg
 			return _pfd[frame_index].post_process_texture_index;
 		}
 
-		inline gpu_index_t get_post_process_hdr_scratch_index(u8 frame_index) const
+		inline gpu_index_t get_fxaa_texture_index(u8 frame_index) const
 		{
-			return _pfd[frame_index].post_process_hdr_scratch_index;
-		}
-
-		inline gpu_index_t get_post_process_ldr_scratch_index(u8 frame_index) const
-		{
-			return _pfd[frame_index].post_process_ldr_scratch_index;
+			return _pfd[frame_index].fxaa_texture_index;
 		}
 
 		inline gpu_index_t get_view_render_pass_data_index(u8 frame_index) const
@@ -850,7 +840,7 @@ namespace sfg
 	private:
 		void create_texture(vec2u16_t size);
 		void destroy_texture();
-		void create_post_process_scratch(vec2u16_t size, bool hdr, bool ldr);
+		void create_fxaa_texture(vec2u16_t size);
 		void create_light_cluster_buffers(u8 frame_index, u32 cluster_count);
 		void destroy_light_cluster_buffers(u8 frame_index);
 
@@ -910,8 +900,7 @@ namespace sfg
 			gfx_handle_t debug_text_index_buffer									= {};
 			gfx_handle_t lighting_texture											= {};
 			gfx_handle_t post_process_texture										= {};
-			gfx_handle_t post_process_hdr_scratch									= {};
-			gfx_handle_t post_process_ldr_scratch									= {};
+			gfx_handle_t fxaa_texture												= {};
 			gfx_handle_t depth_texture												= {};
 			gfx_handle_t view_model_depth_texture									= {};
 			gfx_handle_t gbuffer_albedo												= {};
@@ -930,8 +919,7 @@ namespace sfg
 			mutable u64	 clustered_lighting_semaphore_value							= 0;
 			gpu_index_t	 lighting_texture_index										= NULL_GPU_INDEX;
 			gpu_index_t	 post_process_texture_index									= NULL_GPU_INDEX;
-			gpu_index_t	 post_process_hdr_scratch_index								= NULL_GPU_INDEX;
-			gpu_index_t	 post_process_ldr_scratch_index								= NULL_GPU_INDEX;
+			gpu_index_t	 fxaa_texture_index											= NULL_GPU_INDEX;
 			gpu_index_t	 depth_texture_index										= NULL_GPU_INDEX;
 			gpu_index_t	 gbuffer_albedo_index										= NULL_GPU_INDEX;
 			gpu_index_t	 gbuffer_normal_index										= NULL_GPU_INDEX;
@@ -995,7 +983,6 @@ namespace sfg
 		gpu_index_t						  _ssao_noise_texture_index = NULL_GPU_INDEX;
 		ui::ui_renderer_t*				  _canvas_before_renderer	= nullptr;
 		ui::ui_renderer_t*				  _canvas_after_renderer	= nullptr;
-		u8								  _post_process_hdr_scratch = 0;
-		u8								  _post_process_ldr_scratch = 0;
+		u8								  _fxaa_texture				= 0;
 	};
 }

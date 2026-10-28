@@ -103,24 +103,17 @@ namespace sfg
 		u8	enabled			   = 0;
 	};
 
-	struct world_render_post_process_effect_t
-	{
-		u32 material_index = UINT32_MAX;
-	};
-
 	struct world_render_post_process_t
 	{
-		inplace_vector_t<world_render_post_process_effect_t, 8> before_tonemap		 = {};
-		inplace_vector_t<world_render_post_process_effect_t, 8> after_tonemap		 = {};
-		world_render_ssao_t										ssao				 = {};
-		world_render_fxaa_t										fxaa				 = {};
-		world_render_bloom_t									bloom				 = {};
-		f32														exposure_ev			 = 0.0f;
-		f32														saturation			 = 1.0f;
-		f32														temperature			 = 0.0f;
-		f32														tint				 = 0.0f;
-		f32														reinhard_white_point = 6.0f;
-		u32														tonemap_mode		 = 1;
+		world_render_ssao_t	 ssao				  = {};
+		world_render_fxaa_t	 fxaa				  = {};
+		world_render_bloom_t bloom				  = {};
+		f32					 exposure_ev		  = 0.0f;
+		f32					 saturation			  = 1.0f;
+		f32					 temperature		  = 0.0f;
+		f32					 tint				  = 0.0f;
+		f32					 reinhard_white_point = 6.0f;
+		u32					 tonemap_mode		  = 1;
 	};
 
 	struct world_render_queue_range_t
@@ -306,6 +299,8 @@ namespace sfg
 		vector_t<world_particle_draw_t>			  particle_draws	= {};
 		vector_t<world_particle_t>				  particles			= {};
 		engine_quality_level_e					  quality_level		= engine_quality_level_e::high;
+
+		bool plugin_snapshot_ready = false;
 
 		static SFG_API void allocate_plugin_data(span_t<world_render_snapshot_t> snapshots, u32 size, u32 alignment);
 		static SFG_API void free_plugin_data(span_t<world_render_snapshot_t> snapshots);

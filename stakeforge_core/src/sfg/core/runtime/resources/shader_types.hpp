@@ -15,7 +15,7 @@ namespace sfg
 		editor_ui_sdf,
 		editor_ui_text_grayscale,
 		object_shader,
-		post_process_shader,
+		reserved_6,
 		ui_shader,
 		ui_text_shader,
 		deferred_lighting,
@@ -54,8 +54,8 @@ namespace sfg
 		shader_variant_flags_particle_alpha				  = 1 << 8,
 		shader_variant_flags_particle_premultiplied_alpha = 1 << 9,
 		shader_variant_flags_particle_additive			  = 1 << 10,
-		shader_variant_flags_post_process_hdr			  = 1 << 11,
-		shader_variant_flags_post_process_ldr			  = 1 << 12,
+		shader_variant_flags_canvas_hdr					  = 1 << 11,
+		shader_variant_flags_canvas_ldr					  = 1 << 12,
 	};
 
 	SFG_DEFINE_TYPE_ID(shader_type_e);

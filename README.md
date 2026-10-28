@@ -58,7 +58,7 @@ pretty cute PBR renderer running on DX12 on Windows;
 - directional cascaded shadows, point/spot shadows and PCF filtering.
 - reflection probes with filtered specular reflections and diffuse irradiance from spherical harmonics.
 - screen-space ambient occlusion, compute bloom, fog and skyboxes.
-- tone mapping, exposure, saturation, FXAA and custom post-process passes.
+- tone mapping, bloom, exposure, saturation, FXAA and game-plugin render hooks.
 - particles, debug views and game UI rendering.
 
 ### editor

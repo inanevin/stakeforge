@@ -25,7 +25,7 @@ namespace sfg
 					{.name = "editor_ui_sdf", .display_name = "Editor UI SDF"},
 					{.name = "editor_ui_text_grayscale", .display_name = "Editor UI Text Grayscale"},
 					{.name = "object_shader", .display_name = "Object Shader"},
-					{.name = "post_process_shader", .display_name = "Post Process Shader"},
+					{.name = "reserved_6", .display_name = "Reserved", .flags = reflected_field_flag_no_ui},
 					{.name = "ui_shader", .display_name = "UI Shader"},
 					{.name = "ui_text_shader", .display_name = "UI Text Shader"},
 					{.name = "deferred_lighting", .display_name = "Deferred Lighting"},

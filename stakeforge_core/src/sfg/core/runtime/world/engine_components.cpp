@@ -1898,26 +1898,6 @@ namespace sfg
 			});
 
 			registry.register_type({
-				.name			 = "post_process_effect_t",
-				.display_name	 = "Post Process Effect",
-				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<post_process_effect_t*>(ptr), post_process_effect_t{}); },
-				.fields =
-					{
-						{.name		   = "material",
-						 .display_name = "Material",
-						 .tooltip	   = "Post-process material evaluated at this position in the chain.",
-						 .sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MATERIAL,
-						 .offset	   = offsetof(post_process_effect_t, material),
-						 .size		   = sizeof(resource_handle_t),
-						 .type		   = reflected_value_type_e::u64},
-						{.name = "enabled", .display_name = "Enabled", .tooltip = "Enables this post-process effect.", .offset = offsetof(post_process_effect_t, enabled), .size = sizeof(u8), .type = reflected_value_type_e::boolean},
-					},
-				.type_id   = type_id_t<post_process_effect_t>::value,
-				.size	   = sizeof(post_process_effect_t),
-				.alignment = alignof(post_process_effect_t),
-			});
-
-			registry.register_type({
 				.name			 = "component_post_process",
 				.display_name	 = "Post Process",
 				.category		 = "Graphics",
@@ -1947,20 +1927,6 @@ namespace sfg
 						 .offset	   = offsetof(component_post_process_t, fxaa),
 						 .size		   = sizeof(post_process_fxaa_t),
 						 .type		   = reflected_value_type_e::object},
-						{.container_ops = reflection_container_ops_t::inplace_vector_ops<post_process_effect_t, 8>(reflected_value_type_e::object, type_id_t<post_process_effect_t>::value),
-						 .name			= "before_tonemap",
-						 .display_name	= "Before Tone Map",
-						 .tooltip		= "Ordered full-resolution HDR material effects evaluated before bloom composition, color adjustment, and tone mapping.",
-						 .offset		= offsetof(component_post_process_t, before_tonemap),
-						 .size			= sizeof(inplace_vector_t<post_process_effect_t, 8>),
-						 .type			= reflected_value_type_e::container},
-						{.container_ops = reflection_container_ops_t::inplace_vector_ops<post_process_effect_t, 8>(reflected_value_type_e::object, type_id_t<post_process_effect_t>::value),
-						 .name			= "after_tonemap",
-						 .display_name	= "After Tone Map",
-						 .tooltip		= "Ordered full-resolution display-color material effects evaluated after tone mapping and before FXAA.",
-						 .offset		= offsetof(component_post_process_t, after_tonemap),
-						 .size			= sizeof(inplace_vector_t<post_process_effect_t, 8>),
-						 .type			= reflected_value_type_e::container},
 						{.name		   = "exposure_ev",
 						 .display_name = "Exposure",
 						 .tooltip	   = "Exposure adjustment in EV stops; each increase of one doubles HDR brightness before tone mapping.",

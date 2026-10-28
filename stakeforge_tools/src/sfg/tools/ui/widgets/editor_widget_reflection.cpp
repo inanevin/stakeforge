@@ -508,6 +508,9 @@ namespace sfg
 				{
 					const reflected_field_t* enum_field = reflection_registry_t::get().get_field(enum_type->fields.start + i);
 
+					if (enum_field->flags.is_set(reflected_field_flag_no_ui))
+						continue;
+
 					items.push_back({.text = enum_field->display_name != nullptr ? enum_field->display_name : enum_field->name, .value = static_cast<u16>(i)});
 				}
 			}

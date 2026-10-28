@@ -407,29 +407,19 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(post_process_fxaa_t);
 
-	struct post_process_effect_t
-	{
-		resource_handle_t material = NULL_RESOURCE_HANDLE;
-		u8				  enabled  = 1;
-	};
-
-	SFG_DEFINE_TYPE_ID(post_process_effect_t);
-
 	struct component_post_process_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_post_process";
 
-		inplace_vector_t<post_process_effect_t, 8> before_tonemap		= {};
-		inplace_vector_t<post_process_effect_t, 8> after_tonemap		= {};
-		post_process_ssao_t						   ssao					= {};
-		post_process_fxaa_t						   fxaa					= {};
-		post_process_bloom_t					   bloom				= {};
-		f32										   exposure_ev			= 0.0f;
-		f32										   saturation			= 1.0f;
-		f32										   temperature			= 0.0f;
-		f32										   tint					= 0.0f;
-		f32										   reinhard_white_point = 6.0f;
-		tonemap_mode_e							   tonemap_mode			= tonemap_mode_e::reinhard;
+		post_process_ssao_t	 ssao				  = {};
+		post_process_fxaa_t	 fxaa				  = {};
+		post_process_bloom_t bloom				  = {};
+		f32					 exposure_ev		  = 0.0f;
+		f32					 saturation			  = 1.0f;
+		f32					 temperature		  = 0.0f;
+		f32					 tint				  = 0.0f;
+		f32					 reinhard_white_point = 6.0f;
+		tonemap_mode_e		 tonemap_mode		  = tonemap_mode_e::reinhard;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_post_process_t);

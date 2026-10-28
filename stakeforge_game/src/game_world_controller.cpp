@@ -347,7 +347,7 @@ namespace sfg
 
 		prep_data.reserve();
 
-		world_rendering_t::render_world(_render_context, *_render_snapshot, prep_data, _render_alpha, frame_index, global_cbv_index, global_layout);
+		world_rendering_t::render_world(_render_context, *_render_snapshot, prep_data, _render_alpha, frame_index, global_cbv_index, global_layout, &plugin_runtime_t::get().get_callbacks());
 		_render_snapshot = nullptr;
 
 		gfx_backend::get().queue_signal(queue, &signal, &signal_value, 1);
@@ -360,6 +360,12 @@ namespace sfg
 		world_render_snapshot_t& snapshot = _snapshot_slots[_producer_slot];
 
 		world_snapshot_producer_t::produce(_main_world, snapshot, engine_runtime_t::get().get_project_settings(), _render_context);
+		const plugin_callbacks_t& callbacks = plugin_runtime_t::get().get_callbacks();
+
+		if (callbacks.produce_render_snapshot != nullptr)
+			callbacks.produce_render_snapshot(_main_world, snapshot.plugin_data);
+
+		snapshot.plugin_snapshot_ready = true;
 		publish_snapshot();
 	}
 

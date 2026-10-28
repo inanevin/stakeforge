@@ -31,6 +31,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/render/world_render_context.hpp"
 #include "core/runtime/render/world_render_reflection_context.hpp"
 #include "core/runtime/render/world_render_snapshot.hpp"
+#include "core/runtime/scripting/plugin_render_context.hpp"
 #include "core/gfx/util/shadow_util.hpp"
 #include "core/io/assert.hpp"
 #include "core/io/log.hpp"
@@ -44,6 +45,86 @@ namespace sfg
 {
 	static const vec3f_t CUBEMAP_FACE_DIRECTIONS[WORLD_RENDER_REFLECTION_FACE_COUNT] = {vec3f_t::right, -vec3f_t::right, vec3f_t::up, -vec3f_t::up, vec3f_t::forward, -vec3f_t::forward};
 	static const vec3f_t CUBEMAP_FACE_UPS[WORLD_RENDER_REFLECTION_FACE_COUNT]		 = {vec3f_t::up, vec3f_t::up, -vec3f_t::forward, vec3f_t::forward, vec3f_t::up, vec3f_t::up};
+
+	plugin_render_context_t world_rendering_util_t::get_plugin_render_context(
+		const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, gfx_handle_t command_buffer, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, f32 interpolation_alpha)
+	{
+		return {
+			.snapshot			 = &snapshot,
+			.command_buffer		 = command_buffer,
+			.bind_layout		 = global_layout,
+			.global_data_index	 = global_cbv_index,
+			.view_data_index	 = ctx.get_view_render_pass_data_index(frame_index),
+			.entity_buffer_index = ctx.get_entity_buffer_index(frame_index),
+			.bone_buffer_index	 = ctx.get_bone_buffer_index(frame_index),
+			.lighting_data_index = command_buffer == ctx.get_command_buffer_forward(frame_index) ? ctx.get_lighting_render_pass_data_index(frame_index) : NULL_GPU_INDEX,
+			.fog_data_index		 = ctx.get_fog_render_pass_data_index(frame_index),
+			.interpolation_alpha = interpolation_alpha,
+			.render_size		 = ctx.get_size(),
+			.frame_index		 = frame_index,
+		};
+	}
+
+	plugin_color_pass_t world_rendering_util_t::get_plugin_color_pass(const world_render_context_t& ctx, u8 frame_index, bool ldr)
+	{
+		return {
+			.color =
+				{
+					.texture			   = ldr ? ctx.get_world_texture(frame_index) : ctx.get_lighting_texture(frame_index),
+					.shader_resource_index = ldr ? ctx.get_world_texture_index(frame_index) : ctx.get_lighting_texture_index(frame_index),
+					.states				   = resource_state_render_target,
+					.attachment_view_index = 1,
+					.format				   = ldr ? format_e::r8g8b8a8_srgb : format_e::r16g16b16a16_sfloat,
+				},
+			.scene = get_plugin_gbuffer_pass(ctx, frame_index),
+		};
+	}
+
+	plugin_gbuffer_pass_t world_rendering_util_t::get_plugin_gbuffer_pass(const world_render_context_t& ctx, u8 frame_index)
+	{
+		return {
+			.albedo =
+				{
+					.texture			   = ctx.get_gbuffer_albedo_texture(frame_index),
+					.shader_resource_index = ctx.get_gbuffer_albedo_index(frame_index),
+					.states				   = resource_state_ps_resource,
+					.attachment_view_index = 0,
+					.format				   = format_e::r8g8b8a8_srgb,
+				},
+			.normal =
+				{
+					.texture			   = ctx.get_gbuffer_normal_texture(frame_index),
+					.shader_resource_index = ctx.get_gbuffer_normal_index(frame_index),
+					.states				   = resource_state_non_ps_resource | resource_state_ps_resource,
+					.attachment_view_index = 0,
+					.format				   = format_e::r10g0b10a2_unorm,
+				},
+			.orm =
+				{
+					.texture			   = ctx.get_gbuffer_orm_texture(frame_index),
+					.shader_resource_index = ctx.get_gbuffer_orm_index(frame_index),
+					.states				   = resource_state_ps_resource,
+					.attachment_view_index = 0,
+					.format				   = format_e::r8g8b8a8_unorm,
+				},
+			.emissive =
+				{
+					.texture			   = ctx.get_gbuffer_emissive_texture(frame_index),
+					.shader_resource_index = ctx.get_gbuffer_emissive_index(frame_index),
+					.states				   = resource_state_ps_resource,
+					.attachment_view_index = 0,
+					.format				   = format_e::r16g16b16a16_sfloat,
+				},
+			.depth =
+				{
+					.texture			   = ctx.get_depth_texture(frame_index),
+					.shader_resource_index = ctx.get_depth_texture_index(frame_index),
+					.states				   = resource_state_depth_read | resource_state_non_ps_resource | resource_state_ps_resource,
+					.attachment_view_index = 1,
+					.format				   = format_e::d32_sfloat,
+				},
+		};
+	}
 
 	void world_rendering_util_t::prep_entity_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index)
 	{

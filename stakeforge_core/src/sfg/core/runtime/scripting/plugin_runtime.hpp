@@ -79,6 +79,11 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
+		const plugin_callbacks_t& get_callbacks() const
+		{
+			return _callbacks;
+		}
+
 		bool is_loaded() const
 		{
 			return _library != nullptr;

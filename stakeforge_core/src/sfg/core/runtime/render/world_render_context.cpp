@@ -70,10 +70,8 @@ namespace sfg
 		other._ssao_noise_staging		= {};
 		_ssao_noise_texture_index		= other._ssao_noise_texture_index;
 		other._ssao_noise_texture_index = NULL_GPU_INDEX;
-		_post_process_hdr_scratch		= other._post_process_hdr_scratch;
-		other._post_process_hdr_scratch = 0;
-		_post_process_ldr_scratch		= other._post_process_ldr_scratch;
-		other._post_process_ldr_scratch = 0;
+		_fxaa_texture					= other._fxaa_texture;
+		other._fxaa_texture				= 0;
 
 		delete _canvas_before_renderer;
 		delete _canvas_after_renderer;
@@ -290,8 +288,7 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].cmd_clustered_lighting.is_null());
 			SFG_ASSERT(_pfd[i].lighting_texture.is_null());
 			SFG_ASSERT(_pfd[i].post_process_texture.is_null());
-			SFG_ASSERT(_pfd[i].post_process_hdr_scratch.is_null());
-			SFG_ASSERT(_pfd[i].post_process_ldr_scratch.is_null());
+			SFG_ASSERT(_pfd[i].fxaa_texture.is_null());
 			SFG_ASSERT(_pfd[i].depth_texture.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_albedo.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_normal.is_null());
@@ -626,11 +623,10 @@ namespace sfg
 			_ssao_noise_texture_index = NULL_GPU_INDEX;
 		}
 
-		_shaders				  = {};
-		_config					  = {};
-		_debug_draw_config		  = {};
-		_post_process_hdr_scratch = 0;
-		_post_process_ldr_scratch = 0;
+		_shaders		   = {};
+		_config			   = {};
+		_debug_draw_config = {};
+		_fxaa_texture	   = 0;
 	}
 
 	void world_render_context_t::resize(vec2u16_t size)
@@ -708,52 +704,51 @@ namespace sfg
 		create_light_cluster_buffers(frame_index, grown_capacity);
 	}
 
-	void world_render_context_t::ensure_post_process_scratch(bool hdr, bool ldr)
+	void world_render_context_t::ensure_fxaa_texture()
 	{
-		const bool create_hdr = hdr && _post_process_hdr_scratch == 0;
-		const bool create_ldr = ldr && _post_process_ldr_scratch == 0;
-
-		if (!create_hdr && !create_ldr)
+		if (_fxaa_texture != 0)
 			return;
 
-		create_post_process_scratch(_config.size, create_hdr, create_ldr);
-		_post_process_hdr_scratch |= create_hdr ? 1 : 0;
-		_post_process_ldr_scratch |= create_ldr ? 1 : 0;
+		create_fxaa_texture(_config.size);
+		_fxaa_texture = 1;
 	}
 
-	void world_render_context_t::create_post_process_scratch(vec2u16_t size, bool hdr, bool ldr)
+	void world_render_context_t::create_fxaa_texture(vec2u16_t size)
 	{
-		texture_desc_t hdr_desc = {};
-		hdr_desc.texture_format = format_e::r16g16b16a16_sfloat;
-		hdr_desc.initial_states = resource_state_ps_resource;
-		hdr_desc.size			= size;
-		hdr_desc.flags			= texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
-		hdr_desc.view_count		= 2;
-		hdr_desc.views[0]		= {.type = view_type::sampled};
-		hdr_desc.views[1]		= {.type = view_type::render_target};
-		hdr_desc.set_name("world_post_process_hdr_scratch");
+		texture_desc_t desc{
+			.size = size,
+		};
 
-		texture_desc_t ldr_desc = hdr_desc;
-		ldr_desc.texture_format = format_e::r8g8b8a8_srgb;
-		ldr_desc.set_name("world_post_process_ldr_scratch");
+		desc.texture_format = format_e::r8g8b8a8_srgb;
+		desc.initial_states = resource_state_ps_resource;
+		desc.flags			= texture_flags::tf_render_target | texture_flags::tf_sampled | texture_flags::tf_is_2d;
+		desc.view_count		= 2;
+		desc.views[0]		= {.type = view_type::sampled};
+		desc.views[1]		= {.type = view_type::render_target};
+		desc.set_name("world_fxaa_input");
 
 		gfx_backend& backend = gfx_backend::get();
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
-			if (hdr)
+			SFG_ASSERT(_pfd[i].fxaa_texture.is_null());
+
+			_pfd[i].fxaa_texture = backend.create_texture(desc);
+
+			if (_pfd[i].fxaa_texture.is_null())
 			{
-				SFG_ASSERT(_pfd[i].post_process_hdr_scratch.is_null());
-				_pfd[i].post_process_hdr_scratch	   = backend.create_texture(hdr_desc);
-				_pfd[i].post_process_hdr_scratch_index = backend.get_texture_gpu_index(_pfd[i].post_process_hdr_scratch, 0);
+				for (u32 previous = 0; previous < i; ++previous)
+				{
+					backend.destroy_texture(_pfd[previous].fxaa_texture);
+					_pfd[previous].fxaa_texture		  = {};
+					_pfd[previous].fxaa_texture_index = NULL_GPU_INDEX;
+				}
+
+				SFG_ERR("failed to create FXAA input texture");
+				throw std::runtime_error("failed to create FXAA input texture");
 			}
 
-			if (ldr)
-			{
-				SFG_ASSERT(_pfd[i].post_process_ldr_scratch.is_null());
-				_pfd[i].post_process_ldr_scratch	   = backend.create_texture(ldr_desc);
-				_pfd[i].post_process_ldr_scratch_index = backend.get_texture_gpu_index(_pfd[i].post_process_ldr_scratch, 0);
-			}
+			_pfd[i].fxaa_texture_index = backend.get_texture_gpu_index(_pfd[i].fxaa_texture, 0);
 		}
 	}
 
@@ -892,8 +887,7 @@ namespace sfg
 		{
 			SFG_ASSERT(_pfd[i].lighting_texture.is_null());
 			SFG_ASSERT(_pfd[i].post_process_texture.is_null());
-			SFG_ASSERT(_pfd[i].post_process_hdr_scratch.is_null());
-			SFG_ASSERT(_pfd[i].post_process_ldr_scratch.is_null());
+			SFG_ASSERT(_pfd[i].fxaa_texture.is_null());
 			SFG_ASSERT(_pfd[i].depth_texture.is_null());
 			SFG_ASSERT(_pfd[i].view_model_depth_texture.is_null());
 			SFG_ASSERT(_pfd[i].gbuffer_albedo.is_null());
@@ -952,13 +946,16 @@ namespace sfg
 			}
 		}
 
-		create_post_process_scratch(size, _post_process_hdr_scratch != 0, _post_process_ldr_scratch != 0);
+		if (_fxaa_texture != 0)
+			create_fxaa_texture(size);
+
 		_config.size = size;
 	}
 
 	void world_render_context_t::destroy_texture()
 	{
 		gfx_backend& backend = gfx_backend::get();
+
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			SFG_ASSERT(!_pfd[i].lighting_texture.is_null());
@@ -981,33 +978,28 @@ namespace sfg
 			backend.destroy_texture(_pfd[i].gbuffer_orm);
 			backend.destroy_texture(_pfd[i].gbuffer_emissive);
 			destroy_light_cluster_buffers(static_cast<u8>(i));
+
 			if (_config.enable_ssao != 0)
 			{
 				backend.destroy_texture(_pfd[i].ao_texture);
 				backend.destroy_texture(_pfd[i].ao_half_texture);
 			}
+
 			if (_config.enable_bloom != 0)
 			{
 				backend.destroy_texture(_pfd[i].bloom_downsample);
 				backend.destroy_texture(_pfd[i].bloom_upsample);
 			}
 
-			if (_post_process_hdr_scratch != 0)
+			if (_fxaa_texture != 0)
 			{
-				SFG_ASSERT(!_pfd[i].post_process_hdr_scratch.is_null());
-				backend.destroy_texture(_pfd[i].post_process_hdr_scratch);
-			}
-
-			if (_post_process_ldr_scratch != 0)
-			{
-				SFG_ASSERT(!_pfd[i].post_process_ldr_scratch.is_null());
-				backend.destroy_texture(_pfd[i].post_process_ldr_scratch);
+				SFG_ASSERT(!_pfd[i].fxaa_texture.is_null());
+				backend.destroy_texture(_pfd[i].fxaa_texture);
 			}
 
 			_pfd[i].lighting_texture		 = {};
 			_pfd[i].post_process_texture	 = {};
-			_pfd[i].post_process_hdr_scratch = {};
-			_pfd[i].post_process_ldr_scratch = {};
+			_pfd[i].fxaa_texture			 = {};
 			_pfd[i].depth_texture			 = {};
 			_pfd[i].view_model_depth_texture = {};
 			_pfd[i].gbuffer_albedo			 = {};
@@ -1018,6 +1010,7 @@ namespace sfg
 			_pfd[i].ao_half_texture			 = {};
 			_pfd[i].bloom_downsample		 = {};
 			_pfd[i].bloom_upsample			 = {};
+
 			for (u8 level = 0; level < WORLD_RENDER_BLOOM_LEVEL_COUNT; ++level)
 			{
 				_pfd[i].bloom_downsample_index[level]	  = NULL_GPU_INDEX;
@@ -1025,20 +1018,21 @@ namespace sfg
 				_pfd[i].bloom_upsample_index[level]		  = NULL_GPU_INDEX;
 				_pfd[i].bloom_upsample_uav_index[level]	  = NULL_GPU_INDEX;
 			}
-			_pfd[i].lighting_texture_index		   = NULL_GPU_INDEX;
-			_pfd[i].post_process_texture_index	   = NULL_GPU_INDEX;
-			_pfd[i].post_process_hdr_scratch_index = NULL_GPU_INDEX;
-			_pfd[i].post_process_ldr_scratch_index = NULL_GPU_INDEX;
-			_pfd[i].depth_texture_index			   = NULL_GPU_INDEX;
-			_pfd[i].gbuffer_albedo_index		   = NULL_GPU_INDEX;
-			_pfd[i].gbuffer_normal_index		   = NULL_GPU_INDEX;
-			_pfd[i].gbuffer_orm_index			   = NULL_GPU_INDEX;
-			_pfd[i].gbuffer_emissive_index		   = NULL_GPU_INDEX;
-			_pfd[i].ao_texture_index			   = NULL_GPU_INDEX;
-			_pfd[i].ao_texture_uav_index		   = NULL_GPU_INDEX;
-			_pfd[i].ao_half_texture_index		   = NULL_GPU_INDEX;
-			_pfd[i].ao_half_texture_uav_index	   = NULL_GPU_INDEX;
+
+			_pfd[i].lighting_texture_index	   = NULL_GPU_INDEX;
+			_pfd[i].post_process_texture_index = NULL_GPU_INDEX;
+			_pfd[i].fxaa_texture_index		   = NULL_GPU_INDEX;
+			_pfd[i].depth_texture_index		   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_albedo_index	   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_normal_index	   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_orm_index		   = NULL_GPU_INDEX;
+			_pfd[i].gbuffer_emissive_index	   = NULL_GPU_INDEX;
+			_pfd[i].ao_texture_index		   = NULL_GPU_INDEX;
+			_pfd[i].ao_texture_uav_index	   = NULL_GPU_INDEX;
+			_pfd[i].ao_half_texture_index	   = NULL_GPU_INDEX;
+			_pfd[i].ao_half_texture_uav_index  = NULL_GPU_INDEX;
 		}
+
 		_config.size = vec2u16_t::zero;
 	}
 }

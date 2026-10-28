@@ -24,6 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/world/editor_world_camera_orbit.hpp"
 #include "tools/world/editor_world_rendering.hpp"
 #include "tools/world/editor_world_util.hpp"
+#include "tools/editor_world_controller.hpp"
 #include "tools/ui/panels/editor_theme.hpp"
 #include <sfg/core/data/frame_vector.hpp>
 #include <sfg/core/math/aabb.hpp>
@@ -713,6 +714,16 @@ namespace sfg
 			}
 		}
 
+		if (_edit_context.get_world() == editor_world_controller_t::get().get_main_world_handle())
+		{
+			const plugin_callbacks_t& callbacks = plugin_runtime_t::get().get_callbacks();
+
+			if (callbacks.produce_render_snapshot != nullptr)
+				callbacks.produce_render_snapshot(_world, snapshot.plugin_data);
+
+			snapshot.plugin_snapshot_ready = true;
+		}
+
 		_latest_snapshot_slot = _producer_slot;
 		publish_snapshot();
 	}
@@ -762,7 +773,9 @@ namespace sfg
 			_last_render_pick_request_id = data.pick_request.id;
 		}
 
-		world_rendering_t::render_world(_render_context.get_world_render_context(), snapshot, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
+		const plugin_callbacks_t* plugin = _edit_context.get_world() == editor_world_controller_t::get().get_main_world_handle() ? &plugin_runtime_t::get().get_callbacks() : nullptr;
+
+		world_rendering_t::render_world(_render_context.get_world_render_context(), snapshot, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout, plugin);
 		editor_world_rendering_t::render_outlines(_render_context, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 		editor_world_rendering_t::render_object_ids(_render_context, snapshot, prep_data, frame_index);
 		editor_world_rendering_t::blit_world_texture(_render_context, snapshot, prep_data, interpolation_alpha, frame_index);

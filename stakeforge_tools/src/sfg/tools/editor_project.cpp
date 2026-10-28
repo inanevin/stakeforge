@@ -128,7 +128,7 @@ namespace sfg
 			return false;
 		}
 
-		for (const char* name : {"CMakeLists.txt", "game.cpp", "game_components.hpp", "game_type_registry.hpp", "game_type_registry.cpp"})
+		for (const char* name : {"CMakeLists.txt", ".clang-format", "game.cpp", "game_world.hpp", "game_world.cpp", "game_render.hpp", "game_render.cpp", "game_components.hpp", "game_type_registry.hpp", "game_type_registry.cpp"})
 		{
 			const string_t destination = _runtime.native_source_path + name;
 
@@ -145,11 +145,12 @@ namespace sfg
 		}
 
 		const string_t signature_path = _runtime.native_intermediate_path + "stakeforge_generation.txt";
-		const string_t signature	  = sdk_path + "\n" + source_path + "\n" + library_path + "\n" + settings_text;
+		const string_t signature	  = sdk_path + "\n" + source_path + "\n" + library_path + "\n" + _runtime.name + "\n" + settings_text;
 		const bool	   fresh		  = !file_system_t::exists(signature_path.c_str()) || file_system_t::read_file_as_string(signature_path.c_str()) != signature;
 		string_t	   command		  = "\"" + cmake_path + "\" -S \"" + source_path + "\" -B \"" + build_path + "\"";
 		command += " -G \"" + generator + "\" -A \"" + architecture + ",version=" + windows_sdk + "\" -T \"" + toolset + "\"";
 		command += " \"-DStakeforge_DIR=" + sdk_path + "cmake\"";
+		command += " \"-DSFG_GAME_PROJECT_NAME=" + _runtime.name + "\"";
 		command += " \"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY=" + library_path + "\"";
 		command += " \"-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=" + library_path + "\"";
 

@@ -677,9 +677,6 @@ namespace sfg
 		case assets_action_menu_create_unlit_shader:
 			text = "unlit_shader";
 			break;
-		case assets_action_menu_create_post_process_shader:
-			text = "post_process_shader";
-			break;
 		case assets_action_menu_create_ui_shader:
 			text = "ui_shader";
 			break;
@@ -730,9 +727,6 @@ namespace sfg
 			break;
 		case assets_action_menu_create_particle_material:
 			text = "particle_material";
-			break;
-		case assets_action_menu_create_post_process_material:
-			text = "post_process_material";
 			break;
 		case assets_action_menu_create_physical_material:
 			text = "physical_material";
@@ -876,10 +870,6 @@ namespace sfg
 			out_desc.object_shader_template = editor_object_shader_template_e::unlit;
 			out_desc.sub_type				= static_cast<u8>(shader_type_e::object_shader);
 			return true;
-		case assets_action_menu_create_post_process_shader:
-			out_desc.asset_type = editor_asset_type_e::shader;
-			out_desc.sub_type	= static_cast<u8>(shader_type_e::post_process_shader);
-			return true;
 		case assets_action_menu_create_ui_shader:
 			out_desc.asset_type = editor_asset_type_e::shader;
 			out_desc.sub_type	= static_cast<u8>(shader_type_e::ui_shader);
@@ -944,10 +934,6 @@ namespace sfg
 		case assets_action_menu_create_particle_material:
 			out_desc.asset_type = editor_asset_type_e::material;
 			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::particle);
-			return true;
-		case assets_action_menu_create_post_process_material:
-			out_desc.asset_type = editor_asset_type_e::material;
-			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::post_process);
 			return true;
 		case assets_action_menu_create_physical_material:
 			out_desc.asset_type = editor_asset_type_e::physical_material;

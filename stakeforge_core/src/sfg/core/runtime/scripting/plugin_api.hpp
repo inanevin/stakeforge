@@ -34,8 +34,11 @@ namespace sfg
 	enum class input_action;
 	struct physics_contact_event_t;
 	struct canvas_event_t;
+	struct plugin_render_context_t;
+	struct plugin_gbuffer_pass_t;
+	struct plugin_color_pass_t;
 
-	inline constexpr u32 PLUGIN_API_VERSION = 7;
+	inline constexpr u32 PLUGIN_API_VERSION = 8;
 
 	struct plugin_render_snapshot_config_t
 	{
@@ -45,6 +48,12 @@ namespace sfg
 
 	struct plugin_callbacks_t
 	{
+		void (*produce_render_snapshot)(world_t& world, void* snapshot_data)											   = nullptr;
+		void (*render_after_gbuffer)(const plugin_render_context_t& context, const plugin_gbuffer_pass_t& targets)		   = nullptr;
+		void (*render_before_forward)(const plugin_render_context_t& context, const plugin_color_pass_t& targets)		   = nullptr;
+		void (*render_before_post_process)(const plugin_render_context_t& context, const plugin_color_pass_t& targets)	   = nullptr;
+		void (*render_before_tonemap)(const plugin_render_context_t& context, const plugin_color_pass_t& targets)		   = nullptr;
+		void (*render_after_post_process)(const plugin_render_context_t& context, const plugin_color_pass_t& targets)	   = nullptr;
 		plugin_render_snapshot_config_t (*get_render_snapshot_config)()													   = nullptr;
 		void (*register_types)(native_component_schema_t& schema)														   = nullptr;
 		void (*load)()																									   = nullptr;

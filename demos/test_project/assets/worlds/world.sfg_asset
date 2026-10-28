@@ -348,8 +348,6 @@
                     },
                     {
                         "data": {
-                            "after_tonemap": [],
-                            "before_tonemap": [],
                             "bloom": {
                                 "enabled": true,
                                 "filter_radius": 0.004999999888241291,

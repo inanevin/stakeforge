@@ -36,7 +36,6 @@ namespace sfg
 		sprite_lit,
 		sprite_unlit,
 		particle,
-		post_process,
 	};
 
 	enum class editor_object_shader_template_e : u8
