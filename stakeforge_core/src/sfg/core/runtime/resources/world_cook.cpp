@@ -114,16 +114,27 @@ namespace sfg
 			return;
 
 		const nlohmann::json root_entities_json = in_json.value<nlohmann::json>("root_entities", nlohmann::json::array());
+
 		if (!root_entities_json.is_array())
 			return;
 
 		for (const nlohmann::json& root_entity_json : root_entities_json)
+			entity_from_json(world, root_entity_json);
+
+		const ecs_component_table_t& alive_table	 = *world.find_component_table(type_id_t<component_alive_t>::value);
+		const ecs_component_table_t& hierarchy_table = *world.find_component_table(type_id_t<component_hierarchy_t>::value);
+
+		const ecs_component_table_ref_t table_refs[] = {
+			alive_table.ref(),
+			hierarchy_table.ref(),
+		};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 		{
-			const entity_id_t root = entity_from_json(world, root_entity_json);
-			if (root != NULL_ENTITY_ID)
-			{
-				world.scan_for_resources(root);
-			}
+			const component_hierarchy_t& hierarchy = row.get<component_hierarchy_t>(1);
+
+			if (hierarchy.parent == NULL_ENTITY_ID)
+				world.scan_for_resources(row.id);
 		}
 	}
 

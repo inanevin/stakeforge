@@ -338,8 +338,10 @@ namespace sfg
 
 		surfaces.get_main_surface().primary->set_current_project_name(proj._runtime.name.c_str());
 
-		_world_controller.load_dummy_world();
 		_normal_world_load_pending = proj.settings.last_world_guid != NULL_SID;
+
+		if (!_normal_world_load_pending || !editor_native_manager_t::get().is_loaded())
+			_world_controller.load_dummy_world();
 
 		editor_project_cooker_t::get().init();
 

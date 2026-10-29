@@ -41,6 +41,7 @@ from build_info import ensure_build_info
 
 
 HEADER_SUFFIXES = {".h", ".hpp", ".hxx", ".inl", ".ipp", ".inc", ".def"}
+SOURCE_SUFFIXES = {".c", ".cc", ".cpp", ".cxx"}
 LICENSE_NAMES = {"license", "license.txt", "license-mit.txt", "copying", "copying.txt", "notice", "copyright"}
 
 
@@ -217,12 +218,13 @@ def package(manifest):
 
     for source, target in settings["headers"]:
         directory = Path(source)
+        suffixes = HEADER_SUFFIXES | SOURCE_SUFFIXES if target == "include/sfg" else HEADER_SUFFIXES
 
         if not directory.is_dir():
             raise FileNotFoundError(f"SDK header directory is missing: {directory}")
 
         for path in sorted(directory.rglob("*")):
-            if path.is_file() and (path.suffix.lower() in HEADER_SUFFIXES or path.name.lower() in LICENSE_NAMES):
+            if path.is_file() and (path.suffix.lower() in suffixes or path.name.lower() in LICENSE_NAMES):
                 desired[f"{target}/{path.relative_to(directory).as_posix()}"] = path
 
     for source in [settings["core_import_library"], settings["tools_import_library"], *settings["dependency_libraries"]]:

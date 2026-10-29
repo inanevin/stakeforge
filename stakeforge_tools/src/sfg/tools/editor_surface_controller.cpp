@@ -523,16 +523,14 @@ namespace sfg
 
 			if (surface.runtime->has_flag(window_runtime_flags_e::close_requested))
 			{
-				_renderer->end_render();
+				destroy_surface(handle);
 
 				if (surface.type == editor_surface_type_e::primary)
 				{
-					destroy_surface(handle);
 					destroy_all_surfaces();
 					return;
 				}
 
-				destroy_surface(handle);
 				continue;
 			}
 

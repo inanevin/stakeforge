@@ -377,8 +377,6 @@ namespace sfg
 		if (_play_session.is_playing() || _play_session.is_play_requested())
 			return false;
 
-		editor_app_t::get().stop_render();
-
 		if (!_main_world.is_null() && _main_world_dirty)
 		{
 			_pending_main_world_asset_guid		 = asset_guid;

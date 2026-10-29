@@ -406,9 +406,6 @@ namespace sfg
 
 	void editor_renderer_t::end_render()
 	{
-		if (!_render_thread_active.load() && !_render_thread.joinable())
-			return;
-
 		_render_thread_active = false;
 
 		if (_render_thread.joinable())
@@ -416,6 +413,31 @@ namespace sfg
 
 		join();
 		_world_controller = nullptr;
+
+		render_resources_t& render_resources = render_resources_t::get();
+		render_resources.drain_requests();
+		render_resources.flush_texture_region_data_uploads(_frame_index);
+
+		gfx_backend&	   backend	 = gfx_backend::get();
+		per_frame_data_t&  pfd		 = _pfd[_frame_index];
+		const gfx_handle_t queue_gfx = backend.get_queue_gfx();
+		const bool		   submitted = render_resources.get_texture_upload_queue().submit({
+			.queue_gfx		= queue_gfx,
+			.queue_transfer = backend.get_queue_transfer(),
+			.cmd_prepare	= pfd.cmd_gfx_prepare,
+			.cmd_transfer	= pfd.cmd_transfer,
+			.cmd_transit	= pfd.cmd_gfx_transit,
+			.semaphore		= &pfd.semaphore_transfer,
+		});
+
+		if (submitted)
+		{
+			pfd.semaphore_frame.value++;
+			backend.queue_signal(queue_gfx, &pfd.semaphore_frame.sem, &pfd.semaphore_frame.value, 1);
+			backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
+		}
+
+		render_resources.drain_destroy_requests();
 	}
 
 	void editor_renderer_t::render_loop()
