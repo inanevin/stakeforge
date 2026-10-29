@@ -12,6 +12,30 @@ namespace sfg
 {
 	bool material_cooker::cook_from_def(const material_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
+		if (def.shader == NULL_RESOURCE_HANDLE)
+		{
+			SFG_ERR("material has no shader");
+			return false;
+		}
+
+		if (def.parameters.size() > SFG_MATERIAL_MAX_PARAMS)
+		{
+			SFG_ERR("material has too many parameters: {0} / {1}", def.parameters.size(), SFG_MATERIAL_MAX_PARAMS);
+			return false;
+		}
+
+		if (def.textures.size() > SFG_MATERIAL_MAX_TEXTURES)
+		{
+			SFG_ERR("material has too many textures: {0} / {1}", def.textures.size(), SFG_MATERIAL_MAX_TEXTURES);
+			return false;
+		}
+
+		if (def.samplers.size() > SFG_MATERIAL_MAX_TEXTURES)
+		{
+			SFG_ERR("material has too many samplers: {0} / {1}", def.samplers.size(), SFG_MATERIAL_MAX_TEXTURES);
+			return false;
+		}
+
 		for (size_t i = 0; i < def.textures.size(); ++i)
 		{
 			if (def.textures[i].name.empty())
@@ -111,16 +135,13 @@ namespace sfg
 			++out_header.dependency_count;
 		}
 
-		if (def.shader != NULL_SID)
-		{
-			const resource_dependency_t dependency = {
-				.handle = def.shader,
-				.type	= resource_type_e::shader,
-			};
+		const resource_dependency_t dependency = {
+			.handle = def.shader,
+			.type	= resource_type_e::shader,
+		};
 
-			stream << dependency;
-			++out_header.dependency_count;
-		}
+		stream << dependency;
+		++out_header.dependency_count;
 
 		stream.write_raw(material_stream.get_raw(), material_stream.get_size());
 

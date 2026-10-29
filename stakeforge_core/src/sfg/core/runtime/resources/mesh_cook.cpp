@@ -137,7 +137,21 @@ namespace sfg
 
 	bool mesh_cooker::cook_from_def(const mesh_def_t& def, resource_header_t& out_header, ostream_t& stream, bool compress)
 	{
-		ostream_t mesh_stream;
+		if (def.static_primitives.empty() == def.skinned_primitives.empty())
+		{
+			SFG_ERR("mesh must contain either static or skinned primitives");
+			return false;
+		}
+
+		if (std::any_of(def.static_primitives.begin(), def.static_primitives.end(), [](const primitive_static_def_t& primitive) { return primitive.vertices.empty() || primitive.indices.empty(); }) ||
+			std::any_of(def.skinned_primitives.begin(), def.skinned_primitives.end(), [](const primitive_skinned_def_t& primitive) { return primitive.vertices.empty() || primitive.indices.empty(); }))
+		{
+			SFG_ERR("mesh primitive has no geometry");
+			return false;
+		}
+
+		ostream_t mesh_stream = {};
+
 		if (!reflection_registry_t::get().type_to_stream(type_id_t<mesh_def_t>::value, const_cast<mesh_def_t*>(&def), nullptr, mesh_stream))
 		{
 			SFG_ERR("failed to serialize mesh definition");
@@ -158,6 +172,7 @@ namespace sfg
 		}
 
 		stream = compressor_t::compress(mesh_stream);
+
 		if (stream.get_size() == 0)
 		{
 			SFG_ERR("failed to compress mesh payload");

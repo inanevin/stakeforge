@@ -71,10 +71,7 @@ namespace sfg
 
 	mat4x4_t mat4x4_t::get_normal_matrix() const
 	{
-		mat4x4_t inv_mat = inverse();
-		if (inv_mat == mat4x4_t::identity)
-			return identity;
-		return inv_mat.transpose();
+		return inverse().transpose();
 	}
 
 	mat4x4_t mat4x4_t::transpose() const
@@ -112,12 +109,9 @@ namespace sfg
 
 	mat4x4_t mat4x4_t::inverse() const
 	{
-		f32 det = determinant();
-		if (math::abs(det) < MATH_EPS)
-			return identity;
-
+		f32		 det	 = determinant();
 		f32		 inv_det = 1.0f / det;
-		mat4x4_t inv;
+		mat4x4_t inv	 = mat4x4_t::identity;
 
 		f32 a = m[0], b = m[4], c = m[8], d = m[12];
 		f32 e = m[1], f = m[5], g = m[9], h = m[13];
@@ -264,32 +258,26 @@ namespace sfg
 
 	mat4x4_t mat4x4_t::operator/(f32 scalar) const
 	{
-		mat4x4_t result;
-		if (math::abs(scalar) < MATH_EPS)
-			return identity;
-		f32 inv_scalar = 1.0f / scalar;
+		mat4x4_t result		= mat4x4_t::identity;
+		f32		 inv_scalar = 1.0f / scalar;
+
 		for (int i = 0; i < 16; ++i)
 		{
 			result.m[i] = m[i] * inv_scalar;
 		}
+
 		return result;
 	}
 
 	mat4x4_t& mat4x4_t::operator/=(f32 scalar)
 	{
-		if (math::abs(scalar) < MATH_EPS)
+		const f32 inv_scalar = 1.0f / scalar;
+
+		for (int i = 0; i < 16; ++i)
 		{
-			for (int i = 0; i < 16; ++i)
-				m[i] = std::numeric_limits<f32>::infinity();
+			m[i] *= inv_scalar;
 		}
-		else
-		{
-			f32 inv_scalar = 1.0f / scalar;
-			for (int i = 0; i < 16; ++i)
-			{
-				m[i] *= inv_scalar;
-			}
-		}
+
 		return *this;
 	}
 

@@ -66,12 +66,6 @@ namespace sfg
 			.allow_sleep	   = def.allow_sleep,
 		};
 
-		if (runtime->part_count == 0)
-		{
-			SFG_ERR("ragdoll has no parts: {0}", entry.hash);
-			return false;
-		}
-
 		runtime->parts				  = mem.allocate_bytes(sizeof(ragdoll_part_runtime_t) * runtime->part_count, alignof(ragdoll_part_runtime_t));
 		ragdoll_part_runtime_t* parts = mem.get<ragdoll_part_runtime_t>(runtime->parts);
 

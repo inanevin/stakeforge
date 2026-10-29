@@ -191,6 +191,7 @@ namespace sfg
 						release_stream_result(result);
 						return result;
 					}
+
 					result.header.mips[i] = {
 						.byte_offset = 0,
 						.data_size	 = buf.data_size,
@@ -266,7 +267,7 @@ namespace sfg
 			};
 			ktx2_image_desc_t ktx_desc = {};
 
-			if (!ktx2_util_t::decode_uastc(ktx_data, result.header.ktx2_compression, hash, result.mips, texture_loader_t::MAX_MIPS, ktx_desc))
+			if (!ktx2_util_t::decode_uastc(ktx_data, result.header.ktx2_compression, hash, result.mips, ktx_desc))
 				return result;
 
 			result.header.texture_format = ktx_desc.format;

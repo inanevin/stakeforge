@@ -105,10 +105,7 @@ namespace sfg
 		const f32 H = -(a * f - c * d);
 		const f32 I = (a * e - b * d);
 
-		const f32 det = a * A + d * D + g * G;
-		if (fabsf(det) <= 1e-8f)
-			return identity;
-
+		const f32 det	 = a * A + d * D + g * G;
 		const f32 invDet = 1.0f / det;
 
 		return mat3x3_t(A * invDet, D * invDet, G * invDet, B * invDet, E * invDet, H * invDet, C * invDet, F * invDet, I * invDet);

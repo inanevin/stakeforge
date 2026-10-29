@@ -109,30 +109,6 @@ namespace sfg
 
 		stream >> material;
 
-		if (material.shader == NULL_RESOURCE_HANDLE)
-		{
-			SFG_ERR("material has no shader: {0}", entry.hash);
-			return false;
-		}
-
-		if (material.parameters.size() > SFG_MATERIAL_MAX_PARAMS)
-		{
-			SFG_ERR("material has too many parameters: {0} / {1}", material.parameters.size(), SFG_MATERIAL_MAX_PARAMS);
-			return false;
-		}
-
-		if (material.textures.size() > SFG_MATERIAL_MAX_TEXTURES)
-		{
-			SFG_ERR("material has too many textures: {0} / {1}", material.textures.size(), SFG_MATERIAL_MAX_TEXTURES);
-			return false;
-		}
-
-		if (material.samplers.size() > SFG_MATERIAL_MAX_TEXTURES)
-		{
-			SFG_ERR("material has too many samplers: {0} / {1}", material.samplers.size(), SFG_MATERIAL_MAX_TEXTURES);
-			return false;
-		}
-
 		runtime->shader_guid	   = material.shader;
 		runtime->blend_mode		   = static_cast<u8>(material.blend_mode);
 		runtime->write_shadows	   = material.write_shadows ? 1 : 0;
@@ -195,11 +171,15 @@ namespace sfg
 
 	void material_loader_t::unload(resource_entry_t& entry, resource_context_t& ctx)
 	{
-		chunk_allocator_t&	  mem		= ctx.resource_manager.get_memory();
-		material_internals_t* internals = mem.get<material_internals_t>(entry.internals);
+		chunk_allocator_t&		  mem		= ctx.resource_manager.get_memory();
+		const material_runtime_t* runtime	= mem.get<material_runtime_t>(entry.runtime);
+		material_internals_t*	  internals = mem.get<material_internals_t>(entry.internals);
 
-		for (u8 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
-			render_resources_t::get().enqueue_destroy_resource(internals->parameter_buffers[frame_index]);
+		if (runtime->parameter_count != 0)
+		{
+			for (u8 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
+				render_resources_t::get().enqueue_destroy_resource(internals->parameter_buffers[frame_index]);
+		}
 
 		*internals = {};
 	}

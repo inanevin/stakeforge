@@ -154,6 +154,12 @@ namespace sfg
 
 	bool animation_cooker::cook_from_def(const animation_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
+		if (def.position_channels.empty() && def.rotation_channels.empty() && def.scale_channels.empty() && def.event_count == 0)
+		{
+			SFG_ERR("animation has no channels or events");
+			return false;
+		}
+
 		ostream_t animation_stream = {};
 
 		if (!reflection_registry_t::get().type_to_stream(type_id_t<animation_def_t>::value, const_cast<animation_def_t*>(&def), nullptr, animation_stream))
@@ -170,6 +176,7 @@ namespace sfg
 		};
 
 		stream = compressor_t::compress(animation_stream);
+
 		if (stream.get_size() == 0)
 		{
 			SFG_ERR("failed to compress animation payload");

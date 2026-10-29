@@ -88,10 +88,6 @@ namespace sfg
 
 		inline vec2f_t operator/(f32 scalar) const
 		{
-			if (scalar == 0.0f)
-			{
-				return {std::numeric_limits<f32>::infinity(), std::numeric_limits<f32>::infinity()};
-			}
 			return {x / scalar, y / scalar};
 		}
 
@@ -118,16 +114,9 @@ namespace sfg
 
 		inline vec2f_t& operator/=(f32 scalar)
 		{
-			if (scalar == 0.0f)
-			{
-				x = MATH_INF_F;
-				y = MATH_INF_F;
-			}
-			else
-			{
-				x /= scalar;
-				y /= scalar;
-			}
+			x /= scalar;
+			y /= scalar;
+
 			return *this;
 		}
 

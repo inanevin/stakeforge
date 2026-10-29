@@ -254,6 +254,12 @@ namespace sfg
 			{
 				const string_t prefab_source = file_system_t::read_file_as_string(full_path);
 
+				if (prefab_source.empty())
+				{
+					SFG_ERR("prefab has no source: {0}", full_path);
+					return false;
+				}
+
 				out_header = {
 					.type		 = resource_type_e::prefab,
 					.magic		 = prefab_loader_t::WIRE_MAGIC,

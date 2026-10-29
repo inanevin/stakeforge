@@ -36,19 +36,13 @@ namespace sfg
 			clear_mesh_runtime_cpu_data(runtime);
 		}
 
-		template <typename def_primitive_t, typename vertex_t> bool build_mesh_data(const vector_t<def_primitive_t>& def_primitives, chunk_allocator_t& mem, mesh_runtime_t& runtime, mesh_internals_t& internals)
+		template <typename def_primitive_t, typename vertex_t> void build_mesh_data(const vector_t<def_primitive_t>& def_primitives, chunk_allocator_t& mem, mesh_runtime_t& runtime, mesh_internals_t& internals)
 		{
 			size_t vertex_count = 0;
 			size_t index_count	= 0;
 
 			for (const def_primitive_t& primitive : def_primitives)
 			{
-				if (primitive.vertices.empty() || primitive.indices.empty())
-				{
-					SFG_ERR("mesh primitive has no geometry");
-					return false;
-				}
-
 				vertex_count += primitive.vertices.size();
 				index_count += primitive.indices.size();
 			}
@@ -99,8 +93,6 @@ namespace sfg
 			internals.vertex_count	  = runtime.vertex_count;
 			internals.index_count	  = runtime.index_count;
 			internals.vertex_stride	  = runtime.vertex_stride;
-
-			return true;
 		}
 
 		bool load_mesh_def(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream)
@@ -122,24 +114,13 @@ namespace sfg
 			internals->local_bounds = mesh.local_bounds;
 			internals->local_bounds.update_half_extents();
 
-			const bool has_static  = !mesh.static_primitives.empty();
-			const bool has_skinned = !mesh.skinned_primitives.empty();
-
-			if (has_static == has_skinned)
+			if (!mesh.static_primitives.empty())
 			{
-				SFG_ERR("mesh must contain either static or skinned primitives: {0}", entry.hash);
-				return false;
+				build_mesh_data<primitive_static_def_t, vertex_static_t>(mesh.static_primitives, mem, *runtime, *internals);
 			}
-
-			if (has_static)
+			else
 			{
-				if (!build_mesh_data<primitive_static_def_t, vertex_static_t>(mesh.static_primitives, mem, *runtime, *internals))
-					return false;
-			}
-			else if (has_skinned)
-			{
-				if (!build_mesh_data<primitive_skinned_def_t, vertex_skinned_t>(mesh.skinned_primitives, mem, *runtime, *internals))
-					return false;
+				build_mesh_data<primitive_skinned_def_t, vertex_skinned_t>(mesh.skinned_primitives, mem, *runtime, *internals);
 
 				runtime->is_skinned	  = 1;
 				internals->is_skinned = 1;

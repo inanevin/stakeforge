@@ -652,8 +652,15 @@ namespace sfg
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::prefab);
 		SFG_ASSERT(asset.source_type == editor_asset_source_type_e::embedded);
 
-		const string_t	  prefab_source = asset.embedded_source;
-		resource_header_t header		= {
+		const string_t prefab_source = asset.embedded_source;
+
+		if (prefab_source.empty())
+		{
+			SFG_ERR("prefab has no source: {0}", asset.guid);
+			return false;
+		}
+
+		resource_header_t header = {
 			.type		 = resource_type_e::prefab,
 			.magic		 = prefab_loader_t::WIRE_MAGIC,
 			.version	 = prefab_loader_t::WIRE_VERSION,
@@ -662,6 +669,7 @@ namespace sfg
 
 		ostream_t stream = {};
 		stream << prefab_source;
+
 		return save_cooked_asset(asset, header, stream, asset_name);
 	}
 }

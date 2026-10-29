@@ -91,17 +91,14 @@ namespace sfg
 	{
 		resource_manager_t::get().uninit_atlases();
 		render_resources_t::get().uninit();
+
 		gfx_backend& backend = gfx_backend::get();
-		if (!render_globals_t::s_global_bind_layout.is_null())
-		{
-			backend.destroy_bind_layout(render_globals_t::s_global_bind_layout);
-			render_globals_t::s_global_bind_layout = {};
-		}
-		if (!render_globals_t::s_global_compute_bind_layout.is_null())
-		{
-			backend.destroy_bind_layout(render_globals_t::s_global_compute_bind_layout);
-			render_globals_t::s_global_compute_bind_layout = {};
-		}
+
+		backend.destroy_bind_layout(render_globals_t::s_global_bind_layout);
+		render_globals_t::s_global_bind_layout = {};
+		backend.destroy_bind_layout(render_globals_t::s_global_compute_bind_layout);
+		render_globals_t::s_global_compute_bind_layout = {};
+
 		backend.uninit();
 		g_engine_thread_ids.main_thread_id = 0;
 	}

@@ -79,14 +79,11 @@ namespace sfg
 		SFG_ASSERT(g_frame_allocator_state._raw != nullptr);
 		SFG_ASSERT(IS_POW(alignment));
 
-		if (g_frame_allocator_state._raw == nullptr)
-			throw std::bad_alloc();
-
 		void*  current_ptr = g_frame_allocator_state._raw + g_frame_allocator_state._head;
 		size_t space	   = g_frame_allocator_state._capacity - g_frame_allocator_state._head;
 
 		void* aligned_ptr = std::align(alignment, size, current_ptr, space);
-		if (aligned_ptr == nullptr || size > space)
+		if (aligned_ptr == nullptr)
 		{
 			SFG_ASSERT(false);
 			throw std::bad_alloc();

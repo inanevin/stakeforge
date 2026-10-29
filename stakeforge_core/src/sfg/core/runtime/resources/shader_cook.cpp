@@ -455,6 +455,7 @@ namespace sfg
 		}
 
 		string_t source = file_system_t::read_file_as_string(full_path);
+
 		if (source.empty())
 		{
 			SFG_ERR("failed to read source {0}", full_path);
@@ -467,6 +468,7 @@ namespace sfg
 		build_include_paths(cfg, full_path, include_paths);
 
 		out_definition = {};
+
 		if (!parse_shader_data_definition(source, full_path, out_definition))
 			return false;
 
@@ -629,20 +631,29 @@ namespace sfg
 			return false;
 		}
 
+		if (compiles.empty() || compiles.size() > SFG_SHADER_MAX_COMPILE_VARIANTS)
+		{
+			SFG_ERR("shader compile variant count must be between 1 and {0}: {1}", SFG_SHADER_MAX_COMPILE_VARIANTS, compiles.size());
+			return false;
+		}
+
+		if (psos.empty() || psos.size() > SFG_SHADER_MAX_PSO_VARIANTS)
+		{
+			SFG_ERR("shader pipeline variant count must be between 1 and {0}: {1}", SFG_SHADER_MAX_PSO_VARIANTS, psos.size());
+			return false;
+		}
+
+		for (const cook_compile_variant_t& variant : compiles)
+		{
+			if (variant.stages.empty() || variant.stages.size() > SFG_SHADER_MAX_STAGE_PER_VARIANT)
+			{
+				SFG_ERR("shader compile variant stage count must be between 1 and {0}: {1}", SFG_SHADER_MAX_STAGE_PER_VARIANT, variant.stages.size());
+				return false;
+			}
+		}
+
 		const u8 compile_variant_count = static_cast<u8>(compiles.size());
 		const u8 pso_variant_count	   = static_cast<u8>(psos.size());
-
-		if (compile_variant_count > SFG_SHADER_MAX_COMPILE_VARIANTS)
-		{
-			SFG_ERR("too many compile variants ({0}, max {1})", compile_variant_count, SFG_SHADER_MAX_COMPILE_VARIANTS);
-			return false;
-		}
-
-		if (pso_variant_count > SFG_SHADER_MAX_PSO_VARIANTS)
-		{
-			SFG_ERR("too many pso variants ({0}, max {1})", pso_variant_count, SFG_SHADER_MAX_PSO_VARIANTS);
-			return false;
-		}
 
 		out_header = {
 			.type		 = resource_type_e::shader,
@@ -658,7 +669,6 @@ namespace sfg
 		for (const cook_compile_variant_t& v : compiles)
 		{
 			const u8 stages_count = static_cast<u8>(v.stages.size());
-			SFG_ASSERT(stages_count < SFG_SHADER_MAX_STAGE_PER_VARIANT);
 			payload << stages_count;
 
 			for (const cook_stage_blob_t& b : v.stages)
@@ -685,6 +695,7 @@ namespace sfg
 		}
 
 		stream = compressor_t::compress(payload);
+
 		if (stream.get_size() == 0)
 		{
 			SFG_ERR("failed to compress shader payload: {0}", full_path);

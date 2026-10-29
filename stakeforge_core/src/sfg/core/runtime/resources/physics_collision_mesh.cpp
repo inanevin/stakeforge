@@ -50,12 +50,6 @@ namespace sfg
 				return false;
 			}
 
-			if (def.vertices.empty() || def.indices.empty())
-			{
-				SFG_ERR("physics collision mesh has no geometry: {0}", entry.hash);
-				return false;
-			}
-
 			chunk_allocator_t&				  memory  = ctx.resource_manager.get_memory();
 			physics_collision_mesh_runtime_t* runtime = memory.get<physics_collision_mesh_runtime_t>(entry.runtime);
 			*runtime								  = {};

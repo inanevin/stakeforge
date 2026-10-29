@@ -139,12 +139,6 @@ namespace sfg
 			.layer_count = static_cast<u32>(def.layer_count),
 		};
 
-		if (runtime.layer_count == 0)
-		{
-			SFG_ERR("animation library has no layers: {0}", entry.hash);
-			return false;
-		}
-
 		for (u32 layer_index = 0; layer_index < runtime.layer_count; ++layer_index)
 		{
 			const animation_library_layer_def_t& source_layer = def.layers[layer_index];

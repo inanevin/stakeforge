@@ -283,24 +283,16 @@ namespace sfg
 
 	quat_t quat_t::operator/(f32 scalar) const
 	{
-		if (math::abs(scalar) < MATH_EPS)
-			return identity;
 		return quat_t(x / scalar, y / scalar, z / scalar, w / scalar);
 	}
 
 	quat_t& quat_t::operator/=(f32 scalar)
 	{
-		if (math::abs(scalar) > MATH_EPS)
-		{
-			x /= scalar;
-			y /= scalar;
-			z /= scalar;
-			w /= scalar;
-		}
-		else
-		{
-			x = y = z = w = MATH_NAN;
-		}
+		x /= scalar;
+		y /= scalar;
+		z /= scalar;
+		w /= scalar;
+
 		return *this;
 	}
 

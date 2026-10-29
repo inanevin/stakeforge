@@ -112,7 +112,7 @@ namespace sfg
 			};
 			ktx2_image_desc_t ktx_desc = {};
 
-			if (!ktx2_util_t::decode_uastc(ktx_data, runtime->header.ktx2_compression, entry.hash, &mip, 1, ktx_desc))
+			if (!ktx2_util_t::decode_uastc(ktx_data, runtime->header.ktx2_compression, entry.hash, &mip, ktx_desc))
 				return false;
 
 			SFG_ASSERT(ktx_desc.mip_count == 1);

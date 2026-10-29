@@ -166,32 +166,32 @@ namespace sfg
 	void render_resources_t::enqueue_destroy_resource(render_resource_handle_t handle)
 	{
 		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
-		if (handle.is_null())
-			return;
+		SFG_ASSERT(!handle.is_null());
+
 		_request_q.enqueue({.kind = request_kind_e::destroy_resource, .render_handle = handle});
 	}
 
 	void render_resources_t::enqueue_destroy_texture(render_resource_handle_t handle)
 	{
 		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
-		if (handle.is_null())
-			return;
+		SFG_ASSERT(!handle.is_null());
+
 		_request_q.enqueue({.kind = request_kind_e::destroy_texture, .render_handle = handle});
 	}
 
 	void render_resources_t::enqueue_destroy_sampler(render_resource_handle_t handle)
 	{
 		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
-		if (handle.is_null())
-			return;
+		SFG_ASSERT(!handle.is_null());
+
 		_request_q.enqueue({.kind = request_kind_e::destroy_sampler, .render_handle = handle});
 	}
 
 	void render_resources_t::enqueue_destroy_shader(render_resource_handle_t handle)
 	{
 		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
-		if (handle.is_null())
-			return;
+		SFG_ASSERT(!handle.is_null());
+
 		_request_q.enqueue({.kind = request_kind_e::destroy_shader, .render_handle = handle});
 	}
 

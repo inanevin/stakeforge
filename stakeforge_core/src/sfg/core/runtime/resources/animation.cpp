@@ -84,13 +84,7 @@ namespace sfg
 		std::sort(runtime->events, runtime->events + runtime->event_count, [](const animation_event_t& a, const animation_event_t& b) { return a.time < b.time; });
 
 		if (storage_size == 0)
-		{
-			if (runtime->event_count != 0)
-				return true;
-
-			SFG_ERR("animation has no channels or events: {0}", entry.hash);
-			return false;
-		}
+			return true;
 
 		runtime->data = memory.allocate_bytes(storage_size, alignof(std::max_align_t));
 

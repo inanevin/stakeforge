@@ -105,8 +105,6 @@ namespace sfg
 		}
 		inline vec3f_t operator/(f32 scalar) const
 		{
-			if (scalar == 0.0f)
-				return vec3f_t::zero;
 			return {x / scalar, y / scalar, z / scalar};
 		}
 
@@ -143,18 +141,10 @@ namespace sfg
 		}
 		inline vec3f_t& operator/=(f32 scalar)
 		{
-			if (scalar != 0.0f)
-			{
-				x /= scalar;
-				y /= scalar;
-				z /= scalar;
-			}
-			else
-			{
-				x = MATH_INF_F;
-				y = MATH_INF_F;
-				z = MATH_INF_F;
-			}
+			x /= scalar;
+			y /= scalar;
+			z /= scalar;
+
 			return *this;
 		}
 

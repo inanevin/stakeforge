@@ -145,7 +145,7 @@ namespace sfg
 		return true;
 	}
 
-	bool ktx2_util_t::decode_uastc(span_t<const u8> data, texture_ktx2_compression_e compression, u64 resource_hash, texture_buffer_t* out_mips, u8 max_mips, ktx2_image_desc_t& out_desc)
+	bool ktx2_util_t::decode_uastc(span_t<const u8> data, texture_ktx2_compression_e compression, u64 resource_hash, texture_buffer_t* out_mips, ktx2_image_desc_t& out_desc)
 	{
 		ktxTexture2*   ktx_texture = nullptr;
 		KTX_error_code ktx_result  = ktxTexture2_CreateFromMemory(data.data, data.size, 0, &ktx_texture);
@@ -197,13 +197,6 @@ namespace sfg
 
 		out_desc.mip_count = static_cast<u8>(ktx_texture->numLevels);
 
-		if (out_desc.mip_count > max_mips)
-		{
-			SFG_ERR("KTX2 image {0} has too many mip levels", resource_hash);
-			ktxTexture2_Destroy(ktx_texture);
-			return false;
-		}
-
 		out_desc.size = vec2u16_t(static_cast<u16>(ktx_texture->baseWidth), static_cast<u16>(ktx_texture->baseHeight));
 		const u8 bpp  = format_is_block_compressed(out_desc.format) ? 16 : format_get_bpp(out_desc.format);
 
@@ -221,14 +214,6 @@ namespace sfg
 			}
 
 			const ktx_size_t image_size = ktxTexture_GetImageSize(ktxTexture(ktx_texture), i);
-
-			if (image_size > UINT32_MAX)
-			{
-				SFG_ERR("KTX2 image {0} is too large", resource_hash);
-				release(out_mips, i);
-				ktxTexture2_Destroy(ktx_texture);
-				return false;
-			}
 
 			texture_buffer_t& mip	 = out_mips[i];
 			const u32		  width	 = ktx_texture->baseWidth >> i;

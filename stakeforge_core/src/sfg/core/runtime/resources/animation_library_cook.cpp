@@ -33,6 +33,12 @@ namespace sfg
 {
 	bool animation_library_cooker::cook_from_def(const animation_library_def_t& def, resource_header_t& out_header, ostream_t& stream)
 	{
+		if (def.layer_count == 0)
+		{
+			SFG_ERR("animation library has no layers");
+			return false;
+		}
+
 		ostream_t def_stream = {};
 
 		if (!reflection_registry_t::get().type_to_stream(type_id_t<animation_library_def_t>::value, const_cast<animation_library_def_t*>(&def), nullptr, def_stream))

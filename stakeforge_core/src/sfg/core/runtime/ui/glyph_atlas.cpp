@@ -81,8 +81,8 @@ namespace sfg::ui
 
 		render_resources_t& render_resources = render_resources_t::get();
 
-		if (!_texture.is_null())
-			render_resources.enqueue_destroy_texture(_texture);
+		render_resources.enqueue_destroy_texture(_texture);
+
 		_texture = {};
 		_width	 = 0;
 		_height	 = 0;

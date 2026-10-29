@@ -50,7 +50,7 @@ namespace sfg
 		ktx2_util_t& operator=(const ktx2_util_t&) = delete;
 
 		static bool encode_uastc(span_t<const texture_buffer_t> mips, bool is_linear, texture_ktx2_compression_e compression, const char* source_name, ostream_t& stream);
-		static bool decode_uastc(span_t<const u8> data, texture_ktx2_compression_e compression, u64 resource_hash, texture_buffer_t* out_mips, u8 max_mips, ktx2_image_desc_t& out_desc);
+		static bool decode_uastc(span_t<const u8> data, texture_ktx2_compression_e compression, u64 resource_hash, texture_buffer_t* out_mips, ktx2_image_desc_t& out_desc);
 
 	private:
 		static void release(texture_buffer_t* mips, u8 mip_count);

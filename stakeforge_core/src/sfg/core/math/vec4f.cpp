@@ -108,24 +108,16 @@ namespace sfg
 
 	vec4f_t vec4f_t::operator/(f32 scalar) const
 	{
-		if (math::abs(scalar) < MATH_EPS)
-			return vec4f_t::zero;
 		return {x / scalar, y / scalar, z / scalar, w / scalar};
 	}
 
 	vec4f_t& vec4f_t::operator/=(f32 scalar)
 	{
-		if (math::abs(scalar) > MATH_EPS)
-		{
-			x /= scalar;
-			y /= scalar;
-			z /= scalar;
-			w /= scalar;
-		}
-		else
-		{
-			x = y = z = w = MATH_INF_F;
-		}
+		x /= scalar;
+		y /= scalar;
+		z /= scalar;
+		w /= scalar;
+
 		return *this;
 	}
 
