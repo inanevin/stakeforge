@@ -39,8 +39,8 @@ namespace sfg
 	{
 	public:
 		static void		   world_to_stream(const world_t& world, ostream_t& out_stream);
-		static void		   world_to_json(const world_t& world, nlohmann::json& out_json);
-		static void		   world_from_json(world_t& world, const nlohmann::json& in_json);
+		static bool		   world_to_json(const world_t& world, nlohmann::json& out_json);
+		static bool		   world_from_json(world_t& world, const nlohmann::json& in_json);
 		static entity_id_t entity_from_stream(world_t& world, istream_t& in_stream, bool generate_new_guids);
 		static entity_id_t entity_from_json(world_t& world, const nlohmann::json& in_json);
 
@@ -49,7 +49,7 @@ namespace sfg
 		static void		   break_prefab_chain(world_t& world, entity_id_t entity);
 
 		static void entity_to_stream(const world_t& world, entity_id_t entity, ostream_t& out_stream);
-		static void entity_into_world_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json);
-		static void entity_to_prefab_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json);
+		static bool entity_into_world_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json);
+		static bool entity_to_prefab_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json);
 	};
 }

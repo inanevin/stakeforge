@@ -118,8 +118,8 @@ namespace sfg
 		void enter_play(editor_play_state_e state);
 		void change_controls(editor_play_state_e state);
 		void change_pause(bool paused);
-		void capture_snapshot(editor_world_t& editor_world);
-		bool restore_snapshot(editor_world_t& editor_world);
+		bool capture_snapshot(editor_world_t& editor_world);
+		bool restore_snapshot(editor_world_t& editor_world, bool& kept_edits);
 		void tick_simulation(editor_world_t& editor_world, f32 dt_seconds);
 		void refresh_panels();
 

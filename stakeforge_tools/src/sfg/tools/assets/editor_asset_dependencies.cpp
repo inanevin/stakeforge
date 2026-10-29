@@ -26,7 +26,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/reflection/reflection_registry.hpp>
-#include <sfg/core/runtime/resources/animation_graph_def.hpp>
 #include <sfg/core/runtime/resources/animation_library_def.hpp>
 #include <sfg/core/runtime/resources/material_def.hpp>
 #include <sfg/core/runtime/resources/ragdoll_def.hpp>
@@ -150,7 +149,10 @@ namespace sfg
 
 	bool editor_asset_dependencies_t::fetch_dependencies(const editor_asset_t& asset, vector_t<editor_asset_dependency_t>& out_dependencies)
 	{
-		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
+		nlohmann::json embedded_source = {};
+
+		if (!editor_asset_io_t::parse_embedded_source_json(asset, embedded_source))
+			return false;
 
 		switch (asset.asset_type)
 		{
@@ -179,28 +181,6 @@ namespace sfg
 				return false;
 
 			append_dependency(library.skeleton, resource_type_e::skeleton, out_dependencies);
-			break;
-		}
-		case editor_asset_type_e::animation_graph: {
-			if (!embedded_source.is_object())
-				return false;
-
-			animation_graph_def_t animation_graph = {};
-
-			if (!reflection_registry_t::get().type_from_json(type_id_t<animation_graph_def_t>::value, &animation_graph, nullptr, embedded_source))
-				return false;
-
-			append_dependency(animation_graph.target_skeleton, resource_type_e::skeleton, out_dependencies);
-
-			for (const animation_graph_node_def_t& node : animation_graph.nodes)
-			{
-				for (const animation_graph_asm_state_def_t& state : node.asm_node.states)
-				{
-					for (const animation_graph_clip_def_t& clip : state.clips)
-						append_dependency(clip.clip, resource_type_e::animation, out_dependencies);
-				}
-			}
-
 			break;
 		}
 		case editor_asset_type_e::ragdoll: {

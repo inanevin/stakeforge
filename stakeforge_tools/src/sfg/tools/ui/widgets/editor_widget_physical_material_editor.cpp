@@ -90,8 +90,9 @@ namespace sfg
 				continue;
 
 			physical_material_def_t material		= {};
-			const nlohmann::json	embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
-			if (!reflection_registry_t::get().type_from_json(type_id_t<physical_material_def_t>::value, &material, nullptr, embedded_source))
+			nlohmann::json			embedded_source = {};
+
+			if (!editor_asset_io_t::parse_embedded_source_json(*asset, embedded_source) || !reflection_registry_t::get().type_from_json(type_id_t<physical_material_def_t>::value, &material, nullptr, embedded_source))
 				continue;
 
 			_physical_material_ids.push_back(physical_material_id);

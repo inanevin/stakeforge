@@ -38,13 +38,17 @@ namespace sfg
 		template <typename T> nlohmann::json reflected_to_json(const T& value)
 		{
 			nlohmann::json out = nlohmann::json::object();
-			reflection_registry_t::get().type_to_json(type_id_t<T>::value, const_cast<T*>(&value), nullptr, out);
+
+			if (!reflection_registry_t::get().type_to_json(type_id_t<T>::value, const_cast<T*>(&value), nullptr, out))
+				throw nlohmann::json::type_error::create(302, "failed to serialize reflected editor settings", &out);
+
 			return out;
 		}
 
 		template <typename T> void reflected_from_json(const nlohmann::json& json, T& value)
 		{
-			reflection_registry_t::get().type_from_json(type_id_t<T>::value, &value, nullptr, json);
+			if (!json.is_object() || !reflection_registry_t::get().type_from_json(type_id_t<T>::value, &value, nullptr, json))
+				throw nlohmann::json::type_error::create(302, "failed to deserialize reflected editor settings", &json);
 		}
 	}
 
@@ -55,13 +59,24 @@ namespace sfg
 
 	bool editor_settings_t::save()
 	{
-		const nlohmann::json json_data = *this;
-
-		const string_t data		= json_data.dump(4);
 		const string_t settings = editor_directories_t::get_editor_settings();
+		string_t	   data		= {};
+
+		try
+		{
+			const nlohmann::json json_data = *this;
+
+			data = json_data.dump(4);
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to serialize editor settings {0}: {1}", settings, error.what());
+			return false;
+		}
+
 		if (!serializer_t::write_to_file(string_view_t(data.data(), data.size()), settings.c_str()))
 		{
-			SFG_ERR("failed file serialization!");
+			SFG_ERR("failed to write editor settings {0}", settings);
 			return false;
 		}
 
@@ -71,18 +86,42 @@ namespace sfg
 	bool editor_settings_t::ensure_loaded()
 	{
 		const string_t settings = editor_directories_t::get_editor_settings();
+
 		if (!file_system_t::exists(settings.c_str()))
 		{
-			editor_settings_t::get() = {};
-			return editor_settings_t::get().save();
+			editor_settings_t defaults = {};
+
+			if (!defaults.save())
+				return false;
+
+			*this = std::move(defaults);
+
+			return true;
 		}
 
 		const string_t		 json_text = file_system_t::read_file_as_string(settings.c_str());
 		const nlohmann::json json	   = nlohmann::json::parse(json_text, nullptr, false);
-		if (json.is_discarded())
-			return false;
 
-		*this = json;
+		if (json.is_discarded())
+		{
+			SFG_ERR("failed to parse editor settings {0}", settings);
+			return false;
+		}
+
+		editor_settings_t loaded = {};
+
+		try
+		{
+			json.get_to(loaded);
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to deserialize editor settings {0}: {1}", settings, error.what());
+			return false;
+		}
+
+		*this = std::move(loaded);
+
 		return true;
 	}
 

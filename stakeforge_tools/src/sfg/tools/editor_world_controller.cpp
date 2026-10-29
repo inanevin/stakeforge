@@ -420,36 +420,48 @@ namespace sfg
 
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		destroy_main_world_internal();
-
 		const editor_world_init_config_t init_config = editor_world_init_config_t::make_main(editor_surface_controller_t::get().get_main_surface().swapchain_size);
 
 		const editor_world_handle_t handle = create_world(init_config);
 
-		if (asset->embedded_source.empty())
-			install_default_world(handle);
-		else
+		try
 		{
-			editor_world_t* const editor_world	  = _worlds.get(handle);
-			world_t&			  world			  = editor_world->get_world();
-			const nlohmann::json  embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
-			world_cooker_t::world_from_json(world, embedded_source);
-			// world.load_all_used_resources();
-			editor_world->install_camera(editor_world_camera_type_e::fly);
-			editor_world->deserialize_camera(embedded_source.value<nlohmann::json>("editor_camera", nlohmann::json::object()));
+			if (asset->embedded_source.empty())
+				install_default_world(handle);
+			else
+			{
+				editor_world_t* const editor_world	  = _worlds.get(handle);
+				world_t&			  world			  = editor_world->get_world();
+				nlohmann::json		  embedded_source = {};
+
+				if (!editor_asset_io_t::parse_embedded_source_json(*asset, embedded_source) || !world_cooker_t::world_from_json(world, embedded_source))
+				{
+					SFG_ERR("failed to deserialize world asset {0}", asset_guid);
+					destroy_world(handle);
+					return false;
+				}
+
+				// world.load_all_used_resources();
+				editor_world->install_camera(editor_world_camera_type_e::fly);
+				editor_world->deserialize_camera(embedded_source.value<nlohmann::json>("editor_camera", nlohmann::json::object()));
+				editor_world->get_edit_context().read_folders_from_json(embedded_source.value<nlohmann::json>("folders", nlohmann::json::array()));
+			}
 		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to deserialize world asset {0}: {1}", asset_guid, error.what());
+			destroy_world(handle);
+			return false;
+		}
+
+		destroy_main_world_internal();
 
 		const char* asset_name = editor_asset_util_t::find_asset_display_name(asset_guid);
+
 		set_main_world(handle, asset_guid, asset_name != nullptr ? asset_name : "unnamed");
 
-		if (!asset->embedded_source.empty())
-		{
-			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
-			_worlds.get(_main_world)->get_edit_context().read_folders_from_json(embedded_source.value<nlohmann::json>("folders", nlohmann::json::array()));
-
-			if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::entities))
-				static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
-		}
+		if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::entities))
+			static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
 
 		editor_project_t& project		 = editor_project_t::get();
 		project.settings.last_world_guid = asset_guid;
@@ -459,94 +471,103 @@ namespace sfg
 
 	bool editor_world_controller_t::save_main_world()
 	{
-		if (_main_world.is_null())
-			return false;
-
-		nlohmann::json		  world_json   = nlohmann::json::object();
-		editor_world_t* const editor_world = _worlds.get(_main_world);
-
-		if (_play_session.is_playing() || _play_session.is_play_requested())
-			return false;
-
-		world_cooker_t::world_to_json(editor_world->get_world(), world_json);
-
-		editor_world->get_edit_context().write_folders_to_json(world_json["folders"]);
-		editor_world->serialize_camera(world_json["editor_camera"]);
-
-		editor_asset_t		  asset			 = {};
-		string_t			  asset_path	 = {};
-		const editor_asset_t* existing_asset = _main_world_asset_guid != NULL_SID ? editor_asset_manager_t::get().find_asset(_main_world_asset_guid) : nullptr;
-
-		if (existing_asset != nullptr && existing_asset->asset_type == editor_asset_type_e::world)
+		try
 		{
-			asset_path = editor_asset_util_t::find_asset_path(_main_world_asset_guid);
+			if (_main_world.is_null())
+				return false;
 
-			if (!asset_path.empty() && file_system_t::exists(asset_path.c_str()))
-				asset = *existing_asset;
-		}
+			nlohmann::json		  world_json   = nlohmann::json::object();
+			editor_world_t* const editor_world = _worlds.get(_main_world);
 
-		if (asset_path.empty() || !file_system_t::exists(asset_path.c_str()))
-		{
-			asset_path = process::save_file("Save World", "sfg_asset");
+			if (_play_session.is_playing() || _play_session.is_play_requested())
+				return false;
 
-			if (asset_path.empty())
+			if (!world_cooker_t::world_to_json(editor_world->get_world(), world_json))
+				return false;
+
+			editor_world->get_edit_context().write_folders_to_json(world_json["folders"]);
+			editor_world->serialize_camera(world_json["editor_camera"]);
+
+			editor_asset_t		  asset			 = {};
+			string_t			  asset_path	 = {};
+			const editor_asset_t* existing_asset = _main_world_asset_guid != NULL_SID ? editor_asset_manager_t::get().find_asset(_main_world_asset_guid) : nullptr;
+
+			if (existing_asset != nullptr && existing_asset->asset_type == editor_asset_type_e::world)
 			{
-				SFG_ERR("world save cancelled");
+				asset_path = editor_asset_util_t::find_asset_path(_main_world_asset_guid);
+
+				if (!asset_path.empty() && file_system_t::exists(asset_path.c_str()))
+					asset = *existing_asset;
+			}
+
+			if (asset_path.empty() || !file_system_t::exists(asset_path.c_str()))
+			{
+				asset_path = process::save_file("Save World", "sfg_asset");
+
+				if (asset_path.empty())
+				{
+					SFG_ERR("world save cancelled");
+					return false;
+				}
+
+				file_system_t::fix_path(asset_path);
+
+				if (file_system_t::get_file_extension(asset_path) != "sfg_asset")
+					asset_path += ".sfg_asset";
+
+				if (!editor_asset_path_t::is_source_inside_assets(editor_project_t::get()._runtime.assets_path.c_str(), asset_path.c_str()))
+				{
+					SFG_ERR("world save path is outside project assets directory {0}", asset_path.c_str());
+					return false;
+				}
+			}
+
+			const string_t							 parent_path = file_system_t::get_directory_of_file(asset_path.c_str());
+			const string_t							 asset_name	 = file_system_t::remove_extensions_from_path(file_system_t::get_filename_and_extension_from_path(asset_path));
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &world_json,
+				.parent_path	 = parent_path.c_str(),
+				.name			 = asset_name.c_str(),
+				.guid			 = asset.guid != NULL_SID ? asset.guid : _main_world_asset_guid,
+				.asset_type		 = editor_asset_type_e::world,
+				.allow_overwrite = true,
+			};
+
+			if (!editor_asset_writer_t::write_embedded_asset(write_desc, &asset, &asset_path))
+			{
+				SFG_ERR("failed to save world asset {0}", asset_path.c_str());
 				return false;
 			}
 
-			file_system_t::fix_path(asset_path);
+			editor_world->get_world().set_world_name(TO_SID(asset_name));
+			_main_world_name	   = asset_name;
+			_main_world_asset_guid = asset.guid;
+			set_main_world_dirty(false);
 
-			if (file_system_t::get_file_extension(asset_path) != "sfg_asset")
-				asset_path += ".sfg_asset";
+			editor_project_t& project		 = editor_project_t::get();
+			project.settings.last_world_guid = asset.guid;
+			project.save(project._runtime.path.c_str());
 
-			if (!editor_asset_path_t::is_source_inside_assets(editor_project_t::get()._runtime.assets_path.c_str(), asset_path.c_str()))
+			editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
+			const editor_asset_node_handle_t existing_node = asset_manager.find_asset_node_handle(asset.guid);
+
+			if (!existing_node.is_null())
+				asset_manager.reload_asset_node(existing_node);
+			else
 			{
-				SFG_ERR("world save path is outside project assets directory {0}", asset_path.c_str());
-				return false;
+				const editor_asset_node_handle_t parent_node = asset_manager.find_node_by_path(parent_path.c_str());
+
+				if (!parent_node.is_null())
+					asset_manager.add_path_node(parent_node, asset_path.c_str());
 			}
+
+			return true;
 		}
-
-		const string_t							 parent_path = file_system_t::get_directory_of_file(asset_path.c_str());
-		const string_t							 asset_name	 = file_system_t::remove_extensions_from_path(file_system_t::get_filename_and_extension_from_path(asset_path));
-		const editor_asset_write_embedded_desc_t write_desc{
-			.embedded_source = &world_json,
-			.parent_path	 = parent_path.c_str(),
-			.name			 = asset_name.c_str(),
-			.guid			 = asset.guid != NULL_SID ? asset.guid : _main_world_asset_guid,
-			.asset_type		 = editor_asset_type_e::world,
-			.allow_overwrite = true,
-		};
-
-		if (!editor_asset_writer_t::write_embedded_asset(write_desc, &asset, &asset_path))
+		catch (const nlohmann::json::exception& error)
 		{
-			SFG_ERR("failed to save world asset {0}", asset_path.c_str());
+			SFG_ERR("failed to serialize world asset: {0}", error.what());
 			return false;
 		}
-
-		editor_world->get_world().set_world_name(TO_SID(asset_name));
-		_main_world_name	   = asset_name;
-		_main_world_asset_guid = asset.guid;
-		set_main_world_dirty(false);
-
-		editor_project_t& project		 = editor_project_t::get();
-		project.settings.last_world_guid = asset.guid;
-		project.save(project._runtime.path.c_str());
-
-		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
-		const editor_asset_node_handle_t existing_node = asset_manager.find_asset_node_handle(asset.guid);
-
-		if (!existing_node.is_null())
-			asset_manager.reload_asset_node(existing_node);
-		else
-		{
-			const editor_asset_node_handle_t parent_node = asset_manager.find_node_by_path(parent_path.c_str());
-
-			if (!parent_node.is_null())
-				asset_manager.add_path_node(parent_node, asset_path.c_str());
-		}
-
-		return true;
 	}
 
 	void editor_world_controller_t::set_main_world(editor_world_handle_t handle, sid_t asset_guid, const char* name)

@@ -297,9 +297,9 @@ namespace sfg
 
 		if (asset != nullptr && asset->asset_type == editor_asset_type_e::ragdoll && !asset->embedded_source.empty())
 		{
-			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
+			nlohmann::json embedded_source = {};
 
-			if (!reflection_registry_t::get().type_from_json(type_id_t<ragdoll_def_t>::value, &_ragdoll, nullptr, embedded_source))
+			if (!editor_asset_io_t::parse_embedded_source_json(*asset, embedded_source) || !reflection_registry_t::get().type_from_json(type_id_t<ragdoll_def_t>::value, &_ragdoll, nullptr, embedded_source))
 				_ragdoll = {};
 		}
 
@@ -738,9 +738,9 @@ namespace sfg
 		if (skeleton_asset == nullptr || skeleton_asset->asset_type != editor_asset_type_e::skeleton || skeleton_asset->embedded_source.empty())
 			return;
 
-		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*skeleton_asset);
+		nlohmann::json embedded_source = {};
 
-		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &_skeleton, nullptr, embedded_source))
+		if (!editor_asset_io_t::parse_embedded_source_json(*skeleton_asset, embedded_source) || !reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &_skeleton, nullptr, embedded_source))
 			_skeleton = {};
 	}
 

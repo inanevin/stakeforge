@@ -249,7 +249,12 @@ namespace sfg
 				const editor_entity_info_data_t& previous = previous_infos.data[i];
 				component_transform_t			 transform{.pos = previous.pos, .rot = previous.rot, .scale = previous.scale};
 
-				if (session.get_edits().apply_pending(world, entities.data[i], type_id_t<component_transform_t>::value, &transform))
+				bool applied = false;
+
+				if (!session.get_edits().apply_pending(world, entities.data[i], type_id_t<component_transform_t>::value, &transform, applied))
+					return false;
+
+				if (applied)
 				{
 					authored_infos[i].pos	= transform.pos;
 					authored_infos[i].rot	= transform.rot;

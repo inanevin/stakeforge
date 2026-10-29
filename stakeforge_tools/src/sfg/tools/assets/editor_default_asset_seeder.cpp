@@ -91,22 +91,32 @@ namespace sfg
 				if (asset.embedded_source.empty())
 					return false;
 
-				if (expected_embedded_source != nullptr && editor_asset_io_t::get_embedded_source_json(asset) != *expected_embedded_source)
+				nlohmann::json embedded_source = {};
+
+				if (!editor_asset_io_t::parse_embedded_source_json(asset, embedded_source))
+					return false;
+
+				if (expected_embedded_source != nullptr && embedded_source != *expected_embedded_source)
 					return false;
 			}
 			else if (asset.source_type == editor_asset_source_type_e::file || asset.source_type == editor_asset_source_type_e::file_blob)
 			{
 				if (asset.source_relative.empty())
 					return false;
+
 				if (asset_type == editor_asset_type_e::shader)
 				{
 					if (asset.embedded_source.empty())
 						return false;
-					const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
-					if (!embedded_source.is_object() || !embedded_source.contains("textures") || !embedded_source.contains("samplers") || !embedded_source.contains("parameters"))
+
+					nlohmann::json embedded_source = {};
+
+					if (!editor_asset_io_t::parse_embedded_source_json(asset, embedded_source) || !embedded_source.is_object() || !embedded_source.contains("textures") || !embedded_source.contains("samplers") || !embedded_source.contains("parameters"))
 						return false;
 				}
+
 				const string_t source_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
+
 				if (!file_system_t::exists(source_path.c_str()))
 					return false;
 			}

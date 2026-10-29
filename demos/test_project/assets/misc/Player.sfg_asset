@@ -46,21 +46,6 @@
                 },
                 "entity": 15745983773091720959,
                 "type": 17882609131993180780
-            },
-            {
-                "data": {
-                    "animation_graph": 2155066463745136419,
-                    "cull_angle_limit": 100.0,
-                    "is_culled": false,
-                    "max_throttle_tick_rate": 30,
-                    "speed": 1.0,
-                    "throttle_begin_distance": 20.0,
-                    "throttle_full_distance": 100.0,
-                    "throttling_enabled": false,
-                    "tick_rate": 1
-                },
-                "entity": 15745983773091720959,
-                "type": 3202371599716449419
             }
         ],
         "local_entities": [

@@ -167,24 +167,6 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_system_animation_player_t);
 
-	struct component_system_animation_graph_t
-	{
-		static inline constexpr const char* DEBUG_NAME = "component_system_animation_graph";
-
-		resource_handle_t animation_graph		 = NULL_RESOURCE_HANDLE;
-		resource_handle_t skeleton				 = NULL_RESOURCE_HANDLE;
-		chunk_handle32_t  initial_pose			 = {};
-		chunk_handle32_t  parameters			 = {};
-		chunk_handle32_t  nodes					 = {};
-		f32				  accumulated_delta_time = 0.0f;
-		u32				  parameter_count		 = 0;
-		u32				  node_count			 = 0;
-		u32				  tick_frame_count		 = 0;
-		bool			  force_evaluate		 = false;
-	};
-
-	SFG_DEFINE_TYPE_ID(component_system_animation_graph_t);
-
 	struct component_system_animation_library_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_animation_library";

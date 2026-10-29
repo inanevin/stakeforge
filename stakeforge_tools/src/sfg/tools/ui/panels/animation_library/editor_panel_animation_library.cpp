@@ -395,9 +395,9 @@ namespace sfg
 		}
 
 		animation_library_def_t definition = {};
-		const nlohmann::json	source	   = editor_asset_io_t::get_embedded_source_json(*asset);
+		nlohmann::json			source	   = {};
 
-		if (!reflection_registry_t::get().type_from_json(type_id_t<animation_library_def_t>::value, &definition, nullptr, source))
+		if (!editor_asset_io_t::parse_embedded_source_json(*asset, source) || !reflection_registry_t::get().type_from_json(type_id_t<animation_library_def_t>::value, &definition, nullptr, source))
 		{
 			SFG_ERR("failed to deserialize animation library asset: {0}", library_guid);
 			return;
@@ -515,10 +515,10 @@ namespace sfg
 		}
 
 		const editor_asset_t& skeleton_asset  = *editor_asset_manager_t::get().find_asset(_library.skeleton);
-		const nlohmann::json  skeleton_source = editor_asset_io_t::get_embedded_source_json(skeleton_asset);
+		nlohmann::json		  skeleton_source = {};
 		skeleton_def_t		  skeleton		  = {};
 
-		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, skeleton_source))
+		if (!editor_asset_io_t::parse_embedded_source_json(skeleton_asset, skeleton_source) || !reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, skeleton_source))
 		{
 			SFG_ERR("failed to read preview skeleton: {0}", _library.skeleton);
 			clear_preview_scene();
@@ -674,10 +674,10 @@ namespace sfg
 
 		if (asset != nullptr && asset->asset_type == editor_asset_type_e::skeleton)
 		{
-			skeleton_def_t		 skeleton = {};
-			const nlohmann::json source	  = editor_asset_io_t::get_embedded_source_json(*asset);
+			skeleton_def_t skeleton = {};
+			nlohmann::json source	= {};
 
-			if (reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, source))
+			if (editor_asset_io_t::parse_embedded_source_json(*asset, source) && reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, source))
 			{
 				_has_skeleton = true;
 				_mask_names.reserve(skeleton.masks.size());

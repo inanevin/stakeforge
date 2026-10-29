@@ -21,7 +21,6 @@ in GAME-LINKING-EXCEPTION.md.
 */
 #include "tools/ui/panels/editor_panel_factory.hpp"
 #include "tools/ui/panels/editor_panel_animation.hpp"
-#include "tools/ui/panels/animation_graph/editor_panel_animation_graph.hpp"
 #include "tools/ui/panels/assets/editor_panel_assets.hpp"
 #include "tools/ui/panels/editor_panel_entities.hpp"
 #include "tools/ui/panels/editor_panel_inspector.hpp"
@@ -51,7 +50,6 @@ namespace sfg
 			{.type = editor_panel_type_e::mesh_viewer, .allows_multiple_instances = true},
 			{.type = editor_panel_type_e::skeleton_viewer, .allows_multiple_instances = true},
 			{.type = editor_panel_type_e::ragdoll_viewer, .allows_multiple_instances = true},
-			{.type = editor_panel_type_e::animation_graph},
 			{
 				.type					   = editor_panel_type_e::animation_library,
 				.allows_multiple_instances = true,
@@ -89,8 +87,6 @@ namespace sfg
 			return new editor_panel_skeleton_viewer_t();
 		case editor_panel_type_e::ragdoll_viewer:
 			return new editor_panel_ragdoll_viewer_t();
-		case editor_panel_type_e::animation_graph:
-			return new editor_panel_animation_graph_t();
 		default:
 			return nullptr;
 		}

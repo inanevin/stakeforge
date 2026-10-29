@@ -35,7 +35,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/io/file_system.hpp>
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/reflection/reflection_registry.hpp>
-#include <sfg/core/runtime/resources/animation_graph_def.hpp>
 #include <sfg/core/runtime/resources/animation_library_def.hpp>
 #include <sfg/core/runtime/resources/curve_def.hpp>
 #include <sfg/core/runtime/resources/ragdoll_def.hpp>
@@ -220,49 +219,6 @@ namespace sfg
 			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 
-		bool create_animation_graph_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
-		{
-			animation_graph_def_t definition = {};
-			definition.name					 = desc.name;
-			definition.nodes.push_back({});
-			definition.entry_node_id  = 1;
-			definition.output_node_id = 1;
-			definition.next_id		  = 3;
-
-			animation_graph_node_def_t& node = definition.nodes.back();
-			node.type						 = animation_graph_node_type_e::asm_node;
-			node.id							 = 1;
-			node.asm_node.states.push_back({});
-			node.asm_node.first_state_id = 2;
-			node.name					 = "ASM Node";
-
-			animation_graph_asm_state_def_t& state = node.asm_node.states.back();
-			state.id							   = 2;
-			state.name							   = "State";
-
-			nlohmann::json embedded_source = nlohmann::json::object();
-
-			if (!reflection_registry_t::get().type_to_json(type_id_t<animation_graph_def_t>::value, &definition, nullptr, embedded_source))
-			{
-				SFG_ERR("failed to serialize initial animation graph definition");
-				return false;
-			}
-
-			embedded_source["schema"] = "sfg.schema.animation_graph";
-
-			const editor_asset_write_embedded_desc_t write_desc{
-				.embedded_source = &embedded_source,
-				.parent_path	 = parent_path,
-				.name			 = desc.name,
-				.guid			 = desc.guid,
-				.asset_type		 = editor_asset_type_e::animation_graph,
-				.sub_type		 = desc.sub_type,
-				.allow_overwrite = desc.allow_overwrite,
-			};
-
-			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
-		}
-
 		bool create_animation_library_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
 			animation_library_def_t definition		= {};
@@ -368,7 +324,8 @@ namespace sfg
 			if (result)
 			{
 				shader_data_definition_t definition = {};
-				result								= editor_asset_cooker_t::cook_shader(asset, desc.name, &definition);
+
+				result = editor_asset_cooker_t::cook_shader(asset, desc.name, &definition);
 
 				if (result)
 				{
@@ -404,13 +361,6 @@ namespace sfg
 
 			if (result)
 				result = editor_asset_cooker_t::cook_curve(asset, desc.name);
-
-			break;
-		case editor_asset_type_e::animation_graph:
-			result = create_animation_graph_asset(desc, parent_path, &asset, &asset_path);
-
-			if (result)
-				result = editor_asset_cooker_t::cook_animation_graph(asset, desc.name);
 
 			break;
 		case editor_asset_type_e::animation_library:

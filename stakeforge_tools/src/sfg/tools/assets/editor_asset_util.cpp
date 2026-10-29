@@ -250,9 +250,9 @@ namespace sfg
 
 		if (asset.source_type == editor_asset_source_type_e::embedded)
 		{
-			const nlohmann::json source = editor_asset_io_t::get_embedded_source_json(asset);
+			nlohmann::json source = {};
 
-			if (!reflection_registry_t::get().type_from_json(type_id_t<animation_def_t>::value, &out, nullptr, source))
+			if (!editor_asset_io_t::parse_embedded_source_json(asset, source) || !reflection_registry_t::get().type_from_json(type_id_t<animation_def_t>::value, &out, nullptr, source))
 			{
 				SFG_ERR("failed to deserialize animation definition for asset {0}", asset.guid);
 				return false;
@@ -308,9 +308,9 @@ namespace sfg
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::skeleton);
 
-		const nlohmann::json source = editor_asset_io_t::get_embedded_source_json(asset);
+		nlohmann::json source = {};
 
-		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &out, nullptr, source))
+		if (!editor_asset_io_t::parse_embedded_source_json(asset, source) || !reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &out, nullptr, source))
 		{
 			SFG_ERR("failed to deserialize skeleton definition for asset {0}", asset.guid);
 			return false;

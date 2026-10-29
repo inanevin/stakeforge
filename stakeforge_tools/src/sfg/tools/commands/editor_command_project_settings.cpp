@@ -35,12 +35,25 @@ namespace sfg
 	{
 		template <typename T> chunk_handle32_t copy_reflected_to_aux(editor_command_system_t& system, const T& value)
 		{
-			nlohmann::json json = nlohmann::json::object();
-			reflection_registry_t::get().type_to_json(type_id_t<T>::value, const_cast<T*>(&value), nullptr, json);
-			const string_t		   text	  = json.dump();
-			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(text.size(), alignof(char));
-			SFG_MEMCPY(system.get_aux_data().get<char>(handle), text.data(), text.size());
-			return handle;
+			try
+			{
+				nlohmann::json json = nlohmann::json::object();
+
+				if (!reflection_registry_t::get().type_to_json(type_id_t<T>::value, const_cast<T*>(&value), nullptr, json))
+					return {};
+
+				const string_t		   text	  = json.dump();
+				const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(text.size(), alignof(char));
+
+				SFG_MEMCPY(system.get_aux_data().get<char>(handle), text.data(), text.size());
+
+				return handle;
+			}
+			catch (const nlohmann::json::exception& error)
+			{
+				SFG_ERR("failed to serialize project settings snapshot: {0}", error.what());
+				return {};
+			}
 		}
 
 		template <typename T> bool read_reflected_from_aux(editor_command_system_t& system, chunk_handle32_t handle, T& value)
@@ -145,6 +158,20 @@ namespace sfg
 			.post_last_world_guid	   = post.project.last_world_guid,
 		};
 
+		if (!payload.previous_project_settings || !payload.post_project_settings || !payload.previous_editor_settings || !payload.post_editor_settings)
+		{
+			const chunk_handle32_t snapshots[] = {payload.previous_project_settings, payload.post_project_settings, payload.previous_editor_settings, payload.post_editor_settings};
+
+			for (chunk_handle32_t snapshot : snapshots)
+			{
+				if (snapshot)
+					system.get_aux_data().free(snapshot);
+			}
+
+			SFG_ERR("failed to capture project settings command snapshots");
+			return false;
+		}
+
 		const editor_command_issue_desc_t desc{
 			.undo		= project_settings_undo,
 			.redo		= project_settings_redo,
@@ -155,6 +182,7 @@ namespace sfg
 		};
 
 		const editor_command_handle_t handle = system.issue_command(desc, payload);
+
 		if (handle.is_null())
 		{
 			system.get_aux_data().free(payload.previous_project_settings);

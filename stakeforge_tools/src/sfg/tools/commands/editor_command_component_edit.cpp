@@ -227,7 +227,12 @@ namespace sfg
 				const bool read = registry.type_from_stream(component_type, component, nullptr, previous);
 				SFG_ASSERT(read);
 
-				if (session.get_edits().apply_pending(world, entities.data[i], component_type, component))
+				bool applied = false;
+
+				if (!session.get_edits().apply_pending(world, entities.data[i], component_type, component, applied))
+					return false;
+
+				if (applied)
 				{
 					const bool written = registry.type_to_stream(component_type, component, nullptr, authored_streams[i]);
 					SFG_ASSERT(written);

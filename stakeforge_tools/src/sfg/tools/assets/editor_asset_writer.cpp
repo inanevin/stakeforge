@@ -266,8 +266,7 @@ namespace sfg
 			return false;
 		}
 
-		out_embedded_source = editor_asset_io_t::get_embedded_source_json(asset);
-		return true;
+		return editor_asset_io_t::parse_embedded_source_json(asset, out_embedded_source);
 	}
 
 	bool editor_asset_writer_t::read_cook_options(const char* asset_relative_path, nlohmann::json& out_cook_options)
@@ -285,7 +284,6 @@ namespace sfg
 			return false;
 		}
 
-		out_cook_options = editor_asset_io_t::get_cook_options_json(asset);
-		return true;
+		return editor_asset_io_t::parse_cook_options_json(asset, out_cook_options);
 	}
 }

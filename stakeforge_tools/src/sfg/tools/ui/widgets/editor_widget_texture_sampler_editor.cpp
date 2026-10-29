@@ -89,9 +89,10 @@ namespace sfg
 			if (asset == nullptr || asset->asset_type != editor_asset_type_e::texture_sampler)
 				continue;
 
-			sampler_desc_t		 sampler		 = {};
-			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
-			if (!reflection_registry_t::get().type_from_json(type_id_t<sampler_desc_t>::value, &sampler, nullptr, embedded_source))
+			sampler_desc_t sampler		   = {};
+			nlohmann::json embedded_source = {};
+
+			if (!editor_asset_io_t::parse_embedded_source_json(*asset, embedded_source) || !reflection_registry_t::get().type_from_json(type_id_t<sampler_desc_t>::value, &sampler, nullptr, embedded_source))
 				continue;
 
 			_sampler_ids.push_back(sampler_id);

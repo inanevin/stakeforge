@@ -192,8 +192,9 @@ namespace sfg
 			}
 			case editor_asset_type_e::animation_library: {
 				animation_library_def_t library = {};
+				nlohmann::json			source	= {};
 
-				if (!reflection_registry_t::get().type_from_json(type_id_t<animation_library_def_t>::value, &library, nullptr, editor_asset_io_t::get_embedded_source_json(asset)))
+				if (!editor_asset_io_t::parse_embedded_source_json(asset, source) || !reflection_registry_t::get().type_from_json(type_id_t<animation_library_def_t>::value, &library, nullptr, source))
 				{
 					SFG_ERR("failed to read animation library {0} for spawning", asset.guid);
 					return false;
@@ -203,9 +204,10 @@ namespace sfg
 				break;
 			}
 			case editor_asset_type_e::ragdoll: {
-				ragdoll_def_t ragdoll = {};
+				ragdoll_def_t  ragdoll = {};
+				nlohmann::json source  = {};
 
-				if (!reflection_registry_t::get().type_from_json(type_id_t<ragdoll_def_t>::value, &ragdoll, nullptr, editor_asset_io_t::get_embedded_source_json(asset)))
+				if (!editor_asset_io_t::parse_embedded_source_json(asset, source) || !reflection_registry_t::get().type_from_json(type_id_t<ragdoll_def_t>::value, &ragdoll, nullptr, source))
 				{
 					SFG_ERR("failed to read ragdoll {0} for spawning", asset.guid);
 					return false;

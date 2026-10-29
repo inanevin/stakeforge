@@ -290,10 +290,10 @@ namespace sfg
 				break;
 			}
 
-			skeleton_def_t		 skeleton = {};
-			const nlohmann::json source	  = editor_asset_io_t::get_embedded_source_json(*asset);
+			skeleton_def_t skeleton = {};
+			nlohmann::json source	= {};
 
-			if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, source))
+			if (!editor_asset_io_t::parse_embedded_source_json(*asset, source) || !reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, source))
 			{
 				SFG_ERR("failed to read skeleton masks for inspector");
 				panel._mask_dropdown_names.resize(0);

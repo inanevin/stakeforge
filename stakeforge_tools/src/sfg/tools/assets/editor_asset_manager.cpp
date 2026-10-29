@@ -125,7 +125,6 @@ namespace sfg
 		register_descriptor({.display_name = "Texture Sampler", .color = EDITOR_ASSET_COLOR(180.0f, 0.0f, 119.0f), .asset_type = editor_asset_type_e::texture_sampler});
 		register_descriptor({.display_name = "Physical Material", .color = EDITOR_ASSET_COLOR(214.0f, 65.0f, 57.0f), .asset_type = editor_asset_type_e::physical_material});
 		register_descriptor({.display_name = "Prefab", .color = EDITOR_ASSET_COLOR(107.0f, 210.0f, 132.0f), .asset_type = editor_asset_type_e::prefab});
-		register_descriptor({.display_name = "Animation Graph", .color = EDITOR_ASSET_COLOR(245.0f, 118.0f, 182.0f), .asset_type = editor_asset_type_e::animation_graph});
 		register_descriptor({.display_name = "Animation Library", .color = EDITOR_ASSET_COLOR(245.0f, 118.0f, 182.0f), .asset_type = editor_asset_type_e::animation_library});
 		register_descriptor({.extensions = {"hdr"}, .display_name = "Cubemap", .color = EDITOR_ASSET_COLOR(87.0f, 175.0f, 142.0f), .asset_type = editor_asset_type_e::cubemap});
 		register_descriptor({.display_name = "Physics Collision Mesh", .color = EDITOR_ASSET_COLOR(214.0f, 96.0f, 57.0f), .asset_type = editor_asset_type_e::physics_collision_mesh});
@@ -968,11 +967,16 @@ namespace sfg
 		if (shader_node.is_null())
 			return false;
 
-		const nlohmann::json	 definition_json = editor_asset_io_t::get_embedded_source_json(cooked_shader);
-		shader_data_definition_t definition		 = {};
+		nlohmann::json definition_json			= {};
+		nlohmann::json previous_definition_json = {};
+
+		if (!editor_asset_io_t::parse_embedded_source_json(cooked_shader, definition_json) || !editor_asset_io_t::parse_embedded_source_json(*shader_asset, previous_definition_json))
+			return false;
+
+		shader_data_definition_t definition = {};
 		definition_json.get_to(definition);
 
-		if (definition_json == editor_asset_io_t::get_embedded_source_json(*shader_asset))
+		if (definition_json == previous_definition_json)
 			return false;
 
 		editor_asset_t updated_shader = *shader_asset;
@@ -1001,9 +1005,9 @@ namespace sfg
 			if (material_asset.asset_type != editor_asset_type_e::material)
 				continue;
 
-			const nlohmann::json embedded = editor_asset_io_t::get_embedded_source_json(material_asset);
+			nlohmann::json embedded = {};
 
-			if (!embedded.is_object())
+			if (!editor_asset_io_t::parse_embedded_source_json(material_asset, embedded) || !embedded.is_object())
 				continue;
 
 			material_def_t material = {};

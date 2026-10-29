@@ -289,20 +289,20 @@ namespace sfg
 			return {};
 		}
 
-		const surface_handle_t handle  = _surfaces.add();
-		editor_surface_t&	   surface = _surfaces.get(handle);
-		surface.type				   = type;
-		surface.runtime				   = make_unique<window_runtime_t>();
+		unique_t<window_runtime_t> runtime		= make_unique<window_runtime_t>();
+		const window_style_e	   window_style = type == editor_surface_type_e::payload ? window_style_e::alpha : window_style_e::borderless;
 
-		const window_style_e window_style = type == editor_surface_type_e::payload ? window_style_e::alpha : window_style_e::borderless;
-
-		if (!process::create_window("Stakeforge Editor", pos, size, window_style, 0.75f, type == editor_surface_type_e::payload, *surface.runtime))
+		if (!process::create_window("Stakeforge Editor", pos, size, window_style, 0.75f, type == editor_surface_type_e::payload, *runtime))
 		{
 			SFG_ERR("failed creating editor surface window!");
-			_surfaces.remove(handle);
 			return {};
 		}
 
+		const surface_handle_t handle  = _surfaces.add();
+		editor_surface_t&	   surface = _surfaces.get(handle);
+
+		surface.type	= type;
+		surface.runtime = std::move(runtime);
 		surface.runtime->set_flag(window_runtime_flags_e::high_frequency_input);
 
 		surface.ui = make_unique<ui::ui_context>();

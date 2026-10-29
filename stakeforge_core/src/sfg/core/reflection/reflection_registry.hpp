@@ -265,9 +265,9 @@ namespace sfg
 		void uninit();
 
 		void type_field_to_stream(sid_t type_id, sid_t field_id, void* obj, void* user_data, ostream_t& out_stream);
-		void type_field_to_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, nlohmann::json& out_json);
+		bool type_field_to_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, nlohmann::json& out_json);
 		void type_field_from_stream(sid_t type_id, sid_t field_id, void* obj, void* user_data, istream_t& in_stream);
-		void type_field_from_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, const nlohmann::json& in_json);
+		bool type_field_from_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, const nlohmann::json& in_json);
 		bool type_to_stream(sid_t type_id, void* obj, void* user_data, ostream_t& out_stream);
 		bool type_to_json(sid_t type_id, void* obj, void* user_data, nlohmann::json& out_json);
 		bool type_from_stream(sid_t type_id, void* obj, void* user_data, istream_t& in_stream);

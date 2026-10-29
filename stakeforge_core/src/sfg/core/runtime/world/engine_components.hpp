@@ -258,23 +258,6 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_animation_player_t);
 
-	struct component_animation_graph_t
-	{
-		static inline constexpr const char* DEBUG_NAME = "component_animation_graph";
-
-		resource_handle_t animation_graph		  = NULL_RESOURCE_HANDLE;
-		f32				  speed					  = 1.0f;
-		f32				  throttle_begin_distance = 20.0f;
-		f32				  throttle_full_distance  = 100.0f;
-		f32				  cull_angle_limit		  = 100.0f;
-		u32				  tick_rate				  = 1;
-		u32				  max_throttle_tick_rate  = 30;
-		bool			  throttling_enabled	  = false;
-		bool			  is_culled				  = false;
-	};
-
-	SFG_DEFINE_TYPE_ID(component_animation_graph_t);
-
 	struct component_animation_library_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_animation_library";
@@ -877,7 +860,6 @@ namespace sfg
 		resource_handle_t		 texture_sampler_handle_value	= NULL_RESOURCE_HANDLE;
 		resource_handle_t		 physical_material_handle_value = NULL_RESOURCE_HANDLE;
 		resource_handle_t		 prefab_handle_value			= NULL_RESOURCE_HANDLE;
-		resource_handle_t		 animation_graph_handle_value	= NULL_RESOURCE_HANDLE;
 		resource_handle_t		 cubemap_handle_value			= NULL_RESOURCE_HANDLE;
 		entity_guid_t			 entity_guid_value				= NULL_ENTITY_GUID;
 		quat_t					 quat_value						= {};

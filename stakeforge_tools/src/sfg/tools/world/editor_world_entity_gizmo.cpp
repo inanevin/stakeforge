@@ -124,7 +124,11 @@ namespace sfg
 		editor_play_edits_t&			edits = editor_world_controller_t::get().get_play_session().get_edits();
 		const span_t<const entity_id_t> entities{.data = _entities.data(), .size = _entities.size()};
 
-		edits.capture_before(_context->get_world(), entities, type_id_t<component_transform_t>::value);
+		if (!edits.capture_before(_context->get_world(), entities, type_id_t<component_transform_t>::value))
+		{
+			SFG_ERR("failed to capture play edit");
+			return;
+		}
 
 		for (size_t i = 0; i < _entities.size(); ++i)
 		{
@@ -139,7 +143,11 @@ namespace sfg
 			world.mark_entity_teleported(_entities[i]);
 		}
 
-		edits.capture_after(_context->get_world(), entities, type_id_t<component_transform_t>::value);
+		if (!edits.capture_after(_context->get_world(), entities, type_id_t<component_transform_t>::value))
+		{
+			SFG_ERR("failed to capture play edit");
+			return;
+		}
 		world.update_world_transforms();
 	}
 

@@ -39,11 +39,11 @@ namespace sfg
 		editor_asset_io_t(const editor_asset_io_t&)			   = delete;
 		editor_asset_io_t& operator=(const editor_asset_io_t&) = delete;
 
-		static bool			  read_asset(const char* path, editor_asset_t& out_asset);
-		static bool			  write_asset(const char* path, const editor_asset_t& asset);
-		static nlohmann::json get_embedded_source_json(const editor_asset_t& asset);
-		static nlohmann::json get_cook_options_json(const editor_asset_t& asset);
-		static void			  set_embedded_source_json(editor_asset_t& asset, const nlohmann::json& source);
-		static void			  set_cook_options_json(editor_asset_t& asset, const nlohmann::json& options);
+		static bool				  read_asset(const char* path, editor_asset_t& out_asset);
+		static bool				  write_asset(const char* path, const editor_asset_t& asset);
+		[[nodiscard]] static bool parse_embedded_source_json(const editor_asset_t& asset, nlohmann::json& out);
+		[[nodiscard]] static bool parse_cook_options_json(const editor_asset_t& asset, nlohmann::json& out);
+		static void				  set_embedded_source_json(editor_asset_t& asset, const nlohmann::json& source);
+		static void				  set_cook_options_json(editor_asset_t& asset, const nlohmann::json& options);
 	};
 }

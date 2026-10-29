@@ -57,10 +57,10 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		bool apply(world_t& world);
-		void capture_before(editor_world_handle_t world, span_t<const entity_id_t> entities, sid_t component_type);
-		void capture_after(editor_world_handle_t world, span_t<const entity_id_t> entities, sid_t component_type);
-		bool apply_pending(editor_world_handle_t world, entity_id_t entity, sid_t component_type, void* component) const;
+		bool apply(world_t& world, bool& changed);
+		bool capture_before(editor_world_handle_t world, span_t<const entity_id_t> entities, sid_t component_type);
+		bool capture_after(editor_world_handle_t world, span_t<const entity_id_t> entities, sid_t component_type);
+		bool apply_pending(editor_world_handle_t world, entity_id_t entity, sid_t component_type, void* component, bool& applied) const;
 		void clear_pending(editor_world_handle_t world, sid_t component_type);
 
 	private:
@@ -91,9 +91,9 @@ namespace sfg
 			sid_t		  component_type = 0;
 		};
 
-		void		record_component_command(editor_command_system_t& system, const editor_command_t& command);
-		void		record_entity_info_command(editor_command_system_t& system, const editor_command_t& command);
-		void		record_fields(const editor_command_t& command, entity_guid_t entity, sid_t component_type, const nlohmann::json& before, const nlohmann::json& after);
+		bool		record_component_command(editor_command_system_t& system, const editor_command_t& command);
+		bool		record_entity_info_command(editor_command_system_t& system, const editor_command_t& command);
+		bool		record_fields(const editor_command_t& command, entity_guid_t entity, sid_t component_type, const nlohmann::json& before, const nlohmann::json& after);
 		static void on_command(editor_command_system_t& system, const editor_command_t& command, void* user_data);
 
 	private:
@@ -101,5 +101,6 @@ namespace sfg
 		vector_t<pending_edit_t>						  _pending	  = {};
 		pool_handle_t<u32, editor_command_listener_tag_t> _listener	  = {};
 		editor_world_handle_t							  _world	  = {};
+		bool											  _failed	  = false;
 	};
 }

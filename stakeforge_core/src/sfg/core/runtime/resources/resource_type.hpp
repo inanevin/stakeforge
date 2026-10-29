@@ -38,7 +38,6 @@ namespace sfg
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_TEXTURE_SAMPLER		   "reflection_resource_subtype_texture_sampler"_hs
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICAL_MATERIAL	   "reflection_resource_subtype_physical_material"_hs
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PREFAB				   "reflection_resource_subtype_prefab"_hs
-#define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_GRAPH		   "reflection_resource_subtype_animation_graph"_hs
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_CUBEMAP				   "reflection_resource_subtype_cubemap"_hs
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PHYSICS_COLLISION_MESH "reflection_resource_subtype_physics_collision_mesh"_hs
 #define SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_SPRITE				   "reflection_resource_subtype_sprite"_hs
@@ -61,7 +60,6 @@ namespace sfg
 		texture_sampler,
 		physical_material,
 		prefab,
-		animation_graph,
 		cubemap,
 		physics_collision_mesh,
 		sprite,
@@ -107,9 +105,6 @@ namespace sfg
 
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_PREFAB)
 			return resource_type_e::prefab;
-
-		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_ANIMATION_GRAPH)
-			return resource_type_e::animation_graph;
 
 		if (sub_type_id == SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_CUBEMAP)
 			return resource_type_e::cubemap;

@@ -214,18 +214,6 @@
             }
         },
             {
-            "name": "thumb_animation_graph",
-            "path": "editor/resource_pack/textures/thumbnails/animation_graph.png",
-            "type": 8,
-            "config": {
-                "schema": "sfg.schema.texture",
-                "payload_type": 2,
-                "generate_mipmaps": false,
-                "is_linear": false,
-                "use_streaming": false
-            }
-        },
-            {
             "name": "animation_clip",
             "path": "editor/resource_pack/textures/thumbnails/animation_clip.png",
             "type": 8,

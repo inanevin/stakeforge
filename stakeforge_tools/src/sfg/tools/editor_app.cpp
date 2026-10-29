@@ -98,7 +98,7 @@ namespace sfg
 
 		runtime.get_resource_file_system().set_mode_directory("", editor_directories_t::get_editor_resource_cache().c_str());
 
-		const resource_preload_t::init_params_t engine_preload_params{
+		const editor_resource_preloader_t::init_params_t engine_preload_params{
 			.manifest_path = editor_directories_t::get_engine_manifest(),
 			.assets_dir	   = editor_directories_t::get_editor_assets(),
 			.cache_dir	   = editor_directories_t::get_editor_resource_cache(),
@@ -113,7 +113,7 @@ namespace sfg
 			return false;
 		}
 
-		const resource_preload_t::init_params_t editor_preload_params{
+		const editor_resource_preloader_t::init_params_t editor_preload_params{
 			.manifest_path = editor_directories_t::get_editor_manifest(),
 			.assets_dir	   = editor_directories_t::get_editor_assets(),
 			.cache_dir	   = editor_directories_t::get_editor_resource_cache(),
@@ -493,9 +493,6 @@ namespace sfg
 			}
 
 			process::pump_os_messages();
-
-			_engine_resource_preload.tick();
-			_editor_resource_preload.tick();
 
 			resource_manager_t::get().flush();
 			_work_controller.tick();

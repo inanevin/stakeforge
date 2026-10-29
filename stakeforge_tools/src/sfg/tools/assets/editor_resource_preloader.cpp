@@ -1,38 +1,54 @@
-// Copyright (c) 2025 Inan Evin
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
 
-#include "core/runtime/resources/resource_preload.hpp"
-#include "core/runtime/resources/animation_cook.hpp"
-#include "core/runtime/resources/animation_def.hpp"
-#include "core/runtime/resources/animation_graph_cook.hpp"
-#include "core/runtime/resources/audio_cook.hpp"
-#include "core/runtime/resources/common_resources.hpp"
-#include "core/runtime/resources/cubemap_cook.hpp"
-#include "core/runtime/resources/curve_cook.hpp"
-#include "core/runtime/resources/curve_def.hpp"
-#include "core/runtime/resources/font_cook.hpp"
-#include "core/runtime/resources/material_cook.hpp"
-#include "core/runtime/resources/material_def.hpp"
-#include "core/runtime/resources/physical_material_cook.hpp"
-#include "core/runtime/resources/ragdoll_cook.hpp"
-#include "core/runtime/resources/ragdoll_def.hpp"
-#include "core/runtime/resources/prefab.hpp"
-#include "core/runtime/resources/resource_manager.hpp"
-#include "core/runtime/resources/resource_manifest.hpp"
-#include "core/runtime/resources/shader_cook.hpp"
-#include "core/runtime/resources/texture_cook.hpp"
-#include "core/runtime/resources/texture_sampler_cook.hpp"
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
 
-#include "core/common/hashing.hpp"
-#include "core/data/istream.hpp"
-#include "core/data/ostream.hpp"
-#include "core/gfx/common/descriptions.hpp"
-#include "core/io/assert.hpp"
-#include "core/io/file_system.hpp"
-#include "core/io/log.hpp"
-#include "core/reflection/reflection_registry.hpp"
-#include "core/serialization/serialization.hpp"
-#include "core/vendor/nhlohmann/json.hpp"
-#include <utility>
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+
+*/
+
+#include "tools/assets/editor_resource_preloader.hpp"
+#include <sfg/core/runtime/resources/animation_cook.hpp>
+#include <sfg/core/runtime/resources/animation_def.hpp>
+#include <sfg/core/runtime/resources/audio_cook.hpp>
+#include <sfg/core/runtime/resources/common_resources.hpp>
+#include <sfg/core/runtime/resources/cubemap_cook.hpp>
+#include <sfg/core/runtime/resources/curve_cook.hpp>
+#include <sfg/core/runtime/resources/curve_def.hpp>
+#include <sfg/core/runtime/resources/font_cook.hpp>
+#include <sfg/core/runtime/resources/material_cook.hpp>
+#include <sfg/core/runtime/resources/material_def.hpp>
+#include <sfg/core/runtime/resources/ragdoll_cook.hpp>
+#include <sfg/core/runtime/resources/ragdoll_def.hpp>
+#include <sfg/core/runtime/resources/prefab.hpp>
+#include <sfg/core/runtime/resources/resource_manager.hpp>
+#include <sfg/core/runtime/resources/resource_manifest.hpp>
+#include <sfg/core/runtime/resources/shader_cook.hpp>
+#include <sfg/core/runtime/resources/texture_cook.hpp>
+#include <sfg/core/runtime/resources/texture_sampler_cook.hpp>
+
+#include <sfg/core/common/hashing.hpp>
+#include <sfg/core/data/istream.hpp>
+#include <sfg/core/data/ostream.hpp>
+#include <sfg/core/gfx/common/descriptions.hpp>
+#include <sfg/core/io/file_system.hpp>
+#include <sfg/core/io/log.hpp>
+#include <sfg/core/reflection/reflection_registry.hpp>
+#include <sfg/core/serialization/serialization.hpp>
+#include <sfg/core/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -278,14 +294,13 @@ namespace sfg
 		}
 	}
 
-	bool resource_preload_t::init(resource_manager_t& mgr, const init_params_t& params)
+	bool editor_resource_preloader_t::init(resource_manager_t& mgr, const init_params_t& params)
 	{
-		_mgr	   = &mgr;
-		_cache_dir = params.cache_dir;
+		_mgr = &mgr;
 
 		if (!file_system_t::exists(params.manifest_path.c_str()))
 		{
-			SFG_WARN("resource_preload: no manifest at {0}", params.manifest_path.c_str());
+			SFG_WARN("no manifest at {0}", params.manifest_path.c_str());
 			return true;
 		}
 
@@ -294,11 +309,9 @@ namespace sfg
 		if (!manifest.load_from_file(params.manifest_path.c_str()))
 			return false;
 
-		file_system_t::ensure_directory(_cache_dir.c_str());
+		file_system_t::ensure_directory(params.cache_dir.c_str());
 
 		_loaded.reserve(manifest.resources.size());
-		_watched.reserve(manifest.resources.size());
-		_watcher.reserve(static_cast<int>(manifest.resources.size()));
 
 		for (const resource_manifest_entry_t& entry : manifest.resources)
 		{
@@ -411,9 +424,9 @@ namespace sfg
 			else
 				expected.source_tick = file_system_t::get_last_modified_ticks(source_path.c_str());
 
-			const bool cache_ok = is_cached_file_ok(_cache_dir.c_str(), sid, expected);
+			const bool cache_ok = is_cached_file_ok(params.cache_dir.c_str(), sid, expected);
 
-			if (!cache_ok && !cook_and_cache(source_path, sid, entry.config, _cache_dir))
+			if (!cache_ok && !cook_and_cache(source_path, sid, entry.config, params.cache_dir))
 			{
 				SFG_ERR("cook & cache failed for {0}", source_path.c_str());
 				return false;
@@ -428,52 +441,12 @@ namespace sfg
 			}
 
 			_loaded.push_back(sid);
-
-			const u16 id = static_cast<u16>(_watched.size());
-			_watched.push_back({.source_path = source_path, .config_json = entry.config.dump(), .type = entry.type, .sid = sid});
-			_watcher.add_path(source_path.c_str(), id);
 		}
-
-		_watcher.set_callback(&resource_preload_t::on_file_changed, this);
 
 		return true;
 	}
 
-	void resource_preload_t::tick()
-	{
-		// _watcher.tick();
-	}
-
-	void resource_preload_t::on_file_changed(const char*, u64, u16 id, void* user_data)
-	{
-		resource_preload_t* self = static_cast<resource_preload_t*>(user_data);
-
-		self->recook_watched(id);
-	}
-
-	void resource_preload_t::recook_watched(u16 id)
-	{
-		SFG_ASSERT(id < _watched.size());
-		const watched_entry_t& e = _watched[id];
-
-		const nlohmann::json config = nlohmann::json::parse(e.config_json, nullptr, false);
-
-		if (config.is_discarded())
-		{
-			SFG_ERR("failed to re-parse config for {0}", e.source_path.c_str());
-			return;
-		}
-
-		if (!cook_and_cache(e.source_path, e.sid, config, _cache_dir))
-			return;
-
-		SFG_INFO("resource_preload: recooked {0}", e.source_path.c_str());
-
-		// TODO:
-		// _mgr->reload_resource(e.sid);
-	}
-
-	void resource_preload_t::uninit()
+	void editor_resource_preloader_t::uninit()
 	{
 		if (_mgr != nullptr)
 		{
@@ -481,11 +454,7 @@ namespace sfg
 				_mgr->unload_resource(sid);
 		}
 
-		_loaded.clear();
+		_loaded.resize(0);
 		_mgr = nullptr;
-
-		_watcher.clear();
-		_watched.clear();
-		_cache_dir.clear();
 	}
 }

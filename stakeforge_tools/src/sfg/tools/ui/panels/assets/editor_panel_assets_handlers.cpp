@@ -52,42 +52,50 @@ namespace sfg
 {
 	bool editor_panel_assets_t::create_prefab_from_entity_payload(const editor_entity_payload_t& entity_payload, editor_asset_node_handle_t parent_node, bool allow_overwrite)
 	{
-		if (!editor_world_controller_t::get().is_world_valid(entity_payload.world))
-			return false;
+		try
+		{
+			if (!editor_world_controller_t::get().is_world_valid(entity_payload.world))
+				return false;
 
-		world_t& world = editor_world_controller_t::get().get_editor_world(entity_payload.world)->get_world();
-		if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
-			return false;
+			world_t& world = editor_world_controller_t::get().get_editor_world(entity_payload.world)->get_world();
+			if (entity_payload.entity == NULL_ENTITY_ID || !world.is_alive(entity_payload.entity))
+				return false;
 
-		nlohmann::json prefab_json = {};
-		world_cooker_t::entity_to_prefab_json(world, entity_payload.entity, prefab_json);
-		if (prefab_json.is_null())
-			return false;
+			nlohmann::json prefab_json = {};
 
-		const char* const				 entity_name = world.get_entity_name(entity_payload.entity);
-		const string_t					 name		 = entity_name != nullptr && editor_directories_t::is_valid_asset_name(entity_name) ? entity_name : "prefab";
-		const string_t					 json_text	 = prefab_json.dump();
-		const editor_asset_create_desc_t desc{
-			.parent_node	 = parent_node,
-			.name			 = name.c_str(),
-			.embedded_data	 = json_text.c_str(),
-			.asset_type		 = editor_asset_type_e::prefab,
-			.allow_overwrite = allow_overwrite,
-		};
-		editor_asset_t asset = {};
-		if (!editor_asset_creator_t::create_asset(desc, &asset))
-			return false;
+			if (!world_cooker_t::entity_to_prefab_json(world, entity_payload.entity, prefab_json))
+				return false;
 
-		editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
-		const string_t					 asset_path	   = editor_asset_path_t::make_asset_path(asset_manager.get_asset_tree().value(parent_node).full_path.c_str(), name.c_str());
-		const editor_asset_node_handle_t existing	   = asset_manager.find_node_by_path(asset_path.c_str());
-		if (!existing.is_null())
-			asset_manager.reload_asset_node(existing);
-		else
-			asset_manager.add_path_node(parent_node, asset_path.c_str());
-		world_cooker_t::make_prefab_chain(world, entity_payload.entity, asset.guid);
-		editor_world_controller_t::get().mark_world_dirty(entity_payload.world);
-		return true;
+			const char* const				 entity_name = world.get_entity_name(entity_payload.entity);
+			const string_t					 name		 = entity_name != nullptr && editor_directories_t::is_valid_asset_name(entity_name) ? entity_name : "prefab";
+			const string_t					 json_text	 = prefab_json.dump();
+			const editor_asset_create_desc_t desc{
+				.parent_node	 = parent_node,
+				.name			 = name.c_str(),
+				.embedded_data	 = json_text.c_str(),
+				.asset_type		 = editor_asset_type_e::prefab,
+				.allow_overwrite = allow_overwrite,
+			};
+			editor_asset_t asset = {};
+			if (!editor_asset_creator_t::create_asset(desc, &asset))
+				return false;
+
+			editor_asset_manager_t&			 asset_manager = editor_asset_manager_t::get();
+			const string_t					 asset_path	   = editor_asset_path_t::make_asset_path(asset_manager.get_asset_tree().value(parent_node).full_path.c_str(), name.c_str());
+			const editor_asset_node_handle_t existing	   = asset_manager.find_node_by_path(asset_path.c_str());
+			if (!existing.is_null())
+				asset_manager.reload_asset_node(existing);
+			else
+				asset_manager.add_path_node(parent_node, asset_path.c_str());
+			world_cooker_t::make_prefab_chain(world, entity_payload.entity, asset.guid);
+			editor_world_controller_t::get().mark_world_dirty(entity_payload.world);
+			return true;
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to serialize prefab asset: {0}", error.what());
+			return false;
+		}
 	}
 
 	bool editor_panel_assets_t::create_prefabs_from_entity_payloads(span_t<const editor_entity_payload_t> entities, editor_asset_node_handle_t parent_node, bool allow_overwrite)
@@ -179,7 +187,6 @@ namespace sfg
 			return;
 		case assets_action_menu_create_world:
 		case assets_action_menu_create_animation_library:
-		case assets_action_menu_create_animation_graph:
 		case assets_action_menu_create_lit_shader:
 		case assets_action_menu_create_unlit_shader:
 		case assets_action_menu_create_ui_shader:
@@ -244,6 +251,7 @@ namespace sfg
 
 			if (!folder_path.empty())
 				process::open_directory(folder_path.c_str());
+
 			return;
 		}
 		default:

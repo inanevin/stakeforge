@@ -29,6 +29,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/ui/widgets/editor_widgets_icons.hpp"
 #include "tools/ui/widgets/editor_widgets_misc.hpp"
 
+#include <sfg/core/io/log.hpp>
 #include <sfg/core/math/math.hpp>
 #include <sfg/core/reflection/reflection_registry.hpp>
 #include <sfg/core/runtime/resources/audio.hpp>
@@ -121,20 +122,7 @@ namespace sfg
 							   .display_label = false,
 						   });
 
-		void* config_objects[] = {
-			&_config,
-		};
-		editor_widget_callbacks_t callbacks = {};
-		callbacks.edit_begin				= on_config_edit_begin;
-		callbacks.edit_submitted			= on_config_edit_submitted;
-		callbacks.user_data					= this;
-		_reflection.init(ui,
-						 _root,
-						 {
-							 .callbacks = callbacks,
-							 .objects	= {.data = config_objects, .size = std::size(config_objects)},
-							 .type_id	= type_id_t<audio_cook_config_t>::value,
-						 });
+		_reflection.init(ui, _root, {});
 
 		ui.set_pre_layout_tick(_root, on_tick, this);
 		_play_button.set_disabled(true);
@@ -166,17 +154,38 @@ namespace sfg
 		if (asset == nullptr || asset->asset_type != editor_asset_type_e::audio)
 			return;
 
-		_audio_id						  = audio_id;
-		const nlohmann::json cook_options = editor_asset_io_t::get_cook_options_json(*asset);
-		reflection_registry_t::get().type_from_json(type_id_t<audio_cook_config_t>::value, &_config, nullptr, cook_options);
+		nlohmann::json cook_options = {};
+
+		if (!editor_asset_io_t::parse_cook_options_json(*asset, cook_options))
+			return;
+
+		if (!cook_options.is_object())
+		{
+			SFG_ERR("invalid audio cook options JSON for asset {0}", audio_id);
+			return;
+		}
+
+		audio_cook_config_t config = {};
+
+		if (!reflection_registry_t::get().type_from_json(type_id_t<audio_cook_config_t>::value, &config, nullptr, cook_options))
+		{
+			SFG_ERR("failed to deserialize audio cook options for asset {0}", audio_id);
+			return;
+		}
+
+		_config	  = config;
+		_audio_id = audio_id;
 
 		void* config_objects[] = {
 			&_config,
 		};
+
 		editor_widget_callbacks_t callbacks = {};
-		callbacks.edit_begin				= on_config_edit_begin;
-		callbacks.edit_submitted			= on_config_edit_submitted;
-		callbacks.user_data					= this;
+
+		callbacks.edit_begin	 = on_config_edit_begin;
+		callbacks.edit_submitted = on_config_edit_submitted;
+		callbacks.user_data		 = this;
+
 		_reflection.set_reflection({
 			.callbacks = callbacks,
 			.objects   = {.data = config_objects, .size = std::size(config_objects)},
@@ -210,6 +219,7 @@ namespace sfg
 
 		if (_ui != nullptr)
 		{
+			_reflection.set_reflection({});
 			_scrub_slider.set_value(0.0f);
 			_play_button.set_disabled(true);
 			_reset_button.set_disabled(true);

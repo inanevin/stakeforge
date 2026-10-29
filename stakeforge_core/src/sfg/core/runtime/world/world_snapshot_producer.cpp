@@ -26,7 +26,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/io/assert.hpp"
 #include "core/data/frame_hash_map.hpp"
 #include "core/math/math.hpp"
-#include "core/runtime/animation/animation_bone.hpp"
 #include "core/runtime/render/render_resources.hpp"
 #include "core/runtime/render/world_draw_common.hpp"
 #include "core/runtime/render/world_render_context.hpp"

@@ -48,7 +48,6 @@ namespace sfg
 		assets_action_menu_toggle_favourite					 = 4,
 		assets_action_menu_open_directory					 = 5,
 		assets_action_menu_rename							 = 6,
-		assets_action_menu_create_animation_graph			 = 7,
 		assets_action_menu_create_lit_shader				 = 8,
 		assets_action_menu_create_ui_shader					 = 11,
 		assets_action_menu_create_ui_text_shader			 = 12,

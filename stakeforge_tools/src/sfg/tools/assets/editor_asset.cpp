@@ -75,13 +75,19 @@ namespace sfg
 
 	void to_json(nlohmann::json& j, const editor_asset_t& asset)
 	{
+		nlohmann::json embedded_source = {};
+		nlohmann::json cook_options	   = {};
+
+		if (!editor_asset_io_t::parse_embedded_source_json(asset, embedded_source) || !editor_asset_io_t::parse_cook_options_json(asset, cook_options))
+			throw nlohmann::json::type_error::create(302, "invalid asset source or cook options JSON", &j);
+
 		j["version"]		 = asset.version;
 		j["guid"]			 = asset.guid;
 		j["thumbnail_guid"]	 = asset.thumbnail_guid;
 		j["asset_type"]		 = asset.asset_type;
 		j["sub_type"]		 = asset.sub_type;
-		j["embedded_source"] = editor_asset_io_t::get_embedded_source_json(asset);
-		j["cook_options"]	 = editor_asset_io_t::get_cook_options_json(asset);
+		j["embedded_source"] = std::move(embedded_source);
+		j["cook_options"]	 = std::move(cook_options);
 		j["source_relative"] = asset.source_relative;
 		j["source_type"]	 = asset.source_type;
 	}

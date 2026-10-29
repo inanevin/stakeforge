@@ -41,7 +41,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/ui/panels/editor_panel_skeleton_viewer.hpp"
 #include "tools/ui/panels/animation_library/editor_panel_animation_library.hpp"
 #include "tools/ui/panels/editor_panel_ragdoll_viewer.hpp"
-#include "tools/ui/panels/animation_graph/editor_panel_animation_graph.hpp"
 #include "tools/assets/editor_asset_creator.hpp"
 #include "tools/editor_directories.hpp"
 #include "tools/editor_project.hpp"
@@ -512,6 +511,7 @@ namespace sfg
 		}
 
 		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(asset_node.asset_id);
+
 		SFG_ASSERT(asset != nullptr);
 
 		if (asset->asset_type == editor_asset_type_e::shader)
@@ -558,13 +558,6 @@ namespace sfg
 
 			if (panel != nullptr)
 				static_cast<editor_panel_animation_t*>(panel)->set_animation(asset->guid, asset_node.name.c_str());
-		}
-		else if (asset->asset_type == editor_asset_type_e::animation_graph)
-		{
-			editor_panel_t* panel = editor_surface_controller_t::get().show_panel(editor_panel_type_e::animation_graph);
-
-			if (panel != nullptr)
-				static_cast<editor_panel_animation_graph_t*>(panel)->set_graph(asset->guid, asset_node.name.c_str());
 		}
 	}
 
@@ -665,9 +658,6 @@ namespace sfg
 		case assets_action_menu_create_world:
 			text = "world";
 			break;
-		case assets_action_menu_create_animation_graph:
-			text = "animation_graph";
-			break;
 		case assets_action_menu_create_animation_library:
 			text = "animation_library";
 			break;
@@ -737,13 +727,15 @@ namespace sfg
 		}
 
 		editor_input_popup_desc_t desc = {};
-		desc.submitted				   = on_create_asset_popup_submitted;
-		desc.cancelled				   = on_create_asset_popup_cancelled;
-		desc.user_data				   = this;
-		desc.text					   = text;
-		desc.placeholder			   = "Asset Name";
-		desc.pos					   = _action_menu_pos;
-		desc.width					   = editor_theme_t::get().item_width;
+
+		desc.submitted	 = on_create_asset_popup_submitted;
+		desc.cancelled	 = on_create_asset_popup_cancelled;
+		desc.user_data	 = this;
+		desc.text		 = text;
+		desc.placeholder = "Asset Name";
+		desc.pos		 = _action_menu_pos;
+		desc.width		 = editor_theme_t::get().item_width;
+
 		popup->request_input_popup(desc);
 	}
 
@@ -753,11 +745,11 @@ namespace sfg
 		const editor_asset_tree_t& tree			  = manager.get_asset_tree();
 		const editor_asset_node_t& node			  = tree.value(_selected_asset_node);
 		const editor_asset_t&	   skeleton_asset = *manager.find_asset(node.asset_id);
-		const nlohmann::json	   source		  = editor_asset_io_t::get_embedded_source_json(skeleton_asset);
+		nlohmann::json			   source		  = {};
 		skeleton_def_t			   skeleton		  = {};
 		ragdoll_def_t			   ragdoll{.target_skeleton = skeleton_asset.guid};
 
-		if (!reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, source) || !editor_ragdoll_util_t::generate(skeleton, ragdoll))
+		if (!editor_asset_io_t::parse_embedded_source_json(skeleton_asset, source) || !reflection_registry_t::get().type_from_json(type_id_t<skeleton_def_t>::value, &skeleton, nullptr, source) || !editor_ragdoll_util_t::generate(skeleton, ragdoll))
 			return;
 
 		nlohmann::json definition = nlohmann::json::object();
@@ -854,9 +846,6 @@ namespace sfg
 		{
 		case assets_action_menu_create_world:
 			out_desc.asset_type = editor_asset_type_e::world;
-			return true;
-		case assets_action_menu_create_animation_graph:
-			out_desc.asset_type = editor_asset_type_e::animation_graph;
 			return true;
 		case assets_action_menu_create_animation_library:
 			out_desc.asset_type = editor_asset_type_e::animation_library;

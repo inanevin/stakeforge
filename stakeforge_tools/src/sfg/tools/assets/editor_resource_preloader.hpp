@@ -22,13 +22,36 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
+#include "tools/tools_exports.hpp"
+
 #include <sfg/core/common/size_definitions.hpp>
+#include <sfg/core/data/string.hpp>
+#include <sfg/core/data/vector.hpp>
 
 namespace sfg
 {
-	enum class editor_animation_graph_display_mode_e : u8
+	class resource_manager_t;
+
+	class SFG_TOOLS_API editor_resource_preloader_t final
 	{
-		display_nodes,
-		display_state_machine,
+	public:
+		editor_resource_preloader_t()													 = default;
+		~editor_resource_preloader_t()													 = default;
+		editor_resource_preloader_t(const editor_resource_preloader_t& other)			 = delete;
+		editor_resource_preloader_t& operator=(const editor_resource_preloader_t& other) = delete;
+
+		struct init_params_t
+		{
+			string_t manifest_path;
+			string_t assets_dir;
+			string_t cache_dir;
+		};
+
+		bool init(resource_manager_t& mgr, const init_params_t& params);
+		void uninit();
+
+	private:
+		vector_t<sid_t>		_loaded;
+		resource_manager_t* _mgr = nullptr;
 	};
 }

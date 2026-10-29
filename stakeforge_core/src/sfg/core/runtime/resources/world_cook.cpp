@@ -26,6 +26,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/data/istream.hpp"
 #include "core/data/ostream.hpp"
 #include "core/io/assert.hpp"
+#include "core/io/log.hpp"
 #include "core/memory/memory.hpp"
 #include "core/reflection/reflection_registry.hpp"
 #include "core/runtime/world/ecs.hpp"
@@ -45,6 +46,25 @@ namespace sfg
 			world_cook_entity_header_t header	= {};
 			entity_guid_t			   new_guid = NULL_ENTITY_GUID;
 			entity_id_t				   entity	= NULL_ENTITY_ID;
+		};
+
+		struct json_entity_load_t
+		{
+			world_t&					world;
+			frame_vector_t<entity_id_t> entities = {};
+			bool						complete = false;
+
+			~json_entity_load_t()
+			{
+				if (complete)
+					return;
+
+				for (entity_id_t entity : entities)
+				{
+					if (world.is_alive(entity))
+						world.destroy_entity_tree(entity);
+				}
+			}
 		};
 
 		void fix_entity_guid_references(void* component, reflected_field_span_t fields, const frame_vector_t<read_entity_t>& read_entities)
@@ -79,62 +99,103 @@ namespace sfg
 	{
 	}
 
-	void world_cooker_t::world_to_json(const world_t& world, nlohmann::json& out_json)
+	bool world_cooker_t::world_to_json(const world_t& world, nlohmann::json& out_json)
 	{
-		out_json				  = nlohmann::json::object();
-		out_json["root_entities"] = nlohmann::json::array();
-
-		const ecs_component_table_t& hierarchy_table	= *world.find_component_table(type_id_t<component_hierarchy_t>::value);
-		const ecs_component_table_t& alive_table		= *world.find_component_table(type_id_t<component_alive_t>::value);
-		const ecs_component_table_t& no_serialize_table = *world.find_component_table(type_id_t<component_no_serialize_t>::value);
-
-		const ecs_component_table_ref_t table_refs[] = {
-			alive_table.ref(),
-			hierarchy_table.ref(),
-		};
-
-		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+		try
 		{
-			const component_hierarchy_t& hierarchy = row.get<component_hierarchy_t>(1);
+			out_json				  = nlohmann::json::object();
+			out_json["root_entities"] = nlohmann::json::array();
 
-			if (hierarchy.parent != NULL_ENTITY_ID || no_serialize_table.has(row.id))
-				continue;
+			const ecs_component_table_t& hierarchy_table	= *world.find_component_table(type_id_t<component_hierarchy_t>::value);
+			const ecs_component_table_t& alive_table		= *world.find_component_table(type_id_t<component_alive_t>::value);
+			const ecs_component_table_t& no_serialize_table = *world.find_component_table(type_id_t<component_no_serialize_t>::value);
 
-			nlohmann::json root_entity_json = nlohmann::json::object();
-			entity_into_world_json(world, row.id, root_entity_json);
+			const ecs_component_table_ref_t table_refs[] = {
+				alive_table.ref(),
+				hierarchy_table.ref(),
+			};
 
-			if (!root_entity_json.value<nlohmann::json>("local_entities", nlohmann::json::array()).empty())
-				out_json["root_entities"].push_back(root_entity_json);
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				const component_hierarchy_t& hierarchy = row.get<component_hierarchy_t>(1);
+
+				if (hierarchy.parent != NULL_ENTITY_ID || no_serialize_table.has(row.id))
+					continue;
+
+				nlohmann::json root_entity_json = nlohmann::json::object();
+
+				if (!entity_into_world_json(world, row.id, root_entity_json))
+					return false;
+
+				if (!root_entity_json.value<nlohmann::json>("local_entities", nlohmann::json::array()).empty())
+					out_json["root_entities"].push_back(root_entity_json);
+			}
+
+			return true;
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to serialize world/entity JSON: {0}", error.what());
+			return false;
 		}
 	}
 
-	void world_cooker_t::world_from_json(world_t& world, const nlohmann::json& in_json)
+	bool world_cooker_t::world_from_json(world_t& world, const nlohmann::json& in_json)
 	{
-		if (!in_json.is_object())
-			return;
+		json_entity_load_t load{.world = world};
 
-		const nlohmann::json root_entities_json = in_json.value<nlohmann::json>("root_entities", nlohmann::json::array());
-
-		if (!root_entities_json.is_array())
-			return;
-
-		for (const nlohmann::json& root_entity_json : root_entities_json)
-			entity_from_json(world, root_entity_json);
-
-		const ecs_component_table_t& alive_table	 = *world.find_component_table(type_id_t<component_alive_t>::value);
-		const ecs_component_table_t& hierarchy_table = *world.find_component_table(type_id_t<component_hierarchy_t>::value);
-
-		const ecs_component_table_ref_t table_refs[] = {
-			alive_table.ref(),
-			hierarchy_table.ref(),
-		};
-
-		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+		try
 		{
-			const component_hierarchy_t& hierarchy = row.get<component_hierarchy_t>(1);
+			if (!in_json.is_object())
+			{
+				SFG_ERR("invalid world JSON structure");
+				return false;
+			}
 
-			if (hierarchy.parent == NULL_ENTITY_ID)
-				world.scan_for_resources(row.id);
+			const nlohmann::json root_entities_json = in_json.value<nlohmann::json>("root_entities", nlohmann::json::array());
+
+			if (!root_entities_json.is_array())
+			{
+				SFG_ERR("invalid world JSON structure");
+				return false;
+			}
+
+			load.entities.reserve(root_entities_json.size());
+
+			for (const nlohmann::json& root_entity_json : root_entities_json)
+			{
+				const entity_id_t entity = entity_from_json(world, root_entity_json);
+
+				if (entity == NULL_ENTITY_ID)
+					return false;
+
+				load.entities.push_back(entity);
+			}
+
+			const ecs_component_table_t& alive_table	 = *world.find_component_table(type_id_t<component_alive_t>::value);
+			const ecs_component_table_t& hierarchy_table = *world.find_component_table(type_id_t<component_hierarchy_t>::value);
+
+			const ecs_component_table_ref_t table_refs[] = {
+				alive_table.ref(),
+				hierarchy_table.ref(),
+			};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				const component_hierarchy_t& hierarchy = row.get<component_hierarchy_t>(1);
+
+				if (hierarchy.parent == NULL_ENTITY_ID)
+					world.scan_for_resources(row.id);
+			}
+
+			load.complete = true;
+
+			return true;
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to deserialize world JSON: {0}", error.what());
+			return false;
 		}
 	}
 
@@ -310,65 +371,92 @@ namespace sfg
 
 	entity_id_t world_cooker_t::entity_from_json(world_t& world, const nlohmann::json& in_json)
 	{
-		const nlohmann::json entities_json = in_json.value<nlohmann::json>("local_entities", nlohmann::json::array());
+		json_entity_load_t load{.world = world};
 
-		if (!entities_json.is_array())
-			return NULL_ENTITY_ID;
-
-		const ecs_component_table_t& guid_table = *world.find_component_table(type_id_t<component_guid_t>::value);
-
-		frame_vector_t<read_entity_t> read_entities = {};
-		read_entities.reserve(entities_json.size());
-
-		for (const nlohmann::json& entity_json : entities_json)
+		try
 		{
-			if (!entity_json.is_object())
-				return NULL_ENTITY_ID;
+			const nlohmann::json entities_json = in_json.value<nlohmann::json>("local_entities", nlohmann::json::array());
 
-			const world_cook_entity_header_t header = entity_json.get<world_cook_entity_header_t>();
-
-			entity_id_t entity = NULL_ENTITY_ID;
-
-			if (header.prefab != NULL_RESOURCE_HANDLE)
+			if (!entities_json.is_array() || entities_json.empty())
 			{
-				const entity_id_t prefab = spawn_prefab(world, header.prefab, header.prefab_entity_guids);
-
-				if (prefab == NULL_ENTITY_ID)
-					continue;
-				make_prefab_chain(world, prefab, header.prefab);
-				entity = prefab;
+				SFG_ERR("entity JSON must contain a nonempty local_entities array");
+				return NULL_ENTITY_ID;
 			}
-			else
-				entity = world.create_entity(header.name.c_str(), header.guid);
 
-			component_guid_t& guid = guid_table.get_as<component_guid_t>(entity);
-			read_entities.push_back({.header = header, .new_guid = guid.guid, .entity = entity});
-		}
+			const ecs_component_table_t& guid_table = *world.find_component_table(type_id_t<component_guid_t>::value);
 
-		for (const read_entity_t& read_entity : read_entities)
-		{
-			const entity_id_t parent = find_parent_entity(world, read_entities, read_entity.header.parent_guid);
+			frame_vector_t<read_entity_t> read_entities = {};
 
-			if (parent != NULL_ENTITY_ID)
-				world.attach_to(read_entity.entity, parent);
+			read_entities.reserve(entities_json.size());
+			load.entities.reserve(entities_json.size());
 
-			world.set_entity_pos_local(read_entity.entity, read_entity.header.local_pos);
-			world.set_entity_rot_local(read_entity.entity, read_entity.header.local_rot);
-			world.set_entity_scale_local(read_entity.entity, read_entity.header.local_scale);
-		}
+			for (const nlohmann::json& entity_json : entities_json)
+			{
+				if (!entity_json.is_object())
+				{
+					SFG_ERR("invalid entity header JSON");
+					return NULL_ENTITY_ID;
+				}
 
-		const nlohmann::json components_json = in_json.value<nlohmann::json>("components", nlohmann::json::array());
+				const world_cook_entity_header_t header = entity_json.get<world_cook_entity_header_t>();
 
-		if (components_json.is_array())
-		{
+				entity_id_t entity = NULL_ENTITY_ID;
+
+				if (header.prefab != NULL_RESOURCE_HANDLE)
+				{
+					const entity_id_t prefab = spawn_prefab(world, header.prefab, header.prefab_entity_guids);
+
+					if (prefab == NULL_ENTITY_ID)
+						return NULL_ENTITY_ID;
+
+					make_prefab_chain(world, prefab, header.prefab);
+					entity = prefab;
+				}
+				else
+					entity = world.create_entity(header.name.c_str(), header.guid);
+
+				component_guid_t& guid = guid_table.get_as<component_guid_t>(entity);
+				load.entities.push_back(entity);
+				read_entities.push_back({.header = header, .new_guid = guid.guid, .entity = entity});
+			}
+
+			for (const read_entity_t& read_entity : read_entities)
+			{
+				const entity_id_t parent = find_parent_entity(world, read_entities, read_entity.header.parent_guid);
+
+				if (parent != NULL_ENTITY_ID)
+					world.attach_to(read_entity.entity, parent);
+
+				world.set_entity_pos_local(read_entity.entity, read_entity.header.local_pos);
+				world.set_entity_rot_local(read_entity.entity, read_entity.header.local_rot);
+				world.set_entity_scale_local(read_entity.entity, read_entity.header.local_scale);
+			}
+
+			const nlohmann::json components_json = in_json.value<nlohmann::json>("components", nlohmann::json::array());
+
+			if (!components_json.is_array())
+			{
+				SFG_ERR("entity components JSON must be an array");
+				return NULL_ENTITY_ID;
+			}
+
 			for (const nlohmann::json& component_json : components_json)
 			{
 				if (!component_json.is_object())
-					continue;
+				{
+					SFG_ERR("invalid component JSON");
+					return NULL_ENTITY_ID;
+				}
 
 				const sid_t			 component_type_id	= component_json.value<sid_t>("type", 0);
 				const entity_guid_t	 target_entity_guid = component_json.value<entity_guid_t>("entity", NULL_ENTITY_GUID);
 				const nlohmann::json component_data		= component_json.value<nlohmann::json>("data", nlohmann::json::object());
+
+				if (!component_data.is_object())
+				{
+					SFG_ERR("invalid component data JSON for type {0}", component_type_id);
+					return NULL_ENTITY_ID;
+				}
 
 				const reflected_type_t* reflected_type	= reflection_registry_t::get().find_type(component_type_id);
 				ecs_component_table_t*	component_table = world.find_component_table(component_type_id);
@@ -385,73 +473,118 @@ namespace sfg
 				{
 					reflection_registry_t::get().initialize_type(component_type_id, component);
 					const bool deserialized = reflection_registry_t::get().type_from_json(component_type_id, component, nullptr, component_data);
-					SFG_ASSERT(deserialized);
+
+					if (!deserialized)
+						return NULL_ENTITY_ID;
 				}
 			}
-		}
 
-		return read_entities.empty() ? NULL_ENTITY_ID : read_entities[0].entity;
+			load.complete = true;
+
+			return read_entities[0].entity;
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to deserialize prefab/entity JSON: {0}", error.what());
+			return NULL_ENTITY_ID;
+		}
 	}
 
 	entity_id_t world_cooker_t::spawn_prefab(world_t& world, resource_handle_t prefab_handle, const vector_t<entity_guid_t>& reserved_guids)
 	{
-		if (world.add_resource(resource_type_e::prefab, prefab_handle))
-			world.load_all_used_resources();
+		json_entity_load_t load{.world = world};
 
-		const prefab_internals_t* prefab_data = resource_manager_t::get().find_internals<prefab_internals_t>(prefab_handle);
-
-		if (prefab_data == nullptr)
-			return NULL_ENTITY_ID;
-
-		const char*			 prefab_source = resource_manager_t::get().get_memory().get_text(prefab_data->source);
-		const nlohmann::json prefab_json   = nlohmann::json::parse(prefab_source, nullptr, false);
-		const nlohmann::json entities_json = prefab_json.value<nlohmann::json>("local_entities", nlohmann::json::array());
-
-		if (!entities_json.is_array())
-			return NULL_ENTITY_ID;
-
-		const ecs_component_table_t& guid_table = *world.find_component_table(type_id_t<component_guid_t>::value);
-
-		frame_vector_t<read_entity_t> read_entities = {};
-		read_entities.reserve(entities_json.size());
-
-		for (const nlohmann::json& entity_json : entities_json)
+		try
 		{
-			if (!entity_json.is_object())
+			if (world.add_resource(resource_type_e::prefab, prefab_handle))
+				world.load_all_used_resources();
+
+			const prefab_internals_t* prefab_data = resource_manager_t::get().find_internals<prefab_internals_t>(prefab_handle);
+
+			if (prefab_data == nullptr)
+			{
+				SFG_ERR("failed to load prefab resource {0}", prefab_handle);
 				return NULL_ENTITY_ID;
+			}
 
-			const u32						 id		= static_cast<u32>(read_entities.size());
-			const world_cook_entity_header_t header = entity_json.get<world_cook_entity_header_t>();
+			const char*			 prefab_source = resource_manager_t::get().get_memory().get_text(prefab_data->source);
+			const nlohmann::json prefab_json   = nlohmann::json::parse(prefab_source, nullptr, false);
 
-			entity_id_t		  entity = world.create_entity(header.name.c_str(), id < reserved_guids.size() ? reserved_guids[id] : NULL_ENTITY_GUID);
-			component_guid_t& guid	 = guid_table.get_as<component_guid_t>(entity);
-			read_entities.push_back({.header = header, .new_guid = guid.guid, .entity = entity});
-		}
+			if (prefab_json.is_discarded() || !prefab_json.is_object())
+			{
+				SFG_ERR("invalid prefab JSON for resource {0}", prefab_handle);
+				return NULL_ENTITY_ID;
+			}
 
-		for (const read_entity_t& read_entity : read_entities)
-		{
-			const entity_id_t parent = find_parent_entity(world, read_entities, read_entity.header.parent_guid);
+			const nlohmann::json entities_json = prefab_json.value<nlohmann::json>("local_entities", nlohmann::json::array());
 
-			if (parent != NULL_ENTITY_ID)
-				world.attach_to(read_entity.entity, parent);
+			if (!entities_json.is_array() || entities_json.empty())
+			{
+				SFG_ERR("entity JSON must contain a nonempty local_entities array");
+				return NULL_ENTITY_ID;
+			}
 
-			world.set_entity_pos_local(read_entity.entity, read_entity.header.local_pos);
-			world.set_entity_rot_local(read_entity.entity, read_entity.header.local_rot);
-			world.set_entity_scale_local(read_entity.entity, read_entity.header.local_scale);
-		}
+			const ecs_component_table_t& guid_table = *world.find_component_table(type_id_t<component_guid_t>::value);
 
-		const nlohmann::json components_json = prefab_json.value<nlohmann::json>("components", nlohmann::json::array());
+			frame_vector_t<read_entity_t> read_entities = {};
 
-		if (components_json.is_array())
-		{
+			read_entities.reserve(entities_json.size());
+			load.entities.reserve(entities_json.size());
+
+			for (const nlohmann::json& entity_json : entities_json)
+			{
+				if (!entity_json.is_object())
+				{
+					SFG_ERR("invalid entity header JSON");
+					return NULL_ENTITY_ID;
+				}
+
+				const u32						 id		= static_cast<u32>(read_entities.size());
+				const world_cook_entity_header_t header = entity_json.get<world_cook_entity_header_t>();
+
+				entity_id_t		  entity = world.create_entity(header.name.c_str(), id < reserved_guids.size() ? reserved_guids[id] : NULL_ENTITY_GUID);
+				component_guid_t& guid	 = guid_table.get_as<component_guid_t>(entity);
+				load.entities.push_back(entity);
+				read_entities.push_back({.header = header, .new_guid = guid.guid, .entity = entity});
+			}
+
+			for (const read_entity_t& read_entity : read_entities)
+			{
+				const entity_id_t parent = find_parent_entity(world, read_entities, read_entity.header.parent_guid);
+
+				if (parent != NULL_ENTITY_ID)
+					world.attach_to(read_entity.entity, parent);
+
+				world.set_entity_pos_local(read_entity.entity, read_entity.header.local_pos);
+				world.set_entity_rot_local(read_entity.entity, read_entity.header.local_rot);
+				world.set_entity_scale_local(read_entity.entity, read_entity.header.local_scale);
+			}
+
+			const nlohmann::json components_json = prefab_json.value<nlohmann::json>("components", nlohmann::json::array());
+
+			if (!components_json.is_array())
+			{
+				SFG_ERR("entity components JSON must be an array");
+				return NULL_ENTITY_ID;
+			}
+
 			for (const nlohmann::json& component_json : components_json)
 			{
 				if (!component_json.is_object())
-					continue;
+				{
+					SFG_ERR("invalid component JSON");
+					return NULL_ENTITY_ID;
+				}
 
 				const sid_t			 component_type_id	= component_json.value<sid_t>("type", 0);
 				const entity_guid_t	 target_entity_guid = component_json.value<entity_guid_t>("entity", NULL_ENTITY_GUID);
 				const nlohmann::json component_data		= component_json.value<nlohmann::json>("data", nlohmann::json::object());
+
+				if (!component_data.is_object())
+				{
+					SFG_ERR("invalid component data JSON for type {0}", component_type_id);
+					return NULL_ENTITY_ID;
+				}
 
 				const reflected_type_t* reflected_type	= reflection_registry_t::get().find_type(component_type_id);
 				ecs_component_table_t*	component_table = world.find_component_table(component_type_id);
@@ -468,18 +601,28 @@ namespace sfg
 				{
 					reflection_registry_t::get().initialize_type(component_type_id, component);
 					const bool deserialized = reflection_registry_t::get().type_from_json(component_type_id, component, nullptr, component_data);
-					SFG_ASSERT(deserialized);
+
+					if (!deserialized)
+						return NULL_ENTITY_ID;
+
 					fix_entity_guid_references(component, fields, read_entities);
 				}
 			}
+
+			if (read_entities.empty())
+				return NULL_ENTITY_ID;
+
+			world.scan_for_resources(read_entities[0].entity);
+			world.load_all_used_resources();
+			load.complete = true;
+
+			return read_entities[0].entity;
 		}
-
-		if (read_entities.empty())
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to deserialize prefab/entity JSON: {0}", error.what());
 			return NULL_ENTITY_ID;
-
-		world.scan_for_resources(read_entities[0].entity);
-		world.load_all_used_resources();
-		return read_entities[0].entity;
+		}
 	}
 
 	void world_cooker_t::make_prefab_chain(world_t& world, entity_id_t entity, resource_handle_t prefab_handle)
@@ -552,184 +695,207 @@ namespace sfg
 		write(write, entity);
 	}
 
-	void world_cooker_t::entity_into_world_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json)
+	bool world_cooker_t::entity_into_world_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json)
 	{
-		SFG_ASSERT(world.is_alive(entity));
-		out_json				   = nlohmann::json::object();
-		out_json["local_entities"] = nlohmann::json::array();
-		out_json["components"]	   = nlohmann::json::array();
-
-		struct written_entity_t
+		try
 		{
-			entity_id_t	  entity = NULL_ENTITY_ID;
-			entity_guid_t guid	 = NULL_ENTITY_GUID;
-		};
+			SFG_ASSERT(world.is_alive(entity));
+			out_json				   = nlohmann::json::object();
+			out_json["local_entities"] = nlohmann::json::array();
+			out_json["components"]	   = nlohmann::json::array();
 
-		frame_vector_t<written_entity_t> written_entities = {};
-
-		const ecs_component_table_t& hierarchy_table	= *world.find_component_table(type_id_t<component_hierarchy_t>::value);
-		const ecs_component_table_t& no_serialize_table = *world.find_component_table(type_id_t<component_no_serialize_t>::value);
-		const ecs_component_table_t& prefab_table		= *world.find_component_table(type_id_t<component_prefab_reference_t>::value);
-
-		const auto write_entity = [&](const auto& self, entity_id_t current) -> void {
-			if (no_serialize_table.has(current))
-				return;
-
-			const component_prefab_reference_t* ref	   = prefab_table.find_as_const<component_prefab_reference_t>(current);
-			const resource_handle_t				prefab = ref == nullptr ? NULL_RESOURCE_HANDLE : ref->prefab;
-
-			const entity_guid_t		   guid	  = world.get_entity_guid(current);
-			const entity_id_t		   parent = world.get_entity_parent(current);
-			world_cook_entity_header_t header{
-				.guid		 = guid,
-				.parent_guid = world.get_entity_guid(parent),
-				.name		 = world.get_entity_name(current),
-				.local_pos	 = world.get_entity_pos_local(current),
-				.local_rot	 = world.get_entity_rot_local(current),
-				.local_scale = world.get_entity_scale_local(current),
-				.prefab		 = prefab,
+			struct written_entity_t
+			{
+				entity_id_t	  entity = NULL_ENTITY_ID;
+				entity_guid_t guid	 = NULL_ENTITY_GUID;
 			};
 
-			if (header.prefab != NULL_ENTITY_GUID)
-				write_entity_guids(world, current, header.prefab_entity_guids);
+			frame_vector_t<written_entity_t> written_entities = {};
 
-			out_json["local_entities"].push_back(header);
-			written_entities.push_back({.entity = current, .guid = guid});
+			const ecs_component_table_t& hierarchy_table	= *world.find_component_table(type_id_t<component_hierarchy_t>::value);
+			const ecs_component_table_t& no_serialize_table = *world.find_component_table(type_id_t<component_no_serialize_t>::value);
+			const ecs_component_table_t& prefab_table		= *world.find_component_table(type_id_t<component_prefab_reference_t>::value);
 
-			if (header.prefab != NULL_RESOURCE_HANDLE)
-				return;
+			const auto write_entity = [&](const auto& self, entity_id_t current) -> void {
+				if (no_serialize_table.has(current))
+					return;
 
-			const component_hierarchy_t& hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(current);
+				const component_prefab_reference_t* ref	   = prefab_table.find_as_const<component_prefab_reference_t>(current);
+				const resource_handle_t				prefab = ref == nullptr ? NULL_RESOURCE_HANDLE : ref->prefab;
 
-			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
-			{
-				const component_hierarchy_t& child_hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(child);
-				self(self, child);
-				child = child_hierarchy.next_sibling;
-			}
-		};
+				const entity_guid_t		   guid	  = world.get_entity_guid(current);
+				const entity_id_t		   parent = world.get_entity_parent(current);
+				world_cook_entity_header_t header{
+					.guid		 = guid,
+					.parent_guid = world.get_entity_guid(parent),
+					.name		 = world.get_entity_name(current),
+					.local_pos	 = world.get_entity_pos_local(current),
+					.local_rot	 = world.get_entity_rot_local(current),
+					.local_scale = world.get_entity_scale_local(current),
+					.prefab		 = prefab,
+				};
 
-		write_entity(write_entity, entity);
+				if (header.prefab != NULL_ENTITY_GUID)
+					write_entity_guids(world, current, header.prefab_entity_guids);
 
-		const vector_t<ecs_component_table_t>& component_tables = world.get_component_tables();
+				out_json["local_entities"].push_back(header);
+				written_entities.push_back({.entity = current, .guid = guid});
 
-		for (const written_entity_t& written_entity : written_entities)
-		{
-			for (const ecs_component_table_t& component_table : component_tables)
-			{
-				const sid_t				component_type_id = component_table.get_type_desc().type_id;
-				const reflected_type_t* reflected_type	  = reflection_registry_t::get().find_type(component_type_id);
-				SFG_ASSERT(reflected_type != nullptr);
+				if (header.prefab != NULL_RESOURCE_HANDLE)
+					return;
 
-				if (reflected_type->flags.is_set(reflected_type_flag_no_serialization))
-					continue;
+				const component_hierarchy_t& hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(current);
 
-				if (!component_table.has(written_entity.entity))
-					continue;
-
-				nlohmann::json component_data = nlohmann::json::object();
-				void*		   component	  = component_table.get(written_entity.entity);
-
-				if (component != nullptr)
+				for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
 				{
-					const bool serialized = reflection_registry_t::get().type_to_json(component_type_id, component, nullptr, component_data);
-					SFG_ASSERT(serialized);
+					const component_hierarchy_t& child_hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(child);
+					self(self, child);
+					child = child_hierarchy.next_sibling;
 				}
+			};
 
-				out_json["components"].push_back({
-					{"type", component_type_id},
-					{"entity", written_entity.guid},
-					{"data", component_data},
-				});
+			write_entity(write_entity, entity);
+
+			const vector_t<ecs_component_table_t>& component_tables = world.get_component_tables();
+
+			for (const written_entity_t& written_entity : written_entities)
+			{
+				for (const ecs_component_table_t& component_table : component_tables)
+				{
+					const sid_t				component_type_id = component_table.get_type_desc().type_id;
+					const reflected_type_t* reflected_type	  = reflection_registry_t::get().find_type(component_type_id);
+					SFG_ASSERT(reflected_type != nullptr);
+
+					if (reflected_type->flags.is_set(reflected_type_flag_no_serialization))
+						continue;
+
+					if (!component_table.has(written_entity.entity))
+						continue;
+
+					nlohmann::json component_data = nlohmann::json::object();
+					void*		   component	  = component_table.get(written_entity.entity);
+
+					if (component != nullptr)
+					{
+						const bool serialized = reflection_registry_t::get().type_to_json(component_type_id, component, nullptr, component_data);
+
+						if (!serialized)
+							return false;
+					}
+
+					out_json["components"].push_back({
+						{"type", component_type_id},
+						{"entity", written_entity.guid},
+						{"data", component_data},
+					});
+				}
 			}
+
+			return true;
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to serialize world/entity JSON: {0}", error.what());
+			return false;
 		}
 	}
 
-	void world_cooker_t::entity_to_prefab_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json)
+	bool world_cooker_t::entity_to_prefab_json(const world_t& world, entity_id_t entity, nlohmann::json& out_json)
 	{
-		SFG_ASSERT(world.is_alive(entity));
-		out_json				   = nlohmann::json::object();
-		out_json["local_entities"] = nlohmann::json::array();
-		out_json["components"]	   = nlohmann::json::array();
-
-		struct written_entity_t
+		try
 		{
-			entity_id_t	  entity = NULL_ENTITY_ID;
-			entity_guid_t guid	 = NULL_ENTITY_GUID;
-		};
+			SFG_ASSERT(world.is_alive(entity));
+			out_json				   = nlohmann::json::object();
+			out_json["local_entities"] = nlohmann::json::array();
+			out_json["components"]	   = nlohmann::json::array();
 
-		frame_vector_t<written_entity_t> written_entities = {};
-
-		const ecs_component_table_t& hierarchy_table	= *world.find_component_table(type_id_t<component_hierarchy_t>::value);
-		const ecs_component_table_t& no_serialize_table = *world.find_component_table(type_id_t<component_no_serialize_t>::value);
-		const ecs_component_table_t& prefab_table		= *world.find_component_table(type_id_t<component_prefab_reference_t>::value);
-
-		const auto write_entity = [&](const auto& self, entity_id_t current) -> void {
-			if (no_serialize_table.has(current))
-				return;
-
-			const component_prefab_reference_t* ref	   = prefab_table.find_as_const<component_prefab_reference_t>(current);
-			const resource_handle_t				prefab = ref == nullptr ? NULL_RESOURCE_HANDLE : ref->prefab;
-
-			const entity_guid_t		   guid	  = world.get_entity_guid(current);
-			const entity_id_t		   parent = world.get_entity_parent(current);
-			world_cook_entity_header_t header{
-				.guid		 = guid,
-				.parent_guid = world.get_entity_guid(parent),
-				.name		 = world.get_entity_name(current),
-				.local_pos	 = world.get_entity_pos_local(current),
-				.local_rot	 = world.get_entity_rot_local(current),
-				.local_scale = world.get_entity_scale_local(current),
-				.prefab		 = prefab,
+			struct written_entity_t
+			{
+				entity_id_t	  entity = NULL_ENTITY_ID;
+				entity_guid_t guid	 = NULL_ENTITY_GUID;
 			};
 
-			out_json["local_entities"].push_back(header);
-			written_entities.push_back({.entity = current, .guid = guid});
+			frame_vector_t<written_entity_t> written_entities = {};
 
-			const component_hierarchy_t& hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(current);
+			const ecs_component_table_t& hierarchy_table	= *world.find_component_table(type_id_t<component_hierarchy_t>::value);
+			const ecs_component_table_t& no_serialize_table = *world.find_component_table(type_id_t<component_no_serialize_t>::value);
+			const ecs_component_table_t& prefab_table		= *world.find_component_table(type_id_t<component_prefab_reference_t>::value);
 
-			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
-			{
-				const component_hierarchy_t& child_hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(child);
-				self(self, child);
-				child = child_hierarchy.next_sibling;
-			}
-		};
+			const auto write_entity = [&](const auto& self, entity_id_t current) -> void {
+				if (no_serialize_table.has(current))
+					return;
 
-		write_entity(write_entity, entity);
+				const component_prefab_reference_t* ref	   = prefab_table.find_as_const<component_prefab_reference_t>(current);
+				const resource_handle_t				prefab = ref == nullptr ? NULL_RESOURCE_HANDLE : ref->prefab;
 
-		const vector_t<ecs_component_table_t>& component_tables = world.get_component_tables();
+				const entity_guid_t		   guid	  = world.get_entity_guid(current);
+				const entity_id_t		   parent = world.get_entity_parent(current);
+				world_cook_entity_header_t header{
+					.guid		 = guid,
+					.parent_guid = world.get_entity_guid(parent),
+					.name		 = world.get_entity_name(current),
+					.local_pos	 = world.get_entity_pos_local(current),
+					.local_rot	 = world.get_entity_rot_local(current),
+					.local_scale = world.get_entity_scale_local(current),
+					.prefab		 = prefab,
+				};
 
-		for (const written_entity_t& written_entity : written_entities)
-		{
-			for (const ecs_component_table_t& component_table : component_tables)
-			{
-				const sid_t				component_type_id = component_table.get_type_desc().type_id;
-				const reflected_type_t* reflected_type	  = reflection_registry_t::get().find_type(component_type_id);
-				SFG_ASSERT(reflected_type != nullptr);
+				out_json["local_entities"].push_back(header);
+				written_entities.push_back({.entity = current, .guid = guid});
 
-				if (reflected_type->flags.is_set(reflected_type_flag_no_serialization))
-					continue;
+				const component_hierarchy_t& hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(current);
 
-				if (!component_table.has(written_entity.entity))
-					continue;
-
-				nlohmann::json component_data = nlohmann::json::object();
-				void*		   component	  = component_table.get(written_entity.entity);
-
-				if (component != nullptr)
+				for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID;)
 				{
-					const bool serialized = reflection_registry_t::get().type_to_json(component_type_id, component, nullptr, component_data);
-					SFG_ASSERT(serialized);
+					const component_hierarchy_t& child_hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(child);
+					self(self, child);
+					child = child_hierarchy.next_sibling;
 				}
+			};
 
-				out_json["components"].push_back({
-					{"type", component_type_id},
-					{"entity", written_entity.guid},
-					{"data", component_data},
-				});
+			write_entity(write_entity, entity);
+
+			const vector_t<ecs_component_table_t>& component_tables = world.get_component_tables();
+
+			for (const written_entity_t& written_entity : written_entities)
+			{
+				for (const ecs_component_table_t& component_table : component_tables)
+				{
+					const sid_t				component_type_id = component_table.get_type_desc().type_id;
+					const reflected_type_t* reflected_type	  = reflection_registry_t::get().find_type(component_type_id);
+					SFG_ASSERT(reflected_type != nullptr);
+
+					if (reflected_type->flags.is_set(reflected_type_flag_no_serialization))
+						continue;
+
+					if (!component_table.has(written_entity.entity))
+						continue;
+
+					nlohmann::json component_data = nlohmann::json::object();
+					void*		   component	  = component_table.get(written_entity.entity);
+
+					if (component != nullptr)
+					{
+						const bool serialized = reflection_registry_t::get().type_to_json(component_type_id, component, nullptr, component_data);
+
+						if (!serialized)
+							return false;
+					}
+
+					out_json["components"].push_back({
+						{"type", component_type_id},
+						{"entity", written_entity.guid},
+						{"data", component_data},
+					});
+				}
 			}
+
+			return true;
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to serialize world/entity JSON: {0}", error.what());
+			return false;
 		}
 	}
-
 }

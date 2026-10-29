@@ -101,8 +101,12 @@ namespace sfg
 			if (asset == nullptr || asset->asset_type != editor_asset_type_e::material)
 				continue;
 
-			material_def_t		 material		 = {};
-			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
+			material_def_t material		   = {};
+			nlohmann::json embedded_source = {};
+
+			if (!editor_asset_io_t::parse_embedded_source_json(*asset, embedded_source))
+				continue;
+
 			embedded_source.get_to(material);
 
 			_material_ids.push_back(material_id);
@@ -532,7 +536,11 @@ namespace sfg
 		if (asset == nullptr || asset->asset_type != editor_asset_type_e::shader || asset->embedded_source.empty())
 			return false;
 
-		const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
+		nlohmann::json embedded_source = {};
+
+		if (!editor_asset_io_t::parse_embedded_source_json(*asset, embedded_source))
+			return false;
+
 		embedded_source.get_to(_shader_definition);
 		return !_shader_definition.textures.empty() || !_shader_definition.samplers.empty() || !_shader_definition.parameters.empty();
 	}

@@ -28,6 +28,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/ui/panels/editor_panel_entities.hpp"
 #include "tools/commands/editor_command_component_edit.hpp"
 #include "tools/commands/editor_commands_component.hpp"
+#include <sfg/core/io/log.hpp>
 #include <sfg/core/reflection/reflection_registry.hpp>
 #include <sfg/core/runtime/world/engine_components.hpp>
 #include <sfg/core/runtime/ui/ui_context.hpp>
@@ -204,7 +205,11 @@ namespace sfg
 		if (!panel._component_edit_active)
 			return;
 
-		editor_world_controller_t::get().get_play_session().get_edits().capture_before(panel._edit_world, {.data = panel._component_edit_entities.data(), .size = panel._component_edit_entities.size()}, data.component_type);
+		if (!editor_world_controller_t::get().get_play_session().get_edits().capture_before(panel._edit_world, {.data = panel._component_edit_entities.data(), .size = panel._component_edit_entities.size()}, data.component_type))
+		{
+			SFG_ERR("failed to capture play edit");
+			return;
+		}
 	}
 
 	void editor_widget_inspector_t::on_component_edited(void* user_data)
@@ -215,7 +220,11 @@ namespace sfg
 		if (!panel._component_edit_active)
 			return;
 
-		editor_world_controller_t::get().get_play_session().get_edits().capture_after(panel._edit_world, {.data = panel._component_edit_entities.data(), .size = panel._component_edit_entities.size()}, data.component_type);
+		if (!editor_world_controller_t::get().get_play_session().get_edits().capture_after(panel._edit_world, {.data = panel._component_edit_entities.data(), .size = panel._component_edit_entities.size()}, data.component_type))
+		{
+			SFG_ERR("failed to capture play edit");
+			return;
+		}
 	}
 
 	void editor_widget_inspector_t::on_entity_info_edit_changing(void* user_data)
@@ -225,7 +234,11 @@ namespace sfg
 		if (!panel._entity_info_edit_active)
 			return;
 
-		editor_world_controller_t::get().get_play_session().get_edits().capture_before(panel._edit_world, {.data = panel._entity_info_edit_entities.data(), .size = panel._entity_info_edit_entities.size()}, type_id_t<component_transform_t>::value);
+		if (!editor_world_controller_t::get().get_play_session().get_edits().capture_before(panel._edit_world, {.data = panel._entity_info_edit_entities.data(), .size = panel._entity_info_edit_entities.size()}, type_id_t<component_transform_t>::value))
+		{
+			SFG_ERR("failed to capture play edit");
+			return;
+		}
 	}
 
 	void editor_widget_inspector_t::on_entity_info_edited(void* user_data)
@@ -235,7 +248,11 @@ namespace sfg
 		if (!panel._entity_info_edit_active)
 			return;
 
-		editor_world_controller_t::get().get_play_session().get_edits().capture_after(panel._edit_world, {.data = panel._entity_info_edit_entities.data(), .size = panel._entity_info_edit_entities.size()}, type_id_t<component_transform_t>::value);
+		if (!editor_world_controller_t::get().get_play_session().get_edits().capture_after(panel._edit_world, {.data = panel._entity_info_edit_entities.data(), .size = panel._entity_info_edit_entities.size()}, type_id_t<component_transform_t>::value))
+		{
+			SFG_ERR("failed to capture play edit");
+			return;
+		}
 	}
 
 	void editor_widget_inspector_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)

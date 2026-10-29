@@ -655,31 +655,40 @@ namespace sfg
 		SFG_ERR("field id could not be found! field: {0}, type: {1}", field_id, type_id);
 	}
 
-	void reflection_registry_t::type_field_to_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, nlohmann::json& out_json)
+	bool reflection_registry_t::type_field_to_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, nlohmann::json& out_json)
 	{
 		const reflected_type_t* type = find_type(type_id);
 
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
-			return;
+			return false;
 		}
 
-		for (size_t i = type->fields.start; i < type->fields.end; i++)
+		try
 		{
-			const reflected_field_t& field = *get_field(static_cast<u32>(i));
-
-			if (field.field_identifier == field_id)
+			for (size_t i = type->fields.start; i < type->fields.end; i++)
 			{
-				if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_serialization))
-					return;
+				const reflected_field_t& field = *get_field(static_cast<u32>(i));
 
-				field_to_json(field, obj, user_data, out_json);
-				return;
+				if (field.field_identifier == field_id)
+				{
+					if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_serialization))
+						return true;
+
+					return field_to_json(field, obj, user_data, out_json);
+				}
 			}
-		}
 
-		SFG_ERR("field id could not be found! field: {0}, type: {1}", field_id, type_id);
+			SFG_ERR("field id could not be found! field: {0}, type: {1}", field_id, type_id);
+
+			return false;
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to serialize JSON for field {0} of type {1}: {2}", field_id, type_id, error.what());
+			return false;
+		}
 	}
 
 	void reflection_registry_t::type_field_from_stream(sid_t type_id, sid_t field_id, void* obj, void* user_data, istream_t& in_stream)
@@ -710,31 +719,40 @@ namespace sfg
 		SFG_ERR("field id could not be found! field: {0}, type: {1}", field_id, type_id);
 	}
 
-	void reflection_registry_t::type_field_from_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, const nlohmann::json& in_json)
+	bool reflection_registry_t::type_field_from_json(sid_t type_id, sid_t field_id, void* obj, void* user_data, const nlohmann::json& in_json)
 	{
 		const reflected_type_t* type = find_type(type_id);
 
 		if (type == nullptr)
 		{
 			SFG_ERR("type id could not be found! {0}", type_id);
-			return;
+			return false;
 		}
 
-		for (size_t i = type->fields.start; i < type->fields.end; i++)
+		try
 		{
-			const reflected_field_t& field = *get_field(static_cast<u32>(i));
-
-			if (field.field_identifier == field_id)
+			for (size_t i = type->fields.start; i < type->fields.end; i++)
 			{
-				if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_serialization))
-					return;
+				const reflected_field_t& field = *get_field(static_cast<u32>(i));
 
-				field_from_json(field, obj, user_data, in_json);
-				return;
+				if (field.field_identifier == field_id)
+				{
+					if (field.flags.is_set(reflected_field_flags_e::reflected_field_flag_no_serialization))
+						return true;
+
+					return field_from_json(field, obj, user_data, in_json);
+				}
 			}
-		}
 
-		SFG_ERR("field id could not be found! field: {0}, type: {1}", field_id, type_id);
+			SFG_ERR("field id could not be found! field: {0}, type: {1}", field_id, type_id);
+
+			return false;
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to deserialize JSON for field {0} of type {1}: {2}", field_id, type_id, error.what());
+			return false;
+		}
 	}
 
 	bool reflection_registry_t::type_to_stream(sid_t type_id, void* obj, void* user_data, ostream_t& out_stream)
@@ -774,41 +792,49 @@ namespace sfg
 			return false;
 		}
 
-		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
+		try
 		{
-			if (type->size == sizeof(u8))
+			if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 			{
-				out_json = *reinterpret_cast<u8*>(obj);
-			}
-			else if (type->size == sizeof(u16))
-			{
-				out_json = *reinterpret_cast<u16*>(obj);
-			}
-			else if (type->size == sizeof(u32))
-			{
-				out_json = *reinterpret_cast<u32*>(obj);
-			}
-			else
-			{
-				SFG_ERR("enum type size mismatch!");
-				return false;
+				if (type->size == sizeof(u8))
+				{
+					out_json = *reinterpret_cast<u8*>(obj);
+				}
+				else if (type->size == sizeof(u16))
+				{
+					out_json = *reinterpret_cast<u16*>(obj);
+				}
+				else if (type->size == sizeof(u32))
+				{
+					out_json = *reinterpret_cast<u32*>(obj);
+				}
+				else
+				{
+					SFG_ERR("enum type size mismatch!");
+					return false;
+				}
+
+				return true;
 			}
 
+			nlohmann::json type_json = nlohmann::json::object();
+
+			for (size_t i = type->fields.start; i < type->fields.end; i++)
+			{
+				const reflected_field_t& field = *get_field(static_cast<u32>(i));
+
+				if (!field_to_json(field, obj, user_data, type_json))
+					return false;
+			}
+
+			out_json = type_json;
 			return true;
 		}
-
-		nlohmann::json type_json = nlohmann::json::object();
-
-		for (size_t i = type->fields.start; i < type->fields.end; i++)
+		catch (const nlohmann::json::exception& error)
 		{
-			const reflected_field_t& field = *get_field(static_cast<u32>(i));
-
-			if (!field_to_json(field, obj, user_data, type_json))
-				return false;
+			SFG_ERR("failed to serialize JSON for type {0}: {1}", type_id, error.what());
+			return false;
 		}
-
-		out_json = type_json;
-		return true;
 	}
 
 	bool reflection_registry_t::type_from_stream(sid_t type_id, void* obj, void* user_data, istream_t& in_stream)
@@ -849,38 +875,46 @@ namespace sfg
 			return false;
 		}
 
-		if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
+		try
 		{
-			if (type->size == sizeof(u8))
+			if (type->flags.is_set(reflected_type_flags_e::reflected_type_flag_enum))
 			{
-				*reinterpret_cast<u8*>(obj) = in_json;
+				if (type->size == sizeof(u8))
+				{
+					*reinterpret_cast<u8*>(obj) = in_json;
+				}
+				else if (type->size == sizeof(u16))
+				{
+					*reinterpret_cast<u16*>(obj) = in_json;
+				}
+				else if (type->size == sizeof(u32))
+				{
+					*reinterpret_cast<u32*>(obj) = in_json;
+				}
+				else
+				{
+					SFG_ERR("enum type size mismatch!");
+					return false;
+				}
+
+				return true;
 			}
-			else if (type->size == sizeof(u16))
+
+			for (size_t i = type->fields.start; i < type->fields.end; i++)
 			{
-				*reinterpret_cast<u16*>(obj) = in_json;
-			}
-			else if (type->size == sizeof(u32))
-			{
-				*reinterpret_cast<u32*>(obj) = in_json;
-			}
-			else
-			{
-				SFG_ERR("enum type size mismatch!");
-				return false;
+				const reflected_field_t& field = *get_field(static_cast<u32>(i));
+
+				if (!field_from_json(field, obj, user_data, in_json))
+					return false;
 			}
 
 			return true;
 		}
-
-		for (size_t i = type->fields.start; i < type->fields.end; i++)
+		catch (const nlohmann::json::exception& error)
 		{
-			const reflected_field_t& field = *get_field(static_cast<u32>(i));
-
-			if (!field_from_json(field, obj, user_data, in_json))
-				return false;
+			SFG_ERR("failed to deserialize JSON for type {0}: {1}", type_id, error.what());
+			return false;
 		}
-
-		return true;
 	}
 
 	void reflection_registry_t::remove_native_types()

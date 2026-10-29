@@ -110,7 +110,17 @@ namespace sfg
 
 		editor_world.get_world().set_world_name(asset_node == nullptr ? NULL_SID : TO_SID(asset_node->name));
 		editor_world.reset_input();
-		capture_snapshot(editor_world);
+
+		if (!capture_snapshot(editor_world))
+		{
+			SFG_ERR("failed to capture world snapshot; play was not started");
+			_requested_state = editor_play_state_e::not_playing;
+			_pause_requested = false;
+			_step_requested	 = false;
+			_world			 = {};
+			return;
+		}
+
 		_saved_world_dirty = worlds.is_main_world_dirty();
 
 		editor_world.set_editor_control_enabled(state == editor_play_state_e::playing_editor_controlled);
@@ -147,12 +157,19 @@ namespace sfg
 		_paused = false;
 		editor_world.get_world().end_play();
 
-		const bool kept_edits = restore_snapshot(editor_world);
+		bool	   kept_edits = false;
+		const bool restored	  = restore_snapshot(editor_world, kept_edits);
+
+		if (!restored)
+		{
+			SFG_ERR("failed to restore world snapshot or apply play edits");
+			_edits.clear();
+		}
 
 		editor_world.produce_snapshot();
 		editor_surface_controller_t::get().get_input_router().reset_game_cursor();
 
-		worlds.set_main_world_dirty(_saved_world_dirty || kept_edits);
+		worlds.set_main_world_dirty(_saved_world_dirty || kept_edits || !restored);
 		_saved_world_dirty = false;
 		_world			   = {};
 		refresh_panels();
@@ -197,46 +214,78 @@ namespace sfg
 		_paused = paused;
 	}
 
-	void editor_play_session_t::capture_snapshot(editor_world_t& editor_world)
+	bool editor_play_session_t::capture_snapshot(editor_world_t& editor_world)
 	{
-		nlohmann::json snapshot = nlohmann::json::object();
+		try
+		{
+			nlohmann::json snapshot = nlohmann::json::object();
 
-		world_cooker_t::world_to_json(editor_world.get_world(), snapshot);
-		editor_world.serialize_camera(snapshot["editor_camera"]);
+			if (!world_cooker_t::world_to_json(editor_world.get_world(), snapshot))
+				return false;
 
-		_world_snapshot = snapshot.dump();
+			editor_world.serialize_camera(snapshot["editor_camera"]);
+			_world_snapshot = snapshot.dump();
+
+			return true;
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to serialize play world snapshot: {0}", error.what());
+			return false;
+		}
 	}
 
-	bool editor_play_session_t::restore_snapshot(editor_world_t& editor_world)
+	bool editor_play_session_t::restore_snapshot(editor_world_t& editor_world, bool& kept_edits)
 	{
 		SFG_ASSERT(!_world_snapshot.empty());
 
-		const nlohmann::json snapshot = nlohmann::json::parse(_world_snapshot, nullptr, false);
-		SFG_ASSERT(!snapshot.is_discarded());
+		kept_edits = false;
 
-		nlohmann::json camera = snapshot.value<nlohmann::json>("editor_camera", nlohmann::json::object());
+		try
+		{
+			const nlohmann::json snapshot = nlohmann::json::parse(_world_snapshot, nullptr, false);
 
-		editor_world.serialize_camera(camera);
-		editor_world.get_edit_context().apply_entity_selection({}, NULL_ENTITY_ID);
-		editor_command_system_t::get().clear_world(_world);
+			if (snapshot.is_discarded() || !snapshot.is_object())
+			{
+				SFG_ERR("invalid play world snapshot JSON");
+				return false;
+			}
 
-		// reset
-		world_t& world = editor_world.get_world();
+			nlohmann::json camera = snapshot.value<nlohmann::json>("editor_camera", nlohmann::json::object());
 
-		world.reset_world_state();
-		world_cooker_t::world_from_json(world, snapshot);
+			editor_world.serialize_camera(camera);
+			editor_world.get_edit_context().apply_entity_selection({}, NULL_ENTITY_ID);
+			editor_command_system_t::get().clear_world(_world);
 
-		const bool kept_edits = _save_edits && _edits.apply(world);
-		_edits.clear();
+			// reset
+			world_t& world = editor_world.get_world();
 
-		// cam
-		editor_world.recreate_camera_entity();
-		editor_world.deserialize_camera(camera);
+			world.reset_world_state();
 
-		// reset
-		world.update_world_transforms();
-		_world_snapshot.resize(0);
-		return kept_edits;
+			bool restored = world_cooker_t::world_from_json(world, snapshot);
+
+			if (restored && _save_edits)
+				restored = _edits.apply(world, kept_edits);
+
+			_edits.clear();
+
+			// cam
+			editor_world.recreate_camera_entity();
+			editor_world.deserialize_camera(camera);
+
+			// reset
+			world.update_world_transforms();
+
+			if (restored)
+				_world_snapshot.resize(0);
+
+			return restored;
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to restore play world snapshot: {0}", error.what());
+			return false;
+		}
 	}
 
 	void editor_play_session_t::tick_world(editor_world_t& editor_world, f32 dt_seconds)

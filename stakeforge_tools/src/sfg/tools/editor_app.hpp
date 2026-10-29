@@ -24,6 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/tools_exports.hpp"
 
 #include "tools/assets/editor_asset_manager.hpp"
+#include "tools/assets/editor_resource_preloader.hpp"
 #include "tools/editor_command_system.hpp"
 #include "tools/editor_file_watch_controller.hpp"
 #include "tools/editor_renderer.hpp"
@@ -35,7 +36,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/data/string.hpp>
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/runtime/engine/engine_runtime_config.hpp>
-#include <sfg/core/runtime/resources/resource_preload.hpp>
 
 namespace sfg
 {
@@ -125,8 +125,8 @@ namespace sfg
 		editor_world_controller_t	   _world_controller;
 		editor_work_controller_t	   _work_controller;
 		editor_file_watch_controller_t _file_watch_controller;
-		resource_preload_t			   _editor_resource_preload;
-		resource_preload_t			   _engine_resource_preload;
+		editor_resource_preloader_t	   _editor_resource_preload;
+		editor_resource_preloader_t	   _engine_resource_preload;
 		editor_payload_controller_t	   _payload_controller;
 		editor_modal_progress_bar_t	   _debug_progress_modal;
 		editor_work_status_t		   _splash_work_status = {};

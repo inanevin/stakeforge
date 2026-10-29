@@ -122,7 +122,11 @@ namespace sfg
 			if (asset == nullptr || asset->asset_type != editor_asset_type_e::shader)
 				return false;
 
-			const nlohmann::json embedded_source = editor_asset_io_t::get_embedded_source_json(*asset);
+			nlohmann::json embedded_source = {};
+
+			if (!editor_asset_io_t::parse_embedded_source_json(*asset, embedded_source))
+				return false;
+
 			if (!embedded_source.is_object())
 				return true;
 

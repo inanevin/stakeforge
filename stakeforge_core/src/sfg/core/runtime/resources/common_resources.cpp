@@ -12,7 +12,6 @@
 #include <cstring>
 
 #include "core/runtime/resources/animation.hpp"
-#include "core/runtime/resources/animation_graph.hpp"
 #include "core/runtime/resources/animation_library.hpp"
 #include "core/runtime/resources/audio.hpp"
 #include "core/runtime/resources/font.hpp"
@@ -98,7 +97,6 @@ namespace sfg
 		&texture_sampler_resource_desc,
 		&physical_material_resource_desc,
 		&prefab_resource_desc,
-		&animation_graph_resource_desc,
 		&cubemap_resource_desc,
 		&physics_collision_mesh_resource_desc,
 		&sprite_resource_desc,
@@ -148,8 +146,6 @@ namespace sfg
 			return "Prefab";
 		case resource_type_e::animation_library:
 			return "Animation Library";
-		case resource_type_e::animation_graph:
-			return "Animation Graph";
 		case resource_type_e::cubemap:
 			return "Cubemap";
 		case resource_type_e::physics_collision_mesh:
@@ -197,7 +193,6 @@ namespace sfg
 					{.name = "texture_sampler", .display_name = "Texture Sampler"},
 					{.name = "physical_material", .display_name = "Physical Material"},
 					{.name = "prefab", .display_name = "Prefab"},
-					{.name = "animation_graph", .display_name = "Animation Graph"},
 					{.name = "cubemap", .display_name = "Cubemap"},
 					{.name = "physics_collision_mesh", .display_name = "Physics Collision Mesh"},
 					{.name = "sprite", .display_name = "Sprite"},

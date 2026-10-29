@@ -89,10 +89,10 @@ namespace sfg
 			if (asset == nullptr || asset->asset_type != editor_asset_type_e::curve)
 				continue;
 
-			curve_def_t			 definition = {};
-			const nlohmann::json embedded	= editor_asset_io_t::get_embedded_source_json(*asset);
+			curve_def_t	   definition = {};
+			nlohmann::json embedded	  = {};
 
-			if (!reflection_registry_t::get().type_from_json(type_id_t<curve_def_t>::value, &definition, nullptr, embedded))
+			if (!editor_asset_io_t::parse_embedded_source_json(*asset, embedded) || !reflection_registry_t::get().type_from_json(type_id_t<curve_def_t>::value, &definition, nullptr, embedded))
 				continue;
 
 			std::sort(definition.keys.begin(), definition.keys.end(), [](const curve_key_t& left, const curve_key_t& right) { return left.time < right.time; });

@@ -43,7 +43,7 @@ ok first of all a lot of stuff is still under development, couple compromises he
 - resource management with asset cooking, dependency tracking and hot-reloading.
 - Jolt physics integration, rigid bodies, collision layers, queries and ragdolls.
 - miniaudio based audio, including spatial audio.
-- animation graphs with state machines, transitions, 1D/2D blending, joint masks and animation events.
+- animation libraries and an animation processor with 1D/2D blending, joint masks and animation events.
 - particle simulation and rendering, plus canvas/UI support for games.
 - separate runtime and rendering work, fixed-step simulation with interpolation, frame-time tracking and memory tracking.
 - Tracy integration for profiling, debug drawing, and a bunch of platform, input, math, serialization and memory utilities.
@@ -67,7 +67,7 @@ pretty cute PBR renderer running on DX12 on Windows;
 - transform gizmos, multi-selection, undo/redo and prefab workflows.
 - asset browser with thumbnails, material editing and resource inspection.
 - mesh and skeleton viewers, joint hierarchy, joint masks and attachment slots.
-- animation previews, event timelines, animation libraries and a visual animation graph editor.
+- animation previews, event timelines and animation library editing.
 - project settings, collision layer editing, play controls and project cooking.
 - C++ game plugin compilation and reloading, with explicitly registered component fields exposed in the inspector.
 
@@ -79,9 +79,8 @@ pretty cute PBR renderer running on DX12 on Windows;
 world editing, assets, materials & animation previews.
 
 <img src="docs/imgs/ss3.png" width="49%" alt="Skeleton viewer with a selected arm joint hierarchy and joint mask controls" />
-<img src="docs/imgs/ss5.png" width="49%" alt="Visual animation state machine beside a character mesh preview" />
 
-skeletons, joint masks & animation graphs.
+skeletons & joint masks.
 
 </div>
 

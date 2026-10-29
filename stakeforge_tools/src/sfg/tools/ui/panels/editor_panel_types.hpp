@@ -40,11 +40,10 @@ namespace sfg
 		mesh_viewer,
 		skeleton_viewer,
 		ragdoll_viewer,
-		animation_graph,
 		animation_library,
 		max,
 	};
 
-	SFG_TOOLS_API const char*			editor_panel_type_to_string(editor_panel_type_e type);
+	SFG_TOOLS_API const char*		  editor_panel_type_to_string(editor_panel_type_e type);
 	SFG_TOOLS_API editor_panel_type_e editor_panel_type_from_string(const char* value);
 }

@@ -24,10 +24,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "core/common/sfg_exports.hpp"
 
-#include "core/runtime/animation/animation_graph_types.hpp"
-
-#include "core/data/span.hpp"
-
 namespace sfg
 {
 	struct animation_runtime_t;
@@ -52,7 +48,6 @@ namespace sfg
 	class SFG_API animation_sampler_t final
 	{
 	public:
-		static void sample_animation(const animation_runtime_t* animation, f32 sample_time, const u64* bitmasks, span_t<animation_graph_bone_t> pose_bones);
 		static void sample_animation(const animation_sample_params_t& params);
 
 	private:
