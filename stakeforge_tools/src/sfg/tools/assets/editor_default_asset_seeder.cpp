@@ -228,6 +228,7 @@ namespace sfg
 				{
 					shader_data_definition_t definition = {};
 					created								= editor_asset_cooker_t::cook_shader(asset, desc.asset_name, &definition);
+
 					if (created)
 					{
 						editor_asset_io_t::set_embedded_source_json(asset, definition);

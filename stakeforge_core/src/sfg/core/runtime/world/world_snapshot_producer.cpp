@@ -329,6 +329,7 @@ namespace sfg
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
 				const component_environment_t& environment = row.get<component_environment_t>(1);
+
 				snapshot.environment.intensity			   = environment.intensity;
 				snapshot.environment.ambient_color		   = environment.ambient_color.to_vector();
 				snapshot.environment.debug_cluster_heatmap = environment.debug_cluster_heatmap;
@@ -404,9 +405,20 @@ namespace sfg
 				const component_system_transform_t& transform = row.get<component_system_transform_t>(0);
 				const component_light_t&			light	  = row.get<component_light_t>(2);
 
+				render_resource_handle_t cookie_texture = {};
+
+				if (light.type != light_type_e::directional && light.cookie_texture != NULL_RESOURCE_HANDLE)
+				{
+					const texture_internals_t* cookie = rm.find_internals<texture_internals_t>(light.cookie_texture);
+
+					if (cookie != nullptr)
+						cookie_texture = cookie->texture;
+				}
+
 				snapshot.lights.push_back({
 					.prev_rot			  = transform.prev_abs_rot,
 					.rot				  = transform.abs_rot,
+					.cookie_texture		  = cookie_texture,
 					.prev_pos			  = transform.prev_abs_pos,
 					.intensity			  = light.intensity,
 					.pos				  = transform.abs_pos,
@@ -516,17 +528,18 @@ namespace sfg
 
 					// mesh draw
 					world_mesh_draw_t& draw = snapshot.mesh_draws.emplace_back();
-					draw.vertex_buffer		= vtx;
-					draw.index_buffer		= idx;
-					draw.draw_flags			= 0;
-					draw.skinning_index		= UINT32_MAX;
-					draw.index_count		= prim.index_count;
-					draw.vertex_count		= UINT32_MAX;
-					draw.start_index		= prim.start_index;
-					draw.start_vertex		= prim.start_vertex;
-					draw.start_instance		= 0;
-					draw.vertex_stride		= mesh_runtime->vertex_stride;
-					draw.index_stride		= mesh_runtime->index_stride;
+
+					draw.vertex_buffer	= vtx;
+					draw.index_buffer	= idx;
+					draw.draw_flags		= 0;
+					draw.skinning_index = UINT32_MAX;
+					draw.index_count	= prim.index_count;
+					draw.vertex_count	= UINT32_MAX;
+					draw.start_index	= prim.start_index;
+					draw.start_vertex	= prim.start_vertex;
+					draw.start_instance = 0;
+					draw.vertex_stride	= mesh_runtime->vertex_stride;
+					draw.index_stride	= mesh_runtime->index_stride;
 
 					// renderable instance
 					snapshot.renderables.push_back({
@@ -609,17 +622,18 @@ namespace sfg
 
 					// mesh draw
 					world_mesh_draw_t& draw = snapshot.mesh_draws.emplace_back();
-					draw.vertex_buffer		= vertex_buffer;
-					draw.index_buffer		= index_buffer;
-					draw.draw_flags			= 0;
-					draw.skinning_index		= idx;
-					draw.index_count		= prim.index_count;
-					draw.vertex_count		= UINT32_MAX;
-					draw.start_index		= prim.start_index;
-					draw.start_vertex		= prim.start_vertex;
-					draw.start_instance		= 0;
-					draw.vertex_stride		= mesh_runtime->vertex_stride;
-					draw.index_stride		= mesh_runtime->index_stride;
+
+					draw.vertex_buffer	= vertex_buffer;
+					draw.index_buffer	= index_buffer;
+					draw.draw_flags		= 0;
+					draw.skinning_index = idx;
+					draw.index_count	= prim.index_count;
+					draw.vertex_count	= UINT32_MAX;
+					draw.start_index	= prim.start_index;
+					draw.start_vertex	= prim.start_vertex;
+					draw.start_instance = 0;
+					draw.vertex_stride	= mesh_runtime->vertex_stride;
+					draw.index_stride	= mesh_runtime->index_stride;
 
 					// renderable instance
 					snapshot.renderables.push_back({

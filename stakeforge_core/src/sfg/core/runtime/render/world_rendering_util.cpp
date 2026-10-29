@@ -394,20 +394,29 @@ namespace sfg
 		for (size_t i = 0; i < snapshot.lights.size(); ++i)
 		{
 			const world_render_light_t& light = snapshot.lights[i];
+
 			SFG_ASSERT(light.type < static_cast<u32>(world_render_light_type_e::count));
 			++light_counts[light.type];
 
-			const vec3f_t pos	  = vec3f_t::lerp(light.prev_pos, light.pos, interpolation_alpha);
-			const quat_t  rot	  = quat_t::slerp(light.prev_rot, light.rot, interpolation_alpha);
-			const vec3f_t forward = rot.get_forward();
-			const vec3f_t right	  = rot.get_right();
-			f32			  param0  = 0.0f;
-			f32			  param1  = 0.0f;
+			const vec3f_t pos					  = vec3f_t::lerp(light.prev_pos, light.pos, interpolation_alpha);
+			const quat_t  rot					  = quat_t::slerp(light.prev_rot, light.rot, interpolation_alpha);
+			const vec3f_t forward				  = rot.get_forward();
+			const vec3f_t right					  = rot.get_right();
+			f32			  param0				  = 0.0f;
+			f32			  param1				  = 0.0f;
+			f32			  cookie_projection_scale = 0.0f;
 
 			if (light.type == static_cast<u32>(world_render_light_type_e::spot))
 			{
 				param0 = math::cos(math::degrees_to_radians(light.inner_cone_degrees));
 				param1 = math::cos(math::degrees_to_radians(light.outer_cone_degrees));
+
+				if (!light.cookie_texture.is_null())
+				{
+					const f32 cookie_half_angle = math::clamp(math::max(light.inner_cone_degrees, light.outer_cone_degrees), 0.1f, 89.9f);
+
+					cookie_projection_scale = 0.5f / math::tan(math::degrees_to_radians(cookie_half_angle));
+				}
 			}
 			else if (light.type == static_cast<u32>(world_render_light_type_e::area))
 			{
@@ -430,11 +439,13 @@ namespace sfg
 			}
 
 			light_buffer[i] = {
-				.position_range	  = {pos.x, pos.y, pos.z, light.range},
-				.direction_param0 = {forward.x, forward.y, forward.z, param0},
-				.right_param1	  = {right.x, right.y, right.z, param1},
-				.color_intensity  = {light.color.x, light.color.y, light.color.z, light.intensity},
-				.shadow			  = {shadow_offset, shadow_count, 0, 0},
+				.position_range			 = {pos.x, pos.y, pos.z, light.range},
+				.direction_param0		 = {forward.x, forward.y, forward.z, param0},
+				.right_param1			 = {right.x, right.y, right.z, param1},
+				.color_intensity		 = {light.color.x, light.color.y, light.color.z, light.intensity},
+				.shadow					 = {shadow_offset, shadow_count},
+				.cookie_texture_index	 = light.cookie_texture.is_null() ? NULL_GPU_INDEX : render_resources_t::get().get_texture_gpu_index(light.cookie_texture, 0),
+				.cookie_projection_scale = cookie_projection_scale,
 			};
 		}
 	}

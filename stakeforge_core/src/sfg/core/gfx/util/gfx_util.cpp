@@ -31,6 +31,7 @@ namespace sfg
 		gfx_backend& backend = gfx_backend::get();
 
 		gfx_handle_t layout = backend.create_empty_bind_layout();
+
 		backend.bind_layout_add_constant(layout, constant_max, 0, 0, shader_stage_e::all);
 
 		const shader_stage_e stg = is_compute ? shader_stage_e::compute : shader_stage_e::fragment;
@@ -41,6 +42,7 @@ namespace sfg
 		backend.bind_layout_add_immutable_sampler(layout, 0, 3, gfx_util_t::get_sampler_desc_linear_repeat(), stg);
 		backend.bind_layout_add_immutable_sampler(layout, 0, 4, gfx_util_t::get_sampler_desc_nearest(), stg);
 		backend.bind_layout_add_immutable_sampler(layout, 0, 5, gfx_util_t::get_sampler_desc_nearest_repeat(), stg);
+		backend.bind_layout_add_immutable_sampler(layout, 0, 6, gfx_util_t::get_sampler_desc_linear(), stg);
 
 		if (!is_compute)
 		{

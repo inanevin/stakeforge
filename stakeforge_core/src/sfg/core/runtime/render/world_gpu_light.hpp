@@ -23,17 +23,20 @@ in GAME-LINKING-EXCEPTION.md.
 #pragma once
 
 #include "core/common/size_definitions.hpp"
+#include "core/gfx/common/gfx_constants.hpp"
 #include "core/math/vec4f.hpp"
 
 namespace sfg
 {
 	struct gpu_light_t
 	{
-		vec4f_t position_range	 = vec4f_t::zero;
-		vec4f_t direction_param0 = vec4f_t::zero;
-		vec4f_t right_param1	 = vec4f_t::zero;
-		vec4f_t color_intensity	 = vec4f_t::zero;
-		u32		shadow[4]		 = {UINT32_MAX, 0, 0, 0};
+		vec4f_t		position_range			= vec4f_t::zero;
+		vec4f_t		direction_param0		= vec4f_t::zero;
+		vec4f_t		right_param1			= vec4f_t::zero;
+		vec4f_t		color_intensity			= vec4f_t::zero;
+		u32			shadow[2]				= {UINT32_MAX, 0};
+		gpu_index_t cookie_texture_index	= NULL_GPU_INDEX;
+		f32			cookie_projection_scale = 0.0f;
 	};
 
 	static_assert(sizeof(gpu_light_t) == 80);

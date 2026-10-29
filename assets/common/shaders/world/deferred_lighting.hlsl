@@ -185,7 +185,8 @@ float4 PSMain(vs_output input) : SV_TARGET
 		cluster.light_offset,
 		cluster.light_count,
 		smp_shadow,
-		smp_shadow_cube);
+		smp_shadow_cube,
+		smp_linear);
 
 	if ((view_data.flags & SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_REFLECTIONS) != 0)
 	{

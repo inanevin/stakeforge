@@ -28,13 +28,17 @@
 
 static const uint SFG_INVALID_GPU_INDEX = 0xffffffffu;
 
+SamplerState sfg_cookie_sampler : static_sampler_light_cookie;
+
 struct gpu_light
 {
 	float4 position_range;
 	float4 direction_param0;
 	float4 right_param1;
 	float4 color_intensity;
-	uint4 shadow;
+	uint2 shadow;
+	uint cookie_texture_index;
+	float cookie_projection_scale;
 };
 
 struct gpu_shadow_view
@@ -366,6 +370,8 @@ float sample_cascade_shadow_blend(
 struct surface_lighting_data
 {
 	float3 world_pos;
+	float3 world_pos_ddx;
+	float3 world_pos_ddy;
 	float3 view_direction;
 	float3 normal;
 	float3 albedo;
@@ -379,6 +385,86 @@ struct scene_lighting_data
 	float4x4 view;
 	uint4 light_counts;
 };
+
+static const uint SFG_COOKIE_POINT = 1;
+static const uint SFG_COOKIE_SPOT = 2;
+static const uint SFG_COOKIE_AREA = 3;
+
+float3 evaluate_light_cookie(gpu_light light, surface_lighting_data surface, SamplerState cookie_sampler, uint projection_type)
+{
+	if (light.cookie_texture_index == SFG_INVALID_GPU_INDEX)
+		return 1.0.xxx;
+
+	const float3 delta = surface.world_pos - light.position_range.xyz;
+	const float3 right = light.right_param1.xyz;
+	const float3 forward = light.direction_param0.xyz;
+	const float3 up = cross(right, forward);
+	float3 projection_right = right;
+	float3 projection_up = up;
+	float3 projection_forward = forward;
+	float2 scale = light.cookie_projection_scale.xx;
+
+	if (projection_type == SFG_COOKIE_POINT)
+	{
+		const float3 local = float3(dot(delta, right), dot(delta, up), dot(delta, forward));
+		const float3 magnitude = abs(local);
+
+		if (magnitude.x >= magnitude.y && magnitude.x >= magnitude.z)
+		{
+			projection_forward = sign(local.x) * right;
+			projection_right = -sign(local.x) * forward;
+		}
+		else if (magnitude.y >= magnitude.z)
+		{
+			projection_forward = sign(local.y) * up;
+			projection_up = -sign(local.y) * forward;
+		}
+		else
+		{
+			projection_forward = sign(local.z) * forward;
+			projection_right = sign(local.z) * right;
+		}
+
+		scale = 0.5.xx;
+	}
+	else if (projection_type == SFG_COOKIE_AREA)
+	{
+		const float2 half_size = abs(float2(light.right_param1.w, light.direction_param0.w));
+
+		if (any(half_size <= 0.0))
+			return 0.0.xxx;
+
+		scale = 0.5 / half_size;
+	}
+
+	float2 projected = float2(dot(delta, projection_right), dot(delta, projection_up));
+	float2 gradient_x = float2(dot(surface.world_pos_ddx, projection_right), dot(surface.world_pos_ddx, projection_up));
+	float2 gradient_y = float2(dot(surface.world_pos_ddy, projection_right), dot(surface.world_pos_ddy, projection_up));
+
+	if (projection_type != SFG_COOKIE_AREA)
+	{
+		const float depth = dot(delta, projection_forward);
+
+		if (depth <= 0.0)
+			return 0.0.xxx;
+
+		projected /= depth;
+		gradient_x = (gradient_x - projected * dot(surface.world_pos_ddx, projection_forward)) / depth;
+		gradient_y = (gradient_y - projected * dot(surface.world_pos_ddy, projection_forward)) / depth;
+	}
+
+	scale.y = -scale.y;
+
+	const float2 uv = 0.5 + projected * scale;
+
+	if (any(uv < 0.0) || any(uv > 1.0))
+		return 0.0.xxx;
+
+	Texture2D cookie_texture = sfg_get_texture_non_uniform<Texture2D>(light.cookie_texture_index);
+	const float4 cookie = cookie_texture.SampleGrad(cookie_sampler, uv, gradient_x * scale, gradient_y * scale);
+
+	return cookie.rgb * cookie.a;
+}
 
 float3 rotate_by_quaternion(float3 value, float4 rotation)
 {
@@ -667,14 +753,16 @@ float3 evaluate_point_light(
 	gpu_light light,
 	surface_lighting_data surface,
 	StructuredBuffer<gpu_shadow_view> shadow_buffer,
-	SamplerComparisonState shadow_sampler)
+	SamplerComparisonState shadow_sampler,
+	SamplerState cookie_sampler = sfg_cookie_sampler)
 {
 	const float3 light_vector = light.position_range.xyz - surface.world_pos;
 	const float distance_to_light = max(length(light_vector), 1e-4);
 	const float3 light_direction = light_vector / distance_to_light;
 	const float light_attenuation = attenuation(light.position_range.w, distance_to_light);
 	const float shadow = evaluate_point_shadow(light, surface, shadow_buffer, shadow_sampler, light_direction);
-	const float3 radiance = light.color_intensity.xyz * (light.color_intensity.w * light_attenuation * shadow);
+	const float3 cookie = evaluate_light_cookie(light, surface, cookie_sampler, SFG_COOKIE_POINT);
+	const float3 radiance = light.color_intensity.xyz * (light.color_intensity.w * light_attenuation * shadow) * cookie;
 
 	return calculate_pbr(
 		surface.view_direction,
@@ -691,7 +779,8 @@ float3 evaluate_spot_light(
 	gpu_light light,
 	surface_lighting_data surface,
 	StructuredBuffer<gpu_shadow_view> shadow_buffer,
-	SamplerComparisonState shadow_sampler)
+	SamplerComparisonState shadow_sampler,
+	SamplerState cookie_sampler = sfg_cookie_sampler)
 {
 	const float3 light_vector = light.position_range.xyz - surface.world_pos;
 	const float distance_to_light = max(length(light_vector), 1e-4);
@@ -702,7 +791,8 @@ float3 evaluate_spot_light(
 	const float cone = smoothstep(cos_outer, cos_inner, dot(-light_direction, spot_direction));
 	const float light_attenuation = attenuation(light.position_range.w, distance_to_light) * cone;
 	const float shadow = evaluate_spot_shadow(light, surface, shadow_buffer, shadow_sampler, light_direction, spot_direction, cos_outer);
-	const float3 radiance = light.color_intensity.xyz * (light.color_intensity.w * light_attenuation * shadow);
+	const float3 cookie = evaluate_light_cookie(light, surface, cookie_sampler, SFG_COOKIE_SPOT);
+	const float3 radiance = light.color_intensity.xyz * (light.color_intensity.w * light_attenuation * shadow) * cookie;
 
 	return calculate_pbr(
 		surface.view_direction,
@@ -715,11 +805,12 @@ float3 evaluate_spot_light(
 		radiance);
 }
 
-float3 evaluate_area_light(gpu_light light, surface_lighting_data surface)
+float3 evaluate_area_light(gpu_light light, surface_lighting_data surface, SamplerState cookie_sampler = sfg_cookie_sampler)
 {
 	float3 light_direction = 0.0.xxx;
 	const float light_attenuation = get_area_light_attenuation(light, surface.world_pos, light_direction);
-	const float3 radiance = light.color_intensity.xyz * (light.color_intensity.w * light_attenuation);
+	const float3 cookie = evaluate_light_cookie(light, surface, cookie_sampler, SFG_COOKIE_AREA);
+	const float3 radiance = light.color_intensity.xyz * (light.color_intensity.w * light_attenuation) * cookie;
 
 	return calculate_pbr(
 		surface.view_direction,
@@ -738,8 +829,12 @@ float3 evaluate_scene_lighting(
 	StructuredBuffer<gpu_light> light_buffer,
 	StructuredBuffer<gpu_shadow_view> shadow_buffer,
 	SamplerComparisonState shadow_sampler,
-	SamplerComparisonState shadow_cube_sampler)
+	SamplerComparisonState shadow_cube_sampler,
+	SamplerState cookie_sampler = sfg_cookie_sampler)
 {
+	surface.world_pos_ddx = ddx(surface.world_pos);
+	surface.world_pos_ddy = ddy(surface.world_pos);
+
 	float3 lighting = 0.0.xxx;
 	uint light_offset = 0;
 
@@ -751,19 +846,19 @@ float3 evaluate_scene_lighting(
 
 	[loop]
 	for (uint i = 0; i < scene.light_counts.y; ++i)
-		lighting += evaluate_point_light(light_buffer[light_offset + i], surface, shadow_buffer, shadow_cube_sampler);
+		lighting += evaluate_point_light(light_buffer[light_offset + i], surface, shadow_buffer, shadow_cube_sampler, cookie_sampler);
 
 	light_offset += scene.light_counts.y;
 
 	[loop]
 	for (uint i = 0; i < scene.light_counts.z; ++i)
-		lighting += evaluate_spot_light(light_buffer[light_offset + i], surface, shadow_buffer, shadow_sampler);
+		lighting += evaluate_spot_light(light_buffer[light_offset + i], surface, shadow_buffer, shadow_sampler, cookie_sampler);
 
 	light_offset += scene.light_counts.z;
 
 	[loop]
 	for (uint i = 0; i < scene.light_counts.w; ++i)
-		lighting += evaluate_area_light(light_buffer[light_offset + i], surface);
+		lighting += evaluate_area_light(light_buffer[light_offset + i], surface, cookie_sampler);
 
 	return lighting;
 }
@@ -777,8 +872,12 @@ float3 evaluate_clustered_scene_lighting(
 	uint cluster_light_offset,
 	uint cluster_light_count,
 	SamplerComparisonState shadow_sampler,
-	SamplerComparisonState shadow_cube_sampler)
+	SamplerComparisonState shadow_cube_sampler,
+	SamplerState cookie_sampler = sfg_cookie_sampler)
 {
+	surface.world_pos_ddx = ddx(surface.world_pos);
+	surface.world_pos_ddy = ddy(surface.world_pos);
+
 	float3 lighting = 0.0.xxx;
 
 	// directional lights still touch the whole view
@@ -797,11 +896,11 @@ float3 evaluate_clustered_scene_lighting(
 		const gpu_light light = light_buffer[light_index];
 
 		if (light_index < point_light_end)
-			lighting += evaluate_point_light(light, surface, shadow_buffer, shadow_cube_sampler);
+			lighting += evaluate_point_light(light, surface, shadow_buffer, shadow_cube_sampler, cookie_sampler);
 		else if (light_index < spot_light_end)
-			lighting += evaluate_spot_light(light, surface, shadow_buffer, shadow_sampler);
+			lighting += evaluate_spot_light(light, surface, shadow_buffer, shadow_sampler, cookie_sampler);
 		else
-			lighting += evaluate_area_light(light, surface);
+			lighting += evaluate_area_light(light, surface, cookie_sampler);
 	}
 
 	return lighting;
