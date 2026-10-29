@@ -24,19 +24,45 @@ in GAME-LINKING-EXCEPTION.md.
 #include <Windows.h>
 #include <sfg/tools/editor_app.hpp>
 #include <sfg/core/platform/process.hpp>
+#include <sfg/core/io/error_reporting.hpp>
+#include <sfg/core/io/log.hpp>
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR pCmdLine, _In_ int nCmdShow)
 {
-	AllocConsole();
-	sfg::editor_app_t& app = sfg::editor_app_t::get();
+	sfg::error_reporting_t& reporting = sfg::error_reporting_t::get();
 
-	if (!app.init())
+	if (!reporting.init("Editor"))
 	{
-		sfg::process::message_box("error!", "failed initializing editor app, check console");
+		sfg::process::message_box("Stakeforge Editor", "Failed to initialize error reporting.");
+		return 1;
+	}
+
+	try
+	{
+		AllocConsole();
+
+		sfg::editor_app_t& app = sfg::editor_app_t::get();
+
+		if (!app.init())
+		{
+			SFG_ERR("failed initializing editor app");
+			sfg::process::message_box("Stakeforge Editor", "Failed to initialize the editor. Check the error log.");
+			reporting.uninit();
+			FreeConsole();
+			return 1;
+		}
+
+		app.uninit();
+		reporting.uninit();
 		FreeConsole();
 		return 0;
 	}
-	app.uninit();
-	FreeConsole();
-	return 0;
+	catch (const std::exception& error)
+	{
+		reporting.report_crash(error.what());
+	}
+	catch (...)
+	{
+		reporting.report_crash("Unhandled non-standard C++ exception.");
+	}
 }

@@ -32,6 +32,7 @@ namespace sfg
 	{
 		stream << WIRE_MAGIC;
 		stream << WIRE_VERSION;
+		stream << project_name;
 
 		if (!reflection_registry_t::get().type_to_stream(type_id_t<project_settings_t>::value, const_cast<project_settings_t*>(&project_settings), nullptr, stream))
 			return false;
@@ -80,6 +81,8 @@ namespace sfg
 			return false;
 
 		project_package_meta_t meta = {};
+
+		stream >> meta.project_name;
 
 		if (!reflection_registry_t::get().type_from_stream(type_id_t<project_settings_t>::value, &meta.project_settings, nullptr, stream))
 			return false;

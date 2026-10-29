@@ -57,10 +57,6 @@ namespace sfg
 
 	Microsoft::WRL::ComPtr<IDxcLibrary> dx12_backend_t::s_idxcLib;
 
-#define DX12_THROW(exception, ...)                                                                                                                                                                                                                                 \
-	SFG_FATAL(__VA_ARGS__);                                                                                                                                                                                                                                        \
-	throw exception;
-
 #ifdef SFG_DEBUG
 #define NAME_DX12_OBJECT_CSTR(x, NAME)                                                                                                                                                                                                                             \
 	auto wcharConverted = string_util::char_to_wchar(NAME);                                                                                                                                                                                                        \
@@ -568,19 +564,20 @@ namespace sfg
 		{
 			*ppAdapter = nullptr;
 
-			ComPtr<IDXGIAdapter1> adapter;
+			ComPtr<IDXGIAdapter1> adapter = {};
 
 			const unsigned int NVIDIA_VENDOR_ID = 0x10DE;
 			const unsigned int AMD_VENDOR_ID	= 0x1002;
 			const unsigned int INTEL_VENDOR_ID	= 0x8086;
 
 			auto find = [&](bool agressive) {
-				ComPtr<IDXGIFactory6> factory6;
+				ComPtr<IDXGIFactory6> factory6 = {};
+
 				if (SUCCEEDED(pFactory->QueryInterface(IID_PPV_ARGS(&factory6))))
 				{
 					for (UINT index = 0; SUCCEEDED(factory6->EnumAdapterByGpuPreference(index, gpu_type == 0 ? DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE_MINIMUM_POWER, IID_PPV_ARGS(&adapter))); ++index)
 					{
-						DXGI_ADAPTER_DESC1 desc;
+						DXGI_ADAPTER_DESC1 desc = {};
 						adapter->GetDesc1(&desc);
 
 						if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
@@ -606,13 +603,13 @@ namespace sfg
 			};
 
 			find(true);
+
 			if (adapter.Get() == nullptr)
 				find(false);
 
 			if (adapter.Get() == nullptr)
 			{
-				SFG_FATAL("failed finding a suitable device!");
-				return;
+				SFG_THROW("failed finding a suitable device!");
 			}
 
 			*ppAdapter = adapter.Detach();
@@ -1770,38 +1767,39 @@ namespace sfg
 		if (!ensure_idxc_lib())
 			return false;
 
-		Microsoft::WRL::ComPtr<IDxcCompiler3> idxc_compiler;
+		Microsoft::WRL::ComPtr<IDxcCompiler3> idxc_compiler = {};
 		throw_if_failed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&idxc_compiler)));
 
-		ComPtr<IDxcUtils> utils;
+		ComPtr<IDxcUtils> utils = {};
 		throw_if_failed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(utils.GetAddressOf())));
 
-		UINT32					 code_page = CP_UTF8;
-		ComPtr<IDxcBlobEncoding> source_blob;
+		UINT32					 code_page	   = CP_UTF8;
+		ComPtr<IDxcBlobEncoding> source_blob   = {};
 		const char*				 shader_source = source.c_str();
 		s_idxcLib->CreateBlobWithEncodingFromPinned((const BYTE*)shader_source, static_cast<UINT>(source.size()), code_page, &source_blob);
 
-		DxcBuffer source_buffer;
-		source_buffer.Ptr	   = source_blob->GetBufferPointer();
-		source_buffer.Size	   = source_blob->GetBufferSize();
-		source_buffer.Encoding = 0;
+		DxcBuffer source_buffer = {};
+		source_buffer.Ptr		= source_blob->GetBufferPointer();
+		source_buffer.Size		= source_blob->GetBufferSize();
+		source_buffer.Encoding	= 0;
 
-		vector_t<const wchar_t*> include_paths;
+		vector_t<wstring_t> include_paths = {};
 		include_paths.reserve(source_paths.size());
+
 		for (const string_t& src_path : source_paths)
 		{
-			include_paths.push_back(string_util::char_to_wchar(src_path.c_str()));
+			include_paths.push_back(string_util::to_wstr(src_path));
 		}
 
 		auto compile = [&](const wchar_t* target_profile, const wchar_t* target_entry, span_t<u8>& out, bool root_sig) -> bool {
-			std::vector<std::wstring> arg_storage;
-			std::vector<LPCWSTR>	  arguments = {L"-T",
-												   target_profile,
-												   L"-E",
-												   target_entry,
-												   DXC_ARG_WARNINGS_ARE_ERRORS,
-												   L"-HV",
-												   L"2021",
+			std::vector<std::wstring> arg_storage = {};
+			std::vector<LPCWSTR>	  arguments	  = {L"-T",
+													 target_profile,
+													 L"-E",
+													 target_entry,
+													 DXC_ARG_WARNINGS_ARE_ERRORS,
+													 L"-HV",
+													 L"2021",
 #ifdef SFG_DEBUG
 											  DXC_ARG_DEBUG,
 											  DXC_ARG_PREFER_FLOW_CONTROL,
@@ -1819,19 +1817,19 @@ namespace sfg
 				arguments.push_back(arg_storage.back().c_str());
 			}
 
-			for (const wchar_t* include : include_paths)
+			for (const wstring_t& include : include_paths)
 			{
 				arguments.push_back(L"-I");
-				arguments.push_back(include);
+				arguments.push_back(include.c_str());
 			}
 
-			ComPtr<IDxcIncludeHandler> include_handler;
+			ComPtr<IDxcIncludeHandler> include_handler = {};
 			throw_if_failed(utils->CreateDefaultIncludeHandler(&include_handler));
 
-			ComPtr<IDxcResult> result;
+			ComPtr<IDxcResult> result = {};
 			throw_if_failed(idxc_compiler->Compile(&source_buffer, arguments.data(), static_cast<u32>(arguments.size()), include_handler.Get(), IID_PPV_ARGS(result.GetAddressOf())));
 
-			ComPtr<IDxcBlobUtf8> errors;
+			ComPtr<IDxcBlobUtf8> errors = {};
 			result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(errors.GetAddressOf()), nullptr);
 
 			if (errors && errors->GetStringLength() > 0)
@@ -1840,26 +1838,26 @@ namespace sfg
 				return false;
 			}
 
-			HRESULT hr;
+			HRESULT hr = {};
 			result->GetStatus(&hr);
 
 			if (FAILED(hr))
 			{
 				if (result)
 				{
-					ComPtr<IDxcBlobEncoding> errorsBlob;
-					hr = result->GetErrorBuffer(&errorsBlob);
+					ComPtr<IDxcBlobEncoding> errorsBlob = {};
+					hr									= result->GetErrorBuffer(&errorsBlob);
+
 					if (SUCCEEDED(hr) && errorsBlob)
 					{
-						SFG_FATAL("Shader compilation failed:{0}", (const char*)errorsBlob->GetBufferPointer());
-						return false;
+						SFG_THROW("Shader compilation failed:{0}", (const char*)errorsBlob->GetBufferPointer());
 					}
 				}
 			}
 
 #if SFG_GFX_SERIALIZE_SHADERS_PDB
-			ComPtr<IDxcBlob>	  debug_data;
-			ComPtr<IDxcBlobUtf16> debug_data_path;
+			ComPtr<IDxcBlob>	  debug_data	  = {};
+			ComPtr<IDxcBlobUtf16> debug_data_path = {};
 			result->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(debug_data.GetAddressOf()), debug_data_path.GetAddressOf());
 
 			if (debug_data != NULL && debug_data_path != NULL)
@@ -1881,7 +1879,7 @@ namespace sfg
 
 			if (root_sig)
 			{
-				ComPtr<IDxcBlob> root_sig_blob;
+				ComPtr<IDxcBlob> root_sig_blob = {};
 				result->GetOutput(DXC_OUT_ROOT_SIGNATURE, IID_PPV_ARGS(&root_sig_blob), nullptr);
 
 				if (root_sig_blob && root_sig_blob->GetBufferSize() > 0)
@@ -1891,7 +1889,8 @@ namespace sfg
 					SFG_MEMCPY(out_signature_data.data, root_sig_blob->GetBufferPointer(), out_signature_data.size);
 				}
 			}
-			ComPtr<IDxcBlob> code;
+
+			ComPtr<IDxcBlob> code = {};
 			result->GetResult(&code);
 
 			if (code.Get() != NULL)
@@ -1903,31 +1902,21 @@ namespace sfg
 			}
 			else
 			{
-				SFG_FATAL("Failed compiling IDXC blob!");
-				return false;
+				SFG_THROW("Failed compiling IDXC blob!");
 			}
 
 			return true;
 		};
 
-		auto clean = [&]() {
-			source_blob.Reset();
-			for (const wchar_t* p : include_paths)
-				delete[] p;
-		};
-
-		const wchar_t* target_entry = string_util::char_to_wchar(entry_t);
+		const wstring_t target_entry = string_util::to_wstr(entry_t);
 
 		const wchar_t* t = stage == shader_stage_e::vertex ? L"vs_6_6" : L"ps_6_6";
-		if (!compile(t, target_entry, out, compile_root_sig))
+
+		if (!compile(t, target_entry.c_str(), out, compile_root_sig))
 		{
-			delete[] target_entry;
-			clean();
 			return false;
 		}
 
-		delete[] target_entry;
-		clean();
 		return true;
 	}
 
@@ -1936,35 +1925,36 @@ namespace sfg
 		if (!ensure_idxc_lib())
 			return false;
 
-		Microsoft::WRL::ComPtr<IDxcCompiler3> idxc_compiler;
+		Microsoft::WRL::ComPtr<IDxcCompiler3> idxc_compiler = {};
 		throw_if_failed(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&idxc_compiler)));
 
-		ComPtr<IDxcUtils> utils;
+		ComPtr<IDxcUtils> utils = {};
 		throw_if_failed(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(utils.GetAddressOf())));
 
-		UINT32					 code_page = CP_UTF8;
-		ComPtr<IDxcBlobEncoding> source_blob;
+		UINT32					 code_page	   = CP_UTF8;
+		ComPtr<IDxcBlobEncoding> source_blob   = {};
 		const char*				 shader_source = source.c_str();
 		s_idxcLib->CreateBlobWithEncodingFromPinned((const BYTE*)shader_source, static_cast<UINT>(source.size()), code_page, &source_blob);
 
-		DxcBuffer source_buffer;
-		source_buffer.Ptr	   = source_blob->GetBufferPointer();
-		source_buffer.Size	   = source_blob->GetBufferSize();
-		source_buffer.Encoding = 0;
+		DxcBuffer source_buffer = {};
+		source_buffer.Ptr		= source_blob->GetBufferPointer();
+		source_buffer.Size		= source_blob->GetBufferSize();
+		source_buffer.Encoding	= 0;
 
-		const wchar_t* entry_point = string_util::char_to_wchar(entry_t);
+		const wstring_t entry_point = string_util::to_wstr(entry_t);
 
-		vector_t<LPCWSTR> arguments = {L"-T", L"cs_6_6", L"-E", entry_point, DXC_ARG_WARNINGS_ARE_ERRORS, L"-HV 2021"};
+		vector_t<LPCWSTR> arguments = {L"-T", L"cs_6_6", L"-E", entry_point.c_str(), DXC_ARG_WARNINGS_ARE_ERRORS, L"-HV 2021"};
 
-		vector_t<const wchar_t*> include_paths;
+		vector_t<wstring_t> include_paths = {};
 		include_paths.reserve(source_paths.size());
-		for (const string_t& src_path : source_paths)
-			include_paths.push_back(string_util::char_to_wchar(src_path.c_str()));
 
-		for (const wchar_t* include : include_paths)
+		for (const string_t& src_path : source_paths)
+			include_paths.push_back(string_util::to_wstr(src_path));
+
+		for (const wstring_t& include : include_paths)
 		{
 			arguments.push_back(L"-I");
-			arguments.push_back(include);
+			arguments.push_back(include.c_str());
 		}
 
 #ifdef SFG_DEBUG
@@ -1977,45 +1967,41 @@ namespace sfg
 		arguments.push_back(DXC_ARG_OPTIMIZATION_LEVEL3);
 #endif
 
-		ComPtr<IDxcIncludeHandler> include_handler;
+		ComPtr<IDxcIncludeHandler> include_handler = {};
 		throw_if_failed(utils->CreateDefaultIncludeHandler(&include_handler));
 
-		ComPtr<IDxcResult> result;
+		ComPtr<IDxcResult> result = {};
 		throw_if_failed(idxc_compiler->Compile(&source_buffer, arguments.data(), static_cast<u32>(arguments.size()), include_handler.Get(), IID_PPV_ARGS(result.GetAddressOf())));
 
-		delete[] entry_point;
-
-		for (const wchar_t* p : include_paths)
-			delete[] p;
-
-		ComPtr<IDxcBlobUtf8> errors;
+		ComPtr<IDxcBlobUtf8> errors = {};
 		result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(errors.GetAddressOf()), nullptr);
+
 		if (errors && errors->GetStringLength() > 0)
 		{
 			SFG_ERR("{0}", (char*)errors->GetStringPointer());
 			return false;
 		}
 
-		HRESULT hr;
+		HRESULT hr = {};
 		result->GetStatus(&hr);
 
 		if (FAILED(hr))
 		{
 			if (result)
 			{
-				ComPtr<IDxcBlobEncoding> errorsBlob;
-				hr = result->GetErrorBuffer(&errorsBlob);
+				ComPtr<IDxcBlobEncoding> errorsBlob = {};
+				hr									= result->GetErrorBuffer(&errorsBlob);
+
 				if (SUCCEEDED(hr) && errorsBlob)
 				{
-					SFG_FATAL("Shader compilation failed:{0}", (const char*)errorsBlob->GetBufferPointer());
-					return false;
+					SFG_THROW("Shader compilation failed:{0}", (const char*)errorsBlob->GetBufferPointer());
 				}
 			}
 		}
 
 #if SFG_GFX_SERIALIZE_SHADERS_PDB
-		ComPtr<IDxcBlob>	  debug_data;
-		ComPtr<IDxcBlobUtf16> debug_data_path;
+		ComPtr<IDxcBlob>	  debug_data	  = {};
+		ComPtr<IDxcBlobUtf16> debug_data_path = {};
 		result->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(debug_data.GetAddressOf()), debug_data_path.GetAddressOf());
 
 		if (debug_data != NULL && debug_data_path != NULL)
@@ -2034,7 +2020,7 @@ namespace sfg
 
 		if (compile_layout)
 		{
-			ComPtr<IDxcBlob> root_sig_blob;
+			ComPtr<IDxcBlob> root_sig_blob = {};
 			result->GetOutput(DXC_OUT_ROOT_SIGNATURE, IID_PPV_ARGS(&root_sig_blob), nullptr);
 
 			if (root_sig_blob && root_sig_blob->GetBufferSize() > 0)
@@ -2044,7 +2030,8 @@ namespace sfg
 				SFG_MEMCPY(out_layout.data, root_sig_blob->GetBufferPointer(), out_layout.size);
 			}
 		}
-		ComPtr<IDxcBlob> code;
+
+		ComPtr<IDxcBlob> code = {};
 		result->GetResult(&code);
 
 		if (code.Get() != NULL)
@@ -2056,8 +2043,7 @@ namespace sfg
 		}
 		else
 		{
-			SFG_FATAL("Failed compiling IDXC blob!");
-			return false;
+			SFG_THROW("Failed compiling IDXC blob!");
 		}
 
 		source_blob.Reset();

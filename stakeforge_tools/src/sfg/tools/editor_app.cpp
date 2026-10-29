@@ -38,6 +38,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/data/vector.hpp>
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/io/file_system.hpp>
+#include <sfg/core/io/error_reporting.hpp>
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/memory/frame_allocator.hpp>
 #include <sfg/core/platform/common_window.hpp>
@@ -383,6 +384,17 @@ namespace sfg
 
 		if (_mode == editor_app_mode_e::normal)
 			uninit_normal_mode();
+
+		if (mode == editor_app_mode_e::splash)
+		{
+			if (!error_reporting_t::get().set_project_name(editor_project_t::get()._runtime.name.c_str()))
+				SFG_THROW("could not open the project error log");
+		}
+		else if (mode == editor_app_mode_e::project_creator)
+		{
+			if (!error_reporting_t::get().set_project_name("Editor"))
+				SFG_THROW("could not open the editor error log");
+		}
 
 		if (mode == editor_app_mode_e::normal)
 		{

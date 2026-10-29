@@ -28,23 +28,10 @@ in GAME-LINKING-EXCEPTION.md.
 #include <Windows.h>
 #endif
 
-#ifdef SFG_DUMP_LOG_TRACE
-#include "core/serialization/serialization.hpp"
-#endif
-
 #include <iostream>
 
 namespace sfg
 {
-
-	log_t::~log_t()
-	{
-
-#ifdef SFG_DUMP_LOG_TRACE
-		serializer_t::write_to_file(_log_trace, "sfg_log_trace.txt");
-#endif
-	}
-
 	void log_t::log_impl(log_source_e source, log_level level, const char* msg)
 	{
 		log_impl(source, level, nullptr, msg);
@@ -55,15 +42,11 @@ namespace sfg
 		LOCK_GUARD(_mtx);
 
 		string_t msg_str = func == nullptr ? (string_t(msg)) : (string_t(func) + "() -> " + string_t(msg));
-		msg_str += "\n";
 
-#ifdef SFG_DUMP_LOG_TRACE
-		if (level == log_level::error || level == log_level::warning)
-		{
-			_log_trace += msg;
-			_log_trace += "\n";
-		}
-#endif
+		for (const listener_t& listener : _listeners)
+			listener.f(source, level, msg_str.c_str(), listener.user_data);
+
+		msg_str += "\n";
 
 #ifdef SFG_PLATFORM_WINDOWS
 		HANDLE hConsole		= nullptr;
@@ -94,9 +77,6 @@ namespace sfg
 #else
 		std::cout << msg_str.c_str();
 #endif
-
-		for (const listener_t& l : _listeners)
-			l.f(source, level, msg, l.user_data);
 	}
 
 	void log_t::add_listener(unsigned int id, callback_function f, void* user_data)

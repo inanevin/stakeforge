@@ -188,6 +188,7 @@ namespace sfg
 
 		// build package metadata from the cook options
 		*_package_meta					 = {};
+		_package_meta->project_name		 = editor_project_t::get()._runtime.name;
 		_package_meta->project_settings	 = editor_project_t::get().settings.project_settings;
 		_package_meta->window_resolution = _cook_options->resolution;
 		_package_meta->window_style		 = _cook_options->is_borderless ? window_style_e::borderless : window_style_e::app_window;

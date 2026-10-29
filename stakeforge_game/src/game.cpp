@@ -27,6 +27,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/input/input_mappings.hpp>
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/io/file_system.hpp>
+#include <sfg/core/io/error_reporting.hpp>
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/memory/frame_allocator.hpp>
 #include <sfg/core/platform/process.hpp>
@@ -139,6 +140,9 @@ namespace sfg
 
 		if (!_package_meta.deserialize(meta_stream))
 			return fail_init("project_meta.sfg_bin has an incompatible cook version or is corrupt.");
+
+		if (!error_reporting_t::get().set_project_name(_package_meta.project_name.c_str()))
+			return fail_init("Failed to open the project error log.");
 
 		engine_runtime_t& runtime = engine_runtime_t::get();
 

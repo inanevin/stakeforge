@@ -57,9 +57,7 @@ namespace sfg
 	{
 		if (FAILED(hr))
 		{
-			SFG_FATAL("DX12 Exception! {0}", hr);
-			DBG_BRK;
-			throw HrException(hr);
+			SFG_THROW(HrException(hr));
 		}
 	}
 

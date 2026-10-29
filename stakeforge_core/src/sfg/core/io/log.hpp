@@ -23,33 +23,16 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "core/common/sfg_exports.hpp"
 
-#ifdef SFG_DEBUG
-
 #define SFG_ERR(...)		sfg::log_t::instance().log_msg_func(sfg::log_source_e::engine, sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
 #define SFG_WARN(...)		sfg::log_t::instance().log_msg_func(sfg::log_source_e::engine, sfg::log_level::warning, __FUNCTION__, __VA_ARGS__)
 #define SFG_INFO(...)		sfg::log_t::instance().log_msg_func(sfg::log_source_e::engine, sfg::log_level::info, __FUNCTION__, __VA_ARGS__)
 #define SFG_TRACE(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::trace, __VA_ARGS__)
-#define SFG_FATAL(...)		sfg::log_t::instance().log_msg_func(sfg::log_source_e::engine, sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
+#define SFG_THROW(...)		sfg::log_t::instance().throw_msg_func(__FUNCTION__, __VA_ARGS__)
 #define SFG_PROG(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::progress, __VA_ARGS__)
 #define SFG_GAME_ERR(...)	sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::error, __VA_ARGS__)
 #define SFG_GAME_WARN(...)	sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::warning, __VA_ARGS__)
 #define SFG_GAME_INFO(...)	sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::info, __VA_ARGS__)
 #define SFG_GAME_TRACE(...) sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::trace, __VA_ARGS__)
-
-#else
-
-#define SFG_ERR(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
-#define SFG_WARN(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::warning, __FUNCTION__, __VA_ARGS__)
-#define SFG_INFO(...)		sfg::log_t::instance().log_msg_func(sfg::log_source_e::engine, sfg::log_level::info, __FUNCTION__, __VA_ARGS__)
-#define SFG_TRACE(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::trace, __VA_ARGS__)
-#define SFG_FATAL(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::error, __FUNCTION__, __VA_ARGS__)
-#define SFG_PROG(...)		sfg::log_t::instance().log_msg(sfg::log_source_e::engine, sfg::log_level::progress, __VA_ARGS__)
-#define SFG_GAME_ERR(...)	sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::error, __VA_ARGS__)
-#define SFG_GAME_WARN(...)	sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::warning, __VA_ARGS__)
-#define SFG_GAME_INFO(...)	sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::info, __VA_ARGS__)
-#define SFG_GAME_TRACE(...) sfg::log_t::instance().log_msg(sfg::log_source_e::game, sfg::log_level::trace, __VA_ARGS__)
-
-#endif
 
 #include "core/common/size_definitions.hpp"
 #include "core/data/mutex.hpp"
@@ -87,14 +70,8 @@ namespace sfg
 			return log_t;
 		}
 
-		log_t()
-		{
-#ifdef SFG_DUMP_LOG_TRACE
-			_log_trace.reserve(1024 * 10);
-#endif
-		}
-
-		~log_t();
+		log_t()	 = default;
+		~log_t() = default;
 
 		// Helper to convert various types to string
 		template <typename T> std::string to_str(const T& value)
@@ -154,6 +131,20 @@ namespace sfg
 			log_impl(source, level, func, format_str(args...).c_str());
 		}
 
+		template <typename Exception> [[noreturn]] void throw_msg_func(const char* func, const Exception& exception)
+		{
+			log_impl(log_source_e::engine, log_level::error, func, exception.what());
+
+			throw exception;
+		}
+
+		template <typename... Args> [[noreturn]] void throw_msg_func(const char* func, const char* format, const Args&... args)
+		{
+			const std::runtime_error exception(format_str(format, args...));
+
+			throw_msg_func(func, exception);
+		}
+
 		void add_listener(unsigned int id, callback_function f, void* user_data);
 		void remove_listener(unsigned int id);
 
@@ -175,8 +166,5 @@ namespace sfg
 
 		mutex_t					  _mtx;
 		vector_malloc<listener_t> _listeners;
-#ifdef SFG_DUMP_LOG_TRACE
-		string_t _log_trace;
-#endif
 	};
 }
