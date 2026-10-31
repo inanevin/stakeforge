@@ -87,16 +87,24 @@ namespace sfg
 
 	string_t editor_asset_path_t::get_cache_path_for_guid(sid_t guid)
 	{
-		string_t result = editor_project_t::get()._runtime.cache_path;
+		string_t result = {};
+		get_cache_path_for_guid(guid, result);
+
+		return result;
+	}
+
+	void editor_asset_path_t::get_cache_path_for_guid(sid_t guid, string_t& result)
+	{
+		result = editor_project_t::get()._runtime.cache_path;
 
 		char  guid_text[32] = {};
 		char* guid_text_cur = guid_text;
+
 		if (!char_util::append_u64(guid_text_cur, guid_text + sizeof(guid_text), guid))
 			SFG_ASSERT(false);
 
 		result += guid_text;
 		result += ".sfg_bin";
-		return result;
 	}
 
 	string_t editor_asset_path_t::get_source_full_path(const char* assets_path, const editor_asset_t& asset)

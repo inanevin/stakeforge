@@ -53,6 +53,7 @@ namespace sfg::ui
 		texture,
 		test,
 		sprite,
+		evictable_texture,
 	};
 
 	enum class clip_mode_e : u8

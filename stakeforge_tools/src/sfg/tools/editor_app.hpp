@@ -93,6 +93,11 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
+		inline u64 get_tick_count() const
+		{
+			return _tick_count;
+		}
+
 		inline bool is_debug_mode_enabled() const
 		{
 			return _debug_mode;
@@ -131,6 +136,7 @@ namespace sfg
 		editor_modal_progress_bar_t	   _debug_progress_modal;
 		editor_work_status_t		   _splash_work_status = {};
 		string_t					   _splash_displayed_progress_text;
+		u64							   _tick_count				  = 0;
 		i64							   _last_tick_us			  = 0;
 		f32							   _debug_modal_progress	  = 0.0f;
 		editor_work_handle_t		   _splash_work				  = {};

@@ -21,14 +21,14 @@ in GAME-LINKING-EXCEPTION.md.
 */
 #include "tools/ui/widgets/editor_widget_thumbnail.hpp"
 #include "tools/ui/panels/editor_theme.hpp"
+#include "tools/assets/thumbnail/editor_asset_thumbnail_manager.hpp"
+#include "tools/editor_app.hpp"
 
 #include <sfg/core/runtime/resources/resource_manager.hpp>
 #include <sfg/core/runtime/ui/ui_context.hpp>
 
 namespace sfg
 {
-#define EDITOR_THUMBNAIL_CHECK_TICKS 30u
-
 	void editor_widget_thumbnail_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_thumbnail_config_t& config)
 	{
 		_ui		   = &ui;
@@ -45,26 +45,23 @@ namespace sfg
 		root_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
 		root_in.size_value		 = {1.0f, 1.0f};
 
+		ui.set_post_layout_tick(_root, on_tick, this);
 		refresh_frame();
 	}
 
 	void editor_widget_thumbnail_t::uninit()
 	{
-		_ui->clear_pre_layout_tick(_root);
+		_ui->clear_post_layout_tick(_root);
 		_ui->deallocate_widget(_root);
-		_ui			  = nullptr;
-		_root		  = NULL_WIDGET;
-		_thumbnail	  = NULL_SID;
-		_tick_counter = 0;
-		_ticking	  = false;
+		_ui				 = nullptr;
+		_root			 = NULL_WIDGET;
+		_thumbnail		 = NULL_SID;
+		_last_check_tick = 0;
 	}
 
 	void editor_widget_thumbnail_t::set_thumbnail(sid_t thumbnail)
 	{
-		_ui->clear_pre_layout_tick(_root);
-		_thumbnail	  = thumbnail;
-		_tick_counter = 0;
-		_ticking	  = false;
+		_thumbnail = thumbnail;
 		refresh_frame();
 	}
 
@@ -75,23 +72,15 @@ namespace sfg
 
 	void editor_widget_thumbnail_t::refresh_frame()
 	{
-		set_default_frame();
-
-		if (_thumbnail == NULL_SID)
-			return;
+		_last_check_tick = editor_app_t::get().get_tick_count();
+		editor_asset_thumbnail_manager_t::get().request_thumbnail(_thumbnail);
 
 		const resource_entry_t* entry = resource_manager_t::get().find_entry(_thumbnail);
-		if (entry != nullptr && entry->state == resource_state_e::ready)
-		{
-			set_texture_frame();
-			return;
-		}
 
-		if (!_ticking)
-		{
-			_ui->set_pre_layout_tick(_root, on_tick, this);
-			_ticking = true;
-		}
+		if (entry != nullptr && entry->state == resource_state_e::ready)
+			set_texture_frame();
+		else
+			set_default_frame();
 	}
 
 	void editor_widget_thumbnail_t::set_default_frame()
@@ -120,28 +109,31 @@ namespace sfg
 		ui::ui_render_state_t state = {};
 		state.pipeline				= "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
 		state.constants[0].handle	= _thumbnail;
-		state.constants[0].type		= ui::ui_resource_type_e::texture;
+		state.constants[0].type		= ui::ui_resource_type_e::evictable_texture;
 
 		_ui->get_paint().set_rect(_root, rect, state);
 		_ui->get_paint().set_disabled_color(_root, theme.color_text_disabled);
-
-		_ui->clear_pre_layout_tick(_root);
-		_tick_counter = 0;
-		_ticking	  = false;
 	}
 
-	void editor_widget_thumbnail_t::on_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
+	void editor_widget_thumbnail_t::on_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
 	{
 		editor_widget_thumbnail_t& thumbnail = *static_cast<editor_widget_thumbnail_t*>(user_data);
-		thumbnail._tick_counter++;
-		if (thumbnail._tick_counter < EDITOR_THUMBNAIL_CHECK_TICKS)
+		const u64				   tick		 = editor_app_t::get().get_tick_count();
+
+		if (tick - thumbnail._last_check_tick < editor_asset_thumbnail_manager_t::REQUEST_INTERVAL_TICKS)
 			return;
 
-		thumbnail._tick_counter		  = 0;
-		const resource_entry_t* entry = resource_manager_t::get().find_entry(thumbnail._thumbnail);
-		if (entry != nullptr && entry->state == resource_state_e::ready)
-			thumbnail.set_texture_frame();
-	}
+		thumbnail._last_check_tick	  = tick;
+		const ui::layout_tree_t& tree = ui.get_tree();
 
-#undef EDITOR_THUMBNAIL_CHECK_TICKS
+		if (!ui.get_input().is_widget_visible(tree, id))
+			return;
+
+		const vec4f_t& clip = tree.out(id).clip;
+
+		if (clip.z <= 0.0f || clip.w <= 0.0f)
+			return;
+
+		thumbnail.refresh_frame();
+	}
 }

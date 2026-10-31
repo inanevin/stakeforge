@@ -150,6 +150,8 @@ namespace sfg::ui
 		// accessors
 		// -----------------------------------------------------------------------------
 
+		bool is_widget_visible(const layout_tree_t& tree, widget_id_t id) const;
+
 		inline widget_id_t get_hovered() const
 		{
 			return _hovered;
@@ -178,7 +180,6 @@ namespace sfg::ui
 		widget_id_t find_focus_target(widget_id_t id) const;
 		bool		is_in_popup_scope(widget_id_t id) const;
 		bool		is_in_subtree(widget_id_t id, widget_id_t root) const;
-		bool		is_widget_visible(const layout_tree_t& tree, widget_id_t id) const;
 		void		fire_hover_change(widget_id_t new_hover);
 		void		refresh_state(const layout_tree_t& tree);
 

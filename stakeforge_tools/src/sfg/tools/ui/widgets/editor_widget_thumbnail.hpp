@@ -77,10 +77,9 @@ namespace sfg
 		static void on_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
-		ui::ui_context* _ui			  = nullptr;
-		ui::widget_id_t _root		  = NULL_WIDGET;
-		sid_t			_thumbnail	  = NULL_SID;
-		u32				_tick_counter = 0;
-		bool			_ticking	  = false;
+		ui::ui_context* _ui				 = nullptr;
+		sid_t			_thumbnail		 = NULL_SID;
+		u64				_last_check_tick = 0;
+		ui::widget_id_t _root			 = NULL_WIDGET;
 	};
 }

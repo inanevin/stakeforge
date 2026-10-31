@@ -367,6 +367,22 @@ namespace sfg
 		return idx;
 	}
 
+	gpu_index_t render_resources_t::get_optional_texture_gpu_index(render_resource_handle_t handle, u8 view_index) const
+	{
+		SFG_ASSERT(is_render_access_thread());
+		SFG_ASSERT(view_index < TEXTURE_MAX_VIEWS);
+
+		if (handle.is_null() || handle.index >= _rt_textures.size())
+			return NULL_GPU_INDEX;
+
+		const render_thread_resource_t& resource = _rt_textures[handle.index];
+
+		if (resource.render_handle != handle || resource.hw_handle.is_null())
+			return NULL_GPU_INDEX;
+
+		return resource.texture_gpu_indices[view_index];
+	}
+
 	gpu_index_t render_resources_t::get_sampler_gpu_index(render_resource_handle_t handle) const
 	{
 		SFG_ASSERT(is_render_access_thread());

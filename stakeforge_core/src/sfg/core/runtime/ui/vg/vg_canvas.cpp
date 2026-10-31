@@ -454,6 +454,7 @@ namespace sfg::ui
 				const ui_resource_ref_t&	ref = db.state.constants[i];
 				ui_resolved_resource_ref_t& dst = db.resolved.constants[i];
 				dst.type						= ref.type;
+
 				if (ref.type == ui_resource_type_e::gpu_index || ref.type == ui_resource_type_e::test)
 				{
 					dst.gpu_indices[0] = ref.gpu_indices[0];
@@ -462,6 +463,10 @@ namespace sfg::ui
 				{
 					for (u8 j = 0; j < BACK_BUFFER_COUNT; ++j)
 						dst.gpu_indices[j] = ref.gpu_indices[j];
+				}
+				else if (ref.type == ui_resource_type_e::evictable_texture)
+				{
+					dst.texture = resolve_texture(ref.handle, ref.type);
 				}
 				else if (ref.type == ui_resource_type_e::texture || ref.type == ui_resource_type_e::sprite)
 				{
@@ -472,6 +477,7 @@ namespace sfg::ui
 				{
 					for (u8 j = 0; j < BACK_BUFFER_COUNT; ++j)
 						dst.gpu_indices[j] = NULL_GPU_INDEX;
+
 					dst.texture = {};
 				}
 			}

@@ -1062,7 +1062,7 @@ namespace sfg
 				continue;
 
 			if (tracking_state.kind == cooked_resource_kind_e::thumbnail)
-				thumbnail_manager.refresh_thumbnail_resource(resource_id);
+				thumbnail_manager.on_thumbnail_regenerated(resource_id);
 			else
 			{
 				if (resource_manager.find_entry(resource_id) != nullptr)

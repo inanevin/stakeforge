@@ -49,6 +49,7 @@ namespace sfg
 
 		static void	 generate_thumbnail(const editor_asset_t& asset, const char* display_name = nullptr);
 		static bool	 save_thumbnail(const editor_asset_t& asset, span_t<u8> pixels, const char* display_name);
+		static bool	 is_builtin_thumbnail(sid_t thumbnail_guid);
 		static bool	 is_renderable_thumbnail(editor_asset_type_e asset_type);
 		static sid_t make_thumbnail_guid(editor_asset_type_e asset_type, span_t<const sid_t> pending_guids = {});
 		static sid_t get_builtin_thumbnail_guid(editor_asset_type_e asset_type);

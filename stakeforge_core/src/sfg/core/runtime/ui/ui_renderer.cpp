@@ -59,14 +59,18 @@ namespace sfg::ui
 
 		gpu_index_t resolve_constant(const ui_resolved_resource_ref_t& ref, u8 frame_slot)
 		{
-			if (ref.type == ui_resource_type_e::gpu_index)
+			if (ref.type == ui_resource_type_e::gpu_index || ref.type == ui_resource_type_e::test)
 				return ref.gpu_indices[0];
-			if (ref.type == ui_resource_type_e::test)
-				return ref.gpu_indices[0];
+
 			if (ref.type == ui_resource_type_e::gpu_index_fof)
 				return ref.gpu_indices[frame_slot];
+
+			if (ref.type == ui_resource_type_e::evictable_texture)
+				return render_resources_t::get().get_optional_texture_gpu_index(ref.texture, 0);
+
 			if (ref.type == ui_resource_type_e::texture || ref.type == ui_resource_type_e::sprite)
 				return render_resources_t::get().get_texture_gpu_index(ref.texture, 0);
+
 			return NULL_GPU_INDEX;
 		}
 	}
@@ -181,6 +185,19 @@ namespace sfg::ui
 			if (db.resolved.pipeline.is_null())
 				continue;
 
+			gpu_index_t obj_constants[4] = {};
+			bool		missing_texture	 = false;
+
+			for (u8 j = 0; j < 4; ++j)
+			{
+				const ui_resolved_resource_ref_t& ref = db.resolved.constants[j];
+				obj_constants[j]					  = resolve_constant(ref, frame_slot);
+				missing_texture |= ref.type == ui_resource_type_e::evictable_texture && obj_constants[j] == NULL_GPU_INDEX;
+			}
+
+			if (missing_texture)
+				continue;
+
 			const gfx_handle_t pipeline = render_resources_t::get().get_shader_hw(db.resolved.pipeline);
 
 			if (pipeline != current_pipeline)
@@ -196,12 +213,6 @@ namespace sfg::ui
 			gpu_index_t				 mat_constants[2] = {atlas_index, _sdf_params_index};
 			command_bind_constants_t bc_mat0		  = {.data = mat_constants, .offset = constant_mat0, .count = 2, .param_index = 0};
 			backend.cmd_bind_constants(cmd, bc_mat0);
-
-			gpu_index_t obj_constants[4] = {};
-			for (u8 j = 0; j < 4; ++j)
-			{
-				obj_constants[j] = resolve_constant(db.resolved.constants[j], frame_slot);
-			}
 
 			command_bind_constants_t bc_obj = {.data = obj_constants, .offset = constant_obj0, .count = 4, .param_index = 0};
 			backend.cmd_bind_constants(cmd, bc_obj);

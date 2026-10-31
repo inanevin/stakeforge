@@ -282,6 +282,20 @@ namespace sfg
 		return builtin_guid != NULL_SID ? builtin_guid : editor_asset_util_t::generate_unique_asset_guid(pending_guids);
 	}
 
+	bool editor_asset_thumbnailer_t::is_builtin_thumbnail(sid_t thumbnail_guid)
+	{
+		if (thumbnail_guid == NULL_SID)
+			return false;
+
+		for (u8 type = 0; type < static_cast<u8>(editor_asset_type_e::count); ++type)
+		{
+			if (get_builtin_thumbnail_guid(static_cast<editor_asset_type_e>(type)) == thumbnail_guid)
+				return true;
+		}
+
+		return false;
+	}
+
 	sid_t editor_asset_thumbnailer_t::get_builtin_thumbnail_guid(editor_asset_type_e asset_type)
 	{
 		switch (asset_type)
@@ -303,6 +317,7 @@ namespace sfg
 		case editor_asset_type_e::animation:
 			return "editor/resource_pack/textures/thumbnails/animation_clip.png"_hs;
 		case editor_asset_type_e::animation_library:
+			return "editor/resource_pack/textures/thumbnails/animation_library.png"_hs;
 		case editor_asset_type_e::skeleton:
 			return "editor/resource_pack/textures/thumbnails/skeleton.png"_hs;
 		case editor_asset_type_e::ragdoll:

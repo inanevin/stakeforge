@@ -25,10 +25,17 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/tools_exports.hpp"
 
 #include <sfg/core/common/size_definitions.hpp>
+#include <sfg/core/data/string.hpp>
 #include <sfg/core/data/vector.hpp>
 
 namespace sfg
 {
+	struct thumbnail_lru_t
+	{
+		sid_t thumbnail_guid = NULL_SID;
+		u64	  last_used_tick = 0;
+	};
+
 	class SFG_TOOLS_API editor_asset_thumbnail_manager_t final
 	{
 	public:
@@ -55,17 +62,17 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
+		static inline constexpr u64 REQUEST_INTERVAL_TICKS = 30;
+
 		void tick();
-		void load_all_ready();
-		void refresh_thumbnail_resource(sid_t thumbnail_guid);
+		void request_thumbnail(sid_t thumbnail_guid);
+		void on_thumbnail_regenerated(sid_t thumbnail_guid);
 		void request_render(sid_t asset_guid);
 		void remove_asset(sid_t asset_guid, sid_t thumbnail_guid);
 
 	private:
-		void unload_loaded_thumbnail_resources();
-
-	private:
+		thumbnail_lru_t _thumbnails[384] = {};
 		vector_t<sid_t> _render_requests;
-		vector_t<sid_t> _loaded_thumbnail_resources;
+		string_t		_cache_path;
 	};
 }

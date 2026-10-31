@@ -67,7 +67,8 @@ namespace sfg
 		SFG_ASSERT(config.main_frame_budget_bytes != 0);
 		SFG_ASSERT(config.renderer.frame_budget_bytes != 0);
 
-		_config = config;
+		_config		= config;
+		_tick_count = 0;
 
 		engine_runtime_t& runtime = engine_runtime_t::get();
 
@@ -261,8 +262,6 @@ namespace sfg
 
 		_asset_manager.initialize_cooked_resource_tracking();
 		_asset_manager.initialize_source_file_tracking();
-
-		editor_asset_thumbnail_manager_t::get().load_all_ready();
 
 		const auto cleanup = [this]() {
 			editor_surface_controller_t::get().destroy_all_surfaces();
@@ -492,6 +491,8 @@ namespace sfg
 
 		while (tick)
 		{
+			++_tick_count;
+
 			const i64 main_thread_start_us = time_t::get_cpu_microseconds();
 
 			editor_project_t& project = editor_project_t::get();

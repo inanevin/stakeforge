@@ -27,7 +27,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/assets/thumbnail/editor_asset_thumbnailer.hpp"
 #include "tools/assets/thumbnail/editor_thumbnail_render_service.hpp"
 #include "tools/editor_app.hpp"
-#include <sfg/core/io/assert.hpp>
 #include <sfg/core/io/file_system.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
 
@@ -36,13 +35,19 @@ namespace sfg
 	void editor_asset_thumbnail_manager_t::init()
 	{
 		_render_requests.reserve(editor_asset_manager_t::get().get_assets().size());
-		_loaded_thumbnail_resources.reserve(editor_asset_manager_t::get().get_assets().size());
 	}
 
 	void editor_asset_thumbnail_manager_t::uninit()
 	{
 		_render_requests.resize(0);
-		unload_loaded_thumbnail_resources();
+
+		for (thumbnail_lru_t& thumbnail : _thumbnails)
+		{
+			if (thumbnail.thumbnail_guid != NULL_SID)
+				resource_manager_t::get().unload_resource(thumbnail.thumbnail_guid);
+
+			thumbnail = {};
+		}
 	}
 
 	void editor_asset_thumbnail_manager_t::tick()
@@ -74,44 +79,71 @@ namespace sfg
 		render_service.tick();
 	}
 
-	void editor_asset_thumbnail_manager_t::load_all_ready()
+	void editor_asset_thumbnail_manager_t::request_thumbnail(sid_t thumbnail_guid)
 	{
-		for (const auto& asset_pair : editor_asset_manager_t::get().get_assets())
+		if (thumbnail_guid == NULL_SID || editor_asset_thumbnailer_t::is_builtin_thumbnail(thumbnail_guid))
+			return;
+
+		const u64		 tick		= editor_app_t::get().get_tick_count();
+		thumbnail_lru_t* candidate	= nullptr;
+		u64				 oldest_age = 0;
+
+		for (thumbnail_lru_t& thumbnail : _thumbnails)
 		{
-			const editor_asset_t& asset = asset_pair.second;
+			if (thumbnail.thumbnail_guid == thumbnail_guid)
+			{
+				thumbnail.last_used_tick = tick;
+				return;
+			}
 
-			if (asset.thumbnail_guid == NULL_SID)
+			if (thumbnail.thumbnail_guid == NULL_SID)
+			{
+				if (candidate == nullptr || candidate->thumbnail_guid != NULL_SID)
+					candidate = &thumbnail;
+
 				continue;
+			}
 
-			if (asset.thumbnail_guid == editor_asset_thumbnailer_t::get_builtin_thumbnail_guid(asset.asset_type))
-				continue;
+			const u64 age = tick - thumbnail.last_used_tick;
 
-			const string_t cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.thumbnail_guid);
-
-			if (file_system_t::exists(cache_path.c_str()))
-				refresh_thumbnail_resource(asset.thumbnail_guid);
+			if (age > 2 * REQUEST_INTERVAL_TICKS && (candidate == nullptr || (candidate->thumbnail_guid != NULL_SID && age > oldest_age)))
+			{
+				candidate  = &thumbnail;
+				oldest_age = age;
+			}
 		}
+
+		if (candidate == nullptr)
+			return;
+
+		editor_asset_path_t::get_cache_path_for_guid(thumbnail_guid, _cache_path);
+
+		if (!file_system_t::exists(_cache_path.c_str()))
+			return;
+
+		resource_manager_t& resource_manager = resource_manager_t::get();
+
+		if (candidate->thumbnail_guid != NULL_SID)
+			resource_manager.unload_resource(candidate->thumbnail_guid);
+
+		*candidate = {};
+
+		if (resource_manager.load_resource(thumbnail_guid, resource_type_e::texture) != resource_state_e::failed)
+			*candidate = {.thumbnail_guid = thumbnail_guid, .last_used_tick = tick};
 	}
 
-	void editor_asset_thumbnail_manager_t::refresh_thumbnail_resource(sid_t thumbnail_guid)
+	void editor_asset_thumbnail_manager_t::on_thumbnail_regenerated(sid_t thumbnail_guid)
 	{
-		resource_manager_t& resource_manager = resource_manager_t::get();
-		const bool			was_loaded		 = resource_manager.find_entry(thumbnail_guid) != nullptr;
-		const auto			loaded_thumbnail = std::find(_loaded_thumbnail_resources.begin(), _loaded_thumbnail_resources.end(), thumbnail_guid);
-		const bool			was_tracked		 = loaded_thumbnail != _loaded_thumbnail_resources.end();
-
-		SFG_ASSERT(was_loaded == was_tracked);
-
-		if (was_loaded)
+		for (thumbnail_lru_t& thumbnail : _thumbnails)
 		{
-			if (resource_manager.reload_resource(thumbnail_guid) == resource_state_e::failed)
-				_loaded_thumbnail_resources.erase(loaded_thumbnail);
+			if (thumbnail.thumbnail_guid != thumbnail_guid || thumbnail_guid == NULL_SID)
+				continue;
+
+			if (resource_manager_t::get().reload_resource(thumbnail_guid) == resource_state_e::failed)
+				thumbnail = {};
 
 			return;
 		}
-
-		if (resource_manager.load_resource(thumbnail_guid, resource_type_e::texture) != resource_state_e::failed)
-			_loaded_thumbnail_resources.push_back(thumbnail_guid);
 	}
 
 	void editor_asset_thumbnail_manager_t::request_render(sid_t asset_guid)
@@ -126,27 +158,14 @@ namespace sfg
 
 		editor_thumbnail_render_service_t::get().cancel_asset(asset_guid);
 
-		const auto loaded_thumbnail = std::find(_loaded_thumbnail_resources.begin(), _loaded_thumbnail_resources.end(), thumbnail_guid);
+		for (thumbnail_lru_t& thumbnail : _thumbnails)
+		{
+			if (thumbnail.thumbnail_guid != thumbnail_guid || thumbnail_guid == NULL_SID)
+				continue;
 
-		if (loaded_thumbnail == _loaded_thumbnail_resources.end())
+			resource_manager_t::get().unload_resource(thumbnail_guid);
+			thumbnail = {};
 			return;
-
-		resource_manager_t& resource_manager = resource_manager_t::get();
-		SFG_ASSERT(resource_manager.find_entry(thumbnail_guid) != nullptr);
-
-		resource_manager.unload_resource(thumbnail_guid);
-		SFG_ASSERT(resource_manager.find_entry(thumbnail_guid) == nullptr);
-
-		_loaded_thumbnail_resources.erase(loaded_thumbnail);
-	}
-
-	void editor_asset_thumbnail_manager_t::unload_loaded_thumbnail_resources()
-	{
-		resource_manager_t& resource_manager = resource_manager_t::get();
-
-		for (auto it = _loaded_thumbnail_resources.rbegin(); it != _loaded_thumbnail_resources.rend(); ++it)
-			resource_manager.unload_resource(*it);
-
-		_loaded_thumbnail_resources.resize(0);
+		}
 	}
 }

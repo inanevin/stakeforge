@@ -162,6 +162,7 @@ namespace sfg
 		gfx_handle_t get_shader_hw(render_resource_handle_t handle) const;
 		gpu_index_t	 get_resource_gpu_index(render_resource_handle_t handle) const;
 		gpu_index_t	 get_texture_gpu_index(render_resource_handle_t handle, u8 view_index) const;
+		gpu_index_t	 get_optional_texture_gpu_index(render_resource_handle_t handle, u8 view_index) const;
 		gpu_index_t	 get_sampler_gpu_index(render_resource_handle_t handle) const;
 
 		inline render_resource_handle_t get_default_linear_sampler() const
