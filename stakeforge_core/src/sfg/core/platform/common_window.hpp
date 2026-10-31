@@ -135,6 +135,8 @@ namespace sfg
 		bool							is_hidden					= false;
 		bool							cursor_visible				= true;
 
+		u16 resize_border_width = 1; // physical pixels inside a borderless window
+
 		inline bool has_flag(window_runtime_flags_e flag) const
 		{
 			return flags.is_set(static_cast<u8>(flag));

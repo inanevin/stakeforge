@@ -159,6 +159,7 @@ namespace sfg
 
 		static void on_window_event(void* hwnd, const window_event_t& ev, void* user_data);
 		static bool on_window_client_hit_test(window_runtime_t& runtime, const vec2i16_t& pos, void* user_data);
+		static void on_surface_root_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
 		dynamic_gen_pool_t<editor_surface_t, u16, editor_surface_tag_t> _surfaces;

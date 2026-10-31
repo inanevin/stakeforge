@@ -56,7 +56,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define PANEL_WINDOW_DEFAULT_SCALE 0.6f
+#define PANEL_WINDOW_DEFAULT_SCALE	0.6f
+#define SURFACE_RESIZE_BORDER_WIDTH 4.0f
 
 	namespace
 	{
@@ -266,6 +267,18 @@ namespace sfg
 		return false;
 	}
 
+	void editor_surface_controller_t::on_surface_root_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
+	{
+		window_runtime_t& runtime	= *static_cast<window_runtime_t*>(user_data);
+		runtime.resize_border_width = runtime.has_flag(window_runtime_flags_e::maximized) ? 0 : static_cast<u16>(math::ceil(SURFACE_RESIZE_BORDER_WIDTH * ui.get_dpi_scale()));
+
+		const f32	  margin  = static_cast<f32>(runtime.resize_border_width) / ui.get_ui_scale();
+		const vec4f_t margins = {margin, margin, margin, margin};
+
+		if (ui.get_tree().in_const(id).child_margins != margins)
+			ui.get_tree().in(id).child_margins = margins;
+	}
+
 	void editor_surface_controller_t::on_payload_unhandled(const editor_payload_t& payload, void*)
 	{
 		if (payload.type != editor_payload_type_e::panel)
@@ -359,6 +372,13 @@ namespace sfg
 		surface_root_in.child_margins	 = {0.0f, 0.0f, 0.0f, 0.0f};
 
 		editor_theme_t& theme = editor_theme_t::get();
+
+		if (window_style == window_style_e::borderless)
+		{
+			surface.ui->get_paint().set_rect(surface.root, {.fill_color_a = theme.color_frame_dark, .fill_color_b = theme.color_frame_dark});
+			surface.ui->set_pre_layout_tick(surface.root, on_surface_root_tick, surface.runtime.get());
+			on_surface_root_tick(*surface.ui, surface.root, 0.0f, surface.runtime.get());
+		}
 
 		surface.content_root = surface.root;
 

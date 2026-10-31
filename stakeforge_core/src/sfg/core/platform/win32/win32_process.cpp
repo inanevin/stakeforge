@@ -314,21 +314,26 @@ namespace
 		SetLayeredWindowAttributes(hwnd, color_key, final_alpha, LWA_ALPHA | LWA_COLORKEY);
 	}
 
-	LRESULT get_borderless_resize_hit_test(HWND hwnd, POINT pt)
+	LRESULT get_borderless_resize_hit_test(HWND hwnd, POINT pt, u16 border_width)
 	{
 		if (IsZoomed(hwnd))
 			return HTCLIENT;
 
-		RECT rect{};
-		GetWindowRect(hwnd, &rect);
+		RECT rect = {};
+
+		if (!GetWindowRect(hwnd, &rect))
+		{
+			SFG_ERR("failed to query window bounds for resize hit testing: {0}", GetLastError());
+			return HTCLIENT;
+		}
 
 		const UINT dpi		   = GetDpiForWindow(hwnd);
 		const LONG corner_x	   = GetSystemMetricsForDpi(SM_CXFRAME, dpi) + GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
 		const LONG corner_y	   = GetSystemMetricsForDpi(SM_CYFRAME, dpi) + GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
-		const bool left		   = pt.x == rect.left;
-		const bool right	   = pt.x == rect.right - 2;
-		const bool top		   = pt.y == rect.top;
-		const bool bottom	   = pt.y == rect.bottom - 2;
+		const bool left		   = pt.x < rect.left + border_width;
+		const bool right	   = pt.x >= rect.right - border_width;
+		const bool top		   = pt.y < rect.top + border_width;
+		const bool bottom	   = pt.y >= rect.bottom - border_width;
 		const bool near_left   = pt.x < rect.left + corner_x;
 		const bool near_right  = pt.x >= rect.right - corner_x;
 		const bool near_top	   = pt.y < rect.top + corner_y;
@@ -336,18 +341,25 @@ namespace
 
 		if ((top && near_left) || (left && near_top))
 			return HTTOPLEFT;
+
 		if ((top && near_right) || (right && near_top))
 			return HTTOPRIGHT;
+
 		if ((bottom && near_left) || (left && near_bottom))
 			return HTBOTTOMLEFT;
+
 		if ((bottom && near_right) || (right && near_bottom))
 			return HTBOTTOMRIGHT;
+
 		if (left)
 			return HTLEFT;
+
 		if (right)
 			return HTRIGHT;
+
 		if (top)
 			return HTTOP;
+
 		if (bottom)
 			return HTBOTTOM;
 
@@ -446,11 +458,13 @@ namespace
 			break;
 		case WM_NCHITTEST: {
 			const LRESULT result = DefWindowProcA(hwnd, msg, w_param, l_param);
+
 			if (result != HTCLIENT || runtime->style != sfg::window_style_e::borderless)
 				return result;
 
 			POINT		  pt	 = {GET_X_LPARAM(l_param), GET_Y_LPARAM(l_param)};
-			const LRESULT resize = get_borderless_resize_hit_test(hwnd, pt);
+			const LRESULT resize = get_borderless_resize_hit_test(hwnd, pt, runtime->resize_border_width);
+
 			if (resize != HTCLIENT)
 				return resize;
 
@@ -458,6 +472,7 @@ namespace
 				return result;
 
 			ScreenToClient(hwnd, &pt);
+
 			if (runtime->client_hit_test_callback(*runtime, {static_cast<i16>(pt.x), static_cast<i16>(pt.y)}, runtime->client_hit_test_user_data))
 				return HTCAPTION;
 
