@@ -777,18 +777,22 @@ namespace sfg
 	void world_debug_draw_t::write_snapshot(world_debug_draw_snapshot_t& snapshot)
 	{
 		snapshot.line_vertices.resize(_vertices.size());
+
 		if (!_vertices.empty())
 			SFG_MEMCPY(snapshot.line_vertices.data(), _vertices.data(), _vertices.size() * sizeof(vertex_debug_line_t));
 
 		snapshot.line_indices.resize(_indices.size());
+
 		if (!_indices.empty())
 			SFG_MEMCPY(snapshot.line_indices.data(), _indices.data(), _indices.size() * sizeof(primitive_index));
 
 		snapshot.triangle_vertices.resize(_triangle_vertices.size());
+
 		if (!_triangle_vertices.empty())
 			SFG_MEMCPY(snapshot.triangle_vertices.data(), _triangle_vertices.data(), _triangle_vertices.size() * sizeof(vertex_debug_triangle_t));
 
 		snapshot.triangle_indices.resize(_triangle_indices.size());
+
 		if (!_triangle_indices.empty())
 			SFG_MEMCPY(snapshot.triangle_indices.data(), _triangle_indices.data(), _triangle_indices.size() * sizeof(primitive_index));
 
@@ -855,15 +859,22 @@ namespace sfg
 				.raster_mode = ui::glyph_raster_mode_e::grayscale,
 			};
 
-			const char*			  text		   = _text_bytes.data() + command.text_offset;
-			const vec2f_t		  size		   = ui::vg_canvas_t::measure_text(text, command.text_length, paint);
-			const u8			  alignment	   = static_cast<u8>(command.alignment);
-			const f32			  horizontal   = static_cast<f32>(alignment % 3) * 0.5f;
-			const f32			  vertical	   = static_cast<f32>(alignment / 3) * 0.5f;
-			const vec2f_t		  offset	   = command.screen_offset - vec2f_t(size.x * horizontal, size.y * vertical);
-			ui::vg_draw_buffer_t* draw_buffer  = _text_canvas->get_draw_buffer(0, state, command.text_length * 4);
-			const u32			  vertex_start = draw_buffer->vertex_count;
-			const u32			  index_start  = draw_buffer->index_count;
+			const char*			  text		  = _text_bytes.data() + command.text_offset;
+			const vec2f_t		  size		  = ui::vg_canvas_t::measure_text(text, command.text_length, paint);
+			const u8			  alignment	  = static_cast<u8>(command.alignment);
+			const f32			  horizontal  = static_cast<f32>(alignment % 3) * 0.5f;
+			const f32			  vertical	  = static_cast<f32>(alignment / 3) * 0.5f;
+			const vec2f_t		  offset	  = command.screen_offset - vec2f_t(size.x * horizontal, size.y * vertical);
+			ui::vg_draw_buffer_t* draw_buffer = _text_canvas->get_draw_buffer(0, state, command.text_length * 4);
+
+			if (draw_buffer == nullptr)
+			{
+				++_dropped_text_count;
+				continue;
+			}
+
+			const u32 vertex_start = draw_buffer->vertex_count;
+			const u32 index_start  = draw_buffer->index_count;
 
 			_text_canvas->add_text(text, command.text_length, offset, paint, state, 0, true);
 
@@ -873,6 +884,7 @@ namespace sfg
 			const f32			  mode		   = command.is_screen ? 0.0f : command.depth == debug_draw_depth_e::depth_tested ? 1.0f : 2.0f;
 
 			snapshot.text_vertices.resize(snapshot.text_vertices.size() + vertex_count);
+
 			for (u32 i = 0; i < vertex_count; ++i)
 			{
 				const ui::vg_vertex_t& source			= _text_canvas->get_draw_buffer_vertex(*draw_buffer, vertex_start + i);
@@ -887,6 +899,7 @@ namespace sfg
 
 			snapshot.text_indices.resize(snapshot.text_indices.size() + index_count);
 			const size_t index_output_start = snapshot.text_indices.size() - index_count;
+
 			for (u32 i = 0; i < index_count; ++i)
 				snapshot.text_indices[index_output_start + i] = base_vertex + static_cast<primitive_index>(_text_canvas->get_draw_buffer_index(*draw_buffer, index_start + i) - vertex_start);
 		}

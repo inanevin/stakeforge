@@ -93,7 +93,7 @@ namespace sfg::ui
 		// render-thread snapshot
 		// -----------------------------------------------------------------------------
 
-		const vg_draw_snapshot_t* acquire_render_snapshot();
+		vg_draw_snapshot_t acquire_render_snapshot();
 
 		// -----------------------------------------------------------------------------
 		// events
@@ -192,7 +192,9 @@ namespace sfg::ui
 			u32						draw_buffer_capacity = 0;
 			u32						vertex_capacity		 = 0;
 			u32						index_capacity		 = 0;
-			vg_draw_snapshot_t		snapshot			 = {};
+			u32						draw_buffer_count	 = 0;
+			u32						vertex_count		 = 0;
+			u32						index_count			 = 0;
 		};
 
 		struct pre_layout_tick_def_t

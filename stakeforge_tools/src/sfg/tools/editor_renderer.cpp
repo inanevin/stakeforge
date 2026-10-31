@@ -238,10 +238,10 @@ namespace sfg
 		/* figure out swapchain list */
 		struct rt_t
 		{
-			gfx_handle_t				  swapchain;
-			ui::ui_renderer_t*			  ui_renderer;
-			const ui::vg_draw_snapshot_t* ui_snapshot;
-			vec2u16_t					  size;
+			ui::vg_draw_snapshot_t ui_snapshot = {};
+			ui::ui_renderer_t*	   ui_renderer = nullptr;
+			gfx_handle_t		   swapchain   = {};
+			vec2u16_t			   size		   = vec2u16_t::zero;
 		};
 
 		frame_vector_t<rt_t>		 render_targets = {};
@@ -257,7 +257,12 @@ namespace sfg
 			render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
 
 			backend.get_back_buffer_index(t.swapchain);
-			render_targets.push_back({t.swapchain, t.ui_renderer, t.ui != nullptr ? t.ui->acquire_render_snapshot() : nullptr, t.size});
+			render_targets.push_back({
+				.ui_snapshot = t.ui != nullptr ? t.ui->acquire_render_snapshot() : ui::vg_draw_snapshot_t{},
+				.ui_renderer = t.ui_renderer,
+				.swapchain	 = t.swapchain,
+				.size		 = t.size,
+			});
 			present_list.push_back(t.swapchain);
 		}
 
@@ -321,7 +326,9 @@ namespace sfg
 		});
 
 		pfd.semaphore_world.value++;
+
 		bool world_submitted = false;
+
 		{
 			ZoneScopedN("world_controller_render_worlds");
 			world_submitted = world_controller.render_worlds(queue_gfx, pfd.semaphore_world.sem, pfd.semaphore_world.value, _frame_index, pfd.global_index, render_globals_t::get_global_bind_layout());
@@ -361,7 +368,7 @@ namespace sfg
 			command_set_viewport_t vp = {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = t.size.x, .height = t.size.y};
 			backend.cmd_set_viewport(cmd, vp);
 
-			t.ui_renderer->render(cmd, t.ui_snapshot, _frame_index, t.size);
+			t.ui_renderer->render(cmd, &t.ui_snapshot, _frame_index, t.size);
 
 			backend.cmd_end_render_pass(cmd, {});
 			END_DEBUG_EVENT((&backend), cmd);

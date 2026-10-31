@@ -632,24 +632,33 @@ namespace sfg::ui
 		{
 			if (db.draw_order != draw_order)
 				continue;
+
 			if (db.state.pipeline != state.pipeline)
 				continue;
+
 			if (SFG_MEMCMP(db.state.constants, state.constants, sizeof(state.constants)) != 0)
 				continue;
+
 			if (!db.clip.equals(clip, 0.5f))
 				continue;
+
 			if (db.vertex_count + vertex_count > VG_DRAW_BUFFER_VERTEX_MAX_COUNT)
 				continue;
 
 			return &db;
 		}
 
-		SFG_ASSERT(_draw_buffers.size() < _buffer_count);
+		if (_draw_buffers.size() >= _buffer_count)
+		{
+			SFG_ERR("exhausted allowed draw buffer size! {0}", _buffer_count);
+			return nullptr;
+		}
 
-		vg_draw_buffer_t db = {};
-		db.clip				= clip;
-		db.draw_order		= draw_order;
-		db.state			= state;
+		const vg_draw_buffer_t db{
+			.state		= state,
+			.clip		= clip,
+			.draw_order = draw_order,
+		};
 
 		_draw_buffers.push_back(db);
 		return &_draw_buffers.back();
@@ -753,9 +762,13 @@ namespace sfg::ui
 
 		if (!round && !out && !aa)
 		{
-			vg_draw_buffer_t* db	   = get_draw_buffer(draw_order, state, 4);
-			const u32		  vtx_base = db->vertex_count;
-			vec2f_t			  path[4]  = {{clipped_min.x, clipped_min.y}, {clipped_max.x, clipped_min.y}, {clipped_max.x, clipped_max.y}, {clipped_min.x, clipped_max.y}};
+			vg_draw_buffer_t* db = get_draw_buffer(draw_order, state, 4);
+
+			if (db == nullptr)
+				return;
+
+			const u32 vtx_base = db->vertex_count;
+			vec2f_t	  path[4]  = {{clipped_min.x, clipped_min.y}, {clipped_max.x, clipped_min.y}, {clipped_max.x, clipped_max.y}, {clipped_min.x, clipped_max.y}};
 
 			if (grad)
 				emit_path_grad(db, {path, 4}, paint.fill_color_a, paint.fill_color_b, paint.gradient, draw_min, draw_max);
@@ -820,6 +833,9 @@ namespace sfg::ui
 			required_vertex_count += static_cast<u32>(aa_path.size());
 
 		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state, required_vertex_count);
+
+		if (db == nullptr)
+			return;
 
 		const u32 fill_vtx_base = db->vertex_count;
 
@@ -912,7 +928,11 @@ namespace sfg::ui
 
 		const u32		  required_vertex_count = paint.aa_thickness > 0.0f ? 8 : 4;
 		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count);
-		const u32		  base					= db->vertex_count;
+
+		if (db == nullptr)
+			return;
+
+		const u32 base = db->vertex_count;
 
 		emit_path_solid(db, {line_path.data(), line_path.size()}, paint.color, bb_min, bb_max);
 		emit_quad_indices(db, base);
@@ -954,6 +974,9 @@ namespace sfg::ui
 		const u32		  path_vertex_count		= static_cast<u32>(outer_path.size());
 		const u32		  required_vertex_count = paint.filled ? path_vertex_count + 1 : path_vertex_count * 2;
 		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count + (paint.aa_thickness > 0.0f ? path_vertex_count : 0));
+
+		if (db == nullptr)
+			return;
 
 		const u32 base = db->vertex_count;
 
@@ -1025,7 +1048,11 @@ namespace sfg::ui
 
 		const u32		  required_vertex_count = static_cast<u32>(outer_path.size() + inner_path.size()) * (paint.aa_thickness > 0.0f ? 2 : 1);
 		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count);
-		const u32		  outer_base			= db->vertex_count;
+
+		if (db == nullptr)
+			return;
+
+		const u32 outer_base = db->vertex_count;
 
 		emit_path_solid(db, {outer_path.data(), outer_path.size()}, paint.color, bb_min, bb_max);
 
@@ -1092,6 +1119,9 @@ namespace sfg::ui
 
 		const u32		  required_vertex_count = static_cast<u32>(path.size) + (paint.aa_thickness > 0.0f ? static_cast<u32>(aa_path.size()) : 0);
 		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count);
+
+		if (db == nullptr)
+			return;
 
 		const u32 base = db->vertex_count;
 
@@ -1278,13 +1308,17 @@ namespace sfg::ui
 	{
 		SFG_ASSERT(is_text_run_valid(handle));
 
-		const text_cache_entry_t& entry		= _text_cache[handle.index];
-		vg_draw_buffer_t*		  db		= get_draw_buffer(draw_order, state, entry.vtx_count);
-		const vec2f_t			  draw_pos	= {math::round(pos.x), math::round(pos.y)};
-		const u32				  vtx_base	= db->vertex_count;
-		vg_vertex_t*			  verts		= take_vertices(db, entry.vtx_count);
-		vg_index_t*				  indices	= take_indices(db, entry.idx_count);
-		const vg_vertex_t*		  src_verts = &_text_cache_vertex_buffer[entry.vtx_start];
+		const text_cache_entry_t& entry = _text_cache[handle.index];
+		vg_draw_buffer_t*		  db	= get_draw_buffer(draw_order, state, entry.vtx_count);
+
+		if (db == nullptr)
+			return;
+
+		const vec2f_t	   draw_pos	 = {math::round(pos.x), math::round(pos.y)};
+		const u32		   vtx_base	 = db->vertex_count;
+		vg_vertex_t*	   verts	 = take_vertices(db, entry.vtx_count);
+		vg_index_t*		   indices	 = take_indices(db, entry.idx_count);
+		const vg_vertex_t* src_verts = &_text_cache_vertex_buffer[entry.vtx_start];
 
 		if (!has_cpu_clip())
 		{
@@ -1300,6 +1334,7 @@ namespace sfg::ui
 
 			for (u32 i = 0; i < entry.idx_count; ++i)
 				indices[i] = static_cast<vg_index_t>(indices[i] + vtx_base);
+
 			return;
 		}
 
@@ -1376,6 +1411,7 @@ namespace sfg::ui
 			SFG_ERR("vg_canvas: add_text called without font");
 			return;
 		}
+
 		if (len == 0)
 			return;
 
@@ -1390,16 +1426,20 @@ namespace sfg::ui
 			}
 		}
 
-		const bool			 cpu_clip			   = has_cpu_clip();
-		const u32			 required_vertex_count = static_cast<u32>(len) * 4;
-		vg_draw_buffer_t*	 db					   = get_draw_buffer(draw_order, state, required_vertex_count);
-		const vec2f_t		 draw_pos			   = {math::round(pos.x), math::round(pos.y)};
-		const u32			 px					   = get_text_paint_raster_px(paint);
-		glyph_atlas_t&		 atlas				   = resource_manager_t::get().get_glyph_atlas();
-		const size_metrics_t metrics			   = atlas.request_size_metrics(paint.font, px);
-		const f32			 scale				   = get_text_paint_draw_scale(paint, px);
-		const f32			 spacing			   = paint.spacing;
-		const text_bounds_t	 bounds				   = measure_text_bounds(text, len, atlas, paint.font, metrics, px, paint.raster_mode, scale, spacing);
+		const bool		  cpu_clip				= has_cpu_clip();
+		const u32		  required_vertex_count = static_cast<u32>(len) * 4;
+		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count);
+
+		if (db == nullptr)
+			return;
+
+		const vec2f_t		 draw_pos = {math::round(pos.x), math::round(pos.y)};
+		const u32			 px		  = get_text_paint_raster_px(paint);
+		glyph_atlas_t&		 atlas	  = resource_manager_t::get().get_glyph_atlas();
+		const size_metrics_t metrics  = atlas.request_size_metrics(paint.font, px);
+		const f32			 scale	  = get_text_paint_draw_scale(paint, px);
+		const f32			 spacing  = paint.spacing;
+		const text_bounds_t	 bounds	  = measure_text_bounds(text, len, atlas, paint.font, metrics, px, paint.raster_mode, scale, spacing);
 
 		const u32 char_count = static_cast<u32>(len);
 		const u32 vtx_base	 = db->vertex_count;
