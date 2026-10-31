@@ -35,7 +35,10 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define TEXTURE_VIEWER_TEXTURE_SHADER "editor/resource_pack/shaders/editor_ui_texture_mip.hlsl"_hs
+#define TEXTURE_VIEWER_TEXTURE_SHADER	 "editor/resource_pack/shaders/editor_ui_texture_mip.hlsl"_hs
+#define TEXTURE_VIEWER_ZOOM_MIN			 100.0f
+#define TEXTURE_VIEWER_ZOOM_MAX			 500.0f
+#define TEXTURE_VIEWER_ZOOM_WHEEL_FACTOR 1.1f
 
 	namespace
 	{
@@ -96,6 +99,17 @@ namespace sfg
 		_payload_format_value = append_property_value_row("Payload Format");
 		_runtime_format_value = append_property_value_row("Runtime Format");
 
+		const ui::widget_id_t zoom_row = append_property_control_row("Zoom (%)");
+		_zoom_field					   = &_zoom_percent;
+		_zoom_slider.init(ui,
+						  zoom_row,
+						  {
+							  .field		 = {.fields = {.data = &_zoom_field, .size = 1}},
+							  .min_value	 = TEXTURE_VIEWER_ZOOM_MIN,
+							  .max_value	 = TEXTURE_VIEWER_ZOOM_MAX,
+							  .decimal_count = 0,
+						  });
+
 		_bottom_pane = ui.allocate_widget();
 		ui.set_widget_debug_name(_bottom_pane, "texture_viewer_bottom_pane");
 		tree.attach(_root, _bottom_pane);
@@ -106,11 +120,25 @@ namespace sfg
 		bottom_in.size_mode_y	   = ui::axis_mode_e::fixed;
 		bottom_in.size_value	   = {1.0f, theme.item_height * 20.0f};
 		bottom_in.child_margins	   = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
+		bottom_in.child_clip_mode  = ui::clip_mode_e::scissor_rect;
+		bottom_in.flags |= ui::wf_input;
 
-		ui::vg_rect_paint_t bottom_rect = {};
-		bottom_rect.fill_color_a		= theme.color_frame;
-		bottom_rect.fill_color_b		= theme.color_frame;
-		paint.set_rect(_bottom_pane, bottom_rect);
+		const ui::ui_render_state_t checker_state{
+			.pipeline  = "editor/resource_pack/shaders/editor_ui_texture_repeat.hlsl"_hs,
+			.constants = {{
+				.handle = "editor/resource_pack/textures/checker.png"_hs,
+				.type	= ui::ui_resource_type_e::texture,
+			}},
+		};
+		paint.set_rect(_bottom_pane, {.fill_color_a = vec4f_t::one, .fill_color_b = vec4f_t::one}, checker_state);
+
+		ui.get_input().set_listener(_bottom_pane,
+									{
+										.on_hover_enter = on_preview_hover,
+										.on_hover_move	= on_preview_hover,
+										.on_wheel		= on_preview_wheel,
+										.user_data		= this,
+									});
 
 		_texture_display = ui.allocate_widget();
 		ui.set_widget_debug_name(_texture_display, "texture_viewer_texture_display");
@@ -128,6 +156,7 @@ namespace sfg
 		texture_in.size_value		= {1.0f, 1.0f};
 
 		ui.set_pre_layout_tick(_bottom_pane, on_texture_display_tick, this);
+
 		if (_resource_type == editor_widget_texture_viewer_resource_e::texture)
 			rebuild_mip_dropdown();
 
@@ -137,13 +166,14 @@ namespace sfg
 
 	void editor_widget_texture_viewer_t::uninit()
 	{
-
 		if (_mip_dropdown_inited)
 		{
 			_mip_dropdown.uninit();
 			_mip_dropdown_inited = false;
 		}
 
+		_ui->clear_pre_layout_tick(_bottom_pane);
+		_zoom_slider.uninit();
 		unload_texture();
 		_ui->deallocate_widget(_root);
 
@@ -156,6 +186,12 @@ namespace sfg
 		_payload_format_text.resize(0);
 		_runtime_format_text.resize(0);
 		_mip_count_text.resize(0);
+
+		_zoom_field			  = nullptr;
+		_zoom_percent		  = TEXTURE_VIEWER_ZOOM_MIN;
+		_applied_zoom		  = 1.0f;
+		_relative_focus		  = {0.5f, 0.5f};
+		_zoom_offset		  = vec2f_t::zero;
 		_ui					  = nullptr;
 		_texture_guid		  = 0;
 		_root				  = NULL_WIDGET;
@@ -188,7 +224,13 @@ namespace sfg
 	void editor_widget_texture_viewer_t::set_resource(sid_t resource_guid)
 	{
 		if (_texture_guid != resource_guid)
+		{
 			unload_texture();
+			_zoom_slider.set_value(TEXTURE_VIEWER_ZOOM_MIN);
+			_applied_zoom	= 1.0f;
+			_relative_focus = {0.5f, 0.5f};
+			_zoom_offset	= vec2f_t::zero;
+		}
 
 		_texture_guid = resource_guid;
 		load_texture();
@@ -437,7 +479,7 @@ namespace sfg
 		return label;
 	}
 
-	void editor_widget_texture_viewer_t::on_texture_display_tick(ui::ui_context&, ui::widget_id_t, f32, void* user_data)
+	void editor_widget_texture_viewer_t::on_texture_display_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
 	{
 		editor_widget_texture_viewer_t& viewer = *static_cast<editor_widget_texture_viewer_t*>(user_data);
 
@@ -473,15 +515,59 @@ namespace sfg
 		const f32 texture_width	 = math::max(1.0f, static_cast<f32>(texture_size.x));
 		const f32 texture_height = math::max(1.0f, static_cast<f32>(texture_size.y));
 		const f32 aspect		 = texture_width / texture_height;
-		vec2f_t	  display_size	 = {};
+		vec2f_t	  display_size	 = vec2f_t::zero;
 
 		if (max_width / max_height > aspect)
 			display_size = {max_height * aspect, max_height};
 		else
 			display_size = {max_width, max_width / aspect};
 
+		const f32	  zoom			= viewer._zoom_percent / TEXTURE_VIEWER_ZOOM_MIN;
+		const vec2f_t viewport_size = {max_width, max_height};
+		vec2f_t		  offset		= viewer._zoom_offset * display_size;
+
+		if (zoom != viewer._applied_zoom)
+		{
+			const vec2f_t focus_offset = (viewer._relative_focus - vec2f_t(0.5f, 0.5f)) * viewport_size;
+			offset					   = focus_offset + (offset - focus_offset) * (zoom / viewer._applied_zoom);
+			viewer._applied_zoom	   = zoom;
+		}
+
+		const vec2f_t zoomed_size = display_size * zoom;
+		const vec2f_t max_offset  = (zoomed_size - display_size) * 0.5f;
+		offset.x				  = math::clamp(offset.x, -max_offset.x, max_offset.x);
+		offset.y				  = math::clamp(offset.y, -max_offset.y, max_offset.y);
+		viewer._zoom_offset		  = offset / display_size;
+
 		ui::layout_in_t& texture_display_in = viewer._ui->get_tree().in(viewer._texture_display);
-		texture_display_in.size_value		= {display_size.x, display_size.y};
+		texture_display_in.size_value		= zoomed_size;
+		texture_display_in.pos_value		= vec2f_t(0.5f, 0.5f) + offset / viewport_size;
+	}
+
+	void editor_widget_texture_viewer_t::update_zoom_focus(const vec2f_t& pos)
+	{
+		const ui::layout_tree_t& tree		   = _ui->get_tree();
+		const ui::layout_out_t&	 out		   = tree.out(_bottom_pane);
+		const vec4f_t			 margins	   = tree.in_const(_bottom_pane).child_margins * ui::get_valid_scale(_ui->get_ui_scale());
+		const vec2f_t			 viewport_size = {
+			math::max(1.0f, out.size.x - margins.w - margins.y),
+			math::max(1.0f, out.size.y - margins.x - margins.z),
+		};
+		const vec2f_t relative_pos = (pos - out.pos - vec2f_t(margins.w, margins.x)) / viewport_size;
+
+		_relative_focus = {math::clamp(relative_pos.x, 0.0f, 1.0f), math::clamp(relative_pos.y, 0.0f, 1.0f)};
+	}
+
+	void editor_widget_texture_viewer_t::on_preview_hover(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data)
+	{
+		static_cast<editor_widget_texture_viewer_t*>(user_data)->update_zoom_focus(pos);
+	}
+
+	void editor_widget_texture_viewer_t::on_preview_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data)
+	{
+		editor_widget_texture_viewer_t& viewer = *static_cast<editor_widget_texture_viewer_t*>(user_data);
+		viewer.update_zoom_focus(router.get_mouse_position());
+		viewer._zoom_slider.set_value(viewer._zoom_percent * math::pow(TEXTURE_VIEWER_ZOOM_WHEEL_FACTOR, delta));
 	}
 
 	u16 editor_widget_texture_viewer_t::get_selected_mip(void* user_data)

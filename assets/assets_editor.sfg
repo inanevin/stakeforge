@@ -55,6 +55,15 @@
             }
         },
         {
+            "name": "ui_texture_repeat",
+            "path": "editor/resource_pack/shaders/editor_ui_texture_repeat.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 1
+            }
+        },
+        {
             "name": "ui_texture_mip",
             "path": "editor/resource_pack/shaders/editor_ui_texture_mip.hlsl",
             "type": 7,
@@ -187,6 +196,19 @@
                 "generate_mipmaps": false,
                 "is_linear": false,
                 "use_streaming": false
+            }
+        },
+        {
+            "name": "checker",
+            "path": "editor/resource_pack/textures/checker.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false,
+                "force_4_channels": true
             }
         },
         {

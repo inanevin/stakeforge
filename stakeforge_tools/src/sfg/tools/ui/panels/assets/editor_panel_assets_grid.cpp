@@ -303,12 +303,20 @@ namespace sfg
 		thumbnail_in.size_mode_y	  = ui::axis_mode_e::copy_other;
 		thumbnail_in.size_value		  = {1.0f, 1.0f};
 
-		ui::vg_rect_paint_t thumbnail_rect = {};
-		thumbnail_rect.fill_color_a		   = theme.color_frame;
-		thumbnail_rect.fill_color_b		   = theme.color_frame;
-		thumbnail_rect.rounding			   = theme.item_rounding;
-		thumbnail_rect.rounding_segs	   = 4;
-		paint.set_rect(item.thumbnail_frame, thumbnail_rect);
+		const ui::vg_rect_paint_t thumbnail_rect{
+			.fill_color_a  = vec4f_t::one,
+			.fill_color_b  = vec4f_t::one,
+			.rounding	   = theme.item_rounding,
+			.rounding_segs = 4,
+		};
+		const ui::ui_render_state_t checker_state{
+			.pipeline  = "editor/resource_pack/shaders/editor_ui_texture_repeat.hlsl"_hs,
+			.constants = {{
+				.handle = "editor/resource_pack/textures/checker.png"_hs,
+				.type	= ui::ui_resource_type_e::texture,
+			}},
+		};
+		paint.set_rect(item.thumbnail_frame, thumbnail_rect, checker_state);
 
 		item.thumbnail = new editor_widget_thumbnail_t();
 		item.thumbnail->init(ui, item.thumbnail_frame, {.thumbnail = thumbnail});
@@ -533,12 +541,20 @@ namespace sfg
 		thumbnail_in.pos_value.y	  = 0.5f;
 		thumbnail_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
 
-		ui::vg_rect_paint_t thumbnail_rect = {};
-		thumbnail_rect.fill_color_a		   = theme.color_frame;
-		thumbnail_rect.fill_color_b		   = theme.color_frame;
-		thumbnail_rect.rounding			   = theme.item_rounding;
-		thumbnail_rect.rounding_segs	   = 4;
-		paint.set_rect(item.thumbnail_frame, thumbnail_rect);
+		const ui::vg_rect_paint_t thumbnail_rect{
+			.fill_color_a  = vec4f_t::one,
+			.fill_color_b  = vec4f_t::one,
+			.rounding	   = theme.item_rounding,
+			.rounding_segs = 4,
+		};
+		const ui::ui_render_state_t checker_state{
+			.pipeline  = "editor/resource_pack/shaders/editor_ui_texture_repeat.hlsl"_hs,
+			.constants = {{
+				.handle = "editor/resource_pack/textures/checker.png"_hs,
+				.type	= ui::ui_resource_type_e::texture,
+			}},
+		};
+		paint.set_rect(item.thumbnail_frame, thumbnail_rect, checker_state);
 
 		item.thumbnail = new editor_widget_thumbnail_t();
 		item.thumbnail->init(ui, item.thumbnail_frame, {.thumbnail = thumbnail});
@@ -579,6 +595,7 @@ namespace sfg
 
 		if (root_w > 0.0f)
 			status_in.pos_value.x = 1.0f - theme.item_height / root_w;
+
 		tree.set_visible(item.status_text, has_status, false);
 
 		ui.set_widget_text(item.status_text, ICON_WARN);

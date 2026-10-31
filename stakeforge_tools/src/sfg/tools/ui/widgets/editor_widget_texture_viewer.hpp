@@ -24,6 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "tools/tools_exports.hpp"
 
+#include "tools/ui/widgets/editor_widget_slider.hpp"
 #include "tools/ui/widgets/editor_widgets_dropdown.hpp"
 #include <sfg/core/data/string.hpp>
 #include <sfg/core/data/vector.hpp>
@@ -81,6 +82,7 @@ namespace sfg
 		void			rebuild_mip_dropdown();
 		void			refresh_info();
 		void			refresh_texture_state();
+		void			update_zoom_focus(const vec2f_t& pos);
 		void			append_property_row(ui::widget_id_t row);
 		ui::widget_id_t append_property_value_row(const char* label);
 		ui::widget_id_t append_property_control_row(const char* label);
@@ -88,10 +90,13 @@ namespace sfg
 		ui::widget_id_t make_value_label(ui::widget_id_t parent);
 
 		static void on_texture_display_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
+		static void on_preview_hover(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, const vec2f_t& delta, void* user_data);
+		static void on_preview_wheel(ui::input_router_t& router, ui::widget_id_t id, f32 delta, void* user_data);
 		static u16	get_selected_mip(void* user_data);
 		static void on_mip_selected(u16 value, void* user_data);
 
 	private:
+		editor_slider_t							_zoom_slider		   = {};
 		editor_dropdown_t						_mip_dropdown		   = {};
 		vector_t<editor_dropdown_item_t>		_mip_dropdown_items	   = {};
 		vector_t<ui::widget_id_t>				_rows				   = {};
@@ -104,7 +109,12 @@ namespace sfg
 		string_t								_mip_count_text		   = {};
 		string_t								_mip_label_storage[16] = {};
 		ui::ui_context*							_ui					   = nullptr;
+		f32*									_zoom_field			   = nullptr;
 		sid_t									_texture_guid		   = 0;
+		vec2f_t									_relative_focus		   = {0.5f, 0.5f};
+		vec2f_t									_zoom_offset		   = vec2f_t::zero;
+		f32										_zoom_percent		   = 100.0f;
+		f32										_applied_zoom		   = 1.0f;
 		ui::widget_id_t							_root				   = NULL_WIDGET;
 		ui::widget_id_t							_top_pane			   = NULL_WIDGET;
 		ui::widget_id_t							_bottom_pane		   = NULL_WIDGET;
