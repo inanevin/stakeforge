@@ -139,14 +139,14 @@ namespace sfg::ui
 
 		vg_draw_buffer_t* get_draw_buffer(u32 draw_order, const ui_render_state_t& state, u32 vertex_count = 0);
 
-		void emit_path_solid(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max);
-		void emit_path_grad(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color_a, const vec4f_t& color_b, vg_gradient_e dir, const vec2f_t& min, const vec2f_t& max);
-		void emit_central_solid(vg_draw_buffer_t* db, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max);
-		void emit_central_grad(vg_draw_buffer_t* db, const vec4f_t& color_a, const vec4f_t& color_b, const vec2f_t& min, const vec2f_t& max);
-		void emit_path_alpha(vg_draw_buffer_t* db, span_t<const vec2f_t> path, u32 source_vtx_base, f32 alpha, const vec2f_t& min, const vec2f_t& max);
-		void emit_quad_indices(vg_draw_buffer_t* db, u32 base);
-		void emit_fan_indices(vg_draw_buffer_t* db, u32 ring_base, u32 center_idx, u32 ring_size);
-		void emit_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size);
+		bool emit_path_solid(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max);
+		bool emit_path_grad(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color_a, const vec4f_t& color_b, vg_gradient_e dir, const vec2f_t& min, const vec2f_t& max);
+		bool emit_central_solid(vg_draw_buffer_t* db, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max);
+		bool emit_central_grad(vg_draw_buffer_t* db, const vec4f_t& color_a, const vec4f_t& color_b, const vec2f_t& min, const vec2f_t& max);
+		bool emit_path_alpha(vg_draw_buffer_t* db, span_t<const vec2f_t> path, u32 source_vtx_base, f32 alpha, const vec2f_t& min, const vec2f_t& max);
+		bool emit_quad_indices(vg_draw_buffer_t* db, u32 base);
+		bool emit_fan_indices(vg_draw_buffer_t* db, u32 ring_base, u32 center_idx, u32 ring_size);
+		bool emit_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size);
 
 		void copy_draw_buffer_vertices(const vg_draw_buffer_t& draw_buffer, vg_vertex_t* vertices) const;
 		void copy_draw_buffer_indices(const vg_draw_buffer_t& draw_buffer, vg_index_t* indices) const;
@@ -175,8 +175,9 @@ namespace sfg::ui
 		bool			   clip_line_to_cpu(vec2f_t& p0, vec2f_t& p1, f32 thickness) const;
 		vg_vertex_t*	   take_vertices(vg_draw_buffer_t* draw_buffer, u32 count);
 		vg_index_t*		   take_indices(vg_draw_buffer_t* draw_buffer, u32 count);
+		bool			   take_geometry(vg_draw_buffer_t* draw_buffer, u32 vertex_count, u32 index_count, vg_vertex_t*& vertices, vg_index_t*& indices);
 		const vg_vertex_t* get_contiguous_vertices(const vg_draw_buffer_t& draw_buffer, u32 offset, u32 count) const;
-		void			   emit_open_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size);
+		bool			   emit_open_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size);
 
 	private:
 		struct buffer_span_t

@@ -22,6 +22,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/ui/ui_context.hpp"
 #include "core/data/char_util.hpp"
 #include "core/io/assert.hpp"
+#include "core/io/log.hpp"
 #include "core/math/math.hpp"
 #include "core/memory/memory.hpp"
 #include "core/runtime/engine/engine_runtime.hpp"
@@ -499,8 +500,12 @@ namespace sfg::ui
 				continue;
 
 			SFG_ASSERT(db_count < slot.draw_buffer_capacity);
-			SFG_ASSERT(vtx_offset + src.vertex_count <= slot.vertex_capacity);
-			SFG_ASSERT(idx_offset + src.index_count <= slot.index_capacity);
+
+			if (src.vertex_count > slot.vertex_capacity - vtx_offset || src.index_count > slot.index_capacity - idx_offset)
+			{
+				SFG_ERR("snapshot geometry capacity exhausted, dropping draw");
+				continue;
+			}
 
 			vg_draw_buffer_final_t& dst = slot.draw_buffers[db_count];
 			dst.resolved				= src.resolved;
