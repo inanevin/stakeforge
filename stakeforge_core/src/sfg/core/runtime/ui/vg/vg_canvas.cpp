@@ -22,7 +22,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/ui/vg/vg_canvas.hpp"
 #include "core/runtime/ui/vg/vg_path.hpp"
 #include "core/common/hashing.hpp"
-#include "core/gfx/backend/backend.hpp"
 #include "core/io/assert.hpp"
 #include "core/io/log.hpp"
 #include "core/math/math.hpp"
@@ -35,7 +34,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg::ui
 {
-#define VG_DRAW_BUFFER_VERTEX_MAX_COUNT 65536u
 
 	namespace
 	{
@@ -109,10 +107,9 @@ namespace sfg::ui
 		}
 	}
 
-	vg_vertex_t* vg_canvas_t::take_vertices(vg_draw_buffer_t* draw_buffer, u32 count)
+	vg_vertex_t* vg_canvas_t::take_vertices(vg_draw_t* draw, u32 count)
 	{
-		SFG_ASSERT(count != 0);
-		SFG_ASSERT(draw_buffer->vertex_count + count <= VG_DRAW_BUFFER_VERTEX_MAX_COUNT);
+		SFG_ASSERT(draw->vertex_offset + draw->vertex_count == _vertex_count);
 
 		if (count > _vertex_capacity - _vertex_count)
 		{
@@ -121,41 +118,15 @@ namespace sfg::ui
 		}
 
 		vg_vertex_t* vertices = _vertex_pool + _vertex_count;
-
-		if (draw_buffer->vertex_span_last != UINT32_MAX && _vertex_spans[draw_buffer->vertex_span_last].offset + _vertex_spans[draw_buffer->vertex_span_last].count == _vertex_count)
-		{
-			SFG_ASSERT(_vertex_spans[draw_buffer->vertex_span_last].logical_offset + _vertex_spans[draw_buffer->vertex_span_last].count == draw_buffer->vertex_count);
-
-			_vertex_spans[draw_buffer->vertex_span_last].count += count;
-		}
-		else
-		{
-			SFG_ASSERT(_vertex_spans.size() < _geometry_span_count);
-
-			const u32 span_index = static_cast<u32>(_vertex_spans.size());
-			_vertex_spans.push_back({
-				.offset			= _vertex_count,
-				.count			= count,
-				.logical_offset = draw_buffer->vertex_count,
-			});
-
-			if (draw_buffer->vertex_span_last == UINT32_MAX)
-				draw_buffer->vertex_span_first = span_index;
-			else
-				_vertex_spans[draw_buffer->vertex_span_last].next = span_index;
-
-			draw_buffer->vertex_span_last = span_index;
-		}
-
 		_vertex_count += count;
-		draw_buffer->vertex_count += count;
+		draw->vertex_count += count;
 
 		return vertices;
 	}
 
-	vg_index_t* vg_canvas_t::take_indices(vg_draw_buffer_t* draw_buffer, u32 count)
+	vg_index_t* vg_canvas_t::take_indices(vg_draw_t* draw, u32 count)
 	{
-		SFG_ASSERT(count != 0);
+		SFG_ASSERT(draw->index_offset + draw->index_count == _index_count);
 
 		if (count > _index_capacity - _index_count)
 		{
@@ -164,39 +135,13 @@ namespace sfg::ui
 		}
 
 		vg_index_t* indices = _index_pool + _index_count;
-
-		if (draw_buffer->index_span_last != UINT32_MAX && _index_spans[draw_buffer->index_span_last].offset + _index_spans[draw_buffer->index_span_last].count == _index_count)
-		{
-			SFG_ASSERT(_index_spans[draw_buffer->index_span_last].logical_offset + _index_spans[draw_buffer->index_span_last].count == draw_buffer->index_count);
-
-			_index_spans[draw_buffer->index_span_last].count += count;
-		}
-		else
-		{
-			SFG_ASSERT(_index_spans.size() < _geometry_span_count);
-
-			const u32 span_index = static_cast<u32>(_index_spans.size());
-			_index_spans.push_back({
-				.offset			= _index_count,
-				.count			= count,
-				.logical_offset = draw_buffer->index_count,
-			});
-
-			if (draw_buffer->index_span_last == UINT32_MAX)
-				draw_buffer->index_span_first = span_index;
-			else
-				_index_spans[draw_buffer->index_span_last].next = span_index;
-
-			draw_buffer->index_span_last = span_index;
-		}
-
 		_index_count += count;
-		draw_buffer->index_count += count;
+		draw->index_count += count;
 
 		return indices;
 	}
 
-	bool vg_canvas_t::take_geometry(vg_draw_buffer_t* draw_buffer, u32 vertex_count, u32 index_count, vg_vertex_t*& vertices, vg_index_t*& indices)
+	bool vg_canvas_t::take_geometry(vg_draw_t* draw_buffer, u32 vertex_count, u32 index_count, vg_vertex_t*& vertices, vg_index_t*& indices)
 	{
 		vertices = take_vertices(draw_buffer, vertex_count);
 
@@ -207,7 +152,6 @@ namespace sfg::ui
 
 		if (indices == nullptr)
 		{
-			_vertex_spans[draw_buffer->vertex_span_last].count -= vertex_count;
 			_vertex_count -= vertex_count;
 			draw_buffer->vertex_count -= vertex_count;
 			vertices = nullptr;
@@ -217,25 +161,7 @@ namespace sfg::ui
 		return true;
 	}
 
-	const vg_vertex_t* vg_canvas_t::get_contiguous_vertices(const vg_draw_buffer_t& draw_buffer, u32 offset, u32 count) const
-	{
-		u32 span_index = draw_buffer.vertex_span_first;
-
-		while (span_index != UINT32_MAX)
-		{
-			const buffer_span_t& span = _vertex_spans[span_index];
-
-			if (offset >= span.logical_offset && offset + count <= span.logical_offset + span.count)
-				return _vertex_pool + span.offset + offset - span.logical_offset;
-
-			span_index = span.next;
-		}
-
-		SFG_ASSERT(false);
-		return nullptr;
-	}
-
-	bool vg_canvas_t::emit_path_solid(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max)
+	bool vg_canvas_t::emit_path_solid(vg_draw_t* db, span_t<const vec2f_t> path, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max)
 	{
 		const f32	 inv_x = (max.x - min.x) > 0.0f ? 1.0f / (max.x - min.x) : 0.0f;
 		const f32	 inv_y = (max.y - min.y) > 0.0f ? 1.0f / (max.y - min.y) : 0.0f;
@@ -255,7 +181,7 @@ namespace sfg::ui
 		return true;
 	}
 
-	bool vg_canvas_t::emit_path_grad(vg_draw_buffer_t* db, span_t<const vec2f_t> path, const vec4f_t& color_a, const vec4f_t& color_b, vg_gradient_e dir, const vec2f_t& min, const vec2f_t& max)
+	bool vg_canvas_t::emit_path_grad(vg_draw_t* db, span_t<const vec2f_t> path, const vec4f_t& color_a, const vec4f_t& color_b, vg_gradient_e dir, const vec2f_t& min, const vec2f_t& max)
 	{
 		const f32 inv_x = (max.x - min.x) > 0.0f ? 1.0f / (max.x - min.x) : 0.0f;
 		const f32 inv_y = (max.y - min.y) > 0.0f ? 1.0f / (max.y - min.y) : 0.0f;
@@ -284,7 +210,7 @@ namespace sfg::ui
 		return true;
 	}
 
-	bool vg_canvas_t::emit_central_solid(vg_draw_buffer_t* db, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max)
+	bool vg_canvas_t::emit_central_solid(vg_draw_t* db, const vec4f_t& color, const vec2f_t& min, const vec2f_t& max)
 	{
 		vg_vertex_t* v = take_vertices(db, 1);
 
@@ -298,7 +224,7 @@ namespace sfg::ui
 		return true;
 	}
 
-	bool vg_canvas_t::emit_central_grad(vg_draw_buffer_t* db, const vec4f_t& color_a, const vec4f_t& color_b, const vec2f_t& min, const vec2f_t& max)
+	bool vg_canvas_t::emit_central_grad(vg_draw_t* db, const vec4f_t& color_a, const vec4f_t& color_b, const vec2f_t& min, const vec2f_t& max)
 	{
 		vg_vertex_t* v = take_vertices(db, 1);
 
@@ -312,12 +238,12 @@ namespace sfg::ui
 		return true;
 	}
 
-	bool vg_canvas_t::emit_path_alpha(vg_draw_buffer_t* db, span_t<const vec2f_t> path, u32 source_vtx_base, f32 alpha, const vec2f_t& min, const vec2f_t& max)
+	bool vg_canvas_t::emit_path_alpha(vg_draw_t* db, span_t<const vec2f_t> path, u32 source_vtx_base, f32 alpha, const vec2f_t& min, const vec2f_t& max)
 	{
 		const f32 inv_x = (max.x - min.x) > 0.0f ? 1.0f / (max.x - min.x) : 0.0f;
 		const f32 inv_y = (max.y - min.y) > 0.0f ? 1.0f / (max.y - min.y) : 0.0f;
 
-		const vg_vertex_t* source = get_contiguous_vertices(*db, source_vtx_base, static_cast<u32>(path.size));
+		const vg_vertex_t* source = _vertex_pool + db->vertex_offset + source_vtx_base;
 		vg_vertex_t*	   v	  = take_vertices(db, static_cast<u32>(path.size));
 
 		if (v == nullptr)
@@ -335,7 +261,7 @@ namespace sfg::ui
 		return true;
 	}
 
-	bool vg_canvas_t::emit_quad_indices(vg_draw_buffer_t* db, u32 base)
+	bool vg_canvas_t::emit_quad_indices(vg_draw_t* db, u32 base)
 	{
 		vg_index_t* idx = take_indices(db, 6);
 
@@ -352,7 +278,7 @@ namespace sfg::ui
 		return true;
 	}
 
-	bool vg_canvas_t::emit_fan_indices(vg_draw_buffer_t* db, u32 ring_base, u32 center_idx, u32 ring_size)
+	bool vg_canvas_t::emit_fan_indices(vg_draw_t* db, u32 ring_base, u32 center_idx, u32 ring_size)
 	{
 		vg_index_t* idx = take_indices(db, ring_size * 3);
 
@@ -369,7 +295,7 @@ namespace sfg::ui
 		return true;
 	}
 
-	bool vg_canvas_t::emit_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size)
+	bool vg_canvas_t::emit_strip_indices(vg_draw_t* db, u32 outer_base, u32 inner_base, u32 ring_size)
 	{
 		vg_index_t* idx = take_indices(db, ring_size * 6);
 
@@ -394,7 +320,7 @@ namespace sfg::ui
 		return true;
 	}
 
-	bool vg_canvas_t::emit_open_strip_indices(vg_draw_buffer_t* db, u32 outer_base, u32 inner_base, u32 ring_size)
+	bool vg_canvas_t::emit_open_strip_indices(vg_draw_t* db, u32 outer_base, u32 inner_base, u32 ring_size)
 	{
 		if (ring_size < 2)
 			return true;
@@ -429,17 +355,16 @@ namespace sfg::ui
 
 	void vg_canvas_t::init(const vg_canvas_config_t& cfg)
 	{
-		SFG_ASSERT(cfg.vertex_pool_budget_bytes > 0 && cfg.index_pool_budget_bytes > 0 && cfg.buffer_count > 0 && cfg.geometry_span_count > 0);
+		SFG_ASSERT(cfg.vertex_pool_budget_bytes > 0 && cfg.index_pool_budget_bytes > 0 && cfg.draw_capacity > 0);
 
 		const u64 vtx_count = cfg.vertex_pool_budget_bytes / sizeof(vg_vertex_t);
 		const u64 idx_count = cfg.index_pool_budget_bytes / sizeof(vg_index_t);
 
-		_vertex_pool		 = static_cast<vg_vertex_t*>(SFG_MALLOC(sizeof(vg_vertex_t) * vtx_count));
-		_index_pool			 = static_cast<vg_index_t*>(SFG_MALLOC(sizeof(vg_index_t) * idx_count));
-		_vertex_capacity	 = static_cast<u32>(vtx_count);
-		_index_capacity		 = static_cast<u32>(idx_count);
-		_buffer_count		 = cfg.buffer_count;
-		_geometry_span_count = cfg.geometry_span_count;
+		_vertex_pool	 = static_cast<vg_vertex_t*>(SFG_MALLOC(sizeof(vg_vertex_t) * vtx_count));
+		_index_pool		 = static_cast<vg_index_t*>(SFG_MALLOC(sizeof(vg_index_t) * idx_count));
+		_vertex_capacity = static_cast<u32>(vtx_count);
+		_index_capacity	 = static_cast<u32>(idx_count);
+		_draw_capacity	 = cfg.draw_capacity;
 
 		const u64 cache_vtx = cfg.text_cache_vertex_budget_bytes / sizeof(vg_vertex_t);
 		const u64 cache_idx = cfg.text_cache_index_budget_bytes / sizeof(vg_index_t);
@@ -449,9 +374,8 @@ namespace sfg::ui
 		_text_cache_vertex_capacity = static_cast<u32>(cache_vtx);
 		_text_cache_index_capacity	= static_cast<u32>(cache_idx);
 
-		_draw_buffers.reserve(cfg.buffer_count);
-		_vertex_spans.reserve(cfg.geometry_span_count);
-		_index_spans.reserve(cfg.geometry_span_count);
+		_draws.reserve(cfg.draw_capacity);
+		_draw_order.reserve(cfg.draw_capacity);
 		_scissor_clip_stack.reserve(cfg.clip_stack_initial_capacity);
 		_cpu_clip_stack.reserve(cfg.clip_stack_initial_capacity);
 		_text_cache.reserve(cfg.text_cache_initial_capacity);
@@ -473,19 +397,17 @@ namespace sfg::ui
 		_text_cache_vertex_buffer = nullptr;
 		_text_cache_index_buffer  = nullptr;
 
-		_draw_buffers.resize(0);
+		_draws.resize(0);
+		_draw_order.resize(0);
 		_scissor_clip_stack.resize(0);
 		_cpu_clip_stack.resize(0);
 		_text_cache.resize(0);
-		_vertex_spans.resize(0);
-		_index_spans.resize(0);
 
 		_vertex_capacity			= 0;
 		_vertex_count				= 0;
 		_index_capacity				= 0;
 		_index_count				= 0;
-		_buffer_count				= 0;
-		_geometry_span_count		= 0;
+		_draw_capacity				= 0;
 		_text_cache_vertex_capacity = 0;
 		_text_cache_vertex_count	= 0;
 		_text_cache_index_capacity	= 0;
@@ -527,16 +449,16 @@ namespace sfg::ui
 
 	void vg_canvas_t::resolve(u32 pipeline_variant_flags)
 	{
-		for (vg_draw_buffer_t& db : _draw_buffers)
+		for (vg_draw_t& db : _draws)
 		{
 			SFG_ASSERT(db.state.pipeline != NULL_RESOURCE_HANDLE);
-			db.resolved.pipeline = resolve_shader(db.state.pipeline, pipeline_variant_flags);
-			SFG_ASSERT(!db.resolved.pipeline.is_null());
+			db.pipeline = resolve_shader(db.state.pipeline, pipeline_variant_flags);
+			SFG_ASSERT(!db.pipeline.is_null());
 
 			for (u8 i = 0; i < 4; ++i)
 			{
 				const ui_resource_ref_t&	ref = db.state.constants[i];
-				ui_resolved_resource_ref_t& dst = db.resolved.constants[i];
+				ui_resolved_resource_ref_t& dst = db.parameters.constants[i];
 				dst.type						= ref.type;
 
 				if (ref.type == ui_resource_type_e::gpu_index || ref.type == ui_resource_type_e::test)
@@ -570,11 +492,10 @@ namespace sfg::ui
 
 	void vg_canvas_t::frame_begin(const vec4f_t& screen_clip)
 	{
-		_draw_buffers.resize(0);
+		_draws.resize(0);
+		_draw_order.resize(0);
 		_scissor_clip_stack.resize(0);
 		_cpu_clip_stack.resize(0);
-		_vertex_spans.resize(0);
-		_index_spans.resize(0);
 		_vertex_count = 0;
 		_index_count  = 0;
 		_scissor_clip_stack.push_back({screen_clip});
@@ -583,7 +504,43 @@ namespace sfg::ui
 
 	void vg_canvas_t::frame_end()
 	{
-		std::stable_sort(_draw_buffers.begin(), _draw_buffers.end(), [](const vg_draw_buffer_t& a, const vg_draw_buffer_t& b) { return a.draw_order < b.draw_order; });
+		_draw_order.resize(_draws.size());
+
+		for (u32 i = 0; i < _draw_order.size(); ++i)
+			_draw_order[i] = i;
+
+		std::sort(_draw_order.begin(), _draw_order.end(), [this](u32 a, u32 b) {
+			const vg_draw_t& left  = _draws[a];
+			const vg_draw_t& right = _draws[b];
+
+			if (left.draw_order != right.draw_order)
+				return left.draw_order < right.draw_order;
+
+			return left.state.pipeline != right.state.pipeline ? left.state.pipeline < right.state.pipeline : a < b;
+		});
+
+		u32 group_first = 0;
+
+		for (u32 i = 0; i < _draw_order.size(); ++i)
+		{
+			vg_draw_t&		 draw  = _draws[_draw_order[i]];
+			const vg_draw_t& first = _draws[_draw_order[group_first]];
+
+			if (draw.draw_order != first.draw_order || draw.state.pipeline != first.state.pipeline)
+				group_first = i;
+
+			draw.shader_order = _draw_order[group_first];
+		}
+
+		std::sort(_draw_order.begin(), _draw_order.end(), [this](u32 a, u32 b) {
+			const vg_draw_t& left  = _draws[a];
+			const vg_draw_t& right = _draws[b];
+
+			if (left.draw_order != right.draw_order)
+				return left.draw_order < right.draw_order;
+
+			return left.shader_order != right.shader_order ? left.shader_order < right.shader_order : a < b;
+		});
 	}
 
 	void vg_canvas_t::push_clip(const vec4f_t& rect, clip_mode_e mode)
@@ -706,126 +663,79 @@ namespace sfg::ui
 		return true;
 	}
 
-	vg_draw_buffer_t* vg_canvas_t::get_draw_buffer(u32 draw_order, const ui_render_state_t& state, u32 vertex_count)
+	vg_draw_t* vg_canvas_t::begin_draw(u32 draw_order, const ui_render_state_t& state, u32 vertex_count)
 	{
-		if (vertex_count >= VG_DRAW_BUFFER_VERTEX_MAX_COUNT)
+		if (_draws.size() == _draw_capacity || vertex_count > _vertex_capacity - _vertex_count)
 		{
-			SFG_ERR("can't request more vertices than {0}!", VG_DRAW_BUFFER_VERTEX_MAX_COUNT);
+			SFG_ERR("canvas draw or vertex capacity exhausted");
 			return nullptr;
 		}
 
-		const vec4f_t clip = current_scissor_clip();
-
-		for (vg_draw_buffer_t& db : _draw_buffers)
-		{
-			if (db.draw_order != draw_order)
-				continue;
-
-			if (db.state.pipeline != state.pipeline)
-				continue;
-
-			if (SFG_MEMCMP(db.state.constants, state.constants, sizeof(state.constants)) != 0)
-				continue;
-
-			if (!db.clip.equals(clip, 0.5f))
-				continue;
-
-			if (db.vertex_count + vertex_count > VG_DRAW_BUFFER_VERTEX_MAX_COUNT)
-				continue;
-
-			return &db;
-		}
-
-		if (_draw_buffers.size() >= _buffer_count)
-		{
-			SFG_ERR("exhausted allowed draw buffer size! {0}", _buffer_count);
-			return nullptr;
-		}
-
-		const vg_draw_buffer_t db{
-			.state		= state,
-			.clip		= clip,
-			.draw_order = draw_order,
+		const vec4f_t clip	 = current_scissor_clip();
+		const vec4f_t bounds = {
+			math::max(0.0f, math::floor(clip.x)),
+			math::max(0.0f, math::floor(clip.y)),
+			math::max(0.0f, math::ceil(clip.x + clip.z)),
+			math::max(0.0f, math::ceil(clip.y + clip.w)),
 		};
 
-		_draw_buffers.push_back(db);
-		return &_draw_buffers.back();
+		_draws.push_back({
+			.state		   = state,
+			.parameters	   = {.clip = bounds},
+			.draw_order	   = draw_order,
+			.vertex_offset = _vertex_count,
+			.index_offset  = _index_count,
+		});
+
+		return &_draws.back();
 	}
 
-	void vg_canvas_t::copy_draw_buffer_vertices(const vg_draw_buffer_t& draw_buffer, vg_vertex_t* vertices) const
+	vg_draw_snapshot_t vg_canvas_t::copy_frame(vg_draw_batch_t* batches, vg_vertex_t* vertices, vg_index_t* indices, ui_draw_parameters_t* parameters, u32 vertex_base, u32 index_base, u32 parameter_base) const
 	{
-		u32 span_index	 = draw_buffer.vertex_span_first;
-		u32 copied_count = 0;
+		vg_draw_snapshot_t snapshot{
+			.batches	  = batches,
+			.vertices	  = vertices,
+			.indices	  = indices,
+			.parameters	  = parameters,
+			.vertex_count = _vertex_count,
+		};
+		resource_handle_t previous_pipeline = NULL_RESOURCE_HANDLE;
 
-		while (span_index != UINT32_MAX)
+		if (_vertex_count != 0)
+			SFG_MEMCPY(vertices, _vertex_pool, _vertex_count * sizeof(vg_vertex_t));
+
+		for (u32 draw_index : _draw_order)
 		{
-			const buffer_span_t& span = _vertex_spans[span_index];
+			const vg_draw_t& draw = _draws[draw_index];
 
-			SFG_MEMCPY(vertices + span.logical_offset, _vertex_pool + span.offset, span.count * sizeof(vg_vertex_t));
+			if (draw.index_count == 0)
+				continue;
 
-			copied_count += span.count;
-			span_index = span.next;
+			const u32 parameter_index	= snapshot.parameter_count++;
+			parameters[parameter_index] = draw.parameters;
+
+			for (u32 i = 0; i < draw.vertex_count; ++i)
+				vertices[draw.vertex_offset + i].parameter_index = parameter_base + parameter_index;
+
+			for (u32 i = 0; i < draw.index_count; ++i)
+				indices[snapshot.index_count + i] = _index_pool[draw.index_offset + i] + draw.vertex_offset + vertex_base;
+
+			if (snapshot.batch_count == 0 || previous_pipeline != draw.state.pipeline)
+			{
+				batches[snapshot.batch_count++] = {
+					.pipeline	  = draw.pipeline,
+					.index_offset = index_base + snapshot.index_count,
+					.index_count  = draw.index_count,
+				};
+				previous_pipeline = draw.state.pipeline;
+			}
+			else
+				batches[snapshot.batch_count - 1].index_count += draw.index_count;
+
+			snapshot.index_count += draw.index_count;
 		}
 
-		SFG_ASSERT(copied_count == draw_buffer.vertex_count);
-	}
-
-	void vg_canvas_t::copy_draw_buffer_indices(const vg_draw_buffer_t& draw_buffer, vg_index_t* indices) const
-	{
-		u32 span_index	 = draw_buffer.index_span_first;
-		u32 copied_count = 0;
-
-		while (span_index != UINT32_MAX)
-		{
-			const buffer_span_t& span = _index_spans[span_index];
-
-			SFG_MEMCPY(indices + span.logical_offset, _index_pool + span.offset, span.count * sizeof(vg_index_t));
-
-			copied_count += span.count;
-			span_index = span.next;
-		}
-
-		SFG_ASSERT(copied_count == draw_buffer.index_count);
-	}
-
-	const vg_vertex_t& vg_canvas_t::get_draw_buffer_vertex(const vg_draw_buffer_t& draw_buffer, u32 index) const
-	{
-		SFG_ASSERT(index < draw_buffer.vertex_count);
-
-		u32 span_index = draw_buffer.vertex_span_first;
-
-		while (span_index != UINT32_MAX)
-		{
-			const buffer_span_t& span = _vertex_spans[span_index];
-
-			if (index >= span.logical_offset && index < span.logical_offset + span.count)
-				return _vertex_pool[span.offset + index - span.logical_offset];
-
-			span_index = span.next;
-		}
-
-		SFG_ASSERT(false);
-		return _vertex_pool[0];
-	}
-
-	const vg_index_t& vg_canvas_t::get_draw_buffer_index(const vg_draw_buffer_t& draw_buffer, u32 index) const
-	{
-		SFG_ASSERT(index < draw_buffer.index_count);
-
-		u32 span_index = draw_buffer.index_span_first;
-
-		while (span_index != UINT32_MAX)
-		{
-			const buffer_span_t& span = _index_spans[span_index];
-
-			if (index >= span.logical_offset && index < span.logical_offset + span.count)
-				return _index_pool[span.offset + index - span.logical_offset];
-
-			span_index = span.next;
-		}
-
-		SFG_ASSERT(false);
-		return _index_pool[0];
+		return snapshot;
 	}
 
 	void vg_canvas_t::add_rect(const vec2f_t& min, const vec2f_t& max, const vg_rect_paint_t& paint, const ui_render_state_t& state, u32 draw_order)
@@ -850,7 +760,7 @@ namespace sfg::ui
 
 		if (!round && !out && !aa)
 		{
-			vg_draw_buffer_t* db = get_draw_buffer(draw_order, state, 4);
+			vg_draw_t* db = begin_draw(draw_order, state, 4);
 
 			if (db == nullptr)
 				return;
@@ -928,7 +838,7 @@ namespace sfg::ui
 		if (aa)
 			required_vertex_count += static_cast<u32>(aa_path.size());
 
-		vg_draw_buffer_t* db = get_draw_buffer(draw_order, state, required_vertex_count);
+		vg_draw_t* db = begin_draw(draw_order, state, required_vertex_count);
 
 		if (db == nullptr)
 			return;
@@ -1047,8 +957,8 @@ namespace sfg::ui
 		if (paint.aa_thickness > 0.0f)
 			vg_path_expand(aa_path, {line_path.data(), line_path.size()}, paint.aa_thickness);
 
-		const u32		  required_vertex_count = paint.aa_thickness > 0.0f ? 8 : 4;
-		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count);
+		const u32  required_vertex_count = paint.aa_thickness > 0.0f ? 8 : 4;
+		vg_draw_t* db					 = begin_draw(draw_order, state, required_vertex_count);
 
 		if (db == nullptr)
 			return;
@@ -1099,9 +1009,9 @@ namespace sfg::ui
 
 		vg_path_circle(outer_path, center, radius, paint.segments);
 
-		const u32		  path_vertex_count		= static_cast<u32>(outer_path.size());
-		const u32		  required_vertex_count = paint.filled ? path_vertex_count + 1 : path_vertex_count * 2;
-		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count + (paint.aa_thickness > 0.0f ? path_vertex_count : 0));
+		const u32  path_vertex_count	 = static_cast<u32>(outer_path.size());
+		const u32  required_vertex_count = paint.filled ? path_vertex_count + 1 : path_vertex_count * 2;
+		vg_draw_t* db					 = begin_draw(draw_order, state, required_vertex_count + (paint.aa_thickness > 0.0f ? path_vertex_count : 0));
 
 		if (db == nullptr)
 			return;
@@ -1187,8 +1097,8 @@ namespace sfg::ui
 		vg_path_arc(outer_path, center, outer_radius, start, end, paint.segments);
 		vg_path_arc(inner_path, center, inner_radius, start, end, paint.segments);
 
-		const u32		  required_vertex_count = static_cast<u32>(outer_path.size() + inner_path.size()) * (paint.aa_thickness > 0.0f ? 2 : 1);
-		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count);
+		const u32  required_vertex_count = static_cast<u32>(outer_path.size() + inner_path.size()) * (paint.aa_thickness > 0.0f ? 2 : 1);
+		vg_draw_t* db					 = begin_draw(draw_order, state, required_vertex_count);
 
 		if (db == nullptr)
 			return;
@@ -1268,8 +1178,8 @@ namespace sfg::ui
 		if (paint.aa_thickness > 0.0f)
 			vg_path_expand(aa_path, path, paint.aa_thickness);
 
-		const u32		  required_vertex_count = static_cast<u32>(path.size) + (paint.aa_thickness > 0.0f ? static_cast<u32>(aa_path.size()) : 0);
-		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count);
+		const u32  required_vertex_count = static_cast<u32>(path.size) + (paint.aa_thickness > 0.0f ? static_cast<u32>(aa_path.size()) : 0);
+		vg_draw_t* db					 = begin_draw(draw_order, state, required_vertex_count);
 
 		if (db == nullptr)
 			return;
@@ -1404,6 +1314,11 @@ namespace sfg::ui
 			v2_out.pos = {quad_right, quad_bottom};
 			v3_out.pos = {quad_left, quad_bottom};
 
+			v0_out.parameter_index = 0;
+			v1_out.parameter_index = 0;
+			v2_out.parameter_index = 0;
+			v3_out.parameter_index = 0;
+
 			v0_out.color = vec4f_t::one;
 			v1_out.color = vec4f_t::one;
 			v2_out.color = vec4f_t::one;
@@ -1469,10 +1384,13 @@ namespace sfg::ui
 
 	void vg_canvas_t::add_text_run(vg_text_run_handle_t handle, const vec2f_t& pos, const vec4f_t& color, const ui_render_state_t& state, u32 draw_order)
 	{
+		ui_render_state_t text_state = state;
+		text_state.constants[0]		 = {.type = ui_resource_type_e::glyph_atlas};
+
 		SFG_ASSERT(is_text_run_valid(handle));
 
 		const text_cache_entry_t& entry = _text_cache[handle.index];
-		vg_draw_buffer_t*		  db	= get_draw_buffer(draw_order, state, entry.vtx_count);
+		vg_draw_t*				  db	= begin_draw(draw_order, text_state, entry.vtx_count);
 
 		if (db == nullptr)
 			return;
@@ -1558,13 +1476,6 @@ namespace sfg::ui
 		const u32 unused_vertex_count = (glyph_count - emitted_count) * 4;
 		const u32 unused_index_count  = (glyph_count - emitted_count) * 6;
 
-		SFG_ASSERT(db->vertex_span_last != UINT32_MAX);
-		SFG_ASSERT(db->index_span_last != UINT32_MAX);
-		SFG_ASSERT(_vertex_spans[db->vertex_span_last].count >= unused_vertex_count);
-		SFG_ASSERT(_index_spans[db->index_span_last].count >= unused_index_count);
-
-		_vertex_spans[db->vertex_span_last].count -= unused_vertex_count;
-		_index_spans[db->index_span_last].count -= unused_index_count;
 		_vertex_count -= unused_vertex_count;
 		_index_count -= unused_index_count;
 		db->vertex_count -= unused_vertex_count;
@@ -1573,6 +1484,9 @@ namespace sfg::ui
 
 	void vg_canvas_t::add_text(const char* text, size_t len, const vec2f_t& pos, const vg_text_paint_t& paint, const ui_render_state_t& state, u32 draw_order, bool use_cache)
 	{
+		ui_render_state_t text_state = state;
+		text_state.constants[0]		 = {.type = ui_resource_type_e::glyph_atlas};
+
 		if (!paint.font)
 		{
 			SFG_ERR("vg_canvas: add_text called without font");
@@ -1593,9 +1507,9 @@ namespace sfg::ui
 			}
 		}
 
-		const bool		  cpu_clip				= has_cpu_clip();
-		const u32		  required_vertex_count = static_cast<u32>(len) * 4;
-		vg_draw_buffer_t* db					= get_draw_buffer(draw_order, state, required_vertex_count);
+		const bool cpu_clip				 = has_cpu_clip();
+		const u32  required_vertex_count = static_cast<u32>(len) * 4;
+		vg_draw_t* db					 = begin_draw(draw_order, text_state, required_vertex_count);
 
 		if (db == nullptr)
 			return;
@@ -1710,13 +1624,6 @@ namespace sfg::ui
 			const u32 unused_vertex_count = (char_count - emitted_chars) * 4;
 			const u32 unused_index_count  = (char_count - emitted_chars) * 6;
 
-			SFG_ASSERT(db->vertex_span_last != UINT32_MAX);
-			SFG_ASSERT(db->index_span_last != UINT32_MAX);
-			SFG_ASSERT(_vertex_spans[db->vertex_span_last].count >= unused_vertex_count);
-			SFG_ASSERT(_index_spans[db->index_span_last].count >= unused_index_count);
-
-			_vertex_spans[db->vertex_span_last].count -= unused_vertex_count;
-			_index_spans[db->index_span_last].count -= unused_index_count;
 			_vertex_count -= unused_vertex_count;
 			_index_count -= unused_index_count;
 			db->vertex_count = vtx_base + emitted_chars * 4;

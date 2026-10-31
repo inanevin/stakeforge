@@ -72,8 +72,7 @@ namespace sfg
 			_text_canvas->init({
 				.vertex_pool_budget_bytes		= config.text_vertex_max_count * sizeof(ui::vg_vertex_t),
 				.index_pool_budget_bytes		= config.text_index_max_count * sizeof(ui::vg_index_t),
-				.buffer_count					= 1,
-				.geometry_span_count			= 1,
+				.draw_capacity					= config.text_command_max_count,
 				.text_cache_vertex_budget_bytes = config.text_vertex_max_count * sizeof(ui::vg_vertex_t),
 				.text_cache_index_budget_bytes	= config.text_index_max_count * sizeof(ui::vg_index_t),
 				.clip_stack_initial_capacity	= 1,
@@ -859,27 +858,19 @@ namespace sfg
 				.raster_mode = ui::glyph_raster_mode_e::grayscale,
 			};
 
-			const char*			  text		  = _text_bytes.data() + command.text_offset;
-			const vec2f_t		  size		  = ui::vg_canvas_t::measure_text(text, command.text_length, paint);
-			const u8			  alignment	  = static_cast<u8>(command.alignment);
-			const f32			  horizontal  = static_cast<f32>(alignment % 3) * 0.5f;
-			const f32			  vertical	  = static_cast<f32>(alignment / 3) * 0.5f;
-			const vec2f_t		  offset	  = command.screen_offset - vec2f_t(size.x * horizontal, size.y * vertical);
-			ui::vg_draw_buffer_t* draw_buffer = _text_canvas->get_draw_buffer(0, state, command.text_length * 4);
-
-			if (draw_buffer == nullptr)
-			{
-				++_dropped_text_count;
-				continue;
-			}
-
-			const u32 vertex_start = draw_buffer->vertex_count;
-			const u32 index_start  = draw_buffer->index_count;
+			const char*	  text		   = _text_bytes.data() + command.text_offset;
+			const vec2f_t size		   = ui::vg_canvas_t::measure_text(text, command.text_length, paint);
+			const u8	  alignment	   = static_cast<u8>(command.alignment);
+			const f32	  horizontal   = static_cast<f32>(alignment % 3) * 0.5f;
+			const f32	  vertical	   = static_cast<f32>(alignment / 3) * 0.5f;
+			const vec2f_t offset	   = command.screen_offset - vec2f_t(size.x * horizontal, size.y * vertical);
+			const u32	  vertex_start = static_cast<u32>(_text_canvas->get_vertices().size);
+			const u32	  index_start  = static_cast<u32>(_text_canvas->get_indices().size);
 
 			_text_canvas->add_text(text, command.text_length, offset, paint, state, 0, true);
 
-			const u32			  vertex_count = draw_buffer->vertex_count - vertex_start;
-			const u32			  index_count  = draw_buffer->index_count - index_start;
+			const u32			  vertex_count = static_cast<u32>(_text_canvas->get_vertices().size) - vertex_start;
+			const u32			  index_count  = static_cast<u32>(_text_canvas->get_indices().size) - index_start;
 			const primitive_index base_vertex  = static_cast<primitive_index>(snapshot.text_vertices.size());
 			const f32			  mode		   = command.is_screen ? 0.0f : command.depth == debug_draw_depth_e::depth_tested ? 1.0f : 2.0f;
 
@@ -887,7 +878,7 @@ namespace sfg
 
 			for (u32 i = 0; i < vertex_count; ++i)
 			{
-				const ui::vg_vertex_t& source			= _text_canvas->get_draw_buffer_vertex(*draw_buffer, vertex_start + i);
+				const ui::vg_vertex_t& source			= _text_canvas->get_vertices().data[vertex_start + i];
 				snapshot.text_vertices[base_vertex + i] = {
 					.color	= source.color,
 					.anchor = command.anchor,
@@ -901,7 +892,7 @@ namespace sfg
 			const size_t index_output_start = snapshot.text_indices.size() - index_count;
 
 			for (u32 i = 0; i < index_count; ++i)
-				snapshot.text_indices[index_output_start + i] = base_vertex + static_cast<primitive_index>(_text_canvas->get_draw_buffer_index(*draw_buffer, index_start + i) - vertex_start);
+				snapshot.text_indices[index_output_start + i] = base_vertex + static_cast<primitive_index>(_text_canvas->get_indices().data[index_start + i]);
 		}
 
 		_text_canvas->frame_end();

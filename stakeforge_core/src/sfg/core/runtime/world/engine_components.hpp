@@ -97,7 +97,6 @@ namespace sfg
 		i32					  sort_order			   = 0;
 		f32					  ui_scale				   = 1.0f;
 		u16					  max_widgets			   = 256;
-		u16					  draw_buffer_count		   = 32;
 		canvas_render_stage_e render_stage			   = canvas_render_stage_e::after_post_process;
 		bool				  input_enabled			   = true;
 	};

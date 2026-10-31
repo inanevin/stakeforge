@@ -186,15 +186,13 @@ namespace sfg::ui
 	private:
 		struct snapshot_slot_t
 		{
-			vg_draw_buffer_final_t* draw_buffers		 = nullptr;
-			vg_vertex_t*			vertices			 = nullptr;
-			vg_index_t*				indices				 = nullptr;
-			u32						draw_buffer_capacity = 0;
-			u32						vertex_capacity		 = 0;
-			u32						index_capacity		 = 0;
-			u32						draw_buffer_count	 = 0;
-			u32						vertex_count		 = 0;
-			u32						index_count			 = 0;
+			vg_draw_snapshot_t	  snapshot		  = {};
+			vg_draw_batch_t*	  batches		  = nullptr;
+			vg_vertex_t*		  vertices		  = nullptr;
+			vg_index_t*			  indices		  = nullptr;
+			ui_draw_parameters_t* parameters	  = nullptr;
+			u32					  vertex_capacity = 0;
+			u32					  index_capacity  = 0;
 		};
 
 		struct pre_layout_tick_def_t
@@ -209,7 +207,7 @@ namespace sfg::ui
 			void*				   user_data = nullptr;
 		};
 
-		void allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_buffer_capacity, u32 vertex_capacity, u32 index_capacity);
+		void allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_capacity, u32 vertex_capacity, u32 index_capacity);
 		void free_snapshot_slot(snapshot_slot_t& slot);
 		void clear_widget_state_recursive(widget_id_t id);
 		void run_pre_layout_ticks(f32 dt_seconds);

@@ -86,5 +86,6 @@ namespace sfg
 		out_desc.add_input(make_input("POSITION", 0, sizeof(f32) * 2, format_e::r32g32_sfloat));
 		out_desc.add_input(make_input("TEXCOORD", sizeof(f32) * 2, sizeof(f32) * 2, format_e::r32g32_sfloat));
 		out_desc.add_input(make_input("COLOR", sizeof(f32) * 4, sizeof(f32) * 4, format_e::r32g32b32a32_sfloat));
+		out_desc.add_input(make_input("TEXCOORD", sizeof(f32) * 8, sizeof(u32), format_e::r32_uint, 1));
 	}
 }

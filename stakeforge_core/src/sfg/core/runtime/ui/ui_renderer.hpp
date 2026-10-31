@@ -56,20 +56,22 @@ namespace sfg::ui
 	private:
 		struct per_frame_data_t
 		{
-			gfx_handle_t vertex_buffer	   = {};
-			gfx_handle_t index_buffer	   = {};
-			gfx_handle_t projection_buffer = {};
 			u8*			 mapped_vtx		   = nullptr;
 			u8*			 mapped_idx		   = nullptr;
 			u8*			 mapped_projection = nullptr;
-			gpu_index_t	 projection_index  = 0;
+			u8*			 mapped_parameters = nullptr;
+			gfx_handle_t vertex_buffer	   = {};
+			gfx_handle_t index_buffer	   = {};
+			gfx_handle_t projection_buffer = {};
+			gfx_handle_t parameter_buffer  = {};
+			gpu_index_t	 projection_index  = NULL_GPU_INDEX;
+			gpu_index_t	 parameter_index   = NULL_GPU_INDEX;
 		};
 
 	private:
 		per_frame_data_t _pfd[BACK_BUFFER_COUNT] = {};
-		gfx_handle_t	 _sdf_params			 = {};
-		gpu_index_t		 _sdf_params_index		 = 0;
 		u32				 _vtx_capacity			 = 0;
 		u32				 _idx_capacity			 = 0;
+		u32				 _parameter_capacity	 = 0;
 	};
 }

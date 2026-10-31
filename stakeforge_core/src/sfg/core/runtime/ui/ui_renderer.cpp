@@ -27,7 +27,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/gfx/util/gfx_util.hpp"
 #include "core/io/assert.hpp"
 #include "core/io/log.hpp"
-#include "core/math/math.hpp"
 #include "core/math/mat4x4.hpp"
 #include "core/runtime/render/render_resources.hpp"
 #include "core/runtime/resources/resource_manager.hpp"
@@ -35,221 +34,165 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg::ui
 {
-	namespace
-	{
-		struct sdf_params_data_t
-		{
-			f32 sdf_threshold = 0.5f;
-			f32 sdf_softness  = 0.0625f;
-			f32 _pad0		  = 0.0f;
-			f32 _pad1		  = 0.0f;
-		};
-
-		inline u16 scissor_pos(f32 v)
-		{
-			return static_cast<u16>(math::max(0.0f, math::floor(v)));
-		}
-
-		inline u16 scissor_size(f32 min_v, f32 size_v)
-		{
-			const f32 min_px = math::max(0.0f, math::floor(min_v));
-			const f32 max_px = math::max(min_px, math::ceil(min_v + size_v));
-			return static_cast<u16>(max_px - min_px);
-		}
-
-		gpu_index_t resolve_constant(const ui_resolved_resource_ref_t& ref, u8 frame_slot)
-		{
-			if (ref.type == ui_resource_type_e::gpu_index || ref.type == ui_resource_type_e::test)
-				return ref.gpu_indices[0];
-
-			if (ref.type == ui_resource_type_e::gpu_index_fof)
-				return ref.gpu_indices[frame_slot];
-
-			if (ref.type == ui_resource_type_e::evictable_texture)
-				return render_resources_t::get().get_optional_texture_gpu_index(ref.texture, 0);
-
-			if (ref.type == ui_resource_type_e::texture || ref.type == ui_resource_type_e::sprite)
-				return render_resources_t::get().get_texture_gpu_index(ref.texture, 0);
-
-			return NULL_GPU_INDEX;
-		}
-	}
-
 	void ui_renderer_t::init(const ui_renderer_config_t& cfg)
 	{
+		SFG_ASSERT(cfg.vertex_buffer_max_bytes >= sizeof(vg_vertex_t) && cfg.index_buffer_max_bytes >= sizeof(vg_index_t));
+
 		gfx_backend& backend = gfx_backend::get();
+		_vtx_capacity		 = cfg.vertex_buffer_max_bytes;
+		_idx_capacity		 = cfg.index_buffer_max_bytes;
+		_parameter_capacity	 = _vtx_capacity / sizeof(vg_vertex_t);
 
-		_vtx_capacity = cfg.vertex_buffer_max_bytes;
-		_idx_capacity = cfg.index_buffer_max_bytes;
-
-		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
+		for (per_frame_data_t& p : _pfd)
 		{
-			per_frame_data_t& p = _pfd[i];
-
-			resource_desc_t v_desc = {};
-			v_desc.size			   = _vtx_capacity;
-			v_desc.flags		   = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible;
-			v_desc.set_name("ui_renderer_vtx");
-			p.vertex_buffer = backend.create_resource(v_desc);
+			resource_desc_t vertex_desc{
+				.size  = _vtx_capacity,
+				.flags = resource_flags::rf_vertex_buffer | resource_flags::rf_cpu_visible,
+			};
+			vertex_desc.set_name("ui_vertices");
+			p.vertex_buffer = backend.create_resource(vertex_desc);
 			backend.map_resource(p.vertex_buffer, p.mapped_vtx);
 
-			resource_desc_t i_desc = {};
-			i_desc.size			   = _idx_capacity;
-			i_desc.flags		   = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible;
-			i_desc.set_name("ui_renderer_idx");
-			p.index_buffer = backend.create_resource(i_desc);
+			resource_desc_t index_desc{
+				.size  = _idx_capacity,
+				.flags = resource_flags::rf_index_buffer | resource_flags::rf_cpu_visible,
+			};
+			index_desc.set_name("ui_indices");
+			p.index_buffer = backend.create_resource(index_desc);
 			backend.map_resource(p.index_buffer, p.mapped_idx);
 
-			resource_desc_t proj_desc = {};
-			proj_desc.size			  = sizeof(f32) * 16;
-			proj_desc.flags			  = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
-			proj_desc.set_name("ui_renderer_projection");
-			p.projection_buffer = backend.create_resource(proj_desc);
+			resource_desc_t projection_desc{
+				.size  = sizeof(mat4x4_t),
+				.flags = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible,
+			};
+			projection_desc.set_name("ui_projection");
+			p.projection_buffer = backend.create_resource(projection_desc);
 			backend.map_resource(p.projection_buffer, p.mapped_projection);
 			p.projection_index = backend.get_resource_gpu_index(p.projection_buffer);
+
+			resource_desc_t parameter_desc{
+				.size			 = _parameter_capacity * static_cast<u32>(sizeof(ui_draw_parameters_gpu_t)),
+				.structure_size	 = sizeof(ui_draw_parameters_gpu_t),
+				.structure_count = _parameter_capacity,
+				.flags			 = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible,
+			};
+			parameter_desc.set_name("ui_parameters");
+			p.parameter_buffer = backend.create_resource(parameter_desc);
+			backend.map_resource(p.parameter_buffer, p.mapped_parameters);
+			p.parameter_index = backend.get_resource_gpu_index(p.parameter_buffer);
 		}
-
-		resource_desc_t sdf_desc = {};
-		sdf_desc.size			 = sizeof(sdf_params_data_t);
-		sdf_desc.flags			 = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
-		sdf_desc.set_name("ui_renderer_sdf_params");
-		_sdf_params		  = backend.create_resource(sdf_desc);
-		_sdf_params_index = backend.get_resource_gpu_index(_sdf_params);
-
-		u8* sdf_mapped = nullptr;
-		backend.map_resource(_sdf_params, sdf_mapped);
-		const sdf_params_data_t defaults = {};
-		SFG_MEMCPY(sdf_mapped, &defaults, sizeof(sdf_params_data_t));
-		backend.unmap_resource(_sdf_params);
 	}
 
 	void ui_renderer_t::uninit()
 	{
 		gfx_backend& backend = gfx_backend::get();
 
-		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
+		for (per_frame_data_t& p : _pfd)
 		{
-			per_frame_data_t& p = _pfd[i];
 			backend.destroy_resource(p.vertex_buffer);
 			backend.destroy_resource(p.index_buffer);
 			backend.destroy_resource(p.projection_buffer);
+			backend.destroy_resource(p.parameter_buffer);
 			p = {};
 		}
 
-		backend.destroy_resource(_sdf_params);
-
-		_sdf_params		  = {};
-		_sdf_params_index = 0;
-		_vtx_capacity	  = 0;
-		_idx_capacity	  = 0;
+		_vtx_capacity		= 0;
+		_idx_capacity		= 0;
+		_parameter_capacity = 0;
 	}
 
 	void ui_renderer_t::render(gfx_handle_t cmd, const vg_draw_snapshot_t* snap, u8 frame_index, vec2u16_t fb_size)
 	{
 		ZoneScoped;
 
-		gfx_backend&	  backend	 = gfx_backend::get();
-		const u8		  frame_slot = frame_index % BACK_BUFFER_COUNT;
-		per_frame_data_t& pfd		 = _pfd[frame_slot];
-
-		if (snap == nullptr || snap->draw_buffer_count == 0)
+		if (snap == nullptr || snap->batch_count == 0)
 			return;
 
-		const mat4x4_t proj = mat4x4_t::ortho(0.0f, static_cast<f32>(fb_size.x), 0.0f, static_cast<f32>(fb_size.y), 0.0f, 1.0f);
-		SFG_MEMCPY(pfd.mapped_projection, proj.m, sizeof(f32) * 16);
-
-		command_bind_constants_t bc_proj = {.data = &pfd.projection_index, .offset = constant_rp0, .count = 1, .param_index = 0};
-		backend.cmd_bind_constants(cmd, bc_proj);
-
-		u32 vtx_offset = 0;
-		u32 idx_offset = 0;
-
-		gfx_handle_t current_pipeline = {};
-
-		for (u32 i = 0; i < snap->draw_buffer_count; ++i)
+		if (snap->vertex_count > _vtx_capacity / sizeof(vg_vertex_t) || snap->index_count > _idx_capacity / sizeof(vg_index_t) || snap->parameter_count > _parameter_capacity)
 		{
-			const vg_draw_buffer_final_t& db = snap->draw_buffers[i];
+			SFG_ERR("UI snapshot exceeds upload capacity");
+			return;
+		}
 
-			if (db.vertex_count == 0 || db.index_count == 0)
-				continue;
+		gfx_backend&		backend	   = gfx_backend::get();
+		render_resources_t& resources  = render_resources_t::get();
+		const u8			frame_slot = frame_index % BACK_BUFFER_COUNT;
+		per_frame_data_t&	pfd		   = _pfd[frame_slot];
+		const mat4x4_t		projection = mat4x4_t::ortho(0.0f, static_cast<f32>(fb_size.x), 0.0f, static_cast<f32>(fb_size.y), 0.0f, 1.0f);
 
-			const u32 vtx_size = db.vertex_count * sizeof(vg_vertex_t);
-			const u32 idx_size = db.index_count * sizeof(vg_index_t);
+		SFG_MEMCPY(pfd.mapped_projection, projection.m, sizeof(projection));
+		SFG_MEMCPY(pfd.mapped_vtx, snap->vertices, snap->vertex_count * sizeof(vg_vertex_t));
+		SFG_MEMCPY(pfd.mapped_idx, snap->indices, snap->index_count * sizeof(vg_index_t));
 
-			if (vtx_offset + vtx_size > _vtx_capacity || idx_offset + idx_size > _idx_capacity)
+		const gpu_index_t atlas_index = resources.get_texture_gpu_index(resource_manager_t::get().get_glyph_atlas().get_texture(), 0);
+
+		for (u32 i = 0; i < snap->parameter_count; ++i)
+		{
+			const ui_draw_parameters_t& source = snap->parameters[i];
+			ui_draw_parameters_gpu_t	parameters{.clip = source.clip};
+
+			for (u32 j = 0; j < 4; ++j)
 			{
-				SFG_ERR("per-frame upload buffer exhausted, dropping draw");
-				continue;
+				const ui_resolved_resource_ref_t& ref = source.constants[j];
+
+				switch (ref.type)
+				{
+				case ui_resource_type_e::gpu_index:
+				case ui_resource_type_e::test:
+					parameters.constants[j] = ref.gpu_indices[0];
+					break;
+				case ui_resource_type_e::gpu_index_fof:
+					parameters.constants[j] = ref.gpu_indices[frame_slot];
+					break;
+				case ui_resource_type_e::texture:
+				case ui_resource_type_e::sprite:
+					parameters.constants[j] = resources.get_texture_gpu_index(ref.texture, 0);
+					break;
+				case ui_resource_type_e::glyph_atlas:
+					parameters.constants[j] = atlas_index;
+					break;
+				case ui_resource_type_e::evictable_texture:
+					parameters.constants[j] = resources.get_optional_texture_gpu_index(ref.texture, 0);
+
+					if (parameters.constants[j] == NULL_GPU_INDEX)
+						parameters.clip = {1.0f, 1.0f, -1.0f, -1.0f};
+
+					break;
+				case ui_resource_type_e::none:
+					break;
+				}
 			}
 
-			if (db.resolved.pipeline.is_null())
-				continue;
+			SFG_MEMCPY(pfd.mapped_parameters + i * sizeof(parameters), &parameters, sizeof(parameters));
+		}
 
-			gpu_index_t obj_constants[4] = {};
-			bool		missing_texture	 = false;
+		const gpu_index_t			   constants[] = {pfd.projection_index, pfd.parameter_index};
+		const command_bind_constants_t bind_constants{.data = constants, .offset = constant_rp0, .count = 2, .param_index = 0};
+		backend.cmd_bind_constants(cmd, bind_constants);
 
-			for (u8 j = 0; j < 4; ++j)
-			{
-				const ui_resolved_resource_ref_t& ref = db.resolved.constants[j];
-				obj_constants[j]					  = resolve_constant(ref, frame_slot);
-				missing_texture |= ref.type == ui_resource_type_e::evictable_texture && obj_constants[j] == NULL_GPU_INDEX;
-			}
+		const command_set_scissors_t scissors{.x = 0, .y = 0, .width = fb_size.x, .height = fb_size.y};
+		backend.cmd_set_scissors(cmd, scissors);
 
-			if (missing_texture)
-				continue;
+		const command_bind_vertex_buffers_t vertices{.buffer = pfd.vertex_buffer, .slot = 0, .vertex_size = sizeof(vg_vertex_t), .offset = 0};
+		backend.cmd_bind_vertex_buffers(cmd, vertices);
 
-			const gfx_handle_t pipeline = render_resources_t::get().get_shader_hw(db.resolved.pipeline);
+		const command_bind_index_buffers_t indices{.buffer = pfd.index_buffer, .offset = 0, .index_size = sizeof(vg_index_t)};
+		backend.cmd_bind_index_buffers(cmd, indices);
 
-			if (pipeline != current_pipeline)
-			{
-				command_bind_pipeline_t bp = {.pipeline = pipeline};
-				backend.cmd_bind_pipeline(cmd, bp);
-				current_pipeline = pipeline;
-			}
+		for (u32 i = 0; i < snap->batch_count; ++i)
+		{
+			const vg_draw_batch_t&		  batch = snap->batches[i];
+			const command_bind_pipeline_t pipeline{.pipeline = resources.get_shader_hw(batch.pipeline)};
+			backend.cmd_bind_pipeline(cmd, pipeline);
 
-			glyph_atlas_t&	  glyph_atlas = resource_manager_t::get().get_glyph_atlas();
-			const gpu_index_t atlas_index = render_resources_t::get().get_texture_gpu_index(glyph_atlas.get_texture(), 0);
-
-			gpu_index_t				 mat_constants[2] = {atlas_index, _sdf_params_index};
-			command_bind_constants_t bc_mat0		  = {.data = mat_constants, .offset = constant_mat0, .count = 2, .param_index = 0};
-			backend.cmd_bind_constants(cmd, bc_mat0);
-
-			command_bind_constants_t bc_obj = {.data = obj_constants, .offset = constant_obj0, .count = 4, .param_index = 0};
-			backend.cmd_bind_constants(cmd, bc_obj);
-
-			SFG_MEMCPY(pfd.mapped_vtx + vtx_offset, snap->vertices + db.vertex_offset, vtx_size);
-			SFG_MEMCPY(pfd.mapped_idx + idx_offset, snap->indices + db.index_offset, idx_size);
-
-			const u16			   sx = scissor_pos(db.clip.x);
-			const u16			   sy = scissor_pos(db.clip.y);
-			const u16			   sw = scissor_size(db.clip.x, db.clip.z);
-			const u16			   sh = scissor_size(db.clip.y, db.clip.w);
-			command_set_scissors_t sc = {.x = sx, .y = sy, .width = sw, .height = sh};
-			backend.cmd_set_scissors(cmd, sc);
-
-			command_bind_vertex_buffers_t vb = {};
-			vb.buffer						 = pfd.vertex_buffer;
-			vb.slot							 = 0;
-			vb.vertex_size					 = sizeof(vg_vertex_t);
-			vb.offset						 = vtx_offset;
-			backend.cmd_bind_vertex_buffers(cmd, vb);
-
-			command_bind_index_buffers_t ib = {};
-			ib.buffer						= pfd.index_buffer;
-			ib.offset						= idx_offset;
-			ib.index_size					= sizeof(vg_index_t);
-			backend.cmd_bind_index_buffers(cmd, ib);
-
-			command_draw_indexed_instanced_t draw_cmd = {};
-			draw_cmd.index_count_per_instance		  = db.index_count;
-			draw_cmd.instance_count					  = 1;
-			draw_cmd.start_index_location			  = 0;
-			draw_cmd.base_vertex_location			  = 0;
-			draw_cmd.start_instance_location		  = 0;
-			backend.cmd_draw_indexed_instanced(cmd, draw_cmd);
-
-			vtx_offset += vtx_size;
-			idx_offset += idx_size;
+			const command_draw_indexed_instanced_t draw{
+				.index_count_per_instance = batch.index_count,
+				.instance_count			  = 1,
+				.start_index_location	  = batch.index_offset,
+				.base_vertex_location	  = 0,
+				.start_instance_location  = 0,
+			};
+			backend.cmd_draw_indexed_instanced(cmd, draw);
 		}
 	}
 }

@@ -177,6 +177,7 @@ namespace sfg
 	editor_outliner_row_t& editor_widget_outliner_t::get_or_create_outliner_row(size_t index)
 	{
 		vector_t<editor_outliner_row_t>& rows = _outliner_rows;
+
 		if (index < rows.size())
 			return rows[index];
 
@@ -235,6 +236,7 @@ namespace sfg
 		row.fold_icon_text = ui.allocate_widget();
 		ui.set_widget_debug_name(row.fold_icon_text, "outliner_row_fold_icon");
 		tree.attach(row.fold_icon, row.fold_icon_text);
+		tree.draw_order(row.fold_icon_text) = tree.draw_order_const(row.root) + 1;
 
 		ui::layout_in_t& icon_text_in = tree.in(row.fold_icon_text);
 		icon_text_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
@@ -260,6 +262,7 @@ namespace sfg
 		row.type_icon_text = ui.allocate_widget();
 		ui.set_widget_debug_name(row.type_icon_text, "outliner_row_type_icon");
 		tree.attach(row.type_icon, row.type_icon_text);
+		tree.draw_order(row.type_icon_text) = tree.draw_order_const(row.root) + 1;
 
 		ui::layout_in_t& type_icon_text_in = tree.in(row.type_icon_text);
 		type_icon_text_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
@@ -273,6 +276,7 @@ namespace sfg
 		row.label = ui.allocate_widget();
 		ui.set_widget_debug_name(row.label, "outliner_row_label");
 		tree.attach(row.root, row.label);
+		tree.draw_order(row.label) = tree.draw_order_const(row.root) + 1;
 
 		ui::layout_in_t& label_in = tree.in(row.label);
 		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;

@@ -1990,6 +1990,7 @@ namespace sfg
 		row.fold_icon_text = _ui->allocate_widget();
 		_ui->set_widget_debug_name(row.fold_icon_text, "skeleton_joint_fold_icon");
 		tree.attach(row.fold_icon, row.fold_icon_text);
+		tree.draw_order(row.fold_icon_text) = tree.draw_order_const(row.root) + 1;
 
 		ui::layout_in_t& icon_text_in = tree.in(row.fold_icon_text);
 
@@ -2015,6 +2016,7 @@ namespace sfg
 		row.label = _ui->allocate_widget();
 		_ui->set_widget_debug_name(row.label, "skeleton_joint_name");
 		tree.attach(row.root, row.label);
+		tree.draw_order(row.label) = tree.draw_order_const(row.root) + 1;
 
 		ui::layout_in_t& label_in = tree.in(row.label);
 

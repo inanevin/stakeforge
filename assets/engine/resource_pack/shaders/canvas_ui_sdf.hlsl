@@ -21,52 +21,16 @@
 //  in GAME-LINKING-EXCEPTION.md.
 // -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-#include "../../../common/shaders/layout_defines.hlsl"
-
-struct projection_cb
-{
-	float4x4 projection;
-};
-
-struct mat_cb
-{
-	float sdf_threshold;
-	float sdf_softness;
-};
+#include "../../../common/shaders/ui.hlsl"
 
 SamplerState samp_linear : static_sampler_linear;
 
-struct VSInput
-{
-	float2 pos   : POSITION;
-	float2 uv    : TEXCOORD0;
-	float4 color : COLOR0;
-};
-
-struct VSOutput
-{
-	float4 pos   : SV_POSITION;
-	float2 uv    : TEXCOORD0;
-	float4 color : COLOR0;
-};
-
-VSOutput VSMain(VSInput IN)
-{
-	ConstantBuffer<projection_cb> proj = sfg_get_cbv<projection_cb>(sfg_constant_rp0);
-	VSOutput OUT;
-	OUT.pos   = mul(proj.projection, float4(IN.pos, 0.0f, 1.0f));
-	OUT.uv    = IN.uv;
-	OUT.color = IN.color;
-	return OUT;
-}
-
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
-	Texture2D atlas = sfg_get_texture<Texture2D>(sfg_constant_mat0);
-	mat_cb mat = sfg_get_cbv<mat_cb>(sfg_constant_mat1);
+	Texture2D atlas = sfg_get_texture_non_uniform<Texture2D>(IN.constants.x);
 
 	float d = atlas.SampleLevel(samp_linear, IN.uv, 0).r;
-	float w = max(mat.sdf_softness, fwidth(d));
-	float coverage = smoothstep(mat.sdf_threshold - w, mat.sdf_threshold + w, d);
+	float w = max(0.0625f, fwidth(d));
+	float coverage = smoothstep(0.5f - w, 0.5f + w, d);
 	return float4(IN.color.rgb, IN.color.a * coverage);
 }

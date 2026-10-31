@@ -339,8 +339,7 @@ namespace sfg
 				{
 					.vertex_pool_budget_bytes = 2 << 20,
 					.index_pool_budget_bytes  = 1 << 20,
-					.buffer_count			  = 256,
-					.geometry_span_count	  = 16384,
+					.draw_capacity			  = 16384,
 				},
 			.user_ui_scale			   = editor_settings_t::get().configurable.editor_ui_scale,
 			.dpi_scale				   = surface.runtime->monitor_info.dpi_scale,

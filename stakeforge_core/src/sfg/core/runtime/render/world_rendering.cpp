@@ -1454,7 +1454,8 @@ namespace sfg
 		}
 
 		const ui::vg_draw_snapshot_t canvas_snapshot = snapshot.canvas.before_post_process.get_snapshot();
-		if (canvas_snapshot.draw_buffer_count != 0)
+
+		if (canvas_snapshot.batch_count != 0)
 		{
 			backend.cmd_begin_render_pass(cmd, {.color_attachments = &color_attachment, .color_attachment_count = 1});
 			ctx.get_canvas_before_renderer().render(cmd, &canvas_snapshot, frame_index, size);
@@ -1771,7 +1772,7 @@ namespace sfg
 
 		const ui::vg_draw_snapshot_t	   canvas_snapshot	= snapshot.canvas.after_post_process.get_snapshot();
 		const world_debug_draw_snapshot_t& debug_draw		= snapshot.debug_draw;
-		const bool						   has_canvas_draws = canvas_snapshot.draw_buffer_count != 0;
+		const bool						   has_canvas_draws = canvas_snapshot.batch_count != 0;
 		const bool						   has_debug_draws	= !debug_draw.textures.empty() || !debug_draw.line_indices.empty() || !debug_draw.text_indices.empty();
 		const bool						   has_overlays		= has_canvas_draws || has_debug_draws;
 

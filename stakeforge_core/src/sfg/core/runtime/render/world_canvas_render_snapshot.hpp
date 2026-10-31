@@ -28,13 +28,15 @@ namespace sfg
 {
 	struct world_canvas_draw_snapshot_t
 	{
-		vector_t<ui::vg_draw_buffer_final_t> draw_buffers = {};
-		vector_t<ui::vg_vertex_t>			 vertices	  = {};
-		vector_t<ui::vg_index_t>			 indices	  = {};
+		vector_t<ui::vg_draw_batch_t>	   batches	  = {};
+		vector_t<ui::ui_draw_parameters_t> parameters = {};
+		vector_t<ui::vg_vertex_t>		   vertices	  = {};
+		vector_t<ui::vg_index_t>		   indices	  = {};
 
 		inline void clear()
 		{
-			draw_buffers.resize(0);
+			batches.resize(0);
+			parameters.resize(0);
 			vertices.resize(0);
 			indices.resize(0);
 		}
@@ -42,12 +44,14 @@ namespace sfg
 		inline ui::vg_draw_snapshot_t get_snapshot() const
 		{
 			return {
-				.draw_buffers	   = draw_buffers.data(),
-				.vertices		   = vertices.data(),
-				.indices		   = indices.data(),
-				.draw_buffer_count = static_cast<u32>(draw_buffers.size()),
-				.vertex_count	   = static_cast<u32>(vertices.size()),
-				.index_count	   = static_cast<u32>(indices.size()),
+				.batches		 = batches.data(),
+				.vertices		 = vertices.data(),
+				.indices		 = indices.data(),
+				.parameters		 = parameters.data(),
+				.batch_count	 = static_cast<u32>(batches.size()),
+				.vertex_count	 = static_cast<u32>(vertices.size()),
+				.index_count	 = static_cast<u32>(indices.size()),
+				.parameter_count = static_cast<u32>(parameters.size()),
 			};
 		}
 	};

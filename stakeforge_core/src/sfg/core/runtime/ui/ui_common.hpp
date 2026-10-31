@@ -54,6 +54,7 @@ namespace sfg::ui
 		test,
 		sprite,
 		evictable_texture,
+		glyph_atlas,
 	};
 
 	enum class clip_mode_e : u8
@@ -83,20 +84,29 @@ namespace sfg::ui
 		ui_resource_type_e		 type							= ui_resource_type_e::none;
 	};
 
-	struct ui_resolved_state_t
+	struct ui_draw_parameters_t
 	{
-		render_resource_handle_t   pipeline		= {};
+		vec4f_t					   clip			= vec4f_t::zero;
 		ui_resolved_resource_ref_t constants[4] = {};
 	};
+
+	struct ui_draw_parameters_gpu_t
+	{
+		vec4f_t		clip		 = vec4f_t::zero;
+		gpu_index_t constants[4] = {NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX};
+	};
+
+	static_assert(sizeof(ui_draw_parameters_gpu_t) == 32);
 
 	struct vg_vertex_t
 	{
 		vec2f_t pos;
 		vec2f_t uv;
 		vec4f_t color;
+		u32		parameter_index = 0;
 	};
 
-	using vg_index_t = u16;
+	using vg_index_t = u32;
 
 	enum class vg_gradient_e : u8
 	{

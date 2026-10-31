@@ -1,9 +1,4 @@
-#include "layout_defines.hlsl"
-
-struct projection_cb
-{
-	float4x4 projection;
-};
+#include "../../../common/shaders/ui.hlsl"
 
 SamplerState smp : static_sampler_nearest;
 
@@ -35,41 +30,15 @@ static const float GLITCH_CHANNEL_SPLIT_SPEED = 3.5f;
 static const float GLITCH_BASE_ALPHA		 = 0.88f;
 static const float GLITCH_MAJOR_ALPHA		 = 0.35f;
 
-struct VSInput
-{
-	float2 pos   : POSITION;
-	float2 uv    : TEXCOORD0;
-	float4 color : COLOR0;
-};
-
-struct VSOutput
-{
-	float4 pos   : SV_POSITION;
-	float2 uv    : TEXCOORD0;
-	float4 color : COLOR0;
-	float2 pixel : TEXCOORD1;
-};
-
 float hash11(float v)
 {
 	return frac(sin(v * 91.3458f) * 47453.5453f);
 }
 
-VSOutput VSMain(VSInput IN)
-{
-	VSOutput OUT;
-	ConstantBuffer<projection_cb> proj = sfg_get_cbv<projection_cb>(sfg_constant_rp0);
-	OUT.pos							 = mul(proj.projection, float4(IN.pos, 0.0f, 1.0f));
-	OUT.uv							 = IN.uv;
-	OUT.color						 = IN.color;
-	OUT.pixel						 = IN.pos;
-	return OUT;
-}
-
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
 	ConstantBuffer<sfg_globals> globals = sfg_get_cbv<sfg_globals>(sfg_constant_global0);
-	Texture2D atlas						= sfg_get_texture<Texture2D>(sfg_constant_mat0);
+	Texture2D atlas						= sfg_get_texture_non_uniform<Texture2D>(IN.constants.x);
 
 	const float t			 = globals.sfg_global_elapsed * GLITCH_TIME_SCALE;
 	const float scan		 = lerp(GLITCH_SCANLINE_MIN, GLITCH_SCANLINE_MAX, step(0.42f, frac(IN.pixel.y * GLITCH_SCANLINE_SCALE)));

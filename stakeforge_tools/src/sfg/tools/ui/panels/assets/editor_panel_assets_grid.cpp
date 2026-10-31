@@ -404,6 +404,7 @@ namespace sfg
 		item.label = ui.allocate_widget();
 		ui.set_widget_debug_name(item.label, "asset_grid_item_label");
 		tree.attach(item.info_frame, item.label);
+		tree.draw_order(item.label) = tree.draw_order_const(item.info_frame) + 1;
 
 		ui::layout_in_t& label_in = tree.in(item.label);
 		label_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
@@ -418,6 +419,7 @@ namespace sfg
 		item.type_label = ui.allocate_widget();
 		ui.set_widget_debug_name(item.type_label, "asset_grid_item_type_label");
 		tree.attach(item.info_frame, item.type_label);
+		tree.draw_order(item.type_label) = tree.draw_order_const(item.info_frame) + 1;
 
 		ui::layout_in_t& type_label_in = tree.in(item.type_label);
 		type_label_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;

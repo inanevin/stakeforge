@@ -326,11 +326,13 @@ namespace sfg
 			debug_draw.text_indices.reserve(16);
 			debug_draw.textures.reserve(16);
 
-			canvas.before_post_process.draw_buffers.reserve(16);
+			canvas.before_post_process.batches.reserve(16);
+			canvas.before_post_process.parameters.reserve(16);
 			canvas.before_post_process.vertices.reserve(16);
 			canvas.before_post_process.indices.reserve(16);
 
-			canvas.after_post_process.draw_buffers.reserve(16);
+			canvas.after_post_process.batches.reserve(16);
+			canvas.after_post_process.parameters.reserve(16);
 			canvas.after_post_process.vertices.reserve(16);
 			canvas.after_post_process.indices.reserve(16);
 		}

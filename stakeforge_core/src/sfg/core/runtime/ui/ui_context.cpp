@@ -68,7 +68,16 @@ namespace sfg::ui
 		_tree.init(cfg.max_widgets);
 		_paint.init(cfg.max_widgets);
 		_input.init(cfg.input, cfg.max_widgets);
-		_canvas.init(cfg.canvas);
+
+		vg_canvas_config_t canvas_config = cfg.canvas;
+
+		if (_render_snapshots_enabled)
+		{
+			canvas_config.vertex_pool_budget_bytes = math::min(canvas_config.vertex_pool_budget_bytes, static_cast<u64>(cfg.snapshot_vertex_max_bytes));
+			canvas_config.index_pool_budget_bytes  = math::min(canvas_config.index_pool_budget_bytes, static_cast<u64>(cfg.snapshot_index_max_bytes));
+		}
+
+		_canvas.init(canvas_config);
 		_text_pool.init(cfg.text_pool_budget_bytes);
 		_pre_layout_tick_defs.init(cfg.max_widgets);
 		_pre_layout_tick_widgets.init(cfg.max_widgets);
@@ -85,7 +94,7 @@ namespace sfg::ui
 			const u32 snap_idx_cap = cfg.snapshot_index_max_bytes / static_cast<u32>(sizeof(vg_index_t));
 
 			for (snapshot_slot_t& slot : _snapshot_slots)
-				allocate_snapshot_slot(slot, cfg.canvas.buffer_count, snap_vtx_cap, snap_idx_cap);
+				allocate_snapshot_slot(slot, cfg.canvas.draw_capacity, snap_vtx_cap, snap_idx_cap);
 
 			_producer_slot = 0;
 			_consumer_slot = 1;
@@ -118,28 +127,23 @@ namespace sfg::ui
 		_render_snapshots_enabled = true;
 	}
 
-	void ui_context::allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_buffer_capacity, u32 vertex_capacity, u32 index_capacity)
+	void ui_context::allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_capacity, u32 vertex_capacity, u32 index_capacity)
 	{
-		slot.draw_buffers		  = static_cast<vg_draw_buffer_final_t*>(SFG_MALLOC(sizeof(vg_draw_buffer_final_t) * draw_buffer_capacity));
-		slot.vertices			  = static_cast<vg_vertex_t*>(SFG_MALLOC(sizeof(vg_vertex_t) * vertex_capacity));
-		slot.indices			  = static_cast<vg_index_t*>(SFG_MALLOC(sizeof(vg_index_t) * index_capacity));
-		slot.draw_buffer_capacity = draw_buffer_capacity;
-		slot.vertex_capacity	  = vertex_capacity;
-		slot.index_capacity		  = index_capacity;
-
-		slot.draw_buffer_count = 0;
-		slot.vertex_count	   = 0;
-		slot.index_count	   = 0;
+		slot.batches		 = static_cast<vg_draw_batch_t*>(SFG_MALLOC(sizeof(vg_draw_batch_t) * draw_capacity));
+		slot.vertices		 = static_cast<vg_vertex_t*>(SFG_MALLOC(sizeof(vg_vertex_t) * vertex_capacity));
+		slot.indices		 = static_cast<vg_index_t*>(SFG_MALLOC(sizeof(vg_index_t) * index_capacity));
+		slot.parameters		 = static_cast<ui_draw_parameters_t*>(SFG_MALLOC(sizeof(ui_draw_parameters_t) * draw_capacity));
+		slot.vertex_capacity = vertex_capacity;
+		slot.index_capacity	 = index_capacity;
+		slot.snapshot		 = {};
 	}
 
 	void ui_context::free_snapshot_slot(snapshot_slot_t& slot)
 	{
-		if (slot.draw_buffers)
-			SFG_FREE(slot.draw_buffers);
-		if (slot.vertices)
-			SFG_FREE(slot.vertices);
-		if (slot.indices)
-			SFG_FREE(slot.indices);
+		SFG_FREE(slot.batches);
+		SFG_FREE(slot.vertices);
+		SFG_FREE(slot.indices);
+		SFG_FREE(slot.parameters);
 		slot = {};
 	}
 
@@ -487,46 +491,7 @@ namespace sfg::ui
 		SFG_ASSERT(_render_snapshots_enabled);
 
 		snapshot_slot_t& slot = _snapshot_slots[_producer_slot];
-
-		const vector_t<vg_draw_buffer_t>& src_dbs = _canvas.get_draw_buffers();
-
-		u32 vtx_offset = 0;
-		u32 idx_offset = 0;
-		u32 db_count   = 0;
-
-		for (const vg_draw_buffer_t& src : src_dbs)
-		{
-			if (src.vertex_count == 0 || src.index_count == 0)
-				continue;
-
-			SFG_ASSERT(db_count < slot.draw_buffer_capacity);
-
-			if (src.vertex_count > slot.vertex_capacity - vtx_offset || src.index_count > slot.index_capacity - idx_offset)
-			{
-				SFG_ERR("snapshot geometry capacity exhausted, dropping draw");
-				continue;
-			}
-
-			vg_draw_buffer_final_t& dst = slot.draw_buffers[db_count];
-			dst.resolved				= src.resolved;
-			dst.clip					= src.clip;
-			dst.draw_order				= src.draw_order;
-			dst.vertex_count			= src.vertex_count;
-			dst.index_count				= src.index_count;
-			dst.vertex_offset			= vtx_offset;
-			dst.index_offset			= idx_offset;
-
-			_canvas.copy_draw_buffer_vertices(src, slot.vertices + vtx_offset);
-			_canvas.copy_draw_buffer_indices(src, slot.indices + idx_offset);
-
-			vtx_offset += src.vertex_count;
-			idx_offset += src.index_count;
-			db_count++;
-		}
-
-		slot.draw_buffer_count = db_count;
-		slot.vertex_count	   = vtx_offset;
-		slot.index_count	   = idx_offset;
+		slot.snapshot		  = _canvas.copy_frame(slot.batches, slot.vertices, slot.indices, slot.parameters);
 
 		const u8 prev  = _snapshot_mailbox.exchange(_producer_slot | SNAPSHOT_FRESH_FLAG, std::memory_order_release);
 		_producer_slot = static_cast<u8>((prev & SNAPSHOT_SLOT_MASK) % SNAPSHOT_SLOT_COUNT);
@@ -548,16 +513,7 @@ namespace sfg::ui
 			}
 		}
 
-		const snapshot_slot_t& slot = _snapshot_slots[_consumer_slot];
-
-		return {
-			.draw_buffers	   = slot.draw_buffers,
-			.vertices		   = slot.vertices,
-			.indices		   = slot.indices,
-			.draw_buffer_count = slot.draw_buffer_count,
-			.vertex_count	   = slot.vertex_count,
-			.index_count	   = slot.index_count,
-		};
+		return _snapshot_slots[_consumer_slot].snapshot;
 	}
 
 	void ui_context::on_mouse_move(const vec2f_t& pos)

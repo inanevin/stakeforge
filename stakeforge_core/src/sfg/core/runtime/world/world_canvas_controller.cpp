@@ -70,8 +70,8 @@ namespace sfg
 			bool is_config_equal(const component_canvas_t& other) const
 			{
 				return config.default_font == other.default_font && config.text_pool_budget_bytes == other.text_pool_budget_bytes && config.vertex_pool_budget_bytes == other.vertex_pool_budget_bytes &&
-					   config.index_pool_budget_bytes == other.index_pool_budget_bytes && config.sort_order == other.sort_order && config.ui_scale == other.ui_scale && config.max_widgets == other.max_widgets &&
-					   config.draw_buffer_count == other.draw_buffer_count && config.render_stage == other.render_stage && config.input_enabled == other.input_enabled;
+					   config.index_pool_budget_bytes == other.index_pool_budget_bytes && config.sort_order == other.sort_order && config.ui_scale == other.ui_scale && config.max_widgets == other.max_widgets && config.render_stage == other.render_stage &&
+					   config.input_enabled == other.input_enabled;
 			}
 
 			canvas_widget_handle_t make_handle(ui::widget_id_t id) const
@@ -240,8 +240,7 @@ namespace sfg
 					{
 						.vertex_pool_budget_bytes		= component.vertex_pool_budget_bytes,
 						.index_pool_budget_bytes		= component.index_pool_budget_bytes,
-						.buffer_count					= component.draw_buffer_count,
-						.geometry_span_count			= static_cast<u32>(component.max_widgets) * 8u,
+						.draw_capacity					= static_cast<u32>(component.max_widgets) * 8u,
 						.text_cache_vertex_budget_bytes = component.vertex_pool_budget_bytes,
 						.text_cache_index_budget_bytes	= component.index_pool_budget_bytes,
 						.clip_stack_initial_capacity	= math::min<u32>(component.max_widgets, 64u),
@@ -301,31 +300,31 @@ namespace sfg
 
 		void append_runtime(const runtime_t& runtime, world_canvas_draw_snapshot_t& destination) const
 		{
-			const ui::vg_canvas_t& canvas = runtime.context->get_canvas();
+			const ui::vg_canvas_t& canvas			= runtime.context->get_canvas();
+			const u32			   vertex_offset	= static_cast<u32>(destination.vertices.size());
+			const u32			   index_offset		= static_cast<u32>(destination.indices.size());
+			const u32			   parameter_offset = static_cast<u32>(destination.parameters.size());
+			const u32			   batch_offset		= static_cast<u32>(destination.batches.size());
+			const u32			   draw_count		= canvas.get_draw_count();
 
-			for (const ui::vg_draw_buffer_t& source : canvas.get_draw_buffers())
+			if (canvas.get_indices().size == 0)
+				return;
+
+			destination.vertices.resize(vertex_offset + canvas.get_vertices().size);
+			destination.indices.resize(index_offset + canvas.get_indices().size);
+			destination.parameters.resize(parameter_offset + draw_count);
+			destination.batches.resize(batch_offset + draw_count);
+
+			const ui::vg_draw_snapshot_t appended = canvas.copy_frame(
+				destination.batches.data() + batch_offset, destination.vertices.data() + vertex_offset, destination.indices.data() + index_offset, destination.parameters.data() + parameter_offset, vertex_offset, index_offset, parameter_offset);
+			destination.indices.resize(index_offset + appended.index_count);
+			destination.parameters.resize(parameter_offset + appended.parameter_count);
+			destination.batches.resize(batch_offset + appended.batch_count);
+
+			if (batch_offset != 0 && appended.batch_count != 0 && destination.batches[batch_offset - 1].pipeline == destination.batches[batch_offset].pipeline)
 			{
-				if (source.vertex_count == 0 || source.index_count == 0)
-					continue;
-
-				const u32 vertex_offset = static_cast<u32>(destination.vertices.size());
-				const u32 index_offset	= static_cast<u32>(destination.indices.size());
-
-				destination.vertices.resize(destination.vertices.size() + source.vertex_count);
-				destination.indices.resize(destination.indices.size() + source.index_count);
-
-				canvas.copy_draw_buffer_vertices(source, destination.vertices.data() + vertex_offset);
-				canvas.copy_draw_buffer_indices(source, destination.indices.data() + index_offset);
-
-				destination.draw_buffers.push_back({
-					.resolved	   = source.resolved,
-					.clip		   = source.clip,
-					.draw_order	   = source.draw_order,
-					.vertex_count  = source.vertex_count,
-					.index_count   = source.index_count,
-					.vertex_offset = vertex_offset,
-					.index_offset  = index_offset,
-				});
+				destination.batches[batch_offset - 1].index_count += destination.batches[batch_offset].index_count;
+				destination.batches.erase(destination.batches.begin() + batch_offset);
 			}
 		}
 
