@@ -83,6 +83,7 @@ namespace sfg
 		bool			   dock_node_add_panel_to_existing_type_leaf(editor_panel_t* panel);
 		bool			   refresh_panel_title(editor_panel_t* panel);
 		bool			   request_close_panel(editor_panel_t* panel);
+		void			   remember_window_size();
 		nlohmann::json	   to_json() const;
 		bool			   from_json(const nlohmann::json& j);
 

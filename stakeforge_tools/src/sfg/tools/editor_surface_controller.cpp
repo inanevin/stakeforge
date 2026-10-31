@@ -56,6 +56,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+#define PANEL_WINDOW_DEFAULT_SCALE 0.6f
+
 	namespace
 	{
 		bool g_focus_main_world_view = false;
@@ -135,7 +137,10 @@ namespace sfg
 		if (surface.type == editor_surface_type_e::primary)
 			surface.primary->get_dock_widget().from_json(doc);
 		else if (surface.type == editor_surface_type_e::secondary)
+		{
 			surface.secondary->get_dock_widget().from_json(doc);
+			surface.secondary->get_dock_widget().remember_window_size();
+		}
 	}
 
 	void editor_surface_controller_t::load_primary_main_toolbar(editor_surface_t& surface, const string_t& main_toolbar)
@@ -232,9 +237,18 @@ namespace sfg
 
 	void editor_surface_controller_t::on_window_event(void* hwnd, const window_event_t& ev, void* user_data)
 	{
-		window_runtime_t& runtime = *static_cast<window_runtime_t*>(user_data);
+		window_runtime_t&			 runtime  = *static_cast<window_runtime_t*>(user_data);
+		editor_surface_controller_t& surfaces = editor_surface_controller_t::get();
 
-		editor_surface_controller_t::get()._input_router.on_window_event(runtime, ev);
+		if (ev.type == window_event_type_e::resize)
+		{
+			editor_surface_t& surface = surfaces.get_surface_by_runtime(runtime);
+
+			if (surface.type == editor_surface_type_e::secondary)
+				surface.secondary->get_dock_widget().remember_window_size();
+		}
+
+		surfaces._input_router.on_window_event(runtime, ev);
 	}
 
 	bool editor_surface_controller_t::on_window_client_hit_test(window_runtime_t& runtime, const vec2i16_t& pos, void*)
@@ -451,6 +465,10 @@ namespace sfg
 		{
 			save_layout();
 		}
+		else if (surface.type == editor_surface_type_e::secondary)
+		{
+			surface.secondary->get_dock_widget().remember_window_size();
+		}
 
 		if (surface.type == editor_surface_type_e::primary)
 			surface.primary->uninit();
@@ -523,9 +541,11 @@ namespace sfg
 
 			if (surface.runtime->has_flag(window_runtime_flags_e::close_requested))
 			{
+				const bool primary = surface.type == editor_surface_type_e::primary;
+
 				destroy_surface(handle);
 
-				if (surface.type == editor_surface_type_e::primary)
+				if (primary)
 				{
 					destroy_all_surfaces();
 					return;
@@ -579,8 +599,9 @@ namespace sfg
 
 	void editor_surface_controller_t::save_layout()
 	{
-		editor_layout_t& layout = editor_settings_t::get().layout;
-		layout					= {};
+		editor_project_t& project = editor_project_t::get();
+		editor_layout_t&  layout  = project.layout;
+		layout					  = {};
 
 		bool primary_saved = false;
 
@@ -603,7 +624,10 @@ namespace sfg
 				window.main_toolbar = string_t(main_toolbar.dump());
 			}
 			else if (surface.type == editor_surface_type_e::secondary)
+			{
+				surface.secondary->get_dock_widget().remember_window_size();
 				window.dock_layout = string_t(surface.secondary->get_dock_widget().to_json().dump());
+			}
 
 			if (window.is_primary)
 			{
@@ -611,9 +635,10 @@ namespace sfg
 				primary_saved = true;
 			}
 
-			layout.windows.push_back(window);
+			layout.windows.push_back(std::move(window));
 		}
 
+		project.save(project._runtime.path.c_str());
 		editor_settings_t::get().save();
 	}
 
@@ -730,6 +755,7 @@ namespace sfg
 
 		if (panel == nullptr)
 			return nullptr;
+
 		panel->set_sub_item_id(sub_item_id);
 
 		if (prefer_existing_type_dock)
@@ -755,10 +781,24 @@ namespace sfg
 			}
 		}
 
-		const editor_surface_t& main_surface = get_main_surface();
-		const vec2i16_t			pos			 = {static_cast<i16>(main_surface.runtime->pos.x + 64), static_cast<i16>(main_surface.runtime->pos.y + 64)};
-		const vec2u16_t			size		 = {640, 480};
-		const surface_handle_t	new_surface	 = create_surface(pos, size, editor_surface_type_e::secondary);
+		const window_runtime_t&			  main_window = *get_main_surface().runtime;
+		const monitor_info_t&			  monitor	  = main_window.monitor_info;
+		const editor_panel_window_size_t& remembered  = editor_settings_t::get().panel_window_sizes[static_cast<u8>(type)];
+
+		const f32 width	 = remembered.width > 0.0f ? remembered.width * monitor.dpi_scale : static_cast<f32>(main_window.size.x) * PANEL_WINDOW_DEFAULT_SCALE;
+		const f32 height = remembered.height > 0.0f ? remembered.height * monitor.dpi_scale : static_cast<f32>(main_window.size.y) * PANEL_WINDOW_DEFAULT_SCALE;
+
+		const vec2u16_t size = {
+			static_cast<u16>(math::clamp(width + 0.5f, 1.0f, static_cast<f32>(monitor.work_size.x))),
+			static_cast<u16>(math::clamp(height + 0.5f, 1.0f, static_cast<f32>(monitor.work_size.y))),
+		};
+
+		const vec2i16_t pos = {
+			static_cast<i16>(math::clamp(static_cast<i32>(main_window.pos.x) + (static_cast<i32>(main_window.size.x) - size.x) / 2, static_cast<i32>(monitor.position.x), static_cast<i32>(monitor.position.x) + monitor.work_size.x - size.x)),
+			static_cast<i16>(math::clamp(static_cast<i32>(main_window.pos.y) + (static_cast<i32>(main_window.size.y) - size.y) / 2, static_cast<i32>(monitor.position.y), static_cast<i32>(monitor.position.y) + monitor.work_size.y - size.y)),
+		};
+
+		const surface_handle_t new_surface = create_surface(pos, size, editor_surface_type_e::secondary);
 
 		if (new_surface.is_null())
 		{
@@ -772,6 +812,7 @@ namespace sfg
 		dock.set_root_node(leaf);
 		dock.dock_node_add_panel(leaf, panel);
 		process::bring_to_front(surface.runtime->window_handle);
+
 		return panel;
 	}
 

@@ -46,10 +46,33 @@ namespace sfg
 	bool editor_project_t::save(const char* path)
 	{
 		nlohmann::json js = nlohmann::json::object();
+
 		if (!reflection_registry_t::get().type_to_json(type_id_t<editor_project_t>::value, this, nullptr, js))
+		{
+			SFG_ERR("failed to serialize project settings {0}", path);
 			return false;
-		const string_t contents = js.dump(4);
-		return serializer_t::write_to_file(contents, path);
+		}
+
+		string_t contents = {};
+
+		try
+		{
+			js["layout"] = layout;
+			contents	 = js.dump(4);
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to serialize project {0}: {1}", path, error.what());
+			return false;
+		}
+
+		if (!serializer_t::write_to_file(contents, path))
+		{
+			SFG_ERR("failed to write project {0}", path);
+			return false;
+		}
+
+		return true;
 	}
 
 	bool editor_project_t::try_load(const char* path)
@@ -59,17 +82,48 @@ namespace sfg
 
 		const string_t&		 contents = file_system_t::read_file_as_string(path);
 		const nlohmann::json js		  = nlohmann::json::parse(contents, nullptr, false);
+
 		if (js.is_discarded())
+		{
+			SFG_ERR("failed to parse project {0}", path);
 			return false;
+		}
 
 		editor_project_t project = {};
-		if (!reflection_registry_t::get().type_from_json(type_id_t<editor_project_t>::value, &project, nullptr, js))
-			return false;
 
-		*this = project;
-		settings.project_settings.normalize();
-		refresh_runtime(path);
+		if (!reflection_registry_t::get().type_from_json(type_id_t<editor_project_t>::value, &project, nullptr, js))
+		{
+			SFG_ERR("failed to deserialize project settings {0}", path);
+			return false;
+		}
+
+		try
+		{
+			project.layout = js.value("layout", editor_layout_t{});
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to deserialize project layout {0}: {1}", path, error.what());
+			return false;
+		}
+
+		size_t primary_count = 0;
+
+		for (const editor_layout_window_t& window : project.layout.windows)
+			primary_count += window.is_primary ? 1 : 0;
+
+		if (!project.layout.windows.empty() && primary_count != 1)
+		{
+			SFG_ERR("project layout must contain exactly one primary window: {0}", path);
+			return false;
+		}
+
+		project.settings.project_settings.normalize();
+		project.refresh_runtime(path);
+		*this = std::move(project);
+
 		engine_runtime_t::get().update_project_settings(settings.project_settings);
+
 		return true;
 	}
 

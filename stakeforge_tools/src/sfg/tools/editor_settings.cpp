@@ -120,6 +120,19 @@ namespace sfg
 			return false;
 		}
 
+		for (u8 i = 0; i < static_cast<u8>(editor_panel_type_e::max); ++i)
+		{
+			const editor_panel_window_size_t& size	= loaded.panel_window_sizes[i];
+			const bool						  unset = size.width == 0.0f && size.height == 0.0f;
+			const bool						  valid = size.width > 0.0f && size.width <= 65535.0f && size.height > 0.0f && size.height <= 65535.0f;
+
+			if (!unset && !valid)
+			{
+				SFG_ERR("invalid window size for panel {0} in editor settings {1}", editor_panel_type_to_string(static_cast<editor_panel_type_e>(i)), settings);
+				return false;
+			}
+		}
+
 		*this = std::move(loaded);
 
 		return true;
@@ -172,23 +185,42 @@ namespace sfg
 		reflected_from_json(j.value("sprite", nlohmann::json::object()), settings.sprite);
 	}
 
+	void to_json(nlohmann::json& j, const editor_panel_window_size_t& size)
+	{
+		j["width"]	= size.width;
+		j["height"] = size.height;
+	}
+
+	void from_json(const nlohmann::json& j, editor_panel_window_size_t& size)
+	{
+		size.width	= j.value<f32>("width", 0.0f);
+		size.height = j.value<f32>("height", 0.0f);
+	}
+
 	void to_json(nlohmann::json& j, const editor_settings_t& settings)
 	{
-		j["layout"]		  = settings.layout;
-		j["import"]		  = settings.import;
-		j["project_cook"] = reflected_to_json(settings.project_cook);
-		j["configurable"] = reflected_to_json(settings.configurable);
-		j["project_path"] = settings.last_project_path;
+		j["import"]				= settings.import;
+		j["project_cook"]		= reflected_to_json(settings.project_cook);
+		j["configurable"]		= reflected_to_json(settings.configurable);
+		j["project_path"]		= settings.last_project_path;
+		j["panel_window_sizes"] = nlohmann::json::object();
+
+		for (u8 i = 0; i < static_cast<u8>(editor_panel_type_e::max); ++i)
+			j["panel_window_sizes"][editor_panel_type_to_string(static_cast<editor_panel_type_e>(i))] = settings.panel_window_sizes[i];
 	}
 
 	void from_json(const nlohmann::json& j, editor_settings_t& settings)
 	{
-		settings.layout = j.value("layout", editor_layout_t{});
 		settings.import = j.value("import", editor_import_settings_t{});
 		reflected_from_json(j.value("project_cook", nlohmann::json::object()), settings.project_cook);
 		settings.configurable = {};
 		reflected_from_json(j.value("configurable", nlohmann::json::object()), settings.configurable);
 		settings.configurable.normalize();
 		settings.last_project_path = j.value<string_t>("project_path", {});
+
+		const nlohmann::json panel_window_sizes = j.value("panel_window_sizes", nlohmann::json::object());
+
+		for (u8 i = 0; i < static_cast<u8>(editor_panel_type_e::max); ++i)
+			settings.panel_window_sizes[i] = panel_window_sizes.value<editor_panel_window_size_t>(editor_panel_type_to_string(static_cast<editor_panel_type_e>(i)), {});
 	}
 }

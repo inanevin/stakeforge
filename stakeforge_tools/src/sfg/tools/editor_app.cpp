@@ -273,7 +273,7 @@ namespace sfg
 			_file_watch_controller.uninit();
 		};
 
-		const editor_layout_t& layout = editor_settings_t::get().layout;
+		const editor_layout_t& layout = proj.layout;
 
 		if (layout.windows.empty())
 		{

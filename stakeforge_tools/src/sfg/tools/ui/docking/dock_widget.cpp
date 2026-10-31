@@ -26,6 +26,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/ui/panels/editor_panel_types.hpp"
 #include "tools/ui/panels/editor_theme.hpp"
 #include "tools/editor_app.hpp"
+#include "tools/editor_settings.hpp"
 #include <sfg/core/common/hashing.hpp>
 #include <sfg/core/data/frame_vector.hpp>
 #include <sfg/core/io/assert.hpp>
@@ -274,6 +275,8 @@ namespace sfg
 		node.panels.push_back(panel);
 		panel->assign(*_ui, node.body);
 		node.tab_area.select_tab(panel->get_instance_id());
+
+		remember_window_size();
 	}
 
 	bool dock_widget_t::refresh_panel_title(editor_panel_t* panel)
@@ -310,6 +313,35 @@ namespace sfg
 		}
 
 		return false;
+	}
+
+	void dock_widget_t::remember_window_size()
+	{
+		if (_config.root_drag_out_behavior != dock_widget_root_drag_out_e::close_window || _root_node.is_null())
+			return;
+
+		if (_runtime->has_flag(window_runtime_flags_e::minimized) || _runtime->has_flag(window_runtime_flags_e::maximized))
+			return;
+
+		const dock_node_t& root = _dock_nodes.get(_root_node);
+
+		if (root.node_type != dock_node_type_e::leaf || root.panels.empty())
+			return;
+
+		const editor_panel_type_e type = root.panels.front()->get_type();
+
+		for (const editor_panel_t* panel : root.panels)
+		{
+			if (panel->get_type() != type)
+				return;
+		}
+
+		const f32 dpi_scale = _runtime->monitor_info.dpi_scale;
+
+		editor_settings_t::get().panel_window_sizes[static_cast<u8>(type)] = {
+			.width	= static_cast<f32>(_runtime->size.x) / dpi_scale,
+			.height = static_cast<f32>(_runtime->size.y) / dpi_scale,
+		};
 	}
 
 	void dock_widget_t::dock_node_remove_panel(dock_node_t& node, sid_t identifier)
@@ -886,12 +918,15 @@ namespace sfg
 	void dock_widget_t::on_leaf_tab_dragged_out(editor_tab_area_t& tab_area, sid_t identifier, void* user_data)
 	{
 		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
+		dock_widget.remember_window_size();
+
 		for (dock_node_t& node : dock_widget._dock_nodes)
 		{
 			if (&node.tab_area == &tab_area)
 			{
 				const bool is_root = !dock_widget._root_node.is_null() && &node == &dock_widget._dock_nodes.get(dock_widget._root_node);
 				dock_widget.dock_node_remove_panel(node, identifier);
+
 				if (node.panels.empty())
 				{
 					if (is_root && dock_widget._config.root_drag_out_behavior == dock_widget_root_drag_out_e::close_window)
@@ -899,6 +934,7 @@ namespace sfg
 					else if (!is_root)
 						dock_widget.collapse_empty_leaf_after_drag_out(node);
 				}
+
 				return;
 			}
 		}
@@ -949,14 +985,18 @@ namespace sfg
 	void dock_widget_t::on_leaf_tab_closed(editor_tab_area_t& tab_area, sid_t identifier, void* user_data)
 	{
 		dock_widget_t& dock_widget = *static_cast<dock_widget_t*>(user_data);
+		dock_widget.remember_window_size();
+
 		for (dock_node_t& node : dock_widget._dock_nodes)
 		{
 			if (&node.tab_area == &tab_area)
 			{
 				const bool is_root = !dock_widget._root_node.is_null() && &node == &dock_widget._dock_nodes.get(dock_widget._root_node);
+
 				for (auto it = node.panels.begin(); it != node.panels.end(); ++it)
 				{
 					editor_panel_t* panel = *it;
+
 					if (panel->get_instance_id() == identifier)
 					{
 						panel->deassign();
@@ -966,6 +1006,7 @@ namespace sfg
 						break;
 					}
 				}
+
 				if (node.panels.empty())
 				{
 					if (is_root && dock_widget._config.root_drag_out_behavior == dock_widget_root_drag_out_e::close_window)
@@ -973,6 +1014,7 @@ namespace sfg
 					else if (!is_root)
 						dock_widget.collapse_empty_leaf_after_drag_out(node);
 				}
+
 				return;
 			}
 		}

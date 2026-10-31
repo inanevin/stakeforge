@@ -24,8 +24,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include "tools/tools_exports.hpp"
 
 #include "tools/assets/editor_glb_importer.hpp"
-#include "tools/editor_layout.hpp"
 #include "tools/editor_project_cook_options.hpp"
+#include "tools/ui/panels/editor_panel_types.hpp"
 
 #include <sfg/core/runtime/resources/audio_cook.hpp>
 #include <sfg/core/runtime/resources/cubemap_cook.hpp>
@@ -53,6 +53,13 @@ namespace sfg
 		bool operator==(const editor_settings_configurable_t&) const = default;
 	};
 
+	struct editor_panel_window_size_t
+	{
+		// logical pixels; zero means no saved size
+		f32 width  = 0.0f;
+		f32 height = 0.0f;
+	};
+
 	struct SFG_TOOLS_API editor_settings_t
 	{
 		inline static editor_settings_t& get()
@@ -65,11 +72,11 @@ namespace sfg
 		bool save();
 		bool ensure_loaded();
 
-		editor_layout_t				   layout			 = {};
-		editor_import_settings_t	   import			 = {};
-		editor_project_cook_options_t  project_cook		 = {};
-		string_t					   last_project_path = "";
-		editor_settings_configurable_t configurable		 = {};
+		editor_import_settings_t	   import														 = {};
+		editor_project_cook_options_t  project_cook													 = {};
+		string_t					   last_project_path											 = "";
+		editor_settings_configurable_t configurable													 = {};
+		editor_panel_window_size_t	   panel_window_sizes[static_cast<u8>(editor_panel_type_e::max)] = {};
 	};
 
 	SFG_DEFINE_TYPE_ID(editor_settings_configurable_t);
@@ -81,6 +88,8 @@ namespace sfg
 
 	SFG_TOOLS_API void to_json(nlohmann::json& j, const editor_import_settings_t& settings);
 	SFG_TOOLS_API void from_json(const nlohmann::json& j, editor_import_settings_t& settings);
+	SFG_TOOLS_API void to_json(nlohmann::json& j, const editor_panel_window_size_t& size);
+	SFG_TOOLS_API void from_json(const nlohmann::json& j, editor_panel_window_size_t& size);
 	SFG_TOOLS_API void to_json(nlohmann::json& j, const editor_settings_t& settings);
 	SFG_TOOLS_API void from_json(const nlohmann::json& j, editor_settings_t& settings);
 }

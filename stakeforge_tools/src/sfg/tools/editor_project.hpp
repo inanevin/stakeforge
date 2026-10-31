@@ -23,6 +23,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "tools/tools_exports.hpp"
 
+#include "tools/editor_layout.hpp"
 #include "tools/world/editor_world_view_settings.hpp"
 
 #include <sfg/core/common/size_definitions.hpp>
@@ -73,6 +74,7 @@ namespace sfg
 
 		editor_project_runtime_t	   _runtime = {};
 		editor_project_settings_data_t settings = {};
+		editor_layout_t				   layout	= {};
 
 		bool					save(const char* path);
 		bool					try_load(const char* path);
