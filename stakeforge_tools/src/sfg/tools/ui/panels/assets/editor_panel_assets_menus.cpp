@@ -40,7 +40,7 @@ namespace sfg
 			},
 		};
 
-		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_GRAPHICS_ROWS[] = {
+		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_SHADER_ROWS[] = {
 			{.text = "Lit Shader", .command = assets_action_menu_create_lit_shader},
 			{.text = "Unlit Shader", .command = assets_action_menu_create_unlit_shader},
 			{.text = "UI Shader", .command = assets_action_menu_create_ui_shader},
@@ -49,8 +49,9 @@ namespace sfg
 			{.text = "Sprite Lit Shader", .command = assets_action_menu_create_sprite_lit_shader},
 			{.text = "Sprite Unlit Shader", .command = assets_action_menu_create_sprite_unlit_shader},
 			{.text = "Particle Shader", .command = assets_action_menu_create_particle_shader},
-			{.text = "Texture Sampler", .command = assets_action_menu_create_texture_sampler},
-			{.text = "Curve", .command = assets_action_menu_create_curve},
+		};
+
+		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_MATERIAL_ROWS[] = {
 			{.text = "Opaque Material", .command = assets_action_menu_create_opaque_material},
 			{.text = "Opaque Unlit Material", .command = assets_action_menu_create_opaque_unlit_material},
 			{.text = "Transparent Material", .command = assets_action_menu_create_transparent_material},
@@ -69,8 +70,25 @@ namespace sfg
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_CREATE_ROWS[] = {
 			{.text = "Folder", .command = assets_action_menu_create_folder},
 			{.text = "World", .command = assets_action_menu_create_world},
+			{
+				.text	 = "Curve",
+				.command = assets_action_menu_create_curve,
+			},
+			{
+				.text	 = "Texture Sampler",
+				.command = assets_action_menu_create_texture_sampler,
+			},
 			{.text = "Animation", .children = ASSETS_ACTION_MENU_ANIMATION_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_ANIMATION_ROWS) / sizeof(ASSETS_ACTION_MENU_ANIMATION_ROWS[0]))},
-			{.text = "Graphics", .children = ASSETS_ACTION_MENU_GRAPHICS_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_GRAPHICS_ROWS) / sizeof(ASSETS_ACTION_MENU_GRAPHICS_ROWS[0]))},
+			{
+				.text		 = "Material",
+				.children	 = ASSETS_ACTION_MENU_MATERIAL_ROWS,
+				.child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_MATERIAL_ROWS) / sizeof(ASSETS_ACTION_MENU_MATERIAL_ROWS[0])),
+			},
+			{
+				.text		 = "Shader",
+				.children	 = ASSETS_ACTION_MENU_SHADER_ROWS,
+				.child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_SHADER_ROWS) / sizeof(ASSETS_ACTION_MENU_SHADER_ROWS[0])),
+			},
 			{.text = "Physics", .children = ASSETS_ACTION_MENU_PHYSICS_ROWS, .child_count = static_cast<u16>(sizeof(ASSETS_ACTION_MENU_PHYSICS_ROWS) / sizeof(ASSETS_ACTION_MENU_PHYSICS_ROWS[0]))},
 		};
 
