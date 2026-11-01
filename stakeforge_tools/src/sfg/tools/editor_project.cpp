@@ -254,7 +254,7 @@ namespace sfg
 		const string_t dir = file_system_t::get_directory_of_file(_runtime.path.c_str());
 
 		_runtime.assets_path			  = dir + "assets/";
-		_runtime.cache_path				  = _runtime.assets_path + "_cache/";
+		_runtime.cache_path				  = dir + "Cache/";
 		_runtime.default_assets_path	  = _runtime.assets_path + "_sfg_assets/";
 		_runtime.game_assets_path		  = _runtime.assets_path + "_game_assets/";
 		_runtime.cook_path				  = dir + "Cooked/";

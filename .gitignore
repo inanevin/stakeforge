@@ -8,6 +8,7 @@
 *.sln.docstates
 ./.clang-format
 _cache
+Cache/
 Cooked
 Intermediate
 Library
