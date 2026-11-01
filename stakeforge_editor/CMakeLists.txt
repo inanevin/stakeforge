@@ -28,42 +28,55 @@ set(SFG_EDITOR_TARGET stakeforge_editor)
 set(SFG_CORE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../stakeforge_core)
 include(${SFG_CORE_DIR}/cmake/compile_definitions.cmake)
 
-if(WIN32)
-    file(GLOB PLATFORM_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/win32/*.cpp
-    )
+file(GLOB SOURCES
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/assets/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/assets/*/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/commands/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/plugin/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/world/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/ui/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/ui/panels/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/ui/panels/*/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/ui/widgets/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/ui/widgets/*/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/ui/docking/*.cpp
+)
 
-    file(GLOB PLATFORM_HEADERS
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/platform/win32/*.hpp
-    )
+file(GLOB HEADERS
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/assets/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/assets/*/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/commands/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/plugin/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/world/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/ui/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/ui/panels/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/ui/panels/*/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/ui/widgets/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/ui/widgets/*/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/editor/ui/docking/*.hpp
+)
 
-    add_executable(${SFG_EDITOR_TARGET} WIN32)
-else()
-    add_executable(${SFG_EDITOR_TARGET})
-endif()
+
+add_library(${SFG_EDITOR_TARGET} SHARED)
+
+target_compile_definitions(${SFG_EDITOR_TARGET}
+    PUBLIC SFG_EDITOR_SHARED
+    PRIVATE SFG_EDITOR_BUILDING
+)
 
 target_sources(${SFG_EDITOR_TARGET} PRIVATE
-    ${PLATFORM_HEADERS}
-    ${PLATFORM_SOURCES}
+    ${SOURCES}
+    ${HEADERS}
     ${SFG_CORE_DIR}/src/sfg/core/memory/memory_operators.cpp
 )
-
-
-
-if(APPLE)
-        set_target_properties(${SFG_EDITOR_TARGET} PROPERTIES MACOSX_BUNDLE TRUE)
-endif()
-
-if(MSVC)
-        set_property(TARGET ${SFG_EDITOR_TARGET} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>/)
-endif()
-    
-target_include_directories(${SFG_EDITOR_TARGET} PRIVATE
+target_include_directories(${SFG_EDITOR_TARGET} PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg
 )
-target_link_libraries(${SFG_EDITOR_TARGET} PRIVATE stakeforge_tools)
+target_link_libraries(${SFG_EDITOR_TARGET} PUBLIC stakeforge_core)
 
-include(${SFG_CORE_DIR}/cmake/common_functions.cmake)
 set_target_properties(${SFG_EDITOR_TARGET} PROPERTIES FOLDER "stakeforge")
-sfg_group_sources(PLATFORM_HEADERS PLATFORM_SOURCES)
-sfg_group_generated(${SFG_EDITOR_TARGET})
+include(${SFG_CORE_DIR}/cmake/common_functions.cmake)
+sfg_group_sources(HEADERS SOURCES)

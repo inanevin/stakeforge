@@ -31,7 +31,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/math/math.hpp"
 #include "core/runtime/render/world_canvas_render_snapshot.hpp"
 #include "core/runtime/resources/shader_types.hpp"
-#include "core/runtime/scripting/plugin_runtime.hpp"
+#include "core/runtime/plugin/game_plugin_runtime.hpp"
 #include "core/runtime/ui/ui_context.hpp"
 
 namespace sfg
@@ -605,7 +605,7 @@ namespace sfg
 			if (_impl->world->is_playing())
 			{
 				for (const canvas_event_t& event : runtime.events)
-					plugin_runtime_t::get().canvas_event(*_impl->world, event);
+					game_plugin_runtime_t::get().canvas_event(*_impl->world, event);
 			}
 
 			runtime.events.resize(0);

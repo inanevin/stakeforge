@@ -31,7 +31,7 @@ namespace sfg
 	void world_render_snapshot_t::allocate_plugin_data(span_t<world_render_snapshot_t> snapshots, u32 size, u32 alignment)
 	{
 		for (const world_render_snapshot_t& snapshot : snapshots)
-			SFG_ASSERT(snapshot.plugin_data == nullptr);
+			SFG_ASSERT(snapshot.game_plugin_data == nullptr);
 
 		if (size == 0)
 			return;
@@ -40,16 +40,16 @@ namespace sfg
 
 		for (world_render_snapshot_t& snapshot : snapshots)
 		{
-			snapshot.plugin_data = SFG_ALIGNED_MALLOC(alignment, size);
+			snapshot.game_plugin_data = SFG_ALIGNED_MALLOC(alignment, size);
 
-			if (snapshot.plugin_data == nullptr)
+			if (snapshot.game_plugin_data == nullptr)
 			{
 				free_plugin_data(snapshots);
 				SFG_ERR("failed to allocate {0} bytes for plugin render snapshot data", size);
 				throw std::bad_alloc{};
 			}
 
-			SFG_MEMSET(snapshot.plugin_data, 0, size);
+			SFG_MEMSET(snapshot.game_plugin_data, 0, size);
 		}
 	}
 
@@ -57,8 +57,8 @@ namespace sfg
 	{
 		for (world_render_snapshot_t& snapshot : snapshots)
 		{
-			SFG_ALIGNED_FREE(snapshot.plugin_data);
-			snapshot.plugin_data		   = nullptr;
+			SFG_ALIGNED_FREE(snapshot.game_plugin_data);
+			snapshot.game_plugin_data		   = nullptr;
 			snapshot.plugin_snapshot_ready = false;
 		}
 	}

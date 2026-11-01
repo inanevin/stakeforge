@@ -12,9 +12,9 @@ Usage:
 --major/--minor/--patch NUMBER set only the named fields.
 --incr increments named fields supplied without a number.
 --genbuild generates a new UUID, independently of version changes.
---ensure creates missing metadata without changing existing values (build tooling).
+--ensure creates missing metadata without changing existing values (build scripts).
 --file PATH selects another metadata file; the repository file is the default.
---cmake-output PATH writes CMake variables (build tooling).
+--cmake-output PATH writes CMake variables (build scripts).
 
 This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
 Copyright [2025-] Inan Evin

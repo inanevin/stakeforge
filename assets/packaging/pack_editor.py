@@ -177,7 +177,7 @@ def sdk_config(settings, definitions, options, flags):
         "WINDOWS_SDK": settings["windows_sdk"],
         "MSVC_RUNTIME": settings["msvc_runtime"],
         "CORE_LIBRARY": Path(settings["core_import_library"]).name,
-        "TOOLS_LIBRARY": Path(settings["tools_import_library"]).name,
+        "EDITOR_LIBRARY": Path(settings["editor_import_library"]).name,
         "INCLUDE_DIRECTORIES": ";".join(f"{root}/{path}" for path in settings["include_directories"]),
         "DEFINITIONS": ";".join(definitions).replace('"', '\\"'),
         "OPTIONS": ";".join(option for option in options if not re.fullmatch(r"[/\-](?:O[a-zA-Z0-9-]+|GL-?|Zi|ZI|Z7)", option)).replace('"', '\\"'),
@@ -229,11 +229,11 @@ def package(manifest):
             if path.is_file() and (path.suffix.lower() in suffixes or path.name.lower() in LICENSE_NAMES):
                 desired[f"{target}/{path.relative_to(directory).as_posix()}"] = path
 
-    for source in [settings["core_import_library"], settings["tools_import_library"], *settings["dependency_libraries"]]:
+    for source in [settings["core_import_library"], settings["editor_import_library"], *settings["dependency_libraries"]]:
         path = Path(source)
 
         if not path.is_file():
-            raise FileNotFoundError(f"SDK library is missing; build core/tools first: {path}")
+            raise FileNotFoundError(f"SDK library is missing; build core/editor first: {path}")
 
         desired[f"lib/{path.name}"] = path
 
@@ -241,7 +241,7 @@ def package(manifest):
 
     for path in runtime_files:
         if not path.is_file():
-            raise FileNotFoundError(f"SDK runtime file is missing; build core/tools first: {path}")
+            raise FileNotFoundError(f"SDK runtime file is missing; build core/editor first: {path}")
 
     for name in ("LICENSE", "GAME-LINKING-EXCEPTION.md"):
         desired[f"licenses/{name}"] = source_root / name
@@ -286,7 +286,7 @@ def package(manifest):
             if path.is_file() and "__pycache__" not in path.parts:
                 desired[path.relative_to(source_root / "assets").as_posix()] = path
 
-        desired["packaging/templates/native/.clang-format"] = source_root / ".clang-format"
+        desired["packaging/templates/plugin/.clang-format"] = source_root / ".clang-format"
 
         copied, removed = synchronize(assets_root, desired, archive)
 

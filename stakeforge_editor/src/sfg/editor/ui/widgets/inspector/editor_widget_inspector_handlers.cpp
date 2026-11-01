@@ -1,0 +1,317 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+
+*/
+#include "editor/ui/widgets/inspector/editor_widget_inspector.hpp"
+#include "editor/world/editor_world_edit_context.hpp"
+#include "editor/editor_command_system.hpp"
+#include "editor/editor_surface_controller.hpp"
+#include "editor/editor_world_controller.hpp"
+#include "editor/world/editor_world.hpp"
+#include "editor/ui/panels/editor_panel_entities.hpp"
+#include "editor/commands/editor_command_component_edit.hpp"
+#include "editor/commands/editor_commands_component.hpp"
+#include <sfg/core/io/log.hpp>
+#include <sfg/core/reflection/reflection_registry.hpp>
+#include <sfg/core/runtime/world/engine_components.hpp>
+#include <sfg/core/runtime/ui/ui_context.hpp>
+
+namespace sfg
+{
+	namespace
+	{
+		enum inspector_component_action_menu_command_e : u16
+		{
+			inspector_component_action_menu_copy = 1,
+			inspector_component_action_menu_paste,
+			inspector_component_action_menu_reset,
+			inspector_component_action_menu_remove,
+		};
+
+		enum inspector_entity_info_action_menu_command_e : u16
+		{
+			inspector_entity_info_action_menu_copy = 1,
+			inspector_entity_info_action_menu_paste,
+		};
+
+		bool get_selected_entities_from_panel(editor_world_handle_t edit_world, frame_vector_t<entity_id_t>& entities, editor_world_handle_t& world)
+		{
+			editor_world_edit_context_t&	controller = editor_world_controller_t::get().get_editor_world(edit_world)->get_edit_context();
+			const span_t<const entity_id_t> selected   = controller.get_selected_entities();
+			if (selected.size == 0)
+				return false;
+
+			world = controller.get_world();
+			entities.reserve(selected.size);
+			for (size_t i = 0; i < selected.size; ++i)
+				entities.push_back(selected.data[i]);
+			return !world.is_null();
+		}
+	}
+	void editor_widget_inspector_t::on_entity_info_settings_clicked(ui::input_router_t&, ui::widget_id_t, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		static_cast<editor_widget_inspector_t*>(user_data)->open_entity_info_action_menu(pos);
+	}
+
+	void editor_widget_inspector_t::on_entity_info_action_menu_command(u16 command, void* user_data)
+	{
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
+		switch (command)
+		{
+		case inspector_entity_info_action_menu_copy:
+			panel.copy_entity_info();
+			break;
+		case inspector_entity_info_action_menu_paste: {
+			if (panel._allow_prefab_blocks && panel.is_selection_prefab_child())
+				break;
+			frame_vector_t<entity_id_t> entities;
+			editor_world_handle_t		world = {};
+			if (get_selected_entities_from_panel(panel._edit_world, entities, world) && panel._copied_entity_info_valid)
+				editor_commands_entity_info_t::paste(world, entities, panel._copied_entity_info);
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
+	void editor_widget_inspector_t::on_entity_info_name_submitted(entity_id_t entity, void*)
+	{
+		editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::entities);
+		if (panel == nullptr)
+			return;
+
+		static_cast<editor_panel_entities_t*>(panel)->refresh_entity_name(entity);
+	}
+
+	void editor_widget_inspector_t::on_entity_info_edit_begin(void* user_data)
+	{
+		static_cast<editor_widget_inspector_t*>(user_data)->begin_entity_info_edit();
+	}
+
+	void editor_widget_inspector_t::on_entity_info_edit_submitted(void* user_data)
+	{
+		static_cast<editor_widget_inspector_t*>(user_data)->submit_entity_info_edit();
+	}
+
+	void editor_widget_inspector_t::on_entity_info_break_prefab(void* user_data)
+	{
+		static_cast<editor_widget_inspector_t*>(user_data)->break_prefabs();
+	}
+
+	void editor_widget_inspector_t::on_component_settings_clicked(ui::input_router_t&, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
+		for (const component_display_t& display : panel._component_displays)
+		{
+			if (display.fold->get_settings_button() == id)
+			{
+				panel.open_component_action_menu(pos, display.type_id);
+				return;
+			}
+		}
+	}
+
+	void editor_widget_inspector_t::on_component_action_menu_command(u16 command, void* user_data)
+	{
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
+		switch (command)
+		{
+		case inspector_component_action_menu_copy:
+			panel.copy_component(panel._action_menu_type_id);
+			break;
+		case inspector_component_action_menu_paste: {
+			if (panel._allow_prefab_blocks && panel.is_selection_prefab_child())
+				break;
+			frame_vector_t<entity_id_t> entities;
+			editor_world_handle_t		world = {};
+			if (get_selected_entities_from_panel(panel._edit_world, entities, world) && panel.is_component_paste_enabled(panel._action_menu_type_id))
+				editor_commands_component_t::paste(world, entities, panel._action_menu_type_id, panel._copied_component_stream.get_raw(), panel._copied_component_stream.get_size());
+			break;
+		}
+		case inspector_component_action_menu_reset: {
+			if (panel._allow_prefab_blocks && panel.is_selection_prefab_child())
+				break;
+			frame_vector_t<entity_id_t> entities;
+			editor_world_handle_t		world = {};
+			if (get_selected_entities_from_panel(panel._edit_world, entities, world))
+				editor_commands_component_t::reset(world, entities, panel._action_menu_type_id);
+			break;
+		}
+		case inspector_component_action_menu_remove: {
+			if (panel._allow_prefab_blocks && panel.is_selection_prefab_child())
+				break;
+			frame_vector_t<entity_id_t> entities;
+			editor_world_handle_t		world = {};
+			if (get_selected_entities_from_panel(panel._edit_world, entities, world))
+				editor_commands_component_t::remove(world, entities, panel._action_menu_type_id);
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
+	void editor_widget_inspector_t::on_add_component_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		static_cast<editor_widget_inspector_t*>(user_data)->open_add_component_modal();
+	}
+
+	void editor_widget_inspector_t::on_component_edit_begin(void* user_data)
+	{
+		component_edit_callback_data_t& data = *static_cast<component_edit_callback_data_t*>(user_data);
+		if (data.panel->_allow_prefab_blocks && data.panel->is_selection_prefab_child())
+			return;
+		data.panel->begin_component_edit(data.component_type);
+	}
+
+	void editor_widget_inspector_t::on_component_edit_submitted(void* user_data)
+	{
+		component_edit_callback_data_t& data = *static_cast<component_edit_callback_data_t*>(user_data);
+		data.panel->submit_component_edit(data.component_type);
+	}
+
+	void editor_widget_inspector_t::on_component_edit_changing(void* user_data)
+	{
+		component_edit_callback_data_t& data  = *static_cast<component_edit_callback_data_t*>(user_data);
+		editor_widget_inspector_t&		panel = *data.panel;
+
+		if (!panel._component_edit_active)
+			return;
+
+		if (!editor_world_controller_t::get().get_play_session().get_edits().capture_before(panel._edit_world, {.data = panel._component_edit_entities.data(), .size = panel._component_edit_entities.size()}, data.component_type))
+		{
+			SFG_ERR("failed to capture play edit");
+			return;
+		}
+	}
+
+	void editor_widget_inspector_t::on_component_edited(void* user_data)
+	{
+		component_edit_callback_data_t& data  = *static_cast<component_edit_callback_data_t*>(user_data);
+		editor_widget_inspector_t&		panel = *data.panel;
+
+		if (!panel._component_edit_active)
+			return;
+
+		if (!editor_world_controller_t::get().get_play_session().get_edits().capture_after(panel._edit_world, {.data = panel._component_edit_entities.data(), .size = panel._component_edit_entities.size()}, data.component_type))
+		{
+			SFG_ERR("failed to capture play edit");
+			return;
+		}
+	}
+
+	void editor_widget_inspector_t::on_entity_info_edit_changing(void* user_data)
+	{
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
+
+		if (!panel._entity_info_edit_active)
+			return;
+
+		if (!editor_world_controller_t::get().get_play_session().get_edits().capture_before(panel._edit_world, {.data = panel._entity_info_edit_entities.data(), .size = panel._entity_info_edit_entities.size()}, type_id_t<component_transform_t>::value))
+		{
+			SFG_ERR("failed to capture play edit");
+			return;
+		}
+	}
+
+	void editor_widget_inspector_t::on_entity_info_edited(void* user_data)
+	{
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
+
+		if (!panel._entity_info_edit_active)
+			return;
+
+		if (!editor_world_controller_t::get().get_play_session().get_edits().capture_after(panel._edit_world, {.data = panel._entity_info_edit_entities.data(), .size = panel._entity_info_edit_entities.size()}, type_id_t<component_transform_t>::value))
+		{
+			SFG_ERR("failed to capture play edit");
+			return;
+		}
+	}
+
+	void editor_widget_inspector_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
+	{
+		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
+		switch (command.type)
+		{
+		case editor_command_type_e::component_add: {
+			const editor_command_add_component_payload_t& payload  = system.get_payload_as<editor_command_add_component_payload_t>(command);
+			const entity_id_t*							  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+				panel.refresh_display();
+			break;
+		}
+		case editor_command_type_e::component_remove: {
+			const editor_command_remove_component_payload_t& payload  = system.get_payload_as<editor_command_remove_component_payload_t>(command);
+			const entity_id_t*								 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+				panel.refresh_display();
+			break;
+		}
+		case editor_command_type_e::component_reset: {
+			const editor_command_reset_component_payload_t& payload	 = system.get_payload_as<editor_command_reset_component_payload_t>(command);
+			const entity_id_t*								entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+				panel.refresh_component_reflection(payload.component_type);
+			break;
+		}
+		case editor_command_type_e::component_paste: {
+			const editor_command_paste_component_payload_t& payload	 = system.get_payload_as<editor_command_paste_component_payload_t>(command);
+			const entity_id_t*								entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+				panel.refresh_component_reflection(payload.component_type);
+			break;
+		}
+		case editor_command_type_e::component_edit: {
+			const editor_command_component_edit_payload_t& payload	= system.get_payload_as<editor_command_component_edit_payload_t>(command);
+			const entity_id_t*							   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+				panel.refresh_component_reflection(payload.component_type);
+			break;
+		}
+		case editor_command_type_e::entity_info_paste: {
+			const editor_command_paste_entity_info_payload_t& payload  = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
+			const entity_id_t*								  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+				panel.refresh_display();
+			break;
+		}
+		case editor_command_type_e::entity_info_edit: {
+			const editor_command_edit_entity_info_payload_t& payload  = system.get_payload_as<editor_command_edit_entity_info_payload_t>(command);
+			const entity_id_t*								 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+				panel.refresh_display();
+			break;
+		}
+		default:
+			break;
+		}
+	}
+
+}

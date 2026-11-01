@@ -10,7 +10,7 @@
 
 Stakeforge is my on-going engine project, successor to [Lina Engine](https://github.com/inanevin/LinaEngine). This is a project I develop & maintain in my personal time. PRs, discussions & contributions are always welcome. A stable release is planned for the last quarter of 2026.
 
-This is new architecture of Stakeforge. Still a performance oriented C++ engine, now extended with a proper editor, asset workflows and native game plugins to make building games with it a little more comfortable :)
+This is new architecture of Stakeforge. Still a performance oriented C++ engine, now extended with a proper editor, asset workflows and C++ game plugins to make building games with it a little more comfortable :)
 
 > [original compact engine Stakeforge 1 is preserved here](https://github.com/inanevin/stakeforge/releases/tag/v1.0.0), with its simpler, code-first approach to making games.
 
@@ -84,10 +84,6 @@ skeletons & joint masks.
 
 </div>
 
-### game plugins
-
-Gameplay lives in a native C++ plugin. Plugins explicitly register components with the reflection system, exposing their fields to the editor and world serialization. The editor builds and reloads the game DLL, and project cooking builds and includes its packaged variant.
-
 ## Misc
 
 stuff is constantly under development, I am seeing what's needed on the way. [Saunastein 3](https://kauheaa.itch.io/saunastein-3) is already a game made with v2, and the idea is to keep making games alongside the engine. Please do hit up the discussions and issues! the foundation is still changing, but getting there gracefully :)
@@ -105,7 +101,7 @@ cmake -S . -B _build
 cmake --build _build --config Release
 ```
 
-The editor is built to `_build/bin/Release/stakeforge_editor.exe`. Debug and Profile configurations are available too.
+The editor launcher is built to `_build/bin/Release/stakeforge_editor_launcher.exe`, with the editor library in `stakeforge_editor.dll`. Debug and Profile configurations are available too.
 
 ### vendor
 

@@ -39,7 +39,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/render/render_resources.hpp>
 #include <sfg/core/runtime/resources/common_resources.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
-#include <sfg/core/runtime/scripting/plugin_runtime.hpp>
+#include <sfg/core/runtime/plugin/game_plugin_runtime.hpp>
 #include <sfg/core/serialization/serialization.hpp>
 #include <tracy/Tracy.hpp>
 
@@ -163,10 +163,10 @@ namespace sfg
 		frame_allocator_tls_t::init(config.main_frame_budget_bytes);
 		_frame_allocator_initialized = true;
 
-		const string_t plugin_path		  = file_system_t::get_directory_of_file(process::get_executable_path().c_str()) + "stakeforge_game.dll";
+		const string_t plugin_path		  = file_system_t::get_directory_of_file(process::get_executable_path().c_str()) + _package_meta.project_name + ".dll";
 		string_t	   plugin_diagnostics = {};
 
-		if (!plugin_runtime_t::get().load(plugin_path.c_str(), plugin_diagnostics))
+		if (!game_plugin_runtime_t::get().load(plugin_path.c_str(), plugin_diagnostics))
 			return fail_init(plugin_diagnostics.c_str());
 
 		if (!load_package_resources())
@@ -421,10 +421,10 @@ namespace sfg
 
 		engine_runtime_t& runtime = engine_runtime_t::get();
 
-		if (plugin_runtime_t::get().is_loaded())
+		if (game_plugin_runtime_t::get().is_loaded())
 		{
 			string_t diagnostics = {};
-			plugin_runtime_t::get().unload(diagnostics);
+			game_plugin_runtime_t::get().unload(diagnostics);
 		}
 
 		if (_runtime_initialized)

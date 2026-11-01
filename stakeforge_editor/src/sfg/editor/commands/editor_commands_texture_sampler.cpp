@@ -1,0 +1,198 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+
+*/
+
+#include "editor/commands/editor_commands_texture_sampler.hpp"
+#include "editor/assets/editor_asset_manager.hpp"
+#include "editor/editor_command_system.hpp"
+
+#include <sfg/core/common/type_id.hpp>
+#include <sfg/core/io/log.hpp>
+#include <sfg/core/memory/memory.hpp>
+#include <sfg/core/reflection/reflection_registry.hpp>
+#include <sfg/core/vendor/nhlohmann/json.hpp>
+
+namespace sfg
+{
+	namespace
+	{
+		nlohmann::json sampler_desc_to_json(const sampler_desc_t& sampler)
+		{
+			nlohmann::json json = nlohmann::json::object();
+			if (!reflection_registry_t::get().type_to_json(type_id_t<sampler_desc_t>::value, const_cast<sampler_desc_t*>(&sampler), nullptr, json))
+				return nlohmann::json::object();
+
+			json["schema"] = "sfg.schema.texture_sampler";
+			return json;
+		}
+
+		chunk_handle32_t copy_sampler_ids_to_aux(editor_command_system_t& system, span_t<const sid_t> samplers)
+		{
+			sid_t*				   dst	  = nullptr;
+			const chunk_handle32_t handle = system.get_aux_data().allocate<sid_t>(samplers.size, dst);
+			SFG_MEMCPY(dst, samplers.data, sizeof(sid_t) * samplers.size);
+			return handle;
+		}
+
+		chunk_handle32_t copy_json_text_to_aux(editor_command_system_t& system, const nlohmann::json& json)
+		{
+			const string_t		   text	  = json.dump();
+			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(text.size(), alignof(char));
+			SFG_MEMCPY(system.get_aux_data().get<char>(handle), text.data(), text.size());
+			return handle;
+		}
+
+		chunk_handle32_t copy_sampler_jsons_to_aux(editor_command_system_t& system, span_t<const sampler_desc_t> samplers)
+		{
+			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(sizeof(chunk_handle32_t) * samplers.size, alignof(chunk_handle32_t));
+			chunk_handle32_t*	   dst	  = system.get_aux_data().get<chunk_handle32_t>(handle);
+			for (size_t i = 0; i < samplers.size; ++i)
+				dst[i] = copy_json_text_to_aux(system, sampler_desc_to_json(samplers.data[i]));
+			return handle;
+		}
+
+		void free_jsons(editor_command_system_t& system, chunk_handle32_t jsons_handle, u32 count)
+		{
+			if (!jsons_handle)
+				return;
+
+			chunk_handle32_t* jsons = system.get_aux_data().get<chunk_handle32_t>(jsons_handle);
+			for (u32 i = 0; i < count; ++i)
+			{
+				if (jsons[i])
+				{
+					system.get_aux_data().free(jsons[i]);
+					jsons[i] = {};
+				}
+			}
+		}
+
+		void free_texture_sampler_edit_payload(editor_command_system_t& system, editor_command_texture_sampler_edit_payload_t& payload)
+		{
+			free_jsons(system, payload.previous_jsons, payload.count);
+			free_jsons(system, payload.post_jsons, payload.count);
+			if (payload.sampler_ids)
+			{
+				system.get_aux_data().free(payload.sampler_ids);
+				payload.sampler_ids = {};
+			}
+			if (payload.previous_jsons)
+			{
+				system.get_aux_data().free(payload.previous_jsons);
+				payload.previous_jsons = {};
+			}
+			if (payload.post_jsons)
+			{
+				system.get_aux_data().free(payload.post_jsons);
+				payload.post_jsons = {};
+			}
+		}
+
+		bool sampler_descs_equal(span_t<const sampler_desc_t> a, span_t<const sampler_desc_t> b)
+		{
+			if (a.size != b.size)
+				return false;
+
+			for (size_t i = 0; i < a.size; ++i)
+			{
+				if (!(a.data[i] == b.data[i]))
+					return false;
+			}
+			return true;
+		}
+
+		bool apply_texture_sampler_jsons(editor_command_system_t& system, const editor_command_texture_sampler_edit_payload_t& payload, chunk_handle32_t jsons_handle)
+		{
+			editor_asset_manager_t& asset_manager = editor_asset_manager_t::get();
+			const sid_t*			sampler_ids	  = system.get_aux_data().get<sid_t>(payload.sampler_ids);
+			const chunk_handle32_t* jsons		  = system.get_aux_data().get<chunk_handle32_t>(jsons_handle);
+
+			for (u32 i = 0; i < payload.count; ++i)
+			{
+				const char*			 json_text = system.get_aux_data().get<char>(jsons[i]);
+				const nlohmann::json embedded  = nlohmann::json::parse(json_text, json_text + jsons[i].size, nullptr, false);
+				if (embedded.is_discarded())
+				{
+					SFG_ERR("failed to parse texture sampler edit json for asset {0}", sampler_ids[i]);
+					return false;
+				}
+
+				if (!asset_manager.save_and_cook_embedded_asset_async(sampler_ids[i], embedded))
+					return false;
+			}
+
+			return true;
+		}
+
+		bool texture_sampler_edit_undo(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_texture_sampler_edit_payload_t& payload = system.get_payload_as<editor_command_texture_sampler_edit_payload_t>(command);
+			return apply_texture_sampler_jsons(system, payload, payload.previous_jsons);
+		}
+
+		bool texture_sampler_edit_redo(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_texture_sampler_edit_payload_t& payload = system.get_payload_as<editor_command_texture_sampler_edit_payload_t>(command);
+			return apply_texture_sampler_jsons(system, payload, payload.post_jsons);
+		}
+
+		bool texture_sampler_edit_cleanup(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_texture_sampler_edit_payload_t& payload = system.get_payload_as<editor_command_texture_sampler_edit_payload_t>(command);
+			free_texture_sampler_edit_payload(system, payload);
+			return true;
+		}
+	}
+
+	bool editor_command_texture_sampler_edit_t::edit(span_t<const sid_t> samplers, span_t<const sampler_desc_t> previous, span_t<const sampler_desc_t> post)
+	{
+		if (samplers.size == 0 || previous.size != samplers.size || post.size != samplers.size)
+			return false;
+		if (sampler_descs_equal(previous, post))
+			return true;
+
+		editor_command_system_t& command_system = editor_command_system_t::get();
+
+		editor_command_texture_sampler_edit_payload_t payload = {};
+		payload.sampler_ids									  = copy_sampler_ids_to_aux(command_system, samplers);
+		payload.previous_jsons								  = copy_sampler_jsons_to_aux(command_system, previous);
+		payload.post_jsons									  = copy_sampler_jsons_to_aux(command_system, post);
+		payload.count										  = static_cast<u32>(samplers.size);
+
+		const editor_command_issue_desc_t desc{
+			.undo		= texture_sampler_edit_undo,
+			.redo		= texture_sampler_edit_redo,
+			.cleanup	= texture_sampler_edit_cleanup,
+			.debug_name = "Texture Sampler Edit",
+			.type		= editor_command_type_e::texture_sampler_edit,
+			.notify		= false,
+		};
+
+		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue texture sampler edit command");
+			return false;
+		}
+
+		return true;
+	}
+}

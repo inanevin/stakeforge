@@ -198,7 +198,8 @@ namespace sfg
 	enum class reflection_owner_e : u8
 	{
 		engine,
-		game_native,
+		game_plugin,
+		game_editor_plugin,
 	};
 
 	struct reflected_field_span_t
@@ -248,9 +249,9 @@ namespace sfg
 	public:
 		// size_t reflected as u64 from most users atm.
 		static_assert(sizeof(size_t) == sizeof(u64));
-		static inline constexpr u32 NATIVE_TYPE_CAPACITY  = 1024;
-		static inline constexpr u32 NATIVE_FIELD_CAPACITY = 8192;
-		static inline constexpr u32 NATIVE_TEXT_CAPACITY  = 256 * 1024;
+		static inline constexpr u32 PLUGIN_TYPE_CAPACITY  = 1024;
+		static inline constexpr u32 PLUGIN_FIELD_CAPACITY = 8192;
+		static inline constexpr u32 PLUGIN_TEXT_CAPACITY  = 256 * 1024;
 
 		static inline reflection_registry_t& get()
 		{
@@ -273,7 +274,7 @@ namespace sfg
 		bool type_from_stream(sid_t type_id, void* obj, void* user_data, istream_t& in_stream);
 		bool type_from_json(sid_t type_id, void* obj, void* user_data, const nlohmann::json& in_json);
 		void initialize_type(sid_t type_id, void* obj) const;
-		void remove_native_types();
+		void remove_plugin_types(reflection_owner_e owner = reflection_owner_e::game_plugin);
 
 		const reflected_type_t*	 find_type(sid_t type_id) const;
 		const reflected_field_t* get_field(u32 index) const;
@@ -285,9 +286,9 @@ namespace sfg
 
 		void register_type(const reflected_type_descriptor_t& descriptor);
 
-		const vector_t<reflected_type_t>& get_native_types() const
+		const vector_t<reflected_type_t>& get_game_plugin_types() const
 		{
-			return _native_types;
+			return _game_plugin_types;
 		}
 
 		template <typename T> void register_type(const char* name, const char* tooltip, bitmask32 flags, const vector_t<reflected_field_descriptor_t>& fields)
@@ -306,9 +307,12 @@ namespace sfg
 		}
 
 	private:
-		vector_t<reflected_type_t>	_native_types		   = {};
-		vector_t<reflected_field_t> _native_fields		   = {};
-		text_allocator_t			_native_text_allocator = {};
+		vector_t<reflected_type_t> _game_editor_types = {};
+		vector_t<reflected_field_t> _game_editor_fields = {};
+		text_allocator_t _game_editor_text_allocator = {};
+		vector_t<reflected_type_t>	_game_plugin_types		   = {};
+		vector_t<reflected_field_t> _game_plugin_fields		   = {};
+		text_allocator_t			_game_plugin_text_allocator = {};
 		vector_t<reflected_type_t>	_types;
 		vector_t<reflected_field_t> _fields;
 		text_allocator_t			_text_allocator = {};

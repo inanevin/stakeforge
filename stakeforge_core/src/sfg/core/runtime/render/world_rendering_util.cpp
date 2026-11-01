@@ -31,7 +31,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/render/world_render_context.hpp"
 #include "core/runtime/render/world_render_reflection_context.hpp"
 #include "core/runtime/render/world_render_snapshot.hpp"
-#include "core/runtime/scripting/plugin_render_context.hpp"
+#include "core/runtime/plugin/game_plugin_render_context.hpp"
 #include "core/gfx/util/shadow_util.hpp"
 #include "core/io/assert.hpp"
 #include "core/io/log.hpp"
@@ -46,10 +46,11 @@ namespace sfg
 	static const vec3f_t CUBEMAP_FACE_DIRECTIONS[WORLD_RENDER_REFLECTION_FACE_COUNT] = {vec3f_t::right, -vec3f_t::right, vec3f_t::up, -vec3f_t::up, vec3f_t::forward, -vec3f_t::forward};
 	static const vec3f_t CUBEMAP_FACE_UPS[WORLD_RENDER_REFLECTION_FACE_COUNT]		 = {vec3f_t::up, vec3f_t::up, -vec3f_t::forward, vec3f_t::forward, vec3f_t::up, vec3f_t::up};
 
-	plugin_render_context_t world_rendering_util_t::get_plugin_render_context(
+	game_plugin_render_context_t world_rendering_util_t::get_game_plugin_render_context(
 		const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, gfx_handle_t command_buffer, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, f32 interpolation_alpha)
 	{
 		return {
+			.plugin_data = snapshot.game_plugin_data,
 			.snapshot			 = &snapshot,
 			.command_buffer		 = command_buffer,
 			.bind_layout		 = global_layout,
@@ -65,7 +66,7 @@ namespace sfg
 		};
 	}
 
-	plugin_color_pass_t world_rendering_util_t::get_plugin_color_pass(const world_render_context_t& ctx, u8 frame_index, bool ldr)
+	game_plugin_color_pass_t world_rendering_util_t::get_game_plugin_color_pass(const world_render_context_t& ctx, u8 frame_index, bool ldr)
 	{
 		return {
 			.color =
@@ -76,11 +77,11 @@ namespace sfg
 					.attachment_view_index = 1,
 					.format				   = ldr ? format_e::r8g8b8a8_srgb : format_e::r16g16b16a16_sfloat,
 				},
-			.scene = get_plugin_gbuffer_pass(ctx, frame_index),
+			.scene = get_game_plugin_gbuffer_pass(ctx, frame_index),
 		};
 	}
 
-	plugin_gbuffer_pass_t world_rendering_util_t::get_plugin_gbuffer_pass(const world_render_context_t& ctx, u8 frame_index)
+	game_plugin_gbuffer_pass_t world_rendering_util_t::get_game_plugin_gbuffer_pass(const world_render_context_t& ctx, u8 frame_index)
 	{
 		return {
 			.albedo =

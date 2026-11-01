@@ -1,0 +1,721 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+
+*/
+
+#include "editor/world/editor_world_input_controller.hpp"
+#include "editor/assets/editor_asset_spawn.hpp"
+#include "editor/commands/editor_commands_entity.hpp"
+#include "editor/commands/editor_commands_world_view.hpp"
+#include "editor/editor_project.hpp"
+#include "editor/editor_surface_controller.hpp"
+#include "editor/ui/editor_payload_controller.hpp"
+#include "editor/world/editor_world.hpp"
+
+#include <sfg/core/data/frame_hash_map.hpp>
+#include <sfg/core/input/input_mappings.hpp>
+#include <sfg/core/io/assert.hpp>
+#include <sfg/core/math/aabb.hpp>
+#include <sfg/core/platform/common_window.hpp>
+#include <sfg/core/platform/process.hpp>
+#include <sfg/core/reflection/reflection_registry.hpp>
+#include <sfg/core/runtime/physics/physics_types.hpp>
+#include <sfg/core/runtime/resources/mesh.hpp>
+#include <sfg/core/runtime/resources/resource_manager.hpp>
+#include <sfg/core/runtime/world/ecs.hpp>
+#include <sfg/core/runtime/world/engine_components.hpp>
+#include <sfg/core/runtime/world/system_components.hpp>
+
+namespace sfg
+{
+	editor_world_input_controller_t* editor_world_input_controller_t::s_active_camera_controller = nullptr;
+	editor_world_input_controller_t* editor_world_input_controller_t::s_active_drag_controller	 = nullptr;
+	window_runtime_t*				 editor_world_input_controller_t::s_event_runtime			 = nullptr;
+
+#define EDITOR_WORLD_INPUT_CAMERA_BASE_MOVE_SPEED  12.0f
+#define EDITOR_WORLD_INPUT_CAMERA_BOOST_MULTIPLIER 8.0f
+#define EDITOR_WORLD_INPUT_FOCUS_POINT_HALF_EXTENT 0.5f
+#define EDITOR_WORLD_INPUT_VISIBILITY_CAPACITY	   64
+#define EDITOR_WORLD_INPUT_ASSET_DROP_DISTANCE	   5.0f
+
+	void editor_world_input_controller_t::init(editor_world_t& world, editor_world_handle_t handle)
+	{
+		_show_alone_states.reserve(EDITOR_WORLD_INPUT_VISIBILITY_CAPACITY);
+
+		_world	= &world;
+		_handle = handle;
+	}
+
+	void editor_world_input_controller_t::uninit()
+	{
+		deactivate();
+
+		_show_alone_states.resize(0);
+		_drag_callbacks		   = {};
+		_world				   = nullptr;
+		_handle				   = {};
+		_visibility_generation = 0;
+		_show_alone_active	   = false;
+	}
+
+	void editor_world_input_controller_t::deactivate()
+	{
+		cancel_pointer_drag();
+		cancel_gizmo_action();
+		end_camera_control();
+	}
+
+	void editor_world_input_controller_t::tick(const vec2f_t& relative_position, bool hovered)
+	{
+		if (!_pointer_drag_active && !_gizmo_press_consumed && !_shoot_ray_press_consumed && hovered)
+			_world->update_gizmo_hover(relative_position);
+	}
+
+	void editor_world_input_controller_t::pointer_press(const vec2f_t& relative_position, editor_world_input_pointer_button_e button)
+	{
+		if (!_world->is_editor_control_enabled())
+			return;
+
+		SFG_ASSERT(s_event_runtime != nullptr);
+
+		if (_camera_control)
+			return;
+
+		if (button == editor_world_input_pointer_button_e::right)
+		{
+			cancel_pointer_drag();
+			begin_camera_control(*s_event_runtime, false);
+			return;
+		}
+
+		if (_world->get_camera_type() == editor_world_camera_type_e::orbit && process::is_key_down(static_cast<u16>(input_code::key_lshift)))
+		{
+			begin_camera_control(*s_event_runtime, true);
+			return;
+		}
+
+		if (_drag_callbacks.begin != nullptr)
+		{
+			_pointer_drag_active = _drag_callbacks.begin(relative_position, _drag_callbacks.user_data);
+
+			if (_pointer_drag_active)
+			{
+				_pointer_drag_runtime	 = s_event_runtime;
+				s_active_drag_controller = this;
+			}
+
+			return;
+		}
+
+		if (_world->get_world().is_playing() && _world->get_edit_context().is_shoot_rays_enabled())
+		{
+			_shoot_ray_press_consumed = true;
+			return;
+		}
+
+		_gizmo_press_consumed = _world->begin_gizmo_action(relative_position);
+	}
+
+	void editor_world_input_controller_t::pointer_release(const vec2f_t& relative_position, editor_world_input_pointer_button_e button, bool hovered)
+	{
+		if (!_world->is_editor_control_enabled())
+			return;
+
+		if (button == editor_world_input_pointer_button_e::right)
+		{
+			if (!_camera_pan_control)
+				end_camera_control();
+
+			return;
+		}
+
+		if (_pointer_drag_active)
+		{
+			cancel_pointer_drag();
+			return;
+		}
+
+		if (_camera_pan_control)
+		{
+			end_camera_control();
+			return;
+		}
+
+		if (_camera_control)
+			return;
+
+		if (_shoot_ray_press_consumed)
+		{
+			_shoot_ray_press_consumed = false;
+			_world->shoot_ray_from_camera(relative_position);
+			return;
+		}
+
+		if (_gizmo_press_consumed)
+		{
+			_world->update_gizmo_action(relative_position);
+			_world->end_gizmo_action();
+			_world->update_gizmo_hover(relative_position);
+			_gizmo_press_consumed = false;
+			return;
+		}
+
+		if (hovered)
+		{
+			const bool incremental_selection = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+
+			_world->request_entity_pick(relative_position, incremental_selection);
+		}
+	}
+
+	void editor_world_input_controller_t::pointer_hover_move(const vec2f_t& relative_position)
+	{
+		if (!_pointer_drag_active && !_gizmo_press_consumed && !_shoot_ray_press_consumed)
+			_world->update_gizmo_hover(relative_position);
+	}
+
+	void editor_world_input_controller_t::pointer_hover_exit()
+	{
+		_world->clear_gizmo_hover();
+	}
+
+	void editor_world_input_controller_t::pointer_drag(const vec2f_t& relative_position)
+	{
+		if (_pointer_drag_active)
+		{
+			_drag_callbacks.update(relative_position, _drag_callbacks.user_data);
+			return;
+		}
+
+		if (_gizmo_press_consumed)
+			_world->update_gizmo_action(relative_position);
+	}
+
+	void editor_world_input_controller_t::cancel_pointer_drag()
+	{
+		if (!_pointer_drag_active)
+			return;
+
+		_pointer_drag_active	 = false;
+		_pointer_drag_runtime	 = nullptr;
+		s_active_drag_controller = nullptr;
+		_drag_callbacks.end(_drag_callbacks.user_data);
+	}
+
+	void editor_world_input_controller_t::focus_lost()
+	{
+		deactivate();
+	}
+
+	bool editor_world_input_controller_t::key_press(u16 key)
+	{
+		if (!_world->is_editor_control_enabled())
+			return false;
+
+		if (key == static_cast<u16>(input_code::key_escape))
+		{
+			cancel_pointer_drag();
+
+			if (_gizmo_press_consumed)
+				cancel_gizmo_action();
+
+			return true;
+		}
+
+		const bool ctrl_pressed = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+
+		const bool shift_pressed = process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
+
+		if (ctrl_pressed && !shift_pressed && key == static_cast<u16>(input_code::key_g))
+		{
+			_world->align_camera_to_selection();
+			return true;
+		}
+
+		if (ctrl_pressed && !shift_pressed && key == static_cast<u16>(input_code::key_f))
+		{
+			editor_commands_world_view_t::snap_selection_to_camera(_handle);
+			return true;
+		}
+
+		if (key == static_cast<u16>(input_code::key_r) && !ctrl_pressed && _world->get_camera_type() == editor_world_camera_type_e::orbit)
+		{
+			pass_camera_input({.reset_target = true});
+			return true;
+		}
+
+		if (key == static_cast<u16>(input_code::key_x) || (key == static_cast<u16>(input_code::key_d) && ctrl_pressed))
+		{
+			cancel_gizmo_action();
+
+			const span_t<const entity_id_t> selected = _world->get_edit_context().get_selected_entities();
+
+			if (selected.size == 0)
+				return true;
+
+			frame_vector_t<entity_id_t> entities = {};
+
+			entities.resize(selected.size);
+			entities.resize(_world->get_edit_context().collect_selected_mutable_root_entities(_world->get_world(), {.data = entities.data(), .size = entities.size()}));
+
+			if (key == static_cast<u16>(input_code::key_x))
+			{
+				editor_commands_entity_t::destroy(_handle, entities);
+			}
+			else
+			{
+				frame_vector_t<entity_id_t> duplicates = {};
+
+				editor_commands_entity_t::duplicate(_handle, entities, duplicates);
+			}
+
+			return true;
+		}
+
+		if (key == static_cast<u16>(input_code::key_f) && !ctrl_pressed)
+		{
+			focus_selection();
+			return true;
+		}
+
+		if (key == static_cast<u16>(input_code::key_h))
+		{
+			cancel_gizmo_action();
+
+			if (ctrl_pressed)
+				toggle_show_alone();
+			else
+				hide_selection();
+
+			return true;
+		}
+
+		editor_world_edit_context_t& context = _world->get_edit_context();
+
+		if (key == static_cast<u16>(input_code::key_alpha1))
+		{
+			cancel_gizmo_action();
+			context.set_transform_control_type(editor_transform_control_type_e::move);
+		}
+		else if (key == static_cast<u16>(input_code::key_alpha2))
+		{
+			cancel_gizmo_action();
+			context.set_transform_control_type(editor_transform_control_type_e::rotate);
+		}
+		else if (key == static_cast<u16>(input_code::key_alpha3) && _world->is_gizmo_scale_allowed())
+		{
+			cancel_gizmo_action();
+			context.set_transform_control_type(editor_transform_control_type_e::scale);
+		}
+		else if (key == static_cast<u16>(input_code::key_alpha4))
+		{
+			cancel_gizmo_action();
+			context.set_transform_locality(context.get_transform_locality() == editor_transform_locality_e::world ? editor_transform_locality_e::local : editor_transform_locality_e::world);
+		}
+		else if (key == static_cast<u16>(input_code::key_alpha5))
+		{
+			context.set_transform_snapping(context.get_transform_snapping() == editor_transform_snapping_e::default_ ? editor_transform_snapping_e::none : editor_transform_snapping_e::default_);
+
+			editor_project_t& project					 = editor_project_t::get();
+			project.settings.world_view_snapping_enabled = context.get_transform_snapping() == editor_transform_snapping_e::default_;
+			project.save(project._runtime.path.c_str());
+		}
+		else
+			return false;
+
+		return true;
+	}
+
+	void editor_world_input_controller_t::wheel(f32 delta)
+	{
+		pass_camera_input({.wheel_delta = delta});
+	}
+
+	void editor_world_input_controller_t::hide_selection()
+	{
+		hide(_world->get_edit_context().get_selected_entities());
+	}
+
+	void editor_world_input_controller_t::hide(entity_id_t entity)
+	{
+		hide({.data = &entity, .size = 1});
+	}
+
+	void editor_world_input_controller_t::toggle_show_alone()
+	{
+		world_t&			   world		  = _world->get_world();
+		ecs_component_table_t& disabled_table = world.get_component_table(type_id_t<component_disabled_t>::value);
+
+		if (_show_alone_active)
+		{
+			bool changed = false;
+
+			for (const show_alone_entity_state_t& state : _show_alone_states)
+			{
+				const entity_id_t entity = world.find_by_guid(state.entity);
+
+				if (entity == NULL_ENTITY_ID)
+					continue;
+
+				const bool disabled = disabled_table.has(entity);
+
+				if (disabled == state.disabled)
+					continue;
+
+				if (state.disabled)
+					disabled_table.add(entity);
+				else
+					disabled_table.remove(entity);
+
+				changed = true;
+			}
+
+			_show_alone_states.resize(0);
+			_show_alone_active = false;
+
+			if (changed)
+				++_visibility_generation;
+
+			return;
+		}
+
+		const span_t<const entity_id_t> selected = _world->get_edit_context().get_selected_entities();
+
+		if (selected.size == 0)
+			return;
+
+		frame_hash_map_t<entity_id_t, bool> selection_states = {};
+		frame_vector_t<entity_id_t>			entities		 = {};
+
+		selection_states.reserve(selected.size);
+		entities.reserve(selected.size);
+
+		for (size_t i = 0; i < selected.size; ++i)
+		{
+			if (selection_states.emplace(selected.data[i], true).second)
+				entities.push_back(selected.data[i]);
+		}
+
+		for (const ecs_component_table_t& component_table : world.get_component_tables())
+		{
+			const reflected_type_t& type = *reflection_registry_t::get().find_type(component_table.get_type_id());
+
+			if (!type.flags.is_set(reflected_type_flag_renderable))
+				continue;
+
+			const ecs_component_table_ref_t table_refs[] = {component_table.ref()};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			{
+				if (selection_states.emplace(row.id, false).second)
+					entities.push_back(row.id);
+			}
+		}
+
+		_show_alone_states.resize(0);
+		_show_alone_states.reserve(entities.size());
+
+		for (const entity_id_t entity : entities)
+		{
+			const bool disabled		   = disabled_table.has(entity);
+			const bool target_disabled = !selection_states.find(entity)->second;
+
+			if (disabled == target_disabled)
+				continue;
+
+			_show_alone_states.push_back({
+				.entity	  = world.get_entity_guid(entity),
+				.disabled = disabled,
+			});
+
+			if (target_disabled)
+				disabled_table.add(entity);
+			else
+				disabled_table.remove(entity);
+		}
+
+		_show_alone_active = true;
+
+		if (!_show_alone_states.empty())
+			++_visibility_generation;
+	}
+
+	bool editor_world_input_controller_t::payload_drop(const editor_payload_t& payload, const vec2f_t& relative_position)
+	{
+		if (payload.type != editor_payload_type_e::asset && payload.type != editor_payload_type_e::asset_multi)
+			return false;
+
+		physics_raycast_t ray = {};
+
+		if (!_world->get_camera_ray(relative_position, ray))
+			return false;
+
+		const vec3f_t position = ray.origin + ray.direction * EDITOR_WORLD_INPUT_ASSET_DROP_DISTANCE;
+
+		return editor_asset_spawn_t::spawn_from_payload({
+			.payload		= &payload,
+			.world_position = &position,
+			.world			= _handle,
+			.parent			= NULL_ENTITY_ID,
+		});
+	}
+
+	bool editor_world_input_controller_t::on_window_event(window_runtime_t& runtime, const window_event_t& ev)
+	{
+		s_event_runtime = &runtime;
+
+		if (ev.type == window_event_type_e::focus && ev.sub_type == window_event_sub_type_e::release)
+		{
+			if (s_active_drag_controller != nullptr && s_active_drag_controller->_pointer_drag_runtime == &runtime)
+				s_active_drag_controller->cancel_pointer_drag();
+
+			reset_camera_input(runtime);
+			return false;
+		}
+
+		editor_world_input_controller_t* const active = s_active_camera_controller;
+
+		if (active == nullptr || active->_camera_runtime != &runtime || !active->_camera_control)
+			return false;
+
+		if (ev.type == window_event_type_e::delta)
+		{
+			if (active->_camera_pan_control && !process::is_key_down(static_cast<u16>(input_code::key_lshift)))
+				return true;
+
+			active->pass_camera_input({.mouse_delta = {static_cast<f32>(ev.value.x), static_cast<f32>(ev.value.y)}, .pan = active->_camera_pan_control});
+			return true;
+		}
+
+		if (ev.type == window_event_type_e::key)
+			return active->pass_camera_key(ev);
+
+		return false;
+	}
+
+	void editor_world_input_controller_t::reset_camera_input(window_runtime_t& runtime)
+	{
+		if (s_active_camera_controller != nullptr && s_active_camera_controller->_camera_runtime == &runtime)
+			s_active_camera_controller->end_camera_control();
+	}
+
+	void editor_world_input_controller_t::begin_camera_control(window_runtime_t& runtime, bool pan)
+	{
+		if (!_world->is_editor_control_enabled())
+			return;
+
+		if (s_active_camera_controller != nullptr && s_active_camera_controller != this)
+			s_active_camera_controller->end_camera_control();
+
+		editor_surface_controller_t::get().begin_editor_camera_cursor_capture(runtime);
+		_camera_runtime			   = &runtime;
+		_camera_control			   = true;
+		_camera_pan_control		   = pan;
+		s_active_camera_controller = this;
+
+		pass_camera_input({.reset = true});
+	}
+
+	void editor_world_input_controller_t::end_camera_control()
+	{
+		if (!_camera_control)
+			return;
+
+		editor_surface_controller_t::get().end_editor_camera_cursor_capture(*_camera_runtime);
+		pass_camera_input({.reset = true});
+
+		_camera_runtime		= nullptr;
+		_camera_control		= false;
+		_camera_pan_control = false;
+
+		if (s_active_camera_controller == this)
+			s_active_camera_controller = nullptr;
+	}
+
+	void editor_world_input_controller_t::pass_camera_input(const editor_world_camera_input_t& input)
+	{
+		_world->pass_camera_input(input);
+	}
+
+	bool editor_world_input_controller_t::pass_camera_key(const window_event_t& ev)
+	{
+		if (ev.sub_type != window_event_sub_type_e::press && ev.sub_type != window_event_sub_type_e::release)
+			return false;
+
+		const bool ctrl_pressed	 = process::is_key_down(static_cast<u16>(input_code::key_lctrl)) || process::is_key_down(static_cast<u16>(input_code::key_rctrl));
+		const bool shift_pressed = process::is_key_down(static_cast<u16>(input_code::key_lshift)) || process::is_key_down(static_cast<u16>(input_code::key_rshift));
+
+		if (ctrl_pressed && !shift_pressed && (ev.button == static_cast<u16>(input_code::key_g) || ev.button == static_cast<u16>(input_code::key_f)))
+		{
+			if (ev.sub_type == window_event_sub_type_e::press)
+				key_press(ev.button);
+
+			return true;
+		}
+
+		if (ev.button == static_cast<u16>(input_code::key_r) && _world->get_camera_type() == editor_world_camera_type_e::orbit)
+		{
+			if (ev.sub_type == window_event_sub_type_e::press)
+				key_press(ev.button);
+
+			return true;
+		}
+
+		const f32					sign  = ev.sub_type == window_event_sub_type_e::press ? 1.0f : -1.0f;
+		editor_world_camera_input_t input = {};
+
+		if (ev.button == static_cast<u16>(input_code::key_w))
+			input.direction_delta.z = sign;
+		else if (ev.button == static_cast<u16>(input_code::key_s))
+			input.direction_delta.z = -sign;
+		else if (ev.button == static_cast<u16>(input_code::key_d))
+			input.direction_delta.x = sign;
+		else if (ev.button == static_cast<u16>(input_code::key_a))
+			input.direction_delta.x = -sign;
+		else if (ev.button == static_cast<u16>(input_code::key_e))
+			input.direction_delta.y = sign;
+		else if (ev.button == static_cast<u16>(input_code::key_q))
+			input.direction_delta.y = -sign;
+		else if (ev.button == static_cast<u16>(input_code::key_lshift) || ev.button == static_cast<u16>(input_code::key_rshift))
+		{
+			input.set_move_speed = true;
+			input.move_speed	 = ev.sub_type == window_event_sub_type_e::press ? EDITOR_WORLD_INPUT_CAMERA_BASE_MOVE_SPEED * EDITOR_WORLD_INPUT_CAMERA_BOOST_MULTIPLIER : EDITOR_WORLD_INPUT_CAMERA_BASE_MOVE_SPEED;
+		}
+		else
+			return false;
+
+		pass_camera_input(input);
+		return true;
+	}
+
+	void editor_world_input_controller_t::cancel_gizmo_action()
+	{
+		_world->cancel_gizmo_action();
+		_world->clear_gizmo_hover();
+
+		_gizmo_press_consumed	  = false;
+		_shoot_ray_press_consumed = false;
+	}
+
+	void editor_world_input_controller_t::focus_selection()
+	{
+		const span_t<const entity_id_t> selected = _world->get_edit_context().get_selected_entities();
+
+		if (selected.size == 0)
+		{
+			const vec3f_t half_extent(EDITOR_WORLD_INPUT_FOCUS_POINT_HALF_EXTENT);
+
+			_world->fit_camera_to_bounds(aabb_t(-half_extent, half_extent));
+			return;
+		}
+
+		const world_t&				 world					= _world->get_world();
+		const ecs_component_table_t& transform_table		= world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& mesh_renderer_table	= world.get_component_table(type_id_t<component_mesh_renderer_t>::value);
+		const ecs_component_table_t& skinned_renderer_table = world.get_component_table(type_id_t<component_skinned_mesh_renderer_t>::value);
+		resource_manager_t&			 resource_manager		= resource_manager_t::get();
+		vec3f_t						 bounds_min				= vec3f_t::zero;
+		vec3f_t						 bounds_max				= vec3f_t::zero;
+		bool						 has_bounds				= false;
+
+		for (size_t entity_index = 0; entity_index < selected.size; ++entity_index)
+		{
+			const entity_id_t					entity	  = selected.data[entity_index];
+			const component_system_transform_t& transform = transform_table.get_as_const<component_system_transform_t>(entity);
+			resource_handle_t					mesh	  = NULL_RESOURCE_HANDLE;
+
+			if (const component_mesh_renderer_t* renderer = mesh_renderer_table.find_as_const<component_mesh_renderer_t>(entity))
+				mesh = renderer->mesh;
+			else if (const component_skinned_mesh_renderer_t* renderer = skinned_renderer_table.find_as_const<component_skinned_mesh_renderer_t>(entity))
+				mesh = renderer->mesh;
+
+			const mesh_internals_t* mesh_internals = mesh == NULL_RESOURCE_HANDLE ? nullptr : resource_manager.find_internals<mesh_internals_t>(mesh);
+
+			if (mesh_internals == nullptr)
+			{
+				const vec3f_t point_min = transform.abs_pos - vec3f_t(EDITOR_WORLD_INPUT_FOCUS_POINT_HALF_EXTENT);
+				const vec3f_t point_max = transform.abs_pos + vec3f_t(EDITOR_WORLD_INPUT_FOCUS_POINT_HALF_EXTENT);
+
+				if (!has_bounds)
+				{
+					bounds_min = point_min;
+					bounds_max = point_max;
+					has_bounds = true;
+				}
+				else
+				{
+					bounds_min = vec3f_t::min(bounds_min, point_min);
+					bounds_max = vec3f_t::max(bounds_max, point_max);
+				}
+
+				continue;
+			}
+
+			for (u8 corner_index = 0; corner_index < 8; ++corner_index)
+			{
+				const vec3f_t local_corner{
+					(corner_index & 1) != 0 ? mesh_internals->local_bounds.bounds_max.x : mesh_internals->local_bounds.bounds_min.x,
+					(corner_index & 2) != 0 ? mesh_internals->local_bounds.bounds_max.y : mesh_internals->local_bounds.bounds_min.y,
+					(corner_index & 4) != 0 ? mesh_internals->local_bounds.bounds_max.z : mesh_internals->local_bounds.bounds_min.z,
+				};
+				const vec3f_t world_corner = transform.abs_mat * local_corner;
+
+				if (!has_bounds)
+				{
+					bounds_min = world_corner;
+					bounds_max = world_corner;
+					has_bounds = true;
+				}
+				else
+				{
+					bounds_min = vec3f_t::min(bounds_min, world_corner);
+					bounds_max = vec3f_t::max(bounds_max, world_corner);
+				}
+			}
+		}
+
+		_world->fit_camera_to_bounds(aabb_t(bounds_min, bounds_max));
+	}
+
+	void editor_world_input_controller_t::hide(span_t<const entity_id_t> entities)
+	{
+		if (entities.size == 0)
+			return;
+
+		world_t&					 world			  = _world->get_world();
+		editor_world_edit_context_t& context		  = _world->get_edit_context();
+		ecs_component_table_t&		 disabled_table	  = world.get_component_table(type_id_t<component_disabled_t>::value);
+		frame_vector_t<entity_id_t>	 mutable_entities = {};
+
+		mutable_entities.resize(entities.size);
+		mutable_entities.resize(context.collect_mutable_entities(world, entities, {.data = mutable_entities.data(), .size = mutable_entities.size()}));
+
+		for (const entity_id_t entity : mutable_entities)
+		{
+			if (disabled_table.has(entity))
+				disabled_table.remove(entity);
+			else
+				disabled_table.add(entity);
+		}
+
+		if (!mutable_entities.empty())
+			++_visibility_generation;
+	}
+}

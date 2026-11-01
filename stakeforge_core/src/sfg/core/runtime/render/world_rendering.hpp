@@ -34,7 +34,7 @@ namespace sfg
 	struct world_render_prep_data_t;
 	struct world_render_reflection_allocation_t;
 	struct world_render_snapshot_t;
-	struct plugin_callbacks_t;
+	struct game_plugin_callbacks_t;
 
 	struct world_render_clustered_lighting_data_t
 	{
@@ -64,7 +64,7 @@ namespace sfg
 								 u8								frame_index,
 								 gpu_index_t					global_cbv_index,
 								 gfx_handle_t					global_layout,
-								 const plugin_callbacks_t*		plugin = nullptr);
+								 const game_plugin_callbacks_t*		plugin = nullptr);
 
 	private:
 		static void render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
@@ -74,7 +74,7 @@ namespace sfg
 								   u8							   frame_index,
 								   gpu_index_t					   global_cbv_index,
 								   gfx_handle_t					   global_layout,
-								   const plugin_callbacks_t*	   plugin,
+								   const game_plugin_callbacks_t*	   plugin,
 								   f32							   interpolation_alpha);
 		static void render_shadows(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		static void render_probe(gfx_handle_t								 command_buffer,
@@ -97,7 +97,7 @@ namespace sfg
 								   u8							   frame_index,
 								   gpu_index_t					   global_cbv_index,
 								   gfx_handle_t					   global_layout,
-								   const plugin_callbacks_t*	   plugin,
+								   const game_plugin_callbacks_t*	   plugin,
 								   f32							   interpolation_alpha);
 		static void render_bloom(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index);
 		static void render_post_process(const world_render_context_t&	ctx,
@@ -106,7 +106,7 @@ namespace sfg
 										u8								frame_index,
 										gpu_index_t						global_cbv_index,
 										gfx_handle_t					global_layout,
-										const plugin_callbacks_t*		plugin,
+										const game_plugin_callbacks_t*		plugin,
 										f32								interpolation_alpha);
 	};
 }

@@ -33,7 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/project/project_settings.hpp>
 #include <sfg/core/runtime/render/world_rendering.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
-#include <sfg/core/runtime/scripting/plugin_runtime.hpp>
+#include <sfg/core/runtime/plugin/game_plugin_runtime.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/runtime/world/world_snapshot_producer.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
@@ -110,7 +110,7 @@ namespace sfg
 			};
 		}
 
-		const plugin_render_snapshot_config_t plugin_snapshot_config = plugin_runtime_t::get().get_render_snapshot_config();
+		const game_plugin_render_snapshot_config_t plugin_snapshot_config = game_plugin_runtime_t::get().get_render_snapshot_config();
 
 		world_render_snapshot_t::allocate_plugin_data({.data = _snapshot_slots, .size = GAME_WORLD_SNAPSHOT_SLOT_COUNT}, plugin_snapshot_config.size, plugin_snapshot_config.alignment);
 
@@ -347,7 +347,7 @@ namespace sfg
 
 		prep_data.reserve();
 
-		world_rendering_t::render_world(_render_context, *_render_snapshot, prep_data, _render_alpha, frame_index, global_cbv_index, global_layout, &plugin_runtime_t::get().get_callbacks());
+		world_rendering_t::render_world(_render_context, *_render_snapshot, prep_data, _render_alpha, frame_index, global_cbv_index, global_layout, &game_plugin_runtime_t::get().get_callbacks());
 		_render_snapshot = nullptr;
 
 		gfx_backend::get().queue_signal(queue, &signal, &signal_value, 1);
@@ -360,10 +360,10 @@ namespace sfg
 		world_render_snapshot_t& snapshot = _snapshot_slots[_producer_slot];
 
 		world_snapshot_producer_t::produce(_main_world, snapshot, engine_runtime_t::get().get_project_settings(), _render_context);
-		const plugin_callbacks_t& callbacks = plugin_runtime_t::get().get_callbacks();
+		const game_plugin_callbacks_t& callbacks = game_plugin_runtime_t::get().get_callbacks();
 
 		if (callbacks.produce_render_snapshot != nullptr)
-			callbacks.produce_render_snapshot(_main_world, snapshot.plugin_data);
+			callbacks.produce_render_snapshot(_main_world, snapshot.game_plugin_data);
 
 		snapshot.plugin_snapshot_ready = true;
 		publish_snapshot();

@@ -36,7 +36,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/resources/resource_manager.hpp"
 #include "core/runtime/resources/world_cook.hpp"
 #include "core/runtime/resources/world_cook_entity_header.hpp"
-#include "core/runtime/scripting/plugin_runtime.hpp"
+#include "core/runtime/plugin/game_plugin_runtime.hpp"
 #include "core/runtime/world/ecs.hpp"
 #include "core/runtime/world/engine_components.hpp"
 #include "core/runtime/world/system_components.hpp"
@@ -59,7 +59,7 @@ namespace sfg
 
 		const reflection_registry_t& registry = reflection_registry_t::get();
 
-		for (const vector_t<reflected_type_t>* types : {&registry.get_types(), &registry.get_native_types()})
+		for (const vector_t<reflected_type_t>* types : {&registry.get_types(), &registry.get_game_plugin_types()})
 		{
 			for (const reflected_type_t& type : *types)
 			{
@@ -147,7 +147,7 @@ namespace sfg
 		if (_physics_world.is_init())
 			_physics_world.sync_body_create_destroy();
 
-		plugin_runtime_t::get().begin_play(*this);
+		game_plugin_runtime_t::get().begin_play(*this);
 	}
 
 	void world_t::end_play()
@@ -155,7 +155,7 @@ namespace sfg
 		SFG_ASSERT(_is_playing);
 
 		flush_pressed_keys();
-		plugin_runtime_t::get().end_play(*this);
+		game_plugin_runtime_t::get().end_play(*this);
 		_screen.reset_cursor();
 		_canvas_controller.clear_widgets();
 
@@ -269,7 +269,7 @@ namespace sfg
 		if (!_is_playing)
 			return;
 
-		plugin_runtime_t& plugin = plugin_runtime_t::get();
+		game_plugin_runtime_t& plugin = game_plugin_runtime_t::get();
 
 		if (_physics_world.is_init())
 		{
@@ -291,13 +291,13 @@ namespace sfg
 		_animation_processor.sync_slot_attachments();
 
 		if (_is_playing)
-			plugin_runtime_t::get().tick_animation(*this, scaled_dt);
+			game_plugin_runtime_t::get().tick_animation(*this, scaled_dt);
 	}
 
 	void world_t::on_animation_callback(entity_id_t entity, sid_t event)
 	{
 		if (_is_playing)
-			plugin_runtime_t::get().animation_event(*this, entity, event);
+			game_plugin_runtime_t::get().animation_event(*this, entity, event);
 	}
 
 	void world_t::tick_logic(f32 dt)
@@ -311,7 +311,7 @@ namespace sfg
 		_elapsed_time += scaled_dt;
 		_real_elapsed_time += dt;
 
-		plugin_runtime_t::get().tick_logic(*this, scaled_dt);
+		game_plugin_runtime_t::get().tick_logic(*this, scaled_dt);
 
 		_logic_helper.sync_destroyers(scaled_dt);
 		_audio_controller.tick(scaled_dt);
@@ -322,7 +322,7 @@ namespace sfg
 		ZoneScoped;
 
 		if (_is_playing)
-			plugin_runtime_t::get().draw_debug(*this);
+			game_plugin_runtime_t::get().draw_debug(*this);
 	}
 
 	void world_t::key_event(u16 key, u16 scan_code, u8 action)
@@ -336,7 +336,7 @@ namespace sfg
 
 		update_key_state(key, scan_code, action);
 
-		plugin_runtime_t::get().key_event(*this, static_cast<input_code>(key), scan_code, static_cast<input_action>(action));
+		game_plugin_runtime_t::get().key_event(*this, static_cast<input_code>(key), scan_code, static_cast<input_action>(action));
 	}
 
 	void world_t::focus_event(bool focused)
@@ -346,7 +346,7 @@ namespace sfg
 		if (!focused)
 			flush_pressed_keys();
 
-		plugin_runtime_t::get().focus_event(*this, focused);
+		game_plugin_runtime_t::get().focus_event(*this, focused);
 	}
 
 	void world_t::mouse_button_event(u8 button, u8 action, f32 position_x, f32 position_y)
@@ -364,7 +364,7 @@ namespace sfg
 			constexpr input_code button_codes[] = {input_code::mouse_0, input_code::mouse_1, input_code::mouse_2, input_code::mouse_3, input_code::mouse_4};
 			SFG_ASSERT(button < std::size(button_codes));
 
-			plugin_runtime_t::get().mouse_button_event(*this, button_codes[button], static_cast<input_action>(action), position_x, position_y);
+			game_plugin_runtime_t::get().mouse_button_event(*this, button_codes[button], static_cast<input_action>(action), position_x, position_y);
 		}
 	}
 
@@ -375,7 +375,7 @@ namespace sfg
 		const bool consumed = _canvas_controller.mouse_move_event({position_x, position_y});
 
 		if (!consumed)
-			plugin_runtime_t::get().mouse_move_event(*this, position_x, position_y, delta_x, delta_y);
+			game_plugin_runtime_t::get().mouse_move_event(*this, position_x, position_y, delta_x, delta_y);
 	}
 
 	void world_t::mouse_wheel_event(f32 position_x, f32 position_y, f32 delta)
@@ -385,7 +385,7 @@ namespace sfg
 		const bool consumed = _canvas_controller.mouse_wheel_event({position_x, position_y}, delta);
 
 		if (!consumed)
-			plugin_runtime_t::get().mouse_wheel_event(*this, position_x, position_y, delta);
+			game_plugin_runtime_t::get().mouse_wheel_event(*this, position_x, position_y, delta);
 	}
 
 	void world_t::flush_pressed_keys()
@@ -399,7 +399,7 @@ namespace sfg
 
 			state.pressed = false;
 
-			plugin_runtime_t::get().key_event(*this, static_cast<input_code>(key), state.scan_code, input_action::released);
+			game_plugin_runtime_t::get().key_event(*this, static_cast<input_code>(key), state.scan_code, input_action::released);
 		}
 	}
 

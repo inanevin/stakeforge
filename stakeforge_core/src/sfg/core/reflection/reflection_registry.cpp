@@ -33,7 +33,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define NATIVE_FIELD_BASE		   0x80000000u
+#define GAME_EDITOR_FIELD_BASE 0x40000000u
+#define PLUGIN_FIELD_BASE		   0x80000000u
 #define FLOAT_ROUND_PRECISION_JSON 1'000'000.0f
 
 	namespace
@@ -603,9 +604,9 @@ namespace sfg
 		_fields.reserve(1024);
 
 		_text_allocator.init(2 * 1024 * 1024);
-		_native_text_allocator.init(NATIVE_TEXT_CAPACITY);
-		_native_types.reserve(NATIVE_TYPE_CAPACITY);
-		_native_fields.reserve(NATIVE_FIELD_CAPACITY);
+		_game_plugin_text_allocator.init(PLUGIN_TEXT_CAPACITY);
+		_game_plugin_types.reserve(PLUGIN_TYPE_CAPACITY);
+		_game_plugin_fields.reserve(PLUGIN_FIELD_CAPACITY);
 	}
 
 	void reflection_registry_t::uninit()
@@ -613,9 +614,12 @@ namespace sfg
 		_types.clear();
 		_fields.clear();
 
-		_native_types.resize(0);
-		_native_fields.resize(0);
-		_native_text_allocator.uninit();
+		_game_plugin_types.resize(0);
+		_game_plugin_fields.resize(0);
+		_game_editor_types.resize(0);
+		_game_editor_fields.resize(0);
+		_game_editor_text_allocator.uninit();
+		_game_plugin_text_allocator.uninit();
 		_text_allocator.uninit();
 	}
 
@@ -917,11 +921,22 @@ namespace sfg
 		}
 	}
 
-	void reflection_registry_t::remove_native_types()
+	void reflection_registry_t::remove_plugin_types(reflection_owner_e owner)
 	{
-		_native_types.resize(0);
-		_native_fields.resize(0);
-		_native_text_allocator.reset();
+		SFG_ASSERT(owner != reflection_owner_e::engine);
+
+		if (owner == reflection_owner_e::game_editor_plugin)
+		{
+			_game_editor_types.resize(0);
+			_game_editor_fields.resize(0);
+			_game_editor_text_allocator.reset();
+		}
+		else
+		{
+			_game_plugin_types.resize(0);
+			_game_plugin_fields.resize(0);
+			_game_plugin_text_allocator.reset();
+		}
 	}
 
 	const reflected_type_t* reflection_registry_t::find_type(sid_t type_id) const
@@ -931,16 +946,21 @@ namespace sfg
 		if (it != _types.end())
 			return &*it;
 
-		const auto native_it = std::find_if(_native_types.begin(), _native_types.end(), [type_id](const reflected_type_t& type) { return type.type_id == type_id; });
+		const auto game_plugin_it = std::find_if(_game_plugin_types.begin(), _game_plugin_types.end(), [type_id](const reflected_type_t& type) { return type.type_id == type_id; });
 
-		return native_it == _native_types.end() ? nullptr : &*native_it;
+		if (game_plugin_it != _game_plugin_types.end())
+			return &*game_plugin_it;
+
+		const auto game_editor_it = std::find_if(_game_editor_types.begin(), _game_editor_types.end(), [type_id](const reflected_type_t& type) { return type.type_id == type_id; });
+
+		return game_editor_it == _game_editor_types.end() ? nullptr : &*game_editor_it;
 	}
 
 	const reflected_field_t* reflection_registry_t::get_field(u32 index) const
 	{
-		const bool						   native	   = index >= NATIVE_FIELD_BASE;
-		const vector_t<reflected_field_t>& fields	   = native ? _native_fields : _fields;
-		const u32						   field_index = native ? index - NATIVE_FIELD_BASE : index;
+		const bool						   plugin	   = index >= PLUGIN_FIELD_BASE;
+		const vector_t<reflected_field_t>& fields	   = plugin ? _game_plugin_fields : index >= GAME_EDITOR_FIELD_BASE ? _game_editor_fields : _fields;
+		const u32						   field_index = plugin ? index - PLUGIN_FIELD_BASE : index >= GAME_EDITOR_FIELD_BASE ? index - GAME_EDITOR_FIELD_BASE : index;
 
 		return field_index < fields.size() ? &fields[field_index] : nullptr;
 	}
@@ -959,14 +979,23 @@ namespace sfg
 			return;
 		}
 
-		const bool					 native			= descriptor.owner == reflection_owner_e::game_native;
-		vector_t<reflected_type_t>&	 types			= native ? _native_types : _types;
-		vector_t<reflected_field_t>& fields			= native ? _native_fields : _fields;
-		text_allocator_t&			 text_allocator = native ? _native_text_allocator : _text_allocator;
-		const u32					 field_base		= native ? NATIVE_FIELD_BASE : 0;
+		const bool game_editor = descriptor.owner == reflection_owner_e::game_editor_plugin;
+		const bool plugin = descriptor.owner != reflection_owner_e::engine;
+
+		if (game_editor && _game_editor_text_allocator.get_capacity() == 0)
+		{
+			_game_editor_text_allocator.init(PLUGIN_TEXT_CAPACITY);
+			_game_editor_types.reserve(PLUGIN_TYPE_CAPACITY);
+			_game_editor_fields.reserve(PLUGIN_FIELD_CAPACITY);
+		}
+
+		vector_t<reflected_type_t>&	 types			= game_editor ? _game_editor_types : plugin ? _game_plugin_types : _types;
+		vector_t<reflected_field_t>& fields			= game_editor ? _game_editor_fields : plugin ? _game_plugin_fields : _fields;
+		text_allocator_t&			 text_allocator = game_editor ? _game_editor_text_allocator : plugin ? _game_plugin_text_allocator : _text_allocator;
+		const u32					 field_base		= game_editor ? GAME_EDITOR_FIELD_BASE : plugin ? PLUGIN_FIELD_BASE : 0;
 		reflected_type_t			 type			= {};
 
-		SFG_ASSERT(!native || (types.size() < NATIVE_TYPE_CAPACITY && fields.size() + descriptor.fields.size() <= NATIVE_FIELD_CAPACITY));
+		SFG_ASSERT(!plugin || (types.size() < PLUGIN_TYPE_CAPACITY && fields.size() + descriptor.fields.size() <= PLUGIN_FIELD_CAPACITY));
 
 		type.name = text_allocator.allocate(descriptor.name);
 

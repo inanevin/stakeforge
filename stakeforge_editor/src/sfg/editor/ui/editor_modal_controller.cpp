@@ -1,0 +1,362 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+
+*/
+#include "editor/ui/editor_modal_controller.hpp"
+#include "editor/ui/editor_text_rasterization.hpp"
+#include "editor/ui/panels/editor_theme.hpp"
+#include "editor/ui/widgets/editor_widget_button.hpp"
+#include "editor/ui/widgets/editor_widgets_frames.hpp"
+
+#include <sfg/core/runtime/ui/ui_context.hpp>
+
+namespace sfg
+{
+#define MODAL_TITLE_TEXT_CAPACITY		256u
+#define MODAL_DESCRIPTION_TEXT_CAPACITY 4096u
+
+	namespace
+	{
+		constexpr u32 MODAL_FG_DRAW_ORDER = 60000u;
+		constexpr u32 MODAL_DRAW_ORDER	  = 60001u;
+
+		editor_modal_controller_t* s_controllers[editor_modal_controller_t::MAX_CONTROLLERS] = {};
+		u32						   s_controller_count										 = 0;
+
+		vec4f_t get_title_color(editor_modal_severity_e severity)
+		{
+			const editor_theme_t& theme = editor_theme_t::get();
+			switch (severity)
+			{
+			case editor_modal_severity_e::error:
+				return theme.color_accent_err;
+			case editor_modal_severity_e::warning:
+				return theme.color_accent_warn;
+			default:
+				return theme.color_accent1;
+			}
+		}
+	}
+
+	void editor_modal_controller_t::handle_button_click(ui::input_router_t&, ui::widget_id_t id, const vec2f_t&, ui::mouse_button_e btn, void* user_data)
+	{
+		static_cast<editor_modal_controller_t*>(user_data)->on_button_click(id, btn);
+	}
+
+	void editor_modal_controller_t::init(ui::ui_context& ui)
+	{
+		SFG_ASSERT(s_controller_count < MAX_CONTROLLERS);
+
+		_ui							= &ui;
+		ui::layout_tree_t&	  tree	= ui.get_tree();
+		ui::paint_layer_t&	  paint = ui.get_paint();
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		_foreground = ui.allocate_widget();
+		ui.set_widget_debug_name(_foreground, "modal_foreground");
+		tree.attach(ui.get_root(), _foreground);
+		tree.draw_order(_foreground) = MODAL_DRAW_ORDER;
+
+		ui::layout_in_t& foreground_in = tree.in(_foreground);
+		foreground_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
+		foreground_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
+		foreground_in.size_value	   = {1.0f, 1.0f};
+
+		const ui::widget_id_t dimmer = ui.allocate_widget();
+		ui.set_widget_debug_name(dimmer, "modal_dimmer");
+		tree.attach(_foreground, dimmer);
+		tree.draw_order(dimmer) = MODAL_FG_DRAW_ORDER;
+
+		ui::layout_in_t& dimmer_in = tree.in(dimmer);
+		dimmer_in.flags			   = ui::wf_visible | ui::wf_input;
+		dimmer_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
+		dimmer_in.size_mode_y	   = ui::axis_mode_e::parent_relative;
+		dimmer_in.size_value	   = {1.0f, 1.0f};
+
+		ui::vg_rect_paint_t dimmer_rect = {};
+		dimmer_rect.fill_color_a		= {0.0f, 0.0f, 0.0f, 0.5f};
+		dimmer_rect.fill_color_b		= {0.0f, 0.0f, 0.0f, 0.5f};
+		paint.set_rect(dimmer, dimmer_rect);
+
+		_window = ui.allocate_widget();
+		ui.set_widget_debug_name(_window, "modal_window");
+		tree.attach(_foreground, _window);
+
+		ui::layout_in_t& window_in = tree.in(_window);
+		window_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
+		window_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
+		window_in.pos_value		   = {0.5f, 0.5f};
+		window_in.anchor_x		   = ui::anchor_e::center;
+		window_in.anchor_y		   = ui::anchor_e::center;
+		window_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
+		window_in.size_mode_y	   = ui::axis_mode_e::sum_children;
+		window_in.size_value.x	   = DEFAULT_FRAME_WIDTH_X;
+		window_in.flow			   = ui::flow_e::column;
+		window_in.child_spacing	   = theme.margin_vertical * 2.0f;
+		window_in.child_margins	   = {theme.margin_vertical * 4.0f, theme.margin_horizontal * 3.0f, theme.margin_vertical * 3.0f, theme.margin_horizontal * 3.0f};
+		window_in.child_clip_mode  = ui::clip_mode_e::cpu_rect;
+
+		editor_widgets_frames_t::make_frame_modal(ui, _window);
+
+		_title = ui.allocate_widget();
+		ui.set_widget_debug_name(_title, "modal_title");
+		tree.attach(_window, _title);
+		paint.set_text(_title, nullptr, 0, {.font = theme.font_title, .color = theme.color_accent1, .point_size = theme.text_big_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		_description = ui.allocate_widget();
+		ui.set_widget_debug_name(_description, "modal_description");
+		tree.attach(_window, _description);
+		paint.set_text(_description, nullptr, 0, {.font = theme.font_default, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		_container = ui.allocate_widget();
+		ui.set_widget_debug_name(_container, "modal_container");
+		tree.attach(_window, _container);
+
+		ui::layout_in_t& container_in = tree.in(_container);
+		container_in.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
+		container_in.pos_mode_y		  = ui::pos_mode_e::flow;
+		container_in.pos_value.x	  = 0.0f;
+		container_in.size_mode_x	  = ui::axis_mode_e::max_children;
+		container_in.size_mode_y	  = ui::axis_mode_e::sum_children;
+		container_in.size_value.x	  = 1.0f;
+		container_in.flow			  = ui::flow_e::column;
+		container_in.child_spacing	  = theme.item_spacing;
+
+		_button_row = ui.allocate_widget();
+		ui.set_widget_debug_name(_button_row, "modal_button_row");
+		tree.attach(_window, _button_row);
+
+		ui::layout_in_t& button_row_in = tree.in(_button_row);
+		button_row_in.size_mode_x	   = ui::axis_mode_e::sum_children;
+		button_row_in.size_mode_y	   = ui::axis_mode_e::fixed;
+		button_row_in.size_value	   = {1.0f, theme.item_height};
+		button_row_in.flow			   = ui::flow_e::row;
+		button_row_in.child_spacing	   = theme.margin_horizontal;
+
+		ui::listener_bundle_t button_listener = {};
+		button_listener.user_data			  = this;
+		button_listener.on_click			  = handle_button_click;
+
+		for (u32 i = 0; i < MAX_BUTTONS; ++i)
+		{
+			_button_widgets[i] = new editor_widget_button_t();
+			_button_widgets[i]->init(ui, _button_row, {.width = {.mode = editor_widget_width_e::fixed, .value = theme.item_width}});
+			ui.set_widget_debug_name(_button_widgets[i]->get_root(), "modal_button");
+			ui.get_input().set_listener(_button_widgets[i]->get_root(), button_listener);
+		}
+
+		s_controllers[s_controller_count++] = this;
+		set_visible(false);
+	}
+
+	void editor_modal_controller_t::uninit()
+	{
+		if (_visible)
+			close_modal();
+		else
+			close_content();
+
+		for (u32 i = 0; i < MAX_BUTTONS; ++i)
+		{
+			_button_widgets[i]->uninit();
+			delete _button_widgets[i];
+			_button_widgets[i] = nullptr;
+			_buttons[i]		   = {};
+		}
+
+		_ui->deallocate_widget(_foreground);
+
+		for (u32 i = 0; i < s_controller_count; ++i)
+		{
+			if (s_controllers[i] == this)
+			{
+				s_controllers[i]					  = s_controllers[s_controller_count - 1];
+				s_controllers[s_controller_count - 1] = nullptr;
+				s_controller_count--;
+				break;
+			}
+		}
+
+		_ui				 = nullptr;
+		_foreground		 = NULL_WIDGET;
+		_window			 = NULL_WIDGET;
+		_title			 = NULL_WIDGET;
+		_description	 = NULL_WIDGET;
+		_container		 = NULL_WIDGET;
+		_button_row		 = NULL_WIDGET;
+		_button_count	 = 0;
+		_buttons_visible = false;
+		_visible		 = false;
+	}
+
+	void editor_modal_controller_t::request_modal(const char* title, const char* description, const editor_modal_button_desc_t* buttons, u16 button_count, editor_modal_severity_e severity)
+	{
+		request_modal(title, description, true, buttons, button_count, nullptr, severity);
+	}
+
+	void editor_modal_controller_t::request_modal(const char* title, const char* description, bool show_buttons, const editor_modal_button_desc_t* buttons, u16 button_count, const editor_modal_content_desc_t* content, editor_modal_severity_e severity)
+	{
+		SFG_ASSERT(button_count <= MAX_BUTTONS);
+
+		_ui->get_input().set_focus_scope(_window);
+		close_content();
+
+		_button_count	 = button_count;
+		_buttons_visible = show_buttons;
+
+		for (u32 i = 0; i < MAX_BUTTONS; ++i)
+			_buttons[i] = i < button_count ? buttons[i] : editor_modal_button_desc_t{};
+
+		const size_t title_len		  = strlen(title);
+		const u32	 stored_title_len = title_len > MODAL_TITLE_TEXT_CAPACITY ? MODAL_TITLE_TEXT_CAPACITY : static_cast<u32>(title_len);
+
+		_ui->set_widget_text(_title, title, stored_title_len);
+		set_body_text(description);
+		_ui->get_paint().def(_title).text.color = get_title_color(severity);
+
+		for (u32 i = 0; i < MAX_BUTTONS; ++i)
+		{
+			const bool visible = show_buttons && i < button_count;
+
+			if (visible)
+				_button_widgets[i]->set_text(buttons[i].text);
+			else
+				_button_widgets[i]->set_text("");
+		}
+
+		if (content != nullptr && content->init != nullptr)
+		{
+			_content		= *content;
+			_content_active = true;
+
+			ui::layout_tree_t& tree		 = _ui->get_tree();
+			ui::layout_in_t&   window_in = tree.in(_window);
+
+			window_in.size_mode_x			= _content.frame_width_x > 0.0f ? ui::axis_mode_e::parent_relative : ui::axis_mode_e::max_children;
+			window_in.size_value.x			= _content.frame_width_x;
+			tree.in(_container).size_mode_x = _content.fill_x ? ui::axis_mode_e::parent_relative : ui::axis_mode_e::max_children;
+			_content.init(*_ui, _container, _content.user_data);
+		}
+
+		set_visible(true);
+
+		if (show_buttons && button_count != 0 && !_content_active)
+			_ui->get_input().set_focus(_button_widgets[0]->get_root(), true);
+	}
+
+	void editor_modal_controller_t::set_body_text(const char* text)
+	{
+		const char*	 description_text		= text != nullptr ? text : "";
+		const size_t description_len		= strlen(description_text);
+		const u32	 stored_description_len = description_len > MODAL_DESCRIPTION_TEXT_CAPACITY ? MODAL_DESCRIPTION_TEXT_CAPACITY : static_cast<u32>(description_len);
+
+		_ui->set_widget_text(_description, description_text, stored_description_len);
+	}
+
+	void editor_modal_controller_t::close_modal()
+	{
+		if (!_visible)
+			return;
+
+		close_content();
+		set_visible(false);
+		_ui->get_input().clear_focus_scope();
+		_button_count	 = 0;
+		_buttons_visible = false;
+
+		for (editor_modal_button_desc_t& button : _buttons)
+			button = {};
+	}
+
+	editor_modal_controller_t* editor_modal_controller_t::find(ui::ui_context& ui)
+	{
+		for (u32 i = 0; i < s_controller_count; ++i)
+		{
+			if (s_controllers[i]->_ui == &ui)
+				return s_controllers[i];
+		}
+		return nullptr;
+	}
+
+	bool editor_modal_controller_t::is_visible() const
+	{
+		return _visible;
+	}
+
+	void editor_modal_controller_t::set_visible(bool visible)
+	{
+		ui::layout_tree_t& tree = _ui->get_tree();
+
+		_visible = visible;
+		tree.set_visible(_foreground, visible, false);
+		tree.set_visible(_container, visible && _content_active, false);
+		tree.set_visible(_button_row, visible && _buttons_visible, false);
+
+		for (u32 i = 0; i < MAX_BUTTONS; ++i)
+		{
+			const bool button_visible = visible && _buttons_visible && i < _button_count;
+			tree.set_visible(_button_widgets[i]->get_root(), button_visible);
+		}
+	}
+
+	void editor_modal_controller_t::close_content()
+	{
+		if (!_content_active)
+			return;
+
+		if (_content.uninit != nullptr)
+			_content.uninit(_content.user_data);
+
+		_content		= {};
+		_content_active = false;
+
+		if (_ui != nullptr && _container != NULL_WIDGET)
+		{
+			ui::layout_tree_t& tree = _ui->get_tree();
+
+			tree.in(_window).size_mode_x	= ui::axis_mode_e::parent_relative;
+			tree.in(_window).size_value.x	= DEFAULT_FRAME_WIDTH_X;
+			tree.in(_container).size_mode_x = ui::axis_mode_e::max_children;
+		}
+	}
+
+	void editor_modal_controller_t::on_button_click(ui::widget_id_t id, ui::mouse_button_e btn)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		const u32				   index  = find_button_index(id);
+		editor_modal_button_desc_t button = _buttons[index];
+		close_modal();
+		if (button.callback)
+			button.callback(button.user_data);
+	}
+
+	u32 editor_modal_controller_t::find_button_index(ui::widget_id_t id) const
+	{
+		for (u32 i = 0; i < _button_count; ++i)
+		{
+			if (_button_widgets[i]->get_root() == id)
+				return i;
+		}
+		SFG_ASSERT(false);
+		return 0;
+	}
+}

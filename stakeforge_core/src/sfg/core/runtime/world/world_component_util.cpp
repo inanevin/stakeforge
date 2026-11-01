@@ -23,11 +23,11 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/world/world_component_util.hpp"
 #include "core/runtime/world/world.hpp"
 #include "core/runtime/world/ecs.hpp"
-#include "core/runtime/scripting/native_component_schema.hpp"
+#include "core/reflection/plugin_type_schema.hpp"
 
 namespace sfg
 {
-	void world_component_util_t::apply_native_component_schema(world_t& world, const native_component_schema_t& previous, const native_component_schema_t& current, const native_component_schema_delta_t& delta)
+	void world_component_util_t::apply_plugin_type_schema(world_t& world, const plugin_type_schema_t& previous, const plugin_type_schema_t& current, const plugin_type_schema_delta_t& delta)
 	{
 		SFG_ASSERT(!world.is_component_query_active());
 		SFG_ASSERT(!world.is_playing());
@@ -38,6 +38,9 @@ namespace sfg
 
 		for (sid_t type_id : delta.removed)
 		{
+			if (!previous.find_type(type_id)->flags.is_set(reflected_type_flag_component | reflected_type_flag_system_component | reflected_type_flag_tag_component))
+				continue;
+
 			const auto it = std::find_if(component_tables.begin(), component_tables.end(), [type_id](const ecs_component_table_t& table) { return table.get_type_id() == type_id; });
 			SFG_ASSERT(it != component_tables.end());
 
@@ -48,7 +51,32 @@ namespace sfg
 		for (sid_t type_id : delta.layout_changed)
 		{
 			const reflected_type_descriptor_t& type			   = *current.find_type(type_id);
+
+			const bool was_component = previous.find_type(type_id)->flags.is_set(reflected_type_flag_component | reflected_type_flag_system_component | reflected_type_flag_tag_component);
+			const bool is_component = type.flags.is_set(reflected_type_flag_component | reflected_type_flag_system_component | reflected_type_flag_tag_component);
+
+			if (!is_component)
+			{
+				if (was_component)
+				{
+					const auto it = std::find_if(component_tables.begin(), component_tables.end(), [type_id](const ecs_component_table_t& table) { return table.get_type_id() == type_id; });
+					SFG_ASSERT(it != component_tables.end());
+
+					it->uninit();
+					component_tables.erase(it);
+				}
+
+				continue;
+			}
+
 			const bool						   tag			   = type.flags.is_set(reflected_type_flag_tag_component);
+
+			if (!was_component)
+			{
+				world.add_component_table(ecs_component_table_t::make_component_desc(type_id, tag ? 0 : type.size, tag ? 1 : type.alignment, tag ? ecs_component_type_flags_tag : ecs_component_type_flags_none, type.name));
+				continue;
+			}
+
 			ecs_component_table_t&			   previous_table  = world.get_component_table(type_id);
 			ecs_component_table_t			   candidate_table = {};
 			candidate_table.init(ecs_component_table_t::make_component_desc(type_id, tag ? 0 : type.size, tag ? 1 : type.alignment, tag ? ecs_component_type_flags_tag : ecs_component_type_flags_none, type.name));
@@ -75,6 +103,10 @@ namespace sfg
 		for (sid_t type_id : delta.added)
 		{
 			const reflected_type_descriptor_t& type = *current.find_type(type_id);
+
+			if (!type.flags.is_set(reflected_type_flag_component | reflected_type_flag_system_component | reflected_type_flag_tag_component))
+				continue;
+
 			const bool						   tag	= type.flags.is_set(reflected_type_flag_tag_component);
 
 			world.add_component_table(ecs_component_table_t::make_component_desc(type_id, tag ? 0 : type.size, tag ? 1 : type.alignment, tag ? ecs_component_type_flags_tag : ecs_component_type_flags_none, type.name));

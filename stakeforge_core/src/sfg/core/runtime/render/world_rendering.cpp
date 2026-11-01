@@ -37,8 +37,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/render/world_draw_common.hpp"
 #include "core/runtime/resources/resource_manager.hpp"
 #include "core/runtime/resources/shader_types.hpp"
-#include "core/runtime/scripting/plugin_api.hpp"
-#include "core/runtime/scripting/plugin_render_context.hpp"
+#include "core/runtime/plugin/game_plugin_api.hpp"
+#include "core/runtime/plugin/game_plugin_render_context.hpp"
 #include "core/runtime/ui/glyph_atlas.hpp"
 #include "core/runtime/ui/ui_renderer.hpp"
 #include <execution>
@@ -291,7 +291,7 @@ namespace sfg
 	}
 
 	void world_rendering_t::render_world(
-		world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const plugin_callbacks_t* plugin)
+		world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const game_plugin_callbacks_t* plugin)
 	{
 		ZoneScoped;
 
@@ -819,7 +819,7 @@ namespace sfg
 	}
 
 	void world_rendering_t::render_gbuffer(
-		const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const plugin_callbacks_t* plugin, f32 interpolation_alpha)
+		const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const game_plugin_callbacks_t* plugin, f32 interpolation_alpha)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -927,8 +927,8 @@ namespace sfg
 
 		if (plugin != nullptr && plugin->render_after_gbuffer != nullptr)
 		{
-			const plugin_render_context_t context			= world_rendering_util_t::get_plugin_render_context(ctx, ss, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
-			plugin_gbuffer_pass_t		  targets			= world_rendering_util_t::get_plugin_gbuffer_pass(ctx, frame_index);
+			const game_plugin_render_context_t context			= world_rendering_util_t::get_game_plugin_render_context(ctx, ss, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
+			game_plugin_gbuffer_pass_t		  targets			= world_rendering_util_t::get_game_plugin_gbuffer_pass(ctx, frame_index);
 			const u32					  depth_read_states = targets.depth.states;
 
 			targets.albedo.states				= resource_state_render_target;
@@ -1326,7 +1326,7 @@ namespace sfg
 	}
 
 	void world_rendering_t::render_forward(
-		const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const plugin_callbacks_t* plugin, f32 interpolation_alpha)
+		const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const game_plugin_callbacks_t* plugin, f32 interpolation_alpha)
 	{
 		gfx_backend&	   backend		= gfx_backend::get();
 		const gfx_handle_t cmd			= ctx.get_command_buffer_forward(frame_index);
@@ -1336,8 +1336,8 @@ namespace sfg
 
 		if (plugin != nullptr && plugin->render_before_forward != nullptr)
 		{
-			const plugin_render_context_t context = world_rendering_util_t::get_plugin_render_context(ctx, snapshot, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
-			const plugin_color_pass_t	  targets = world_rendering_util_t::get_plugin_color_pass(ctx, frame_index, false);
+			const game_plugin_render_context_t context = world_rendering_util_t::get_game_plugin_render_context(ctx, snapshot, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
+			const game_plugin_color_pass_t	  targets = world_rendering_util_t::get_game_plugin_color_pass(ctx, frame_index, false);
 
 			plugin->render_before_forward(context, targets);
 		}
@@ -1395,6 +1395,7 @@ namespace sfg
 		END_DEBUG_EVENT((&backend), cmd);
 
 		const span_t<const world_render_queue_item_t> view_model_draws = prep_data.get_view_model_queue();
+
 		if (view_model_draws.size != 0)
 		{
 			const gfx_handle_t view_model_depth				  = ctx.get_view_model_depth_texture(frame_index);
@@ -1464,8 +1465,8 @@ namespace sfg
 
 		if (plugin != nullptr && plugin->render_before_post_process != nullptr)
 		{
-			const plugin_render_context_t context = world_rendering_util_t::get_plugin_render_context(ctx, snapshot, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
-			const plugin_color_pass_t	  targets = world_rendering_util_t::get_plugin_color_pass(ctx, frame_index, false);
+			const game_plugin_render_context_t context = world_rendering_util_t::get_game_plugin_render_context(ctx, snapshot, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
+			const game_plugin_color_pass_t	  targets = world_rendering_util_t::get_game_plugin_color_pass(ctx, frame_index, false);
 
 			plugin->render_before_post_process(context, targets);
 		}
@@ -1607,7 +1608,7 @@ namespace sfg
 	}
 
 	void world_rendering_t::render_post_process(
-		const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const plugin_callbacks_t* plugin, f32 interpolation_alpha)
+		const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const game_plugin_callbacks_t* plugin, f32 interpolation_alpha)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -1664,8 +1665,8 @@ namespace sfg
 
 		if (plugin != nullptr && plugin->render_before_tonemap != nullptr)
 		{
-			const plugin_render_context_t context = world_rendering_util_t::get_plugin_render_context(ctx, snapshot, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
-			plugin_color_pass_t			  targets = world_rendering_util_t::get_plugin_color_pass(ctx, frame_index, false);
+			const game_plugin_render_context_t context = world_rendering_util_t::get_game_plugin_render_context(ctx, snapshot, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
+			game_plugin_color_pass_t			  targets = world_rendering_util_t::get_game_plugin_color_pass(ctx, frame_index, false);
 			targets.bloom_index					  = bloom_index;
 
 			const barrier_t hdr_write = {
@@ -1759,8 +1760,8 @@ namespace sfg
 
 		if (plugin != nullptr && plugin->render_after_post_process != nullptr)
 		{
-			const plugin_render_context_t context = world_rendering_util_t::get_plugin_render_context(ctx, snapshot, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
-			plugin_color_pass_t			  targets = world_rendering_util_t::get_plugin_color_pass(ctx, frame_index, true);
+			const game_plugin_render_context_t context = world_rendering_util_t::get_game_plugin_render_context(ctx, snapshot, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
+			game_plugin_color_pass_t			  targets = world_rendering_util_t::get_game_plugin_color_pass(ctx, frame_index, true);
 			targets.bloom_index					  = bloom_index;
 
 			plugin->render_after_post_process(context, targets);

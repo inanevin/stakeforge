@@ -27,12 +27,12 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	class world_t;
-	class native_component_schema_t;
-	struct native_component_schema_delta_t;
+	class plugin_type_schema_t;
+	struct plugin_type_schema_delta_t;
 
 	class SFG_API world_component_util_t final
 	{
 	public:
-		static void apply_native_component_schema(world_t& world, const native_component_schema_t& previous, const native_component_schema_t& current, const native_component_schema_delta_t& delta);
+		static void apply_plugin_type_schema(world_t& world, const plugin_type_schema_t& previous, const plugin_type_schema_t& current, const plugin_type_schema_delta_t& delta);
 	};
 }

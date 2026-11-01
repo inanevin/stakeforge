@@ -62,12 +62,12 @@ if(NOT TARGET Stakeforge::core)
     )
 endif()
 
-if(NOT TARGET Stakeforge::tools)
-    add_library(Stakeforge::tools SHARED IMPORTED)
-    set_target_properties(Stakeforge::tools PROPERTIES
-        IMPORTED_LOCATION "${_stakeforge_sdk_root}/../../stakeforge_tools.dll"
-        IMPORTED_IMPLIB "${_stakeforge_sdk_root}/lib/@TOOLS_LIBRARY@"
-        INTERFACE_COMPILE_DEFINITIONS SFG_TOOLS_SHARED
+if(NOT TARGET Stakeforge::editor)
+    add_library(Stakeforge::editor SHARED IMPORTED)
+    set_target_properties(Stakeforge::editor PROPERTIES
+        IMPORTED_LOCATION "${_stakeforge_sdk_root}/../../stakeforge_editor.dll"
+        IMPORTED_IMPLIB "${_stakeforge_sdk_root}/lib/@EDITOR_LIBRARY@"
+        INTERFACE_COMPILE_DEFINITIONS SFG_EDITOR_SHARED
         INTERFACE_LINK_LIBRARIES Stakeforge::core
     )
 endif()
@@ -75,7 +75,7 @@ endif()
 if(CMAKE_GENERATOR MATCHES "^Visual Studio ")
     set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-    foreach(_stakeforge_module IN ITEMS core tools)
+    foreach(_stakeforge_module IN ITEMS core editor)
         if(NOT TARGET stakeforge_${_stakeforge_module})
             file(GLOB_RECURSE _stakeforge_sources CONFIGURE_DEPENDS
                 "${_stakeforge_sdk_root}/include/sfg/${_stakeforge_module}/*.h"

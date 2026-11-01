@@ -1,0 +1,301 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+
+*/
+#include "editor/commands/editor_commands_entity_info.hpp"
+#include "editor/editor_world_controller.hpp"
+#include "editor/world/editor_world.hpp"
+#include "editor/editor_command_system.hpp"
+#include <sfg/core/io/log.hpp>
+#include <sfg/core/memory/memory.hpp>
+#include <sfg/core/runtime/engine/engine_runtime.hpp>
+#include <sfg/core/runtime/world/world.hpp>
+#include <sfg/core/runtime/world/engine_components.hpp>
+
+namespace sfg
+{
+	namespace
+	{
+		void copy_name(char* dst, const char* src)
+		{
+			const char*	 text = src != nullptr ? src : "";
+			const size_t len  = std::strlen(text);
+			const size_t n	  = len < EDITOR_ENTITY_INFO_NAME_SIZE - 1 ? len : EDITOR_ENTITY_INFO_NAME_SIZE - 1;
+			SFG_MEMCPY(dst, text, n);
+			dst[n] = '\0';
+		}
+
+		chunk_handle32_t copy_entities_to_aux(editor_command_system_t& system, span_t<const entity_id_t> entities)
+		{
+			entity_id_t*		   dst	  = nullptr;
+			const chunk_handle32_t handle = system.get_aux_data().allocate<entity_id_t>(entities.size, dst);
+			SFG_MEMCPY(dst, entities.data, sizeof(entity_id_t) * entities.size);
+			return handle;
+		}
+
+		chunk_handle32_t copy_entity_infos_to_aux(editor_command_system_t& system, world_t& world, span_t<const entity_id_t> entities)
+		{
+			const chunk_handle32_t	   handle = system.get_aux_data().allocate_bytes(sizeof(editor_entity_info_data_t) * entities.size, alignof(editor_entity_info_data_t));
+			editor_entity_info_data_t* dst	  = system.get_aux_data().get<editor_entity_info_data_t>(handle);
+			for (size_t i = 0; i < entities.size; ++i)
+				dst[i] = editor_commands_entity_info_t::read(world, entities.data[i]);
+			return handle;
+		}
+
+		chunk_handle32_t copy_entity_infos_to_aux(editor_command_system_t& system, span_t<const editor_entity_info_data_t> infos)
+		{
+			const chunk_handle32_t	   handle = system.get_aux_data().allocate_bytes(sizeof(editor_entity_info_data_t) * infos.size, alignof(editor_entity_info_data_t));
+			editor_entity_info_data_t* dst	  = system.get_aux_data().get<editor_entity_info_data_t>(handle);
+			SFG_MEMCPY(dst, infos.data, sizeof(editor_entity_info_data_t) * infos.size);
+			return handle;
+		}
+
+		bool entity_infos_equal(span_t<const editor_entity_info_data_t> a, span_t<const editor_entity_info_data_t> b)
+		{
+			if (a.size != b.size)
+				return false;
+
+			for (size_t i = 0; i < a.size; ++i)
+			{
+				if (std::strncmp(a.data[i].name, b.data[i].name, EDITOR_ENTITY_INFO_NAME_SIZE) != 0)
+					return false;
+				if (a.data[i].pos != b.data[i].pos)
+					return false;
+				if (a.data[i].rot != b.data[i].rot)
+					return false;
+				if (a.data[i].scale != b.data[i].scale)
+					return false;
+			}
+			return true;
+		}
+
+		void free_edit_entity_info_payload(editor_command_system_t& system, editor_command_edit_entity_info_payload_t& payload)
+		{
+			if (payload.previous_infos)
+			{
+				system.get_aux_data().free(payload.previous_infos);
+				payload.previous_infos = {};
+			}
+			if (payload.post_infos)
+			{
+				system.get_aux_data().free(payload.post_infos);
+				payload.post_infos = {};
+			}
+			if (payload.entities)
+			{
+				system.get_aux_data().free(payload.entities);
+				payload.entities = {};
+			}
+		}
+
+		void apply_entity_infos(editor_command_system_t& system, editor_command_edit_entity_info_payload_t& payload, chunk_handle32_t infos_handle)
+		{
+			world_t&						 world	  = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			const entity_id_t*				 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			const editor_entity_info_data_t* infos	  = system.get_aux_data().get<editor_entity_info_data_t>(infos_handle);
+			for (u32 i = 0; i < payload.count; ++i)
+				editor_commands_entity_info_t::apply(world, entities[i], infos[i]);
+		}
+
+		bool paste_entity_info_undo(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_paste_entity_info_payload_t& payload	  = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
+			world_t&									world	  = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			const entity_id_t*							entities  = system.get_aux_data().get<entity_id_t>(payload.entities);
+			const editor_entity_info_data_t*			old_infos = system.get_aux_data().get<editor_entity_info_data_t>(payload.old_infos);
+			for (u32 i = 0; i < payload.count; ++i)
+				editor_commands_entity_info_t::apply(world, entities[i], old_infos[i]);
+			return true;
+		}
+
+		bool paste_entity_info_redo(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_paste_entity_info_payload_t& payload	 = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
+			world_t&									world	 = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			const entity_id_t*							entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			for (u32 i = 0; i < payload.count; ++i)
+				editor_commands_entity_info_t::apply(world, entities[i], payload.info);
+			return true;
+		}
+
+		bool paste_entity_info_cleanup(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_paste_entity_info_payload_t& payload = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
+			if (payload.old_infos)
+			{
+				system.get_aux_data().free(payload.old_infos);
+				payload.old_infos = {};
+			}
+			if (payload.entities)
+			{
+				system.get_aux_data().free(payload.entities);
+				payload.entities = {};
+			}
+			return true;
+		}
+
+		bool edit_entity_info_undo(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_edit_entity_info_payload_t& payload = system.get_payload_as<editor_command_edit_entity_info_payload_t>(command);
+			apply_entity_infos(system, payload, payload.previous_infos);
+			return true;
+		}
+
+		bool edit_entity_info_redo(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_edit_entity_info_payload_t& payload = system.get_payload_as<editor_command_edit_entity_info_payload_t>(command);
+			apply_entity_infos(system, payload, payload.post_infos);
+			return true;
+		}
+
+		bool edit_entity_info_cleanup(editor_command_system_t& system, editor_command_t& command)
+		{
+			editor_command_edit_entity_info_payload_t& payload = system.get_payload_as<editor_command_edit_entity_info_payload_t>(command);
+			free_edit_entity_info_payload(system, payload);
+			return true;
+		}
+	}
+
+	editor_entity_info_data_t editor_commands_entity_info_t::read(world_t& world, entity_id_t entity)
+	{
+		editor_entity_info_data_t info = {};
+		copy_name(info.name, world.get_entity_name(entity));
+		info.pos   = world.get_entity_pos_local(entity);
+		info.rot   = world.get_entity_rot_local(entity);
+		info.scale = world.get_entity_scale_local(entity);
+		return info;
+	}
+
+	void editor_commands_entity_info_t::apply(world_t& world, entity_id_t entity, const editor_entity_info_data_t& info)
+	{
+		world.set_entity_name(entity, info.name);
+		world.set_entity_pos_local(entity, info.pos);
+		world.set_entity_rot_local(entity, info.rot);
+		world.set_entity_scale_local(entity, info.scale);
+	}
+
+	bool editor_commands_entity_info_t::paste(editor_world_handle_t world, entity_id_t entity, const editor_entity_info_data_t& info)
+	{
+		frame_vector_t<entity_id_t> entities;
+		entities.push_back(entity);
+		return paste(world, entities, info);
+	}
+
+	bool editor_commands_entity_info_t::paste(editor_world_handle_t world, const frame_vector_t<entity_id_t>& entities, const editor_entity_info_data_t& info)
+	{
+		if (entities.empty())
+			return false;
+
+		editor_command_system_t& command_system = editor_command_system_t::get();
+		world_t&				 target_world	= editor_world_controller_t::get().get_editor_world(world)->get_world();
+
+		editor_command_paste_entity_info_payload_t payload = {};
+		payload.old_infos								   = copy_entity_infos_to_aux(command_system, target_world, {.data = entities.data(), .size = entities.size()});
+		payload.entities								   = copy_entities_to_aux(command_system, {.data = entities.data(), .size = entities.size()});
+		payload.info									   = info;
+		payload.world									   = world;
+		payload.count									   = static_cast<u32>(entities.size());
+
+		const editor_command_issue_desc_t desc{
+			.undo		= paste_entity_info_undo,
+			.redo		= paste_entity_info_redo,
+			.cleanup	= paste_entity_info_cleanup,
+			.debug_name = "Paste Entity Info",
+			.type		= editor_command_type_e::entity_info_paste,
+			.world		= world,
+		};
+
+		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue paste entity info command");
+			return false;
+		}
+
+		return true;
+	}
+
+	bool editor_commands_entity_info_t::edit(editor_world_handle_t world, span_t<const entity_id_t> entities, span_t<const editor_entity_info_data_t> previous_infos, span_t<const editor_entity_info_data_t> post_infos)
+	{
+		if (entities.size == 0 || previous_infos.size != entities.size || post_infos.size != entities.size)
+			return false;
+
+		frame_vector_t<editor_entity_info_data_t> authored_infos = {};
+		editor_play_session_t&					  session		 = editor_world_controller_t::get().get_play_session();
+
+		if (session.is_playing())
+		{
+			authored_infos.assign(post_infos.data, post_infos.data + post_infos.size);
+
+			for (size_t i = 0; i < entities.size; ++i)
+			{
+				const editor_entity_info_data_t& previous = previous_infos.data[i];
+				component_transform_t			 transform{.pos = previous.pos, .rot = previous.rot, .scale = previous.scale};
+
+				bool applied = false;
+
+				if (!session.get_edits().apply_pending(world, entities.data[i], type_id_t<component_transform_t>::value, &transform, applied))
+					return false;
+
+				if (applied)
+				{
+					authored_infos[i].pos	= transform.pos;
+					authored_infos[i].rot	= transform.rot;
+					authored_infos[i].scale = transform.scale;
+				}
+			}
+
+			post_infos = {.data = authored_infos.data(), .size = authored_infos.size()};
+		}
+
+		if (entity_infos_equal(previous_infos, post_infos))
+			return true;
+
+		editor_command_system_t& command_system = editor_command_system_t::get();
+
+		editor_command_edit_entity_info_payload_t payload = {};
+		payload.previous_infos							  = copy_entity_infos_to_aux(command_system, previous_infos);
+		payload.post_infos								  = copy_entity_infos_to_aux(command_system, post_infos);
+		payload.entities								  = copy_entities_to_aux(command_system, entities);
+		payload.world									  = world;
+		payload.count									  = static_cast<u32>(entities.size);
+
+		const editor_command_issue_desc_t desc{
+			.undo		= edit_entity_info_undo,
+			.redo		= edit_entity_info_redo,
+			.cleanup	= edit_entity_info_cleanup,
+			.debug_name = "Entity Info Edit",
+			.type		= editor_command_type_e::entity_info_edit,
+			.world		= world,
+			.run_redo	= false,
+			.notify		= false,
+		};
+
+		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+		if (handle.is_null())
+		{
+			SFG_ERR("failed to issue entity info edit command");
+			free_edit_entity_info_payload(command_system, payload);
+			return false;
+		}
+
+		return true;
+	}
+}

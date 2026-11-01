@@ -279,8 +279,9 @@ namespace sfg
 
 	struct world_render_snapshot_t
 	{
-		void*									  plugin_data		= nullptr;
-		void*									  user_data			= nullptr;
+		void* game_plugin_data = nullptr;
+		void* game_editor_plugin_data = nullptr;
+		void* editor_data = nullptr;
 		engine_shadow_settings_t				  shadows			= {};
 		world_render_view_t						  main_view			= {};
 		world_render_environment_t				  environment		= {};

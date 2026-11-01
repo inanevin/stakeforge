@@ -56,10 +56,10 @@ include("${CMAKE_BINARY_DIR}/packaging/build_info.cmake")
 # ------------- TARGETS -------------
 
 add_subdirectory(stakeforge_core)
-add_subdirectory(stakeforge_tools)
 add_subdirectory(stakeforge_editor)
+add_subdirectory(stakeforge_editor_launcher)
 include(assets/packaging/packaging.cmake)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CustomTargets")
-set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT stakeforge_editor)
+set_property(DIRECTORY ${CMAKE_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT stakeforge_editor_launcher)
