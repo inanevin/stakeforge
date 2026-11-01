@@ -1,0 +1,15 @@
+{
+    "version": 0,
+    "guid": 1029,
+    "asset_type": "shader",
+    "sub_type": 5,
+    "source_type": "file",
+    "source_relative": "shaders/object/object_lit.hlsl",
+    "cook_options": {
+        "schema": "sfg.schema.shader",
+        "type": 5,
+        "include_dirs": [
+            "assets/shaders/"
+        ]
+    }
+}

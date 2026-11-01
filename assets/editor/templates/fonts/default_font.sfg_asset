@@ -1,0 +1,11 @@
+{
+    "version": 0,
+    "guid": 1054,
+    "asset_type": "font",
+    "sub_type": 0,
+    "source_type": "file",
+    "source_relative": "editor/templates/fonts/IBMPlexMono-Regular.ttf",
+    "cook_options": {
+        "schema": "sfg.schema.font"
+    }
+}

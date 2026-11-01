@@ -83,9 +83,9 @@ namespace sfg
 			_pfd[i].gizmo_data_index = backend.get_resource_gpu_index(_pfd[i].gizmo_data);
 		}
 
-		const shader_internals_t* composite_shader	   = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_render_texture.hlsl"_hs);
-		const shader_internals_t* gizmo_shader		   = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_gizmo.hlsl"_hs);
-		const shader_internals_t* physics_debug_shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_physics_debug.hlsl"_hs);
+		const shader_internals_t* composite_shader	   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_render_texture.hlsl"_hs);
+		const shader_internals_t* gizmo_shader		   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_gizmo.hlsl"_hs);
+		const shader_internals_t* physics_debug_shader = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_physics_debug.hlsl"_hs);
 		_composite_shader							   = render_resources_t::get().get_shader_hw(composite_shader->psos[0]);
 		_gizmo_shader								   = render_resources_t::get().get_shader_hw(gizmo_shader->psos[0]);
 		_physics_debug_shader						   = render_resources_t::get().get_shader_hw(physics_debug_shader->psos[0]);

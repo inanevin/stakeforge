@@ -221,7 +221,7 @@ namespace sfg
 		rect.fill_color_a			= {0.0f, 0.0f, 0.0f, 1.0f};
 		rect.fill_color_b			= {0.0f, 0.0f, 0.0f, 1.0f};
 		ui::ui_render_state_t state = {};
-		state.pipeline				= "editor/resource_pack/shaders/editor_ui_color_wheel.hlsl"_hs;
+		state.pipeline				= "shaders/editor/editor_ui_color_wheel.hlsl"_hs;
 		paint.set_rect(_top_left_frame, rect, state);
 
 		ui::listener_bundle_t listener = {};

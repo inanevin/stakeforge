@@ -64,52 +64,6 @@ target_include_directories(${SFG_EDITOR_TARGET} PRIVATE
 target_link_libraries(${SFG_EDITOR_TARGET} PRIVATE stakeforge_tools)
 
 include(${SFG_CORE_DIR}/cmake/common_functions.cmake)
-sfg_add_copy_commands(${SFG_EDITOR_TARGET} ${SFG_CORE_DIR})
-add_custom_target(stakeforge_editor_shaders
-    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/common/shaders"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/common/shaders"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/common/shaders"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/assets/common/shaders"
-    VERBATIM
-)
-add_dependencies(${SFG_EDITOR_TARGET} stakeforge_editor_shaders)
-set_target_properties(stakeforge_editor_shaders PROPERTIES FOLDER "stakeforge")
-
-add_custom_command(
-    TARGET ${SFG_EDITOR_TARGET}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_scaffold"
-    COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults"
-    COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates"
-    COMMAND ${CMAKE_COMMAND} -E rm -rf "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor/resource_pack"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/common"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/defaults/materials"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults/materials"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/defaults/samplers"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults/samplers"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/defaults/textures"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults/textures"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/defaults/sky"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_defaults/sky"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/templates/materials"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates/materials"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/templates/samplers"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor_templates/samplers"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/../assets/editor/resource_pack"
-        "$<TARGET_FILE_DIR:${SFG_EDITOR_TARGET}>/editor/resource_pack"
-)
 set_target_properties(${SFG_EDITOR_TARGET} PROPERTIES FOLDER "stakeforge")
 sfg_group_sources(PLATFORM_HEADERS PLATFORM_SOURCES)
 sfg_group_generated(${SFG_EDITOR_TARGET})

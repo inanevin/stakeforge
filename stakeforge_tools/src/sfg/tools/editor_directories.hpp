@@ -29,7 +29,7 @@ namespace sfg
 {
 	struct editor_project_t;
 
-	class SFG_TOOLS_API editor_directories_t
+	class SFG_TOOLS_API editor_directories_t final
 	{
 	public:
 		static inline const string_t& get_editor_resource_cache()
@@ -37,14 +37,9 @@ namespace sfg
 			return s_editor_resource_cache;
 		}
 
-		static inline const string_t& get_editor_manifest()
+		static inline const string_t& get_assets_manifest()
 		{
-			return s_editor_manifest;
-		}
-
-		static inline const string_t& get_engine_manifest()
-		{
-			return s_engine_manifest;
+			return s_assets_manifest;
 		}
 
 		static inline const string_t& get_user_directory()
@@ -71,8 +66,7 @@ namespace sfg
 		static string_t s_editor_settings;
 		static string_t s_editor_assets;
 		static string_t s_editor_resource_cache;
-		static string_t s_editor_manifest;
-		static string_t s_engine_manifest;
+		static string_t s_assets_manifest;
 
 		static void init_paths();
 	};

@@ -155,8 +155,8 @@ namespace sfg
 
 		_render_context.init(config.render_context, config.debug_draw);
 
-		const shader_internals_t* shader				= resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/thumbnail_capture_copy.hlsl"_hs);
-		const shader_internals_t* debug_triangle_shader = resource_manager_t::get().find_internals<shader_internals_t>("editor/resource_pack/shaders/editor_world_physics_debug.hlsl"_hs);
+		const shader_internals_t* shader				= resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/thumbnail_capture_copy.hlsl"_hs);
+		const shader_internals_t* debug_triangle_shader = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_physics_debug.hlsl"_hs);
 
 		_thumbnail_shader	   = render_resources_t::get().get_shader_hw(shader->psos[0]);
 		_debug_triangle_shader = render_resources_t::get().get_shader_hw(debug_triangle_shader->psos[0]);

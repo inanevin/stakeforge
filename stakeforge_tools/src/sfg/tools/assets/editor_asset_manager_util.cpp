@@ -261,7 +261,8 @@ namespace sfg
 			if (!file_system_t::exists(def_assets_path.c_str()))
 				file_system_t::create_directory(def_assets_path.c_str());
 
-			editor_default_asset_seeder_t::ensure(def_assets_path.c_str());
+			if (!editor_default_asset_seeder_t::ensure(def_assets_path.c_str()))
+				return false;
 
 			work_context.set_progress(0.15f, "Scanning project assets");
 			editor_asset_manager_util_t::build_asset_database(asset_manager, assets_path.c_str());

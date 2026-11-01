@@ -44,7 +44,7 @@ namespace sfg
 {
 #define DEBUG_DRAW_MISSING_RESOURCE_TEXT_SIZE_PX		 32.0f
 #define DEBUG_DRAW_MISSING_RESOURCE_TEXT_LINE_SPACING_PX 36.0f
-#define WORLD_DEBUG_DRAW_FONT							 TO_SIDC("engine/resource_pack/IBMPlexMono-Regular.ttf")
+#define WORLD_DEBUG_DRAW_FONT							 TO_SIDC("editor/templates/fonts/IBMPlexMono-Regular.ttf")
 
 	world_debug_draw_t::world_debug_draw_t()  = default;
 	world_debug_draw_t::~world_debug_draw_t() = default;

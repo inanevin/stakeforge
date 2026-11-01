@@ -310,9 +310,9 @@ namespace sfg
 			.rounding_segs = 4,
 		};
 		const ui::ui_render_state_t checker_state{
-			.pipeline  = "editor/resource_pack/shaders/editor_ui_texture_repeat.hlsl"_hs,
+			.pipeline  = "shaders/editor/editor_ui_texture_repeat.hlsl"_hs,
 			.constants = {{
-				.handle = "editor/resource_pack/textures/checker.png"_hs,
+				.handle = "editor/resources/textures/checker.png"_hs,
 				.type	= ui::ui_resource_type_e::texture,
 			}},
 		};
@@ -550,9 +550,9 @@ namespace sfg
 			.rounding_segs = 4,
 		};
 		const ui::ui_render_state_t checker_state{
-			.pipeline  = "editor/resource_pack/shaders/editor_ui_texture_repeat.hlsl"_hs,
+			.pipeline  = "shaders/editor/editor_ui_texture_repeat.hlsl"_hs,
 			.constants = {{
-				.handle = "editor/resource_pack/textures/checker.png"_hs,
+				.handle = "editor/resources/textures/checker.png"_hs,
 				.type	= ui::ui_resource_type_e::texture,
 			}},
 		};

@@ -1,0 +1,160 @@
+{
+    "assets": [
+        {
+            "name": "default_shader_lit",
+            "template": "editor/templates/shaders/default_shader_lit.sfg_asset"
+        },
+        {
+            "name": "default_shader_unlit",
+            "template": "editor/templates/shaders/default_shader_unlit.sfg_asset"
+        },
+        {
+            "name": "default_shader_skybox_cube",
+            "template": "editor/templates/shaders/default_shader_skybox_cube.sfg_asset"
+        },
+        {
+            "name": "default_shader_skybox_gradient",
+            "template": "editor/templates/shaders/default_shader_skybox_gradient.sfg_asset"
+        },
+        {
+            "name": "default_shader_sprite_lit",
+            "template": "editor/templates/shaders/default_shader_sprite_lit.sfg_asset"
+        },
+        {
+            "name": "default_shader_sprite_unlit",
+            "template": "editor/templates/shaders/default_shader_sprite_unlit.sfg_asset"
+        },
+        {
+            "name": "default_shader_particle",
+            "template": "editor/templates/shaders/default_shader_particle.sfg_asset"
+        },
+        {
+            "name": "default_sprite_circle",
+            "template": "editor/templates/textures/default_sprite_circle.sfg_asset"
+        },
+        {
+            "name": "default_texture_albedo",
+            "template": "editor/templates/textures/default_texture_albedo.sfg_asset"
+        },
+        {
+            "name": "default_texture_emissive",
+            "template": "editor/templates/textures/default_texture_emissive.sfg_asset"
+        },
+        {
+            "name": "default_texture_grid_dark",
+            "template": "editor/templates/textures/default_texture_grid_dark.sfg_asset"
+        },
+        {
+            "name": "default_texture_grid_green",
+            "template": "editor/templates/textures/default_texture_grid_green.sfg_asset"
+        },
+        {
+            "name": "default_texture_grid_light",
+            "template": "editor/templates/textures/default_texture_grid_light.sfg_asset"
+        },
+        {
+            "name": "default_texture_grid_orange",
+            "template": "editor/templates/textures/default_texture_grid_orange.sfg_asset"
+        },
+        {
+            "name": "default_texture_grid_purple",
+            "template": "editor/templates/textures/default_texture_grid_purple.sfg_asset"
+        },
+        {
+            "name": "default_texture_grid_red",
+            "template": "editor/templates/textures/default_texture_grid_red.sfg_asset"
+        },
+        {
+            "name": "default_texture_normal",
+            "template": "editor/templates/textures/default_texture_normal.sfg_asset"
+        },
+        {
+            "name": "default_texture_orm",
+            "template": "editor/templates/textures/default_texture_orm.sfg_asset"
+        },
+        {
+            "name": "default_sky_qwantani_dusk_2",
+            "template": "editor/templates/sky/default_sky_qwantani_dusk_2.sfg_asset"
+        },
+        {
+            "name": "default_font",
+            "template": "editor/templates/fonts/default_font.sfg_asset"
+        },
+        {
+            "name": "default_sampler_anisotropic",
+            "template": "editor/templates/samplers/default_sampler_anisotropic.sfg_asset"
+        },
+        {
+            "name": "default_sampler_anisotropic_repeat",
+            "template": "editor/templates/samplers/default_sampler_anisotropic_repeat.sfg_asset"
+        },
+        {
+            "name": "default_sampler_linear",
+            "template": "editor/templates/samplers/default_sampler_linear.sfg_asset"
+        },
+        {
+            "name": "default_sampler_linear_repeat",
+            "template": "editor/templates/samplers/default_sampler_linear_repeat.sfg_asset"
+        },
+        {
+            "name": "default_sampler_nearest",
+            "template": "editor/templates/samplers/default_sampler_nearest.sfg_asset"
+        },
+        {
+            "name": "default_sampler_nearest_repeat",
+            "template": "editor/templates/samplers/default_sampler_nearest_repeat.sfg_asset"
+        },
+        {
+            "name": "default_physical_material",
+            "template": "editor/templates/physical_materials/default_physical_material.sfg_asset"
+        },
+        {
+            "name": "default_material_grid",
+            "template": "editor/templates/materials/default_material_grid.sfg_asset"
+        },
+        {
+            "name": "default_material_grid_dark",
+            "template": "editor/templates/materials/default_material_grid_dark.sfg_asset"
+        },
+        {
+            "name": "default_material_skybox_cube",
+            "template": "editor/templates/materials/default_material_skybox_cube.sfg_asset"
+        },
+        {
+            "name": "default_material_skybox_gradient",
+            "template": "editor/templates/materials/default_material_skybox_gradient.sfg_asset"
+        },
+        {
+            "name": "default_material_skybox_gradient_dark",
+            "template": "editor/templates/materials/default_material_skybox_gradient_dark.sfg_asset"
+        },
+        {
+            "name": "default_opaque_material",
+            "template": "editor/templates/materials/default_opaque_material.sfg_asset"
+        },
+        {
+            "name": "default_opaque_unlit_material",
+            "template": "editor/templates/materials/default_opaque_unlit_material.sfg_asset"
+        },
+        {
+            "name": "default_particle_material",
+            "template": "editor/templates/materials/default_particle_material.sfg_asset"
+        },
+        {
+            "name": "default_sprite_lit_material",
+            "template": "editor/templates/materials/default_sprite_lit_material.sfg_asset"
+        },
+        {
+            "name": "default_sprite_unlit_material",
+            "template": "editor/templates/materials/default_sprite_unlit_material.sfg_asset"
+        },
+        {
+            "name": "default_transparent_material",
+            "template": "editor/templates/materials/default_transparent_material.sfg_asset"
+        },
+        {
+            "name": "default_transparent_unlit_material",
+            "template": "editor/templates/materials/default_transparent_unlit_material.sfg_asset"
+        }
+    ]
+}

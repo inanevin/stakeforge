@@ -139,9 +139,9 @@ namespace sfg
 		}
 
 		const render_resources_t& render_resources = render_resources_t::get();
-		const shader_internals_t* shader		   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/reflection_specular_prefilter.hlsl"_hs);
+		const shader_internals_t* shader		   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/lighting/reflection_specular_prefilter.hlsl"_hs);
 		_specular_prefilter_shader				   = render_resources.get_shader_hw(shader->psos[0]);
-		shader									   = resource_manager_t::get().find_internals<shader_internals_t>("common/shaders/world/reflection_diffuse_sh.hlsl"_hs);
+		shader									   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/lighting/reflection_diffuse_sh.hlsl"_hs);
 		_diffuse_sh_shader						   = render_resources.get_shader_hw(shader->psos[0]);
 	}
 

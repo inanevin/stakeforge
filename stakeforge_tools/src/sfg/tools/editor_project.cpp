@@ -134,7 +134,9 @@ namespace sfg
 		if (executable_path.empty())
 			return false;
 
-		const string_t sdk_path		 = file_system_t::get_directory_of_file(executable_path.c_str()) + "stakeforge_sdk/";
+		const string_t assets_path	 = file_system_t::get_directory_of_file(executable_path.c_str()) + "assets/";
+		const string_t sdk_path		 = assets_path + "stakeforge_sdk/";
+		const string_t template_path = assets_path + "packaging/templates/native/";
 		const string_t settings_path = sdk_path + "build_settings.json";
 		const string_t cmake_path	 = sdk_path + "tools/cmake/bin/cmake.exe";
 		const string_t package_path	 = sdk_path + "cmake/StakeforgeConfig.cmake";
@@ -189,7 +191,7 @@ namespace sfg
 			if (file_system_t::exists(destination.c_str()))
 				continue;
 
-			const string_t source = sdk_path + "templates/native/" + name;
+			const string_t source = template_path + name;
 
 			if (!file_system_t::copy_file(source.c_str(), destination.c_str()))
 			{

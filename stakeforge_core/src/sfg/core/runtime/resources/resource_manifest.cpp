@@ -18,29 +18,30 @@ namespace sfg
 {
 	namespace
 	{
-		void json_to_stream(void* obj, void*, ostream_t& out_stream)
+		void json_to_stream(void* obj, void* context, ostream_t& out_stream)
 		{
 			const nlohmann::json& value = *static_cast<nlohmann::json*>(obj);
 			out_stream << string_t(value.dump().c_str());
 		}
 
-		void json_to_json(void* obj, void*, nlohmann::json& out_json)
+		void json_to_json(void* obj, void* context, nlohmann::json& out_json)
 		{
 			out_json = *static_cast<nlohmann::json*>(obj);
 		}
 
-		void json_from_stream(void* obj, void*, istream_t& in_stream)
+		void json_from_stream(void* obj, void* context, istream_t& in_stream)
 		{
-			string_t value;
+			string_t value = {};
 			in_stream >> value;
 
 			nlohmann::json& config = *static_cast<nlohmann::json*>(obj);
 			config				   = nlohmann::json::parse(value, nullptr, false);
+
 			if (config.is_discarded())
 				config = nlohmann::json::object();
 		}
 
-		void json_from_json(void* obj, void*, const nlohmann::json& in_json)
+		void json_from_json(void* obj, void* context, const nlohmann::json& in_json)
 		{
 			*static_cast<nlohmann::json*>(obj) = in_json;
 		}
@@ -63,32 +64,48 @@ namespace sfg
 			return false;
 		}
 
-		const nlohmann::json manifest_resources = doc.value("resources", nlohmann::json::array());
-
-		if (!manifest_resources.is_array())
-		{
-			SFG_ERR("invalid resource manifest resources at {0}", path);
-			return false;
-		}
-
 		vector_t<resource_manifest_entry_t> loaded_resources = {};
-		loaded_resources.reserve(manifest_resources.size());
 
-		for (const nlohmann::json& item : manifest_resources)
+		try
 		{
-			resource_manifest_entry_t entry = {};
-			entry.config					= nlohmann::json::object();
+			const nlohmann::json manifest_resources = doc.value("resources", nlohmann::json::array());
 
-			if (!reflection_registry_t::get().type_from_json(type_id_t<resource_manifest_entry_t>::value, &entry, nullptr, item))
+			if (!manifest_resources.is_array())
 			{
-				SFG_ERR("invalid resource manifest entry at {0}", path);
+				SFG_ERR("invalid resource manifest resources at {0}", path);
 				return false;
 			}
 
-			loaded_resources.push_back(std::move(entry));
+			loaded_resources.reserve(manifest_resources.size());
+
+			for (const nlohmann::json& item : manifest_resources)
+			{
+				resource_manifest_entry_t entry = {};
+				entry.config					= nlohmann::json::object();
+
+				if (!reflection_registry_t::get().type_from_json(type_id_t<resource_manifest_entry_t>::value, &entry, nullptr, item))
+				{
+					SFG_ERR("invalid resource manifest entry at {0}", path);
+					return false;
+				}
+
+				if (entry.path.empty() || entry.type == resource_type_e::invalid || entry.type >= resource_type_e::count)
+				{
+					SFG_ERR("invalid resource manifest path or type at {0}", path);
+					return false;
+				}
+
+				loaded_resources.push_back(std::move(entry));
+			}
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			SFG_ERR("failed to deserialize resource manifest {0}: {1}", path, error.what());
+			return false;
 		}
 
 		resources = std::move(loaded_resources);
+
 		return true;
 	}
 
@@ -103,6 +120,13 @@ namespace sfg
 					{.name = "name", .display_name = "Name", .offset = offsetof(resource_manifest_entry_t, name), .size = sizeof(string_t), .type = reflected_value_type_e::string},
 					{.name = "path", .display_name = "Path", .offset = offsetof(resource_manifest_entry_t, path), .size = sizeof(string_t), .type = reflected_value_type_e::string},
 					{.name = "type", .display_name = "Type", .sub_type_id = type_id_t<resource_type_e>::value, .offset = offsetof(resource_manifest_entry_t, type), .size = sizeof(resource_type_e), .type = reflected_value_type_e::u8},
+					{
+						.name		  = "editor_only",
+						.display_name = "Editor Only",
+						.offset		  = offsetof(resource_manifest_entry_t, editor_only),
+						.size		  = sizeof(bool),
+						.type		  = reflected_value_type_e::boolean,
+					},
 					{.custom_serialization = {.to_stream_fn = &json_to_stream, .to_json_fn = &json_to_json, .from_stream_fn = &json_from_stream, .from_json_fn = &json_from_json},
 					 .name				   = "config",
 					 .display_name		   = "Config",

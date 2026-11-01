@@ -1,0 +1,15 @@
+{
+    "version": 0,
+    "guid": 1041,
+    "asset_type": "shader",
+    "sub_type": 24,
+    "source_type": "file",
+    "source_relative": "shaders/sprite/sprite_lit.hlsl",
+    "cook_options": {
+        "schema": "sfg.schema.shader",
+        "type": 24,
+        "include_dirs": [
+            "assets/shaders/"
+        ]
+    }
+}

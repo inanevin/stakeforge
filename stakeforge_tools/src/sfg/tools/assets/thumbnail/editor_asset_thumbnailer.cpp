@@ -301,27 +301,27 @@ namespace sfg
 		switch (asset_type)
 		{
 		case editor_asset_type_e::audio:
-			return "editor/resource_pack/textures/thumbnails/audio.png"_hs;
+			return "editor/resources/textures/thumbnails/audio.png"_hs;
 		case editor_asset_type_e::shader:
-			return "editor/resource_pack/textures/thumbnails/shader.png"_hs;
+			return "editor/resources/textures/thumbnails/shader.png"_hs;
 		case editor_asset_type_e::texture_sampler:
-			return "editor/resource_pack/textures/thumbnails/texture_sampler.png"_hs;
+			return "editor/resources/textures/thumbnails/texture_sampler.png"_hs;
 		case editor_asset_type_e::physical_material:
-			return "editor/resource_pack/textures/thumbnails/physical_material.png"_hs;
+			return "editor/resources/textures/thumbnails/physical_material.png"_hs;
 		case editor_asset_type_e::world:
-			return "editor/resource_pack/textures/thumbnails/world.png"_hs;
+			return "editor/resources/textures/thumbnails/world.png"_hs;
 		case editor_asset_type_e::curve:
-			return "editor/resource_pack/textures/thumbnails/world.png"_hs;
+			return "editor/resources/textures/thumbnails/world.png"_hs;
 		case editor_asset_type_e::cubemap:
-			return "editor/resource_pack/textures/thumbnails/world.png"_hs;
+			return "editor/resources/textures/thumbnails/world.png"_hs;
 		case editor_asset_type_e::animation:
-			return "editor/resource_pack/textures/thumbnails/animation_clip.png"_hs;
+			return "editor/resources/textures/thumbnails/animation_clip.png"_hs;
 		case editor_asset_type_e::animation_library:
-			return "editor/resource_pack/textures/thumbnails/animation_library.png"_hs;
+			return "editor/resources/textures/thumbnails/animation_library.png"_hs;
 		case editor_asset_type_e::skeleton:
-			return "editor/resource_pack/textures/thumbnails/skeleton.png"_hs;
+			return "editor/resources/textures/thumbnails/skeleton.png"_hs;
 		case editor_asset_type_e::ragdoll:
-			return "editor/resource_pack/textures/thumbnails/skeleton.png"_hs;
+			return "editor/resources/textures/thumbnails/skeleton.png"_hs;
 
 		default:
 			return NULL_SID;

@@ -90,7 +90,7 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_canvas";
 
-		resource_handle_t	  default_font			   = TO_SIDC("engine/resource_pack/IBMPlexMono-Regular.ttf");
+		resource_handle_t	  default_font			   = DEFAULT_FONT_ASSET_GUID;
 		u32					  text_pool_budget_bytes   = 16 * 1024;
 		u32					  vertex_pool_budget_bytes = 128 * 1024;
 		u32					  index_pool_budget_bytes  = 64 * 1024;

@@ -46,7 +46,7 @@ endif()
 
 find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
 execute_process(
-    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/utils/packaging/build_info.py"
+    COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/utils/build_info.py"
         --ensure --cmake-output "${CMAKE_BINARY_DIR}/packaging/build_info.cmake"
     COMMAND_ERROR_IS_FATAL ANY
     OUTPUT_QUIET
@@ -58,8 +58,7 @@ include("${CMAKE_BINARY_DIR}/packaging/build_info.cmake")
 add_subdirectory(stakeforge_core)
 add_subdirectory(stakeforge_tools)
 add_subdirectory(stakeforge_editor)
-add_subdirectory(stakeforge_game)
-include(utils/packaging/packaging.cmake)
+include(assets/packaging/packaging.cmake)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CustomTargets")

@@ -1,0 +1,12 @@
+{
+    "version": 0,
+    "guid": 1012,
+    "asset_type": "cubemap",
+    "sub_type": 0,
+    "embedded_source": null,
+    "cook_options": {
+        "resolution": 512.0
+    },
+    "source_relative": "editor/templates/sky/default_sky_qwantani_dusk_2.hdr",
+    "source_type": "file"
+}

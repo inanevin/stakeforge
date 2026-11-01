@@ -107,7 +107,7 @@ namespace sfg
 		rect.rounding_segs		 = 4;
 
 		ui::ui_render_state_t state = {};
-		state.pipeline				= "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
+		state.pipeline				= "shaders/editor/editor_ui_texture.hlsl"_hs;
 		state.constants[0].handle	= _thumbnail;
 		state.constants[0].type		= ui::ui_resource_type_e::evictable_texture;
 

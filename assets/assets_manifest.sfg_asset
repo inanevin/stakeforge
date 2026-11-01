@@ -1,0 +1,679 @@
+{
+    "resources": [
+        {
+            "name": "deferred_lighting",
+            "path": "shaders/lighting/deferred_lighting.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 9,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "post_combiner",
+            "path": "shaders/post_combiner.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 10,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "fxaa",
+            "path": "shaders/fxaa.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 11,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "debug_line",
+            "path": "shaders/debug/debug_line.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 13,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "debug_text",
+            "path": "shaders/debug/debug_text.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 14,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "debug_texture",
+            "path": "shaders/debug/debug_texture.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 27,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "ssao",
+            "path": "shaders/lighting/ssao.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 15,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "ssao_upsample",
+            "path": "shaders/lighting/ssao_upsample.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 16,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "bloom_downsample",
+            "path": "shaders/bloom/bloom_downsample.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 17,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "bloom_upsample",
+            "path": "shaders/bloom/bloom_upsample.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 18,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "clustered_light_culling",
+            "path": "shaders/lighting/clustered_light_culling.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 21,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "reflection_specular_prefilter",
+            "path": "shaders/lighting/reflection_specular_prefilter.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 22,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "reflection_diffuse_sh",
+            "path": "shaders/lighting/reflection_diffuse_sh.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 23,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "game_blit",
+            "path": "shaders/game_blit.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 11,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "canvas_ui_default",
+            "path": "shaders/canvas/canvas_ui_default.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 28,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "canvas_ui_texture",
+            "path": "shaders/canvas/canvas_ui_texture.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 28,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "canvas_ui_text_grayscale",
+            "path": "shaders/canvas/canvas_ui_text_grayscale.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 28,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "canvas_ui_sdf",
+            "path": "shaders/canvas/canvas_ui_sdf.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 28,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
+            "name": "debug_font",
+            "path": "editor/templates/fonts/IBMPlexMono-Regular.ttf",
+            "type": 2,
+            "config": {
+                "schema": "sfg.schema.font"
+            },
+            "editor_only": false
+        },
+        {
+            "name": "ui_default",
+            "path": "shaders/editor/editor_ui_default.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 1,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "ui_text_lcd",
+            "path": "shaders/editor/editor_ui_text_lcd.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 2,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "ui_text_lcd_glitch",
+            "path": "shaders/editor/editor_ui_text_lcd_glitch.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 2,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "ui_text_grayscale",
+            "path": "shaders/editor/editor_ui_text_grayscale.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 4,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "ui_sdf",
+            "path": "shaders/editor/editor_ui_sdf.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 3,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "ui_texture",
+            "path": "shaders/editor/editor_ui_texture.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 1,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "ui_texture_repeat",
+            "path": "shaders/editor/editor_ui_texture_repeat.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 1,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "ui_texture_mip",
+            "path": "shaders/editor/editor_ui_texture_mip.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 1,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "ui_glitch_rect",
+            "path": "shaders/editor/editor_ui_glitch_rect.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 1,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "ui_color_wheel",
+            "path": "shaders/editor/editor_ui_color_wheel.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 1,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "thumbnail_capture_copy",
+            "path": "shaders/editor/thumbnail_capture_copy.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 11,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "editor_world_render_texture",
+            "path": "shaders/editor/editor_world_render_texture.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 11,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "editor_world_gizmo",
+            "path": "shaders/editor/editor_world_gizmo.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 12,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "editor_world_physics_debug",
+            "path": "shaders/editor/editor_world_physics_debug.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 19,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
+            "name": "splash",
+            "path": "editor/resources/textures/splash.jpg",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "icon_audio",
+            "path": "editor/resources/textures/icon_audio.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "icon_bulb",
+            "path": "editor/resources/textures/icon_bulb.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "icon_camera",
+            "path": "editor/resources/textures/icon_camera.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "icon_constraint",
+            "path": "editor/resources/textures/icon_constraint.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "icon_probe",
+            "path": "editor/resources/textures/icon_probe.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "checker",
+            "path": "editor/resources/textures/checker.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false,
+                "force_4_channels": true
+            },
+            "editor_only": true
+        },
+        {
+            "name": "thumb_audio",
+            "path": "editor/resources/textures/thumbnails/audio.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "thumb_world",
+            "path": "editor/resources/textures/thumbnails/world.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "animation_clip",
+            "path": "editor/resources/textures/thumbnails/animation_clip.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "thumb_animation_library",
+            "path": "editor/resources/textures/thumbnails/animation_library.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "thumb_skeleton",
+            "path": "editor/resources/textures/thumbnails/skeleton.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "thumb_sampler",
+            "path": "editor/resources/textures/thumbnails/texture_sampler.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "thumb_material",
+            "path": "editor/resources/textures/thumbnails/physical_material.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "thumb_shader",
+            "path": "editor/resources/textures/thumbnails/shader.png",
+            "type": 8,
+            "config": {
+                "schema": "sfg.schema.texture",
+                "payload_type": 2,
+                "generate_mipmaps": false,
+                "is_linear": false,
+                "use_streaming": false
+            },
+            "editor_only": true
+        },
+        {
+            "name": "font_ibm",
+            "path": "editor/resources/fonts/IBMPlexSans/IBMPlexSans-Regular.ttf",
+            "type": 2,
+            "config": {
+                "schema": "sfg.schema.font"
+            },
+            "editor_only": true
+        },
+        {
+            "name": "font_ibm_mono",
+            "path": "editor/resources/fonts/IBMPlex-Mono/IBMPlexMono-Regular.ttf",
+            "type": 2,
+            "config": {
+                "schema": "sfg.schema.font"
+            },
+            "editor_only": true
+        },
+        {
+            "name": "font_orbitron_bold",
+            "path": "editor/resources/fonts/Orbitron/static/Orbitron-Bold.ttf",
+            "type": 2,
+            "config": {
+                "schema": "sfg.schema.font"
+            },
+            "editor_only": true
+        },
+        {
+            "name": "font_play",
+            "path": "editor/resources/fonts/Play/Play-Regular.ttf",
+            "type": 2,
+            "config": {
+                "schema": "sfg.schema.font"
+            },
+            "editor_only": true
+        },
+        {
+            "name": "font_play_bold",
+            "path": "editor/resources/fonts/Play/Play-Bold.ttf",
+            "type": 2,
+            "config": {
+                "schema": "sfg.schema.font"
+            },
+            "editor_only": true
+        },
+        {
+            "name": "font_icons",
+            "path": "editor/resources/fonts/icons.ttf",
+            "type": 2,
+            "config": {
+                "schema": "sfg.schema.font"
+            },
+            "editor_only": true
+        }
+    ]
+}

@@ -61,24 +61,3 @@ function(sfg_group_generated target_name)
         source_group("Generated" FILES ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${target_name}.dir/${config_type}/cmake_pch.hxx)
     endforeach()
 endfunction()
-
-function (sfg_add_copy_commands target_name sfg_core_dir)
-
-    add_custom_command(
-    TARGET ${target_name}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${sfg_core_dir}/../assets"
-        "$<TARGET_FILE_DIR:${target_name}>/assets")
-
-    add_custom_command(
-    TARGET ${target_name}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${sfg_core_dir}/deps/dx12_bin" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>")
-
-    add_custom_command(
-    TARGET ${target_name}
-    POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${sfg_core_dir}/deps/pix/bin" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIGURATION>")
-
-endfunction()

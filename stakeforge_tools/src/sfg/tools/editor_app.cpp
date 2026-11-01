@@ -100,30 +100,14 @@ namespace sfg
 
 		runtime.get_resource_file_system().set_mode_directory("", editor_directories_t::get_editor_resource_cache().c_str());
 
-		const editor_resource_preloader_t::init_params_t engine_preload_params{
-			.manifest_path = editor_directories_t::get_engine_manifest(),
+		const editor_resource_preloader_t::init_params_t preload_params{
+			.manifest_path = editor_directories_t::get_assets_manifest(),
 			.assets_dir	   = editor_directories_t::get_editor_assets(),
 			.cache_dir	   = editor_directories_t::get_editor_resource_cache(),
 		};
 
-		if (!_engine_resource_preload.init(resource_manager_t::get(), engine_preload_params))
+		if (!_resource_preload.init(resource_manager_t::get(), preload_params))
 		{
-			_world_controller.uninit();
-			runtime.uninit();
-			runtime.uninit_globals();
-			runtime.uninit_backend();
-			return false;
-		}
-
-		const editor_resource_preloader_t::init_params_t editor_preload_params{
-			.manifest_path = editor_directories_t::get_editor_manifest(),
-			.assets_dir	   = editor_directories_t::get_editor_assets(),
-			.cache_dir	   = editor_directories_t::get_editor_resource_cache(),
-		};
-
-		if (!_editor_resource_preload.init(resource_manager_t::get(), editor_preload_params))
-		{
-			_engine_resource_preload.uninit();
 			_world_controller.uninit();
 			runtime.uninit();
 			runtime.uninit_globals();
@@ -136,8 +120,7 @@ namespace sfg
 
 		if (!_renderer.init(config.renderer))
 		{
-			_editor_resource_preload.uninit();
-			_engine_resource_preload.uninit();
+			_resource_preload.uninit();
 			_world_controller.uninit();
 			runtime.uninit();
 			runtime.uninit_globals();
@@ -170,8 +153,7 @@ namespace sfg
 			_work_controller.uninit();
 			editor_surface_controller_t::get().uninit();
 			_renderer.uninit();
-			_editor_resource_preload.uninit();
-			_engine_resource_preload.uninit();
+			_resource_preload.uninit();
 			runtime.uninit();
 			runtime.uninit_globals();
 			runtime.uninit_backend();
@@ -206,8 +188,7 @@ namespace sfg
 
 		_work_controller.uninit();
 		_renderer.uninit();
-		_editor_resource_preload.uninit();
-		_engine_resource_preload.uninit();
+		_resource_preload.uninit();
 
 		SFG_ASSERT(_splash_work.is_null());
 

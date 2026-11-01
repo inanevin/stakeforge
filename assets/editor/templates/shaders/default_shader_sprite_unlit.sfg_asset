@@ -1,0 +1,15 @@
+{
+    "version": 0,
+    "guid": 1043,
+    "asset_type": "shader",
+    "sub_type": 25,
+    "source_type": "file",
+    "source_relative": "shaders/sprite/sprite_unlit.hlsl",
+    "cook_options": {
+        "schema": "sfg.schema.shader",
+        "type": 25,
+        "include_dirs": [
+            "assets/shaders/"
+        ]
+    }
+}

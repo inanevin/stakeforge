@@ -36,10 +36,10 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define CANVAS_DEFAULT_SHADER		 TO_SIDC("engine/resource_pack/shaders/canvas_ui_default.hlsl")
-#define CANVAS_TEXTURE_SHADER		 TO_SIDC("engine/resource_pack/shaders/canvas_ui_texture.hlsl")
-#define CANVAS_TEXT_GRAYSCALE_SHADER TO_SIDC("engine/resource_pack/shaders/canvas_ui_text_grayscale.hlsl")
-#define CANVAS_TEXT_SDF_SHADER		 TO_SIDC("engine/resource_pack/shaders/canvas_ui_sdf.hlsl")
+#define CANVAS_DEFAULT_SHADER		 TO_SIDC("shaders/canvas/canvas_ui_default.hlsl")
+#define CANVAS_TEXTURE_SHADER		 TO_SIDC("shaders/canvas/canvas_ui_texture.hlsl")
+#define CANVAS_TEXT_GRAYSCALE_SHADER TO_SIDC("shaders/canvas/canvas_ui_text_grayscale.hlsl")
+#define CANVAS_TEXT_SDF_SHADER		 TO_SIDC("shaders/canvas/canvas_ui_sdf.hlsl")
 
 	struct world_canvas_controller_t::impl_t
 	{

@@ -38,6 +38,6 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		static void ensure(const char* default_assets_dir);
+		static bool ensure(const char* default_assets_dir);
 	};
 }

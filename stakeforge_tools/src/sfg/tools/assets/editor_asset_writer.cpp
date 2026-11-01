@@ -66,10 +66,12 @@ namespace sfg
 			return false;
 
 		const char* source_name = desc.source_name != nullptr ? desc.source_name : desc.name;
+
 		if (!editor_directories_t::is_valid_asset_name(source_name))
 			return false;
 
 		const string_t asset_path = editor_asset_path_t::make_asset_path(desc.parent_path, desc.name);
+
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
 		{
 			SFG_ERR("can't write asset as asset with this name already exists! {0}", asset_path.c_str());
@@ -87,8 +89,10 @@ namespace sfg
 		asset.asset_type	 = desc.asset_type;
 		asset.source_type	 = editor_asset_source_type_e::file;
 		asset.sub_type		 = desc.sub_type;
+
 		if (desc.cook_options != nullptr)
 			editor_asset_io_t::set_cook_options_json(asset, *desc.cook_options);
+
 		if (desc.embedded_source != nullptr)
 			editor_asset_io_t::set_embedded_source_json(asset, *desc.embedded_source);
 
@@ -105,11 +109,12 @@ namespace sfg
 
 		if (asset.source_relative.empty())
 		{
-			string_t template_path = file_system_t::get_running_directory();
+			string_t template_path = editor_directories_t::get_editor_assets();
 			template_path += desc.source_template_relative;
 			SFG_ASSERT(file_system_t::exists(template_path.c_str()));
 
 			const string_t source_path = editor_asset_path_t::make_unique_source_path(desc.parent_path, source_name, desc.source_extension);
+
 			if (!file_system_t::copy_file(template_path.c_str(), source_path.c_str()))
 			{
 				SFG_ERR("failed to copy asset source template {0} to {1}", template_path.c_str(), source_path.c_str());
@@ -129,6 +134,7 @@ namespace sfg
 
 		if (out_asset != nullptr)
 			*out_asset = asset;
+
 		if (out_asset_path != nullptr)
 			*out_asset_path = asset_path;
 		return true;
@@ -253,13 +259,14 @@ namespace sfg
 
 	bool editor_asset_writer_t::read_embedded_source(const char* asset_relative_path, nlohmann::json& out_embedded_source)
 	{
-		string_t path = file_system_t::get_running_directory();
+		string_t path = editor_directories_t::get_editor_assets();
 		path += asset_relative_path;
 		SFG_ASSERT(file_system_t::exists(path.c_str()));
 
 		editor_asset_t asset  = {};
 		const bool	   result = editor_asset_io_t::read_asset(path.c_str(), asset);
 		SFG_ASSERT(result);
+
 		if (!result)
 		{
 			SFG_ERR("failed to read embedded source template {0}", path.c_str());
@@ -271,13 +278,14 @@ namespace sfg
 
 	bool editor_asset_writer_t::read_cook_options(const char* asset_relative_path, nlohmann::json& out_cook_options)
 	{
-		string_t path = file_system_t::get_running_directory();
+		string_t path = editor_directories_t::get_editor_assets();
 		path += asset_relative_path;
 		SFG_ASSERT(file_system_t::exists(path.c_str()));
 
 		editor_asset_t asset  = {};
 		const bool	   result = editor_asset_io_t::read_asset(path.c_str(), asset);
 		SFG_ASSERT(result);
+
 		if (!result)
 		{
 			SFG_ERR("failed to read cook options template {0}", path.c_str());

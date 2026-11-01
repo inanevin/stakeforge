@@ -58,7 +58,7 @@ namespace sfg
 			return false;
 		}
 
-		const string_t script			 = file_system_t::get_directory_of_file(executable.c_str()) + "stakeforge_sdk/tools/visual_studio/open_project.ps1";
+		const string_t script			 = file_system_t::get_directory_of_file(executable.c_str()) + "assets/packaging/visual_studio/open_project.ps1";
 		const string_t absolute_solution = file_system_t::get_absolute_path(solution_path);
 
 		if (!file_system_t::exists(script.c_str()))
@@ -126,7 +126,7 @@ namespace sfg
 		if (executable.empty())
 			return result;
 
-		const string_t			 cmake	   = file_system_t::get_directory_of_file(executable.c_str()) + "stakeforge_sdk/tools/cmake/bin/cmake.exe";
+		const string_t			 cmake	   = file_system_t::get_directory_of_file(executable.c_str()) + "assets/stakeforge_sdk/tools/cmake/bin/cmake.exe";
 		const string_t			 command   = "\"" + cmake + "\" --build \"" + build_directory + "\" --config " + configuration + " --target stakeforge_game";
 		process_execute_result_t execution = process::execute(command.c_str());
 		result.exit_code				   = execution.exit_code;

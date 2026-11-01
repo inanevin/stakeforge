@@ -45,18 +45,17 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define COMMON_SHADERS			  "common/shaders/"
-#define EDITOR_SHADERS			  "editor/resource_pack/shaders/"
-#define EDITOR_TEMPLATE_MATERIALS "editor_templates/materials/"
-#define EDITOR_TEMPLATE_SAMPLERS  "editor_templates/samplers/"
-#define EDITOR_TEMPLATE_SCRIPTS	  "editor_templates/scripts/"
+#define COMMON_SHADERS			  "shaders/"
+#define EDITOR_SHADERS			  "shaders/editor/"
+#define EDITOR_TEMPLATE_MATERIALS "editor/templates/materials/"
+#define EDITOR_TEMPLATE_SAMPLERS  "editor/templates/samplers/"
 
 	namespace
 	{
 		void build_shader_template_cook_options(shader_type_e shader_type, nlohmann::json& out)
 		{
 			out["schema"]		= "sfg.schema.shader";
-			out["include_dirs"] = {COMMON_SHADERS, COMMON_SHADERS "world/"};
+			out["include_dirs"] = {"assets/shaders/"};
 			out["type"]			= static_cast<u8>(shader_type);
 		}
 
@@ -88,21 +87,21 @@ namespace sfg
 			switch (shader_type)
 			{
 			case shader_type_e::object_shader:
-				return object_shader_template == editor_object_shader_template_e::unlit ? COMMON_SHADERS "world/object_unlit.hlsl" : COMMON_SHADERS "world/object_lit.hlsl";
+				return object_shader_template == editor_object_shader_template_e::unlit ? COMMON_SHADERS "object/object_unlit.hlsl" : COMMON_SHADERS "object/object_lit.hlsl";
 			case shader_type_e::ui_shader:
 				return EDITOR_SHADERS "editor_ui_default.hlsl";
 			case shader_type_e::ui_text_shader:
 				return EDITOR_SHADERS "editor_ui_text_grayscale.hlsl";
 			case shader_type_e::skybox_shader:
-				return COMMON_SHADERS "world/skybox_cube.hlsl";
+				return COMMON_SHADERS "sky/skybox_cube.hlsl";
 			case shader_type_e::sprite_lit_shader:
-				return COMMON_SHADERS "world/sprite_lit.hlsl";
+				return COMMON_SHADERS "sprite/sprite_lit.hlsl";
 			case shader_type_e::sprite_unlit_shader:
-				return COMMON_SHADERS "world/sprite_unlit.hlsl";
+				return COMMON_SHADERS "sprite/sprite_unlit.hlsl";
 			case shader_type_e::particle_shader:
-				return COMMON_SHADERS "world/particle.hlsl";
+				return COMMON_SHADERS "sprite/particle.hlsl";
 			default:
-				return COMMON_SHADERS "world/object_lit.hlsl";
+				return COMMON_SHADERS "object/object_lit.hlsl";
 			}
 		}
 
@@ -173,8 +172,9 @@ namespace sfg
 
 		bool create_physical_material_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
-			const char*	   template_relative = EDITOR_TEMPLATE_MATERIALS "physical_material.sfg_asset";
+			const char*	   template_relative = "editor/templates/physical_materials/physical_material.sfg_asset";
 			nlohmann::json embedded_source	 = {};
+
 			if (!editor_asset_writer_t::read_embedded_source(template_relative, embedded_source))
 			{
 				SFG_ERR("failed to read physical material asset template {0}", template_relative);

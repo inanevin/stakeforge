@@ -178,13 +178,15 @@ namespace sfg
 		}
 
 		// load the engine resources that always ship
-		resource_manifest_t engine_manifest = {};
+		resource_manifest_t assets_manifest = {};
 
-		if (!engine_manifest.load_from_file(editor_directories_t::get_engine_manifest().c_str()))
+		if (!assets_manifest.load_from_file(editor_directories_t::get_assets_manifest().c_str()))
 		{
 			_cook_failure_reason = "Failed to load the engine resource manifest.";
 			return false;
 		}
+
+		assets_manifest.resources.erase(std::remove_if(assets_manifest.resources.begin(), assets_manifest.resources.end(), [](const resource_manifest_entry_t& entry) { return entry.editor_only; }), assets_manifest.resources.end());
 
 		// build package metadata from the cook options
 		*_package_meta					 = {};
@@ -308,7 +310,7 @@ namespace sfg
 		// track unique resources and their expected types
 		vector_t<editor_asset_dependency_t> project_resources = {};
 		hash_map_t<sid_t, resource_type_e>	resource_types	  = {};
-		resource_types.reserve(editor_asset_manager_t::get().get_assets().size() + engine_manifest.resources.size() + _package_meta->worlds.size() + _cook_options->extra_resources.size() + PROJECT_COOK_PRIMITIVE_COUNT);
+		resource_types.reserve(editor_asset_manager_t::get().get_assets().size() + assets_manifest.resources.size() + _package_meta->worlds.size() + _cook_options->extra_resources.size() + PROJECT_COOK_PRIMITIVE_COUNT);
 		resource_types.emplace(DEFAULT_MESH_CUBE_GUID, resource_type_e::mesh);
 		resource_types.emplace(DEFAULT_MESH_SPHERE_GUID, resource_type_e::mesh);
 		resource_types.emplace(DEFAULT_MESH_CYLINDER_GUID, resource_type_e::mesh);
@@ -316,9 +318,9 @@ namespace sfg
 		resource_types.emplace(DEFAULT_MESH_PLANE_GUID, resource_type_e::mesh);
 
 		// write every engine manifest resource
-		resource_stream << static_cast<u32>(engine_manifest.resources.size());
+		resource_stream << static_cast<u32>(assets_manifest.resources.size());
 
-		for (const resource_manifest_entry_t& entry : engine_manifest.resources)
+		for (const resource_manifest_entry_t& entry : assets_manifest.resources)
 		{
 			if (entry.type == resource_type_e::invalid)
 			{

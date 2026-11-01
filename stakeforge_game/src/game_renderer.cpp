@@ -45,7 +45,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define GAME_BLIT_SHADER TO_SIDC("common/shaders/world/game_blit.hlsl")
+#define GAME_BLIT_SHADER TO_SIDC("shaders/game_blit.hlsl")
 
 	namespace
 	{

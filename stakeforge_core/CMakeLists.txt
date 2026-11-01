@@ -233,19 +233,6 @@ if(WIN32)
     )
 endif()
 
-if(WIN32)
-    add_custom_command(
-        TARGET ${SFG_CORE_TARGET}
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/deps/dx12_bin"
-            "$<TARGET_FILE_DIR:${SFG_CORE_TARGET}>"
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_CURRENT_SOURCE_DIR}/deps/pix/bin"
-            "$<TARGET_FILE_DIR:${SFG_CORE_TARGET}>"
-    )
-endif()
-
 target_link_libraries(${SFG_CORE_TARGET} PUBLIC lz4 freetype)
 target_link_libraries(${SFG_CORE_TARGET} PUBLIC Tracy::TracyClient)
 target_link_libraries(${SFG_CORE_TARGET} PRIVATE ktx)

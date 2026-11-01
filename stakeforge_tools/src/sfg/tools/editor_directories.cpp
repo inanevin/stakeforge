@@ -33,8 +33,7 @@ namespace sfg
 	string_t editor_directories_t::s_editor_settings	   = "";
 	string_t editor_directories_t::s_editor_assets		   = "";
 	string_t editor_directories_t::s_editor_resource_cache = "";
-	string_t editor_directories_t::s_editor_manifest	   = "";
-	string_t editor_directories_t::s_engine_manifest	   = "";
+	string_t editor_directories_t::s_assets_manifest	   = "";
 
 	bool editor_directories_t::is_valid_asset_name(const char* name)
 	{
@@ -67,8 +66,7 @@ namespace sfg
 		// editor res cache
 		s_editor_resource_cache = s_user_directory + "editor/resource_cache/";
 
-		s_editor_manifest = s_editor_assets + "assets_editor.sfg";
-		s_engine_manifest = s_editor_assets + "assets_engine.sfg";
+		s_assets_manifest = s_editor_assets + "assets_manifest.sfg_asset";
 
 		if (!file_system_t::exists(s_user_directory.c_str()))
 			file_system_t::create_directory(s_user_directory.c_str());

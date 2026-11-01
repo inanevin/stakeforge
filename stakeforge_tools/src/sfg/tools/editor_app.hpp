@@ -130,8 +130,7 @@ namespace sfg
 		editor_world_controller_t	   _world_controller;
 		editor_work_controller_t	   _work_controller;
 		editor_file_watch_controller_t _file_watch_controller;
-		editor_resource_preloader_t	   _editor_resource_preload;
-		editor_resource_preloader_t	   _engine_resource_preload;
+		editor_resource_preloader_t	   _resource_preload;
 		editor_payload_controller_t	   _payload_controller;
 		editor_modal_progress_bar_t	   _debug_progress_modal;
 		editor_work_status_t		   _splash_work_status = {};

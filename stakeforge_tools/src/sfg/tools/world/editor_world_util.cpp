@@ -52,11 +52,11 @@ namespace sfg
 #define EDITOR_PHYSICS_DEFAULT_CONVEX_RADIUS	  0.05f
 #define EDITOR_WORLD_COMPONENT_ICON_SIZE_PX		  42.0f
 #define EDITOR_WORLD_COMPONENT_ICON_GAP_PX		  4.0f
-#define EDITOR_WORLD_ICON_AUDIO					  "editor/resource_pack/textures/icon_audio.png"_hs
-#define EDITOR_WORLD_ICON_BULB					  "editor/resource_pack/textures/icon_bulb.png"_hs
-#define EDITOR_WORLD_ICON_CAMERA				  "editor/resource_pack/textures/icon_camera.png"_hs
-#define EDITOR_WORLD_ICON_CONSTRAINT			  "editor/resource_pack/textures/icon_constraint.png"_hs
-#define EDITOR_WORLD_ICON_PROBE					  "editor/resource_pack/textures/icon_probe.png"_hs
+#define EDITOR_WORLD_ICON_AUDIO					  "editor/resources/textures/icon_audio.png"_hs
+#define EDITOR_WORLD_ICON_BULB					  "editor/resources/textures/icon_bulb.png"_hs
+#define EDITOR_WORLD_ICON_CAMERA				  "editor/resources/textures/icon_camera.png"_hs
+#define EDITOR_WORLD_ICON_CONSTRAINT			  "editor/resources/textures/icon_constraint.png"_hs
+#define EDITOR_WORLD_ICON_PROBE					  "editor/resources/textures/icon_probe.png"_hs
 
 	namespace
 	{

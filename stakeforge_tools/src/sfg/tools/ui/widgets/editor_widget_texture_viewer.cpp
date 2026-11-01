@@ -35,7 +35,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define TEXTURE_VIEWER_TEXTURE_SHADER	 "editor/resource_pack/shaders/editor_ui_texture_mip.hlsl"_hs
+#define TEXTURE_VIEWER_TEXTURE_SHADER	 "shaders/editor/editor_ui_texture_mip.hlsl"_hs
 #define TEXTURE_VIEWER_ZOOM_MIN			 100.0f
 #define TEXTURE_VIEWER_ZOOM_MAX			 500.0f
 #define TEXTURE_VIEWER_ZOOM_WHEEL_FACTOR 1.1f
@@ -124,9 +124,9 @@ namespace sfg
 		bottom_in.flags |= ui::wf_input;
 
 		const ui::ui_render_state_t checker_state{
-			.pipeline  = "editor/resource_pack/shaders/editor_ui_texture_repeat.hlsl"_hs,
+			.pipeline  = "shaders/editor/editor_ui_texture_repeat.hlsl"_hs,
 			.constants = {{
-				.handle = "editor/resource_pack/textures/checker.png"_hs,
+				.handle = "editor/resources/textures/checker.png"_hs,
 				.type	= ui::ui_resource_type_e::texture,
 			}},
 		};

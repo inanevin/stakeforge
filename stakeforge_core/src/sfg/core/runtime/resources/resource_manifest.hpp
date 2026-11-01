@@ -16,8 +16,9 @@ namespace sfg
 	{
 		string_t		name;
 		string_t		path;
-		resource_type_e type = resource_type_e::invalid;
 		nlohmann::json	config;
+		resource_type_e type		= resource_type_e::invalid;
+		bool			editor_only = false;
 	};
 
 	struct SFG_API resource_manifest_t

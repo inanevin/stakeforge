@@ -1,0 +1,15 @@
+{
+    "version": 0,
+    "guid": 1026,
+    "asset_type": "shader",
+    "sub_type": 20,
+    "source_type": "file",
+    "source_relative": "shaders/sky/skybox_gradient.hlsl",
+    "cook_options": {
+        "schema": "sfg.schema.shader",
+        "type": 20,
+        "include_dirs": [
+            "assets/shaders/"
+        ]
+    }
+}

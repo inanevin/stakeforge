@@ -46,7 +46,7 @@ in GAME-LINKING-EXCEPTION.md.
 #define SFG_EDITOR_SPLASH_STRINGIFY(x)		SFG_EDITOR_SPLASH_STRINGIFY_IMPL(x)
 #define SFG_EDITOR_SPLASH_VERSION_TEXT		"v." SFG_EDITOR_SPLASH_STRINGIFY(SFG_MAJOR) "." SFG_EDITOR_SPLASH_STRINGIFY(SFG_MINOR) "." SFG_EDITOR_SPLASH_STRINGIFY(SFG_PATCH)
 #define SFG_EDITOR_SPLASH_BUILD_TEXT		"b." SFG_BUILD
-#define SFG_EDITOR_SPLASH_BG_TEXTURE		"editor/resource_pack/textures/splash.jpg"_hs
+#define SFG_EDITOR_SPLASH_BG_TEXTURE		"editor/resources/textures/splash.jpg"_hs
 
 namespace sfg
 {
@@ -83,7 +83,7 @@ namespace sfg
 		bg_rect.fill_color_b		= bg_rect.fill_color_a;
 
 		ui::ui_render_state_t bg_state = {};
-		bg_state.pipeline			   = "editor/resource_pack/shaders/editor_ui_texture.hlsl"_hs;
+		bg_state.pipeline			   = "shaders/editor/editor_ui_texture.hlsl"_hs;
 		bg_state.constants[0].handle   = SFG_EDITOR_SPLASH_BG_TEXTURE;
 		bg_state.constants[0].type	   = ui::ui_resource_type_e::texture;
 		paint.set_rect(_texture_bg, bg_rect, bg_state);
