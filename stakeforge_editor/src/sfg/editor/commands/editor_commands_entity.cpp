@@ -148,22 +148,24 @@ namespace sfg
 			switch (payload.preset)
 			{
 			case editor_entity_preset_e::camera:
-				world.get_component_table<component_camera_t>().add(entity);
-				world.get_component_table<component_post_process_t>().add(entity);
+				world.get_component_table<component_camera_t>().add_or_get_as<component_camera_t>(entity);
+				world.get_component_table<component_post_process_t>().add_or_get_as<component_post_process_t>(entity);
 				break;
 			case editor_entity_preset_e::directional_light:
 			case editor_entity_preset_e::point_light:
 			case editor_entity_preset_e::spot_light:
 			case editor_entity_preset_e::area_light: {
 				component_light_t& light = world.get_component_table<component_light_t>().add_or_get_as<component_light_t>(entity);
-				light.type				 = static_cast<light_type_e>(static_cast<u8>(payload.preset) - static_cast<u8>(editor_entity_preset_e::directional_light));
+
+				light.type = static_cast<light_type_e>(static_cast<u8>(payload.preset) - static_cast<u8>(editor_entity_preset_e::directional_light));
 				break;
 			}
 			case editor_entity_preset_e::ground:
 			case editor_entity_preset_e::character: {
 				const bool				   ground	= payload.preset == editor_entity_preset_e::ground;
 				component_mesh_renderer_t& renderer = world.get_component_table<component_mesh_renderer_t>().add_or_get_as<component_mesh_renderer_t>(entity);
-				renderer.mesh						= ground ? DEFAULT_MESH_PLANE_GUID : DEFAULT_MESH_CAPSULE_GUID;
+
+				renderer.mesh = ground ? DEFAULT_MESH_PLANE_GUID : DEFAULT_MESH_CAPSULE_GUID;
 				renderer.materials.resize(0);
 				renderer.materials.push_back(DEFAULT_OPAQUE_MATERIAL_ASSET_GUID);
 
@@ -172,16 +174,18 @@ namespace sfg
 					world.set_entity_scale_local(entity, {10.0f, 1.0f, 10.0f});
 
 					component_physical_t& physical = world.get_component_table<component_physical_t>().add_or_get_as<component_physical_t>(entity);
-					physical.shape				   = physics_shape_type_e::box;
-					physical.motion_type		   = physics_motion_type_e::static_body;
-					physical.half_extent		   = {0.5f, 0.05f, 0.5f};
-					physical.local_position		   = {0.0f, -0.05f, 0.0f};
+
+					physical.shape			= physics_shape_type_e::box;
+					physical.motion_type	= physics_motion_type_e::static_body;
+					physical.half_extent	= {0.5f, 0.05f, 0.5f};
+					physical.local_position = {0.0f, -0.05f, 0.0f};
 				}
 				else
 				{
 					component_character_mover_t& mover = world.get_component_table<component_character_mover_t>().add_or_get_as<component_character_mover_t>(entity);
-					mover.radius					   = 0.5f;
-					mover.half_height				   = 0.5f;
+
+					mover.radius	  = 0.5f;
+					mover.half_height = 0.5f;
 
 					world.set_entity_pos_local(entity, {0.0f, 1.0f, 0.0f});
 				}
@@ -206,6 +210,7 @@ namespace sfg
 			}
 
 			editor_world.get_edit_context().apply_entity_selection({.data = &payload.entity, .size = 1}, payload.entity);
+
 			return true;
 		}
 

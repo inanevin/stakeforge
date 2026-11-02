@@ -1727,7 +1727,7 @@ namespace sfg
 						vector_t<resource_handle_t> materials = {};
 						collect_mesh_materials(model, model.meshes + mesh_index, 1, material_guid_map, materials, nullptr, nullptr);
 
-						if (materials.size() > 16)
+						if (materials.size() > 64)
 						{
 							SFG_ERR("GLB mesh {0} has too many prefab material slots", mesh_index);
 							prefab_valid = false;
@@ -1769,7 +1769,7 @@ namespace sfg
 				if (combined_mesh_guid != NULL_SID)
 					collect_mesh_materials(model, model.meshes, model.meshes_count, material_guid_map, materials, nullptr, nullptr);
 
-				if (combined_mesh_guid != NULL_SID && materials.size() > 16)
+				if (combined_mesh_guid != NULL_SID && materials.size() > 64)
 				{
 					SFG_ERR("combined GLB mesh has too many prefab material slots");
 					prefab_valid = false;
@@ -2241,13 +2241,15 @@ namespace sfg
 						SFG_ASSERT(import_index < texture_import_results.size());
 						texture_guid_map[it.first] = texture_import_results[import_index].guid;
 					}
+				}
 
-					for (glb_texture_import_result_t& import_result : texture_import_results)
-					{
-						SFG_ASSERT(import_result.success);
-						out_assets.push_back(std::move(import_result.asset));
-						out_asset_paths.push_back(std::move(import_result.asset_path));
-					}
+				for (glb_texture_import_result_t& import_result : texture_import_results)
+				{
+					if (!import_result.success)
+						continue;
+
+					out_assets.push_back(std::move(import_result.asset));
+					out_asset_paths.push_back(std::move(import_result.asset_path));
 				}
 			}
 

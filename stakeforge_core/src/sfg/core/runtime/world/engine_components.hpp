@@ -107,7 +107,7 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_mesh_renderer";
 
-		inplace_vector_t<resource_handle_t, 16> materials = {};
+		inplace_vector_t<resource_handle_t, 64> materials = {};
 		resource_handle_t						mesh	  = NULL_RESOURCE_HANDLE;
 	};
 
@@ -215,7 +215,7 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_skinned_mesh_renderer";
 
-		inplace_vector_t<resource_handle_t, 16> materials = {};
+		inplace_vector_t<resource_handle_t, 64> materials = {};
 		resource_handle_t						mesh	  = NULL_RESOURCE_HANDLE;
 		resource_handle_t						skeleton  = NULL_RESOURCE_HANDLE;
 	};

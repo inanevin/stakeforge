@@ -279,27 +279,27 @@ namespace sfg
 
 	struct world_render_snapshot_t
 	{
-		void* game_plugin_data = nullptr;
-		void* game_editor_plugin_data = nullptr;
-		void* editor_data = nullptr;
-		engine_shadow_settings_t				  shadows			= {};
-		world_render_view_t						  main_view			= {};
-		world_render_environment_t				  environment		= {};
-		world_render_fog_t						  fog				= {};
-		world_render_post_process_t				  post_process		= {};
-		world_debug_draw_snapshot_t				  debug_draw		= {};
-		world_canvas_render_snapshot_t			  canvas			= {};
-		vector_t<world_render_material_t>		  materials			= {};
-		vector_t<world_render_entity_t>			  entities			= {};
-		vector_t<world_render_bone_t>			  bones				= {};
-		vector_t<world_render_light_t>			  lights			= {};
-		vector_t<world_render_reflection_probe_t> reflection_probes = {};
-		vector_t<world_renderable_t>			  renderables		= {};
-		vector_t<world_mesh_draw_t>				  mesh_draws		= {};
-		vector_t<world_sprite_draw_t>			  sprite_draws		= {};
-		vector_t<world_particle_draw_t>			  particle_draws	= {};
-		vector_t<world_particle_t>				  particles			= {};
-		engine_quality_level_e					  quality_level		= engine_quality_level_e::high;
+		engine_shadow_settings_t				  shadows				  = {};
+		world_render_view_t						  main_view				  = {};
+		world_render_environment_t				  environment			  = {};
+		world_render_fog_t						  fog					  = {};
+		world_render_post_process_t				  post_process			  = {};
+		world_debug_draw_snapshot_t				  debug_draw			  = {};
+		world_canvas_render_snapshot_t			  canvas				  = {};
+		vector_t<world_render_material_t>		  materials				  = {};
+		vector_t<world_render_entity_t>			  entities				  = {};
+		vector_t<world_render_bone_t>			  bones					  = {};
+		vector_t<world_render_light_t>			  lights				  = {};
+		vector_t<world_render_reflection_probe_t> reflection_probes		  = {};
+		vector_t<world_renderable_t>			  renderables			  = {};
+		vector_t<world_mesh_draw_t>				  mesh_draws			  = {};
+		vector_t<world_sprite_draw_t>			  sprite_draws			  = {};
+		vector_t<world_particle_draw_t>			  particle_draws		  = {};
+		vector_t<world_particle_t>				  particles				  = {};
+		void*									  game_plugin_data		  = nullptr;
+		void*									  game_editor_plugin_data = nullptr;
+		void*									  editor_data			  = nullptr;
+		engine_quality_level_e					  quality_level			  = engine_quality_level_e::high;
 
 		bool plugin_snapshot_ready = false;
 

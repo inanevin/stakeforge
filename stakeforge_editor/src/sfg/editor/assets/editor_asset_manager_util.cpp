@@ -422,13 +422,11 @@ namespace sfg
 
 			if (!editor_asset_importer_t::import_asset(target_directory, path.c_str(), import_options, context, imported_assets, imported_asset_paths))
 				SFG_ERR("failed importing asset {0}", path.c_str());
-			else
-			{
-				out_imported_asset_paths.reserve(out_imported_asset_paths.size() + imported_asset_paths.size());
 
-				for (string_t& asset_path : imported_asset_paths)
-					out_imported_asset_paths.push_back(std::move(asset_path));
-			}
+			out_imported_asset_paths.reserve(out_imported_asset_paths.size() + imported_asset_paths.size());
+
+			for (string_t& asset_path : imported_asset_paths)
+				out_imported_asset_paths.push_back(std::move(asset_path));
 
 			const f32 done_progress = paths.size != 0 ? static_cast<f32>(i + 1) / static_cast<f32>(paths.size) : 1.0f;
 

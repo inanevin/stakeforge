@@ -295,6 +295,7 @@ namespace sfg
 
 			const ui::widget_id_t icon = ui.allocate_widget();
 			tree.attach(item.tile, icon);
+			tree.draw_order(icon) = tree.draw_order_const(item.tile) + 1;
 
 			ui::layout_in_t& icon_in = tree.in(icon);
 			icon_in.pos_mode_x		 = ui::pos_mode_e::relative_in_parent;
