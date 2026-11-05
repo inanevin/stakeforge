@@ -57,9 +57,9 @@ namespace sfg
 		game_plugin_callbacks_t	   callbacks  = {};
 		const bool				   compatible = entry != nullptr && entry(GAME_PLUGIN_API_VERSION, callbacks);
 		const bool				   complete = compatible && callbacks.register_types != nullptr && callbacks.load != nullptr && callbacks.unload != nullptr &&
-											  (callbacks.begin_play != nullptr && callbacks.end_play != nullptr && callbacks.tick_logic != nullptr && callbacks.tick_physics != nullptr && callbacks.tick_animation != nullptr && callbacks.draw_debug != nullptr &&
-											   callbacks.key_event != nullptr && callbacks.mouse_button_event != nullptr && callbacks.mouse_move_event != nullptr && callbacks.mouse_wheel_event != nullptr && callbacks.focus_event != nullptr &&
-											   callbacks.physics_contact != nullptr && callbacks.animation_event != nullptr && callbacks.canvas_event != nullptr);
+											  (callbacks.begin_play != nullptr && callbacks.end_play != nullptr && callbacks.tick_logic != nullptr && callbacks.tick_physics != nullptr && callbacks.tick_animation != nullptr && callbacks.key_event != nullptr &&
+											   callbacks.mouse_button_event != nullptr && callbacks.mouse_move_event != nullptr && callbacks.mouse_wheel_event != nullptr && callbacks.focus_event != nullptr && callbacks.physics_contact != nullptr &&
+											   callbacks.animation_event != nullptr && callbacks.canvas_event != nullptr);
 
 		if (!complete)
 		{
@@ -210,12 +210,6 @@ namespace sfg
 	{
 		if (_callbacks.tick_animation != nullptr)
 			_callbacks.tick_animation(world, dt);
-	}
-
-	void game_plugin_runtime_t::draw_debug(world_t& world)
-	{
-		if (_callbacks.draw_debug != nullptr)
-			_callbacks.draw_debug(world);
 	}
 
 	void game_plugin_runtime_t::key_event(world_t& world, input_code key, u16 scan_code, input_action action)

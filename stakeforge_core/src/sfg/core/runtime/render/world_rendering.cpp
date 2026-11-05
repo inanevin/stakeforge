@@ -37,8 +37,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/render/world_draw_common.hpp"
 #include "core/runtime/resources/resource_manager.hpp"
 #include "core/runtime/resources/shader_types.hpp"
-#include "core/runtime/plugin/game_plugin_api.hpp"
-#include "core/runtime/plugin/game_plugin_render_context.hpp"
 #include "core/runtime/ui/glyph_atlas.hpp"
 #include "core/runtime/ui/ui_renderer.hpp"
 #include <execution>
@@ -290,13 +288,9 @@ namespace sfg
 		}
 	}
 
-	void world_rendering_t::render_world(
-		world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const game_plugin_callbacks_t* plugin)
+	void world_rendering_t::render_world(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		ZoneScoped;
-
-		if (!snapshot.plugin_snapshot_ready)
-			plugin = nullptr;
 
 		gfx_backend&					   backend			  = gfx_backend::get();
 		world_render_shadow_context_t&	   shadow_context	  = ctx.get_shadow_context();
@@ -308,6 +302,7 @@ namespace sfg
 		// main cam view.
 		const vec2u16_t render_size		 = ctx.get_size();
 		render_view_t	main_camera_view = {};
+
 		main_camera_view.calculate(snapshot.main_view, render_size, interpolation_alpha);
 
 		// logarithmic depth scale for clusters
@@ -338,6 +333,7 @@ namespace sfg
 
 		// cluster light compute will dispatch per view.
 		inplace_vector_t<world_render_clustered_lighting_view_t, 1 + WORLD_RENDER_REFLECTION_FACE_COUNT> clustered_lighting_views = {};
+
 		clustered_lighting_views.push_back({
 			.view_data_index = ctx.get_view_render_pass_data_index(frame_index),
 			.cluster_count_x = prep_data.views[0].cluster_dims[0],
@@ -415,9 +411,10 @@ namespace sfg
 
 				if (!prep_data.shadow_views.empty())
 					render_shadows(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
+
 				return;
 			case 1:
-				render_gbuffer(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout, plugin, interpolation_alpha);
+				render_gbuffer(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 				return;
 			case 2:
 				render_clustered_lighting(
@@ -462,10 +459,12 @@ namespace sfg
 		});
 
 		const gfx_handle_t depth_gbuffer_commands[2] = {cmd_depth, cmd_gbuffer};
+
 		backend.submit_commands(queue_gfx, depth_gbuffer_commands, 2);
 
 		const gfx_handle_t clustered_lighting_semaphore = ctx.get_clustered_lighting_semaphore(frame_index);
 		const u64		   clustered_lighting_ready		= ctx.next_clustered_lighting_semaphore_value(frame_index);
+
 		backend.submit_commands(queue_compute, &cmd_clustered_lighting, 1);
 		backend.queue_signal(queue_compute, &clustered_lighting_semaphore, &clustered_lighting_ready, 1);
 
@@ -479,6 +478,7 @@ namespace sfg
 			gbuffer_ready				= ctx.next_ssao_semaphore_value(frame_index);
 			ssao_ready					= ctx.next_ssao_semaphore_value(frame_index);
 			const gfx_handle_t cmd_ssao = ctx.get_command_buffer_ssao(frame_index);
+
 			backend.queue_signal(queue_gfx, &ssao_semaphore, &gbuffer_ready, 1);
 			backend.queue_wait(queue_compute, &ssao_semaphore, &gbuffer_ready, 1);
 			backend.submit_commands(queue_compute, &cmd_ssao, 1);
@@ -513,7 +513,7 @@ namespace sfg
 			render_access_scope_t render_scope = {};
 
 			render_lighting(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
-			render_forward(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout, plugin, interpolation_alpha);
+			render_forward(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 		}
 
 		if (ssao_active)
@@ -523,6 +523,7 @@ namespace sfg
 			backend.queue_wait(queue_gfx, &reflection_semaphore, &reflection_filter_ready, 1);
 
 		const gfx_handle_t lighting_forward_commands[2] = {cmd_lighting, cmd_forward};
+
 		backend.submit_commands(queue_gfx, lighting_forward_commands, 2);
 
 		gfx_handle_t bloom_semaphore = {};
@@ -534,6 +535,7 @@ namespace sfg
 			bloom_semaphore = ctx.get_bloom_semaphore(frame_index);
 			lighting_ready	= ctx.next_bloom_semaphore_value(frame_index);
 			bloom_ready		= ctx.next_bloom_semaphore_value(frame_index);
+
 			backend.queue_signal(queue_gfx, &bloom_semaphore, &lighting_ready, 1);
 		}
 
@@ -544,7 +546,7 @@ namespace sfg
 
 			if (task_index == 0)
 			{
-				render_post_process(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout, plugin, interpolation_alpha);
+				render_post_process(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
 				return;
 			}
 
@@ -556,6 +558,7 @@ namespace sfg
 		if (bloom_active)
 		{
 			const gfx_handle_t cmd_bloom = ctx.get_command_buffer_bloom(frame_index);
+
 			backend.queue_wait(queue_compute, &bloom_semaphore, &lighting_ready, 1);
 			backend.submit_commands(queue_compute, &cmd_bloom, 1);
 			backend.queue_signal(queue_compute, &bloom_semaphore, &bloom_ready, 1);
@@ -818,8 +821,7 @@ namespace sfg
 		backend.close_command_buffer(cmd);
 	}
 
-	void world_rendering_t::render_gbuffer(
-		const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const game_plugin_callbacks_t* plugin, f32 interpolation_alpha)
+	void world_rendering_t::render_gbuffer(const world_render_context_t& ctx, const world_render_snapshot_t& ss, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -829,6 +831,7 @@ namespace sfg
 		const gfx_handle_t gbuffer_normal	= ctx.get_gbuffer_normal_texture(frame_index);
 		const gfx_handle_t gbuffer_orm		= ctx.get_gbuffer_orm_texture(frame_index);
 		const gfx_handle_t gbuffer_emissive = ctx.get_gbuffer_emissive_texture(frame_index);
+
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
 		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
@@ -860,6 +863,7 @@ namespace sfg
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 		};
+
 		backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = 4});
 
 		const render_pass_color_attachment_t color_attachments[4] = {
@@ -912,6 +916,7 @@ namespace sfg
 													  });
 
 		const vec2u16_t size = ctx.get_size();
+
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
@@ -920,43 +925,11 @@ namespace sfg
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
 		const world_render_prep_view_t& prep_view = prep_data.views[0];
+
 		draw_world_draws(backend, cmd, ctx, ss, prep_data.get_opaque_queue(prep_view), world_pass_flags_gbuffer, shader_variant_flags_gbuffer, frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
-
-		if (plugin != nullptr && plugin->render_after_gbuffer != nullptr)
-		{
-			const game_plugin_render_context_t context			= world_rendering_util_t::get_game_plugin_render_context(ctx, ss, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
-			game_plugin_gbuffer_pass_t		  targets			= world_rendering_util_t::get_game_plugin_gbuffer_pass(ctx, frame_index);
-			const u32					  depth_read_states = targets.depth.states;
-
-			targets.albedo.states				= resource_state_render_target;
-			targets.normal.states				= resource_state_render_target;
-			targets.orm.states					= resource_state_render_target;
-			targets.emissive.states				= resource_state_render_target;
-			targets.depth.states				= resource_state_depth_write;
-			targets.depth.attachment_view_index = 0;
-
-			const barrier_t depth_write = {
-				.from_states = depth_read_states,
-				.to_states	 = resource_state_depth_write,
-				.texture_t	 = depth_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-
-			backend.cmd_barrier(cmd, {.barriers = &depth_write, .barrier_count = 1});
-			plugin->render_after_gbuffer(context, targets);
-
-			const barrier_t depth_read = {
-				.from_states = resource_state_depth_write,
-				.to_states	 = depth_read_states,
-				.texture_t	 = depth_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-
-			backend.cmd_barrier(cmd, {.barriers = &depth_read, .barrier_count = 1});
-		}
 
 		const barrier_t end_barriers[4] = {
 			{
@@ -984,6 +957,7 @@ namespace sfg
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 		};
+
 		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = 4});
 		backend.close_command_buffer(cmd);
 	}
@@ -1325,22 +1299,13 @@ namespace sfg
 		backend.close_command_buffer(cmd);
 	}
 
-	void world_rendering_t::render_forward(
-		const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const game_plugin_callbacks_t* plugin, f32 interpolation_alpha)
+	void world_rendering_t::render_forward(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		gfx_backend&	   backend		= gfx_backend::get();
 		const gfx_handle_t cmd			= ctx.get_command_buffer_forward(frame_index);
 		const bool		   bloom_active = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
 
 		backend.reset_command_buffer(cmd);
-
-		if (plugin != nullptr && plugin->render_before_forward != nullptr)
-		{
-			const game_plugin_render_context_t context = world_rendering_util_t::get_game_plugin_render_context(ctx, snapshot, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
-			const game_plugin_color_pass_t	  targets = world_rendering_util_t::get_game_plugin_color_pass(ctx, frame_index, false);
-
-			plugin->render_before_forward(context, targets);
-		}
 
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
 		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
@@ -1371,6 +1336,7 @@ namespace sfg
 													  });
 
 		const vec2u16_t size = ctx.get_size();
+
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
@@ -1384,11 +1350,13 @@ namespace sfg
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 4, .param_index = 0});
 
 		const gpu_index_t fog_data_index = ctx.get_fog_render_pass_data_index(frame_index);
+
 		backend.cmd_bind_constants(cmd, {.data = &fog_data_index, .offset = constant_rp5, .count = 1, .param_index = 0});
 
 		draw_skybox(backend, cmd, snapshot, frame_index);
 
 		const world_render_prep_view_t& prep_view = prep_data.views[0];
+
 		draw_world_draws(backend, cmd, ctx, snapshot, prep_data.get_transparent_queue(prep_view), world_pass_flags_forward, 0, frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
@@ -1405,6 +1373,7 @@ namespace sfg
 				.texture_t	 = view_model_depth,
 				.flags		 = barrier_flags::baf_is_texture,
 			};
+
 			backend.cmd_barrier(cmd, {.barriers = &view_model_depth_write_barrier, .barrier_count = 1});
 
 			BEGIN_DEBUG_EVENT((&backend), cmd, "world_view_model");
@@ -1432,6 +1401,7 @@ namespace sfg
 				.texture_t	 = view_model_depth,
 				.flags		 = barrier_flags::baf_is_texture,
 			};
+
 			backend.cmd_barrier(cmd, {.barriers = &view_model_depth_read_barrier, .barrier_count = 1});
 
 			backend.cmd_begin_render_pass_depth_read_only(cmd,
@@ -1461,14 +1431,6 @@ namespace sfg
 			backend.cmd_begin_render_pass(cmd, {.color_attachments = &color_attachment, .color_attachment_count = 1});
 			ctx.get_canvas_before_renderer().render(cmd, &canvas_snapshot, frame_index, size);
 			backend.cmd_end_render_pass(cmd, {});
-		}
-
-		if (plugin != nullptr && plugin->render_before_post_process != nullptr)
-		{
-			const game_plugin_render_context_t context = world_rendering_util_t::get_game_plugin_render_context(ctx, snapshot, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
-			const game_plugin_color_pass_t	  targets = world_rendering_util_t::get_game_plugin_color_pass(ctx, frame_index, false);
-
-			plugin->render_before_post_process(context, targets);
 		}
 
 		const barrier_t end_barriers[3] = {
@@ -1607,8 +1569,7 @@ namespace sfg
 		backend.close_command_buffer(cmd);
 	}
 
-	void world_rendering_t::render_post_process(
-		const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const game_plugin_callbacks_t* plugin, f32 interpolation_alpha)
+	void world_rendering_t::render_post_process(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -1662,36 +1623,6 @@ namespace sfg
 
 		const render_resources_t& render_resources = render_resources_t::get();
 		const gpu_index_t		  bloom_index	   = bloom_active ? ctx.get_bloom_upsample_index(frame_index, 0) : render_resources.get_texture_gpu_index(render_resources.get_black_texture(), 0);
-
-		if (plugin != nullptr && plugin->render_before_tonemap != nullptr)
-		{
-			const game_plugin_render_context_t context = world_rendering_util_t::get_game_plugin_render_context(ctx, snapshot, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
-			game_plugin_color_pass_t			  targets = world_rendering_util_t::get_game_plugin_color_pass(ctx, frame_index, false);
-			targets.bloom_index					  = bloom_index;
-
-			const barrier_t hdr_write = {
-				.from_states = resource_state_ps_resource,
-				.to_states	 = resource_state_render_target,
-				.texture_t	 = lighting_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-
-			backend.cmd_barrier(cmd, {.barriers = &hdr_write, .barrier_count = 1});
-			plugin->render_before_tonemap(context, targets);
-
-			const barrier_t hdr_read = {
-				.from_states = resource_state_render_target,
-				.to_states	 = resource_state_ps_resource,
-				.texture_t	 = lighting_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			};
-
-			backend.cmd_barrier(cmd, {.barriers = &hdr_read, .barrier_count = 1});
-			backend.cmd_bind_layout(cmd, {.layout = global_layout});
-			backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
-			backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
-			backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
-		}
 
 		const barrier_t tonemap_barrier = {
 			.from_states = resource_state_ps_resource,
@@ -1756,19 +1687,6 @@ namespace sfg
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_fxaa_shader()});
 			backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 			backend.cmd_end_render_pass(cmd, {});
-		}
-
-		if (plugin != nullptr && plugin->render_after_post_process != nullptr)
-		{
-			const game_plugin_render_context_t context = world_rendering_util_t::get_game_plugin_render_context(ctx, snapshot, cmd, frame_index, global_cbv_index, global_layout, interpolation_alpha);
-			game_plugin_color_pass_t			  targets = world_rendering_util_t::get_game_plugin_color_pass(ctx, frame_index, true);
-			targets.bloom_index					  = bloom_index;
-
-			plugin->render_after_post_process(context, targets);
-			backend.cmd_bind_layout(cmd, {.layout = global_layout});
-			backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
-			backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
-			backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 		}
 
 		const ui::vg_draw_snapshot_t	   canvas_snapshot	= snapshot.canvas.after_post_process.get_snapshot();

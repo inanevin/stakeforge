@@ -26,7 +26,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/editor_project.hpp"
 #include "editor/editor_surface_controller.hpp"
 #include "editor/editor_world_controller.hpp"
-#include "editor/world/editor_world.hpp"
 #include "editor/ui/panels/editor_panel_inspector.hpp"
 #include "editor/ui/panels/editor_primary_base.hpp"
 #include "editor/ui/panels/editor_secondary_base.hpp"
@@ -132,27 +131,8 @@ namespace sfg
 
 		if (!game_plugin_runtime_t::get().get_path().empty())
 		{
-			editor_world_t* main_world = nullptr;
-
-			if (editor_world_controller_t::is_initialized())
-			{
-				editor_world_controller_t&	worlds = editor_world_controller_t::get();
-				const editor_world_handle_t handle = worlds.get_main_world_handle();
-
-				if (!handle.is_null())
-					main_world = worlds.get_editor_world(handle);
-			}
-
-			if (main_world != nullptr)
-				main_world->free_plugin_snapshot_data();
-
 			if ((!_game_editor_plugin.get_path().empty() && !_game_editor_plugin.unload(_diagnostics)) || !game_plugin_runtime_t::get().unload(_diagnostics))
-			{
 				SFG_ERR("{0}", _diagnostics);
-
-				if (main_world != nullptr)
-					main_world->allocate_plugin_snapshot_data();
-			}
 		}
 
 		_state		   = state_e::idle;
@@ -433,20 +413,6 @@ namespace sfg
 
 		editor_app_t::get().stop_render();
 
-		editor_world_t* main_world = nullptr;
-
-		if (editor_world_controller_t::is_initialized())
-		{
-			editor_world_controller_t&	worlds = editor_world_controller_t::get();
-			const editor_world_handle_t handle = worlds.get_main_world_handle();
-
-			if (!handle.is_null())
-				main_world = worlds.get_editor_world(handle);
-		}
-
-		if (main_world != nullptr)
-			main_world->free_plugin_snapshot_data();
-
 		vector_t<editor_panel_inspector_t*> inspectors = {};
 
 		for (editor_surface_t& surface : editor_surface_controller_t::get())
@@ -523,9 +489,6 @@ namespace sfg
 			_observed_stamp = _stage_result.stamp;
 		else
 			SFG_ERR("{0}", _diagnostics);
-
-		if (main_world != nullptr)
-			main_world->allocate_plugin_snapshot_data();
 
 		for (editor_panel_inspector_t* inspector : inspectors)
 			inspector->refresh_display();

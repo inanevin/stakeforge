@@ -61,9 +61,6 @@ namespace game
 		// update gameplay during the animation tick.
 		static void tick_animation(sfg::world_t& world, f32 dt);
 
-		// add debug drawing for the world.
-		static void draw_debug(sfg::world_t& world);
-
 		// -----------------------------------------------------------------------------
 		// input
 		// -----------------------------------------------------------------------------

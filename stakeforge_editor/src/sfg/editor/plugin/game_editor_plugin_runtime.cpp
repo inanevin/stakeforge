@@ -180,10 +180,4 @@ namespace sfg
 		if (_callbacks.tick_logic != nullptr)
 			_callbacks.tick_logic(world, dt);
 	}
-
-	void game_editor_plugin_runtime_t::draw_debug(world_t& world)
-	{
-		if (_callbacks.draw_debug != nullptr)
-			_callbacks.draw_debug(world);
-	}
 }

@@ -184,7 +184,7 @@ namespace sfg
 			return false;
 		}
 
-		const string_t runtime_path = source_path + "runtime/";
+		const string_t runtime_path		= source_path + "runtime/";
 		const string_t game_editor_path = source_path + "editor/";
 
 		if (!file_system_t::ensure_directory(runtime_path.c_str()) || !file_system_t::ensure_directory(game_editor_path.c_str()))
@@ -194,7 +194,7 @@ namespace sfg
 		}
 
 		const string_t legacy_cmake = source_path + "CMakeLists.txt.pre_game_editor";
-		const bool legacy = file_system_t::exists((source_path + "CMakeLists.txt").c_str()) && !file_system_t::exists((runtime_path + "CMakeLists.txt").c_str());
+		const bool	   legacy		= file_system_t::exists((source_path + "CMakeLists.txt").c_str()) && !file_system_t::exists((runtime_path + "CMakeLists.txt").c_str());
 
 		if (legacy)
 		{
@@ -229,7 +229,19 @@ namespace sfg
 			SFG_INFO("migrated plugin sources to {0}; previous CMake configuration saved to {1}", runtime_path, legacy_cmake);
 		}
 
-		for (const char* name : {"CMakeLists.txt", ".clang-format", "runtime/CMakeLists.txt", "runtime/game_plugin.cpp", "runtime/game_world.hpp", "runtime/game_world.cpp", "runtime/game_plugin_render.hpp", "runtime/game_plugin_render.cpp", "runtime/game_components.hpp", "runtime/game_plugin_type_registry.hpp", "runtime/game_plugin_type_registry.cpp", "editor/CMakeLists.txt", "editor/game_editor_plugin.cpp", "editor/game_editor_plugin_render.hpp", "editor/game_editor_plugin_render.cpp", "editor/game_editor_plugin_type_registry.hpp", "editor/game_editor_plugin_type_registry.cpp"})
+		for (const char* name : {"CMakeLists.txt",
+								 ".clang-format",
+								 "runtime/CMakeLists.txt",
+								 "runtime/game_plugin.cpp",
+								 "runtime/game_world.hpp",
+								 "runtime/game_world.cpp",
+								 "runtime/game_components.hpp",
+								 "runtime/game_plugin_type_registry.hpp",
+								 "runtime/game_plugin_type_registry.cpp",
+								 "editor/CMakeLists.txt",
+								 "editor/game_editor_plugin.cpp",
+								 "editor/game_editor_plugin_type_registry.hpp",
+								 "editor/game_editor_plugin_type_registry.cpp"})
 		{
 			const string_t destination = source_path + name;
 

@@ -26,7 +26,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/world/editor_world_util.hpp"
 #include "editor/editor_world_controller.hpp"
 #include "editor/ui/panels/editor_theme.hpp"
-#include "editor/plugin/editor_plugin_manager.hpp"
 
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/data/frame_vector.hpp>
@@ -39,7 +38,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/render/world_render_view.hpp>
 #include <sfg/core/runtime/render/world_rendering.hpp>
 #include <sfg/core/runtime/resources/common_resources.hpp>
-#include <sfg/core/runtime/plugin/game_plugin_runtime.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/runtime/world/world_debug_draw.hpp>
 #include <sfg/core/io/assert.hpp>
@@ -184,8 +182,6 @@ namespace sfg
 
 	void editor_world_t::uninit()
 	{
-		free_plugin_snapshot_data();
-
 		_input_controller.uninit();
 
 		SFG_ASSERT(!_world.is_playing());
@@ -222,49 +218,6 @@ namespace sfg
 		_producer_slot		  = 0;
 		_consumer_slot		  = 0;
 		_latest_snapshot_slot = UINT8_MAX;
-	}
-
-	void editor_world_t::allocate_plugin_snapshot_data()
-	{
-		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-
-		const game_plugin_render_snapshot_config_t config = game_plugin_runtime_t::get().get_render_snapshot_config();
-		world_render_snapshot_t::allocate_plugin_data({.data = _snapshot_slots, .size = EDITOR_WORLD_SNAPSHOT_SLOT_COUNT}, config.size, config.alignment);
-
-		const game_editor_plugin_render_snapshot_config_t game_editor_config = editor_plugin_manager_t::get().get_game_editor_plugin().get_render_snapshot_config();
-
-		if (game_editor_config.size == 0)
-			return;
-
-		SFG_ASSERT(game_editor_config.alignment != 0 && (game_editor_config.alignment & (game_editor_config.alignment - 1)) == 0);
-
-		for (world_render_snapshot_t& snapshot : _snapshot_slots)
-		{
-			SFG_ASSERT(snapshot.game_editor_plugin_data == nullptr);
-			snapshot.game_editor_plugin_data = SFG_ALIGNED_MALLOC(game_editor_config.alignment, game_editor_config.size);
-
-			if (snapshot.game_editor_plugin_data == nullptr)
-			{
-				free_plugin_snapshot_data();
-				SFG_ERR("failed to allocate {0} bytes for game editor render snapshot data", game_editor_config.size);
-				throw std::bad_alloc{};
-			}
-
-			SFG_MEMSET(snapshot.game_editor_plugin_data, 0, game_editor_config.size);
-		}
-	}
-
-	void editor_world_t::free_plugin_snapshot_data()
-	{
-		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-
-		world_render_snapshot_t::free_plugin_data({.data = _snapshot_slots, .size = EDITOR_WORLD_SNAPSHOT_SLOT_COUNT});
-
-		for (world_render_snapshot_t& snapshot : _snapshot_slots)
-		{
-			SFG_ALIGNED_FREE(snapshot.game_editor_plugin_data);
-			snapshot.game_editor_plugin_data = nullptr;
-		}
 	}
 
 	void editor_world_t::resize(vec2u16_t render_resolution)
@@ -714,7 +667,8 @@ namespace sfg
 
 			const editor_gizmo_target_t& target = gizmo_input.target;
 			const bool					 local	= gizmo_input.locality == editor_transform_locality_e::local;
-			data.gizmo							= {
+
+			data.gizmo = {
 				.prev_rotation = local ? target.prev_rotation : quat_t::identity,
 				.rotation	   = local ? target.rotation : quat_t::identity,
 				.prev_position = target.prev_position,
@@ -742,23 +696,9 @@ namespace sfg
 					data.selected_entities.push_back(child);
 
 				const component_hierarchy_t& child_hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(child);
-				child										 = child_hierarchy.next_sibling;
+
+				child = child_hierarchy.next_sibling;
 			}
-		}
-
-		if (_edit_context.get_world() == editor_world_controller_t::get().get_main_world_handle())
-		{
-			const game_plugin_callbacks_t& callbacks = game_plugin_runtime_t::get().get_callbacks();
-
-			if (callbacks.produce_render_snapshot != nullptr)
-				callbacks.produce_render_snapshot(_world, snapshot.game_plugin_data);
-
-			const game_editor_plugin_callbacks_t& game_editor = editor_plugin_manager_t::get().get_game_editor_plugin().get_callbacks();
-
-			if (game_editor.produce_render_snapshot != nullptr)
-				game_editor.produce_render_snapshot(_world, snapshot.game_editor_plugin_data);
-
-			snapshot.plugin_snapshot_ready = true;
 		}
 
 		_latest_snapshot_slot = _producer_slot;
@@ -806,14 +746,13 @@ namespace sfg
 			};
 			const entity_id_t entity		= _render_context.get_object_id(frame_index, pixel);
 			const u64		  packed_result = static_cast<u64>(data.pick_request.id) << EDITOR_WORLD_PICK_RESULT_REQUEST_SHIFT | entity;
+
 			_pick_result.store(packed_result, std::memory_order_release);
 			_last_render_pick_request_id = data.pick_request.id;
 		}
 
-		const game_plugin_callbacks_t* plugin = _edit_context.get_world() == editor_world_controller_t::get().get_main_world_handle() ? &game_plugin_runtime_t::get().get_callbacks() : nullptr;
-
-		world_rendering_t::render_world(_render_context.get_world_render_context(), snapshot, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout, plugin);
-		editor_world_rendering_t::render_world(_render_context, snapshot, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout, plugin != nullptr ? &editor_plugin_manager_t::get().get_game_editor_plugin().get_callbacks() : nullptr);
+		world_rendering_t::render_world(_render_context.get_world_render_context(), snapshot, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
+		editor_world_rendering_t::render_world(_render_context, snapshot, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
 		_object_id_readback_valid[frame_index] = true;
 	}
 }

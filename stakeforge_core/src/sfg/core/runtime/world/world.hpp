@@ -77,7 +77,6 @@ namespace sfg
 		void  tick_animation_logic(f32 dt);
 		void  on_animation_callback(entity_id_t entity, sid_t event);
 		void  tick_logic(f32 dt);
-		void  draw_plugin_debug();
 		void  tick_post(f32 dt);
 		void  key_event(u16 key, u16 scan_code, u8 action);
 		void  focus_event(bool focused);

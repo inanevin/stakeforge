@@ -48,10 +48,6 @@ namespace game
 	{
 	}
 
-	void game_world_t::draw_debug(sfg::world_t& world)
-	{
-	}
-
 	void game_world_t::key_event(sfg::world_t& world, sfg::input_code key, u16 scan_code, sfg::input_action action)
 	{
 	}

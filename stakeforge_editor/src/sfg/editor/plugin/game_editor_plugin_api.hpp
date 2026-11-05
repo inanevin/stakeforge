@@ -29,27 +29,15 @@ namespace sfg
 {
 	class world_t;
 	class plugin_type_schema_t;
-	struct game_editor_plugin_render_context_t;
-	struct game_editor_plugin_render_texture_t;
 
-	inline constexpr u32 GAME_EDITOR_PLUGIN_API_VERSION = 11;
-
-	struct game_editor_plugin_render_snapshot_config_t
-	{
-		u32 size	  = 0;
-		u32 alignment = 1;
-	};
+	inline constexpr u32 GAME_EDITOR_PLUGIN_API_VERSION = 12;
 
 	struct game_editor_plugin_callbacks_t
 	{
-		void (*produce_render_snapshot)(world_t& world, void* snapshot_data)																   = nullptr;
-		void (*render_after_world_blit)(const game_editor_plugin_render_context_t& context, const game_editor_plugin_render_texture_t& target) = nullptr;
-		game_editor_plugin_render_snapshot_config_t (*get_render_snapshot_config)()															   = nullptr;
-		void (*register_types)(plugin_type_schema_t& schema)																				   = nullptr;
-		void (*load)()																														   = nullptr;
-		void (*unload)()																													   = nullptr;
-		void (*tick_logic)(world_t& world, f32 dt)																							   = nullptr;
-		void (*draw_debug)(world_t& world)																									   = nullptr;
+		void (*register_types)(plugin_type_schema_t& schema) = nullptr;
+		void (*load)()										 = nullptr;
+		void (*unload)()									 = nullptr;
+		void (*tick_logic)(world_t& world, f32 dt)			 = nullptr;
 	};
 
 	using game_editor_plugin_entry_fn = bool (*)(u32 api_version, game_editor_plugin_callbacks_t& callbacks);

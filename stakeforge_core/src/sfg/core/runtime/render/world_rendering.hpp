@@ -34,7 +34,6 @@ namespace sfg
 	struct world_render_prep_data_t;
 	struct world_render_reflection_allocation_t;
 	struct world_render_snapshot_t;
-	struct game_plugin_callbacks_t;
 
 	struct world_render_clustered_lighting_data_t
 	{
@@ -57,25 +56,11 @@ namespace sfg
 	class SFG_API world_rendering_t final
 	{
 	public:
-		static void render_world(world_render_context_t&		ctx,
-								 const world_render_snapshot_t& snapshot,
-								 world_render_prep_data_t&		prep_data,
-								 f32							interpolation_alpha,
-								 u8								frame_index,
-								 gpu_index_t					global_cbv_index,
-								 gfx_handle_t					global_layout,
-								 const game_plugin_callbacks_t*		plugin = nullptr);
+		static void render_world(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 
 	private:
 		static void render_depth_prepass(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
-		static void render_gbuffer(const world_render_context_t&   ctx,
-								   const world_render_snapshot_t&  snapshot,
-								   const world_render_prep_data_t& prep_data,
-								   u8							   frame_index,
-								   gpu_index_t					   global_cbv_index,
-								   gfx_handle_t					   global_layout,
-								   const game_plugin_callbacks_t*	   plugin,
-								   f32							   interpolation_alpha);
+		static void render_gbuffer(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		static void render_shadows(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		static void render_probe(gfx_handle_t								 command_buffer,
 								 const world_render_context_t&				 ctx,
@@ -91,22 +76,8 @@ namespace sfg
 		static void render_prefilter_diffuse_sh(const world_render_context_t& ctx, const world_render_reflection_allocation_t& allocation, u8 frame_index, gpu_index_t global_cbv_index);
 		static void render_ssao(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index);
 		static void render_lighting(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
-		static void render_forward(const world_render_context_t&   ctx,
-								   const world_render_snapshot_t&  snapshot,
-								   const world_render_prep_data_t& prep_data,
-								   u8							   frame_index,
-								   gpu_index_t					   global_cbv_index,
-								   gfx_handle_t					   global_layout,
-								   const game_plugin_callbacks_t*	   plugin,
-								   f32							   interpolation_alpha);
+		static void render_forward(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		static void render_bloom(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index);
-		static void render_post_process(const world_render_context_t&	ctx,
-										const world_render_snapshot_t&	snapshot,
-										const world_render_prep_data_t& prep_data,
-										u8								frame_index,
-										gpu_index_t						global_cbv_index,
-										gfx_handle_t					global_layout,
-										const game_plugin_callbacks_t*		plugin,
-										f32								interpolation_alpha);
+		static void render_post_process(const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 	};
 }

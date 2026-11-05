@@ -36,9 +36,6 @@ namespace sfg
 	struct world_render_reflection_allocation_t;
 	struct world_render_reflection_probe_t;
 	struct world_render_snapshot_t;
-	struct game_plugin_render_context_t;
-	struct game_plugin_gbuffer_pass_t;
-	struct game_plugin_color_pass_t;
 
 	class SFG_API world_rendering_util_t final
 	{
@@ -46,11 +43,6 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
-		static game_plugin_render_context_t get_game_plugin_render_context(
-			const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, gfx_handle_t command_buffer, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, f32 interpolation_alpha);
-		static game_plugin_color_pass_t	 get_game_plugin_color_pass(const world_render_context_t& ctx, u8 frame_index, bool ldr);
-		static game_plugin_gbuffer_pass_t get_game_plugin_gbuffer_pass(const world_render_context_t& ctx, u8 frame_index);
-
 		static void									 prep_entity_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index);
 		static void									 prep_bone_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index);
 		static void									 prep_shadows(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, f32 interpolation_alpha);

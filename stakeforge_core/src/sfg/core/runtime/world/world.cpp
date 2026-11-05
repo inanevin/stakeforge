@@ -317,14 +317,6 @@ namespace sfg
 		_audio_controller.tick(scaled_dt);
 	}
 
-	void world_t::draw_plugin_debug()
-	{
-		ZoneScoped;
-
-		if (_is_playing)
-			game_plugin_runtime_t::get().draw_debug(*this);
-	}
-
 	void world_t::key_event(u16 key, u16 scan_code, u8 action)
 	{
 		SFG_ASSERT(_is_playing);

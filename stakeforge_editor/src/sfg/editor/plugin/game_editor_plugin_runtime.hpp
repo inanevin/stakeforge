@@ -53,7 +53,6 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void tick_logic(world_t& world, f32 dt);
-		void draw_debug(world_t& world);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -67,11 +66,6 @@ namespace sfg
 		bool is_loaded() const
 		{
 			return _library != nullptr;
-		}
-
-		game_editor_plugin_render_snapshot_config_t get_render_snapshot_config() const
-		{
-			return _callbacks.get_render_snapshot_config != nullptr ? _callbacks.get_render_snapshot_config() : game_editor_plugin_render_snapshot_config_t{};
 		}
 
 		bool is_staged() const

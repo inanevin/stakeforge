@@ -271,7 +271,8 @@ namespace sfg
 		const i64 now				  = time_t::get_cpu_microseconds();
 		const i64 delta_us			  = now - _previous_time_us;
 		const f32 frame_delta_seconds = static_cast<f32>(delta_us) / 1000000.0f;
-		_previous_time_us			  = now;
+
+		_previous_time_us = now;
 
 		u32		  steps	   = 0;
 		const i64 fixed_us = world_tick_rate == 0 ? 0 : 1000000 / static_cast<i64>(world_tick_rate);
@@ -324,13 +325,8 @@ namespace sfg
 			editor_world->invoke_tick_callback(frame_delta_seconds);
 
 			if (handle == _main_world)
-			{
-				game_editor_plugin_runtime_t& game_editor = editor_plugin_manager_t::get().get_game_editor_plugin();
-				game_editor.tick_logic(editor_world->get_world(), frame_delta_seconds);
-				game_editor.draw_debug(editor_world->get_world());
-			}
+				editor_plugin_manager_t::get().get_game_editor_plugin().tick_logic(editor_world->get_world(), frame_delta_seconds);
 
-			editor_world->get_world().draw_plugin_debug();
 			editor_world->draw_debug();
 
 			world_t& world = editor_world->get_world();
@@ -585,15 +581,6 @@ namespace sfg
 			return;
 
 		const editor_world_handle_t previous_main_world = _main_world;
-
-		if (previous_main_world != handle)
-		{
-			if (!previous_main_world.is_null())
-				_worlds.get(previous_main_world)->free_plugin_snapshot_data();
-
-			if (!handle.is_null())
-				_worlds.get(handle)->allocate_plugin_snapshot_data();
-		}
 
 		if (!previous_main_world.is_null())
 			editor_command_system_t::get().clear_world(previous_main_world);

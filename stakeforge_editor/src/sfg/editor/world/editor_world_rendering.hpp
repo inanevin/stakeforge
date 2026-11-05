@@ -30,12 +30,11 @@ namespace sfg
 	class editor_world_render_context_t;
 	struct world_render_snapshot_t;
 	struct world_render_prep_data_t;
-	struct game_editor_plugin_callbacks_t;
 
 	class SFG_EDITOR_API editor_world_rendering_t final
 	{
 	public:
-		static void render_world(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const game_editor_plugin_callbacks_t* game_editor);
+		static void render_world(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 
 	private:
 		static void render_outlines(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);

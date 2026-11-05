@@ -19,7 +19,6 @@ holders grant the Stakeforge Game Linking Exception, version 1.0,
 in GAME-LINKING-EXCEPTION.md.
 
 */
-#include "game_editor_plugin_render.hpp"
 #include "game_editor_plugin_type_registry.hpp"
 
 #include <sfg/editor/plugin/game_editor_plugin_api.hpp>
@@ -34,10 +33,6 @@ namespace game::editor
 	{
 	}
 
-	void draw_debug(sfg::world_t& world)
-	{
-	}
-
 	void unload()
 	{
 	}
@@ -49,14 +44,10 @@ SFG_GAME_EDITOR_PLUGIN_ENTRY bool sfg_get_game_editor_plugin_callbacks(u32 api_v
 		return false;
 
 	callbacks = {
-		.produce_render_snapshot	= game::game_editor_plugin_render_t::produce_render_snapshot,
-		.render_after_world_blit = game::game_editor_plugin_render_t::render_after_world_blit,
-		.get_render_snapshot_config = game::game_editor_plugin_render_t::get_render_snapshot_config,
-		.register_types				= game::game_editor_plugin_type_registry_t::register_types,
-		.load						= game::editor::load,
-		.unload						= game::editor::unload,
-		.tick_logic = game::editor::tick,
-		.draw_debug = game::editor::draw_debug,
+		.register_types = game::game_editor_plugin_type_registry_t::register_types,
+		.load			= game::editor::load,
+		.unload			= game::editor::unload,
+		.tick_logic		= game::editor::tick,
 	};
 
 	return true;

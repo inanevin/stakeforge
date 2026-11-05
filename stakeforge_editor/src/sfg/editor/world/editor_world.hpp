@@ -107,8 +107,6 @@ namespace sfg
 
 		void init(const editor_world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data);
 		void uninit();
-		void allocate_plugin_snapshot_data();
-		void free_plugin_snapshot_data();
 
 		// -----------------------------------------------------------------------------
 		// impl

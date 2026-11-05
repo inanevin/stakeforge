@@ -23,8 +23,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/world/editor_world.hpp"
 #include "editor/world/editor_world_render_context.hpp"
 #include "editor/ui/panels/editor_theme.hpp"
-#include "editor/plugin/game_editor_plugin_api.hpp"
-#include "editor/plugin/game_editor_plugin_render_context.hpp"
 
 #include <sfg/core/data/bitmask.hpp>
 #include <sfg/core/gfx/backend/backend.hpp>
@@ -48,10 +46,11 @@ namespace sfg
 #define EDITOR_WORLD_GIZMO_SCALE_FULL				  100
 #define EDITOR_WORLD_GIZMO_ROTATION_ORIENTATION_SCALE 55
 
-	void editor_world_rendering_t::render_world(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout, const game_editor_plugin_callbacks_t* game_editor)
+	void editor_world_rendering_t::render_world(
+		const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
-		gfx_backend& backend = gfx_backend::get();
-		const gfx_handle_t cmd = ctx.get_command_buffer(frame_index);
+		gfx_backend&	   backend		  = gfx_backend::get();
+		const gfx_handle_t cmd			  = ctx.get_command_buffer(frame_index);
 		const gfx_handle_t editor_texture = ctx.get_world_texture(frame_index);
 
 		backend.reset_command_buffer(cmd);
@@ -60,47 +59,18 @@ namespace sfg
 		render_object_ids(ctx, snapshot, prep_data, frame_index);
 		blit_world_texture(ctx, snapshot, prep_data, interpolation_alpha, frame_index);
 
-		if (snapshot.plugin_snapshot_ready && game_editor != nullptr && game_editor->render_after_world_blit != nullptr)
-		{
-			const world_render_context_t& world_context = ctx.get_world_render_context();
-			const game_editor_plugin_render_context_t context{
-				.plugin_data = snapshot.game_editor_plugin_data,
-				.snapshot = &snapshot,
-				.command_buffer = cmd,
-				.bind_layout = global_layout,
-				.global_data_index = global_cbv_index,
-				.view_data_index = world_context.get_view_render_pass_data_index(frame_index),
-				.entity_buffer_index = world_context.get_entity_buffer_index(frame_index),
-				.bone_buffer_index = world_context.get_bone_buffer_index(frame_index),
-				.interpolation_alpha = interpolation_alpha,
-				.render_size = ctx.get_size(),
-				.frame_index = frame_index,
-			};
-
-			const game_editor_plugin_render_texture_t target{
-				.texture = editor_texture,
-				.shader_resource_index = ctx.get_world_texture_index(frame_index),
-				.states = resource_state_render_target,
-				.attachment_view_index = 0,
-				.format = format_e::r8g8b8a8_srgb,
-			};
-
-			backend.cmd_bind_layout(cmd, {.layout = global_layout});
-			backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
-			game_editor->render_after_world_blit(context, target);
-		}
-
 		const barrier_t end_barrier{
 			.from_states = resource_state_render_target,
-			.to_states = resource_state_ps_resource,
-			.texture_t = editor_texture,
-			.flags = barrier_flags::baf_is_texture,
+			.to_states	 = resource_state_ps_resource,
+			.texture_t	 = editor_texture,
+			.flags		 = barrier_flags::baf_is_texture,
 		};
 
 		backend.cmd_barrier(cmd, {.barriers = &end_barrier, .barrier_count = 1});
 		backend.close_command_buffer(cmd);
 
 		const gfx_handle_t queue_gfx = backend.get_queue_gfx();
+
 		backend.submit_commands(queue_gfx, &cmd, 1);
 	}
 
