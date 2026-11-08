@@ -56,13 +56,8 @@ namespace sfg
 	enum class editor_world_view_e : u8
 	{
 		invalid,
-		final,
-		gbuffer_albedo,
-		gbuffer_orm,
-		gbuffer_normal,
-		gbuffer_emissive,
-		lighting,
-		post_process,
+		lit,
+		unlit,
 	};
 
 	struct editor_selection_listener_t
@@ -370,7 +365,7 @@ namespace sfg
 		editor_transform_control_type_e												  _transform_control_type = editor_transform_control_type_e::move;
 		editor_transform_locality_e													  _transform_locality	  = editor_transform_locality_e::local;
 		editor_transform_snapping_e													  _transform_snapping	  = editor_transform_snapping_e::none;
-		editor_world_view_e															  _world_view			  = editor_world_view_e::final;
+		editor_world_view_e															  _world_view			  = editor_world_view_e::lit;
 		bool																		  _grid_enabled			  = false;
 		bool																		  _bounding_boxes_enabled = false;
 		editor_world_view_settings_t												  _world_view_settings	  = {};

@@ -258,8 +258,8 @@ namespace sfg
 			const char*			tooltip;
 			editor_world_view_e view;
 		} shading_button_specs[2] = {
-			{ICON_LIT, "Lit", editor_world_view_e::final},
-			{ICON_UNLIT, "Unlit (Albedo)", editor_world_view_e::gbuffer_albedo},
+			{ICON_LIT, "Lit", editor_world_view_e::lit},
+			{ICON_UNLIT, "Unlit", editor_world_view_e::unlit},
 		};
 
 		for (size_t i = 0; i < std::size(_shading_buttons); ++i)
@@ -268,7 +268,7 @@ namespace sfg
 			button_config.icon		   = shading_button_specs[i].icon;
 			button_config.toggled_icon = shading_button_specs[i].icon;
 			button_config.tooltip	   = shading_button_specs[i].tooltip;
-			button_config.toggled	   = shading_button_specs[i].view == editor_world_view_e::final;
+			button_config.toggled	   = shading_button_specs[i].view == editor_world_view_e::lit;
 			button_config.user_data	   = &_shading_button_data[i];
 			button_config.on_clicked   = on_shading_toggled;
 			_shading_buttons[i].init(ui, _shading_frame, button_config);

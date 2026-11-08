@@ -68,7 +68,7 @@ namespace sfg
 		_transform_control_type = editor_transform_control_type_e::move;
 		_transform_locality		= editor_transform_locality_e::local;
 		_transform_snapping		= editor_transform_snapping_e::none;
-		_world_view				= editor_world_view_e::final;
+		_world_view				= editor_world_view_e::lit;
 
 		_grid_enabled			= false;
 		_bounding_boxes_enabled = false;

@@ -65,6 +65,16 @@ namespace sfg
 			return _render_context;
 		}
 
+		gpu_index_t get_world_texture_final(u8 frame_index) const override
+		{
+			return _render_context.get_world_texture_index(frame_index);
+		}
+
+		gpu_index_t get_world_texture_unlit(u8 frame_index) const override
+		{
+			return _render_context.get_gbuffer_albedo_index(frame_index);
+		}
+
 		gfx_handle_t get_depth_texture(u8 frame_index) const override
 		{
 			return _render_context.get_depth_texture(frame_index);

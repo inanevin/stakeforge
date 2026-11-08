@@ -101,7 +101,7 @@ namespace sfg
 		editor_gizmo_snap_grid_t		   snap_grid	= {};
 		editor_world_pick_request_t		   pick_request = {};
 		editor_world_grid_snapshot_data_t  grid			= {};
-		editor_world_view_e				   world_view	= editor_world_view_e::final;
+		editor_world_view_e				   world_view	= editor_world_view_e::lit;
 	};
 
 	class SFG_EDITOR_API editor_world_t final

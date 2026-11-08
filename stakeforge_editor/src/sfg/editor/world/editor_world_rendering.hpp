@@ -65,6 +65,7 @@ namespace sfg
 		static void draw_icons(const editor_world_render_context_t& ctx, gfx_handle_t shader, gpu_index_t depth_texture_index, u32 icon_count, u8 frame_index);
 		static void blit_world_texture(const editor_world_render_context_t& ctx,
 									   const world_render_context_t&		world_ctx,
+									   gpu_index_t							source_texture_index,
 									   gpu_index_t							depth_texture_index,
 									   const world_render_snapshot_t&		snapshot,
 									   const editor_world_snapshot_data_t&	snapshot_data,

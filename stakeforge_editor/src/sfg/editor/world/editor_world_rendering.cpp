@@ -60,13 +60,15 @@ namespace sfg
 		const world_render_context_t&  world_ctx = world_renderer.get_render_context();
 		const world_render_snapshot_t& snapshot	 = world_renderer.get_render_snapshot();
 
+		const gpu_index_t source_texture_index = snapshot_data.world_view == editor_world_view_e::unlit ? world_renderer.get_world_texture_unlit(frame_index) : world_renderer.get_world_texture_final(frame_index);
+
 		prep_icons(ctx, snapshot, snapshot_data, interpolation_alpha, frame_index);
 
 		backend.reset_command_buffer(cmd);
 
 		render_outlines(ctx, world_renderer, snapshot_data, prep_data, frame_index, global_cbv_index, global_layout);
 		render_object_ids(ctx, world_renderer, snapshot_data, prep_data, frame_index, global_cbv_index, global_layout);
-		blit_world_texture(ctx, world_ctx, world_renderer.get_depth_texture_index(frame_index), snapshot, snapshot_data, prep_data, interpolation_alpha, frame_index);
+		blit_world_texture(ctx, world_ctx, source_texture_index, world_renderer.get_depth_texture_index(frame_index), snapshot, snapshot_data, prep_data, interpolation_alpha, frame_index);
 
 		const barrier_t end_barrier{
 			.from_states = resource_state_render_target,
@@ -249,6 +251,7 @@ namespace sfg
 
 	void editor_world_rendering_t::blit_world_texture(const editor_world_render_context_t& ctx,
 													  const world_render_context_t&		   world_ctx,
+													  gpu_index_t						   source_texture_index,
 													  gpu_index_t						   depth_texture_index,
 													  const world_render_snapshot_t&	   snapshot,
 													  const editor_world_snapshot_data_t&  snapshot_data,
@@ -338,32 +341,6 @@ namespace sfg
 
 			gizmo_data.params = vec4f_t(editor_world_gizmo_t::PIXEL_SIZE, static_cast<f32>(size.y), math::tan(snapshot.main_view.fov_degrees * DEG_2_RAD * 0.5f), editor_world_gizmo_t::MIN_WORLD_SIZE);
 			SFG_MEMCPY(ctx.get_mapped_gizmo_data(frame_index), &gizmo_data, sizeof(editor_world_gizmo_gpu_data_t));
-		}
-
-		gpu_index_t source_texture_index = NULL_GPU_INDEX;
-
-		switch (snapshot_data.world_view)
-		{
-		case editor_world_view_e::gbuffer_albedo:
-			source_texture_index = world_ctx.get_gbuffer_albedo_index(frame_index);
-			break;
-		case editor_world_view_e::gbuffer_orm:
-			source_texture_index = world_ctx.get_gbuffer_orm_index(frame_index);
-			break;
-		case editor_world_view_e::gbuffer_normal:
-			source_texture_index = world_ctx.get_gbuffer_normal_index(frame_index);
-			break;
-		case editor_world_view_e::gbuffer_emissive:
-			source_texture_index = world_ctx.get_gbuffer_emissive_index(frame_index);
-			break;
-		case editor_world_view_e::lighting:
-			source_texture_index = world_ctx.get_lighting_texture_index(frame_index);
-			break;
-		case editor_world_view_e::post_process:
-		case editor_world_view_e::final:
-		default:
-			source_texture_index = world_ctx.get_world_texture_index(frame_index);
-			break;
 		}
 
 		gfx_backend& backend = gfx_backend::get();

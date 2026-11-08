@@ -71,6 +71,8 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
+		virtual gpu_index_t					   get_world_texture_final(u8 frame_index) const = 0;
+		virtual gpu_index_t					   get_world_texture_unlit(u8 frame_index) const = 0;
 		virtual const world_render_context_t&  get_render_context() const					 = 0;
 		virtual gfx_handle_t				   get_depth_texture(u8 frame_index) const		 = 0;
 		virtual gpu_index_t					   get_depth_texture_index(u8 frame_index) const = 0;

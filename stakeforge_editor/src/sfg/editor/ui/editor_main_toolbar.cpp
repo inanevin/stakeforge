@@ -24,7 +24,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/editor_world_controller.hpp"
 #include "editor/ui/editor_text_rasterization.hpp"
 #include "editor/ui/panels/editor_theme.hpp"
-#include "editor/ui/widgets/editor_widgets_dividers.hpp"
 #include "editor/ui/widgets/editor_widgets_icons.hpp"
 #include "editor/world/editor_world.hpp"
 
@@ -33,23 +32,10 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	namespace
-	{
-		const editor_dropdown_item_t WORLD_VIEW_ITEMS[] = {
-			{.text = "Final", .value = static_cast<u16>(editor_world_view_e::final)},
-			{.text = "GBuffer Albedo", .value = static_cast<u16>(editor_world_view_e::gbuffer_albedo)},
-			{.text = "GBuffer ORM", .value = static_cast<u16>(editor_world_view_e::gbuffer_orm)},
-			{.text = "GBuffer Normal", .value = static_cast<u16>(editor_world_view_e::gbuffer_normal)},
-			{.text = "GBuffer Emissive", .value = static_cast<u16>(editor_world_view_e::gbuffer_emissive)},
-			{.text = "Lighting", .value = static_cast<u16>(editor_world_view_e::lighting)},
-			{.text = "Post Process", .value = static_cast<u16>(editor_world_view_e::post_process)},
-		};
-	}
-
 	void editor_main_toolbar_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
 		_ui						= &ui;
-		_pending_world_view		= editor_world_view_e::final;
+		_pending_world_view		= editor_world_view_e::lit;
 		_displayed_state		= editor_play_state_e::not_playing;
 		_displayed_paused		= false;
 		_has_pending_world_view = false;
@@ -70,47 +56,6 @@ namespace sfg
 		root_in.pos_value.y		 = 0.5f;
 		root_in.child_margins	 = {theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
 		root_in.anchor_y		 = ui::anchor_e::center;
-
-		_world_frame = ui.allocate_widget();
-		ui.set_widget_debug_name(_world_frame, "editor_main_toolbar_world_frame");
-		tree.attach(_root, _world_frame);
-
-		ui::layout_in_t& world_frame_in = tree.in(_world_frame);
-		world_frame_in.size_mode_x		= ui::axis_mode_e::sum_children;
-		world_frame_in.size_mode_y		= ui::axis_mode_e::parent_relative;
-		world_frame_in.size_value.y		= 1.0f;
-		world_frame_in.flow				= ui::flow_e::row;
-		world_frame_in.child_spacing	= theme.item_spacing;
-		world_frame_in.child_margins	= {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
-
-		_world_label = ui.allocate_widget();
-		ui.set_widget_debug_name(_world_label, "world_view_label");
-		tree.attach(_world_frame, _world_label);
-
-		ui::layout_in_t& label_in = tree.in(_world_label);
-		label_in.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
-		label_in.pos_value.y	  = 0.5f;
-		label_in.anchor_y		  = ui::anchor_e::center;
-		label_in.size_mode_x	  = ui::axis_mode_e::fixed;
-		label_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
-
-		ui.set_widget_text(_world_label, "World View:");
-		label_in.size_value.x = static_cast<f32>(ui.widget_text_len(_world_label)) * theme.text_default_px_size * 0.7f;
-		paint.set_text(_world_label,
-					   ui.widget_text(_world_label),
-					   ui.widget_text_len(_world_label),
-					   {.font = theme.font_default, .color = theme.color_text1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-
-		editor_dropdown_config_t dropdown_config = {};
-		dropdown_config.items					 = WORLD_VIEW_ITEMS;
-		dropdown_config.item_count				 = static_cast<u16>(sizeof(WORLD_VIEW_ITEMS) / sizeof(WORLD_VIEW_ITEMS[0]));
-		dropdown_config.selected				 = get_selected_world_view;
-		dropdown_config.pressed					 = on_world_view_pressed;
-		dropdown_config.user_data				 = this;
-		dropdown_config.width					 = editor_dropdown_width_e::fixed;
-		dropdown_config.pos_y					 = editor_dropdown_pos_y_e::center;
-		dropdown_config.fixed_width				 = theme.item_width * 1.25f;
-		_world_view_dropdown.init(ui, _world_frame, dropdown_config);
 
 		_play_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(_play_frame, "editor_main_toolbar_play_frame");
@@ -241,15 +186,12 @@ namespace sfg
 		_edit_mode_checkbox.uninit();
 		_step_button.uninit();
 		_play_button.uninit();
-		_world_view_dropdown.uninit();
 		_ui->deallocate_widget(_root);
 
 		_ui						= nullptr;
 		_root					= NULL_WIDGET;
-		_world_frame			= NULL_WIDGET;
-		_world_label			= NULL_WIDGET;
 		_play_frame				= NULL_WIDGET;
-		_pending_world_view		= editor_world_view_e::final;
+		_pending_world_view		= editor_world_view_e::lit;
 		_displayed_state		= editor_play_state_e::not_playing;
 		_displayed_paused		= false;
 		_has_pending_world_view = false;
@@ -263,10 +205,10 @@ namespace sfg
 
 	void editor_main_toolbar_t::deserialize(const nlohmann::json& j)
 	{
-		_pending_world_view = j.value<editor_world_view_e>("world_view", editor_world_view_e::final);
+		_pending_world_view = j.value<editor_world_view_e>("world_view", editor_world_view_e::lit);
 
 		if (_pending_world_view == editor_world_view_e::invalid)
-			_pending_world_view = editor_world_view_e::final;
+			_pending_world_view = editor_world_view_e::lit;
 
 		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
 		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
@@ -278,9 +220,6 @@ namespace sfg
 			world_controller.get_editor_world(main_world)->get_edit_context().set_world_view(_pending_world_view);
 			_has_pending_world_view = false;
 		}
-
-		if (_ui != nullptr)
-			_world_view_dropdown.refresh_title();
 	}
 
 	editor_world_view_e editor_main_toolbar_t::get_world_view() const
@@ -296,12 +235,11 @@ namespace sfg
 
 	bool editor_main_toolbar_t::is_window_drag_region(const vec2f_t& pos) const
 	{
-		const ui::layout_tree_t& tree			= _ui->get_tree();
-		const vec4f_t			 world_frame	= tree.bounds(_world_frame);
-		const vec4f_t			 play_frame		= tree.bounds(_play_frame);
-		const bool				 in_world_frame = pos.x >= world_frame.x && pos.x <= world_frame.x + world_frame.z && pos.y >= world_frame.y && pos.y <= world_frame.y + world_frame.w;
-		const bool				 in_play_frame	= pos.x >= play_frame.x && pos.x <= play_frame.x + play_frame.z && pos.y >= play_frame.y && pos.y <= play_frame.y + play_frame.w;
-		return !in_world_frame && !in_play_frame;
+		const ui::layout_tree_t& tree		   = _ui->get_tree();
+		const vec4f_t			 play_frame	   = tree.bounds(_play_frame);
+		const bool				 in_play_frame = pos.x >= play_frame.x && pos.x <= play_frame.x + play_frame.z && pos.y >= play_frame.y && pos.y <= play_frame.y + play_frame.w;
+
+		return !in_play_frame;
 	}
 
 	void editor_main_toolbar_t::refresh_play_controls()
@@ -317,25 +255,6 @@ namespace sfg
 
 		_displayed_state  = state;
 		_displayed_paused = session.is_paused();
-	}
-
-	u16 editor_main_toolbar_t::get_selected_world_view(void* user_data)
-	{
-		const editor_main_toolbar_t& toolbar = *static_cast<const editor_main_toolbar_t*>(user_data);
-
-		return static_cast<u16>(toolbar.get_world_view());
-	}
-
-	void editor_main_toolbar_t::on_world_view_pressed(u16 value, void* user_data)
-	{
-		editor_main_toolbar_t&		toolbar			 = *static_cast<editor_main_toolbar_t*>(user_data);
-		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
-		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
-
-		SFG_ASSERT(!main_world.is_null());
-		world_controller.get_editor_world(main_world)->get_edit_context().set_world_view(static_cast<editor_world_view_e>(value));
-		toolbar._pending_world_view		= static_cast<editor_world_view_e>(value);
-		toolbar._has_pending_world_view = false;
 	}
 
 	void editor_main_toolbar_t::on_play_toggled(bool toggled, void* user_data)
@@ -405,12 +324,6 @@ namespace sfg
 		{
 			context.set_world_view(toolbar._pending_world_view);
 			toolbar._has_pending_world_view = false;
-			toolbar._world_view_dropdown.refresh_title();
-		}
-		else if (toolbar._pending_world_view != context.get_world_view())
-		{
-			toolbar._pending_world_view = context.get_world_view();
-			toolbar._world_view_dropdown.refresh_title();
 		}
 	}
 
@@ -418,26 +331,11 @@ namespace sfg
 	{
 		switch (view)
 		{
-		case editor_world_view_e::final:
-			j = "final";
+		case editor_world_view_e::lit:
+			j = "lit";
 			break;
-		case editor_world_view_e::gbuffer_albedo:
-			j = "gbuffer_albedo";
-			break;
-		case editor_world_view_e::gbuffer_orm:
-			j = "gbuffer_orm";
-			break;
-		case editor_world_view_e::gbuffer_normal:
-			j = "gbuffer_normal";
-			break;
-		case editor_world_view_e::gbuffer_emissive:
-			j = "gbuffer_emissive";
-			break;
-		case editor_world_view_e::lighting:
-			j = "lighting";
-			break;
-		case editor_world_view_e::post_process:
-			j = "post_process";
+		case editor_world_view_e::unlit:
+			j = "unlit";
 			break;
 		default:
 			j = "invalid";
@@ -448,20 +346,11 @@ namespace sfg
 	void from_json(const nlohmann::json& j, editor_world_view_e& view)
 	{
 		const string_t s = j.get<string_t>();
-		if (s == "final")
-			view = editor_world_view_e::final;
-		else if (s == "gbuffer_albedo")
-			view = editor_world_view_e::gbuffer_albedo;
-		else if (s == "gbuffer_orm")
-			view = editor_world_view_e::gbuffer_orm;
-		else if (s == "gbuffer_normal")
-			view = editor_world_view_e::gbuffer_normal;
-		else if (s == "gbuffer_emissive")
-			view = editor_world_view_e::gbuffer_emissive;
-		else if (s == "lighting")
-			view = editor_world_view_e::lighting;
-		else if (s == "post_process")
-			view = editor_world_view_e::post_process;
+
+		if (s == "lit" || s == "final")
+			view = editor_world_view_e::lit;
+		else if (s == "unlit" || s == "gbuffer_albedo")
+			view = editor_world_view_e::unlit;
 		else
 			view = editor_world_view_e::invalid;
 	}
