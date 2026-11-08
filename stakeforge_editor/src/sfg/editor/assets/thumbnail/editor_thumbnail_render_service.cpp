@@ -284,6 +284,8 @@ namespace sfg
 
 		_requests.erase(_requests.begin(), _requests.begin() + prepare_count);
 
+		resource_manager_t::get().flush_material_updates();
+
 		for (size_t i = 0; i < _pending_renders.size();)
 		{
 			pending_render_t& pending_render = _pending_renders[i];

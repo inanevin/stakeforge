@@ -45,7 +45,6 @@ namespace sfg
 	class editor_world_t;
 	class world_t;
 	struct editor_world_init_config_t;
-	struct world_render_snapshot_t;
 	struct editor_asset_deletion_listener_tag_t;
 	struct editor_command_listener_tag_t;
 	struct editor_command_t;
@@ -150,12 +149,6 @@ namespace sfg
 	private:
 		friend class editor_play_session_t;
 
-		struct acquired_render_world_t
-		{
-			editor_world_t*				   world	= nullptr;
-			const world_render_snapshot_t* snapshot = nullptr;
-		};
-
 		f32	 calculate_render_alpha() const;
 		void tick_preview_world(editor_world_t& editor_world, f32 dt_seconds);
 		void destroy_world_internal(editor_world_handle_t handle);
@@ -177,7 +170,6 @@ namespace sfg
 		dynamic_gen_pool_t<editor_world_t*, u32, editor_world_handle_tag_t> _worlds;
 		editor_play_session_t												_play_session = {};
 		string_t															_main_world_name;
-		vector_t<acquired_render_world_t>									_render_worlds;
 		sid_t																_main_world_asset_guid		   = NULL_SID;
 		sid_t																_pending_main_world_asset_guid = NULL_SID;
 		i64																	_previous_time_us			   = 0;

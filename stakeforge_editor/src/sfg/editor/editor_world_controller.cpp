@@ -55,6 +55,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/physics/physics_world.hpp>
 #include <sfg/core/runtime/engine/engine_threads.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
+#include <sfg/core/runtime/resources/resource_manager.hpp>
 #include <sfg/core/reflection/plugin_type_schema.hpp>
 #include <sfg/core/runtime/world/world.hpp>
 #include <sfg/core/runtime/world/world_component_util.hpp>
@@ -71,7 +72,6 @@ namespace sfg
 		s_instance = this;
 
 		_worlds.reserve(8);
-		_render_worlds.reserve(8);
 
 		_asset_deletion_listener = editor_asset_manager_t::get().add_asset_deletion_listener(on_asset_deletion, this);
 		_command_listener		 = editor_command_system_t::get().add_listener(on_command_system_event, this);
@@ -97,7 +97,6 @@ namespace sfg
 		}
 
 		destroy_worlds_internal(false);
-		_render_worlds.resize(0);
 
 		_previous_time_us = 0;
 		_accumulator_us	  = 0;
@@ -222,7 +221,6 @@ namespace sfg
 		ZoneScoped;
 
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
-		_render_worlds.resize(0);
 
 		if (_worlds.empty())
 			return false;
@@ -230,12 +228,7 @@ namespace sfg
 		_render_alpha = calculate_render_alpha();
 
 		for (editor_world_t* world : _worlds)
-		{
-			_render_worlds.push_back({
-				.world	  = world,
-				.snapshot = &world->acquire_render_snapshot(),
-			});
-		}
+			world->get_world_renderer().acquire_snapshot();
 
 		return true;
 	}
@@ -246,16 +239,16 @@ namespace sfg
 
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 
-		if (_render_worlds.empty())
+		if (_worlds.empty())
 			return false;
 
-		for (const acquired_render_world_t& acquired : _render_worlds)
-			acquired.world->render(*acquired.snapshot, _render_alpha, frame_index, global_cbv_index, global_layout);
-
-		_render_worlds.resize(0);
+		for (editor_world_t* world : _worlds)
+			world->render(_render_alpha, frame_index, global_cbv_index, global_layout);
 
 		gfx_backend& backend = gfx_backend::get();
+
 		backend.queue_signal(queue, &signal, &signal_value, 1);
+
 		return true;
 	}
 
@@ -332,9 +325,12 @@ namespace sfg
 			world_t& world = editor_world->get_world();
 
 			world.get_debug_draw().debug_draw_missing_resources(world);
-
-			editor_world->produce_snapshot();
 		}
+
+		resource_manager_t::get().flush_material_updates();
+
+		for (editor_world_t* editor_world : _worlds)
+			editor_world->produce_snapshot();
 
 		_play_session.process_game_requests();
 	}

@@ -36,7 +36,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/physics/physics_world.hpp>
 #include <sfg/core/runtime/render/render_view.hpp>
 #include <sfg/core/runtime/render/world_render_view.hpp>
-#include <sfg/core/runtime/render/world_rendering.hpp>
+#include <sfg/core/runtime/render/world_render_snapshot.hpp>
 #include <sfg/core/runtime/resources/common_resources.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/runtime/world/world_debug_draw.hpp>
@@ -46,16 +46,12 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/world/ecs.hpp>
 #include <sfg/core/runtime/world/engine_components.hpp>
 #include <sfg/core/runtime/world/system_components.hpp>
-#include <sfg/core/runtime/world/world_snapshot_producer.hpp>
 #include <sfg/core/runtime/world/world_util.hpp>
 #include <sfg/core/runtime/world_renderer/stock_world_renderer.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-#define EDITOR_WORLD_SNAPSHOT_SLOT_COUNT				3
-#define EDITOR_WORLD_SNAPSHOT_SLOT_MASK					0x3
-#define EDITOR_WORLD_SNAPSHOT_FRESH_FLAG				0x80
 #define EDITOR_WORLD_PICK_RESULT_REQUEST_SHIFT			32
 #define EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT		(8192 * 4)
 #define EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT			(8192 * 6)
@@ -153,10 +149,6 @@ namespace sfg
 		_tick_callback			 = tick_callback;
 		_tick_callback_user_data = tick_callback_user_data;
 
-		_producer_slot		  = 0;
-		_consumer_slot		  = 1;
-		_latest_snapshot_slot = UINT8_MAX;
-		_snapshot_mailbox.store(2, std::memory_order_relaxed);
 		_pick_result.store(0, std::memory_order_relaxed);
 		_pending_pick_request		 = {};
 		_last_render_pick_request_id = 0;
@@ -168,20 +160,13 @@ namespace sfg
 			_object_id_readback_valid[i] = false;
 
 		_render_resolution = init_config.render_context.size;
-		_render_context.init(init_config.render_context, init_config.debug_draw);
+		_render_context.init(init_config.render_context.size);
 
 		_world_renderer = new stock_world_renderer_t();
 		_world_renderer->init(init_config.render_context, init_config.debug_draw);
 
-		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
-		{
-			_snapshot_slots[i].reserve();
-
-			editor_world_snapshot_data_t* data = new editor_world_snapshot_data_t();
-
-			data->selected_entities.reserve(init_config.selected_entity_initial_capacity);
-			_snapshot_slots[i].editor_data = data;
-		}
+		for (editor_world_snapshot_data_t& snapshot : _snapshot_slots)
+			snapshot.selected_entities.reserve(init_config.selected_entity_initial_capacity);
 	}
 
 	void editor_world_t::uninit()
@@ -196,11 +181,8 @@ namespace sfg
 		_custom_gizmo	 = false;
 		uninstall_camera();
 
-		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
-		{
-			delete static_cast<editor_world_snapshot_data_t*>(_snapshot_slots[i].editor_data);
-			_snapshot_slots[i].editor_data = nullptr;
-		}
+		for (editor_world_snapshot_data_t& snapshot : _snapshot_slots)
+			snapshot = {};
 
 		_world_renderer->uninit();
 		delete _world_renderer;
@@ -210,7 +192,6 @@ namespace sfg
 		_edit_context.uninit();
 		_world.unload_all_used_resources();
 		_world.uninit();
-		_snapshot_mailbox.store(0, std::memory_order_relaxed);
 		_pick_result.store(0, std::memory_order_relaxed);
 		_pending_pick_request		 = {};
 		_last_render_pick_request_id = 0;
@@ -222,10 +203,7 @@ namespace sfg
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 			_object_id_readback_valid[i] = false;
 
-		_render_resolution	  = vec2u16_t::zero;
-		_producer_slot		  = 0;
-		_consumer_slot		  = 0;
-		_latest_snapshot_slot = UINT8_MAX;
+		_render_resolution = vec2u16_t::zero;
 	}
 
 	void editor_world_t::resize(vec2u16_t render_resolution)
@@ -233,6 +211,7 @@ namespace sfg
 		cancel_gizmo_action();
 
 		_render_resolution = render_resolution;
+		_world_renderer->resize(render_resolution);
 		_render_context.resize(render_resolution);
 		_world.get_screen().set_render_size(render_resolution);
 		_pick_result.store(0, std::memory_order_relaxed);
@@ -637,8 +616,13 @@ namespace sfg
 				editor_world_util_t::draw_selection_gizmos(_world, selected, _render_resolution);
 		}
 
-		if (_edit_context.is_bounding_boxes_enabled() && _latest_snapshot_slot != UINT8_MAX)
-			editor_world_util_t::draw_bounding_boxes(_world, _snapshot_slots[_latest_snapshot_slot], editor_camera_entity);
+		if (_edit_context.is_bounding_boxes_enabled())
+		{
+			const world_render_snapshot_t* snapshot = _world_renderer->get_latest_snapshot();
+
+			if (snapshot != nullptr)
+				editor_world_util_t::draw_bounding_boxes(_world, *snapshot, editor_camera_entity);
+		}
 	}
 
 	void editor_world_t::update_world_transforms()
@@ -648,12 +632,11 @@ namespace sfg
 
 	void editor_world_t::produce_snapshot()
 	{
-		world_render_snapshot_t& snapshot = _snapshot_slots[_producer_slot];
+		const u8 snapshot_slot = _world_renderer->produce_snapshot(_world, engine_runtime_t::get().get_project_settings());
 
-		world_snapshot_producer_t::produce(_world, snapshot, engine_runtime_t::get().get_project_settings(), _render_context.get_world_render_context());
-		_view_rotation = snapshot.main_view.rot;
+		_view_rotation = _world_renderer->get_latest_snapshot()->main_view.rot;
 
-		editor_world_snapshot_data_t&	data			= *static_cast<editor_world_snapshot_data_t*>(snapshot.editor_data);
+		editor_world_snapshot_data_t&	data			= _snapshot_slots[snapshot_slot];
 		const span_t<const entity_id_t> selected		= is_editor_control_enabled() ? _edit_context.get_selected_entities() : span_t<const entity_id_t>{};
 		const ecs_component_table_t&	hierarchy_table = _world.get_component_table(type_id_t<component_hierarchy_t>::value);
 
@@ -708,41 +691,14 @@ namespace sfg
 			}
 		}
 
-		_latest_snapshot_slot = _producer_slot;
-		publish_snapshot();
+		_world_renderer->publish_snapshot();
 	}
 
-	void editor_world_t::publish_snapshot()
-	{
-		const u8 prev  = _snapshot_mailbox.exchange(_producer_slot | EDITOR_WORLD_SNAPSHOT_FRESH_FLAG, std::memory_order_release);
-		_producer_slot = static_cast<u8>((prev & EDITOR_WORLD_SNAPSHOT_SLOT_MASK) % EDITOR_WORLD_SNAPSHOT_SLOT_COUNT);
-	}
-
-	const world_render_snapshot_t& editor_world_t::acquire_render_snapshot()
-	{
-		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
-
-		u8 cur = _snapshot_mailbox.load(std::memory_order_acquire);
-
-		while (cur & EDITOR_WORLD_SNAPSHOT_FRESH_FLAG)
-		{
-			if (_snapshot_mailbox.compare_exchange_weak(cur, _consumer_slot, std::memory_order_acquire, std::memory_order_acquire))
-			{
-				_consumer_slot = static_cast<u8>((cur & EDITOR_WORLD_SNAPSHOT_SLOT_MASK) % EDITOR_WORLD_SNAPSHOT_SLOT_COUNT);
-				break;
-			}
-		}
-
-		return _snapshot_slots[_consumer_slot];
-	}
-
-	void editor_world_t::render(const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	void editor_world_t::render(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		world_render_prep_data_t prep_data = {};
 
-		prep_data.reserve();
-
-		const editor_world_snapshot_data_t& data = *static_cast<const editor_world_snapshot_data_t*>(snapshot.editor_data);
+		const editor_world_snapshot_data_t& data = _snapshot_slots[_world_renderer->get_render_snapshot_slot()];
 
 		if (_object_id_readback_valid[frame_index] && data.pick_request.id != 0 && data.pick_request.id != _last_render_pick_request_id)
 		{
@@ -758,8 +714,8 @@ namespace sfg
 			_last_render_pick_request_id = data.pick_request.id;
 		}
 
-		world_rendering_t::render_world(_render_context.get_world_render_context(), snapshot, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
-		editor_world_rendering_t::render_world(_render_context, snapshot, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
+		_world_renderer->render(prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
+		editor_world_rendering_t::render_world(_render_context, _world_renderer->get_render_context(), _world_renderer->get_render_snapshot(), data, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
 		_object_id_readback_valid[frame_index] = true;
 	}
 }

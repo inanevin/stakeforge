@@ -34,15 +34,16 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/data/vector.hpp>
 #include <sfg/core/math/quat.hpp>
 #include <sfg/core/runtime/physics/physics_config.hpp>
-#include <sfg/core/runtime/render/world_render_snapshot.hpp>
+#include <sfg/core/runtime/render/world_render_context.hpp>
 #include <sfg/core/runtime/world/world.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/runtime/world/world_particle_simulation_config.hpp>
+#include <sfg/core/runtime/world_renderer/world_renderer.hpp>
 #include <sfg/core/vendor/nhlohmann/json_fwd.hpp>
 
 namespace sfg
 {
-	class world_renderer_t;
+	struct world_render_view_t;
 	struct aabb_t;
 	struct physics_raycast_t;
 	struct SFG_EDITOR_API editor_world_init_config_t
@@ -113,36 +114,35 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void						   resize(vec2u16_t render_resolution);
-		void						   install_camera(editor_world_camera_type_e type);
-		void						   uninstall_camera();
-		void						   recreate_camera_entity();
-		void						   set_editor_control_enabled(bool enabled);
-		void						   serialize_camera(nlohmann::json& out_json) const;
-		void						   deserialize_camera(const nlohmann::json& in_json);
-		void						   pass_camera_input(const editor_world_camera_input_t& input);
-		void						   reset_camera_input();
-		void						   tick_camera(f32 dt_seconds);
-		void						   fit_camera_to_bounds(const aabb_t& bounds);
-		void						   align_camera_to_selection();
-		void						   update_gizmo_hover(vec2f_t relative_position);
-		void						   clear_gizmo_hover();
-		bool						   begin_gizmo_action(vec2f_t relative_position);
-		void						   update_gizmo_action(vec2f_t relative_position);
-		void						   end_gizmo_action();
-		void						   cancel_gizmo_action();
-		void						   set_gizmo_callbacks(const editor_gizmo_callbacks_t& callbacks);
-		void						   request_entity_pick(vec2f_t relative_position, bool incremental_selection);
-		void						   shoot_ray_from_camera(vec2f_t relative_position);
-		bool						   get_camera_ray(vec2f_t relative_position, physics_raycast_t& ray) const;
-		void						   reset_input();
-		void						   begin_frame();
-		void						   invoke_tick_callback(f32 delta_time);
-		void						   draw_debug();
-		void						   update_world_transforms();
-		void						   produce_snapshot();
-		const world_render_snapshot_t& acquire_render_snapshot();
-		void						   render(const world_render_snapshot_t& snapshot, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
+		void resize(vec2u16_t render_resolution);
+		void install_camera(editor_world_camera_type_e type);
+		void uninstall_camera();
+		void recreate_camera_entity();
+		void set_editor_control_enabled(bool enabled);
+		void serialize_camera(nlohmann::json& out_json) const;
+		void deserialize_camera(const nlohmann::json& in_json);
+		void pass_camera_input(const editor_world_camera_input_t& input);
+		void reset_camera_input();
+		void tick_camera(f32 dt_seconds);
+		void fit_camera_to_bounds(const aabb_t& bounds);
+		void align_camera_to_selection();
+		void update_gizmo_hover(vec2f_t relative_position);
+		void clear_gizmo_hover();
+		bool begin_gizmo_action(vec2f_t relative_position);
+		void update_gizmo_action(vec2f_t relative_position);
+		void end_gizmo_action();
+		void cancel_gizmo_action();
+		void set_gizmo_callbacks(const editor_gizmo_callbacks_t& callbacks);
+		void request_entity_pick(vec2f_t relative_position, bool incremental_selection);
+		void shoot_ray_from_camera(vec2f_t relative_position);
+		bool get_camera_ray(vec2f_t relative_position, physics_raycast_t& ray) const;
+		void reset_input();
+		void begin_frame();
+		void invoke_tick_callback(f32 delta_time);
+		void draw_debug();
+		void update_world_transforms();
+		void produce_snapshot();
+		void render(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -156,6 +156,11 @@ namespace sfg
 		inline const world_t& get_world() const
 		{
 			return _world;
+		}
+
+		inline world_renderer_t& get_world_renderer()
+		{
+			return *_world_renderer;
 		}
 
 		inline editor_world_render_context_t& get_render_context()
@@ -221,11 +226,10 @@ namespace sfg
 	private:
 		bool get_gizmo_input(editor_gizmo_input_t& input) const;
 		bool get_gizmo_view(world_render_view_t& view);
-		void publish_snapshot();
 		void consume_entity_pick_result();
 
 	private:
-		world_render_snapshot_t _snapshot_slots[3] = {};
+		editor_world_snapshot_data_t _snapshot_slots[world_renderer_t::SNAPSHOT_SLOT_COUNT] = {};
 
 		world_renderer_t* _world_renderer = nullptr;
 
@@ -246,15 +250,11 @@ namespace sfg
 		world_t							_world										 = {};
 		atomic_t<u64>					_pick_result								 = {};
 		editor_world_pick_request_t		_pending_pick_request						 = {};
-		atomic_t<u8>					_snapshot_mailbox							 = {};
 		u32								_last_render_pick_request_id				 = 0;
 		u32								_next_pick_request_id						 = 0;
 		quat_t							_view_rotation								 = quat_t::identity;
 		vec2u16_t						_render_resolution							 = vec2u16_t::zero;
 		bool							_object_id_readback_valid[BACK_BUFFER_COUNT] = {};
 		bool							_custom_gizmo								 = false;
-		u8								_producer_slot								 = 0;
-		u8								_consumer_slot								 = 0;
-		u8								_latest_snapshot_slot						 = UINT8_MAX;
 	};
 }

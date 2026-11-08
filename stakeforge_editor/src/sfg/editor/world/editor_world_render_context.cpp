@@ -48,12 +48,10 @@ namespace sfg
 		}
 	}
 
-	void editor_world_render_context_t::init(const world_render_context_config_t& config, const world_debug_draw_config_t& debug_draw_config)
+	void editor_world_render_context_t::init(vec2u16_t size)
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(config.size.x > 0 && config.size.y > 0);
-
-		_world_render_context.init(config, debug_draw_config);
+		SFG_ASSERT(size.x > 0 && size.y > 0);
 
 		resource_desc_t composite_data_desc = {};
 		composite_data_desc.size			= static_cast<u32>(sizeof(editor_world_composite_data_t));
@@ -95,7 +93,7 @@ namespace sfg
 		_gizmo_central_meshes[0]					   = load_gizmo_mesh_render_data(DEFAULT_MESH_SPHERE_GUID);
 		_gizmo_central_meshes[1]					   = load_gizmo_mesh_render_data(DEFAULT_MESH_CUBE_GUID);
 
-		create_texture(config.size);
+		create_texture(size);
 	}
 
 	void editor_world_render_context_t::uninit()
@@ -103,7 +101,9 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
 		destroy_texture();
+
 		gfx_backend& backend = gfx_backend::get();
+
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
 			backend.destroy_resource(_pfd[i].composite_data);
@@ -117,14 +117,16 @@ namespace sfg
 			_pfd[i].composite_data_index  = NULL_GPU_INDEX;
 			_pfd[i].gizmo_data_index	  = NULL_GPU_INDEX;
 		}
+
 		for (editor_world_gizmo_mesh_t& mesh : _gizmo_meshes)
 			mesh = {};
+
 		for (editor_world_gizmo_mesh_t& mesh : _gizmo_central_meshes)
 			mesh = {};
+
 		_composite_shader	  = {};
 		_gizmo_shader		  = {};
 		_physics_debug_shader = {};
-		_world_render_context.uninit();
 	}
 
 	void editor_world_render_context_t::resize(vec2u16_t size)
@@ -132,7 +134,6 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(size.x > 0 && size.y > 0);
 
-		_world_render_context.resize(size);
 		destroy_texture();
 		create_texture(size);
 	}

@@ -28,7 +28,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/math/vec2u16.hpp>
 #include <sfg/core/math/vec4f.hpp>
 #include <sfg/core/runtime/render/render_resource_handle.hpp>
-#include <sfg/core/runtime/render/world_render_context.hpp>
 #include <sfg/core/runtime/world/ecs_defs.hpp>
 
 namespace sfg
@@ -82,23 +81,13 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const world_render_context_config_t& config, const world_debug_draw_config_t& debug_draw_config);
+		void init(vec2u16_t size);
 		void uninit();
 		void resize(vec2u16_t size);
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
-
-		inline world_render_context_t& get_world_render_context()
-		{
-			return _world_render_context;
-		}
-
-		inline const world_render_context_t& get_world_render_context() const
-		{
-			return _world_render_context;
-		}
 
 		inline gfx_handle_t get_command_buffer(u8 frame_index) const
 		{
@@ -215,8 +204,6 @@ namespace sfg
 		};
 
 	private:
-		world_render_context_t _world_render_context = {};
-
 		per_frame_data_t _pfd[BACK_BUFFER_COUNT] = {};
 
 		editor_world_gizmo_mesh_t _gizmo_meshes[3]		   = {};

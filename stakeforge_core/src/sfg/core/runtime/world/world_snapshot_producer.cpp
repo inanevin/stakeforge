@@ -193,8 +193,6 @@ namespace sfg
 
 	void world_snapshot_producer_t::produce(world_t& world, world_render_snapshot_t& snapshot, const project_settings_t& project_settings, const world_render_context_t& render_context)
 	{
-		resource_manager_t::get().flush_material_updates();
-
 		snapshot.shadows	   = project_settings.shadows;
 		snapshot.quality_level = project_settings.quality_level;
 

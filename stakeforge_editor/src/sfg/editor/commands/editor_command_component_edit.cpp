@@ -24,6 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/editor_world_controller.hpp"
 #include "editor/world/editor_world.hpp"
 #include "editor/editor_command_system.hpp"
+#include <sfg/core/data/frame_vector.hpp>
 #include <sfg/core/data/istream.hpp>
 #include <sfg/core/data/ostream.hpp>
 #include <sfg/core/io/assert.hpp>

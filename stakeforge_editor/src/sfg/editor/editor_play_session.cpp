@@ -34,6 +34,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/runtime/engine/engine_threads.hpp>
+#include <sfg/core/runtime/resources/resource_manager.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 
@@ -166,6 +167,8 @@ namespace sfg
 			_edits.clear();
 		}
 
+		resource_manager_t::get().flush_material_updates();
+
 		editor_world.produce_snapshot();
 		editor_surface_controller_t::get().get_input_router().reset_game_cursor();
 
@@ -199,6 +202,9 @@ namespace sfg
 		_state = state;
 		editor_world.get_world().update_world_transforms();
 		editor_world.get_world().tick_post(0.0f);
+
+		resource_manager_t::get().flush_material_updates();
+
 		editor_world.produce_snapshot();
 	}
 

@@ -33,6 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/project/project_settings.hpp>
 #include <sfg/core/runtime/render/world_rendering.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
+#include <sfg/core/runtime/resources/resource_manager.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/runtime/world/world_snapshot_producer.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
@@ -209,6 +210,8 @@ namespace sfg
 
 		_main_world.get_debug_draw().debug_draw_missing_resources(_main_world);
 
+		resource_manager_t::get().flush_material_updates();
+
 		produce_snapshot();
 	}
 
@@ -285,7 +288,10 @@ namespace sfg
 		_last_fixed_step_us.store(_previous_time_us, std::memory_order_relaxed);
 		_fixed_step_us.store(0, std::memory_order_relaxed);
 
+		resource_manager_t::get().flush_material_updates();
+
 		produce_snapshot();
+
 		return true;
 	}
 

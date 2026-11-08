@@ -296,7 +296,6 @@ namespace sfg
 		vector_t<world_sprite_draw_t>			  sprite_draws		= {};
 		vector_t<world_particle_draw_t>			  particle_draws	= {};
 		vector_t<world_particle_t>				  particles			= {};
-		void*									  editor_data		= nullptr;
 		engine_quality_level_e					  quality_level		= engine_quality_level_e::high;
 
 		inline void reserve()

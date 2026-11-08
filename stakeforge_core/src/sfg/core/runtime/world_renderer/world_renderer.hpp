@@ -23,11 +23,18 @@ in GAME-LINKING-EXCEPTION.md.
 #pragma once
 
 #include "core/common/sfg_exports.hpp"
+#include "core/gfx/common/gfx_constants.hpp"
 
 namespace sfg
 {
+	class world_t;
+	class world_render_context_t;
+	struct vec2u16_t;
+	struct project_settings_t;
 	struct world_render_context_config_t;
 	struct world_debug_draw_config_t;
+	struct world_render_snapshot_t;
+	struct world_render_prep_data_t;
 
 	class SFG_API world_renderer_t
 	{
@@ -37,11 +44,32 @@ namespace sfg
 		world_renderer_t(const world_renderer_t& other)			   = delete;
 		world_renderer_t& operator=(const world_renderer_t& other) = delete;
 
+		static inline constexpr u8 SNAPSHOT_SLOT_COUNT = 3;
+
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
 
 		virtual void init(const world_render_context_config_t& config, const world_debug_draw_config_t& debug_draw_config) = 0;
 		virtual void uninit()																							   = 0;
+		virtual void resize(vec2u16_t size)																				   = 0;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		virtual u8	 produce_snapshot(world_t& world, const project_settings_t& project_settings)																	= 0;
+		virtual void publish_snapshot()																																= 0;
+		virtual void acquire_snapshot()																																= 0;
+		virtual void render(world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) = 0;
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		virtual const world_render_context_t&  get_render_context() const		= 0;
+		virtual const world_render_snapshot_t* get_latest_snapshot() const		= 0;
+		virtual const world_render_snapshot_t& get_render_snapshot() const		= 0;
+		virtual u8							   get_render_snapshot_slot() const = 0;
 	};
 }
