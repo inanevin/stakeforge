@@ -23,6 +23,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/world/world_snapshot_producer.hpp"
 #include "core/runtime/world/world.hpp"
 #include "core/runtime/world/world_debug_draw.hpp"
+#include "core/runtime/world/world_util.hpp"
 #include "core/io/assert.hpp"
 #include "core/data/frame_hash_map.hpp"
 #include "core/math/math.hpp"
@@ -240,44 +241,37 @@ namespace sfg
 
 		// extract main camera
 		{
-			const ecs_component_table_ref_t table_refs[] = {
-				alive_table.ref(),
-				transform_table.ref(),
-				camera_table.ref(),
-				!disabled_table.ref(),
-			};
+			const entity_id_t camera_entity = world_util_t::get_active_camera(world);
 
-			i8			min_prio				= 127;
-			i8			min_post_process_prio	= 127;
-			entity_id_t min_prio_entity			= NULL_ENTITY_ID;
-			entity_id_t min_post_process_entity = NULL_ENTITY_ID;
-
-			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			if (camera_entity != NULL_ENTITY_ID)
 			{
-				const component_system_transform_t& transform = row.get<component_system_transform_t>(1);
-				const component_camera_t&			cam		  = row.get<component_camera_t>(2);
+				const component_camera_t&			cam	  = camera_table.get_as_const<component_camera_t>(camera_entity);
+				const component_system_transform_t& trans = transform_table.get_as_const<component_system_transform_t>(camera_entity);
 
-				if (min_prio_entity == NULL_ENTITY_ID || cam.priority < min_prio)
+				snapshot.main_view = {.pos = trans.abs_pos, .rot = trans.abs_rot, .prev_pos = trans.prev_abs_pos, .prev_rot = trans.prev_abs_rot, .near_plane = cam.near_plane, .far_plane = cam.far_plane, .fov_degrees = cam.fov_degrees};
+
+				entity_id_t post_process_entity = camera_entity;
+
+				if (cam.priority == -1)
 				{
-					min_prio		= cam.priority;
-					min_prio_entity = row.id;
+					post_process_entity = NULL_ENTITY_ID;
+
+					const ecs_component_table_ref_t table_refs[] = {alive_table.ref(), transform_table.ref(), camera_table.ref(), !disabled_table.ref()};
+					i8								min_priority = 0;
+
+					for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+					{
+						const component_camera_t& candidate = row.get<component_camera_t>(2);
+
+						if (candidate.priority != -1 && (post_process_entity == NULL_ENTITY_ID || candidate.priority < min_priority))
+						{
+							min_priority		= candidate.priority;
+							post_process_entity = row.id;
+						}
+					}
 				}
 
-				if (cam.priority != -1 && (min_post_process_entity == NULL_ENTITY_ID || cam.priority < min_post_process_prio))
-				{
-					min_post_process_prio	= cam.priority;
-					min_post_process_entity = row.id;
-				}
-			}
-
-			if (min_prio_entity != NULL_ENTITY_ID)
-			{
-				component_camera_t&			  cam	= camera_table.get_as<component_camera_t>(min_prio_entity);
-				component_system_transform_t& trans = transform_table.get_as<component_system_transform_t>(min_prio_entity);
-				snapshot.main_view					= {.pos = trans.abs_pos, .rot = trans.abs_rot, .prev_pos = trans.prev_abs_pos, .prev_rot = trans.prev_abs_rot, .near_plane = cam.near_plane, .far_plane = cam.far_plane, .fov_degrees = cam.fov_degrees};
-
-				const entity_id_t				post_process_entity = min_prio == -1 ? min_post_process_entity : min_prio_entity;
-				const component_post_process_t* post_process		= post_process_entity == NULL_ENTITY_ID ? nullptr : post_process_table.find_as_const<component_post_process_t>(post_process_entity);
+				const component_post_process_t* post_process = post_process_entity == NULL_ENTITY_ID ? nullptr : post_process_table.find_as_const<component_post_process_t>(post_process_entity);
 
 				if (post_process != nullptr)
 				{

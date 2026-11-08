@@ -47,7 +47,7 @@ namespace sfg
 		static void		   sync_destroyers(world_t& world, f32 dt);
 		static void		   sync_sprite_renderers(world_t& world);
 		static void		   sync_reflection_probes(world_t& world, u64 tick_count);
-		static entity_id_t sync_main_camera(world_t& world);
+		static entity_id_t get_active_camera(const world_t& world);
 		static void		   sync_aabbs(world_t& world);
 	};
 }

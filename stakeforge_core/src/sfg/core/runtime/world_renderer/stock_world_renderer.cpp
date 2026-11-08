@@ -66,15 +66,13 @@ namespace sfg
 	{
 		world_snapshot_producer_t::produce(world, _snapshot_slots[_producer_slot], project_settings, _render_context);
 		_latest_snapshot_slot = _producer_slot;
-
 		return _producer_slot;
 	}
 
 	void stock_world_renderer_t::publish_snapshot()
 	{
 		const u8 previous = _snapshot_mailbox.exchange(_producer_slot | WORLD_RENDERER_SNAPSHOT_FRESH_FLAG, std::memory_order_acq_rel);
-
-		_producer_slot = previous & WORLD_RENDERER_SNAPSHOT_SLOT_MASK;
+		_producer_slot	  = previous & WORLD_RENDERER_SNAPSHOT_SLOT_MASK;
 	}
 
 	void stock_world_renderer_t::acquire_snapshot()
@@ -98,7 +96,6 @@ namespace sfg
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 
 		prep_data.reserve();
-
 		world_rendering_t::render_world(_render_context, _snapshot_slots[_consumer_slot], prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
 	}
 }

@@ -47,6 +47,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/world/engine_components.hpp>
 #include <sfg/core/runtime/world/system_components.hpp>
 #include <sfg/core/runtime/world/world_screen.hpp>
+#include <sfg/core/runtime/world/world_util.hpp>
 #include <sfg/core/runtime/world_renderer/stock_world_renderer.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 
@@ -629,7 +630,9 @@ namespace sfg
 	{
 		const u8 snapshot_slot = _world_renderer->produce_snapshot(_world, engine_runtime_t::get().get_project_settings());
 
-		_view_rotation = _world_renderer->get_latest_snapshot()->main_view.rot;
+		const entity_id_t camera_entity = world_util_t::get_active_camera(_world);
+
+		_view_rotation = camera_entity == NULL_ENTITY_ID ? quat_t::identity : _world.get_component_table<component_system_transform_t>().get_as_const<component_system_transform_t>(camera_entity).abs_rot;
 
 		editor_world_snapshot_data_t&	data			= _snapshot_slots[snapshot_slot];
 		const span_t<const entity_id_t> selected		= is_editor_control_enabled() ? _edit_context.get_selected_entities() : span_t<const entity_id_t>{};

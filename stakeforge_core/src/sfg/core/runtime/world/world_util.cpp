@@ -270,7 +270,7 @@ namespace sfg
 		}
 	}
 
-	entity_id_t world_util_t::sync_main_camera(world_t& world)
+	entity_id_t world_util_t::get_active_camera(const world_t& world)
 	{
 		ZoneScoped;
 

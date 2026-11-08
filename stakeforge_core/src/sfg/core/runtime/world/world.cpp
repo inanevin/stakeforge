@@ -436,7 +436,7 @@ namespace sfg
 
 	void world_t::refresh_main_camera()
 	{
-		_main_camera_entity = world_util_t::sync_main_camera(*this);
+		_main_camera_entity = world_util_t::get_active_camera(*this);
 
 		if (_main_camera_entity == NULL_ENTITY_ID)
 		{
