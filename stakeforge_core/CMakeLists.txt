@@ -106,6 +106,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/render/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/resources/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/plugin/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/world/*.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/world_renderer/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/physics/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/project/*.cpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/gui/*.cpp
@@ -156,6 +157,7 @@ ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/render/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/resources/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/plugin/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/world/*.hpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/world_renderer/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/reflection/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/serialization/*.hpp
 ${CMAKE_CURRENT_SOURCE_DIR}/src/sfg/core/runtime/physics/*.hpp

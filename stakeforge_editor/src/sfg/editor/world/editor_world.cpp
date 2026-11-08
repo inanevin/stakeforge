@@ -48,6 +48,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/world/system_components.hpp>
 #include <sfg/core/runtime/world/world_snapshot_producer.hpp>
 #include <sfg/core/runtime/world/world_util.hpp>
+#include <sfg/core/runtime/world_renderer/stock_world_renderer.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 
 namespace sfg
@@ -169,6 +170,9 @@ namespace sfg
 		_render_resolution = init_config.render_context.size;
 		_render_context.init(init_config.render_context, init_config.debug_draw);
 
+		_world_renderer = new stock_world_renderer_t();
+		_world_renderer->init(init_config.render_context, init_config.debug_draw);
+
 		for (u32 i = 0; i < EDITOR_WORLD_SNAPSHOT_SLOT_COUNT; ++i)
 		{
 			_snapshot_slots[i].reserve();
@@ -197,6 +201,10 @@ namespace sfg
 			delete static_cast<editor_world_snapshot_data_t*>(_snapshot_slots[i].editor_data);
 			_snapshot_slots[i].editor_data = nullptr;
 		}
+
+		_world_renderer->uninit();
+		delete _world_renderer;
+		_world_renderer = nullptr;
 
 		_render_context.uninit();
 		_edit_context.uninit();
@@ -332,7 +340,6 @@ namespace sfg
 			return;
 
 		_input_controller.deactivate();
-
 		_world.update_world_transforms();
 		_camera->set_transform(_world, _world.get_entity_pos_last_abs(anchor), _world.get_entity_rot_last_abs(anchor));
 	}

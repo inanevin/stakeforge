@@ -42,6 +42,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	class world_renderer_t;
 	struct aabb_t;
 	struct physics_raycast_t;
 	struct SFG_EDITOR_API editor_world_init_config_t
@@ -225,6 +226,8 @@ namespace sfg
 
 	private:
 		world_render_snapshot_t _snapshot_slots[3] = {};
+
+		world_renderer_t* _world_renderer = nullptr;
 
 		editor_world_tick_callback_t _tick_callback			  = nullptr;
 		void*						 _tick_callback_user_data = nullptr;
