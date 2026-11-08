@@ -46,7 +46,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/world/ecs.hpp>
 #include <sfg/core/runtime/world/engine_components.hpp>
 #include <sfg/core/runtime/world/system_components.hpp>
-#include <sfg/core/runtime/world/world_util.hpp>
+#include <sfg/core/runtime/world/world_screen.hpp>
 #include <sfg/core/runtime/world_renderer/stock_world_renderer.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 
@@ -482,7 +482,7 @@ namespace sfg
 
 		world_ray_t ray = {};
 
-		if (!world_util_t::relative_position_to_world_ray(view.inv_view_proj, relative_position, ray))
+		if (!world_screen_t::relative_position_to_world_ray(view.inv_view_proj, relative_position, ray))
 			return false;
 
 		out_ray = {.origin = camera_position, .direction = ray.direction, .distance = camera.far_plane};
@@ -617,12 +617,7 @@ namespace sfg
 		}
 
 		if (_edit_context.is_bounding_boxes_enabled())
-		{
-			const world_render_snapshot_t* snapshot = _world_renderer->get_latest_snapshot();
-
-			if (snapshot != nullptr)
-				editor_world_util_t::draw_bounding_boxes(_world, *snapshot, editor_camera_entity);
-		}
+			editor_world_util_t::draw_bounding_boxes(_world, editor_camera_entity);
 	}
 
 	void editor_world_t::update_world_transforms()

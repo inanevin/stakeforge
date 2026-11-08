@@ -27,7 +27,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/render/render_view.hpp>
 #include <sfg/core/runtime/render/world_render_view.hpp>
 #include <sfg/core/runtime/world/world_debug_draw.hpp>
-#include <sfg/core/runtime/world/world_util.hpp>
+#include <sfg/core/runtime/world/world_screen.hpp>
 
 namespace sfg
 {
@@ -113,7 +113,7 @@ namespace sfg
 
 	bool editor_world_gizmo_t::project_point(const frame_t& frame, const vec3f_t& point, vec2f_t& out_position) const
 	{
-		if (!world_util_t::world_position_to_relative_position(frame.view.view_proj, point, out_position))
+		if (!world_screen_t::world_position_to_relative_position(frame.view.view_proj, point, out_position))
 			return false;
 
 		out_position.x *= static_cast<f32>(frame.resolution.x);
@@ -185,7 +185,7 @@ namespace sfg
 		{
 			world_ray_t ray = {};
 
-			if (world_util_t::relative_position_to_world_ray(frame.view.inv_view_proj, relative_position, ray))
+			if (world_screen_t::relative_position_to_world_ray(frame.view.inv_view_proj, relative_position, ray))
 			{
 				f32 best_alignment = 0.0f;
 
@@ -361,7 +361,7 @@ namespace sfg
 
 		world_ray_t ray = {};
 
-		if (world_util_t::relative_position_to_world_ray(frame.view.inv_view_proj, relative_position, ray))
+		if (world_screen_t::relative_position_to_world_ray(frame.view.inv_view_proj, relative_position, ray))
 		{
 			if (!axis_handle)
 				_central_plane_valid = calculate_plane_point(ray, _pivot, _central_plane_normal, _initial_plane_point);
@@ -434,7 +434,7 @@ namespace sfg
 
 		const vec2f_t mouse_delta = mouse_pixels - _initial_mouse_pixels;
 		world_ray_t	  ray		  = {};
-		const bool	  ray_valid	  = world_util_t::relative_position_to_world_ray(frame.view.inv_view_proj, relative_position, ray);
+		const bool	  ray_valid	  = world_screen_t::relative_position_to_world_ray(frame.view.inv_view_proj, relative_position, ray);
 
 		mat4x3_t delta = mat4x3_t::identity;
 

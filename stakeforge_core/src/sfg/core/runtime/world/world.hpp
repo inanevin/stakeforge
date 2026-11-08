@@ -16,7 +16,6 @@
 #include "core/runtime/world/world_audio_controller.hpp"
 #include "core/runtime/world/world_canvas_controller.hpp"
 #include "core/runtime/world/world_debug_draw.hpp"
-#include "core/runtime/world/world_logic_helper.hpp"
 #include "core/runtime/world/world_particle_simulation.hpp"
 #include "core/runtime/world/world_screen.hpp"
 #include "core/runtime/physics/physics_world.hpp"
@@ -78,6 +77,7 @@ namespace sfg
 		void  on_animation_callback(entity_id_t entity, sid_t event);
 		void  tick_logic(f32 dt);
 		void  tick_post(f32 dt);
+		void  tick_finalize();
 		void  key_event(u16 key, u16 scan_code, u8 action);
 		void  focus_event(bool focused);
 		void  mouse_button_event(u8 button, u8 action, f32 position_x, f32 position_y);
@@ -351,6 +351,7 @@ namespace sfg
 		struct system_components_t
 		{
 			ecs_component_table_t* transform_table = nullptr;
+			ecs_component_table_t* aabb_table	   = nullptr;
 		};
 
 		struct key_state_t
@@ -369,7 +370,6 @@ namespace sfg
 		animation_processor_t			_animation_processor		  = {};
 		world_audio_controller_t		_audio_controller			  = {};
 		world_canvas_controller_t		_canvas_controller			  = {};
-		world_logic_helper_t			_logic_helper				  = {};
 		world_particle_simulation_t		_particle_simulation		  = {};
 		engine_components_t				_engine_components			  = {};
 		system_components_t				_system_components			  = {};

@@ -34,6 +34,16 @@ namespace sfg
 		reflection_registry_t& registry = reflection_registry_t::get();
 
 		registry.register_type({
+			.name			 = "component_system_aabb",
+			.display_name	 = "System AABB",
+			.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_system_aabb_t*>(ptr), component_system_aabb_t{}); },
+			.type_id		 = type_id_t<component_system_aabb_t>::value,
+			.size			 = sizeof(component_system_aabb_t),
+			.alignment		 = alignof(component_system_aabb_t),
+			.flags			 = reflected_type_flag_system_component | reflected_type_flag_no_ui | reflected_type_flag_no_serialization,
+		});
+
+		registry.register_type({
 			.name			 = "component_system_particle_emitter",
 			.display_name	 = "System Particle Emitter",
 			.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_system_particle_emitter_t*>(ptr), component_system_particle_emitter_t{}); },

@@ -36,6 +36,12 @@ namespace sfg
 	struct window_runtime_t;
 	enum class window_cursor_confinement_e : u8;
 
+	struct world_ray_t
+	{
+		vec3f_t origin	  = vec3f_t::zero;
+		vec3f_t direction = vec3f_t::forward;
+	};
+
 	class SFG_API world_screen_t final
 	{
 	public:
@@ -67,6 +73,10 @@ namespace sfg
 		void	set_cursor_visible(bool visible);
 		void	reset_cursor();
 		void	apply_cursor(window_runtime_t& runtime, bool enabled = true);
+
+		static bool world_position_to_relative_position(const mat4x4_t& view_proj, const vec3f_t& world_position, vec2f_t& out_relative_position);
+		static bool relative_position_to_world_position(const mat4x4_t& inv_view_proj, const vec2f_t& relative_position, f32 ndc_depth, vec3f_t& out_world_position);
+		static bool relative_position_to_world_ray(const mat4x4_t& inv_view_proj, const vec2f_t& relative_position, world_ray_t& out_ray);
 
 		// -----------------------------------------------------------------------------
 		// accessors

@@ -169,6 +169,7 @@ namespace sfg
 
 		resource_manager_t::get().flush_material_updates();
 
+		editor_world.get_world().tick_finalize();
 		editor_world.produce_snapshot();
 		editor_surface_controller_t::get().get_input_router().reset_game_cursor();
 
@@ -202,6 +203,7 @@ namespace sfg
 		_state = state;
 		editor_world.get_world().update_world_transforms();
 		editor_world.get_world().tick_post(0.0f);
+		editor_world.get_world().tick_finalize();
 
 		resource_manager_t::get().flush_material_updates();
 

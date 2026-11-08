@@ -22,6 +22,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "core/runtime/world/world.hpp"
 #include "core/runtime/world/world_debug_draw.hpp"
+#include "core/runtime/world/world_util.hpp"
 
 #include "core/io/assert.hpp"
 #include "core/input/input_common.hpp"
@@ -76,7 +77,6 @@ namespace sfg
 
 		refresh_component_table_cache();
 
-		_logic_helper.init(*this);
 		_animation_processor.init(*this, config.animation_processor_page_size);
 		_audio_controller.init(*this);
 		_canvas_controller.init(*this);
@@ -100,7 +100,6 @@ namespace sfg
 		if (_physics_world.is_init())
 			_physics_world.uninit();
 
-		_logic_helper.uninit();
 		_debug_draw.uninit();
 
 		for (ecs_component_table_t& table : _component_tables)
@@ -313,7 +312,7 @@ namespace sfg
 
 		game_plugin_runtime_t::get().tick_logic(*this, scaled_dt);
 
-		_logic_helper.sync_destroyers(scaled_dt);
+		world_util_t::sync_destroyers(*this, scaled_dt);
 		_audio_controller.tick(scaled_dt);
 	}
 
@@ -425,13 +424,21 @@ namespace sfg
 		_canvas_controller.tick(dt);
 		_canvas_controller.dispatch_events();
 
-		_logic_helper.sync_sprite_renderers();
-		_logic_helper.sync_reflection_probes(_tick_count);
+		world_util_t::sync_reflection_probes(*this, _tick_count);
+	}
+
+	void world_t::tick_finalize()
+	{
+		ZoneScoped;
+
+		world_util_t::sync_sprite_renderers(*this);
+
+		world_util_t::sync_aabbs(*this);
 	}
 
 	void world_t::refresh_main_camera()
 	{
-		_main_camera_entity = _logic_helper.sync_main_camera();
+		_main_camera_entity = world_util_t::sync_main_camera(*this);
 
 		if (_main_camera_entity == NULL_ENTITY_ID)
 		{
@@ -502,6 +509,7 @@ namespace sfg
 
 		_engine_components.alive_table->add(id);
 		_engine_components.hierarchy_table->add_or_get_as<component_hierarchy_t>(id);
+		_system_components.aabb_table->add_or_get_as<component_system_aabb_t>(id);
 
 		component_guid_t& guid_component = _engine_components.guid_table->add_or_get_as<component_guid_t>(id);
 		guid_component.guid				 = guid;
@@ -1228,6 +1236,7 @@ namespace sfg
 		_engine_components.alive_table	   = &get_component_table(type_id_t<component_alive_t>::value);
 		_engine_components.prefab_table	   = &get_component_table(type_id_t<component_prefab_reference_t>::value);
 		_system_components.transform_table = &get_component_table(type_id_t<component_system_transform_t>::value);
+		_system_components.aabb_table	   = &get_component_table(type_id_t<component_system_aabb_t>::value);
 	}
 
 	const ecs_component_table_t* world_t::find_component_table(sid_t type_id) const

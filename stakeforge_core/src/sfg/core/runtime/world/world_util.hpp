@@ -24,24 +24,30 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "core/common/sfg_exports.hpp"
 
-#include "core/math/vec3f.hpp"
+#include "core/common/size_definitions.hpp"
+#include "core/runtime/world/ecs_defs.hpp"
 
 namespace sfg
 {
-	class mat4x4_t;
-	struct vec2f_t;
-
-	struct world_ray_t
-	{
-		vec3f_t origin	  = vec3f_t::zero;
-		vec3f_t direction = vec3f_t::forward;
-	};
+	class world_t;
 
 	class SFG_API world_util_t final
 	{
 	public:
-		static bool world_position_to_relative_position(const mat4x4_t& view_proj, const vec3f_t& world_position, vec2f_t& out_relative_position);
-		static bool relative_position_to_world_position(const mat4x4_t& inv_view_proj, const vec2f_t& relative_position, f32 ndc_depth, vec3f_t& out_world_position);
-		static bool relative_position_to_world_ray(const mat4x4_t& inv_view_proj, const vec2f_t& relative_position, world_ray_t& out_ray);
+		// -----------------------------------------------------------------------------
+		// lifetime
+		// -----------------------------------------------------------------------------
+
+		world_util_t() = delete;
+
+		// -----------------------------------------------------------------------------
+		// impl
+		// -----------------------------------------------------------------------------
+
+		static void		   sync_destroyers(world_t& world, f32 dt);
+		static void		   sync_sprite_renderers(world_t& world);
+		static void		   sync_reflection_probes(world_t& world, u64 tick_count);
+		static entity_id_t sync_main_camera(world_t& world);
+		static void		   sync_aabbs(world_t& world);
 	};
 }

@@ -214,6 +214,7 @@ namespace sfg
 		world.get_canvas_controller().write_render_snapshot(snapshot.canvas);
 
 		const ecs_component_table_t& transform_table					= world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t& aabb_table							= world.get_component_table(type_id_t<component_system_aabb_t>::value);
 		const ecs_component_table_t& alive_table						= world.get_component_table(type_id_t<component_alive_t>::value);
 		const ecs_component_table_t& camera_table						= world.get_component_table(type_id_t<component_camera_t>::value);
 		const ecs_component_table_t& post_process_table					= world.get_component_table(type_id_t<component_post_process_t>::value);
@@ -504,9 +505,10 @@ namespace sfg
 				const mesh_internals_t*			mesh_internals = rm_aux.get<mesh_internals_t>(entry->internals);
 				const mesh_primitive_runtime_t* primitives	   = rm_aux.get<mesh_primitive_runtime_t>(mesh_runtime->primitives);
 
-				const render_resource_handle_t vtx				= mesh_internals->vertex_buffer;
-				const render_resource_handle_t idx				= mesh_internals->index_buffer;
-				const u8					   renderable_flags = view_model_table.has(row.id) ? world_renderable_flag_view_model : world_renderable_flag_none;
+				const render_resource_handle_t vtx		   = mesh_internals->vertex_buffer;
+				const render_resource_handle_t idx		   = mesh_internals->index_buffer;
+				const component_system_aabb_t& system_aabb = aabb_table.get_as_const<component_system_aabb_t>(row.id);
+				const u8 renderable_flags				   = (system_aabb.is_world_space ? world_renderable_flag_world_space_aabb : world_renderable_flag_none) | (view_model_table.has(row.id) ? world_renderable_flag_view_model : world_renderable_flag_none);
 
 				for (u32 i = 0; i < mesh_runtime->primitive_count; i++)
 				{
@@ -542,7 +544,7 @@ namespace sfg
 					// renderable instance
 					snapshot.renderables.push_back({
 						.sort_key		= mat_handle,
-						.aabb			= mesh_internals->local_bounds,
+						.aabb			= system_aabb.bounds,
 						.payload_index	= static_cast<u32>(snapshot.mesh_draws.size() - 1),
 						.material_index = draw_material_index,
 						.entity_index	= entity_index,
@@ -578,12 +580,11 @@ namespace sfg
 				if (entry == nullptr)
 					continue;
 
-				const mesh_runtime_t*			  mesh_runtime		   = rm_aux.get<mesh_runtime_t>(entry->runtime);
-				const mesh_internals_t*			  mesh_internals	   = rm_aux.get<mesh_internals_t>(entry->internals);
-				const mesh_primitive_runtime_t*	  primitives		   = rm_aux.get<mesh_primitive_runtime_t>(mesh_runtime->primitives);
-				const ecs_component_table_t&	  system_ragdoll_table = world.get_component_table(type_id_t<component_system_ragdoll_t>::value);
-				const component_system_ragdoll_t* system_ragdoll	   = system_ragdoll_table.find_as_const<component_system_ragdoll_t>(row.id);
-				const u8 renderable_flags = (system_ragdoll != nullptr ? world_renderable_flag_world_space_aabb : world_renderable_flag_none) | (view_model_table.has(row.id) ? world_renderable_flag_view_model : world_renderable_flag_none);
+				const mesh_runtime_t*			mesh_runtime   = rm_aux.get<mesh_runtime_t>(entry->runtime);
+				const mesh_internals_t*			mesh_internals = rm_aux.get<mesh_internals_t>(entry->internals);
+				const mesh_primitive_runtime_t* primitives	   = rm_aux.get<mesh_primitive_runtime_t>(mesh_runtime->primitives);
+				const component_system_aabb_t&	system_aabb	   = aabb_table.get_as_const<component_system_aabb_t>(row.id);
+				const u8 renderable_flags = (system_aabb.is_world_space ? world_renderable_flag_world_space_aabb : world_renderable_flag_none) | (view_model_table.has(row.id) ? world_renderable_flag_view_model : world_renderable_flag_none);
 
 				const render_resource_handle_t vertex_buffer = mesh_internals->vertex_buffer;
 				const render_resource_handle_t index_buffer	 = mesh_internals->index_buffer;
@@ -636,7 +637,7 @@ namespace sfg
 					// renderable instance
 					snapshot.renderables.push_back({
 						.sort_key		= mat_handle,
-						.aabb			= system_ragdoll != nullptr ? system_ragdoll->world_bounds : mesh_internals->local_bounds,
+						.aabb			= system_aabb.bounds,
 						.payload_index	= static_cast<u32>(snapshot.mesh_draws.size() - 1),
 						.material_index = draw_material_index,
 						.entity_index	= entity_index,
@@ -695,7 +696,7 @@ namespace sfg
 				// renderable instance
 				snapshot.renderables.push_back({
 					.sort_key		= sprite.material,
-					.aabb			= aabb_t({-aspect * 0.5f, -0.5f, -0.01f}, {aspect * 0.5f, 0.5f, 0.01f}),
+					.aabb			= aabb_table.get_as_const<component_system_aabb_t>(row.id).bounds,
 					.payload_index	= sprite_index,
 					.material_index = material_index,
 					.entity_index	= entity_index,
@@ -802,7 +803,7 @@ namespace sfg
 
 				snapshot.renderables.push_back({
 					.sort_key		= emitter.material,
-					.aabb			= system_emitter.bounds,
+					.aabb			= aabb_table.get_as_const<component_system_aabb_t>(row.id).bounds,
 					.payload_index	= particle_draw_index,
 					.material_index = material_index,
 					.entity_index	= entity_index,

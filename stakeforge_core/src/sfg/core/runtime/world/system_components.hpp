@@ -89,6 +89,16 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_system_transform_t);
 
+	struct component_system_aabb_t
+	{
+		static inline constexpr const char* DEBUG_NAME = "component_system_aabb";
+
+		aabb_t bounds		  = {};
+		bool   is_world_space = false;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_system_aabb_t);
+
 	struct component_system_skinned_mesh_renderer_t
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_skinned_mesh_renderer";

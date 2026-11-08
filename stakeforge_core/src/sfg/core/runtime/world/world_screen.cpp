@@ -20,10 +20,10 @@ in GAME-LINKING-EXCEPTION.md.
 
 */
 
-#include "core/runtime/world/world_screen.hpp"
-#include "core/runtime/world/world_util.hpp"
+#include "world_screen.hpp"
 
 #include "core/io/assert.hpp"
+#include "core/math/math.hpp"
 #include "core/platform/common_window.hpp"
 #include "core/platform/process.hpp"
 #include "core/runtime/render/render_view.hpp"
@@ -159,7 +159,7 @@ namespace sfg
 
 		vec2f_t relative_position = vec2f_t::zero;
 
-		if (!world_util_t::world_position_to_relative_position(_view_proj, world_position, relative_position))
+		if (!world_position_to_relative_position(_view_proj, world_position, relative_position))
 			return false;
 
 		out_screen_position = {
@@ -180,7 +180,7 @@ namespace sfg
 			(screen_position.y - _input_rect.y) / _input_rect.w,
 		};
 
-		return world_util_t::relative_position_to_world_position(_inv_view_proj, relative_position, ndc_depth, out_world_position);
+		return relative_position_to_world_position(_inv_view_proj, relative_position, ndc_depth, out_world_position);
 	}
 
 	vec2f_t world_screen_t::screen_to_render_position(const vec2f_t& screen_position) const
@@ -189,5 +189,50 @@ namespace sfg
 			(screen_position.x - _input_rect.x) * static_cast<f32>(_render_size.x) / _input_rect.z,
 			(screen_position.y - _input_rect.y) * static_cast<f32>(_render_size.y) / _input_rect.w,
 		};
+	}
+
+	bool world_screen_t::world_position_to_relative_position(const mat4x4_t& view_proj, const vec3f_t& world_position, vec2f_t& out_relative_position)
+	{
+		const vec4f_t clip = view_proj * vec4f_t(world_position.x, world_position.y, world_position.z, 1.0f);
+
+		if (clip.w <= MATH_EPS)
+			return false;
+
+		const f32 inv_w = 1.0f / clip.w;
+
+		out_relative_position = {
+			clip.x * inv_w * 0.5f + 0.5f,
+			0.5f - clip.y * inv_w * 0.5f,
+		};
+
+		return true;
+	}
+
+	bool world_screen_t::relative_position_to_world_position(const mat4x4_t& inv_view_proj, const vec2f_t& relative_position, f32 ndc_depth, vec3f_t& out_world_position)
+	{
+		const f32 ndc_x = relative_position.x * 2.0f - 1.0f;
+		const f32 ndc_y = 1.0f - relative_position.y * 2.0f;
+		vec4f_t	  world = inv_view_proj * vec4f_t(ndc_x, ndc_y, ndc_depth, 1.0f);
+
+		if (math::abs(world.w) <= MATH_EPS)
+			return false;
+
+		world /= world.w;
+
+		out_world_position = {world.x, world.y, world.z};
+
+		return true;
+	}
+
+	bool world_screen_t::relative_position_to_world_ray(const mat4x4_t& inv_view_proj, const vec2f_t& relative_position, world_ray_t& out_ray)
+	{
+		vec3f_t far_point = vec3f_t::zero;
+
+		if (!relative_position_to_world_position(inv_view_proj, relative_position, 1.0f, out_ray.origin) || !relative_position_to_world_position(inv_view_proj, relative_position, 0.0f, far_point))
+			return false;
+
+		out_ray.direction = (far_point - out_ray.origin).normalized();
+
+		return !out_ray.direction.is_zero();
 	}
 }

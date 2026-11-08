@@ -31,7 +31,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/math/math.hpp>
 #include <sfg/core/math/quat.hpp>
 #include <sfg/core/math/vec2u16.hpp>
-#include <sfg/core/runtime/render/world_render_snapshot.hpp>
 #include <sfg/core/runtime/resources/physics_collision_mesh.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
 #include <sfg/core/runtime/world/ecs.hpp>
@@ -211,26 +210,33 @@ namespace sfg
 		return environment;
 	}
 
-	void editor_world_util_t::draw_bounding_boxes(world_t& world, const world_render_snapshot_t& snapshot, entity_id_t editor_camera_entity)
+	void editor_world_util_t::draw_bounding_boxes(world_t& world, entity_id_t editor_camera_entity)
 	{
 		world_debug_draw_t&	  debug_draw   = world.get_debug_draw();
 		const editor_theme_t& theme		   = editor_theme_t::get();
 		const color_t		  bounds_color = {theme.color_highlight.x, theme.color_highlight.y, theme.color_highlight.z, theme.color_highlight.w};
 
-		for (const world_renderable_t& renderable : snapshot.renderables)
-		{
-			const world_render_entity_t& entity = snapshot.entities[renderable.entity_index];
+		const ecs_component_table_t&	alive_table		= world.get_component_table(type_id_t<component_alive_t>::value);
+		const ecs_component_table_t&	aabb_table		= world.get_component_table(type_id_t<component_system_aabb_t>::value);
+		const ecs_component_table_t&	transform_table = world.get_component_table(type_id_t<component_system_transform_t>::value);
+		const ecs_component_table_t&	disabled_table	= world.get_component_table(type_id_t<component_disabled_t>::value);
+		const ecs_component_table_ref_t table_refs[]	= {alive_table.ref(), aabb_table.ref(), transform_table.ref(), !disabled_table.ref()};
 
-			if (entity.entity_id == editor_camera_entity)
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+		{
+			const component_system_aabb_t&		system_aabb = row.get<component_system_aabb_t>(1);
+			const component_system_transform_t& transform	= row.get<component_system_transform_t>(2);
+
+			if (row.id == editor_camera_entity || system_aabb.bounds.is_empty())
 				continue;
 
-			const mat4x3_t& bounds_transform = (renderable.flags & world_renderable_flag_world_space_aabb) != 0 ? mat4x3_t::identity : entity.transform;
-			const vec3f_t	center			 = (renderable.aabb.bounds_min + renderable.aabb.bounds_max) * 0.5f;
-			const vec3f_t	dimensions		 = renderable.aabb.bounds_half_extent * 2.0f;
+			const mat4x3_t& bounds_transform = system_aabb.is_world_space ? mat4x3_t::identity : transform.abs_mat;
+			const vec3f_t	center			 = (system_aabb.bounds.bounds_min + system_aabb.bounds.bounds_max) * 0.5f;
+			const vec3f_t	dimensions		 = system_aabb.bounds.bounds_half_extent * 2.0f;
 			const mat4x3_t	box_transform	 = bounds_transform * mat4x3_t::translation(center);
-			const vec3f_t	text_position	 = bounds_transform * vec3f_t(center.x, renderable.aabb.bounds_max.y, center.z);
+			const vec3f_t	text_position	 = bounds_transform * vec3f_t(center.x, system_aabb.bounds.bounds_max.y, center.z);
 
-			debug_draw.draw_box(box_transform, renderable.aabb.bounds_half_extent, bounds_color, 2.0f, debug_draw_depth_e::always_visible);
+			debug_draw.draw_box(box_transform, system_aabb.bounds.bounds_half_extent, bounds_color, 2.0f, debug_draw_depth_e::always_visible);
 
 			char  dimensions_text[96] = {};
 			char* text_cur			  = dimensions_text;

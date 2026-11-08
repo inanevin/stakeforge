@@ -320,10 +320,10 @@ namespace sfg
 			if (handle == _main_world)
 				editor_plugin_manager_t::get().get_game_editor_plugin().tick_logic(editor_world->get_world(), frame_delta_seconds);
 
-			editor_world->draw_debug();
-
 			world_t& world = editor_world->get_world();
 
+			world.tick_finalize();
+			editor_world->draw_debug();
 			world.get_debug_draw().debug_draw_missing_resources(world);
 		}
 

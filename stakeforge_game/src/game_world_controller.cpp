@@ -208,6 +208,8 @@ namespace sfg
 		if (steps == 0)
 			_main_world.update_world_transforms();
 
+		_main_world.tick_finalize();
+
 		_main_world.get_debug_draw().debug_draw_missing_resources(_main_world);
 
 		resource_manager_t::get().flush_material_updates();
@@ -277,6 +279,7 @@ namespace sfg
 		_main_world.set_world_name(selected_world->name_hash);
 		_main_world.update_world_transforms();
 		_main_world.begin_play();
+		_main_world.tick_finalize();
 
 		_previous_time_us = time_t::get_cpu_microseconds();
 		_accumulator_us	  = 0;
