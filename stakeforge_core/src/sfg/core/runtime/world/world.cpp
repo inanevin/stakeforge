@@ -423,7 +423,6 @@ namespace sfg
 		_particle_simulation.tick(scaled_dt);
 		_canvas_controller.tick(dt);
 		_canvas_controller.dispatch_events();
-
 		world_util_t::sync_reflection_probes(*this, _tick_count);
 	}
 
@@ -432,7 +431,6 @@ namespace sfg
 		ZoneScoped;
 
 		world_util_t::sync_sprite_renderers(*this);
-
 		world_util_t::sync_aabbs(*this);
 	}
 
