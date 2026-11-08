@@ -873,6 +873,131 @@ namespace sfg
 		}
 	}
 
+	u32 world_rendering_util_t::prep_draw_packets(
+		const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, span_t<const world_render_queue_item_t> draws, u32 required_pass_mask, u32 initial_variant_flags, u8 frame_index, span_t<world_draw_packet_t> packets, u32& draw_index)
+	{
+		SFG_ASSERT(packets.size != 0);
+
+		render_resources_t& render_resources = render_resources_t::get();
+		const bool			editor_pass		 = (initial_variant_flags & (shader_variant_flags_id_write | shader_variant_flags_selection_outline)) != 0;
+		u32					packet_count	 = 0;
+
+		while (draw_index < draws.size && packet_count < packets.size)
+		{
+			const world_render_queue_item_t& item		= draws[draw_index];
+			const world_renderable_t&		 renderable = snapshot.renderables[item.renderable_index];
+
+			if (required_pass_mask != 0 && (renderable.pass_mask & required_pass_mask) != required_pass_mask)
+			{
+				++draw_index;
+				continue;
+			}
+
+			world_draw_packet_t		 packet		   = {};
+			render_resource_handle_t shader_handle = {};
+			u32						 run_end	   = draw_index + 1;
+			packet.material_index				   = renderable.material_index;
+
+			switch (renderable.type)
+			{
+			case world_renderable_type_e::sprite: {
+				const world_render_material_t& material = snapshot.materials[renderable.material_index];
+				shader_handle							= material.find_pso(initial_variant_flags);
+
+				// batch adjacent sprites with the same material
+				while (run_end < draws.size)
+				{
+					const world_render_queue_item_t& next_item		 = draws[run_end];
+					const world_renderable_t&		 next_renderable = snapshot.renderables[next_item.renderable_index];
+
+					if (next_renderable.type != world_renderable_type_e::sprite || next_renderable.material_index != renderable.material_index || next_item.sprite_instance_index != item.sprite_instance_index + run_end - draw_index)
+						break;
+
+					if (required_pass_mask != 0 && (next_renderable.pass_mask & required_pass_mask) != required_pass_mask)
+						break;
+
+					++run_end;
+				}
+
+				packet.instance_buffer_index = ctx.get_sprite_instance_buffer_index(frame_index);
+				packet.object_constants[0]	 = item.sprite_instance_index;
+				packet.object_constant_count = 1;
+				packet.element_count		 = 6;
+				packet.instance_count		 = run_end - draw_index;
+				break;
+			}
+			case world_renderable_type_e::particle: {
+				const world_particle_draw_t&   draw		= snapshot.particle_draws[renderable.payload_index];
+				const world_render_material_t& material = snapshot.materials[renderable.material_index];
+				const world_render_entity_t&   entity	= snapshot.entities[renderable.entity_index];
+				shader_handle							= material.find_pso(editor_pass ? initial_variant_flags : material.particle_variant_flags);
+
+				const f32 geometry[5]		 = {draw.uv_start.x, draw.uv_start.y, draw.uv_size.x, draw.uv_size.y, draw.aspect};
+				packet.instance_buffer_index = ctx.get_particle_instance_buffer_index(frame_index);
+				packet.object_constants[0]	 = item.particle_instance_index;
+				packet.object_constants[1]	 = draw.alignment;
+				packet.object_constants[2]	 = entity.entity_id;
+				SFG_MEMCPY(packet.object_constants + 3, geometry, sizeof(geometry));
+				packet.object_constant_count = 8;
+				packet.element_count		 = 6;
+				packet.instance_count		 = draw.particle_count;
+				break;
+			}
+			case world_renderable_type_e::mesh: {
+				const world_mesh_draw_t& draw = snapshot.mesh_draws[renderable.payload_index];
+
+				if (!draw.direct_pso.is_null() && !editor_pass)
+				{
+					shader_handle		  = draw.direct_pso;
+					packet.material_index = UINT32_MAX;
+				}
+				else
+				{
+					SFG_ASSERT(renderable.material_index != UINT32_MAX);
+
+					const world_render_material_t& material		 = snapshot.materials[renderable.material_index];
+					bitmask_t<u32>				   variant_flags = initial_variant_flags;
+					variant_flags.set(shader_variant_flags_alpha_cutoff, material.use_alpha_cutoff != 0);
+					variant_flags.set(shader_variant_flags_double_sided, material.double_sided != 0);
+					variant_flags.set(shader_variant_flags_skinned, draw.skinning_index != UINT32_MAX);
+					shader_handle = material.find_pso(variant_flags);
+				}
+
+				packet.vertex_buffer = render_resources.get_resource(draw.vertex_buffer);
+				packet.index_buffer	 = render_resources.get_resource(draw.index_buffer);
+				SFG_ASSERT(!packet.vertex_buffer.is_null() && !packet.index_buffer.is_null());
+
+				packet.vertex_stride		 = draw.vertex_stride;
+				packet.index_stride			 = draw.index_stride;
+				packet.element_count		 = draw.index_count;
+				packet.start_index			 = draw.start_index;
+				packet.start_vertex			 = draw.start_vertex;
+				packet.object_constants[0]	 = renderable.entity_index;
+				packet.object_constants[1]	 = editor_pass && draw.skinning_index == UINT32_MAX ? 0 : draw.skinning_index;
+				packet.object_constant_count = 2;
+
+				if ((initial_variant_flags & shader_variant_flags_id_write) != 0)
+				{
+					packet.object_constants[2]	 = snapshot.entities[renderable.entity_index].entity_id;
+					packet.object_constant_count = 3;
+				}
+
+				break;
+			}
+			}
+
+			draw_index = run_end;
+
+			if (shader_handle.is_null())
+				continue;
+
+			packet.pipeline			= render_resources.get_shader_hw(shader_handle);
+			packets[packet_count++] = packet;
+		}
+
+		return packet_count;
+	}
+
 	void world_rendering_util_t::prep_render_pass_buffers(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, const u32 (&light_counts)[4], u8 frame_index)
 	{
 		ZoneScoped;

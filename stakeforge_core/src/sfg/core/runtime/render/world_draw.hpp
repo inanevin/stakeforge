@@ -32,6 +32,33 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	struct world_draw_state_t
+	{
+		gfx_handle_t vertex_buffer	= {};
+		gfx_handle_t index_buffer	= {};
+		gfx_handle_t pipeline		= {};
+		u32			 material_index = UINT32_MAX;
+		u16			 vertex_stride	= 0;
+		u8			 index_stride	= 0;
+	};
+
+	struct world_draw_packet_t
+	{
+		gfx_handle_t pipeline			   = {};
+		gfx_handle_t vertex_buffer		   = {};
+		gfx_handle_t index_buffer		   = {};
+		gpu_index_t	 instance_buffer_index = NULL_GPU_INDEX;
+		u32			 object_constants[8]   = {};
+		u32			 material_index		   = UINT32_MAX;
+		u32			 element_count		   = 0;
+		u32			 instance_count		   = 1;
+		u32			 start_index		   = 0;
+		u32			 start_vertex		   = 0;
+		u16			 vertex_stride		   = 0;
+		u8			 index_stride		   = 0;
+		u8			 object_constant_count = 0;
+	};
+
 	enum class world_renderable_type_e : u8
 	{
 		mesh,

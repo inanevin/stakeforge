@@ -25,6 +25,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/common/sfg_exports.hpp"
 
 #include "core/common/size_definitions.hpp"
+#include "core/data/span.hpp"
 #include "core/gfx/common/gfx_constants.hpp"
 
 namespace sfg
@@ -36,6 +37,8 @@ namespace sfg
 	struct world_render_reflection_allocation_t;
 	struct world_render_reflection_probe_t;
 	struct world_render_snapshot_t;
+	struct world_render_queue_item_t;
+	struct world_draw_packet_t;
 
 	class SFG_API world_rendering_util_t final
 	{
@@ -62,6 +65,8 @@ namespace sfg
 		static void prep_shadow_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, u8 frame_index);
 		static void prep_debug_buffer(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, u8 frame_index);
 		static void prep_render_queues(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index);
+		static u32	prep_draw_packets(
+			const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, span_t<const world_render_queue_item_t> draws, u32 required_pass_mask, u32 initial_variant_flags, u8 frame_index, span_t<world_draw_packet_t> packets, u32& draw_index);
 		static void prep_render_pass_buffers(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const world_render_prep_data_t& prep_data, const render_view_t& main_camera_view, const u32 (&light_counts)[4], u8 frame_index);
 	};
 }

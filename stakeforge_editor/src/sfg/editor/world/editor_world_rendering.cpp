@@ -39,6 +39,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/render/world_render_material.hpp>
 #include <sfg/core/runtime/render/world_render_snapshot.hpp>
 #include <sfg/core/runtime/render/world_render_context.hpp>
+#include <sfg/core/runtime/render/world_rendering.hpp>
 #include <sfg/core/runtime/resources/shader_types.hpp>
 #include <tracy/Tracy.hpp>
 
@@ -95,8 +96,6 @@ namespace sfg
 
 		gfx_backend& backend = gfx_backend::get();
 
-		render_resources_t& render_resources = render_resources_t::get();
-
 		const gfx_handle_t cmd				 = ctx.get_command_buffer(frame_index);
 		const gfx_handle_t selection_texture = ctx.get_selection_texture(frame_index);
 		const vec2u16_t	   size				 = ctx.get_size();
@@ -134,219 +133,24 @@ namespace sfg
 
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = std::size(rp_constants), .param_index = 0});
 
-		gfx_handle_t bound_vertex	= {};
-		gfx_handle_t bound_index	= {};
-		gfx_handle_t bound_pipeline = {};
-		u32			 bound_material = UINT32_MAX;
+		const world_render_prep_view_t&				  prep_view		 = prep_data.views[0];
+		const span_t<const world_render_queue_item_t> visible_draws	 = prep_data.get_visible_queue(prep_view);
+		frame_vector_t<world_render_queue_item_t>	  selected_draws = {};
+		selected_draws.reserve(visible_draws.size);
 
-		const world_render_prep_view_t&				  prep_view		= prep_data.views[0];
-		const span_t<const world_render_queue_item_t> visible_draws = prep_data.get_visible_queue(prep_view);
+		for (const world_render_queue_item_t& item : visible_draws)
+		{
+			const world_renderable_t&	 renderable = snapshot.renderables[item.renderable_index];
+			const world_render_entity_t& entity		= snapshot.entities[renderable.entity_index];
+
+			if (std::find(snapshot_data.selected_entities.begin(), snapshot_data.selected_entities.end(), entity.entity_id) != snapshot_data.selected_entities.end())
+				selected_draws.push_back(item);
+		}
 
 		// draw selected meshes
-		for (const world_render_queue_item_t& item : visible_draws)
-		{
-			const world_renderable_t& renderable = snapshot.renderables[item.renderable_index];
-
-			if (renderable.type != world_renderable_type_e::mesh)
-				continue;
-
-			const world_mesh_draw_t&	 draw	= snapshot.mesh_draws[renderable.payload_index];
-			const world_render_entity_t& entity = snapshot.entities[renderable.entity_index];
-
-			if (std::find(snapshot_data.selected_entities.begin(), snapshot_data.selected_entities.end(), entity.entity_id) == snapshot_data.selected_entities.end())
-				continue;
-
-			const world_render_material_t& mat = snapshot.materials[renderable.material_index];
-
-			bitmask_t<u32> variant_flags = shader_variant_flags_selection_outline;
-
-			variant_flags.set(shader_variant_flags_alpha_cutoff, mat.use_alpha_cutoff != 0);
-			variant_flags.set(shader_variant_flags_double_sided, mat.double_sided != 0);
-			variant_flags.set(shader_variant_flags_skinned, draw.skinning_index != UINT32_MAX);
-
-			const render_resource_handle_t shader_handle = mat.find_pso(variant_flags);
-
-			if (shader_handle.is_null())
-				continue;
-
-			const gfx_handle_t vtx = render_resources.get_resource(draw.vertex_buffer);
-			const gfx_handle_t idx = render_resources.get_resource(draw.index_buffer);
-
-			SFG_ASSERT(!vtx.is_null() && !idx.is_null());
-
-			if (vtx != bound_vertex)
-			{
-				bound_vertex = vtx;
-				backend.cmd_bind_vertex_buffers(cmd, {.buffer = bound_vertex, .slot = 0, .vertex_size = draw.vertex_stride, .offset = 0});
-			}
-
-			if (idx != bound_index)
-			{
-				bound_index = idx;
-				backend.cmd_bind_index_buffers(cmd, {.buffer = bound_index, .offset = 0, .index_size = draw.index_stride});
-			}
-
-			const gfx_handle_t pipeline = render_resources.get_shader_hw(shader_handle);
-
-			if (pipeline != bound_pipeline)
-			{
-				bound_pipeline = pipeline;
-				backend.cmd_bind_pipeline(cmd, {.pipeline = bound_pipeline});
-			}
-
-			if (bound_material != renderable.material_index)
-			{
-				bound_material = renderable.material_index;
-
-				gpu_index_t					   mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
-				u8							   mat_constant_count								= 0;
-				const render_resource_handle_t material_buffer									= mat.material_buffers[frame_index];
-
-				mat_constants[mat_constant_count++] = material_buffer.is_null() ? NULL_GPU_INDEX : render_resources.get_resource_gpu_index(material_buffer);
-
-				for (u32 i = 0; i < mat.texture_count; ++i)
-					mat_constants[mat_constant_count++] = render_resources.get_texture_gpu_index(mat.material_textures[i], 0);
-
-				for (u32 i = 0; i < mat.texture_count; ++i)
-					mat_constants[mat_constant_count++] = render_resources.get_sampler_gpu_index(mat.material_samplers[i]);
-
-				backend.cmd_bind_constants(cmd, {.data = mat_constants, .offset = constant_mat0, .count = mat_constant_count, .param_index = 0});
-			}
-
-			const u32 obj_constants[2] = {renderable.entity_index, draw.skinning_index == UINT32_MAX ? 0 : draw.skinning_index};
-
-			backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
-
-			backend.cmd_draw_indexed_instanced(cmd,
-											   {
-												   .index_count_per_instance = draw.index_count,
-												   .instance_count			 = 1,
-												   .start_index_location	 = draw.start_index,
-												   .base_vertex_location	 = draw.start_vertex,
-												   .start_instance_location	 = 0,
-											   });
-		}
-
 		// draw selected sprites
-		for (const world_render_queue_item_t& item : visible_draws)
-		{
-			const world_renderable_t& renderable = snapshot.renderables[item.renderable_index];
-
-			if (renderable.type != world_renderable_type_e::sprite)
-				continue;
-
-			const world_render_entity_t& entity = snapshot.entities[renderable.entity_index];
-
-			if (std::find(snapshot_data.selected_entities.begin(), snapshot_data.selected_entities.end(), entity.entity_id) == snapshot_data.selected_entities.end())
-				continue;
-
-			const world_render_material_t& mat			 = snapshot.materials[renderable.material_index];
-			const render_resource_handle_t shader_handle = mat.find_pso(shader_variant_flags_selection_outline);
-
-			if (shader_handle.is_null())
-				continue;
-
-			const gfx_handle_t pipeline = render_resources.get_shader_hw(shader_handle);
-
-			if (pipeline != bound_pipeline)
-			{
-				bound_pipeline = pipeline;
-				backend.cmd_bind_pipeline(cmd, {.pipeline = bound_pipeline});
-			}
-
-			if (bound_material != renderable.material_index)
-			{
-				bound_material = renderable.material_index;
-
-				gpu_index_t					   mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
-				u8							   mat_constant_count								= 0;
-				const render_resource_handle_t material_buffer									= mat.material_buffers[frame_index];
-
-				mat_constants[mat_constant_count++] = material_buffer.is_null() ? NULL_GPU_INDEX : render_resources.get_resource_gpu_index(material_buffer);
-
-				for (u32 texture_index = 0; texture_index < mat.texture_count; ++texture_index)
-					mat_constants[mat_constant_count++] = render_resources.get_texture_gpu_index(mat.material_textures[texture_index], 0);
-
-				for (u32 texture_index = 0; texture_index < mat.texture_count; ++texture_index)
-					mat_constants[mat_constant_count++] = render_resources.get_sampler_gpu_index(mat.material_samplers[texture_index]);
-
-				backend.cmd_bind_constants(cmd, {.data = mat_constants, .offset = constant_mat0, .count = mat_constant_count, .param_index = 0});
-			}
-
-			const gpu_index_t sprite_instance_buffer_index = world_ctx.get_sprite_instance_buffer_index(frame_index);
-			const u32		  sprite_instance_start		   = item.sprite_instance_index;
-
-			backend.cmd_bind_constants(cmd, {.data = &sprite_instance_buffer_index, .offset = constant_obj0, .count = 1, .param_index = 0});
-			backend.cmd_bind_constants(cmd, {.data = &sprite_instance_start, .offset = constant_obj1, .count = 1, .param_index = 0});
-			backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 6, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
-		}
-
 		// draw selected particles
-		for (const world_render_queue_item_t& item : visible_draws)
-		{
-			const world_renderable_t& renderable = snapshot.renderables[item.renderable_index];
-
-			if (renderable.type != world_renderable_type_e::particle)
-				continue;
-
-			const world_render_entity_t& entity = snapshot.entities[renderable.entity_index];
-
-			if (std::find(snapshot_data.selected_entities.begin(), snapshot_data.selected_entities.end(), entity.entity_id) == snapshot_data.selected_entities.end())
-				continue;
-
-			const world_particle_draw_t&   draw			 = snapshot.particle_draws[renderable.payload_index];
-			const world_render_material_t& mat			 = snapshot.materials[renderable.material_index];
-			const render_resource_handle_t shader_handle = mat.find_pso(shader_variant_flags_selection_outline);
-
-			if (shader_handle.is_null())
-				continue;
-
-			const gfx_handle_t pipeline = render_resources.get_shader_hw(shader_handle);
-
-			if (pipeline != bound_pipeline)
-			{
-				bound_pipeline = pipeline;
-				backend.cmd_bind_pipeline(cmd, {.pipeline = bound_pipeline});
-			}
-
-			if (bound_material != renderable.material_index)
-			{
-				bound_material = renderable.material_index;
-
-				gpu_index_t					   mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
-				u8							   mat_constant_count								= 0;
-				const render_resource_handle_t material_buffer									= mat.material_buffers[frame_index];
-
-				mat_constants[mat_constant_count++] = material_buffer.is_null() ? NULL_GPU_INDEX : render_resources.get_resource_gpu_index(material_buffer);
-
-				for (u32 texture_index = 0; texture_index < mat.texture_count; ++texture_index)
-					mat_constants[mat_constant_count++] = render_resources.get_texture_gpu_index(mat.material_textures[texture_index], 0);
-
-				for (u32 texture_index = 0; texture_index < mat.texture_count; ++texture_index)
-					mat_constants[mat_constant_count++] = render_resources.get_sampler_gpu_index(mat.material_samplers[texture_index]);
-
-				backend.cmd_bind_constants(cmd, {.data = mat_constants, .offset = constant_mat0, .count = mat_constant_count, .param_index = 0});
-			}
-
-			const gpu_index_t particle_buffer_index = world_ctx.get_particle_instance_buffer_index(frame_index);
-			const u32		  particle_constants[3] = {
-				item.particle_instance_index,
-				draw.alignment,
-				entity.entity_id,
-			};
-			const f32 particle_geometry[5] = {
-				draw.uv_start.x,
-				draw.uv_start.y,
-				draw.uv_size.x,
-				draw.uv_size.y,
-				draw.aspect,
-			};
-
-			backend.cmd_bind_constants(cmd, {.data = &particle_buffer_index, .offset = constant_obj0, .count = 1, .param_index = 0});
-			backend.cmd_bind_constants(cmd, {.data = particle_constants, .offset = constant_obj1, .count = std::size(particle_constants), .param_index = 0});
-			backend.cmd_bind_constants(cmd, {.data = particle_geometry, .offset = constant_obj4, .count = std::size(particle_geometry), .param_index = 0});
-			backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 6, .instance_count = draw.particle_count, .start_vertex_location = 0, .start_instance_location = 0});
-		}
+		world_rendering_t::draw_queue(cmd, world_ctx, snapshot, {.data = selected_draws.data(), .size = selected_draws.size()}, 0, shader_variant_flags_selection_outline, frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
 
@@ -367,8 +171,6 @@ namespace sfg
 		ZoneScoped;
 
 		gfx_backend& backend = gfx_backend::get();
-
-		render_resources_t& render_resources = render_resources_t::get();
 
 		const gfx_handle_t cmd				 = ctx.get_command_buffer(frame_index);
 		const gfx_handle_t object_id_texture = ctx.get_object_id_texture(frame_index);
@@ -421,195 +223,11 @@ namespace sfg
 
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = std::size(rp_constants), .param_index = 0});
 
-		gfx_handle_t bound_vertex	= {};
-		gfx_handle_t bound_index	= {};
-		gfx_handle_t bound_pipeline = {};
-		u32			 bound_material = UINT32_MAX;
-
 		const world_render_prep_view_t&				  prep_view		= prep_data.views[0];
 		const span_t<const world_render_queue_item_t> visible_draws = prep_data.get_visible_queue(prep_view);
 
 		// draw visible object ids
-		for (const world_render_queue_item_t& item : visible_draws)
-		{
-			const world_renderable_t& renderable = snapshot.renderables[item.renderable_index];
-
-			if ((renderable.pass_mask & world_pass_flags_id) == 0)
-				continue;
-
-			const world_render_material_t& mat = snapshot.materials[renderable.material_index];
-
-			if (renderable.type == world_renderable_type_e::sprite)
-			{
-				const render_resource_handle_t shader_handle = mat.find_pso(shader_variant_flags_id_write);
-
-				if (shader_handle.is_null())
-					continue;
-
-				const gfx_handle_t pipeline = render_resources.get_shader_hw(shader_handle);
-
-				if (pipeline != bound_pipeline)
-				{
-					bound_pipeline = pipeline;
-					backend.cmd_bind_pipeline(cmd, {.pipeline = bound_pipeline});
-				}
-
-				if (bound_material != renderable.material_index)
-				{
-					bound_material = renderable.material_index;
-
-					gpu_index_t					   mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
-					u8							   mat_constant_count								= 0;
-					const render_resource_handle_t material_buffer									= mat.material_buffers[frame_index];
-
-					mat_constants[mat_constant_count++] = material_buffer.is_null() ? NULL_GPU_INDEX : render_resources.get_resource_gpu_index(material_buffer);
-
-					for (u32 texture_index = 0; texture_index < mat.texture_count; ++texture_index)
-						mat_constants[mat_constant_count++] = render_resources.get_texture_gpu_index(mat.material_textures[texture_index], 0);
-
-					for (u32 texture_index = 0; texture_index < mat.texture_count; ++texture_index)
-						mat_constants[mat_constant_count++] = render_resources.get_sampler_gpu_index(mat.material_samplers[texture_index]);
-
-					backend.cmd_bind_constants(cmd, {.data = mat_constants, .offset = constant_mat0, .count = mat_constant_count, .param_index = 0});
-				}
-
-				const gpu_index_t sprite_instance_buffer_index = world_ctx.get_sprite_instance_buffer_index(frame_index);
-				const u32		  sprite_instance_start		   = item.sprite_instance_index;
-
-				backend.cmd_bind_constants(cmd, {.data = &sprite_instance_buffer_index, .offset = constant_obj0, .count = 1, .param_index = 0});
-				backend.cmd_bind_constants(cmd, {.data = &sprite_instance_start, .offset = constant_obj1, .count = 1, .param_index = 0});
-				backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 6, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
-				continue;
-			}
-
-			if (renderable.type == world_renderable_type_e::particle)
-			{
-				const world_particle_draw_t&   draw			 = snapshot.particle_draws[renderable.payload_index];
-				const render_resource_handle_t shader_handle = mat.find_pso(shader_variant_flags_id_write);
-
-				if (shader_handle.is_null())
-					continue;
-
-				const gfx_handle_t pipeline = render_resources.get_shader_hw(shader_handle);
-
-				if (pipeline != bound_pipeline)
-				{
-					bound_pipeline = pipeline;
-					backend.cmd_bind_pipeline(cmd, {.pipeline = bound_pipeline});
-				}
-
-				if (bound_material != renderable.material_index)
-				{
-					bound_material = renderable.material_index;
-
-					gpu_index_t					   mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
-					u8							   mat_constant_count								= 0;
-					const render_resource_handle_t material_buffer									= mat.material_buffers[frame_index];
-
-					mat_constants[mat_constant_count++] = material_buffer.is_null() ? NULL_GPU_INDEX : render_resources.get_resource_gpu_index(material_buffer);
-
-					for (u32 texture_index = 0; texture_index < mat.texture_count; ++texture_index)
-						mat_constants[mat_constant_count++] = render_resources.get_texture_gpu_index(mat.material_textures[texture_index], 0);
-
-					for (u32 texture_index = 0; texture_index < mat.texture_count; ++texture_index)
-						mat_constants[mat_constant_count++] = render_resources.get_sampler_gpu_index(mat.material_samplers[texture_index]);
-
-					backend.cmd_bind_constants(cmd, {.data = mat_constants, .offset = constant_mat0, .count = mat_constant_count, .param_index = 0});
-				}
-
-				const world_render_entity_t& entity				   = snapshot.entities[renderable.entity_index];
-				const gpu_index_t			 particle_buffer_index = world_ctx.get_particle_instance_buffer_index(frame_index);
-				const u32					 particle_constants[3] = {
-					item.particle_instance_index,
-					draw.alignment,
-					entity.entity_id,
-				};
-				const f32 particle_geometry[5] = {
-					draw.uv_start.x,
-					draw.uv_start.y,
-					draw.uv_size.x,
-					draw.uv_size.y,
-					draw.aspect,
-				};
-
-				backend.cmd_bind_constants(cmd, {.data = &particle_buffer_index, .offset = constant_obj0, .count = 1, .param_index = 0});
-				backend.cmd_bind_constants(cmd, {.data = particle_constants, .offset = constant_obj1, .count = std::size(particle_constants), .param_index = 0});
-				backend.cmd_bind_constants(cmd, {.data = particle_geometry, .offset = constant_obj4, .count = std::size(particle_geometry), .param_index = 0});
-				backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 6, .instance_count = draw.particle_count, .start_vertex_location = 0, .start_instance_location = 0});
-				continue;
-			}
-
-			const world_mesh_draw_t& draw = snapshot.mesh_draws[renderable.payload_index];
-
-			bitmask_t<u32> variant_flags = shader_variant_flags_id_write;
-
-			variant_flags.set(shader_variant_flags_alpha_cutoff, mat.use_alpha_cutoff != 0);
-			variant_flags.set(shader_variant_flags_double_sided, mat.double_sided != 0);
-			variant_flags.set(shader_variant_flags_skinned, draw.skinning_index != UINT32_MAX);
-
-			const render_resource_handle_t shader_handle = mat.find_pso(variant_flags);
-
-			if (shader_handle.is_null())
-				continue;
-
-			const gfx_handle_t vtx = render_resources.get_resource(draw.vertex_buffer);
-			const gfx_handle_t idx = render_resources.get_resource(draw.index_buffer);
-
-			SFG_ASSERT(!vtx.is_null() && !idx.is_null());
-
-			if (vtx != bound_vertex)
-			{
-				bound_vertex = vtx;
-				backend.cmd_bind_vertex_buffers(cmd, {.buffer = bound_vertex, .slot = 0, .vertex_size = draw.vertex_stride, .offset = 0});
-			}
-
-			if (idx != bound_index)
-			{
-				bound_index = idx;
-				backend.cmd_bind_index_buffers(cmd, {.buffer = bound_index, .offset = 0, .index_size = draw.index_stride});
-			}
-
-			const gfx_handle_t pipeline = render_resources.get_shader_hw(shader_handle);
-
-			if (pipeline != bound_pipeline)
-			{
-				bound_pipeline = pipeline;
-				backend.cmd_bind_pipeline(cmd, {.pipeline = bound_pipeline});
-			}
-
-			if (bound_material != renderable.material_index)
-			{
-				bound_material = renderable.material_index;
-
-				gpu_index_t					   mat_constants[1 + SFG_MATERIAL_MAX_TEXTURES * 2] = {};
-				u8							   mat_constant_count								= 0;
-				const render_resource_handle_t material_buffer									= mat.material_buffers[frame_index];
-
-				mat_constants[mat_constant_count++] = material_buffer.is_null() ? NULL_GPU_INDEX : render_resources.get_resource_gpu_index(material_buffer);
-
-				for (u32 i = 0; i < mat.texture_count; ++i)
-					mat_constants[mat_constant_count++] = render_resources.get_texture_gpu_index(mat.material_textures[i], 0);
-
-				for (u32 i = 0; i < mat.texture_count; ++i)
-					mat_constants[mat_constant_count++] = render_resources.get_sampler_gpu_index(mat.material_samplers[i]);
-
-				backend.cmd_bind_constants(cmd, {.data = mat_constants, .offset = constant_mat0, .count = mat_constant_count, .param_index = 0});
-			}
-
-			const world_render_entity_t& entity			  = snapshot.entities[renderable.entity_index];
-			const u32					 obj_constants[3] = {renderable.entity_index, draw.skinning_index == UINT32_MAX ? 0 : draw.skinning_index, entity.entity_id};
-
-			backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 3, .param_index = 0});
-
-			backend.cmd_draw_indexed_instanced(cmd,
-											   {
-												   .index_count_per_instance = draw.index_count,
-												   .instance_count			 = 1,
-												   .start_index_location	 = draw.start_index,
-												   .base_vertex_location	 = draw.start_vertex,
-												   .start_instance_location	 = 0,
-											   });
-		}
+		world_rendering_t::draw_queue(cmd, world_ctx, snapshot, visible_draws, world_pass_flags_id, shader_variant_flags_id_write, frame_index);
 
 		if (!snapshot.debug_draw.textures.empty())
 		{

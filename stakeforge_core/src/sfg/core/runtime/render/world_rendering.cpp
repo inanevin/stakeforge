@@ -44,6 +44,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+#define WORLD_DRAW_PACKET_BATCH_SIZE				  128
 #define WORLD_RENDER_REFLECTION_SPECULAR_SAMPLE_COUNT 1024
 #define WORLD_RENDER_REFLECTION_SH_SAMPLE_COUNT		  4096
 
@@ -116,174 +117,75 @@ namespace sfg
 
 			END_DEBUG_EVENT((&backend), cmd);
 		}
+	}
 
-		void draw_world_draws(gfx_backend& backend, gfx_handle_t cmd, const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, span_t<const world_render_queue_item_t> draws, u32 required_pass_mask, u32 initial_variant_flags, u8 frame_index)
+	void world_rendering_t::draw_queue(gfx_handle_t cmd, const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, span_t<const world_render_queue_item_t> draws, u32 required_pass_mask, u32 initial_variant_flags, u8 frame_index)
+	{
+		world_draw_packet_t packets[WORLD_DRAW_PACKET_BATCH_SIZE] = {};
+		world_draw_state_t	state								  = {};
+		u32					draw_index							  = 0;
+
+		while (draw_index < draws.size)
 		{
-			render_resources_t& render_resources = render_resources_t::get();
-			gfx_handle_t		bound_vertex	 = {};
-			gfx_handle_t		bound_index		 = {};
-			gfx_handle_t		bound_pipeline	 = {};
-			u32					bound_material	 = UINT32_MAX;
+			const u32 packet_count = world_rendering_util_t::prep_draw_packets(ctx, snapshot, draws, required_pass_mask, initial_variant_flags, frame_index, {.data = packets, .size = std::size(packets)}, draw_index);
+			draw_packets(cmd, {.data = packets, .size = packet_count}, {.data = snapshot.materials.data(), .size = snapshot.materials.size()}, frame_index, state);
+		}
+	}
 
-			// draw the prepared queue in order
-			for (u32 draw_index = 0; draw_index < draws.size;)
+	void world_rendering_t::draw_packets(gfx_handle_t cmd, span_t<const world_draw_packet_t> packets, span_t<const world_render_material_t> materials, u8 frame_index, world_draw_state_t& state)
+	{
+		gfx_backend& backend = gfx_backend::get();
+
+		// draw the prepared queue in order
+		for (const world_draw_packet_t& packet : packets)
+		{
+			bind_pipeline(backend, cmd, state.pipeline, packet.pipeline);
+
+			if (packet.material_index != UINT32_MAX)
+				bind_material(backend, cmd, state.material_index, packet.material_index, materials[packet.material_index], frame_index);
+
+			const bool has_instance_buffer = packet.instance_buffer_index != NULL_GPU_INDEX;
+
+			if (has_instance_buffer)
+				backend.cmd_bind_constants(cmd, {.data = &packet.instance_buffer_index, .offset = constant_obj0, .count = 1, .param_index = 0});
+
+			backend.cmd_bind_constants(cmd, {.data = packet.object_constants, .offset = has_instance_buffer ? constant_obj1 : constant_obj0, .count = packet.object_constant_count, .param_index = 0});
+
+			if (!packet.vertex_buffer.is_null())
 			{
-				const world_render_queue_item_t& item		= draws[draw_index];
-				const world_renderable_t&		 renderable = snapshot.renderables[item.renderable_index];
+				if (state.vertex_stride != packet.vertex_stride)
+					state.vertex_buffer = {};
 
-				if (required_pass_mask != 0 && (renderable.pass_mask & required_pass_mask) != required_pass_mask)
-				{
-					++draw_index;
-					continue;
-				}
+				bind_vertex(backend, cmd, state.vertex_buffer, packet.vertex_buffer, packet.vertex_stride);
+				state.vertex_stride = packet.vertex_stride;
+			}
 
-				if (renderable.type == world_renderable_type_e::sprite)
-				{
-					const world_render_material_t& material		 = snapshot.materials[renderable.material_index];
-					const render_resource_handle_t shader_handle = material.find_pso(initial_variant_flags);
+			if (!packet.index_buffer.is_null())
+			{
+				if (state.index_stride != packet.index_stride)
+					state.index_buffer = {};
 
-					if (shader_handle.is_null())
-					{
-						++draw_index;
-						continue;
-					}
+				bind_index(backend, cmd, state.index_buffer, packet.index_buffer, packet.index_stride);
+				state.index_stride = packet.index_stride;
 
-					u32 sprite_run_end = draw_index + 1;
-
-					// batch adjacent sprites with the same material
-					while (sprite_run_end < draws.size)
-					{
-						const world_render_queue_item_t& next_item		 = draws[sprite_run_end];
-						const world_renderable_t&		 next_renderable = snapshot.renderables[next_item.renderable_index];
-
-						if (next_renderable.type != world_renderable_type_e::sprite || next_renderable.material_index != renderable.material_index)
-							break;
-
-						if (required_pass_mask != 0 && (next_renderable.pass_mask & required_pass_mask) != required_pass_mask)
-							break;
-
-						++sprite_run_end;
-					}
-
-					bind_pipeline(backend, cmd, bound_pipeline, render_resources.get_shader_hw(shader_handle));
-					bind_material(backend, cmd, bound_material, renderable.material_index, material, frame_index);
-
-					const gpu_index_t sprite_instance_buffer_index = ctx.get_sprite_instance_buffer_index(frame_index);
-					const u32		  sprite_instance_start		   = item.sprite_instance_index;
-					backend.cmd_bind_constants(cmd, {.data = &sprite_instance_buffer_index, .offset = constant_obj0, .count = 1, .param_index = 0});
-					backend.cmd_bind_constants(cmd, {.data = &sprite_instance_start, .offset = constant_obj1, .count = 1, .param_index = 0});
-					backend.cmd_draw_instanced(cmd,
-											   {
-												   .vertex_count_per_instance = 6,
-												   .instance_count			  = sprite_run_end - draw_index,
-												   .start_vertex_location	  = 0,
-												   .start_instance_location	  = 0,
-											   });
-					draw_index = sprite_run_end;
-					continue;
-				}
-
-				if (renderable.type == world_renderable_type_e::particle)
-				{
-					const world_particle_draw_t&   draw			 = snapshot.particle_draws[renderable.payload_index];
-					const world_render_material_t& material		 = snapshot.materials[renderable.material_index];
-					const render_resource_handle_t shader_handle = material.find_pso(material.particle_variant_flags);
-
-					if (shader_handle.is_null())
-					{
-						++draw_index;
-						continue;
-					}
-
-					bind_pipeline(backend, cmd, bound_pipeline, render_resources.get_shader_hw(shader_handle));
-					bind_material(backend, cmd, bound_material, renderable.material_index, material, frame_index);
-
-					const world_render_entity_t& entity				   = snapshot.entities[renderable.entity_index];
-					const gpu_index_t			 particle_buffer_index = ctx.get_particle_instance_buffer_index(frame_index);
-					const u32					 particle_constants[3] = {
-						item.particle_instance_index,
-						draw.alignment,
-						entity.entity_id,
-					};
-
-					const f32 particle_geometry[5] = {
-						draw.uv_start.x,
-						draw.uv_start.y,
-						draw.uv_size.x,
-						draw.uv_size.y,
-						draw.aspect,
-					};
-
-					backend.cmd_bind_constants(cmd, {.data = &particle_buffer_index, .offset = constant_obj0, .count = 1, .param_index = 0});
-					backend.cmd_bind_constants(cmd, {.data = particle_constants, .offset = constant_obj1, .count = std::size(particle_constants), .param_index = 0});
-					backend.cmd_bind_constants(cmd, {.data = particle_geometry, .offset = constant_obj4, .count = std::size(particle_geometry), .param_index = 0});
-					backend.cmd_draw_instanced(cmd,
-											   {
-												   .vertex_count_per_instance = 6,
-												   .instance_count			  = draw.particle_count,
-												   .start_vertex_location	  = 0,
-												   .start_instance_location	  = 0,
-											   });
-					++draw_index;
-					continue;
-				}
-
-				const world_mesh_draw_t& draw = snapshot.mesh_draws[renderable.payload_index];
-
-				const gfx_handle_t vertex_buffer = render_resources.get_resource(draw.vertex_buffer);
-				const gfx_handle_t index_buffer	 = render_resources.get_resource(draw.index_buffer);
-
-				SFG_ASSERT(!vertex_buffer.is_null() && !index_buffer.is_null());
-
-				bind_vertex(backend, cmd, bound_vertex, vertex_buffer, draw.vertex_stride);
-				bind_index(backend, cmd, bound_index, index_buffer, draw.index_stride);
-
-				if (!draw.direct_pso.is_null())
-				{
-					bind_pipeline(backend, cmd, bound_pipeline, render_resources.get_shader_hw(draw.direct_pso));
-				}
-				else
-				{
-					SFG_ASSERT(renderable.material_index != UINT32_MAX);
-
-					const world_render_material_t& material		 = snapshot.materials[renderable.material_index];
-					bitmask_t<u32>				   variant_flags = initial_variant_flags;
-
-					if (material.use_alpha_cutoff != 0)
-						variant_flags.set(shader_variant_flags_alpha_cutoff);
-
-					if (material.double_sided != 0)
-						variant_flags.set(shader_variant_flags_double_sided);
-
-					if (draw.skinning_index != UINT32_MAX)
-						variant_flags.set(shader_variant_flags_skinned);
-
-					const render_resource_handle_t shader_handle = material.find_pso(variant_flags);
-
-					if (shader_handle.is_null())
-					{
-						++draw_index;
-						continue;
-					}
-
-					bind_pipeline(backend, cmd, bound_pipeline, render_resources.get_shader_hw(shader_handle));
-					bind_material(backend, cmd, bound_material, renderable.material_index, material, frame_index);
-				}
-
-				const u32 obj_constants[2] = {
-					renderable.entity_index,
-					draw.skinning_index,
-				};
-				backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 2, .param_index = 0});
 				backend.cmd_draw_indexed_instanced(cmd,
 												   {
-													   .index_count_per_instance = draw.index_count,
-													   .instance_count			 = 1,
-													   .start_index_location	 = draw.start_index,
-													   .base_vertex_location	 = draw.start_vertex,
+													   .index_count_per_instance = packet.element_count,
+													   .instance_count			 = packet.instance_count,
+													   .start_index_location	 = packet.start_index,
+													   .base_vertex_location	 = packet.start_vertex,
 													   .start_instance_location	 = 0,
 												   });
-				++draw_index;
+			}
+			else
+			{
+				backend.cmd_draw_instanced(cmd,
+										   {
+											   .vertex_count_per_instance = packet.element_count,
+											   .instance_count			  = packet.instance_count,
+											   .start_vertex_location	  = packet.start_vertex,
+											   .start_instance_location	  = 0,
+										   });
 			}
 		}
 	}
@@ -604,10 +506,12 @@ namespace sfg
 			backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
 			const world_render_prep_view_t& prep_view = prep_data.views[view.cull_view_index];
-			draw_world_draws(backend, cmd, ctx, ss, prep_data.get_shadow_queue(prep_view), world_pass_flags_shadow, shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering, frame_index);
+
+			draw_queue(cmd, ctx, ss, prep_data.get_shadow_queue(prep_view), world_pass_flags_shadow, shader_variant_flags_z_prepass | shader_variant_flags_shadow_rendering, frame_index);
 
 			backend.cmd_end_render_pass(cmd, {});
 		}
+
 		END_DEBUG_EVENT((&backend), cmd);
 
 		barriers.resize(0);
@@ -691,7 +595,8 @@ namespace sfg
 			if (!skybox_only)
 			{
 				const world_render_prep_view_t& prep_view = prep_data.views[cull_view_indices[face]];
-				draw_world_draws(backend, command_buffer, ctx, snapshot, prep_data.get_depth_queue(prep_view), world_pass_flags_depth | world_pass_flags_reflections, shader_variant_flags_z_prepass, frame_index);
+
+				draw_queue(command_buffer, ctx, snapshot, prep_data.get_depth_queue(prep_view), world_pass_flags_depth | world_pass_flags_reflections, shader_variant_flags_z_prepass, frame_index);
 			}
 
 			backend.cmd_end_render_pass(command_buffer, {});
@@ -745,8 +650,9 @@ namespace sfg
 			if (!skybox_only)
 			{
 				const world_render_prep_view_t& prep_view = prep_data.views[cull_view_indices[face]];
-				draw_world_draws(backend, command_buffer, ctx, snapshot, prep_data.get_opaque_queue(prep_view), world_pass_flags_reflections, 0, frame_index);
-				draw_world_draws(backend, command_buffer, ctx, snapshot, prep_data.get_transparent_queue(prep_view), world_pass_flags_reflections, 0, frame_index);
+
+				draw_queue(command_buffer, ctx, snapshot, prep_data.get_opaque_queue(prep_view), world_pass_flags_reflections, 0, frame_index);
+				draw_queue(command_buffer, ctx, snapshot, prep_data.get_transparent_queue(prep_view), world_pass_flags_reflections, 0, frame_index);
 			}
 
 			backend.cmd_end_render_pass(command_buffer, {});
@@ -771,6 +677,7 @@ namespace sfg
 
 		const gfx_handle_t cmd			 = ctx.get_command_buffer_depth(frame_index);
 		const gfx_handle_t depth_texture = ctx.get_depth_texture(frame_index);
+
 		backend.reset_command_buffer(cmd);
 		backend.cmd_bind_layout(cmd, {.layout = global_layout});
 		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
@@ -781,6 +688,7 @@ namespace sfg
 			.texture_t	 = depth_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
+
 		backend.cmd_barrier(cmd, {.barriers = &begin_barrier, .barrier_count = 1});
 
 		BEGIN_DEBUG_EVENT((&backend), cmd, "world_depth_prepass");
@@ -798,6 +706,7 @@ namespace sfg
 												 });
 
 		const vec2u16_t size = ctx.get_size();
+
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
@@ -806,7 +715,8 @@ namespace sfg
 		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 
 		const world_render_prep_view_t& prep_view = prep_data.views[0];
-		draw_world_draws(backend, cmd, ctx, ss, prep_data.get_depth_queue(prep_view), world_pass_flags_depth, shader_variant_flags_z_prepass, frame_index);
+
+		draw_queue(cmd, ctx, ss, prep_data.get_depth_queue(prep_view), world_pass_flags_depth, shader_variant_flags_z_prepass, frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
@@ -817,6 +727,7 @@ namespace sfg
 			.texture_t	 = depth_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
+
 		backend.cmd_barrier(cmd, {.barriers = &depth_read_barrier, .barrier_count = 1});
 		backend.close_command_buffer(cmd);
 	}
@@ -926,7 +837,7 @@ namespace sfg
 
 		const world_render_prep_view_t& prep_view = prep_data.views[0];
 
-		draw_world_draws(backend, cmd, ctx, ss, prep_data.get_opaque_queue(prep_view), world_pass_flags_gbuffer, shader_variant_flags_gbuffer, frame_index);
+		draw_queue(cmd, ctx, ss, prep_data.get_opaque_queue(prep_view), world_pass_flags_gbuffer, shader_variant_flags_gbuffer, frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
@@ -1357,7 +1268,7 @@ namespace sfg
 
 		const world_render_prep_view_t& prep_view = prep_data.views[0];
 
-		draw_world_draws(backend, cmd, ctx, snapshot, prep_data.get_transparent_queue(prep_view), world_pass_flags_forward, 0, frame_index);
+		draw_queue(cmd, ctx, snapshot, prep_data.get_transparent_queue(prep_view), world_pass_flags_forward, 0, frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
@@ -1392,7 +1303,9 @@ namespace sfg
 
 			backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 			backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
-			draw_world_draws(backend, cmd, ctx, snapshot, prep_data.get_view_model_depth_queue(), world_pass_flags_depth, shader_variant_flags_z_prepass, frame_index);
+
+			draw_queue(cmd, ctx, snapshot, prep_data.get_view_model_depth_queue(), world_pass_flags_depth, shader_variant_flags_z_prepass, frame_index);
+
 			backend.cmd_end_render_pass(cmd, {});
 
 			const barrier_t view_model_depth_read_barrier = {
@@ -1419,7 +1332,9 @@ namespace sfg
 														  });
 			backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 			backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
-			draw_world_draws(backend, cmd, ctx, snapshot, view_model_draws, 0, 0, frame_index);
+
+			draw_queue(cmd, ctx, snapshot, view_model_draws, 0, 0, frame_index);
+
 			backend.cmd_end_render_pass(cmd, {});
 			END_DEBUG_EVENT((&backend), cmd);
 		}
