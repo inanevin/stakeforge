@@ -487,7 +487,7 @@ namespace sfg
 			if (view.view_index != 0)
 				continue;
 
-			barriers.push_back({.from_states = resource_state_ps_resource, .to_states = resource_state_depth_write, .texture_t = view.texture, .flags = barrier_flags::baf_is_texture});
+			barriers.push_back({.from_states = resource_state_ps_resource, .to_states = resource_state_depth_write, .texture = view.texture, .flags = barrier_flags::baf_is_texture});
 		}
 
 		backend.cmd_barrier(cmd, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
@@ -521,7 +521,7 @@ namespace sfg
 			if (view.view_index != 0)
 				continue;
 
-			barriers.push_back({.from_states = resource_state_depth_write, .to_states = resource_state_ps_resource, .texture_t = view.texture, .flags = barrier_flags::baf_is_texture});
+			barriers.push_back({.from_states = resource_state_depth_write, .to_states = resource_state_ps_resource, .texture = view.texture, .flags = barrier_flags::baf_is_texture});
 		}
 
 		backend.cmd_barrier(cmd, {.barriers = barriers.data(), .barrier_count = static_cast<u16>(barriers.size())});
@@ -550,7 +550,7 @@ namespace sfg
 		const barrier_t radiance_write_barrier = {
 			.from_states = resource_state_common,
 			.to_states	 = resource_state_render_target,
-			.texture_t	 = allocation.radiance_texture,
+			.texture	 = allocation.radiance_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 
@@ -563,7 +563,7 @@ namespace sfg
 			const barrier_t depth_write_barrier = {
 				.from_states = resource_state_depth_read | resource_state_non_ps_resource | resource_state_ps_resource,
 				.to_states	 = resource_state_depth_write,
-				.texture_t	 = allocation.depth_texture,
+				.texture	 = allocation.depth_texture,
 				.flags		 = barrier_flags::baf_is_texture,
 			};
 
@@ -604,7 +604,7 @@ namespace sfg
 			const barrier_t depth_read_barrier = {
 				.from_states = resource_state_depth_write,
 				.to_states	 = resource_state_depth_read | resource_state_non_ps_resource | resource_state_ps_resource,
-				.texture_t	 = allocation.depth_texture,
+				.texture	 = allocation.depth_texture,
 				.flags		 = barrier_flags::baf_is_texture,
 			};
 
@@ -663,7 +663,7 @@ namespace sfg
 		const barrier_t radiance_read_barrier = {
 			.from_states = resource_state_render_target,
 			.to_states	 = resource_state_common,
-			.texture_t	 = allocation.radiance_texture,
+			.texture	 = allocation.radiance_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 
@@ -685,7 +685,7 @@ namespace sfg
 		const barrier_t begin_barrier = {
 			.from_states = resource_state_depth_read | resource_state_non_ps_resource | resource_state_ps_resource,
 			.to_states	 = resource_state_depth_write,
-			.texture_t	 = depth_texture,
+			.texture	 = depth_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 
@@ -724,7 +724,7 @@ namespace sfg
 		const barrier_t depth_read_barrier = {
 			.from_states = resource_state_depth_write,
 			.to_states	 = resource_state_depth_read | resource_state_non_ps_resource | resource_state_ps_resource,
-			.texture_t	 = depth_texture,
+			.texture	 = depth_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 
@@ -752,25 +752,25 @@ namespace sfg
 			{
 				.from_states = resource_state_ps_resource,
 				.to_states	 = resource_state_render_target,
-				.texture_t	 = gbuffer_textures[0],
+				.texture	 = gbuffer_textures[0],
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 			{
 				.from_states = resource_state_non_ps_resource | resource_state_ps_resource,
 				.to_states	 = resource_state_render_target,
-				.texture_t	 = gbuffer_textures[1],
+				.texture	 = gbuffer_textures[1],
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 			{
 				.from_states = resource_state_ps_resource,
 				.to_states	 = resource_state_render_target,
-				.texture_t	 = gbuffer_textures[2],
+				.texture	 = gbuffer_textures[2],
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 			{
 				.from_states = resource_state_ps_resource,
 				.to_states	 = resource_state_render_target,
-				.texture_t	 = gbuffer_textures[3],
+				.texture	 = gbuffer_textures[3],
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 		};
@@ -846,25 +846,25 @@ namespace sfg
 			{
 				.from_states = resource_state_render_target,
 				.to_states	 = resource_state_ps_resource,
-				.texture_t	 = gbuffer_albedo,
+				.texture	 = gbuffer_albedo,
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 			{
 				.from_states = resource_state_render_target,
 				.to_states	 = resource_state_non_ps_resource | resource_state_ps_resource,
-				.texture_t	 = gbuffer_normal,
+				.texture	 = gbuffer_normal,
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 			{
 				.from_states = resource_state_render_target,
 				.to_states	 = resource_state_ps_resource,
-				.texture_t	 = gbuffer_orm,
+				.texture	 = gbuffer_orm,
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 			{
 				.from_states = resource_state_render_target,
 				.to_states	 = resource_state_ps_resource,
-				.texture_t	 = gbuffer_emissive,
+				.texture	 = gbuffer_emissive,
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 		};
@@ -949,13 +949,13 @@ namespace sfg
 			{
 				.from_states = resource_state_common,
 				.to_states	 = resource_state_non_ps_resource,
-				.texture_t	 = allocation.radiance_texture,
+				.texture	 = allocation.radiance_texture,
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 			{
 				.from_states = resource_state_common,
 				.to_states	 = resource_state_uav,
-				.texture_t	 = allocation.specular_texture,
+				.texture	 = allocation.specular_texture,
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 			{
@@ -1022,13 +1022,13 @@ namespace sfg
 			{
 				.from_states = resource_state_non_ps_resource,
 				.to_states	 = resource_state_common,
-				.texture_t	 = allocation.radiance_texture,
+				.texture	 = allocation.radiance_texture,
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 			{
 				.from_states = resource_state_uav,
 				.to_states	 = resource_state_common,
-				.texture_t	 = allocation.specular_texture,
+				.texture	 = allocation.specular_texture,
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 			{
@@ -1057,13 +1057,13 @@ namespace sfg
 		begin_barriers[0]			= {
 			.from_states = resource_state_non_ps_resource,
 			.to_states	 = resource_state_uav,
-			.texture_t	 = ao_half,
+			.texture	 = ao_half,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 		begin_barriers[1] = {
 			.from_states = resource_state_non_ps_resource,
 			.to_states	 = resource_state_uav,
-			.texture_t	 = ao_full,
+			.texture	 = ao_full,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 		backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = 2});
@@ -1088,7 +1088,7 @@ namespace sfg
 		const barrier_t half_read_barrier = {
 			.from_states = resource_state_uav,
 			.to_states	 = resource_state_non_ps_resource,
-			.texture_t	 = ao_half,
+			.texture	 = ao_half,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 		backend.cmd_barrier(cmd, {.barriers = &half_read_barrier, .barrier_count = 1});
@@ -1110,7 +1110,7 @@ namespace sfg
 		const barrier_t full_read_barrier = {
 			.from_states = resource_state_uav,
 			.to_states	 = resource_state_non_ps_resource,
-			.texture_t	 = ao_full,
+			.texture	 = ao_full,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 		backend.cmd_barrier(cmd, {.barriers = &full_read_barrier, .barrier_count = 1});
@@ -1132,7 +1132,7 @@ namespace sfg
 			{
 				.from_states = resource_state_ps_resource,
 				.to_states	 = resource_state_render_target,
-				.texture_t	 = lighting_texture,
+				.texture	 = lighting_texture,
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 		};
@@ -1156,7 +1156,7 @@ namespace sfg
 			begin_barriers[begin_count++] = {
 				.from_states = resource_state_non_ps_resource,
 				.to_states	 = resource_state_ps_resource,
-				.texture_t	 = ctx.get_ao_texture(frame_index),
+				.texture	 = ctx.get_ao_texture(frame_index),
 				.flags		 = barrier_flags::baf_is_texture,
 			};
 		}
@@ -1200,7 +1200,7 @@ namespace sfg
 			const barrier_t end_barrier = {
 				.from_states = resource_state_ps_resource,
 				.to_states	 = resource_state_non_ps_resource,
-				.texture_t	 = ctx.get_ao_texture(frame_index),
+				.texture	 = ctx.get_ao_texture(frame_index),
 				.flags		 = barrier_flags::baf_is_texture,
 			};
 
@@ -1281,7 +1281,7 @@ namespace sfg
 			const barrier_t	   view_model_depth_write_barrier = {
 				.from_states = resource_state_depth_read,
 				.to_states	 = resource_state_depth_write,
-				.texture_t	 = view_model_depth,
+				.texture	 = view_model_depth,
 				.flags		 = barrier_flags::baf_is_texture,
 			};
 
@@ -1311,7 +1311,7 @@ namespace sfg
 			const barrier_t view_model_depth_read_barrier = {
 				.from_states = resource_state_depth_write,
 				.to_states	 = resource_state_depth_read,
-				.texture_t	 = view_model_depth,
+				.texture	 = view_model_depth,
 				.flags		 = barrier_flags::baf_is_texture,
 			};
 
@@ -1352,7 +1352,7 @@ namespace sfg
 			{
 				.from_states = resource_state_render_target,
 				.to_states	 = bloom_active ? resource_state_non_ps_resource : resource_state_ps_resource,
-				.texture_t	 = ctx.get_lighting_texture(frame_index),
+				.texture	 = ctx.get_lighting_texture(frame_index),
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 			{
@@ -1398,7 +1398,7 @@ namespace sfg
 			const barrier_t write_barrier = {
 				.from_states	= resource_state_non_ps_resource,
 				.to_states		= resource_state_uav,
-				.texture_t		= downsample_texture,
+				.texture		= downsample_texture,
 				.flags			= barrier_flags::baf_is_texture,
 				.base_mip_level = level,
 				.mip_count		= 1,
@@ -1415,7 +1415,7 @@ namespace sfg
 			const barrier_t read_barrier = {
 				.from_states	= resource_state_uav,
 				.to_states		= resource_state_non_ps_resource,
-				.texture_t		= downsample_texture,
+				.texture		= downsample_texture,
 				.flags			= barrier_flags::baf_is_texture,
 				.base_mip_level = level,
 				.mip_count		= 1,
@@ -1436,7 +1436,7 @@ namespace sfg
 			const barrier_t write_barrier = {
 				.from_states	= resource_state_non_ps_resource,
 				.to_states		= resource_state_uav,
-				.texture_t		= upsample_texture,
+				.texture		= upsample_texture,
 				.flags			= barrier_flags::baf_is_texture,
 				.base_mip_level = static_cast<u8>(level),
 				.mip_count		= 1,
@@ -1471,7 +1471,7 @@ namespace sfg
 			const barrier_t read_barrier = {
 				.from_states	= resource_state_uav,
 				.to_states		= resource_state_non_ps_resource,
-				.texture_t		= upsample_texture,
+				.texture		= upsample_texture,
 				.flags			= barrier_flags::baf_is_texture,
 				.base_mip_level = static_cast<u8>(level),
 				.mip_count		= 1,
@@ -1520,13 +1520,13 @@ namespace sfg
 				{
 					.from_states = resource_state_non_ps_resource,
 					.to_states	 = resource_state_ps_resource,
-					.texture_t	 = lighting_texture,
+					.texture	 = lighting_texture,
 					.flags		 = barrier_flags::baf_is_texture,
 				},
 				{
 					.from_states	= resource_state_non_ps_resource,
 					.to_states		= resource_state_ps_resource,
-					.texture_t		= ctx.get_bloom_upsample_texture(frame_index),
+					.texture		= ctx.get_bloom_upsample_texture(frame_index),
 					.flags			= barrier_flags::baf_is_texture,
 					.base_mip_level = 0,
 					.mip_count		= 1,
@@ -1542,7 +1542,7 @@ namespace sfg
 		const barrier_t tonemap_barrier = {
 			.from_states = resource_state_ps_resource,
 			.to_states	 = resource_state_render_target,
-			.texture_t	 = tonemap_target,
+			.texture	 = tonemap_target,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 
@@ -1573,13 +1573,13 @@ namespace sfg
 				{
 					.from_states = resource_state_render_target,
 					.to_states	 = resource_state_ps_resource,
-					.texture_t	 = tonemap_target,
+					.texture	 = tonemap_target,
 					.flags		 = barrier_flags::baf_is_texture,
 				},
 				{
 					.from_states = resource_state_ps_resource,
 					.to_states	 = resource_state_render_target,
-					.texture_t	 = world_texture,
+					.texture	 = world_texture,
 					.flags		 = barrier_flags::baf_is_texture,
 				},
 			};
@@ -1698,7 +1698,7 @@ namespace sfg
 			{
 				.from_states = resource_state_render_target,
 				.to_states	 = resource_state_ps_resource,
-				.texture_t	 = world_texture,
+				.texture	 = world_texture,
 				.flags		 = barrier_flags::baf_is_texture,
 			},
 		};
@@ -1710,7 +1710,7 @@ namespace sfg
 			end_barriers[end_count++] = {
 				.from_states	= resource_state_ps_resource,
 				.to_states		= resource_state_non_ps_resource,
-				.texture_t		= ctx.get_bloom_upsample_texture(frame_index),
+				.texture		= ctx.get_bloom_upsample_texture(frame_index),
 				.flags			= barrier_flags::baf_is_texture,
 				.base_mip_level = 0,
 				.mip_count		= 1,

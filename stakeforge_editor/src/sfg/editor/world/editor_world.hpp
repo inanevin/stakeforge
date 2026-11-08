@@ -83,8 +83,19 @@ namespace sfg
 		bool enabled = false;
 	};
 
+	struct editor_world_icon_t
+	{
+		vec3f_t					 previous_position = vec3f_t::zero;
+		vec3f_t					 position		   = vec3f_t::zero;
+		vec2f_t					 size_px		   = vec2f_t::zero;
+		vec2f_t					 screen_offset	   = vec2f_t::zero;
+		render_resource_handle_t texture		   = {};
+		entity_id_t				 entity_id		   = NULL_ENTITY_ID;
+	};
+
 	struct editor_world_snapshot_data_t
 	{
+		vector_t<editor_world_icon_t>	   icons = {};
 		vector_t<entity_id_t>			   selected_entities;
 		editor_world_gizmo_snapshot_data_t gizmo		= {};
 		editor_gizmo_snap_grid_t		   snap_grid	= {};

@@ -114,14 +114,8 @@ namespace sfg
 						  debug_draw_text_alignment_e alignment		= debug_draw_text_alignment_e::center,
 						  const vec2f_t&			  screen_offset = vec2f_t::zero,
 						  resource_handle_t			  font			= NULL_RESOURCE_HANDLE);
-		void draw_texture_3d(const vec3f_t&		position,
-							 resource_handle_t	texture,
-							 const vec2f_t&		size_px,
-							 const color_t&		color,
-							 entity_id_t		entity_id		 = NULL_ENTITY_ID,
-							 debug_draw_depth_e depth			 = debug_draw_depth_e::always_visible,
-							 const vec2f_t&		screen_offset	 = vec2f_t::zero,
-							 bool				is_linear_sample = true);
+		void draw_texture_3d(
+			const vec3f_t& position, resource_handle_t texture, const vec2f_t& size_px, const color_t& color, debug_draw_depth_e depth = debug_draw_depth_e::always_visible, const vec2f_t& screen_offset = vec2f_t::zero, bool is_linear_sample = true);
 		void debug_draw_missing_resources(const world_t& world);
 		void write_snapshot(world_debug_draw_snapshot_t& snapshot);
 
@@ -171,7 +165,6 @@ namespace sfg
 			resource_handle_t  texture			= NULL_RESOURCE_HANDLE;
 			vec2f_t			   size_px			= vec2f_t::zero;
 			vec2f_t			   screen_offset	= vec2f_t::zero;
-			entity_id_t		   entity_id		= NULL_ENTITY_ID;
 			debug_draw_depth_e depth			= debug_draw_depth_e::always_visible;
 			bool			   is_linear_sample = true;
 		};

@@ -400,6 +400,19 @@
             "editor_only": true
         },
         {
+            "name": "editor_world_icon",
+            "path": "shaders/editor/editor_world_icon.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 29,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": true
+        },
+        {
             "name": "editor_world_gizmo",
             "path": "shaders/editor/editor_world_gizmo.hlsl",
             "type": 7,

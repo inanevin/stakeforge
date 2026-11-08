@@ -167,7 +167,10 @@ namespace sfg
 		_world_renderer->init(init_config.render_context, init_config.debug_draw);
 
 		for (editor_world_snapshot_data_t& snapshot : _snapshot_slots)
+		{
 			snapshot.selected_entities.reserve(init_config.selected_entity_initial_capacity);
+			snapshot.icons.reserve(16);
+		}
 	}
 
 	void editor_world_t::uninit()
@@ -609,13 +612,8 @@ namespace sfg
 		const span_t<const entity_id_t> selected			 = _edit_context.get_selected_entities();
 		const entity_id_t				editor_camera_entity = _edit_context.get_editor_camera_entity();
 
-		if (is_editor_control_enabled())
-		{
-			editor_world_util_t::draw_component_icons(_world, editor_camera_entity);
-
-			if (selected.size != 0)
-				editor_world_util_t::draw_selection_gizmos(_world, selected, _render_resolution);
-		}
+		if (is_editor_control_enabled() && selected.size != 0)
+			editor_world_util_t::draw_selection_gizmos(_world, selected, _render_resolution);
 
 		if (_edit_context.is_bounding_boxes_enabled())
 			editor_world_util_t::draw_bounding_boxes(_world, editor_camera_entity);
@@ -637,6 +635,11 @@ namespace sfg
 		editor_world_snapshot_data_t&	data			= _snapshot_slots[snapshot_slot];
 		const span_t<const entity_id_t> selected		= is_editor_control_enabled() ? _edit_context.get_selected_entities() : span_t<const entity_id_t>{};
 		const ecs_component_table_t&	hierarchy_table = _world.get_component_table(type_id_t<component_hierarchy_t>::value);
+
+		data.icons.resize(0);
+
+		if (is_editor_control_enabled())
+			editor_world_util_t::collect_component_icons(_world, _edit_context.get_editor_camera_entity(), data);
 
 		data.pick_request = _pending_pick_request;
 		data.grid		  = {
@@ -713,7 +716,8 @@ namespace sfg
 		}
 
 		_world_renderer->render(prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
-		editor_world_rendering_t::render_world(_render_context, _world_renderer->get_render_context(), _world_renderer->get_render_snapshot(), data, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
+		editor_world_rendering_t::render_world(_render_context, *_world_renderer, data, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
+
 		_object_id_readback_valid[frame_index] = true;
 	}
 }

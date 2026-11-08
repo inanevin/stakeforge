@@ -20,6 +20,7 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #include "editor/world/editor_world_util.hpp"
+#include "editor/world/editor_world.hpp"
 #include "editor/assets/editor_asset.hpp"
 #include "editor/ui/panels/editor_theme.hpp"
 #include <sfg/core/common/hashing.hpp>
@@ -33,6 +34,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/math/vec2u16.hpp>
 #include <sfg/core/runtime/resources/physics_collision_mesh.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
+#include <sfg/core/runtime/resources/texture.hpp>
 #include <sfg/core/runtime/world/ecs.hpp>
 #include <sfg/core/runtime/world/engine_components.hpp>
 #include <sfg/core/runtime/world/system_components.hpp>
@@ -251,9 +253,9 @@ namespace sfg
 		}
 	}
 
-	void editor_world_util_t::draw_component_icons(world_t& world, entity_id_t editor_camera_entity)
+	void editor_world_util_t::collect_component_icons(world_t& world, entity_id_t editor_camera_entity, editor_world_snapshot_data_t& snapshot)
 	{
-		world_debug_draw_t&			 debug_draw				= world.get_debug_draw();
+		resource_manager_t&			 resource_manager		= resource_manager_t::get();
 		const ecs_component_table_t& alive_table			= world.get_component_table(type_id_t<component_alive_t>::value);
 		const ecs_component_table_t& transform_table		= world.get_component_table(type_id_t<component_system_transform_t>::value);
 		const ecs_component_table_t& disabled_table			= world.get_component_table(type_id_t<component_disabled_t>::value);
@@ -333,8 +335,22 @@ namespace sfg
 
 			for (u32 icon_index = 0; icon_index < icon_count; ++icon_index)
 			{
-				debug_draw.draw_texture_3d(
-					transform.abs_pos, icons[icon_index], {EDITOR_WORLD_COMPONENT_ICON_SIZE_PX, EDITOR_WORLD_COMPONENT_ICON_SIZE_PX}, color_t::white, row.id, debug_draw_depth_e::always_visible, {start_x + static_cast<f32>(icon_index) * stride_px, 0.0f});
+				if (snapshot.icons.size() == editor_world_render_context_t::ICON_MAX_COUNT)
+					return;
+
+				if (resource_manager.get_entry_state(icons[icon_index]) != resource_state_e::ready)
+					continue;
+
+				const texture_internals_t* texture = resource_manager.find_internals<texture_internals_t>(icons[icon_index]);
+
+				snapshot.icons.push_back({
+					.previous_position = transform.prev_abs_mat.get_translation(),
+					.position		   = transform.abs_pos,
+					.size_px		   = {EDITOR_WORLD_COMPONENT_ICON_SIZE_PX, EDITOR_WORLD_COMPONENT_ICON_SIZE_PX},
+					.screen_offset	   = {start_x + static_cast<f32>(icon_index) * stride_px, 0.0f},
+					.texture		   = texture->texture,
+					.entity_id		   = row.id,
+				});
 			}
 		}
 	}

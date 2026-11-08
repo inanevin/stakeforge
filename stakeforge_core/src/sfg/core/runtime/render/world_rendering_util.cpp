@@ -592,7 +592,6 @@ namespace sfg
 					.texture_index = render_resources.get_texture_gpu_index(texture.texture, 0),
 					.size_px	   = texture.size_px,
 					.screen_offset = texture.screen_offset,
-					.entity_id	   = texture.entity_id,
 					.flags		   = texture.flags,
 				};
 			}

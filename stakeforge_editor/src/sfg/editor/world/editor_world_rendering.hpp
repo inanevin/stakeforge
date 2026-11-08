@@ -29,6 +29,7 @@ namespace sfg
 {
 	class editor_world_render_context_t;
 	class world_render_context_t;
+	class world_renderer_t;
 	struct editor_world_snapshot_data_t;
 	struct world_render_snapshot_t;
 	struct world_render_prep_data_t;
@@ -37,8 +38,7 @@ namespace sfg
 	{
 	public:
 		static void render_world(const editor_world_render_context_t& ctx,
-								 const world_render_context_t&		  world_ctx,
-								 const world_render_snapshot_t&		  snapshot,
+								 const world_renderer_t&			  world_renderer,
 								 const editor_world_snapshot_data_t&  snapshot_data,
 								 world_render_prep_data_t&			  prep_data,
 								 f32								  interpolation_alpha,
@@ -48,16 +48,24 @@ namespace sfg
 
 	private:
 		static void render_outlines(const editor_world_render_context_t& ctx,
-									const world_render_context_t&		 world_ctx,
-									const world_render_snapshot_t&		 snapshot,
+									const world_renderer_t&				 world_renderer,
 									const editor_world_snapshot_data_t&	 snapshot_data,
-									world_render_prep_data_t&			 prep_data,
+									const world_render_prep_data_t&		 prep_data,
 									u8									 frame_index,
 									gpu_index_t							 global_cbv_index,
 									gfx_handle_t						 global_layout);
-		static void render_object_ids(const editor_world_render_context_t& ctx, const world_render_context_t& world_ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index);
+		static void render_object_ids(const editor_world_render_context_t& ctx,
+									  const world_renderer_t&			   world_renderer,
+									  const editor_world_snapshot_data_t&  snapshot_data,
+									  const world_render_prep_data_t&	   prep_data,
+									  u8								   frame_index,
+									  gpu_index_t						   global_cbv_index,
+									  gfx_handle_t						   global_layout);
+		static void prep_icons(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const editor_world_snapshot_data_t& snapshot_data, f32 interpolation_alpha, u8 frame_index);
+		static void draw_icons(const editor_world_render_context_t& ctx, gfx_handle_t shader, gpu_index_t depth_texture_index, u32 icon_count, u8 frame_index);
 		static void blit_world_texture(const editor_world_render_context_t& ctx,
 									   const world_render_context_t&		world_ctx,
+									   gpu_index_t							depth_texture_index,
 									   const world_render_snapshot_t&		snapshot,
 									   const editor_world_snapshot_data_t&	snapshot_data,
 									   world_render_prep_data_t&			prep_data,

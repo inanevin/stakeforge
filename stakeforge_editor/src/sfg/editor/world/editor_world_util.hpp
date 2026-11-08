@@ -30,6 +30,7 @@ namespace sfg
 {
 	class world_debug_draw_t;
 	class world_t;
+	struct editor_world_snapshot_data_t;
 	class mat4x3_t;
 	struct component_system_transform_t;
 	struct vec2u16_t;
@@ -46,7 +47,7 @@ namespace sfg
 
 		static entity_id_t install_default_scene_light(world_t& world);
 		static entity_id_t install_default_scene_dark(world_t& world, f32 spotlight_y = 5.0f);
-		static void		   draw_component_icons(world_t& world, entity_id_t editor_camera_entity);
+		static void		   collect_component_icons(world_t& world, entity_id_t editor_camera_entity, editor_world_snapshot_data_t& snapshot);
 		static void		   draw_selection_gizmos(world_t& world, span_t<const entity_id_t> selected_entities, const vec2u16_t& render_resolution);
 		static void		   draw_bounding_boxes(world_t& world, entity_id_t editor_camera_entity);
 		static void		   draw_transform_axes(world_debug_draw_t& debug_draw, const mat4x3_t& transform, f32 axis_length, f32 thickness_px, debug_draw_depth_e depth);

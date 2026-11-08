@@ -48,6 +48,10 @@ namespace sfg
 					{.name = "particle_shader", .display_name = "Particle Shader"},
 					{.name = "debug_texture", .display_name = "Debug Texture"},
 					{.name = "canvas_ui_shader", .display_name = "Canvas UI Shader"},
+					{
+						.name		  = "editor_icon",
+						.display_name = "Editor Icon",
+					},
 				},
 			.type_id   = type_id_t<shader_type_e>::value,
 			.size	   = sizeof(shader_type_e),

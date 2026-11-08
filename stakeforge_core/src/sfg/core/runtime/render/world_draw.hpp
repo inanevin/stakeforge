@@ -122,11 +122,10 @@ namespace sfg
 		gpu_index_t texture_index = NULL_GPU_INDEX;
 		vec2f_t		size_px		  = vec2f_t::zero;
 		vec2f_t		screen_offset = vec2f_t::zero;
-		u32			entity_id	  = UINT32_MAX;
 		u32			flags		  = world_debug_draw_texture_flag_none;
 	};
 
-	static_assert(sizeof(world_debug_draw_texture_gpu_t) == 56);
+	static_assert(sizeof(world_debug_draw_texture_gpu_t) == 52);
 
 	struct world_particle_t
 	{

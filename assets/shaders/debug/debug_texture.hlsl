@@ -41,7 +41,6 @@ struct debug_texture
 	uint texture_index;
 	float2 size_px;
 	float2 screen_offset;
-	uint entity_id;
 	uint flags;
 };
 
@@ -51,8 +50,7 @@ struct vs_output
 	float2 uv : TEXCOORD0;
 	float4 color : COLOR0;
 	nointerpolation uint texture_index : TEXCOORD1;
-	nointerpolation uint entity_id : TEXCOORD2;
-	nointerpolation uint flags : TEXCOORD3;
+	nointerpolation uint flags : TEXCOORD2;
 	float clip_distance : SV_ClipDistance0;
 };
 
@@ -87,7 +85,6 @@ vs_output VSMain(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
 	output.uv = uvs[vertex_id];
 	output.color = instance.color;
 	output.texture_index = instance.texture_index;
-	output.entity_id = instance.entity_id;
 	output.flags = instance.flags;
 	output.clip_distance = clip_position.w > 0.0 ? 1.0 : -1.0;
 	return output;
@@ -115,26 +112,9 @@ void test_debug_texture_depth(vs_output input)
 		discard;
 }
 
-#ifdef WRITE_ID
-
-uint PSMain(vs_output input) : SV_TARGET
-{
-	sample_debug_texture(input);
-
-	if (input.entity_id == 0xffffffff)
-		discard;
-
-	test_debug_texture_depth(input);
-	return input.entity_id;
-}
-
-#else
-
 float4 PSMain(vs_output input) : SV_TARGET
 {
 	float4 color = sample_debug_texture(input);
 	test_debug_texture_depth(input);
 	return color;
 }
-
-#endif

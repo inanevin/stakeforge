@@ -26,6 +26,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/gfx/common/gfx_constants.hpp>
 #include <sfg/core/math/mat4x4.hpp>
 #include <sfg/core/math/vec2u16.hpp>
+#include <sfg/core/math/vec2f.hpp>
 #include <sfg/core/math/vec4f.hpp>
 #include <sfg/core/runtime/render/render_resource_handle.hpp>
 #include <sfg/core/runtime/world/ecs_defs.hpp>
@@ -60,6 +61,17 @@ namespace sfg
 		vec4f_t	 params		= vec4f_t::zero;
 	};
 
+	struct editor_world_icon_gpu_t
+	{
+		vec4f_t		clip_position = vec4f_t::zero;
+		vec2f_t		size_px		  = vec2f_t::zero;
+		vec2f_t		screen_offset = vec2f_t::zero;
+		gpu_index_t texture_index = NULL_GPU_INDEX;
+		entity_id_t entity_id	  = NULL_ENTITY_ID;
+	};
+
+	static_assert(sizeof(editor_world_icon_gpu_t) == 40);
+
 	struct editor_world_gizmo_mesh_t
 	{
 		render_resource_handle_t vertex_buffer = {};
@@ -76,6 +88,8 @@ namespace sfg
 		~editor_world_render_context_t()											   = default;
 		editor_world_render_context_t(const editor_world_render_context_t&)			   = delete;
 		editor_world_render_context_t& operator=(const editor_world_render_context_t&) = delete;
+
+		static inline constexpr u32 ICON_MAX_COUNT = 8192;
 
 		// -----------------------------------------------------------------------------
 		// lifetime
@@ -156,6 +170,26 @@ namespace sfg
 			return _composite_shader;
 		}
 
+		inline gfx_handle_t get_icon_shader() const
+		{
+			return _icon_shader;
+		}
+
+		inline gfx_handle_t get_icon_id_shader() const
+		{
+			return _icon_id_shader;
+		}
+
+		inline gpu_index_t get_icon_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].icon_buffer_index;
+		}
+
+		inline u8* get_mapped_icon_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_icon_buffer;
+		}
+
 		inline gfx_handle_t get_gizmo_shader() const
 		{
 			return _gizmo_shader;
@@ -187,9 +221,11 @@ namespace sfg
 
 		struct per_frame_data_t
 		{
+			u8*			 mapped_icon_buffer		   = nullptr;
 			u8*			 mapped_composite_data	   = nullptr;
 			u8*			 mapped_gizmo_data		   = nullptr;
 			u8*			 mapped_object_id_readback = nullptr;
+			gfx_handle_t icon_buffer			   = {};
 			gfx_handle_t cmd_gfx				   = {};
 			gfx_handle_t world_texture			   = {};
 			gfx_handle_t selection_texture		   = {};
@@ -197,6 +233,7 @@ namespace sfg
 			gfx_handle_t object_id_readback		   = {};
 			gfx_handle_t composite_data			   = {};
 			gfx_handle_t gizmo_data				   = {};
+			gpu_index_t	 icon_buffer_index		   = NULL_GPU_INDEX;
 			gpu_index_t	 world_texture_index	   = NULL_GPU_INDEX;
 			gpu_index_t	 selection_texture_index   = NULL_GPU_INDEX;
 			gpu_index_t	 composite_data_index	   = NULL_GPU_INDEX;
@@ -209,6 +246,8 @@ namespace sfg
 		editor_world_gizmo_mesh_t _gizmo_meshes[3]		   = {};
 		editor_world_gizmo_mesh_t _gizmo_central_meshes[2] = {};
 
+		gfx_handle_t _icon_shader		   = {};
+		gfx_handle_t _icon_id_shader	   = {};
 		gfx_handle_t _composite_shader	   = {};
 		gfx_handle_t _gizmo_shader		   = {};
 		gfx_handle_t _physics_debug_shader = {};

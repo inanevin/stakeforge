@@ -440,7 +440,6 @@ namespace sfg
 		_shaders.debug_text						   = render_resources.get_shader_hw(sh->psos[0]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/debug/debug_texture.hlsl"_hs);
 		_shaders.debug_texture					   = render_resources.get_shader_hw(sh->psos[0]);
-		_shaders.debug_texture_id				   = render_resources.get_shader_hw(sh->psos[1]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/lighting/clustered_light_culling.hlsl"_hs);
 		_shaders.clustered_light_culling		   = render_resources.get_shader_hw(sh->psos[0]);
 

@@ -442,7 +442,7 @@ namespace sfg
 		const barrier_t begin_barrier = {
 			.from_states = resource_state_copy_source,
 			.to_states	 = resource_state_render_target,
-			.texture_t	 = _thumbnail_texture,
+			.texture	 = _thumbnail_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 		backend.cmd_barrier(cmd, {.barriers = &begin_barrier, .barrier_count = 1});
@@ -487,7 +487,7 @@ namespace sfg
 		const barrier_t readback_barrier = {
 			.from_states = resource_state_render_target,
 			.to_states	 = resource_state_copy_source,
-			.texture_t	 = _thumbnail_texture,
+			.texture	 = _thumbnail_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 		backend.cmd_barrier(cmd, {.barriers = &readback_barrier, .barrier_count = 1});

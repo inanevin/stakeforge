@@ -24,7 +24,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/world/editor_world_render_context.hpp"
 #include "editor/ui/panels/editor_theme.hpp"
 
-#include <sfg/core/data/bitmask.hpp>
 #include <sfg/core/gfx/backend/backend.hpp>
 #include <sfg/core/gfx/common/barrier_description.hpp>
 #include <sfg/core/gfx/common/commands.hpp>
@@ -35,12 +34,9 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/render/render_view.hpp>
 #include <sfg/core/runtime/render/render_resources.hpp>
 #include <sfg/core/runtime/render/world_draw.hpp>
-#include <sfg/core/runtime/render/world_draw_common.hpp>
-#include <sfg/core/runtime/render/world_render_material.hpp>
 #include <sfg/core/runtime/render/world_render_snapshot.hpp>
 #include <sfg/core/runtime/render/world_render_context.hpp>
-#include <sfg/core/runtime/render/world_rendering.hpp>
-#include <sfg/core/runtime/resources/shader_types.hpp>
+#include <sfg/core/runtime/world_renderer/world_renderer.hpp>
 #include <tracy/Tracy.hpp>
 
 namespace sfg
@@ -49,8 +45,7 @@ namespace sfg
 #define EDITOR_WORLD_GIZMO_ROTATION_ORIENTATION_SCALE 55
 
 	void editor_world_rendering_t::render_world(const editor_world_render_context_t& ctx,
-												const world_render_context_t&		 world_ctx,
-												const world_render_snapshot_t&		 snapshot,
+												const world_renderer_t&				 world_renderer,
 												const editor_world_snapshot_data_t&	 snapshot_data,
 												world_render_prep_data_t&			 prep_data,
 												f32									 interpolation_alpha,
@@ -62,16 +57,21 @@ namespace sfg
 		const gfx_handle_t cmd			  = ctx.get_command_buffer(frame_index);
 		const gfx_handle_t editor_texture = ctx.get_world_texture(frame_index);
 
+		const world_render_context_t&  world_ctx = world_renderer.get_render_context();
+		const world_render_snapshot_t& snapshot	 = world_renderer.get_render_snapshot();
+
+		prep_icons(ctx, snapshot, snapshot_data, interpolation_alpha, frame_index);
+
 		backend.reset_command_buffer(cmd);
 
-		render_outlines(ctx, world_ctx, snapshot, snapshot_data, prep_data, frame_index, global_cbv_index, global_layout);
-		render_object_ids(ctx, world_ctx, snapshot, prep_data, frame_index);
-		blit_world_texture(ctx, world_ctx, snapshot, snapshot_data, prep_data, interpolation_alpha, frame_index);
+		render_outlines(ctx, world_renderer, snapshot_data, prep_data, frame_index, global_cbv_index, global_layout);
+		render_object_ids(ctx, world_renderer, snapshot_data, prep_data, frame_index, global_cbv_index, global_layout);
+		blit_world_texture(ctx, world_ctx, world_renderer.get_depth_texture_index(frame_index), snapshot, snapshot_data, prep_data, interpolation_alpha, frame_index);
 
 		const barrier_t end_barrier{
 			.from_states = resource_state_render_target,
 			.to_states	 = resource_state_ps_resource,
-			.texture_t	 = editor_texture,
+			.texture	 = editor_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 
@@ -83,14 +83,8 @@ namespace sfg
 		backend.submit_commands(queue_gfx, &cmd, 1);
 	}
 
-	void editor_world_rendering_t::render_outlines(const editor_world_render_context_t& ctx,
-												   const world_render_context_t&		world_ctx,
-												   const world_render_snapshot_t&		snapshot,
-												   const editor_world_snapshot_data_t&	snapshot_data,
-												   world_render_prep_data_t&			prep_data,
-												   u8									frame_index,
-												   gpu_index_t							global_cbv_index,
-												   gfx_handle_t							global_layout)
+	void editor_world_rendering_t::render_outlines(
+		const editor_world_render_context_t& ctx, const world_renderer_t& world_renderer, const editor_world_snapshot_data_t& snapshot_data, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		ZoneScoped;
 
@@ -100,13 +94,10 @@ namespace sfg
 		const gfx_handle_t selection_texture = ctx.get_selection_texture(frame_index);
 		const vec2u16_t	   size				 = ctx.get_size();
 
-		backend.cmd_bind_layout(cmd, {.layout = global_layout});
-		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
-
 		const barrier_t begin_barrier = {
 			.from_states = resource_state_ps_resource,
 			.to_states	 = resource_state_render_target,
-			.texture_t	 = selection_texture,
+			.texture	 = selection_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 
@@ -125,32 +116,7 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
-		gpu_index_t rp_constants[] = {
-			world_ctx.get_view_render_pass_data_index(frame_index),
-			world_ctx.get_entity_buffer_index(frame_index),
-			world_ctx.get_bone_buffer_index(frame_index),
-		};
-
-		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = std::size(rp_constants), .param_index = 0});
-
-		const world_render_prep_view_t&				  prep_view		 = prep_data.views[0];
-		const span_t<const world_render_queue_item_t> visible_draws	 = prep_data.get_visible_queue(prep_view);
-		frame_vector_t<world_render_queue_item_t>	  selected_draws = {};
-		selected_draws.reserve(visible_draws.size);
-
-		for (const world_render_queue_item_t& item : visible_draws)
-		{
-			const world_renderable_t&	 renderable = snapshot.renderables[item.renderable_index];
-			const world_render_entity_t& entity		= snapshot.entities[renderable.entity_index];
-
-			if (std::find(snapshot_data.selected_entities.begin(), snapshot_data.selected_entities.end(), entity.entity_id) != snapshot_data.selected_entities.end())
-				selected_draws.push_back(item);
-		}
-
-		// draw selected meshes
-		// draw selected sprites
-		// draw selected particles
-		world_rendering_t::draw_queue(cmd, world_ctx, snapshot, {.data = selected_draws.data(), .size = selected_draws.size()}, 0, shader_variant_flags_selection_outline, frame_index);
+		world_renderer.draw_selection(cmd, prep_data, {.data = snapshot_data.selected_entities.data(), .size = snapshot_data.selected_entities.size()}, frame_index, global_cbv_index, global_layout);
 
 		backend.cmd_end_render_pass(cmd, {});
 
@@ -159,14 +125,15 @@ namespace sfg
 		const barrier_t end_barrier = {
 			.from_states = resource_state_render_target,
 			.to_states	 = resource_state_ps_resource,
-			.texture_t	 = selection_texture,
+			.texture	 = selection_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 
 		backend.cmd_barrier(cmd, {.barriers = &end_barrier, .barrier_count = 1});
 	}
 
-	void editor_world_rendering_t::render_object_ids(const editor_world_render_context_t& ctx, const world_render_context_t& world_ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, u8 frame_index)
+	void editor_world_rendering_t::render_object_ids(
+		const editor_world_render_context_t& ctx, const world_renderer_t& world_renderer, const editor_world_snapshot_data_t& snapshot_data, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		ZoneScoped;
 
@@ -174,14 +141,14 @@ namespace sfg
 
 		const gfx_handle_t cmd				 = ctx.get_command_buffer(frame_index);
 		const gfx_handle_t object_id_texture = ctx.get_object_id_texture(frame_index);
-		const gfx_handle_t depth_texture	 = world_ctx.get_depth_texture(frame_index);
+		const gfx_handle_t depth_texture	 = world_renderer.get_depth_texture(frame_index);
 
 		const vec2u16_t size = ctx.get_size();
 
 		const barrier_t begin_barrier = {
 			.from_states = resource_state_copy_source,
 			.to_states	 = resource_state_render_target,
-			.texture_t	 = object_id_texture,
+			.texture	 = object_id_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 
@@ -215,36 +182,9 @@ namespace sfg
 		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 
-		gpu_index_t rp_constants[] = {
-			world_ctx.get_view_render_pass_data_index(frame_index),
-			world_ctx.get_entity_buffer_index(frame_index),
-			world_ctx.get_bone_buffer_index(frame_index),
-		};
-
-		backend.cmd_bind_constants(cmd, {.data = rp_constants, .offset = constant_rp0, .count = std::size(rp_constants), .param_index = 0});
-
-		const world_render_prep_view_t&				  prep_view		= prep_data.views[0];
-		const span_t<const world_render_queue_item_t> visible_draws = prep_data.get_visible_queue(prep_view);
-
 		// draw visible object ids
-		world_rendering_t::draw_queue(cmd, world_ctx, snapshot, visible_draws, world_pass_flags_id, shader_variant_flags_id_write, frame_index);
-
-		if (!snapshot.debug_draw.textures.empty())
-		{
-			const gpu_index_t view_data_index	   = world_ctx.get_view_render_pass_data_index(frame_index);
-			const gpu_index_t texture_buffer_index = world_ctx.get_debug_texture_buffer_index(frame_index);
-
-			backend.cmd_bind_constants(cmd, {.data = &view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
-			backend.cmd_bind_constants(cmd, {.data = &texture_buffer_index, .offset = constant_obj0, .count = 1, .param_index = 0});
-			backend.cmd_bind_pipeline(cmd, {.pipeline = world_ctx.get_debug_texture_id_shader()});
-			backend.cmd_draw_instanced(cmd,
-									   {
-										   .vertex_count_per_instance = 6,
-										   .instance_count			  = static_cast<u32>(snapshot.debug_draw.textures.size()),
-										   .start_vertex_location	  = 0,
-										   .start_instance_location	  = 0,
-									   });
-		}
+		world_renderer.draw_entity_ids(cmd, prep_data, frame_index, global_cbv_index, global_layout);
+		draw_icons(ctx, ctx.get_icon_id_shader(), NULL_GPU_INDEX, static_cast<u32>(snapshot_data.icons.size()), frame_index);
 
 		backend.cmd_end_render_pass(cmd, {});
 		END_DEBUG_EVENT((&backend), cmd);
@@ -252,7 +192,7 @@ namespace sfg
 		const barrier_t readback_barrier = {
 			.from_states = resource_state_render_target,
 			.to_states	 = resource_state_copy_source,
-			.texture_t	 = object_id_texture,
+			.texture	 = object_id_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 
@@ -266,8 +206,55 @@ namespace sfg
 										   });
 	}
 
-	void editor_world_rendering_t::blit_world_texture(
-		const editor_world_render_context_t& ctx, const world_render_context_t& world_ctx, const world_render_snapshot_t& snapshot, const editor_world_snapshot_data_t& snapshot_data, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index)
+	void editor_world_rendering_t::prep_icons(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const editor_world_snapshot_data_t& snapshot_data, f32 interpolation_alpha, u8 frame_index)
+	{
+		render_view_t view = {};
+
+		view.calculate(snapshot.main_view, ctx.get_size(), interpolation_alpha);
+
+		editor_world_icon_gpu_t* mapped_icons	  = reinterpret_cast<editor_world_icon_gpu_t*>(ctx.get_mapped_icon_buffer(frame_index));
+		render_resources_t&		 render_resources = render_resources_t::get();
+
+		for (u32 i = 0; i < snapshot_data.icons.size(); ++i)
+		{
+			const editor_world_icon_t& icon		= snapshot_data.icons[i];
+			const vec3f_t			   position = vec3f_t::lerp(icon.previous_position, icon.position, interpolation_alpha);
+
+			mapped_icons[i] = {
+				.clip_position = view.view_proj * vec4f_t(position.x, position.y, position.z, 1.0f),
+				.size_px	   = icon.size_px,
+				.screen_offset = icon.screen_offset,
+				.texture_index = render_resources.get_texture_gpu_index(icon.texture, 0),
+				.entity_id	   = icon.entity_id,
+			};
+		}
+	}
+
+	void editor_world_rendering_t::draw_icons(const editor_world_render_context_t& ctx, gfx_handle_t shader, gpu_index_t depth_texture_index, u32 icon_count, u8 frame_index)
+	{
+		if (icon_count == 0)
+			return;
+
+		gfx_backend&	   backend				 = gfx_backend::get();
+		const gfx_handle_t cmd					 = ctx.get_command_buffer(frame_index);
+		const vec2u16_t	   size					 = ctx.get_size();
+		const gpu_index_t  buffer_constants[2]	 = {ctx.get_icon_buffer_index(frame_index), depth_texture_index};
+		const u32		   viewport_constants[2] = {size.x, size.y};
+
+		backend.cmd_bind_constants(cmd, {.data = buffer_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
+		backend.cmd_bind_constants(cmd, {.data = viewport_constants, .offset = constant_rp2, .count = 2, .param_index = 0});
+		backend.cmd_bind_pipeline(cmd, {.pipeline = shader});
+		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 6, .instance_count = icon_count, .start_vertex_location = 0, .start_instance_location = 0});
+	}
+
+	void editor_world_rendering_t::blit_world_texture(const editor_world_render_context_t& ctx,
+													  const world_render_context_t&		   world_ctx,
+													  gpu_index_t						   depth_texture_index,
+													  const world_render_snapshot_t&	   snapshot,
+													  const editor_world_snapshot_data_t&  snapshot_data,
+													  world_render_prep_data_t&			   prep_data,
+													  f32								   interpolation_alpha,
+													  u8								   frame_index)
 	{
 		ZoneScoped;
 
@@ -389,7 +376,7 @@ namespace sfg
 		const barrier_t begin_barrier = {
 			.from_states = resource_state_ps_resource,
 			.to_states	 = resource_state_render_target,
-			.texture_t	 = editor_texture,
+			.texture	 = editor_texture,
 			.flags		 = barrier_flags::baf_is_texture,
 		};
 
@@ -410,7 +397,7 @@ namespace sfg
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 		backend.cmd_bind_constants(cmd, {.data = &composite_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
 
-		const gpu_index_t obj_constants[3] = {source_texture_index, selection_texture_index, world_ctx.get_depth_texture_index(frame_index)};
+		const gpu_index_t obj_constants[3] = {source_texture_index, selection_texture_index, depth_texture_index};
 
 		backend.cmd_bind_constants(cmd, {.data = obj_constants, .offset = constant_obj0, .count = 3, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_composite_shader()});
@@ -433,6 +420,8 @@ namespace sfg
 												   .start_instance_location	 = 0,
 											   });
 		}
+
+		draw_icons(ctx, ctx.get_icon_shader(), depth_texture_index, static_cast<u32>(snapshot_data.icons.size()), frame_index);
 
 		if (render_gizmo)
 		{

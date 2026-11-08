@@ -29,6 +29,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/resources/mesh.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
 #include <sfg/core/runtime/resources/shader.hpp>
+#include <sfg/core/runtime/resources/shader_types.hpp>
 
 namespace sfg
 {
@@ -63,6 +64,15 @@ namespace sfg
 		gizmo_data_desc.flags			= resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
 		gizmo_data_desc.set_name("editor_world_gizmo_data");
 
+		resource_desc_t icon_buffer_desc{
+			.size			 = ICON_MAX_COUNT * static_cast<u32>(sizeof(editor_world_icon_gpu_t)),
+			.structure_size	 = static_cast<u32>(sizeof(editor_world_icon_gpu_t)),
+			.structure_count = ICON_MAX_COUNT,
+			.flags			 = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible,
+		};
+
+		icon_buffer_desc.set_name("editor_world_icons");
+
 		gfx_backend& backend = gfx_backend::get();
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
@@ -79,7 +89,15 @@ namespace sfg
 			_pfd[i].gizmo_data = backend.create_resource(gizmo_data_desc);
 			backend.map_resource(_pfd[i].gizmo_data, _pfd[i].mapped_gizmo_data);
 			_pfd[i].gizmo_data_index = backend.get_resource_gpu_index(_pfd[i].gizmo_data);
+
+			_pfd[i].icon_buffer = backend.create_resource(icon_buffer_desc);
+			backend.map_resource(_pfd[i].icon_buffer, _pfd[i].mapped_icon_buffer);
+			_pfd[i].icon_buffer_index = backend.get_resource_gpu_index(_pfd[i].icon_buffer);
 		}
+
+		const shader_internals_t* icon_shader = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_icon.hlsl"_hs);
+		_icon_shader						  = render_resources_t::get().get_shader_hw(icon_shader->find_pso(0));
+		_icon_id_shader						  = render_resources_t::get().get_shader_hw(icon_shader->find_pso(shader_variant_flags_id_write));
 
 		const shader_internals_t* composite_shader	   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_render_texture.hlsl"_hs);
 		const shader_internals_t* gizmo_shader		   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_gizmo.hlsl"_hs);
@@ -108,7 +126,12 @@ namespace sfg
 		{
 			backend.destroy_resource(_pfd[i].composite_data);
 			backend.destroy_resource(_pfd[i].gizmo_data);
+			backend.destroy_resource(_pfd[i].icon_buffer);
 			backend.destroy_command_buffer(_pfd[i].cmd_gfx);
+
+			_pfd[i].icon_buffer			  = {};
+			_pfd[i].mapped_icon_buffer	  = nullptr;
+			_pfd[i].icon_buffer_index	  = NULL_GPU_INDEX;
 			_pfd[i].cmd_gfx				  = {};
 			_pfd[i].composite_data		  = {};
 			_pfd[i].gizmo_data			  = {};
@@ -124,6 +147,8 @@ namespace sfg
 		for (editor_world_gizmo_mesh_t& mesh : _gizmo_central_meshes)
 			mesh = {};
 
+		_icon_shader		  = {};
+		_icon_id_shader		  = {};
 		_composite_shader	  = {};
 		_gizmo_shader		  = {};
 		_physics_debug_shader = {};

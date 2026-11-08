@@ -38,6 +38,7 @@ namespace sfg
 		particle_shader,
 		debug_texture,
 		canvas_ui_shader,
+		editor_icon,
 		count,
 	};
 

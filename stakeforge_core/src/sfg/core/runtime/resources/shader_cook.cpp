@@ -578,6 +578,13 @@ namespace sfg
 				return false;
 			}
 			break;
+		case shader_type_e::editor_icon:
+			if (!shader_cook_variants_t::cook_editor_icon_shader(compile_source, include_paths, compiles, psos))
+			{
+				SFG_ERR("failed to cook editor icon shader variants: {0}", full_path);
+				return false;
+			}
+			break;
 		case shader_type_e::debug_texture:
 			if (!shader_cook_variants_t::cook_debug_texture_shader(compile_source, include_paths, compiles, psos))
 			{
@@ -713,7 +720,7 @@ namespace sfg
 
 	u64 shader_cooker::collect_source_tick(const shader_cook_config_t& cfg, const char* full_path)
 	{
-		u64 source_tick = file_system_t::get_last_modified_ticks(full_path);
+		u64 source_tick = hashing_t::hash_u64_combine(file_system_t::get_last_modified_ticks(full_path), static_cast<u64>(cfg.type));
 
 		vector_t<string_t> include_paths = {};
 		build_include_paths(cfg, full_path, include_paths);
@@ -724,13 +731,17 @@ namespace sfg
 		for (const string_t& line : include_lines)
 		{
 			const size_t open_quote = line.find('"');
+
 			if (open_quote == string_t::npos)
 				continue;
+
 			const size_t close_quote = line.find('"', open_quote + 1);
+
 			if (close_quote == string_t::npos)
 				continue;
 
 			const string_t rel_path = line.substr(open_quote + 1, close_quote - open_quote - 1);
+
 			if (file_system_t::is_absolute_path(rel_path.c_str()))
 			{
 				source_tick = hashing_t::hash_u64_combine(source_tick, file_system_t::get_last_modified_ticks(rel_path.c_str()));
@@ -740,6 +751,7 @@ namespace sfg
 			for (const string_t& include_path : include_paths)
 			{
 				const string_t resolved = include_path + rel_path;
+
 				if (file_system_t::exists(resolved.c_str()))
 				{
 					source_tick = hashing_t::hash_u64_combine(source_tick, file_system_t::get_last_modified_ticks(resolved.c_str()));

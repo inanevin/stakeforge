@@ -124,7 +124,7 @@ namespace sfg
 				const barrier_t b = {
 					.from_states = current_states,
 					.to_states	 = resource_state_common,
-					.texture_t	 = e.texture,
+					.texture	 = e.texture,
 					.flags		 = barrier_flags::baf_is_texture,
 				};
 				backend.cmd_barrier(cmd, {.barriers = &b, .barrier_count = 1});
@@ -140,7 +140,7 @@ namespace sfg
 				const barrier_t b = {
 					.from_states = current_states,
 					.to_states	 = resource_state_common,
-					.texture_t	 = r.dst_texture,
+					.texture	 = r.dst_texture,
 					.flags		 = barrier_flags::baf_is_texture,
 				};
 				backend.cmd_barrier(cmd, {.barriers = &b, .barrier_count = 1});
@@ -217,7 +217,7 @@ namespace sfg
 				const barrier_t b = {
 					.from_states = current_states,
 					.to_states	 = te.target_states,
-					.texture_t	 = te.texture,
+					.texture	 = te.texture,
 					.flags		 = barrier_flags::baf_is_texture,
 				};
 				backend.cmd_barrier(cmd, {.barriers = &b, .barrier_count = 1});

@@ -615,7 +615,7 @@ namespace sfg
 		});
 	}
 
-	void world_debug_draw_t::draw_texture_3d(const vec3f_t& position, resource_handle_t texture, const vec2f_t& size_px, const color_t& color, entity_id_t entity_id, debug_draw_depth_e depth, const vec2f_t& screen_offset, bool is_linear_sample)
+	void world_debug_draw_t::draw_texture_3d(const vec3f_t& position, resource_handle_t texture, const vec2f_t& size_px, const color_t& color, debug_draw_depth_e depth, const vec2f_t& screen_offset, bool is_linear_sample)
 	{
 		SFG_ASSERT(texture != NULL_RESOURCE_HANDLE && size_px.x > 0.0f && size_px.y > 0.0f);
 
@@ -631,7 +631,6 @@ namespace sfg
 			.texture		  = texture,
 			.size_px		  = size_px,
 			.screen_offset	  = screen_offset,
-			.entity_id		  = entity_id,
 			.depth			  = depth,
 			.is_linear_sample = is_linear_sample,
 		});
@@ -824,7 +823,6 @@ namespace sfg
 				.texture	   = internals->texture,
 				.size_px	   = command.size_px,
 				.screen_offset = command.screen_offset,
-				.entity_id	   = command.entity_id,
 				.flags		   = flags,
 			});
 		}

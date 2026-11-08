@@ -612,11 +612,6 @@ namespace sfg
 			return _shaders.debug_texture;
 		}
 
-		inline gfx_handle_t get_debug_texture_id_shader() const
-		{
-			return _shaders.debug_texture_id;
-		}
-
 		inline gfx_handle_t get_ssao_shader() const
 		{
 			return _shaders.ssao;
@@ -963,7 +958,6 @@ namespace sfg
 			gfx_handle_t debug_line				 = {};
 			gfx_handle_t debug_text				 = {};
 			gfx_handle_t debug_texture			 = {};
-			gfx_handle_t debug_texture_id		 = {};
 			gfx_handle_t ssao					 = {};
 			gfx_handle_t ssao_upsample			 = {};
 			gfx_handle_t bloom_downsample		 = {};

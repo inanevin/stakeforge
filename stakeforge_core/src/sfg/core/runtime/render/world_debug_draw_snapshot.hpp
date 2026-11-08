@@ -29,7 +29,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/math/vec4f.hpp"
 #include "core/runtime/render/render_resource_handle.hpp"
 #include "core/runtime/resources/vertex.hpp"
-#include "core/runtime/world/ecs_defs.hpp"
 
 namespace sfg
 {
@@ -40,7 +39,6 @@ namespace sfg
 		render_resource_handle_t texture	   = {};
 		vec2f_t					 size_px	   = vec2f_t::zero;
 		vec2f_t					 screen_offset = vec2f_t::zero;
-		entity_id_t				 entity_id	   = NULL_ENTITY_ID;
 		u32						 flags		   = 0;
 	};
 

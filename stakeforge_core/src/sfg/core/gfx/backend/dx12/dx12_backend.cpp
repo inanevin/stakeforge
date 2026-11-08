@@ -3327,51 +3327,51 @@ namespace sfg
 
 		for (u16 i = 0; i < cmd.barrier_count; i++)
 		{
-			const barrier_t& barrier_t = cmd.barriers[i];
+			const barrier_t& bar = cmd.barriers[i];
 
 			ID3D12Resource* res		= nullptr;
 			texture_t*		texture = nullptr;
 
-			if (barrier_t.flags.is_set(barrier_flags::baf_is_resource))
+			if (bar.flags.is_set(barrier_flags::baf_is_resource))
 			{
-				res = _resources.get(barrier_t.resource_t).ptr->GetResource();
+				res = _resources.get(bar.resource_t).ptr->GetResource();
 			}
-			else if (barrier_t.flags.is_set(barrier_flags::baf_is_swapchain))
+			else if (bar.flags.is_set(barrier_flags::baf_is_swapchain))
 			{
-				swapchain_t& swp = _swapchains.get(barrier_t.swapchain_t);
+				swapchain_t& swp = _swapchains.get(bar.swapchain_t);
 				res				 = swp.textures[swp.image_index].Get();
 			}
 			else
 			{
-				texture = &_textures.get(barrier_t.texture_t);
+				texture = &_textures.get(bar.texture);
 				res		= texture->ptr->GetResource();
 			}
 
-			if (barrier_t.flags.is_set(barrier_flags::baf_is_uav))
+			if (bar.flags.is_set(barrier_flags::baf_is_uav))
 			{
 				barriers.push_back(CD3DX12_RESOURCE_BARRIER::UAV(res));
 			}
 			else
 			{
-				if (barrier_t.mip_count == 0)
+				if (bar.mip_count == 0)
 				{
-					barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(res, get_resource_state(barrier_t.from_states), get_resource_state(barrier_t.to_states)));
+					barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(res, get_resource_state(bar.from_states), get_resource_state(bar.to_states)));
 				}
 				else
 				{
 					SFG_ASSERT(texture != nullptr);
-					SFG_ASSERT(static_cast<u32>(barrier_t.base_mip_level) + barrier_t.mip_count <= texture->mip_levels);
+					SFG_ASSERT(static_cast<u32>(bar.base_mip_level) + bar.mip_count <= texture->mip_levels);
 					for (u32 array_level = 0; array_level < texture->array_length; ++array_level)
 					{
-						for (u32 mip_level = barrier_t.base_mip_level; mip_level < static_cast<u32>(barrier_t.base_mip_level) + barrier_t.mip_count; ++mip_level)
+						for (u32 mip_level = bar.base_mip_level; mip_level < static_cast<u32>(bar.base_mip_level) + bar.mip_count; ++mip_level)
 						{
 							const u32 subresource = D3D12CalcSubresource(mip_level, array_level, 0, texture->mip_levels, texture->array_length);
-							barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(res, get_resource_state(barrier_t.from_states), get_resource_state(barrier_t.to_states), subresource));
+							barriers.push_back(CD3DX12_RESOURCE_BARRIER::Transition(res, get_resource_state(bar.from_states), get_resource_state(bar.to_states), subresource));
 						}
 					}
 				}
-				if (barrier_t.flags.is_set(barrier_flags::baf_is_texture) && barrier_t.mip_count == 0)
-					set_texture_state(barrier_t.texture_t, barrier_t.to_states);
+				if (bar.flags.is_set(barrier_flags::baf_is_texture) && bar.mip_count == 0)
+					set_texture_state(bar.texture, bar.to_states);
 			}
 		}
 

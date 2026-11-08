@@ -53,6 +53,8 @@ namespace sfg
 		void publish_snapshot() override;
 		void acquire_snapshot() override;
 		void render(world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) override;
+		void draw_selection(gfx_handle_t cmd, const world_render_prep_data_t& prep_data, span_t<const entity_id_t> selected_entities, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const override;
+		void draw_entity_ids(gfx_handle_t cmd, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const override;
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -61,6 +63,16 @@ namespace sfg
 		const world_render_context_t& get_render_context() const override
 		{
 			return _render_context;
+		}
+
+		gfx_handle_t get_depth_texture(u8 frame_index) const override
+		{
+			return _render_context.get_depth_texture(frame_index);
+		}
+
+		gpu_index_t get_depth_texture_index(u8 frame_index) const override
+		{
+			return _render_context.get_depth_texture_index(frame_index);
 		}
 
 		const world_render_snapshot_t* get_latest_snapshot() const override
