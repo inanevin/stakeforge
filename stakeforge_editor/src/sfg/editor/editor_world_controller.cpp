@@ -344,6 +344,7 @@ namespace sfg
 		world.tick_physics(dt_seconds);
 
 		world.tick_animation_logic(dt_seconds);
+		editor_world.update_screen_camera();
 		world.tick_post(dt_seconds);
 	}
 

@@ -42,7 +42,6 @@ namespace sfg
 	{
 		reset_cursor();
 
-		_camera		   = {};
 		_view_proj	   = mat4x4_t::identity;
 		_inv_view_proj = mat4x4_t::identity;
 		_input_rect	   = vec4f_t::zero;
@@ -128,25 +127,17 @@ namespace sfg
 			return;
 
 		_render_size = render_size;
-
-		if (_has_camera)
-			update_camera(_camera);
 	}
 
-	void world_screen_t::update_camera(const world_render_view_t& camera)
+	void world_screen_t::update_camera(const render_view_t& view)
 	{
-		render_view_t render_view = {};
-		render_view.calculate(camera, _render_size, 1.0f);
-
-		_camera		   = camera;
-		_view_proj	   = render_view.view_proj;
-		_inv_view_proj = render_view.inv_view_proj;
+		_view_proj	   = view.view_proj;
+		_inv_view_proj = view.inv_view_proj;
 		_has_camera	   = true;
 	}
 
 	void world_screen_t::clear_camera()
 	{
-		_camera		   = {};
 		_view_proj	   = mat4x4_t::identity;
 		_inv_view_proj = mat4x4_t::identity;
 		_has_camera	   = false;
@@ -226,12 +217,12 @@ namespace sfg
 
 	bool world_screen_t::relative_position_to_world_ray(const mat4x4_t& inv_view_proj, const vec2f_t& relative_position, world_ray_t& out_ray)
 	{
-		vec3f_t far_point = vec3f_t::zero;
-
-		if (!relative_position_to_world_position(inv_view_proj, relative_position, 1.0f, out_ray.origin) || !relative_position_to_world_position(inv_view_proj, relative_position, 0.0f, far_point))
+		if (!relative_position_to_world_position(inv_view_proj, relative_position, 1.0f, out_ray.origin))
 			return false;
 
-		out_ray.direction = (far_point - out_ray.origin).normalized();
+		const vec4f_t far_point = inv_view_proj * vec4f_t(relative_position.x * 2.0f - 1.0f, 1.0f - relative_position.y * 2.0f, 0.0f, 1.0f);
+
+		out_ray.direction = vec3f_t(far_point.x - out_ray.origin.x * far_point.w, far_point.y - out_ray.origin.y * far_point.w, far_point.z - out_ray.origin.z * far_point.w).normalized();
 
 		return !out_ray.direction.is_zero();
 	}

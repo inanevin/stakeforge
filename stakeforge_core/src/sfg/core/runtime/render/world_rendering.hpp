@@ -32,6 +32,7 @@ namespace sfg
 {
 	class world_render_context_t;
 	struct world_render_prep_data_t;
+	struct render_view_t;
 	struct world_render_reflection_allocation_t;
 	struct world_render_snapshot_t;
 	struct world_draw_packet_t;
@@ -60,7 +61,8 @@ namespace sfg
 	class SFG_API world_rendering_t final
 	{
 	public:
-		static void render_world(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
+		static void render_world(
+			world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const render_view_t& main_camera_view, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		static void draw_queue(gfx_handle_t cmd, const world_render_context_t& ctx, const world_render_snapshot_t& snapshot, span_t<const world_render_queue_item_t> draws, u32 required_pass_mask, u32 initial_variant_flags, u8 frame_index);
 		static void draw_packets(gfx_handle_t cmd, span_t<const world_draw_packet_t> packets, span_t<const world_render_material_t> materials, u8 frame_index, world_draw_state_t& state);
 

@@ -43,9 +43,9 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	struct world_render_view_t;
 	struct aabb_t;
 	struct physics_raycast_t;
+	struct render_view_t;
 	struct SFG_EDITOR_API editor_world_init_config_t
 	{
 		physics_runtime_config_t		   physics							= {};
@@ -152,6 +152,7 @@ namespace sfg
 		void invoke_tick_callback(f32 delta_time);
 		void draw_debug();
 		void update_world_transforms();
+		void update_screen_camera();
 		void produce_snapshot();
 		void render(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 
@@ -236,7 +237,7 @@ namespace sfg
 
 	private:
 		bool get_gizmo_input(editor_gizmo_input_t& input) const;
-		bool get_gizmo_view(world_render_view_t& view);
+		void build_camera_view(render_view_t& out_view) const;
 		void consume_entity_pick_result();
 
 	private:

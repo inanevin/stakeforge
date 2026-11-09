@@ -89,6 +89,7 @@ namespace sfg
 		}
 
 	private:
+		void update_screen_camera();
 		void produce_snapshot();
 		void publish_snapshot();
 		f32	 calculate_render_alpha() const;

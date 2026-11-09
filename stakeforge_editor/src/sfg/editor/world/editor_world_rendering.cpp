@@ -33,9 +33,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/memory/memory.hpp>
 #include <sfg/core/runtime/render/render_view.hpp>
 #include <sfg/core/runtime/render/render_resources.hpp>
-#include <sfg/core/runtime/render/world_draw.hpp>
-#include <sfg/core/runtime/render/world_render_snapshot.hpp>
-#include <sfg/core/runtime/render/world_render_context.hpp>
 #include <sfg/core/runtime/world_renderer/world_renderer.hpp>
 #include <tracy/Tracy.hpp>
 
@@ -57,18 +54,22 @@ namespace sfg
 		const gfx_handle_t cmd			  = ctx.get_command_buffer(frame_index);
 		const gfx_handle_t editor_texture = ctx.get_world_texture(frame_index);
 
-		const world_render_context_t&  world_ctx = world_renderer.get_render_context();
-		const world_render_snapshot_t& snapshot	 = world_renderer.get_render_snapshot();
+		const gpu_index_t	 source_texture_index = snapshot_data.world_view == editor_world_view_e::unlit ? world_renderer.get_world_texture_unlit(frame_index) : world_renderer.get_world_texture_final(frame_index);
+		const gpu_index_t	 depth_texture_index  = world_renderer.get_depth_texture_index(frame_index);
+		const render_view_t& view				  = world_renderer.get_render_view(frame_index);
 
-		const gpu_index_t source_texture_index = snapshot_data.world_view == editor_world_view_e::unlit ? world_renderer.get_world_texture_unlit(frame_index) : world_renderer.get_world_texture_final(frame_index);
+		const editor_world_view_data_t view_data{
+			.view_proj = view.view_proj,
+		};
 
-		prep_icons(ctx, snapshot, snapshot_data, interpolation_alpha, frame_index);
+		SFG_MEMCPY(ctx.get_mapped_view_data(frame_index), &view_data, sizeof(editor_world_view_data_t));
+		prep_icons(ctx, view, snapshot_data, interpolation_alpha, frame_index);
 
 		backend.reset_command_buffer(cmd);
 
 		render_outlines(ctx, world_renderer, snapshot_data, prep_data, frame_index, global_cbv_index, global_layout);
 		render_object_ids(ctx, world_renderer, snapshot_data, prep_data, frame_index, global_cbv_index, global_layout);
-		blit_world_texture(ctx, world_ctx, source_texture_index, world_renderer.get_depth_texture_index(frame_index), snapshot, snapshot_data, prep_data, interpolation_alpha, frame_index);
+		blit_world_texture(ctx, source_texture_index, depth_texture_index, view, snapshot_data, interpolation_alpha, frame_index);
 
 		const barrier_t end_barrier{
 			.from_states = resource_state_render_target,
@@ -208,12 +209,8 @@ namespace sfg
 										   });
 	}
 
-	void editor_world_rendering_t::prep_icons(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const editor_world_snapshot_data_t& snapshot_data, f32 interpolation_alpha, u8 frame_index)
+	void editor_world_rendering_t::prep_icons(const editor_world_render_context_t& ctx, const render_view_t& view, const editor_world_snapshot_data_t& snapshot_data, f32 interpolation_alpha, u8 frame_index)
 	{
-		render_view_t view = {};
-
-		view.calculate(snapshot.main_view, ctx.get_size(), interpolation_alpha);
-
 		editor_world_icon_gpu_t* mapped_icons	  = reinterpret_cast<editor_world_icon_gpu_t*>(ctx.get_mapped_icon_buffer(frame_index));
 		render_resources_t&		 render_resources = render_resources_t::get();
 
@@ -249,22 +246,12 @@ namespace sfg
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 6, .instance_count = icon_count, .start_vertex_location = 0, .start_instance_location = 0});
 	}
 
-	void editor_world_rendering_t::blit_world_texture(const editor_world_render_context_t& ctx,
-													  const world_render_context_t&		   world_ctx,
-													  gpu_index_t						   source_texture_index,
-													  gpu_index_t						   depth_texture_index,
-													  const world_render_snapshot_t&	   snapshot,
-													  const editor_world_snapshot_data_t&  snapshot_data,
-													  world_render_prep_data_t&			   prep_data,
-													  f32								   interpolation_alpha,
-													  u8								   frame_index)
+	void editor_world_rendering_t::blit_world_texture(
+		const editor_world_render_context_t& ctx, gpu_index_t source_texture_index, gpu_index_t depth_texture_index, const render_view_t& view, const editor_world_snapshot_data_t& snapshot_data, f32 interpolation_alpha, u8 frame_index)
 	{
 		ZoneScoped;
 
 		const vec2u16_t size = ctx.get_size();
-		render_view_t	view = {};
-
-		view.calculate(snapshot.main_view, size, interpolation_alpha);
 
 		const f32			  grid_period  = snapshot_data.grid.scale * 10000.0f;
 		const f32			  grid_phase_x = view.pos.x - math::floor(view.pos.x / grid_period) * grid_period;
@@ -339,7 +326,7 @@ namespace sfg
 			if (highlight_axis != editor_gizmo_axis_e::invalid)
 				gizmo_data.colors[static_cast<u32>(highlight_axis)] = theme.color_accent2;
 
-			gizmo_data.params = vec4f_t(editor_world_gizmo_t::PIXEL_SIZE, static_cast<f32>(size.y), math::tan(snapshot.main_view.fov_degrees * DEG_2_RAD * 0.5f), editor_world_gizmo_t::MIN_WORLD_SIZE);
+			gizmo_data.params = vec4f_t(editor_world_gizmo_t::PIXEL_SIZE, static_cast<f32>(size.y), math::abs(view.proj[5]), editor_world_gizmo_t::MIN_WORLD_SIZE);
 			SFG_MEMCPY(ctx.get_mapped_gizmo_data(frame_index), &gizmo_data, sizeof(editor_world_gizmo_gpu_data_t));
 		}
 
@@ -380,24 +367,6 @@ namespace sfg
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_composite_shader()});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 
-		if (!snapshot.debug_draw.triangle_indices.empty())
-		{
-			const gpu_index_t physics_rp_constant = world_ctx.get_view_render_pass_data_index(frame_index);
-
-			backend.cmd_bind_constants(cmd, {.data = &physics_rp_constant, .offset = constant_rp0, .count = 1, .param_index = 0});
-			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_physics_debug_shader()});
-			backend.cmd_bind_vertex_buffers(cmd, {.buffer = world_ctx.get_debug_triangle_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_triangle_t)), .offset = 0});
-			backend.cmd_bind_index_buffers(cmd, {.buffer = world_ctx.get_debug_triangle_index_buffer(frame_index), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
-			backend.cmd_draw_indexed_instanced(cmd,
-											   {
-												   .index_count_per_instance = static_cast<u32>(snapshot.debug_draw.triangle_indices.size()),
-												   .instance_count			 = 1,
-												   .start_index_location	 = 0,
-												   .base_vertex_location	 = 0,
-												   .start_instance_location	 = 0,
-											   });
-		}
-
 		draw_icons(ctx, ctx.get_icon_shader(), depth_texture_index, static_cast<u32>(snapshot_data.icons.size()), frame_index);
 
 		if (render_gizmo)
@@ -427,7 +396,7 @@ namespace sfg
 
 			SFG_ASSERT(!vertex_buffer.is_null() && !index_buffer.is_null());
 
-			const gpu_index_t view_data_index  = world_ctx.get_view_render_pass_data_index(frame_index);
+			const gpu_index_t view_data_index  = ctx.get_view_data_index(frame_index);
 			const gpu_index_t gizmo_data_index = ctx.get_gizmo_data_index(frame_index);
 
 			backend.cmd_bind_constants(cmd, {.data = &view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});

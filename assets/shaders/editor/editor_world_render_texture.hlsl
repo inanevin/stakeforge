@@ -62,20 +62,24 @@ float4 PSMain(vs_output input) : SV_TARGET
 	if (data.camera_grid.w > 0.0)
 	{
 		float2 ndc = float2(input.uv.x * 2.0 - 1.0, 1.0 - input.uv.y * 2.0);
-		float4 far_view = mul(data.inv_proj, float4(ndc, 0.0, 1.0));
-		float3 view_ray = normalize(far_view.xyz / far_view.w);
+		float4 near_view = mul(data.inv_proj, float4(ndc, 1.0, 1.0));
+		float4 interior_view = mul(data.inv_proj, float4(ndc, 0.5, 1.0));
+		float3 view_origin = near_view.xyz / near_view.w;
+		float3 view_ray = normalize(interior_view.xyz / interior_view.w - view_origin);
+		float3 world_origin = mul((float3x3)data.inv_view, view_origin);
 		float3 world_ray = normalize(mul((float3x3)data.inv_view, view_ray));
-		float ray_distance = -data.camera_position.y / world_ray.y;
+		float safe_denominator = abs(world_ray.y) > 0.00001 ? world_ray.y : (world_ray.y < 0.0 ? -0.00001 : 0.00001);
+		float ray_distance = -(data.camera_position.y + world_origin.y) / safe_denominator;
 		if (abs(world_ray.y) > 0.0001 && ray_distance > 0.0)
 		{
-			float4 plane_clip = mul(data.proj, float4(view_ray * ray_distance, 1.0));
+			float4 plane_clip = mul(data.proj, float4(view_origin + view_ray * ray_distance, 1.0));
 			float plane_depth = plane_clip.z / plane_clip.w;
 			Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(sfg_constant_obj2);
 			float scene_depth = depth_texture.Load(int3(pixel, 0));
-			if (scene_depth <= 0.000001 || plane_depth > scene_depth + 0.000001)
+			if (plane_depth >= 0.0 && plane_depth <= 1.0 && (scene_depth <= 0.000001 || plane_depth > scene_depth + 0.000001))
 			{
 				float grid_scale = data.grid_params.x;
-				float2 relative_position = world_ray.xz * ray_distance;
+				float2 relative_position = world_origin.xz + world_ray.xz * ray_distance;
 				float2 grid_position = data.camera_grid.xz + relative_position;
 				float footprint = max(length(ddx(grid_position)), length(ddy(grid_position)));
 				float lod_value = clamp(log10(max(footprint * 8.0 / grid_scale, 1.0)), 0.0, 2.0);
@@ -89,7 +93,7 @@ float4 PSMain(vs_output input) : SV_TARGET
 				float medium_only = medium_line * (1.0 - coarse_line);
 				float fade_start = min(max(grid_scale * 25.0, data.grid_params.z * 0.05), data.grid_params.z * 0.5);
 				float fade_end = min(max(grid_scale * 100.0, data.grid_params.z * 0.35), data.grid_params.z * 0.9);
-				float fade = (1.0 - smoothstep(fade_start, fade_end, ray_distance)) * smoothstep(0.015, 0.12, abs(world_ray.y));
+				float fade = (1.0 - smoothstep(fade_start, fade_end, length(view_origin + view_ray * ray_distance))) * smoothstep(0.015, 0.12, abs(world_ray.y));
 				float medium_alpha = lerp(data.grid_major_color.a, data.grid_minor_color.a, lod_blend);
 				float3 medium_color = lerp(data.grid_major_color.rgb, data.grid_minor_color.rgb, lod_blend);
 				float2 absolute_position = data.camera_position.xz + relative_position;
@@ -128,14 +132,17 @@ float4 PSMain(vs_output input) : SV_TARGET
 	if (data.snap_grid_origin.w > 0.0)
 	{
 		float2 ndc = float2(input.uv.x * 2.0 - 1.0, 1.0 - input.uv.y * 2.0);
-		float4 far_view = mul(data.inv_proj, float4(ndc, 0.0, 1.0));
-		float3 view_ray = normalize(far_view.xyz / far_view.w);
+		float4 near_view = mul(data.inv_proj, float4(ndc, 1.0, 1.0));
+		float4 interior_view = mul(data.inv_proj, float4(ndc, 0.5, 1.0));
+		float3 view_origin = near_view.xyz / near_view.w;
+		float3 view_ray = normalize(interior_view.xyz / interior_view.w - view_origin);
+		float3 world_origin = mul((float3x3)data.inv_view, view_origin);
 		float3 world_ray = normalize(mul((float3x3)data.inv_view, view_ray));
 		float3 normal = cross(data.snap_grid_right.xyz, data.snap_grid_up.xyz);
 		float denominator = dot(world_ray, normal);
 		float safe_denominator = abs(denominator) > 0.00001 ? denominator : (denominator < 0.0 ? -0.00001 : 0.00001);
-		float ray_distance = dot(data.snap_grid_origin.xyz, normal) / safe_denominator;
-		float3 offset = world_ray * ray_distance - data.snap_grid_origin.xyz;
+		float ray_distance = dot(data.snap_grid_origin.xyz - world_origin, normal) / safe_denominator;
+		float3 offset = world_origin + world_ray * ray_distance - data.snap_grid_origin.xyz;
 		float2 position = float2(dot(offset, data.snap_grid_right.xyz), dot(offset, data.snap_grid_up.xyz));
 		float spacing = data.snap_grid_origin.w;
 		float radius = data.snap_grid_right.w;
@@ -149,7 +156,7 @@ float4 PSMain(vs_output input) : SV_TARGET
 
 		if (abs(denominator) > 0.0001 && ray_distance > 0.0 && alpha > 0.0)
 		{
-			float4 plane_clip = mul(data.proj, float4(view_ray * ray_distance, 1.0));
+			float4 plane_clip = mul(data.proj, float4(view_origin + view_ray * ray_distance, 1.0));
 			float plane_depth = plane_clip.z / plane_clip.w;
 			Texture2D<float> depth_texture = sfg_get_texture<Texture2D<float> >(sfg_constant_obj2);
 			float scene_depth = depth_texture.Load(int3(pixel, 0));

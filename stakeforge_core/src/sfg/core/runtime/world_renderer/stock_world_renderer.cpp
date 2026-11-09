@@ -96,12 +96,22 @@ namespace sfg
 		}
 	}
 
+	void stock_world_renderer_t::build_render_view(const world_render_view_t& camera, const vec2u16_t& resolution, f32 interpolation_alpha, render_view_t& out_view) const
+	{
+		out_view.calculate(camera, resolution, interpolation_alpha);
+	}
+
 	void stock_world_renderer_t::render(world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 
+		// main cam view.
+		render_view_t& view = _render_views[frame_index];
+
+		build_render_view(_snapshot_slots[_consumer_slot].main_view, _render_context.get_size(), interpolation_alpha, view);
 		prep_data.reserve();
-		world_rendering_t::render_world(_render_context, _snapshot_slots[_consumer_slot], prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
+
+		world_rendering_t::render_world(_render_context, _snapshot_slots[_consumer_slot], view, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
 	}
 
 	void stock_world_renderer_t::draw_selection(gfx_handle_t cmd, const world_render_prep_data_t& prep_data, span_t<const entity_id_t> selected_entities, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const
@@ -157,4 +167,5 @@ namespace sfg
 
 		world_rendering_t::draw_queue(cmd, _render_context, snapshot, prep_data.get_visible_queue(prep_view), world_pass_flags_id, shader_variant_flags_id_write, frame_index);
 	}
+
 }

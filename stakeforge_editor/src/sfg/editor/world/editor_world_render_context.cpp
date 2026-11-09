@@ -54,6 +54,13 @@ namespace sfg
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 		SFG_ASSERT(size.x > 0 && size.y > 0);
 
+		resource_desc_t view_data_desc{
+			.size  = static_cast<u32>(sizeof(editor_world_view_data_t)),
+			.flags = resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible,
+		};
+
+		view_data_desc.set_name("editor_world_view_data");
+
 		resource_desc_t composite_data_desc = {};
 		composite_data_desc.size			= static_cast<u32>(sizeof(editor_world_composite_data_t));
 		composite_data_desc.flags			= resource_flags::rf_constant_buffer | resource_flags::rf_cpu_visible;
@@ -82,6 +89,10 @@ namespace sfg
 				.debug_name = "editor_world",
 			});
 
+			_pfd[i].view_data = backend.create_resource(view_data_desc);
+			backend.map_resource(_pfd[i].view_data, _pfd[i].mapped_view_data);
+			_pfd[i].view_data_index = backend.get_resource_gpu_index(_pfd[i].view_data);
+
 			_pfd[i].composite_data = backend.create_resource(composite_data_desc);
 			backend.map_resource(_pfd[i].composite_data, _pfd[i].mapped_composite_data);
 			_pfd[i].composite_data_index = backend.get_resource_gpu_index(_pfd[i].composite_data);
@@ -99,17 +110,15 @@ namespace sfg
 		_icon_shader						  = render_resources_t::get().get_shader_hw(icon_shader->find_pso(0));
 		_icon_id_shader						  = render_resources_t::get().get_shader_hw(icon_shader->find_pso(shader_variant_flags_id_write));
 
-		const shader_internals_t* composite_shader	   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_render_texture.hlsl"_hs);
-		const shader_internals_t* gizmo_shader		   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_gizmo.hlsl"_hs);
-		const shader_internals_t* physics_debug_shader = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_physics_debug.hlsl"_hs);
-		_composite_shader							   = render_resources_t::get().get_shader_hw(composite_shader->psos[0]);
-		_gizmo_shader								   = render_resources_t::get().get_shader_hw(gizmo_shader->psos[0]);
-		_physics_debug_shader						   = render_resources_t::get().get_shader_hw(physics_debug_shader->psos[0]);
-		_gizmo_meshes[0]							   = load_gizmo_mesh_render_data(GIZMO_MESH_TRANSLATION);
-		_gizmo_meshes[1]							   = load_gizmo_mesh_render_data(GIZMO_MESH_ROTATION);
-		_gizmo_meshes[2]							   = load_gizmo_mesh_render_data(GIZMO_MESH_SCALE);
-		_gizmo_central_meshes[0]					   = load_gizmo_mesh_render_data(DEFAULT_MESH_SPHERE_GUID);
-		_gizmo_central_meshes[1]					   = load_gizmo_mesh_render_data(DEFAULT_MESH_CUBE_GUID);
+		const shader_internals_t* composite_shader = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_render_texture.hlsl"_hs);
+		const shader_internals_t* gizmo_shader	   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_gizmo.hlsl"_hs);
+		_composite_shader						   = render_resources_t::get().get_shader_hw(composite_shader->psos[0]);
+		_gizmo_shader							   = render_resources_t::get().get_shader_hw(gizmo_shader->psos[0]);
+		_gizmo_meshes[0]						   = load_gizmo_mesh_render_data(GIZMO_MESH_TRANSLATION);
+		_gizmo_meshes[1]						   = load_gizmo_mesh_render_data(GIZMO_MESH_ROTATION);
+		_gizmo_meshes[2]						   = load_gizmo_mesh_render_data(GIZMO_MESH_SCALE);
+		_gizmo_central_meshes[0]				   = load_gizmo_mesh_render_data(DEFAULT_MESH_SPHERE_GUID);
+		_gizmo_central_meshes[1]				   = load_gizmo_mesh_render_data(DEFAULT_MESH_CUBE_GUID);
 
 		create_texture(size);
 	}
@@ -124,11 +133,15 @@ namespace sfg
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 		{
+			backend.destroy_resource(_pfd[i].view_data);
 			backend.destroy_resource(_pfd[i].composite_data);
 			backend.destroy_resource(_pfd[i].gizmo_data);
 			backend.destroy_resource(_pfd[i].icon_buffer);
 			backend.destroy_command_buffer(_pfd[i].cmd_gfx);
 
+			_pfd[i].view_data			  = {};
+			_pfd[i].mapped_view_data	  = nullptr;
+			_pfd[i].view_data_index		  = NULL_GPU_INDEX;
 			_pfd[i].icon_buffer			  = {};
 			_pfd[i].mapped_icon_buffer	  = nullptr;
 			_pfd[i].icon_buffer_index	  = NULL_GPU_INDEX;
@@ -147,11 +160,10 @@ namespace sfg
 		for (editor_world_gizmo_mesh_t& mesh : _gizmo_central_meshes)
 			mesh = {};
 
-		_icon_shader		  = {};
-		_icon_id_shader		  = {};
-		_composite_shader	  = {};
-		_gizmo_shader		  = {};
-		_physics_debug_shader = {};
+		_icon_shader	  = {};
+		_icon_id_shader	  = {};
+		_composite_shader = {};
+		_gizmo_shader	  = {};
 	}
 
 	void editor_world_render_context_t::resize(vec2u16_t size)

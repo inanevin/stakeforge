@@ -30,13 +30,14 @@ namespace sfg
 {
 	template <typename T> struct span_t;
 	class world_t;
-	class world_render_context_t;
 	struct vec2u16_t;
 	struct project_settings_t;
 	struct world_render_context_config_t;
 	struct world_debug_draw_config_t;
 	struct world_render_snapshot_t;
 	struct world_render_prep_data_t;
+	struct render_view_t;
+	struct world_render_view_t;
 
 	class SFG_API world_renderer_t
 	{
@@ -63,6 +64,7 @@ namespace sfg
 		virtual u8	 produce_snapshot(world_t& world, const project_settings_t& project_settings)																															  = 0;
 		virtual void publish_snapshot()																																														  = 0;
 		virtual void acquire_snapshot()																																														  = 0;
+		virtual void build_render_view(const world_render_view_t& camera, const vec2u16_t& resolution, f32 interpolation_alpha, render_view_t& out_view) const																  = 0;
 		virtual void render(world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)															  = 0;
 		virtual void draw_selection(gfx_handle_t cmd, const world_render_prep_data_t& prep_data, span_t<const entity_id_t> selected_entities, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const = 0;
 		virtual void draw_entity_ids(gfx_handle_t cmd, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const											  = 0;
@@ -71,9 +73,9 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
+		virtual const render_view_t&		   get_render_view(u8 frame_index) const		 = 0;
 		virtual gpu_index_t					   get_world_texture_final(u8 frame_index) const = 0;
 		virtual gpu_index_t					   get_world_texture_unlit(u8 frame_index) const = 0;
-		virtual const world_render_context_t&  get_render_context() const					 = 0;
 		virtual gfx_handle_t				   get_depth_texture(u8 frame_index) const		 = 0;
 		virtual gpu_index_t					   get_depth_texture_index(u8 frame_index) const = 0;
 		virtual const world_render_snapshot_t* get_latest_snapshot() const					 = 0;

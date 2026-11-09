@@ -190,7 +190,8 @@ namespace sfg
 		}
 	}
 
-	void world_rendering_t::render_world(world_render_context_t& ctx, const world_render_snapshot_t& snapshot, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	void world_rendering_t::render_world(
+		world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const render_view_t& main_camera_view, world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		ZoneScoped;
 
@@ -201,11 +202,7 @@ namespace sfg
 		world_rendering_util_t::prep_entity_buffer(ctx, snapshot, interpolation_alpha, frame_index);
 		world_rendering_util_t::prep_bone_buffer(ctx, snapshot, frame_index);
 
-		// main cam view.
-		const vec2u16_t render_size		 = ctx.get_size();
-		render_view_t	main_camera_view = {};
-
-		main_camera_view.calculate(snapshot.main_view, render_size, interpolation_alpha);
+		const vec2u16_t render_size = ctx.get_size();
 
 		// logarithmic depth scale for clusters
 		const f32 cluster_log_scale = WORLD_RENDER_CLUSTER_DEPTH_SLICE_COUNT / std::log2(main_camera_view.far_plane / main_camera_view.near_plane);
@@ -1607,7 +1604,7 @@ namespace sfg
 		const ui::vg_draw_snapshot_t	   canvas_snapshot	= snapshot.canvas.after_post_process.get_snapshot();
 		const world_debug_draw_snapshot_t& debug_draw		= snapshot.debug_draw;
 		const bool						   has_canvas_draws = canvas_snapshot.batch_count != 0;
-		const bool						   has_debug_draws	= !debug_draw.textures.empty() || !debug_draw.line_indices.empty() || !debug_draw.text_indices.empty();
+		const bool						   has_debug_draws	= !debug_draw.textures.empty() || !debug_draw.line_indices.empty() || !debug_draw.text_indices.empty() || !debug_draw.triangle_indices.empty();
 		const bool						   has_overlays		= has_canvas_draws || has_debug_draws;
 
 		if (has_overlays)
@@ -1682,6 +1679,24 @@ namespace sfg
 			backend.cmd_draw_indexed_instanced(cmd,
 											   {
 												   .index_count_per_instance = static_cast<u32>(debug_draw.text_indices.size()),
+												   .instance_count			 = 1,
+												   .start_index_location	 = 0,
+												   .base_vertex_location	 = 0,
+												   .start_instance_location	 = 0,
+											   });
+		}
+
+		if (!debug_draw.triangle_indices.empty())
+		{
+			const gpu_index_t view_data_index = ctx.get_view_render_pass_data_index(frame_index);
+
+			backend.cmd_bind_constants(cmd, {.data = &view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
+			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_debug_triangle_shader()});
+			backend.cmd_bind_vertex_buffers(cmd, {.buffer = ctx.get_debug_triangle_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_triangle_t)), .offset = 0});
+			backend.cmd_bind_index_buffers(cmd, {.buffer = ctx.get_debug_triangle_index_buffer(frame_index), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
+			backend.cmd_draw_indexed_instanced(cmd,
+											   {
+												   .index_count_per_instance = static_cast<u32>(debug_draw.triangle_indices.size()),
 												   .instance_count			 = 1,
 												   .start_index_location	 = 0,
 												   .base_vertex_location	 = 0,

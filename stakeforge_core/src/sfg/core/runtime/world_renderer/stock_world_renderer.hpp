@@ -24,6 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "world_renderer.hpp"
 #include "core/data/atomic.hpp"
+#include "core/runtime/render/render_view.hpp"
 #include "core/runtime/render/world_render_context.hpp"
 #include "core/runtime/render/world_render_snapshot.hpp"
 
@@ -52,6 +53,7 @@ namespace sfg
 		u8	 produce_snapshot(world_t& world, const project_settings_t& project_settings) override;
 		void publish_snapshot() override;
 		void acquire_snapshot() override;
+		void build_render_view(const world_render_view_t& camera, const vec2u16_t& resolution, f32 interpolation_alpha, render_view_t& out_view) const override;
 		void render(world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) override;
 		void draw_selection(gfx_handle_t cmd, const world_render_prep_data_t& prep_data, span_t<const entity_id_t> selected_entities, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const override;
 		void draw_entity_ids(gfx_handle_t cmd, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const override;
@@ -60,9 +62,9 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		const world_render_context_t& get_render_context() const override
+		const render_view_t& get_render_view(u8 frame_index) const override
 		{
-			return _render_context;
+			return _render_views[frame_index];
 		}
 
 		gpu_index_t get_world_texture_final(u8 frame_index) const override
@@ -101,6 +103,7 @@ namespace sfg
 		}
 
 	private:
+		render_view_t			_render_views[BACK_BUFFER_COUNT]	 = {};
 		world_render_context_t	_render_context						 = {};
 		world_render_snapshot_t _snapshot_slots[SNAPSHOT_SLOT_COUNT] = {};
 		atomic_t<u8>			_snapshot_mailbox					 = {};

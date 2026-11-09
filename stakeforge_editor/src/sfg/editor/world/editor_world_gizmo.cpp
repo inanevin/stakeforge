@@ -25,7 +25,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/math/math.hpp>
 #include <sfg/core/runtime/render/render_view.hpp>
-#include <sfg/core/runtime/render/world_render_view.hpp>
 #include <sfg/core/runtime/world/world_debug_draw.hpp>
 #include <sfg/core/runtime/world/world_screen.hpp>
 
@@ -46,17 +45,17 @@ namespace sfg
 
 	struct editor_world_gizmo_t::frame_t
 	{
-		render_view_t view				= {};
-		quat_t		  axis_rotations[3] = {};
-		vec3f_t		  axes[3]			= {};
-		vec3f_t		  ring_u[3]			= {};
-		vec3f_t		  ring_v[3]			= {};
-		vec3f_t		  camera_forward	= vec3f_t::zero;
-		vec3f_t		  camera_right		= vec3f_t::zero;
-		vec3f_t		  camera_up			= vec3f_t::zero;
-		vec3f_t		  pivot				= vec3f_t::zero;
-		vec2u16_t	  resolution		= vec2u16_t::zero;
-		f32			  world_scale		= 0.0f;
+		const render_view_t* view			   = nullptr;
+		quat_t				 axis_rotations[3] = {};
+		vec3f_t				 axes[3]		   = {};
+		vec3f_t				 ring_u[3]		   = {};
+		vec3f_t				 ring_v[3]		   = {};
+		vec3f_t				 camera_forward	   = vec3f_t::zero;
+		vec3f_t				 camera_right	   = vec3f_t::zero;
+		vec3f_t				 camera_up		   = vec3f_t::zero;
+		vec3f_t				 pivot			   = vec3f_t::zero;
+		vec2u16_t			 resolution		   = vec2u16_t::zero;
+		f32					 world_scale	   = 0.0f;
 	};
 
 	struct editor_world_gizmo_t::hit_t
@@ -74,16 +73,16 @@ namespace sfg
 
 	bool editor_world_gizmo_t::calculate_frame(const editor_gizmo_input_t& input, frame_t& out_frame) const
 	{
-		const world_render_view_t& camera	  = *input.view;
-		const vec2u16_t			   resolution = input.resolution;
+		const render_view_t& view		= *input.view;
+		const vec2u16_t		 resolution = input.resolution;
 
 		if (input.control_type == editor_transform_control_type_e::invalid || resolution.x == 0 || resolution.y == 0)
 			return false;
 
-		out_frame.view.calculate(camera, resolution, 1.0f);
-		out_frame.camera_forward = camera.rot.get_forward();
-		out_frame.camera_right	 = camera.rot.get_right();
-		out_frame.camera_up		 = camera.rot.get_up();
+		out_frame.view			 = &view;
+		out_frame.camera_forward = vec3f_t(-view.inv_view[8], -view.inv_view[9], -view.inv_view[10]).normalized();
+		out_frame.camera_right	 = vec3f_t(view.inv_view[0], view.inv_view[1], view.inv_view[2]).normalized();
+		out_frame.camera_up		 = vec3f_t(view.inv_view[4], view.inv_view[5], view.inv_view[6]).normalized();
 		out_frame.pivot			 = input.target.position;
 
 		const quat_t orientation	= input.locality == editor_transform_locality_e::local ? input.target.rotation : quat_t::identity;
@@ -101,19 +100,19 @@ namespace sfg
 			out_frame.ring_v[i]			= -out_frame.axis_rotations[i].get_forward();
 		}
 
-		const vec4f_t pivot_clip = out_frame.view.view_proj * vec4f_t(out_frame.pivot.x, out_frame.pivot.y, out_frame.pivot.z, 1.0f);
+		const vec4f_t pivot_clip = out_frame.view->view_proj * vec4f_t(out_frame.pivot.x, out_frame.pivot.y, out_frame.pivot.z, 1.0f);
 
 		if (pivot_clip.w <= MATH_EPS)
 			return false;
 
 		out_frame.resolution  = resolution;
-		out_frame.world_scale = math::max(PIXEL_SIZE * 2.0f * pivot_clip.w * math::tan(camera.fov_degrees * DEG_2_RAD * 0.5f) / static_cast<f32>(resolution.y), MIN_WORLD_SIZE);
+		out_frame.world_scale = math::max(PIXEL_SIZE * 2.0f * pivot_clip.w / (static_cast<f32>(resolution.y) * math::abs(out_frame.view->proj[5])), MIN_WORLD_SIZE);
 		return true;
 	}
 
 	bool editor_world_gizmo_t::project_point(const frame_t& frame, const vec3f_t& point, vec2f_t& out_position) const
 	{
-		if (!world_screen_t::world_position_to_relative_position(frame.view.view_proj, point, out_position))
+		if (!world_screen_t::world_position_to_relative_position(frame.view->view_proj, point, out_position))
 			return false;
 
 		out_position.x *= static_cast<f32>(frame.resolution.x);
@@ -185,7 +184,7 @@ namespace sfg
 		{
 			world_ray_t ray = {};
 
-			if (world_screen_t::relative_position_to_world_ray(frame.view.inv_view_proj, relative_position, ray))
+			if (world_screen_t::relative_position_to_world_ray(frame.view->inv_view_proj, relative_position, ray))
 			{
 				f32 best_alignment = 0.0f;
 
@@ -361,7 +360,9 @@ namespace sfg
 
 		world_ray_t ray = {};
 
-		if (world_screen_t::relative_position_to_world_ray(frame.view.inv_view_proj, relative_position, ray))
+		const bool ray_valid = world_screen_t::relative_position_to_world_ray(frame.view->inv_view_proj, relative_position, ray);
+
+		if (ray_valid)
 		{
 			if (!axis_handle)
 				_central_plane_valid = calculate_plane_point(ray, _pivot, _central_plane_normal, _initial_plane_point);
@@ -395,7 +396,7 @@ namespace sfg
 			{
 				const vec3f_t& candidate_a = frame.axes[(handle_index + 1) % 3];
 				const vec3f_t& candidate_b = frame.axes[(handle_index + 2) % 3];
-				const vec3f_t  to_camera   = frame.view.pos - _pivot;
+				const vec3f_t  to_camera   = ray_valid ? -ray.direction : -frame.camera_forward;
 				const f32	   facing_a	   = math::abs(vec3f_t::dot(vec3f_t::cross(_axis_world, candidate_a), to_camera));
 				const f32	   facing_b	   = math::abs(vec3f_t::dot(vec3f_t::cross(_axis_world, candidate_b), to_camera));
 
@@ -434,7 +435,7 @@ namespace sfg
 
 		const vec2f_t mouse_delta = mouse_pixels - _initial_mouse_pixels;
 		world_ray_t	  ray		  = {};
-		const bool	  ray_valid	  = world_screen_t::relative_position_to_world_ray(frame.view.inv_view_proj, relative_position, ray);
+		const bool	  ray_valid	  = world_screen_t::relative_position_to_world_ray(frame.view->inv_view_proj, relative_position, ray);
 
 		mat4x3_t delta = mat4x3_t::identity;
 

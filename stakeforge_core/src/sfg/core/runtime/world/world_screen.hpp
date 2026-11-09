@@ -29,11 +29,11 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/math/vec2i16.hpp"
 #include "core/math/vec2u16.hpp"
 #include "core/math/vec4f.hpp"
-#include "core/runtime/render/world_render_view.hpp"
 
 namespace sfg
 {
 	struct window_runtime_t;
+	struct render_view_t;
 	enum class window_cursor_confinement_e : u8;
 
 	struct world_ray_t
@@ -63,7 +63,7 @@ namespace sfg
 
 		void	set_viewport(const vec4f_t& input_rect, vec2u16_t render_size, f32 dpi_scale);
 		void	set_render_size(vec2u16_t render_size);
-		void	update_camera(const world_render_view_t& camera);
+		void	update_camera(const render_view_t& view);
 		void	clear_camera();
 		bool	world_to_screen(const vec3f_t& world_position, vec2f_t& out_screen_position) const;
 		bool	screen_to_world(const vec2f_t& screen_position, f32 ndc_depth, vec3f_t& out_world_position) const;
@@ -118,7 +118,6 @@ namespace sfg
 		}
 
 	private:
-		world_render_view_t			_camera						 = {};
 		mat4x4_t					_view_proj					 = mat4x4_t::identity;
 		mat4x4_t					_inv_view_proj				 = mat4x4_t::identity;
 		vec4f_t						_input_rect					 = vec4f_t::zero;

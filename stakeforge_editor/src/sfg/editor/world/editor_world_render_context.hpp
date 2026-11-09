@@ -33,6 +33,13 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	struct editor_world_view_data_t
+	{
+		mat4x4_t view_proj = mat4x4_t::identity;
+	};
+
+	static_assert(sizeof(editor_world_view_data_t) == 64);
+
 	struct editor_world_composite_data_t
 	{
 		mat4x4_t proj			  = mat4x4_t::identity;
@@ -138,6 +145,16 @@ namespace sfg
 			return _pfd[frame_index].selection_texture_index;
 		}
 
+		inline gpu_index_t get_view_data_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].view_data_index;
+		}
+
+		inline u8* get_mapped_view_data(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_view_data;
+		}
+
 		inline gpu_index_t get_composite_data_index(u8 frame_index) const
 		{
 			return _pfd[frame_index].composite_data_index;
@@ -195,11 +212,6 @@ namespace sfg
 			return _gizmo_shader;
 		}
 
-		inline gfx_handle_t get_physics_debug_shader() const
-		{
-			return _physics_debug_shader;
-		}
-
 		inline const editor_world_gizmo_mesh_t& get_gizmo_mesh(u8 index) const
 		{
 			return _gizmo_meshes[index];
@@ -221,10 +233,12 @@ namespace sfg
 
 		struct per_frame_data_t
 		{
+			u8*			 mapped_view_data		   = nullptr;
 			u8*			 mapped_icon_buffer		   = nullptr;
 			u8*			 mapped_composite_data	   = nullptr;
 			u8*			 mapped_gizmo_data		   = nullptr;
 			u8*			 mapped_object_id_readback = nullptr;
+			gfx_handle_t view_data				   = {};
 			gfx_handle_t icon_buffer			   = {};
 			gfx_handle_t cmd_gfx				   = {};
 			gfx_handle_t world_texture			   = {};
@@ -233,6 +247,7 @@ namespace sfg
 			gfx_handle_t object_id_readback		   = {};
 			gfx_handle_t composite_data			   = {};
 			gfx_handle_t gizmo_data				   = {};
+			gpu_index_t	 view_data_index		   = NULL_GPU_INDEX;
 			gpu_index_t	 icon_buffer_index		   = NULL_GPU_INDEX;
 			gpu_index_t	 world_texture_index	   = NULL_GPU_INDEX;
 			gpu_index_t	 selection_texture_index   = NULL_GPU_INDEX;
@@ -246,11 +261,10 @@ namespace sfg
 		editor_world_gizmo_mesh_t _gizmo_meshes[3]		   = {};
 		editor_world_gizmo_mesh_t _gizmo_central_meshes[2] = {};
 
-		gfx_handle_t _icon_shader		   = {};
-		gfx_handle_t _icon_id_shader	   = {};
-		gfx_handle_t _composite_shader	   = {};
-		gfx_handle_t _gizmo_shader		   = {};
-		gfx_handle_t _physics_debug_shader = {};
+		gfx_handle_t _icon_shader	   = {};
+		gfx_handle_t _icon_id_shader   = {};
+		gfx_handle_t _composite_shader = {};
+		gfx_handle_t _gizmo_shader	   = {};
 
 		u32		  _object_id_readback_row_pitch = 0;
 		vec2u16_t _size							= vec2u16_t::zero;

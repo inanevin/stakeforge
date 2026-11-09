@@ -32,6 +32,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/platform/common_window.hpp"
 #include "core/runtime/physics/physics_config.hpp"
 #include "core/runtime/physics/physics_world.hpp"
+#include "core/runtime/render/world_render_view.hpp"
 #include "core/reflection/reflection_registry.hpp"
 #include "core/runtime/resources/prefab.hpp"
 #include "core/runtime/resources/resource_manager.hpp"
@@ -137,7 +138,6 @@ namespace sfg
 		_real_elapsed_time	 = 0.0f;
 
 		update_world_transforms();
-		refresh_main_camera();
 		_audio_controller.set_time_scale(_time_scale);
 		_audio_controller.begin_play();
 		_particle_simulation.begin_play();
@@ -418,8 +418,6 @@ namespace sfg
 
 		const f32 scaled_dt = dt * _time_scale;
 
-		refresh_main_camera();
-
 		_particle_simulation.tick(scaled_dt);
 		_canvas_controller.tick(dt);
 		_canvas_controller.dispatch_events();
@@ -434,21 +432,19 @@ namespace sfg
 		world_util_t::sync_aabbs(*this);
 	}
 
-	void world_t::refresh_main_camera()
+	bool world_t::refresh_main_camera(world_render_view_t& out_view)
 	{
 		_main_camera_entity = world_util_t::get_active_camera(*this);
 
 		if (_main_camera_entity == NULL_ENTITY_ID)
-		{
-			_screen.clear_camera();
-			return;
-		}
+			return false;
 
 		const ecs_component_table_t&		camera_table	= get_component_table(type_id_t<component_camera_t>::value);
 		const ecs_component_table_t&		transform_table = get_component_table(type_id_t<component_system_transform_t>::value);
 		const component_camera_t&			camera			= camera_table.get_as_const<component_camera_t>(_main_camera_entity);
 		const component_system_transform_t& transform		= transform_table.get_as_const<component_system_transform_t>(_main_camera_entity);
-		const world_render_view_t			render_view{
+
+		out_view = {
 			.pos		 = transform.abs_pos,
 			.rot		 = transform.abs_rot,
 			.prev_pos	 = transform.prev_abs_pos,
@@ -458,7 +454,7 @@ namespace sfg
 			.fov_degrees = camera.fov_degrees,
 		};
 
-		_screen.update_camera(render_view);
+		return true;
 	}
 
 	void world_t::recreate_physical(entity_id_t id)

@@ -31,6 +31,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
 #include <sfg/core/runtime/engine/engine_threads.hpp>
 #include <sfg/core/runtime/project/project_settings.hpp>
+#include <sfg/core/runtime/render/render_view.hpp>
 #include <sfg/core/runtime/render/world_rendering.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
@@ -190,6 +191,7 @@ namespace sfg
 				_main_world.update_world_transforms();
 				_main_world.tick_animation_logic(dt_seconds);
 				_main_world.update_world_transforms();
+				update_screen_camera();
 				_main_world.tick_post(dt_seconds);
 
 				++steps;
@@ -206,7 +208,10 @@ namespace sfg
 		}
 
 		if (steps == 0)
+		{
 			_main_world.update_world_transforms();
+			update_screen_camera();
+		}
 
 		_main_world.tick_finalize();
 
@@ -227,6 +232,7 @@ namespace sfg
 
 		_render_context.resize(render_resolution);
 		_main_world.get_screen().set_render_size(render_resolution);
+		update_screen_camera();
 	}
 
 	bool game_world_controller_t::load_world(sid_t world)
@@ -278,6 +284,7 @@ namespace sfg
 		world_cooker_t::world_from_json(_main_world, world_json);
 		_main_world.set_world_name(selected_world->name_hash);
 		_main_world.update_world_transforms();
+		update_screen_camera();
 		_main_world.begin_play();
 		_main_world.tick_finalize();
 
@@ -348,12 +355,32 @@ namespace sfg
 
 		prep_data.reserve();
 
-		world_rendering_t::render_world(_render_context, *_render_snapshot, prep_data, _render_alpha, frame_index, global_cbv_index, global_layout);
+		render_view_t view = {};
+
+		view.calculate(_render_snapshot->main_view, _render_context.get_size(), _render_alpha);
+		world_rendering_t::render_world(_render_context, *_render_snapshot, view, prep_data, _render_alpha, frame_index, global_cbv_index, global_layout);
 		_render_snapshot = nullptr;
 
 		gfx_backend::get().queue_signal(queue, &signal, &signal_value, 1);
 
 		return true;
+	}
+
+	void game_world_controller_t::update_screen_camera()
+	{
+		world_render_view_t camera = {};
+		world_screen_t&		screen = _main_world.get_screen();
+
+		if (!_main_world.refresh_main_camera(camera))
+		{
+			screen.clear_camera();
+			return;
+		}
+
+		render_view_t view = {};
+
+		view.calculate(camera, screen.get_render_size(), 1.0f);
+		screen.update_camera(view);
 	}
 
 	void game_world_controller_t::produce_snapshot()

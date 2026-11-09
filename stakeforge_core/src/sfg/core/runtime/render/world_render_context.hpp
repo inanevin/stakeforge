@@ -602,6 +602,11 @@ namespace sfg
 			return _shaders.debug_line;
 		}
 
+		inline gfx_handle_t get_debug_triangle_shader() const
+		{
+			return _shaders.debug_triangle;
+		}
+
 		inline gfx_handle_t get_debug_text_shader() const
 		{
 			return _shaders.debug_text;
@@ -956,6 +961,7 @@ namespace sfg
 			gfx_handle_t post_combiner			 = {};
 			gfx_handle_t fxaa					 = {};
 			gfx_handle_t debug_line				 = {};
+			gfx_handle_t debug_triangle			 = {};
 			gfx_handle_t debug_text				 = {};
 			gfx_handle_t debug_texture			 = {};
 			gfx_handle_t ssao					 = {};

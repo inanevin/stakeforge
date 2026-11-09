@@ -436,6 +436,8 @@ namespace sfg
 		_shaders.fxaa							   = render_resources.get_shader_hw(sh->psos[0]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/debug/debug_line.hlsl"_hs);
 		_shaders.debug_line						   = render_resources.get_shader_hw(sh->psos[0]);
+		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/debug/debug_triangle.hlsl"_hs);
+		_shaders.debug_triangle					   = render_resources.get_shader_hw(sh->psos[0]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/debug/debug_text.hlsl"_hs);
 		_shaders.debug_text						   = render_resources.get_shader_hw(sh->psos[0]);
 		sh										   = resource_manager_t::get().find_internals<shader_internals_t>("shaders/debug/debug_texture.hlsl"_hs);

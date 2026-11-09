@@ -28,10 +28,9 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	class editor_world_render_context_t;
-	class world_render_context_t;
 	class world_renderer_t;
 	struct editor_world_snapshot_data_t;
-	struct world_render_snapshot_t;
+	struct render_view_t;
 	struct world_render_prep_data_t;
 
 	class SFG_EDITOR_API editor_world_rendering_t final
@@ -61,16 +60,9 @@ namespace sfg
 									  u8								   frame_index,
 									  gpu_index_t						   global_cbv_index,
 									  gfx_handle_t						   global_layout);
-		static void prep_icons(const editor_world_render_context_t& ctx, const world_render_snapshot_t& snapshot, const editor_world_snapshot_data_t& snapshot_data, f32 interpolation_alpha, u8 frame_index);
+		static void prep_icons(const editor_world_render_context_t& ctx, const render_view_t& view, const editor_world_snapshot_data_t& snapshot_data, f32 interpolation_alpha, u8 frame_index);
 		static void draw_icons(const editor_world_render_context_t& ctx, gfx_handle_t shader, gpu_index_t depth_texture_index, u32 icon_count, u8 frame_index);
-		static void blit_world_texture(const editor_world_render_context_t& ctx,
-									   const world_render_context_t&		world_ctx,
-									   gpu_index_t							source_texture_index,
-									   gpu_index_t							depth_texture_index,
-									   const world_render_snapshot_t&		snapshot,
-									   const editor_world_snapshot_data_t&	snapshot_data,
-									   world_render_prep_data_t&			prep_data,
-									   f32									interpolation_alpha,
-									   u8									frame_index);
+		static void blit_world_texture(
+			const editor_world_render_context_t& ctx, gpu_index_t source_texture_index, gpu_index_t depth_texture_index, const render_view_t& view, const editor_world_snapshot_data_t& snapshot_data, f32 interpolation_alpha, u8 frame_index);
 	};
 }

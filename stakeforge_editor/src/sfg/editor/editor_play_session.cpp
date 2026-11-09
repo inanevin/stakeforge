@@ -128,6 +128,7 @@ namespace sfg
 
 		_edits.begin(_world);
 		_state = state;
+		editor_world.update_world_transforms();
 		editor_world.get_world().begin_play();
 
 		if (state == editor_play_state_e::playing_game_controlled)
@@ -201,7 +202,7 @@ namespace sfg
 		}
 
 		_state = state;
-		editor_world.get_world().update_world_transforms();
+		editor_world.update_world_transforms();
 		editor_world.get_world().tick_post(0.0f);
 		editor_world.get_world().tick_finalize();
 
@@ -282,7 +283,7 @@ namespace sfg
 			editor_world.deserialize_camera(camera);
 
 			// reset
-			world.update_world_transforms();
+			editor_world.update_world_transforms();
 
 			if (restored)
 				_world_snapshot.resize(0);
@@ -306,12 +307,14 @@ namespace sfg
 			world.update_world_transforms_for_tick();
 
 			world.tick_animation_logic(dt_seconds);
+			editor_world.update_screen_camera();
 			world.tick_post(dt_seconds);
 			return;
 		}
 
 		if (_paused)
 		{
+			editor_world.update_screen_camera();
 			world.tick_post(0.0f);
 			return;
 		}
@@ -333,6 +336,7 @@ namespace sfg
 
 		world.tick_animation_logic(dt_seconds);
 		world.update_world_transforms();
+		editor_world.update_screen_camera();
 		world.tick_post(dt_seconds);
 	}
 

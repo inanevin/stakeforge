@@ -22,6 +22,7 @@
 
 namespace sfg
 {
+	struct world_render_view_t;
 	class mat4x3_t;
 	class istream_t;
 	struct world_init_config_t;
@@ -76,6 +77,7 @@ namespace sfg
 		void  tick_animation_logic(f32 dt);
 		void  on_animation_callback(entity_id_t entity, sid_t event);
 		void  tick_logic(f32 dt);
+		bool  refresh_main_camera(world_render_view_t& out_view);
 		void  tick_post(f32 dt);
 		void  tick_finalize();
 		void  key_event(u16 key, u16 scan_code, u8 action);
@@ -326,7 +328,6 @@ namespace sfg
 	private:
 		void flush_pressed_keys();
 		void update_key_state(u16 key, u16 scan_code, u8 action);
-		void refresh_main_camera();
 		void update_entity_transform(entity_id_t id, const component_hierarchy_t& own_hierarchy, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool parent_dirty);
 		void update_entity_transform_for_tick(entity_id_t id, const component_hierarchy_t& own_hierarchy, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool parent_dirty);
 		void update_entity_transform_from_physics(entity_id_t id, const component_hierarchy_t& own_hierarchy, const quat_t& parent_abs_rot, const vec3f_t& parent_abs_scale, const mat4x3_t& parent_abs_mat, bool parent_dirty);

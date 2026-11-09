@@ -53,6 +53,19 @@
             "editor_only": false
         },
         {
+            "name": "debug_triangle",
+            "path": "shaders/debug/debug_triangle.hlsl",
+            "type": 7,
+            "config": {
+                "schema": "sfg.schema.shader",
+                "type": 19,
+                "include_dirs": [
+                    "assets/shaders/"
+                ]
+            },
+            "editor_only": false
+        },
+        {
             "name": "debug_text",
             "path": "shaders/debug/debug_text.hlsl",
             "type": 7,
@@ -419,19 +432,6 @@
             "config": {
                 "schema": "sfg.schema.shader",
                 "type": 12,
-                "include_dirs": [
-                    "assets/shaders/"
-                ]
-            },
-            "editor_only": true
-        },
-        {
-            "name": "editor_world_physics_debug",
-            "path": "shaders/editor/editor_world_physics_debug.hlsl",
-            "type": 7,
-            "config": {
-                "schema": "sfg.schema.shader",
-                "type": 19,
                 "include_dirs": [
                     "assets/shaders/"
                 ]

@@ -33,6 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/math/math.hpp>
 #include <sfg/core/memory/memory.hpp>
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
+#include <sfg/core/runtime/render/render_view.hpp>
 #include <sfg/core/runtime/render/render_globals.hpp>
 #include <sfg/core/runtime/render/render_resources.hpp>
 #include <sfg/core/runtime/render/world_rendering.hpp>
@@ -155,11 +156,9 @@ namespace sfg
 
 		_render_context.init(config.render_context, config.debug_draw);
 
-		const shader_internals_t* shader				= resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/thumbnail_capture_copy.hlsl"_hs);
-		const shader_internals_t* debug_triangle_shader = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/editor_world_physics_debug.hlsl"_hs);
+		const shader_internals_t* shader = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/thumbnail_capture_copy.hlsl"_hs);
 
-		_thumbnail_shader	   = render_resources_t::get().get_shader_hw(shader->psos[0]);
-		_debug_triangle_shader = render_resources_t::get().get_shader_hw(debug_triangle_shader->psos[0]);
+		_thumbnail_shader = render_resources_t::get().get_shader_hw(shader->psos[0]);
 		_snapshot.reserve();
 		_worlds.reserve(config.world_pool_max_count);
 		_available_worlds.reserve(config.world_pool_max_count);
@@ -203,19 +202,18 @@ namespace sfg
 		backend.destroy_semaphore(_semaphore_frame.sem);
 		backend.destroy_semaphore(_semaphore_transfer.sem);
 		backend.destroy_semaphore(_semaphore_readback.sem);
-		_snapshot			   = {};
-		_semaphore_frame	   = {};
-		_semaphore_transfer	   = {};
-		_semaphore_readback	   = {};
-		_cmd_prepare		   = {};
-		_cmd_transfer		   = {};
-		_cmd_transit		   = {};
-		_cmd_resolve		   = {};
-		_global_buffer		   = {};
-		_thumbnail_texture	   = {};
-		_thumbnail_readback	   = {};
-		_thumbnail_shader	   = {};
-		_debug_triangle_shader = {};
+		_snapshot			= {};
+		_semaphore_frame	= {};
+		_semaphore_transfer = {};
+		_semaphore_readback = {};
+		_cmd_prepare		= {};
+		_cmd_transfer		= {};
+		_cmd_transit		= {};
+		_cmd_resolve		= {};
+		_global_buffer		= {};
+		_thumbnail_texture	= {};
+		_thumbnail_readback = {};
+		_thumbnail_shader	= {};
 		_readback_pixels.resize(0);
 		_requests.resize(0);
 		_config			 = {};
@@ -420,7 +418,10 @@ namespace sfg
 
 		prep_data.reserve();
 
-		world_rendering_t::render_world(_render_context, _snapshot, prep_data, 1.0f, 0, _global_index, render_globals_t::get_global_bind_layout());
+		render_view_t view = {};
+
+		view.calculate(_snapshot.main_view, _render_context.get_size(), 1.0f);
+		world_rendering_t::render_world(_render_context, _snapshot, view, prep_data, 1.0f, 0, _global_index, render_globals_t::get_global_bind_layout());
 
 		_semaphore_frame.value++;
 		const gfx_handle_t queue_gfx = backend.get_queue_gfx();
@@ -465,23 +466,6 @@ namespace sfg
 		backend.cmd_bind_pipeline(cmd, {.pipeline = _thumbnail_shader});
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 
-		if (!_snapshot.debug_draw.triangle_indices.empty())
-		{
-			const gpu_index_t rp_constant = _render_context.get_view_render_pass_data_index(0);
-
-			backend.cmd_bind_constants(cmd, {.data = &rp_constant, .offset = constant_rp0, .count = 1, .param_index = 0});
-			backend.cmd_bind_pipeline(cmd, {.pipeline = _debug_triangle_shader});
-			backend.cmd_bind_vertex_buffers(cmd, {.buffer = _render_context.get_debug_triangle_vertex_buffer(0), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_triangle_t)), .offset = 0});
-			backend.cmd_bind_index_buffers(cmd, {.buffer = _render_context.get_debug_triangle_index_buffer(0), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
-			backend.cmd_draw_indexed_instanced(cmd,
-											   {
-												   .index_count_per_instance = static_cast<u32>(_snapshot.debug_draw.triangle_indices.size()),
-												   .instance_count			 = 1,
-												   .start_index_location	 = 0,
-												   .base_vertex_location	 = 0,
-												   .start_instance_location	 = 0,
-											   });
-		}
 		backend.cmd_end_render_pass(cmd, {});
 
 		const barrier_t readback_barrier = {

@@ -36,7 +36,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/physics/physics_world.hpp>
 #include <sfg/core/runtime/render/render_view.hpp>
 #include <sfg/core/runtime/render/world_render_view.hpp>
-#include <sfg/core/runtime/render/world_render_snapshot.hpp>
 #include <sfg/core/runtime/resources/common_resources.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/runtime/world/world_debug_draw.hpp>
@@ -218,6 +217,7 @@ namespace sfg
 		_world_renderer->resize(render_resolution);
 		_render_context.resize(render_resolution);
 		_world.get_screen().set_render_size(render_resolution);
+		update_screen_camera();
 		_pick_result.store(0, std::memory_order_relaxed);
 		_last_render_pick_request_id = 0;
 
@@ -368,33 +368,36 @@ namespace sfg
 		return _gizmo_callbacks.get_target(_gizmo_callbacks.user_data, input.target);
 	}
 
-	bool editor_world_t::get_gizmo_view(world_render_view_t& view)
+	void editor_world_t::build_camera_view(render_view_t& out_view) const
 	{
-		if (!_editor_control_enabled)
-			return false;
+		const entity_id_t	camera_entity = _camera->get_entity();
+		world_render_view_t camera_view	  = {};
+		vec3f_t				scale		  = vec3f_t::one;
+		mat4x3_t			matrix		  = mat4x3_t::identity;
 
-		const entity_id_t camera_entity = _camera->get_entity();
-		vec3f_t			  scale			= vec3f_t::one;
-		mat4x3_t		  matrix		= mat4x3_t::identity;
-
-		_world.calculate_entity_abs_transform(camera_entity, view.pos, view.rot, scale, matrix);
+		_world.calculate_entity_abs_transform(camera_entity, camera_view.pos, camera_view.rot, scale, matrix);
 
 		const component_camera_t& camera = _world.get_component_table(type_id_t<component_camera_t>::value).get_as_const<component_camera_t>(camera_entity);
-		view.prev_pos					 = view.pos;
-		view.prev_rot					 = view.rot;
-		view.near_plane					 = camera.near_plane;
-		view.far_plane					 = camera.far_plane;
-		view.fov_degrees				 = camera.fov_degrees;
-		return true;
+
+		camera_view.prev_pos	= camera_view.pos;
+		camera_view.prev_rot	= camera_view.rot;
+		camera_view.near_plane	= camera.near_plane;
+		camera_view.far_plane	= camera.far_plane;
+		camera_view.fov_degrees = camera.fov_degrees;
+
+		_world_renderer->build_render_view(camera_view, _render_resolution, 1.0f, out_view);
 	}
 
 	void editor_world_t::update_gizmo_hover(vec2f_t relative_position)
 	{
-		world_render_view_t	 view  = {};
+		render_view_t		 view  = {};
 		editor_gizmo_input_t input = {.view = &view};
 
-		if (get_gizmo_input(input) && get_gizmo_view(view))
+		if (get_gizmo_input(input))
+		{
+			build_camera_view(view);
 			_gizmo.update_hover(input, relative_position);
+		}
 		else
 			_gizmo.clear_hover();
 	}
@@ -406,26 +409,29 @@ namespace sfg
 
 	bool editor_world_t::begin_gizmo_action(vec2f_t relative_position)
 	{
-		world_render_view_t	 view  = {};
+		render_view_t		 view  = {};
 		editor_gizmo_input_t input = {.view = &view};
 
-		if (!get_gizmo_input(input) || !get_gizmo_view(view))
+		if (!get_gizmo_input(input))
 			return false;
+
+		build_camera_view(view);
 
 		return _gizmo.begin_action(input, _gizmo_callbacks, relative_position);
 	}
 
 	void editor_world_t::update_gizmo_action(vec2f_t relative_position)
 	{
-		world_render_view_t	 view  = {};
+		render_view_t		 view  = {};
 		editor_gizmo_input_t input = {.view = &view};
 
-		if (!get_gizmo_input(input) || !get_gizmo_view(view))
+		if (!get_gizmo_input(input))
 		{
 			_gizmo.cancel_action();
 			return;
 		}
 
+		build_camera_view(view);
 		_gizmo.update_action(input, relative_position);
 	}
 
@@ -467,29 +473,16 @@ namespace sfg
 	{
 		SFG_ASSERT(_camera != nullptr);
 
-		const entity_id_t camera_entity	  = _camera->get_entity();
-		vec3f_t			  camera_position = _world.get_entity_pos_local(camera_entity);
-		quat_t			  camera_rotation = _world.get_entity_rot_local(camera_entity);
-
-		const component_camera_t& camera	 = _world.get_component_table(type_id_t<component_camera_t>::value).get_as<component_camera_t>(camera_entity);
-		const world_render_view_t world_view = {
-			.pos		 = camera_position,
-			.rot		 = camera_rotation,
-			.prev_pos	 = camera_position,
-			.prev_rot	 = camera_rotation,
-			.near_plane	 = camera.near_plane,
-			.far_plane	 = camera.far_plane,
-			.fov_degrees = camera.fov_degrees,
-		};
 		render_view_t view = {};
-		view.calculate(world_view, _render_resolution, 1.0f);
+
+		build_camera_view(view);
 
 		world_ray_t ray = {};
 
 		if (!world_screen_t::relative_position_to_world_ray(view.inv_view_proj, relative_position, ray))
 			return false;
 
-		out_ray = {.origin = camera_position, .direction = ray.direction, .distance = camera.far_plane};
+		out_ray = {.origin = ray.origin, .direction = ray.direction, .distance = view.far_plane};
 
 		return true;
 	}
@@ -622,6 +615,24 @@ namespace sfg
 	void editor_world_t::update_world_transforms()
 	{
 		_world.update_world_transforms();
+		update_screen_camera();
+	}
+
+	void editor_world_t::update_screen_camera()
+	{
+		world_render_view_t camera = {};
+		world_screen_t&		screen = _world.get_screen();
+
+		if (!_world.refresh_main_camera(camera))
+		{
+			screen.clear_camera();
+			return;
+		}
+
+		render_view_t view = {};
+
+		_world_renderer->build_render_view(camera, screen.get_render_size(), 1.0f, view);
+		screen.update_camera(view);
 	}
 
 	void editor_world_t::produce_snapshot()
@@ -630,11 +641,11 @@ namespace sfg
 
 		const entity_id_t camera_entity = world_util_t::get_active_camera(_world);
 
-		_view_rotation = camera_entity == NULL_ENTITY_ID ? quat_t::identity : _world.get_component_table<component_system_transform_t>().get_as_const<component_system_transform_t>(camera_entity).abs_rot;
-
 		editor_world_snapshot_data_t&	data			= _snapshot_slots[snapshot_slot];
 		const span_t<const entity_id_t> selected		= is_editor_control_enabled() ? _edit_context.get_selected_entities() : span_t<const entity_id_t>{};
 		const ecs_component_table_t&	hierarchy_table = _world.get_component_table(type_id_t<component_hierarchy_t>::value);
+
+		_view_rotation = camera_entity == NULL_ENTITY_ID ? quat_t::identity : _world.get_component_table<component_system_transform_t>().get_as_const<component_system_transform_t>(camera_entity).abs_rot;
 
 		data.icons.resize(0);
 
