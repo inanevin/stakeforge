@@ -23,7 +23,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/world/editor_world_entity_gizmo.hpp"
 #include "editor/world/editor_world_edit_context.hpp"
 #include "editor/commands/editor_command_component_edit.hpp"
-#include "editor/editor_world_controller.hpp"
 #include <sfg/core/data/frame_vector.hpp>
 #include <sfg/core/data/ostream.hpp>
 #include <sfg/core/io/assert.hpp>
@@ -120,21 +119,14 @@ namespace sfg
 
 	void editor_world_entity_gizmo_t::update(const mat4x3_t& delta)
 	{
-		world_t&						world = *_world;
-		editor_play_edits_t&			edits = editor_world_controller_t::get().get_play_session().get_edits();
-		const span_t<const entity_id_t> entities{.data = _entities.data(), .size = _entities.size()};
-
-		if (!edits.capture_before(_context->get_world(), entities, type_id_t<component_transform_t>::value))
-		{
-			SFG_ERR("failed to capture play edit");
-			return;
-		}
+		world_t& world = *_world;
 
 		for (size_t i = 0; i < _entities.size(); ++i)
 		{
 			vec3f_t position = vec3f_t::zero;
 			quat_t	rotation = quat_t::identity;
 			vec3f_t scale	 = vec3f_t::one;
+
 			(_initial_parent_inverse[i] * delta * _initial_absolute[i]).decompose(position, rotation, scale);
 
 			world.set_entity_pos_local(_entities[i], position);
@@ -143,11 +135,6 @@ namespace sfg
 			world.mark_entity_teleported(_entities[i]);
 		}
 
-		if (!edits.capture_after(_context->get_world(), entities, type_id_t<component_transform_t>::value))
-		{
-			SFG_ERR("failed to capture play edit");
-			return;
-		}
 		world.update_world_transforms();
 	}
 
@@ -227,8 +214,6 @@ namespace sfg
 
 	void editor_world_entity_gizmo_t::clear_action()
 	{
-		editor_world_controller_t::get().get_play_session().get_edits().clear_pending(_context->get_world(), type_id_t<component_transform_t>::value);
-
 		_initial_absolute.resize(0);
 		_initial_parent_inverse.resize(0);
 		_initial_local_rotations.resize(0);

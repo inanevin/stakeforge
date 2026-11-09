@@ -43,7 +43,6 @@ namespace sfg
 		_aux_data.init(config.aux_data_page_size_bytes);
 
 		_cursor			   = 0;
-		_next_sequence	   = 1;
 		_generation		   = 0;
 		_entity_generation = 0;
 	}
@@ -55,9 +54,9 @@ namespace sfg
 		_listeners.clear();
 		_history.clear();
 		_aux_data.uninit();
+
 		_config			   = {};
 		_cursor			   = 0;
-		_next_sequence	   = 1;
 		_generation		   = 0;
 		_entity_generation = 0;
 
@@ -76,8 +75,8 @@ namespace sfg
 		_history.resize(0);
 		_commands.resize_zero();
 		_aux_data.reset();
-		_cursor		   = 0;
-		_next_sequence = 1;
+
+		_cursor = 0;
 		++_generation;
 	}
 
@@ -154,10 +153,8 @@ namespace sfg
 		command.undo			  = desc.undo;
 		command.redo			  = desc.redo;
 		command.cleanup			  = desc.cleanup;
-		command.sequence		  = _next_sequence++;
 		command.type			  = desc.type;
 		command.world			  = desc.world;
-		command.state			  = editor_command_state_e::done;
 		command.entity_generation = desc.entity_generation;
 
 		if (desc.run_redo && !command.redo(*this, command))
@@ -171,7 +168,8 @@ namespace sfg
 		_cursor = static_cast<u32>(_history.size());
 		bump_generation(command);
 
-		notify_listeners(command, !desc.notify);
+		if (desc.notify)
+			notify_listeners(command);
 
 		return handle;
 	}
@@ -183,16 +181,17 @@ namespace sfg
 
 		const editor_command_handle_t handle  = _history[_cursor - 1];
 		editor_command_t&			  command = _commands.get(handle);
+
 		if (!command.undo(*this, command))
 		{
 			SFG_ERR("failed to undo command {0}", command.debug_name != nullptr ? command.debug_name : "");
 			return false;
 		}
 
-		command.state = editor_command_state_e::undone;
 		--_cursor;
 		bump_generation(command);
 		notify_listeners(command);
+
 		return true;
 	}
 
@@ -203,16 +202,17 @@ namespace sfg
 
 		const editor_command_handle_t handle  = _history[_cursor];
 		editor_command_t&			  command = _commands.get(handle);
+
 		if (!command.redo(*this, command))
 		{
 			SFG_ERR("failed to redo command {0}", command.debug_name != nullptr ? command.debug_name : "");
 			return false;
 		}
 
-		command.state = editor_command_state_e::done;
 		++_cursor;
 		bump_generation(command);
 		notify_listeners(command);
+
 		return true;
 	}
 
@@ -242,16 +242,15 @@ namespace sfg
 		return false;
 	}
 
-	editor_command_listener_handle_t editor_command_system_t::add_listener(editor_command_listener_fn fn, void* user_data, bool receive_silent_commands)
+	editor_command_listener_handle_t editor_command_system_t::add_listener(editor_command_listener_fn fn, void* user_data)
 	{
 		SFG_ASSERT(fn != nullptr);
 
 		const editor_command_listener_handle_t handle	= _listeners.emplace();
 		editor_command_listener_t&			   listener = _listeners.get(handle);
 
-		listener.fn						 = fn;
-		listener.user_data				 = user_data;
-		listener.receive_silent_commands = receive_silent_commands;
+		listener.fn		   = fn;
+		listener.user_data = user_data;
 
 		return handle;
 	}
@@ -302,14 +301,14 @@ namespace sfg
 			++_entity_generation;
 	}
 
-	void editor_command_system_t::notify_listeners(const editor_command_t& command, bool silent)
+	void editor_command_system_t::notify_listeners(const editor_command_t& command)
 	{
 		for (auto it = _listeners.begin_handle(); it != _listeners.end_handle(); ++it)
 		{
 			const editor_command_listener_handle_t handle	= *it;
 			const editor_command_listener_t&	   listener = _listeners.get(handle);
 
-			if (listener.fn != nullptr && (!silent || listener.receive_silent_commands))
+			if (listener.fn != nullptr)
 				listener.fn(*this, command, listener.user_data);
 		}
 	}

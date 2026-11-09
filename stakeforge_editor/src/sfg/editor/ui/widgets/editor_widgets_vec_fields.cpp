@@ -433,7 +433,6 @@ namespace sfg
 			callbacks.edit_begin	 = on_euler_edit_begin;
 			callbacks.edited		 = on_euler_data_changed;
 			callbacks.edit_submitted = on_euler_edit_submitted;
-			callbacks.edit_changing	 = nullptr;
 			callbacks.user_data		 = this;
 
 			_inputs[i].init(ui, _root, make_number_config(names[i], {.data = _fields[i].data(), .size = _fields[i].size()}, config.increment, false, callbacks));
@@ -520,9 +519,6 @@ namespace sfg
 
 	void editor_quat_field_t::modify_field()
 	{
-		if (_config.callbacks.edit_changing != nullptr)
-			_config.callbacks.edit_changing(_config.callbacks.user_data);
-
 		for (size_t i = 0; i < _field_values.size(); ++i)
 			*_field_values[i] = quat_t::from_euler(_euler_values[i].x, _euler_values[i].y, _euler_values[i].z);
 

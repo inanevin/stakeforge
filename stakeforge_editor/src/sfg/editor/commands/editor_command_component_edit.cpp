@@ -24,13 +24,11 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/editor_world_controller.hpp"
 #include "editor/world/editor_world.hpp"
 #include "editor/editor_command_system.hpp"
-#include <sfg/core/data/frame_vector.hpp>
 #include <sfg/core/data/istream.hpp>
 #include <sfg/core/data/ostream.hpp>
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/memory/memory.hpp>
-#include <sfg/core/memory/frame_allocator.hpp>
 #include <sfg/core/reflection/reflection_registry.hpp>
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
 #include <sfg/core/runtime/world/ecs.hpp>
@@ -209,42 +207,6 @@ namespace sfg
 		if (entities.size == 0 || previous_streams.size != entities.size || post_streams.size != entities.size)
 			return false;
 
-		frame_vector_t<ostream_t> authored_streams = {};
-		editor_play_session_t&	  session		   = editor_world_controller_t::get().get_play_session();
-
-		if (session.is_playing())
-		{
-			reflection_registry_t&	registry = reflection_registry_t::get();
-			const reflected_type_t& type	 = *registry.find_type(component_type);
-			authored_streams.resize(entities.size);
-			void* component = type.size != 0 ? frame_allocator_tls_t::allocate(type.size, type.alignment) : nullptr;
-
-			for (size_t i = 0; i < entities.size; ++i)
-			{
-				if (type.size != 0)
-					registry.initialize_type(component_type, component);
-
-				istream_t  previous(previous_streams.data[i].get_raw(), previous_streams.data[i].get_size());
-				const bool read = registry.type_from_stream(component_type, component, nullptr, previous);
-				SFG_ASSERT(read);
-
-				bool applied = false;
-
-				if (!session.get_edits().apply_pending(world, entities.data[i], component_type, component, applied))
-					return false;
-
-				if (applied)
-				{
-					const bool written = registry.type_to_stream(component_type, component, nullptr, authored_streams[i]);
-					SFG_ASSERT(written);
-				}
-				else
-					authored_streams[i].write_raw(post_streams.data[i].get_raw(), post_streams.data[i].get_size());
-			}
-
-			post_streams = {.data = authored_streams.data(), .size = authored_streams.size()};
-		}
-
 		if (streams_equal(previous_streams, post_streams))
 			return true;
 
@@ -270,6 +232,7 @@ namespace sfg
 		};
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+
 		if (handle.is_null())
 		{
 			SFG_ERR("failed to issue component edit command");
@@ -280,7 +243,9 @@ namespace sfg
 		editor_world_controller_t::get().mark_world_dirty(payload.world);
 
 		world_t& scan_world = editor_world_controller_t::get().get_editor_world(world)->get_world();
+
 		scan_resources(scan_world, entities);
+
 		return true;
 	}
 }

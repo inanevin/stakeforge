@@ -203,9 +203,6 @@ namespace sfg
 
 	void editor_color_field_t::modify_field()
 	{
-		if (_config.callbacks.edit_changing != nullptr)
-			_config.callbacks.edit_changing(_config.callbacks.user_data);
-
 		if (_config.field.fields.size > 0)
 		{
 			for (size_t i = 0; i < _config.field.fields.size; ++i)

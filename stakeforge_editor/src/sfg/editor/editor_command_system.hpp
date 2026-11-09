@@ -71,13 +71,6 @@ namespace sfg
 		ragdoll_edit,
 	};
 
-	enum class editor_command_state_e : u8
-	{
-		invalid,
-		done,
-		undone,
-	};
-
 	struct editor_command_tag_t;
 	struct editor_command_listener_tag_t;
 	using editor_command_handle_t		   = pool_handle_t<u32, editor_command_tag_t>;
@@ -87,17 +80,15 @@ namespace sfg
 	{
 		using fn_t = bool (*)(editor_command_system_t& system, editor_command_t& command);
 
-		void*				   user_data		 = nullptr;
-		const char*			   debug_name		 = nullptr;
-		fn_t				   undo				 = nullptr;
-		fn_t				   redo				 = nullptr;
-		fn_t				   cleanup			 = nullptr;
-		u32					   sequence			 = 0;
-		chunk_handle32_t	   payload			 = {};
-		editor_world_handle_t  world			 = {};
-		editor_command_type_e  type				 = editor_command_type_e::invalid;
-		editor_command_state_e state			 = editor_command_state_e::invalid;
-		bool				   entity_generation = false;
+		void*				  user_data			= nullptr;
+		const char*			  debug_name		= nullptr;
+		fn_t				  undo				= nullptr;
+		fn_t				  redo				= nullptr;
+		fn_t				  cleanup			= nullptr;
+		chunk_handle32_t	  payload			= {};
+		editor_world_handle_t world				= {};
+		editor_command_type_e type				= editor_command_type_e::invalid;
+		bool				  entity_generation = false;
 	};
 
 	struct editor_command_system_config_t
@@ -111,9 +102,8 @@ namespace sfg
 
 	struct editor_command_listener_t
 	{
-		editor_command_listener_fn fn					   = nullptr;
-		void*					   user_data			   = nullptr;
-		bool					   receive_silent_commands = false;
+		editor_command_listener_fn fn		 = nullptr;
+		void*					   user_data = nullptr;
 	};
 
 	struct editor_command_issue_desc_t
@@ -166,7 +156,7 @@ namespace sfg
 		bool							 undo();
 		bool							 redo();
 		bool							 on_window_event(const window_event_t& ev);
-		editor_command_listener_handle_t add_listener(editor_command_listener_fn fn, void* user_data, bool receive_silent_commands = false);
+		editor_command_listener_handle_t add_listener(editor_command_listener_fn fn, void* user_data);
 		void							 remove_listener(editor_command_listener_handle_t handle);
 
 		template <typename T> editor_command_handle_t issue_command(const editor_command_issue_desc_t& desc, const T& payload)
@@ -275,7 +265,7 @@ namespace sfg
 		void			 trim_history_for_new_command();
 		void			 destroy_command(editor_command_handle_t handle);
 		void			 bump_generation(const editor_command_t& command);
-		void			 notify_listeners(const editor_command_t& command, bool silent = false);
+		void			 notify_listeners(const editor_command_t& command);
 		chunk_handle32_t copy_payload(const editor_command_issue_desc_t& desc, const void* payload_data);
 
 	private:
@@ -285,7 +275,6 @@ namespace sfg
 		chunk_allocator_t																  _aux_data;
 		editor_command_system_config_t													  _config			 = {};
 		u32																				  _cursor			 = 0;
-		u32																				  _next_sequence	 = 1;
 		u32																				  _generation		 = 0;
 		u32																				  _entity_generation = 0;
 

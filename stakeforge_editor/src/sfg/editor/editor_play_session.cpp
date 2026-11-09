@@ -123,9 +123,8 @@ namespace sfg
 		}
 
 		_saved_world_dirty = worlds.is_main_world_dirty();
+		_state			   = state;
 
-		_edits.begin(_world);
-		_state = state;
 		editor_world.update_camera_control();
 		editor_world.update_world_transforms();
 		editor_world.get_world().begin_play();
@@ -152,21 +151,16 @@ namespace sfg
 		editor_surface_controller_t::get().get_input_router().release_game_input();
 		editor_world.reset_input();
 
-		_edits.end();
-
 		_state	= editor_play_state_e::not_playing;
 		_paused = false;
+
 		editor_world.update_camera_control();
 		editor_world.get_world().end_play();
 
-		bool	   kept_edits = false;
-		const bool restored	  = restore_snapshot(editor_world, kept_edits);
+		const bool restored = restore_snapshot(editor_world);
 
 		if (!restored)
-		{
-			SFG_ERR("failed to restore world snapshot or apply play edits");
-			_edits.clear();
-		}
+			SFG_ERR("failed to restore world snapshot");
 
 		resource_manager_t::get().flush_material_updates();
 
@@ -174,9 +168,10 @@ namespace sfg
 		editor_world.produce_snapshot();
 		editor_surface_controller_t::get().get_input_router().reset_game_cursor();
 
-		worlds.set_main_world_dirty(_saved_world_dirty || kept_edits || !restored);
+		worlds.set_main_world_dirty(_saved_world_dirty || !restored);
 		_saved_world_dirty = false;
 		_world			   = {};
+
 		refresh_panels();
 	}
 
@@ -244,11 +239,9 @@ namespace sfg
 		}
 	}
 
-	bool editor_play_session_t::restore_snapshot(editor_world_t& editor_world, bool& kept_edits)
+	bool editor_play_session_t::restore_snapshot(editor_world_t& editor_world)
 	{
 		SFG_ASSERT(!_world_snapshot.empty());
-
-		kept_edits = false;
 
 		try
 		{
@@ -272,12 +265,7 @@ namespace sfg
 			world.reset_world_state();
 			editor_world.recreate_camera_entity();
 
-			bool restored = world_cooker_t::world_from_json(world, snapshot);
-
-			if (restored && _save_edits)
-				restored = _edits.apply(world, kept_edits);
-
-			_edits.clear();
+			const bool restored = world_cooker_t::world_from_json(world, snapshot);
 
 			// cam
 			editor_world.deserialize_camera(camera);

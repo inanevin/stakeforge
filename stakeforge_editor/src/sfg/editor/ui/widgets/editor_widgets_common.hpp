@@ -30,7 +30,6 @@ namespace sfg
 		editor_widget_callback_fn edit_begin	 = nullptr;
 		editor_widget_callback_fn edited		 = nullptr;
 		editor_widget_callback_fn edit_submitted = nullptr;
-		editor_widget_callback_fn edit_changing	 = nullptr;
 		void*					  user_data		 = nullptr;
 	};
 }

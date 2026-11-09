@@ -27,7 +27,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/memory/memory.hpp>
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
 #include <sfg/core/runtime/world/world.hpp>
-#include <sfg/core/runtime/world/engine_components.hpp>
 
 namespace sfg
 {
@@ -237,34 +236,6 @@ namespace sfg
 		if (entities.size == 0 || previous_infos.size != entities.size || post_infos.size != entities.size)
 			return false;
 
-		frame_vector_t<editor_entity_info_data_t> authored_infos = {};
-		editor_play_session_t&					  session		 = editor_world_controller_t::get().get_play_session();
-
-		if (session.is_playing())
-		{
-			authored_infos.assign(post_infos.data, post_infos.data + post_infos.size);
-
-			for (size_t i = 0; i < entities.size; ++i)
-			{
-				const editor_entity_info_data_t& previous = previous_infos.data[i];
-				component_transform_t			 transform{.pos = previous.pos, .rot = previous.rot, .scale = previous.scale};
-
-				bool applied = false;
-
-				if (!session.get_edits().apply_pending(world, entities.data[i], type_id_t<component_transform_t>::value, &transform, applied))
-					return false;
-
-				if (applied)
-				{
-					authored_infos[i].pos	= transform.pos;
-					authored_infos[i].rot	= transform.rot;
-					authored_infos[i].scale = transform.scale;
-				}
-			}
-
-			post_infos = {.data = authored_infos.data(), .size = authored_infos.size()};
-		}
-
 		if (entity_infos_equal(previous_infos, post_infos))
 			return true;
 
@@ -289,6 +260,7 @@ namespace sfg
 		};
 
 		const editor_command_handle_t handle = command_system.issue_command(desc, payload);
+
 		if (handle.is_null())
 		{
 			SFG_ERR("failed to issue entity info edit command");

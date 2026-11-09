@@ -79,13 +79,11 @@ namespace sfg
 
 		static void on_play_toggled(bool toggled, void* user_data);
 		static void on_edit_mode_changed(void* user_data);
-		static void on_save_edits_changed(void* user_data);
 		static void on_step_pressed(bool toggled, void* user_data);
 		static void on_play_controls_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
 		editor_checkbox_t	 _edit_mode_checkbox;
-		editor_checkbox_t	 _save_edits_checkbox;
 		editor_icon_button_t _play_button;
 		editor_icon_button_t _step_button;
 		ui::ui_context*		 _ui					 = nullptr;
@@ -94,7 +92,6 @@ namespace sfg
 		editor_world_view_e	 _pending_world_view	 = {};
 		editor_play_state_e	 _displayed_state		 = {};
 		bool				 _edit_mode				 = false;
-		bool				 _save_edits			 = false;
 		bool				 _displayed_paused		 = false;
 		bool				 _has_pending_world_view = false;
 	};

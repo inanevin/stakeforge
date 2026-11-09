@@ -143,7 +143,6 @@ namespace sfg
 			.edit_begin		= on_field_edit_begin,
 			.edited			= on_field_edited,
 			.edit_submitted = on_field_edit_submitted,
-			.edit_changing	= on_field_edit_changing,
 			.user_data		= this,
 		};
 
@@ -155,6 +154,7 @@ namespace sfg
 
 		_type_id = config.type_id;
 		_world	 = config.world;
+
 		set_block_edits(config.block_edits);
 
 		const reflected_type_t* type = reflection_registry_t::get().find_type(_type_id);
@@ -166,6 +166,7 @@ namespace sfg
 			return;
 
 		editor_theme_t& theme = editor_theme_t::get();
+
 		create_fields(_root, {.data = _objects.data(), .size = _objects.size()}, _type_id, _world, true, false, theme.margin_horizontal, true);
 		refresh_dependency_visibility();
 	}
@@ -1356,9 +1357,6 @@ namespace sfg
 		if (data.reflection->_callbacks.edit_begin != nullptr)
 			data.reflection->_callbacks.edit_begin(data.reflection->_callbacks.user_data);
 
-		if (data.reflection->_callbacks.edit_changing != nullptr)
-			data.reflection->_callbacks.edit_changing(data.reflection->_callbacks.user_data);
-
 		for (void* container : data.containers)
 			data.field->container_ops.add_element_ptr_fn(container);
 
@@ -1367,6 +1365,7 @@ namespace sfg
 
 		const editor_widget_callback_fn edit_submitted	   = data.reflection->_callbacks.edit_submitted;
 		void* const						callback_user_data = data.reflection->_callbacks.user_data;
+
 		data.reflection->refresh_container(data);
 
 		if (edit_submitted != nullptr)
@@ -1383,9 +1382,6 @@ namespace sfg
 		if (data.reflection->_callbacks.edit_begin != nullptr)
 			data.reflection->_callbacks.edit_begin(data.reflection->_callbacks.user_data);
 
-		if (data.reflection->_callbacks.edit_changing != nullptr)
-			data.reflection->_callbacks.edit_changing(data.reflection->_callbacks.user_data);
-
 		for (void* container : data.containers)
 			data.field->container_ops.reset_fn(container);
 
@@ -1394,6 +1390,7 @@ namespace sfg
 
 		const editor_widget_callback_fn edit_submitted	   = data.reflection->_callbacks.edit_submitted;
 		void* const						callback_user_data = data.reflection->_callbacks.user_data;
+
 		data.reflection->refresh_container(data);
 
 		if (edit_submitted != nullptr)
@@ -1411,9 +1408,6 @@ namespace sfg
 		if (container_data.reflection->_callbacks.edit_begin != nullptr)
 			container_data.reflection->_callbacks.edit_begin(container_data.reflection->_callbacks.user_data);
 
-		if (container_data.reflection->_callbacks.edit_changing != nullptr)
-			container_data.reflection->_callbacks.edit_changing(container_data.reflection->_callbacks.user_data);
-
 		for (void* container : container_data.containers)
 			container_data.field->container_ops.remove_index_fn(container, data.element_index);
 
@@ -1422,6 +1416,7 @@ namespace sfg
 
 		const editor_widget_callback_fn edit_submitted	   = container_data.reflection->_callbacks.edit_submitted;
 		void* const						callback_user_data = container_data.reflection->_callbacks.user_data;
+
 		container_data.reflection->refresh_container(container_data);
 
 		if (edit_submitted != nullptr)
@@ -1446,14 +1441,6 @@ namespace sfg
 		editor_widget_reflection_t& reflection = *static_cast<editor_widget_reflection_t*>(user_data);
 		if (reflection._callbacks.edit_begin != nullptr)
 			reflection._callbacks.edit_begin(reflection._callbacks.user_data);
-	}
-
-	void editor_widget_reflection_t::on_field_edit_changing(void* user_data)
-	{
-		editor_widget_reflection_t& reflection = *static_cast<editor_widget_reflection_t*>(user_data);
-
-		if (reflection._callbacks.edit_changing != nullptr)
-			reflection._callbacks.edit_changing(reflection._callbacks.user_data);
 	}
 
 	void editor_widget_reflection_t::on_field_edited(void* user_data)

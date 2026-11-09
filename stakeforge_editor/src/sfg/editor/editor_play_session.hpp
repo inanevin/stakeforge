@@ -24,7 +24,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "editor/editor_exports.hpp"
 #include "editor/world/editor_world_handle.hpp"
-#include "editor_play_edits.hpp"
 #include <sfg/core/data/string.hpp>
 
 namespace sfg
@@ -99,21 +98,6 @@ namespace sfg
 			return _edit_mode;
 		}
 
-		inline editor_play_edits_t& get_edits()
-		{
-			return _edits;
-		}
-
-		inline void set_save_edits(bool enabled)
-		{
-			_save_edits = enabled;
-		}
-
-		inline bool is_save_edits_enabled() const
-		{
-			return _save_edits;
-		}
-
 		inline bool is_paused() const
 		{
 			return _paused;
@@ -124,18 +108,16 @@ namespace sfg
 		void change_controls(editor_play_state_e state);
 		void change_pause(bool paused);
 		bool capture_snapshot(editor_world_t& editor_world);
-		bool restore_snapshot(editor_world_t& editor_world, bool& kept_edits);
+		bool restore_snapshot(editor_world_t& editor_world);
 		void tick_simulation(editor_world_t& editor_world, f32 dt_seconds);
 		void refresh_panels();
 
 	private:
-		editor_play_edits_t	  _edits			 = {};
 		string_t			  _world_snapshot	 = {};
 		editor_world_handle_t _world			 = {};
 		editor_play_state_e	  _state			 = editor_play_state_e::not_playing;
 		editor_play_state_e	  _requested_state	 = editor_play_state_e::not_playing;
 		bool				  _edit_mode		 = false;
-		bool				  _save_edits		 = false;
 		bool				  _saved_world_dirty = false;
 		bool				  _paused			 = false;
 		bool				  _pause_requested	 = false;

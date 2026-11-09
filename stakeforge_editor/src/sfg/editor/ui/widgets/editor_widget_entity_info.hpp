@@ -76,8 +76,6 @@ namespace sfg
 
 	private:
 		static void on_edit_begin(void* user_data);
-		static void on_edit_changing(void* user_data);
-		static void on_name_changed(void* user_data);
 		static void on_name_input_submitted(void* user_data);
 		static void on_position_changed(void* user_data);
 		static void on_rotation_changed(void* user_data);

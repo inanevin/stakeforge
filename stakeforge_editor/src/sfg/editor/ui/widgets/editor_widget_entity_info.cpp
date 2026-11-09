@@ -53,10 +53,11 @@ namespace sfg
 
 	void editor_widget_entity_info_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_widget_entity_info_config_t& config)
 	{
-		_ui							= &ui;
-		_world						= &editor_world_controller_t::get().get_editor_world(config.world)->get_world();
-		_break_prefab_callback		= config.break_prefab;
-		_break_prefab_user_data		= config.user_data;
+		_ui						= &ui;
+		_world					= &editor_world_controller_t::get().get_editor_world(config.world)->get_world();
+		_break_prefab_callback	= config.break_prefab;
+		_break_prefab_user_data = config.user_data;
+
 		ui::layout_tree_t&	  tree	= ui.get_tree();
 		ui::paint_layer_t&	  paint = ui.get_paint();
 		const editor_theme_t& theme = editor_theme_t::get();
@@ -76,6 +77,7 @@ namespace sfg
 		_fields_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_fields_root, "entity_info_fields");
 		tree.attach(_root, _fields_root);
+
 		ui::layout_in_t& fields_in = tree.in(_fields_root);
 		fields_in.size_mode_x	   = ui::axis_mode_e::parent_relative;
 		fields_in.size_mode_y	   = ui::axis_mode_e::sum_children;
@@ -87,8 +89,6 @@ namespace sfg
 		editor_input_field_config_t name_config = {};
 		name_config.placeholder					= "Name";
 		name_config.callbacks.edit_begin		= on_edit_begin;
-		name_config.callbacks.edited			= on_name_changed;
-		name_config.callbacks.edit_changing		= on_edit_changing;
 		name_config.callbacks.edit_submitted	= on_name_input_submitted;
 		name_config.callbacks.user_data			= this;
 		name_config.field						= {
@@ -125,7 +125,6 @@ namespace sfg
 		position_config.callbacks.edit_begin		= on_edit_begin;
 		position_config.callbacks.edited			= on_position_changed;
 		position_config.callbacks.edit_submitted	= on_edit_submitted;
-		position_config.callbacks.edit_changing		= on_edit_changing;
 		position_config.callbacks.user_data			= this;
 		_position_field.init(ui, position_row.right, position_config);
 		fit_control(ui, _position_field.get_root());
@@ -136,7 +135,6 @@ namespace sfg
 		rotation_config.callbacks.edit_begin		= on_edit_begin;
 		rotation_config.callbacks.edited			= on_rotation_changed;
 		rotation_config.callbacks.edit_submitted	= on_edit_submitted;
-		rotation_config.callbacks.edit_changing		= on_edit_changing;
 		rotation_config.callbacks.user_data			= this;
 		_rotation_field.init(ui, rotation_row.right, rotation_config);
 		fit_control(ui, _rotation_field.get_root());
@@ -147,7 +145,6 @@ namespace sfg
 		scale_config.callbacks.edit_begin		 = on_edit_begin;
 		scale_config.callbacks.edited			 = on_scale_changed;
 		scale_config.callbacks.edit_submitted	 = on_edit_submitted;
-		scale_config.callbacks.edit_changing	 = on_edit_changing;
 		scale_config.callbacks.user_data		 = this;
 		_scale_field.init(ui, scale_row.right, scale_config);
 		fit_control(ui, _scale_field.get_root());
@@ -352,22 +349,6 @@ namespace sfg
 		static_cast<editor_widget_entity_info_t*>(user_data)->begin_edit();
 	}
 
-	void editor_widget_entity_info_t::on_edit_changing(void* user_data)
-	{
-		editor_widget_entity_info_t& entity_info = *static_cast<editor_widget_entity_info_t*>(user_data);
-
-		if (entity_info._callbacks.edit_changing != nullptr)
-			entity_info._callbacks.edit_changing(entity_info._callbacks.user_data);
-	}
-
-	void editor_widget_entity_info_t::on_name_changed(void* user_data)
-	{
-		editor_widget_entity_info_t& entity_info = *static_cast<editor_widget_entity_info_t*>(user_data);
-
-		if (entity_info._callbacks.edited != nullptr)
-			entity_info._callbacks.edited(entity_info._callbacks.user_data);
-	}
-
 	void editor_widget_entity_info_t::on_name_input_submitted(void* user_data)
 	{
 		editor_widget_entity_info_t& entity_info = *static_cast<editor_widget_entity_info_t*>(user_data);
@@ -378,28 +359,22 @@ namespace sfg
 	void editor_widget_entity_info_t::on_position_changed(void* user_data)
 	{
 		editor_widget_entity_info_t& entity_info = *static_cast<editor_widget_entity_info_t*>(user_data);
-		entity_info.apply_position_values();
 
-		if (entity_info._callbacks.edited != nullptr)
-			entity_info._callbacks.edited(entity_info._callbacks.user_data);
+		entity_info.apply_position_values();
 	}
 
 	void editor_widget_entity_info_t::on_rotation_changed(void* user_data)
 	{
 		editor_widget_entity_info_t& entity_info = *static_cast<editor_widget_entity_info_t*>(user_data);
-		entity_info.apply_rotation_values();
 
-		if (entity_info._callbacks.edited != nullptr)
-			entity_info._callbacks.edited(entity_info._callbacks.user_data);
+		entity_info.apply_rotation_values();
 	}
 
 	void editor_widget_entity_info_t::on_scale_changed(void* user_data)
 	{
 		editor_widget_entity_info_t& entity_info = *static_cast<editor_widget_entity_info_t*>(user_data);
-		entity_info.apply_scale_values();
 
-		if (entity_info._callbacks.edited != nullptr)
-			entity_info._callbacks.edited(entity_info._callbacks.user_data);
+		entity_info.apply_scale_values();
 	}
 
 	void editor_widget_entity_info_t::on_edit_submitted(void* user_data)

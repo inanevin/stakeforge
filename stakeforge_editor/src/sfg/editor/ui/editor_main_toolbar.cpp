@@ -124,10 +124,8 @@ namespace sfg
 		tree.in(_play_button.get_root()).size_mode_x = ui::axis_mode_e::fixed;
 		tree.in(_step_button.get_root()).size_mode_x = ui::axis_mode_e::fixed;
 
-		_edit_mode	= editor_world_controller_t::get().get_play_session().is_edit_mode_enabled();
-		_save_edits = editor_world_controller_t::get().get_play_session().is_save_edits_enabled();
+		_edit_mode = editor_world_controller_t::get().get_play_session().is_edit_mode_enabled();
 		init_play_option("Edit Mode", _edit_mode_checkbox, _edit_mode, {.edited = on_edit_mode_changed, .user_data = this});
-		init_play_option("Save Edits", _save_edits_checkbox, _save_edits, {.edited = on_save_edits_changed, .user_data = this});
 
 		refresh_play_controls();
 		ui.set_pre_layout_tick(_play_frame, on_play_controls_tick, this);
@@ -182,7 +180,6 @@ namespace sfg
 
 	void editor_main_toolbar_t::uninit()
 	{
-		_save_edits_checkbox.uninit();
 		_edit_mode_checkbox.uninit();
 		_step_button.uninit();
 		_play_button.uninit();
@@ -276,13 +273,6 @@ namespace sfg
 		toolbar.refresh_play_controls();
 	}
 
-	void editor_main_toolbar_t::on_save_edits_changed(void* user_data)
-	{
-		editor_main_toolbar_t& toolbar = *static_cast<editor_main_toolbar_t*>(user_data);
-
-		editor_world_controller_t::get().get_play_session().set_save_edits(toolbar._save_edits);
-	}
-
 	void editor_main_toolbar_t::on_step_pressed(bool toggled, void* user_data)
 	{
 		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
@@ -304,12 +294,6 @@ namespace sfg
 		{
 			toolbar._edit_mode = session.is_edit_mode_enabled();
 			toolbar._edit_mode_checkbox.refresh_field_data();
-		}
-
-		if (toolbar._save_edits != session.is_save_edits_enabled())
-		{
-			toolbar._save_edits = session.is_save_edits_enabled();
-			toolbar._save_edits_checkbox.refresh_field_data();
 		}
 
 		if (toolbar._displayed_state != session.get_requested_state() || toolbar._displayed_paused != session.is_paused() || ui.get_tree().is_disabled(toolbar._play_button.get_root()) != main_world.is_null())

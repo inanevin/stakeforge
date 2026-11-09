@@ -379,9 +379,6 @@ namespace sfg
 
 		begin_edit();
 
-		if (_config.callbacks.edit_changing != nullptr)
-			_config.callbacks.edit_changing(_config.callbacks.user_data);
-
 		switch (_config.field.type)
 		{
 		case editor_input_field_field_type_e::string:

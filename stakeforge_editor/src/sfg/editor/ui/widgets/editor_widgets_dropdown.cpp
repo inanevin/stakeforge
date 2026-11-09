@@ -281,9 +281,6 @@ namespace sfg
 
 	void editor_dropdown_t::modify_field(u64 value)
 	{
-		if (_config.callbacks.edit_changing != nullptr)
-			_config.callbacks.edit_changing(_config.callbacks.user_data);
-
 		bool all_selected = false;
 
 		if (_config.is_bitmask && value != 0)

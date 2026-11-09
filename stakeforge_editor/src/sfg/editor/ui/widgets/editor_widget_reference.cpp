@@ -393,9 +393,6 @@ namespace sfg
 
 	void editor_widget_reference_t::modify_reference(u64 value)
 	{
-		if (_config.callbacks.edit_changing != nullptr)
-			_config.callbacks.edit_changing(_config.callbacks.user_data);
-
 		for (size_t i = 0; i < _config.fields.size; ++i)
 			*_config.fields.data[i] = value;
 
