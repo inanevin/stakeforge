@@ -29,16 +29,19 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	class world_t;
+	class world_renderer_t;
 	class plugin_type_schema_t;
 	enum input_code : unsigned short;
 	enum class input_action;
 	struct physics_contact_event_t;
 	struct canvas_event_t;
 
-	inline constexpr u32 GAME_PLUGIN_API_VERSION = 12;
+	inline constexpr u32 GAME_PLUGIN_API_VERSION = 13;
 
 	struct game_plugin_callbacks_t
 	{
+		world_renderer_t* (*create_world_renderer)(world_t& world)														   = nullptr;
+		void (*destroy_world_renderer)(world_renderer_t* renderer)														   = nullptr;
 		void (*register_types)(plugin_type_schema_t& schema)															   = nullptr;
 		void (*load)()																									   = nullptr;
 		void (*unload)()																								   = nullptr;

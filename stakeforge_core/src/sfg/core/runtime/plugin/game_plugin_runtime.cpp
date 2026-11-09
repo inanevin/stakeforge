@@ -25,6 +25,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/io/assert.hpp"
 #include "core/io/log.hpp"
 #include "core/platform/process.hpp"
+#include "core/runtime/world_renderer/stock_world_renderer.hpp"
 
 namespace sfg
 {
@@ -61,7 +62,7 @@ namespace sfg
 											   callbacks.mouse_button_event != nullptr && callbacks.mouse_move_event != nullptr && callbacks.mouse_wheel_event != nullptr && callbacks.focus_event != nullptr && callbacks.physics_contact != nullptr &&
 											   callbacks.animation_event != nullptr && callbacks.canvas_event != nullptr);
 
-		if (!complete)
+		if (!complete || ((callbacks.create_world_renderer == nullptr) != (callbacks.destroy_world_renderer == nullptr)))
 		{
 			if (entry != nullptr)
 				diagnostics = "Game plugin has an incompatible API or missing callbacks: " + string_t(path);
@@ -140,7 +141,7 @@ namespace sfg
 
 	bool game_plugin_runtime_t::deactivate(string_t& diagnostics)
 	{
-		SFG_ASSERT(_library != nullptr && _playing_world_count == 0);
+		SFG_ASSERT(_library != nullptr && _playing_world_count == 0 && _world_renderer_count == 0);
 
 		_callbacks.unload();
 		reflection_registry_t::get().remove_plugin_types(reflection_owner_e::game_plugin);
@@ -174,6 +175,33 @@ namespace sfg
 		_path.resize(0);
 
 		return true;
+	}
+
+	world_renderer_t* game_plugin_runtime_t::create_world_renderer(world_t& world)
+	{
+		world_renderer_t* renderer = _callbacks.create_world_renderer != nullptr ? _callbacks.create_world_renderer(world) : new stock_world_renderer_t();
+
+		if (renderer == nullptr)
+		{
+			SFG_ERR("failed to create the game world renderer");
+			return nullptr;
+		}
+
+		++_world_renderer_count;
+
+		return renderer;
+	}
+
+	void game_plugin_runtime_t::destroy_world_renderer(world_renderer_t* renderer)
+	{
+		SFG_ASSERT(_world_renderer_count != 0);
+
+		if (_callbacks.destroy_world_renderer != nullptr)
+			_callbacks.destroy_world_renderer(renderer);
+		else
+			delete renderer;
+
+		--_world_renderer_count;
 	}
 
 	void game_plugin_runtime_t::begin_play(world_t& world)

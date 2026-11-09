@@ -50,14 +50,16 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		bool load(const char* path, string_t& diagnostics);
-		bool unload(string_t& diagnostics);
-		bool deactivate(string_t& diagnostics);
-		bool stage(const char* path, string_t& diagnostics);
-		bool activate_staged(string_t& diagnostics, game_plugin_activated_fn activated = nullptr);
-		bool discard_staged(string_t& diagnostics);
-		void begin_play(world_t& world);
-		void end_play(world_t& world);
+		bool			  load(const char* path, string_t& diagnostics);
+		bool			  unload(string_t& diagnostics);
+		bool			  deactivate(string_t& diagnostics);
+		bool			  stage(const char* path, string_t& diagnostics);
+		bool			  activate_staged(string_t& diagnostics, game_plugin_activated_fn activated = nullptr);
+		bool			  discard_staged(string_t& diagnostics);
+		world_renderer_t* create_world_renderer(world_t& world);
+		void			  destroy_world_renderer(world_renderer_t* renderer);
+		void			  begin_play(world_t& world);
+		void			  end_play(world_t& world);
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -117,7 +119,8 @@ namespace sfg
 		void*						   _staged_library	 = nullptr;
 		game_plugin_callbacks_t		   _callbacks		 = {};
 		string_t					   _path;
-		void*						   _library				= nullptr;
-		u32							   _playing_world_count = 0;
+		void*						   _library				 = nullptr;
+		u32							   _playing_world_count	 = 0;
+		u32							   _world_renderer_count = 0;
 	};
 }
