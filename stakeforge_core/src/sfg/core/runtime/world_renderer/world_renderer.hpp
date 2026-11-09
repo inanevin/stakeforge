@@ -63,7 +63,9 @@ namespace sfg
 		virtual void publish_snapshot()																																			   = 0;
 		virtual void acquire_snapshot()																																			   = 0;
 		virtual void build_render_view(const world_renderer_camera_t& camera, const vec2u16_t& resolution, f32 interpolation_alpha, world_renderer_view_t& out_view) const		   = 0;
-		virtual void render(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)													   = 0;
+		virtual void render_scene(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)											   = 0;
+		virtual void render_post_process(u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)																   = 0;
+		virtual void render_finalize(u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)																	   = 0;
 		virtual void draw_selection(gfx_handle_t cmd, span_t<const entity_id_t> selected_entities, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const = 0;
 		virtual void draw_entity_ids(gfx_handle_t cmd, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const											   = 0;
 

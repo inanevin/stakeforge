@@ -228,6 +228,11 @@ namespace sfg
 			return _pfd[frame_index].cmd_post;
 		}
 
+		inline gfx_handle_t get_command_buffer_finalize(u8 frame_index) const
+		{
+			return _pfd[frame_index].cmd_finalize;
+		}
+
 		inline gfx_handle_t get_command_buffer_ssao(u8 frame_index) const
 		{
 			return _pfd[frame_index].cmd_ssao;
@@ -860,6 +865,7 @@ namespace sfg
 			gfx_handle_t cmd_lighting														= {};
 			gfx_handle_t cmd_forward														= {};
 			gfx_handle_t cmd_post															= {};
+			gfx_handle_t cmd_finalize														= {};
 			gfx_handle_t cmd_ssao															= {};
 			gfx_handle_t cmd_bloom															= {};
 			gfx_handle_t cmd_clustered_lighting												= {};

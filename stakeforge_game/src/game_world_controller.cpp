@@ -330,7 +330,11 @@ namespace sfg
 		SFG_ASSERT(_initialized);
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 
-		_world_renderer->render(_render_alpha, frame_index, global_cbv_index, global_layout);
+		_world_renderer->render_scene(_render_alpha, frame_index, global_cbv_index, global_layout);
+
+		_world_renderer->render_post_process(frame_index, global_cbv_index, global_layout);
+
+		_world_renderer->render_finalize(frame_index, global_cbv_index, global_layout);
 
 		gfx_backend::get().queue_signal(queue, &signal, &signal_value, 1);
 

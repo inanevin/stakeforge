@@ -424,7 +424,11 @@ namespace sfg
 
 		SFG_MEMCPY(_mapped_global, &global_data, sizeof(global_buffer_data_t));
 
-		_world_renderer->render(1.0f, 0, _global_index, render_globals_t::get_global_bind_layout());
+		_world_renderer->render_scene(1.0f, 0, _global_index, render_globals_t::get_global_bind_layout());
+
+		_world_renderer->render_post_process(0, _global_index, render_globals_t::get_global_bind_layout());
+
+		_world_renderer->render_finalize(0, _global_index, render_globals_t::get_global_bind_layout());
 
 		_semaphore_frame.value++;
 		const gfx_handle_t queue_gfx = backend.get_queue_gfx();

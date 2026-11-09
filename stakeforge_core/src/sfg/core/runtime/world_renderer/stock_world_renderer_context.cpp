@@ -285,6 +285,7 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].cmd_lighting.is_null());
 			SFG_ASSERT(_pfd[i].cmd_forward.is_null());
 			SFG_ASSERT(_pfd[i].cmd_post.is_null());
+			SFG_ASSERT(_pfd[i].cmd_finalize.is_null());
 			SFG_ASSERT(_pfd[i].cmd_clustered_lighting.is_null());
 			SFG_ASSERT(_pfd[i].lighting_texture.is_null());
 			SFG_ASSERT(_pfd[i].post_process_texture.is_null());
@@ -309,26 +310,34 @@ namespace sfg
 			SFG_ASSERT(_pfd[i].bone_buffer.is_null());
 			SFG_ASSERT(_pfd[i].light_buffer.is_null());
 
-			_pfd[i].cmd_depth					 = backend.create_command_buffer({
+			_pfd[i].cmd_depth	 = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "world_depth",
 			});
-			_pfd[i].cmd_gbuffer					 = backend.create_command_buffer({
+			_pfd[i].cmd_gbuffer	 = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "world_gbuffer",
 			});
-			_pfd[i].cmd_lighting				 = backend.create_command_buffer({
+			_pfd[i].cmd_lighting = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "world_lighting",
 			});
-			_pfd[i].cmd_forward					 = backend.create_command_buffer({
+			_pfd[i].cmd_forward	 = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "world_forward",
 			});
-			_pfd[i].cmd_post					 = backend.create_command_buffer({
+			_pfd[i].cmd_post	 = backend.create_command_buffer({
 				.type		= command_type::graphics,
 				.debug_name = "world_post",
 			});
+			_pfd[i].cmd_finalize = backend.create_command_buffer({.type = command_type::graphics, .debug_name = "world_finalize"});
+
+			if (_pfd[i].cmd_finalize.is_null())
+			{
+				SFG_ERR("failed to create world finalization command buffer");
+				throw std::runtime_error("World finalization command buffer allocation failed");
+			}
+
 			_pfd[i].cmd_clustered_lighting		 = backend.create_command_buffer({
 				.type		= command_type::compute,
 				.debug_name = "world_clusters",
@@ -562,6 +571,7 @@ namespace sfg
 			backend.destroy_command_buffer(_pfd[i].cmd_lighting);
 			backend.destroy_command_buffer(_pfd[i].cmd_forward);
 			backend.destroy_command_buffer(_pfd[i].cmd_post);
+			backend.destroy_command_buffer(_pfd[i].cmd_finalize);
 			backend.destroy_command_buffer(_pfd[i].cmd_clustered_lighting);
 			backend.destroy_semaphore(_pfd[i].clustered_lighting_semaphore);
 

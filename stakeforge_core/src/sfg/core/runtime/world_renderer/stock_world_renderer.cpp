@@ -124,7 +124,7 @@ namespace sfg
 		out_view.fov_rads	   = camera.fov_degrees * DEG_2_RAD;
 	}
 
-	void stock_world_renderer_t::render(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	void stock_world_renderer_t::render_scene(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 
@@ -224,9 +224,6 @@ namespace sfg
 
 		ctx.ensure_light_cluster_capacity(frame_index, light_cluster_count);
 
-		if (snapshot.post_process.fxaa.enabled != 0)
-			ctx.ensure_fxaa_texture();
-
 		stock_world_renderer_util_t::prep_debug_buffer(ctx, snapshot, frame_index);
 		stock_world_renderer_util_t::prep_render_queues(ctx, snapshot, prep_data, interpolation_alpha, frame_index);
 		stock_world_renderer_util_t::prep_render_pass_buffers(ctx, snapshot, prep_data, view, light_counts, frame_index);
@@ -236,7 +233,6 @@ namespace sfg
 		const gfx_handle_t cmd_gbuffer			  = ctx.get_command_buffer_gbuffer(frame_index);
 		const gfx_handle_t cmd_lighting			  = ctx.get_command_buffer_lighting(frame_index);
 		const gfx_handle_t cmd_forward			  = ctx.get_command_buffer_forward(frame_index);
-		const gfx_handle_t cmd_post				  = ctx.get_command_buffer_post(frame_index);
 		const gfx_handle_t cmd_shadows			  = shadow_context.get_command_buffer(frame_index);
 		const gfx_handle_t cmd_clustered_lighting = ctx.get_command_buffer_clustered_lighting(frame_index);
 		const bool		   ssao_active			  = ctx.is_ssao_enabled() && snapshot.post_process.ssao.enabled != 0;
@@ -385,24 +381,10 @@ namespace sfg
 			backend.queue_signal(queue_gfx, &bloom_semaphore, &lighting_ready, 1);
 		}
 
-		const u32 final_phase_task_count = 1 + static_cast<u32>(bloom_active);
-
-		std::for_each(std::execution::par, render_task_indices, render_task_indices + final_phase_task_count, [&](u32 task_index) {
-			render_access_scope_t render_scope = {};
-
-			if (task_index == 0)
-			{
-				stock_world_renderer_passes_t::render_post_process(ctx, snapshot, prep_data, frame_index, global_cbv_index, global_layout);
-				return;
-			}
-
-			SFG_ASSERT(bloom_active && task_index == 1);
-
-			stock_world_renderer_passes_t::render_bloom(ctx, snapshot, prep_data, frame_index, global_cbv_index);
-		});
-
 		if (bloom_active)
 		{
+			stock_world_renderer_passes_t::render_bloom(ctx, snapshot, prep_data, frame_index, global_cbv_index);
+
 			const gfx_handle_t cmd_bloom = ctx.get_command_buffer_bloom(frame_index);
 
 			backend.queue_wait(queue_compute, &bloom_semaphore, &lighting_ready, 1);
@@ -411,10 +393,30 @@ namespace sfg
 			backend.queue_wait(queue_gfx, &bloom_semaphore, &bloom_ready, 1);
 		}
 
-		backend.submit_commands(queue_gfx, &cmd_post, 1);
-
 		_visible_draws = std::move(prep_data.visible_queue);
 		_visible_draws.resize(prep_data.views[0].visible_range.count);
+	}
+
+	void stock_world_renderer_t::render_post_process(u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	{
+		ZoneScoped;
+
+		stock_world_renderer_passes_t::render_post_process(_render_context, get_render_snapshot(), frame_index, global_cbv_index, global_layout);
+
+		gfx_backend&	   backend = gfx_backend::get();
+		const gfx_handle_t command = _render_context.get_command_buffer_post(frame_index);
+		backend.submit_commands(backend.get_queue_gfx(), &command, 1);
+	}
+
+	void stock_world_renderer_t::render_finalize(u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	{
+		ZoneScoped;
+
+		stock_world_renderer_passes_t::render_finalize(_render_context, get_render_snapshot(), frame_index, global_cbv_index, global_layout);
+
+		gfx_backend&	   backend = gfx_backend::get();
+		const gfx_handle_t command = _render_context.get_command_buffer_finalize(frame_index);
+		backend.submit_commands(backend.get_queue_gfx(), &command, 1);
 	}
 
 	void stock_world_renderer_t::draw_selection(gfx_handle_t cmd, span_t<const entity_id_t> selected_entities, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const

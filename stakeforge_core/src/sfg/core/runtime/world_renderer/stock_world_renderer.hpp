@@ -30,7 +30,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	class SFG_API stock_world_renderer_t final : public world_renderer_t
+	class SFG_API stock_world_renderer_t : public world_renderer_t
 	{
 	public:
 		stock_world_renderer_t()											   = default;
@@ -54,7 +54,9 @@ namespace sfg
 		void publish_snapshot() override;
 		void acquire_snapshot() override;
 		void build_render_view(const world_renderer_camera_t& camera, const vec2u16_t& resolution, f32 interpolation_alpha, world_renderer_view_t& out_view) const override;
-		void render(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) override;
+		void render_scene(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) override;
+		void render_post_process(u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) override;
+		void render_finalize(u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) override;
 		void draw_selection(gfx_handle_t cmd, span_t<const entity_id_t> selected_entities, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const override;
 		void draw_entity_ids(gfx_handle_t cmd, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const override;
 
@@ -95,6 +97,20 @@ namespace sfg
 		u8 get_render_snapshot_slot() const override
 		{
 			return _consumer_slot;
+		}
+
+	protected:
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		stock_world_renderer_context_t& get_render_context()
+		{
+			return _render_context;
+		}
+		const stock_world_renderer_snapshot_t& get_render_snapshot() const
+		{
+			return _snapshot_slots[_consumer_slot];
 		}
 
 	private:

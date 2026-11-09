@@ -698,7 +698,11 @@ namespace sfg
 			_last_render_pick_request_id = data.pick_request.id;
 		}
 
-		_world_renderer->render(interpolation_alpha, frame_index, global_cbv_index, global_layout);
+		_world_renderer->render_scene(interpolation_alpha, frame_index, global_cbv_index, global_layout);
+
+		_world_renderer->render_post_process(frame_index, global_cbv_index, global_layout);
+
+		_world_renderer->render_finalize(frame_index, global_cbv_index, global_layout);
 		editor_world_rendering_t::render_world(_render_context, *_world_renderer, data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
 
 		_object_id_readback_valid[frame_index] = true;

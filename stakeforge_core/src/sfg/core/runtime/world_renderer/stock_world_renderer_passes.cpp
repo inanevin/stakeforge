@@ -1226,8 +1226,7 @@ namespace sfg
 		backend.close_command_buffer(cmd);
 	}
 
-	void stock_world_renderer_passes_t::render_post_process(
-		const stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, const stock_world_renderer_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	gfx_handle_t stock_world_renderer_passes_t::begin_post_process(stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
 		gfx_backend& backend = gfx_backend::get();
 
@@ -1240,6 +1239,9 @@ namespace sfg
 		};
 
 		SFG_MEMCPY(ctx.get_mapped_post_process_render_pass_data(frame_index), &post_process_render_pass_data, sizeof(stock_world_renderer_render_pass_data_post_process_gpu_t));
+
+		if (snapshot.post_process.fxaa.enabled != 0)
+			ctx.ensure_fxaa_texture();
 
 		const gfx_handle_t cmd				= ctx.get_command_buffer_post(frame_index);
 		const gfx_handle_t lighting_texture = ctx.get_lighting_texture(frame_index);
@@ -1279,9 +1281,6 @@ namespace sfg
 			backend.cmd_barrier(cmd, {.barriers = bloom_barriers, .barrier_count = 2});
 		}
 
-		const render_resources_t& render_resources = render_resources_t::get();
-		const gpu_index_t		  bloom_index	   = bloom_active ? ctx.get_bloom_upsample_index(frame_index, 0) : render_resources.get_texture_gpu_index(render_resources.get_black_texture(), 0);
-
 		const barrier_t tonemap_barrier = {
 			.from_states = resource_state_ps_resource,
 			.to_states	 = resource_state_render_target,
@@ -1297,17 +1296,19 @@ namespace sfg
 			.store_op	= store_op::store,
 			.view_index = 1,
 		};
-		const gpu_index_t tonemap_constants[3] = {
-			ctx.get_post_process_render_pass_data_index(frame_index),
-			ctx.get_lighting_texture_index(frame_index),
-			bloom_index,
-		};
-
-		// engine post combine.
 		backend.cmd_begin_render_pass(cmd, {.color_attachments = &tonemap_attachment, .color_attachment_count = 1});
-		backend.cmd_bind_constants(cmd, {.data = tonemap_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
-		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_post_combiner_shader()});
-		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
+
+		return cmd;
+	}
+
+	void stock_world_renderer_passes_t::end_post_process(const stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, u8 frame_index)
+	{
+		gfx_backend&	   backend		  = gfx_backend::get();
+		const gfx_handle_t cmd			  = ctx.get_command_buffer_post(frame_index);
+		const gfx_handle_t world_texture  = ctx.get_world_texture(frame_index);
+		const gfx_handle_t tonemap_target = ctx.get_fxaa_texture(frame_index);
+		const bool		   fxaa_active	  = snapshot.post_process.fxaa.enabled != 0;
+
 		backend.cmd_end_render_pass(cmd, {});
 
 		if (fxaa_active)
@@ -1347,6 +1348,52 @@ namespace sfg
 			backend.cmd_end_render_pass(cmd, {});
 		}
 
+		END_DEBUG_EVENT((&backend), cmd);
+
+		if (ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0)
+		{
+			const barrier_t bloom_barrier{
+				.from_states = resource_state_ps_resource, .to_states = resource_state_non_ps_resource, .texture = ctx.get_bloom_upsample_texture(frame_index), .flags = barrier_flags::baf_is_texture, .base_mip_level = 0, .mip_count = 1};
+			backend.cmd_barrier(cmd, {.barriers = &bloom_barrier, .barrier_count = 1});
+		}
+
+		backend.close_command_buffer(cmd);
+	}
+
+	void stock_world_renderer_passes_t::render_post_process(stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	{
+		gfx_backend&			  backend			   = gfx_backend::get();
+		const gfx_handle_t		  cmd				   = begin_post_process(ctx, snapshot, frame_index, global_cbv_index, global_layout);
+		const bool				  bloom_active		   = ctx.is_bloom_enabled() && snapshot.post_process.bloom.enabled != 0;
+		const render_resources_t& render_resources	   = render_resources_t::get();
+		const gpu_index_t		  bloom_index		   = bloom_active ? ctx.get_bloom_upsample_index(frame_index, 0) : render_resources.get_texture_gpu_index(render_resources.get_black_texture(), 0);
+		const gpu_index_t		  tonemap_constants[3] = {
+			ctx.get_post_process_render_pass_data_index(frame_index),
+			ctx.get_lighting_texture_index(frame_index),
+			bloom_index,
+		};
+
+		// engine post combine.
+		backend.cmd_bind_constants(cmd, {.data = tonemap_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
+		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_post_combiner_shader()});
+		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
+		end_post_process(ctx, snapshot, frame_index);
+	}
+
+	void stock_world_renderer_passes_t::render_finalize(const stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
+	{
+		gfx_backend&	   backend = gfx_backend::get();
+		const gfx_handle_t cmd	   = ctx.get_command_buffer_finalize(frame_index);
+		const vec2u16_t	   size	   = ctx.get_size();
+
+		backend.reset_command_buffer(cmd);
+		backend.cmd_bind_layout(cmd, {.layout = global_layout});
+		backend.cmd_bind_constants(cmd, {.data = &global_cbv_index, .offset = constant_global0, .count = 1, .param_index = 0});
+		backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
+		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
+
+		BEGIN_DEBUG_EVENT((&backend), cmd, "world_finalize");
+
 		const ui::vg_draw_snapshot_t					  canvas_snapshot  = snapshot.canvas.after_post_process.get_snapshot();
 		const stock_world_renderer_debug_draw_snapshot_t& debug_draw	   = snapshot.debug_draw;
 		const bool										  has_canvas_draws = canvas_snapshot.batch_count != 0;
@@ -1356,7 +1403,7 @@ namespace sfg
 		if (has_overlays)
 		{
 			const render_pass_color_attachment_t overlay_attachment = {
-				.texture	= world_texture,
+				.texture	= ctx.get_world_texture(frame_index),
 				.load_op	= load_op::load,
 				.store_op	= store_op::store,
 				.view_index = 1,
@@ -1455,30 +1502,8 @@ namespace sfg
 
 		END_DEBUG_EVENT((&backend), cmd);
 
-		barrier_t end_barriers[2] = {
-			{
-				.from_states = resource_state_render_target,
-				.to_states	 = resource_state_ps_resource,
-				.texture	 = world_texture,
-				.flags		 = barrier_flags::baf_is_texture,
-			},
-		};
-
-		u16 end_count = 1;
-
-		if (bloom_active)
-		{
-			end_barriers[end_count++] = {
-				.from_states	= resource_state_ps_resource,
-				.to_states		= resource_state_non_ps_resource,
-				.texture		= ctx.get_bloom_upsample_texture(frame_index),
-				.flags			= barrier_flags::baf_is_texture,
-				.base_mip_level = 0,
-				.mip_count		= 1,
-			};
-		}
-
-		backend.cmd_barrier(cmd, {.barriers = end_barriers, .barrier_count = end_count});
+		const barrier_t final_barrier{.from_states = resource_state_render_target, .to_states = resource_state_ps_resource, .texture = ctx.get_world_texture(frame_index), .flags = barrier_flags::baf_is_texture};
+		backend.cmd_barrier(cmd, {.barriers = &final_barrier, .barrier_count = 1});
 		backend.close_command_buffer(cmd);
 	}
 }
