@@ -124,10 +124,9 @@ namespace sfg
 
 		_saved_world_dirty = worlds.is_main_world_dirty();
 
-		editor_world.set_editor_control_enabled(state == editor_play_state_e::playing_editor_controlled);
-
 		_edits.begin(_world);
 		_state = state;
+		editor_world.update_camera_control();
 		editor_world.update_world_transforms();
 		editor_world.get_world().begin_play();
 
@@ -157,6 +156,7 @@ namespace sfg
 
 		_state	= editor_play_state_e::not_playing;
 		_paused = false;
+		editor_world.update_camera_control();
 		editor_world.get_world().end_play();
 
 		bool	   kept_edits = false;
@@ -192,7 +192,8 @@ namespace sfg
 		editor_surface_controller_t::get().get_input_router().release_game_input();
 		editor_world.reset_input();
 
-		editor_world.set_editor_control_enabled(state == editor_play_state_e::playing_editor_controlled);
+		_state = state;
+		editor_world.update_camera_control();
 
 		if (state == editor_play_state_e::playing_game_controlled)
 			editor_surface_controller_t::get().request_focus_main_world_view();
@@ -201,7 +202,6 @@ namespace sfg
 			editor_surface_controller_t::get().get_input_router().reset_game_cursor();
 		}
 
-		_state = state;
 		editor_world.update_world_transforms();
 		editor_world.get_world().tick_post(0.0f);
 		editor_world.get_world().tick_finalize();
@@ -270,6 +270,7 @@ namespace sfg
 			world_t& world = editor_world.get_world();
 
 			world.reset_world_state();
+			editor_world.recreate_camera_entity();
 
 			bool restored = world_cooker_t::world_from_json(world, snapshot);
 
@@ -279,7 +280,6 @@ namespace sfg
 			_edits.clear();
 
 			// cam
-			editor_world.recreate_camera_entity();
 			editor_world.deserialize_camera(camera);
 
 			// reset

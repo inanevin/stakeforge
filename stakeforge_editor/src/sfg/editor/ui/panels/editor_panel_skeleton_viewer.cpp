@@ -489,10 +489,8 @@ namespace sfg
 		const editor_world_init_config_t init_config = editor_world_init_config_t::make_preview(editor_surface_controller_t::get().get_main_surface().swapchain_size);
 
 		editor_world_controller_t& controller = editor_world_controller_t::get();
-		_world								  = controller.create_world(init_config, editor_world_edit_type_e::view_with_debug, on_world_tick, this);
+		_world								  = controller.create_world(init_config, editor_world_camera_type_e::fly, editor_world_edit_type_e::view_with_debug, on_world_tick, this);
 		editor_world_t* const editor_world	  = controller.get_editor_world(_world);
-
-		editor_world->install_camera(editor_world_camera_type_e::fly);
 
 		editor_world->set_gizmo_callbacks({
 			.get_target	 = [](void* user_data, editor_gizmo_target_t& target) { return static_cast<editor_panel_skeleton_viewer_t*>(user_data)->get_slot_gizmo_target(target); },

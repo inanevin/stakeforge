@@ -118,7 +118,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const editor_world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data);
+		void init(const editor_world_init_config_t& init_config, editor_world_handle_t handle, editor_world_camera_type_e camera_type, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data);
 		void uninit();
 
 		// -----------------------------------------------------------------------------
@@ -126,10 +126,8 @@ namespace sfg
 		// -----------------------------------------------------------------------------
 
 		void resize(vec2u16_t render_resolution);
-		void install_camera(editor_world_camera_type_e type);
-		void uninstall_camera();
 		void recreate_camera_entity();
-		void set_editor_control_enabled(bool enabled);
+		void update_camera_control();
 		void serialize_camera(nlohmann::json& out_json) const;
 		void deserialize_camera(const nlohmann::json& in_json);
 		void pass_camera_input(const editor_world_camera_input_t& input);
@@ -209,10 +207,7 @@ namespace sfg
 			return _render_resolution;
 		}
 
-		inline bool is_editor_control_enabled() const
-		{
-			return _editor_control_enabled;
-		}
+		bool is_editor_control_enabled() const;
 
 		inline editor_world_camera_type_e get_camera_type() const
 		{
@@ -248,7 +243,6 @@ namespace sfg
 		void*						 _tick_callback_user_data = nullptr;
 		editor_world_camera_t*		 _camera				  = nullptr;
 		editor_world_camera_type_e	 _camera_type			  = editor_world_camera_type_e::fly;
-		bool						 _editor_control_enabled  = false;
 
 		editor_world_render_context_t _render_context = {};
 

@@ -69,6 +69,11 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
+		inline editor_world_handle_t get_world() const
+		{
+			return _world;
+		}
+
 		inline editor_play_state_e get_state() const
 		{
 			return _state;

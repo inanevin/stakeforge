@@ -105,7 +105,8 @@ namespace sfg
 		s_instance = nullptr;
 	}
 
-	editor_world_handle_t editor_world_controller_t::create_world(const editor_world_init_config_t& init_config, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
+	editor_world_handle_t editor_world_controller_t::create_world(
+		const editor_world_init_config_t& init_config, editor_world_camera_type_e camera_type, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
 	{
 		editor_app_t::get().stop_render();
 
@@ -119,7 +120,7 @@ namespace sfg
 		_worlds.get(handle)				   = new editor_world_t();
 		editor_world_t* const editor_world = _worlds.get(handle);
 
-		editor_world->init(world_config, handle, edit_type, tick_callback, tick_callback_user_data);
+		editor_world->init(world_config, handle, camera_type, edit_type, tick_callback, tick_callback_user_data);
 
 		return handle;
 	}
@@ -364,16 +365,6 @@ namespace sfg
 		}
 	}
 
-	void editor_world_controller_t::install_default_world(editor_world_handle_t handle)
-	{
-		editor_world_t* const editor_world = _worlds.get(handle);
-
-		editor_world->install_camera(editor_world_camera_type_e::fly);
-		world_t& world = editor_world->get_world();
-
-		editor_world_util_t::install_default_scene_light(world);
-	}
-
 	bool editor_world_controller_t::load_main_world(sid_t asset_guid)
 	{
 		if (_play_session.is_playing() || _play_session.is_play_requested())
@@ -403,8 +394,12 @@ namespace sfg
 
 		const editor_world_init_config_t init_config = editor_world_init_config_t::make_main(editor_surface_controller_t::get().get_main_surface().swapchain_size);
 
-		const editor_world_handle_t handle = create_world(init_config);
-		install_default_world(handle);
+		const editor_world_handle_t handle		 = create_world(init_config, editor_world_camera_type_e::fly);
+		editor_world_t* const		editor_world = _worlds.get(handle);
+
+		world_t& world = editor_world->get_world();
+
+		editor_world_util_t::install_default_scene_light(world);
 		set_main_world(handle, NULL_SID, "unnamed");
 	}
 
@@ -420,34 +415,34 @@ namespace sfg
 			return false;
 		}
 
+		if (asset->embedded_source.empty())
+		{
+			SFG_ERR("world asset {0} has an empty embedded source", asset_guid);
+			return false;
+		}
+
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
 		const editor_world_init_config_t init_config = editor_world_init_config_t::make_main(editor_surface_controller_t::get().get_main_surface().swapchain_size);
 
-		const editor_world_handle_t handle = create_world(init_config);
+		const editor_world_handle_t handle = create_world(init_config, editor_world_camera_type_e::fly);
 
 		try
 		{
-			if (asset->embedded_source.empty())
-				install_default_world(handle);
-			else
+			editor_world_t* const editor_world	  = _worlds.get(handle);
+			world_t&			  world			  = editor_world->get_world();
+			nlohmann::json		  embedded_source = {};
+
+			if (!editor_asset_io_t::parse_embedded_source_json(*asset, embedded_source) || !world_cooker_t::world_from_json(world, embedded_source))
 			{
-				editor_world_t* const editor_world	  = _worlds.get(handle);
-				world_t&			  world			  = editor_world->get_world();
-				nlohmann::json		  embedded_source = {};
-
-				if (!editor_asset_io_t::parse_embedded_source_json(*asset, embedded_source) || !world_cooker_t::world_from_json(world, embedded_source))
-				{
-					SFG_ERR("failed to deserialize world asset {0}", asset_guid);
-					destroy_world(handle);
-					return false;
-				}
-
-				// world.load_all_used_resources();
-				editor_world->install_camera(editor_world_camera_type_e::fly);
-				editor_world->deserialize_camera(embedded_source.value<nlohmann::json>("editor_camera", nlohmann::json::object()));
-				editor_world->get_edit_context().read_folders_from_json(embedded_source.value<nlohmann::json>("folders", nlohmann::json::array()));
+				SFG_ERR("failed to deserialize world asset {0}", asset_guid);
+				destroy_world(handle);
+				return false;
 			}
+
+			// world.load_all_used_resources();
+			editor_world->deserialize_camera(embedded_source.value<nlohmann::json>("editor_camera", nlohmann::json::object()));
+			editor_world->get_edit_context().read_folders_from_json(embedded_source.value<nlohmann::json>("folders", nlohmann::json::array()));
 		}
 		catch (const nlohmann::json::exception& error)
 		{

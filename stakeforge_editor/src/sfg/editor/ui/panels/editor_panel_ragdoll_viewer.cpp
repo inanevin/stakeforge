@@ -340,11 +340,10 @@ namespace sfg
 		init_config.physics.ragdoll_pose_budget_bytes = 128 * 1024;
 
 		editor_world_controller_t& controller = editor_world_controller_t::get();
-		_world								  = controller.create_world(init_config, editor_world_edit_type_e::view_with_debug, on_world_tick, this);
+		_world								  = controller.create_world(init_config, editor_world_camera_type_e::orbit, editor_world_edit_type_e::view_with_debug, on_world_tick, this);
 		editor_world_t& editor_world		  = *controller.get_editor_world(_world);
 		world_t&		world				  = editor_world.get_world();
 
-		editor_world.install_camera(editor_world_camera_type_e::orbit);
 		editor_world.get_input_controller().set_pointer_drag_callbacks({
 			.begin	   = on_preview_drag_begin,
 			.update	   = on_preview_drag_update,

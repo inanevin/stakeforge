@@ -135,7 +135,7 @@ namespace sfg
 		};
 	}
 
-	void editor_world_t::init(const editor_world_init_config_t& init_config, editor_world_handle_t handle, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
+	void editor_world_t::init(const editor_world_init_config_t& init_config, editor_world_handle_t handle, editor_world_camera_type_e camera_type, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
 	{
 		SFG_ASSERT(init_config.world.render_resolution == init_config.render_context.size);
 
@@ -154,7 +154,7 @@ namespace sfg
 		_last_render_pick_request_id = 0;
 		_next_pick_request_id		 = 0;
 		_view_rotation				 = quat_t::identity;
-		_camera_type				 = editor_world_camera_type_e::fly;
+		_camera_type				 = camera_type;
 
 		for (u32 i = 0; i < BACK_BUFFER_COUNT; ++i)
 			_object_id_readback_valid[i] = false;
@@ -170,10 +170,27 @@ namespace sfg
 			snapshot.selected_entities.reserve(init_config.selected_entity_initial_capacity);
 			snapshot.icons.reserve(16);
 		}
+
+		switch (camera_type)
+		{
+		case editor_world_camera_type_e::orbit:
+			_camera = new editor_world_camera_orbit_t();
+			break;
+		case editor_world_camera_type_e::fly:
+			_camera = new editor_world_camera_fly_t();
+			break;
+		default:
+			SFG_ASSERT(false);
+			break;
+		}
+
+		recreate_camera_entity();
 	}
 
 	void editor_world_t::uninit()
 	{
+		SFG_ASSERT(_camera != nullptr);
+
 		_input_controller.uninit();
 
 		SFG_ASSERT(!_world.is_playing());
@@ -182,7 +199,11 @@ namespace sfg
 		_entity_gizmo.uninit();
 		_gizmo_callbacks = {};
 		_custom_gizmo	 = false;
-		uninstall_camera();
+
+		_camera->uninit(_world);
+		delete _camera;
+		_camera = nullptr;
+		_edit_context.set_editor_camera_entity(NULL_ENTITY_ID);
 
 		for (editor_world_snapshot_data_t& snapshot : _snapshot_slots)
 			snapshot = {};
@@ -225,65 +246,37 @@ namespace sfg
 			_object_id_readback_valid[i] = false;
 	}
 
-	void editor_world_t::install_camera(editor_world_camera_type_e type)
-	{
-		uninstall_camera();
-
-		_camera_type = type;
-
-		switch (type)
-		{
-		case editor_world_camera_type_e::orbit:
-			_camera = new editor_world_camera_orbit_t();
-			break;
-		case editor_world_camera_type_e::fly:
-		default:
-			_camera = new editor_world_camera_fly_t();
-			break;
-		}
-
-		recreate_camera_entity();
-	}
-
-	void editor_world_t::uninstall_camera()
-	{
-		if (_camera == nullptr)
-			return;
-
-		cancel_gizmo_action();
-
-		_camera->uninit(_world);
-		delete _camera;
-		_camera					= nullptr;
-		_editor_control_enabled = false;
-		_edit_context.set_editor_camera_entity(NULL_ENTITY_ID);
-	}
-
 	void editor_world_t::recreate_camera_entity()
 	{
 		SFG_ASSERT(_camera != nullptr);
 
 		_camera->init(_world);
 		_edit_context.set_editor_camera_entity(_camera->get_entity());
-		_editor_control_enabled = true;
+		update_camera_control();
 	}
 
-	void editor_world_t::set_editor_control_enabled(bool enabled)
+	void editor_world_t::update_camera_control()
 	{
 		SFG_ASSERT(_camera != nullptr);
 
-		reset_input();
 		_camera->pass_input(_world, {.reset = true});
 
 		ecs_component_table_t& disabled = _world.get_component_table<component_disabled_t>();
 		const entity_id_t	   camera	= _camera->get_entity();
 
-		if (enabled)
+		if (is_editor_control_enabled())
 			disabled.remove(camera);
 		else
 			disabled.add_or_get_as<component_disabled_t>(camera);
+	}
 
-		_editor_control_enabled = enabled;
+	bool editor_world_t::is_editor_control_enabled() const
+	{
+		SFG_ASSERT(_camera != nullptr);
+
+		const editor_play_session_t& session = editor_world_controller_t::get().get_play_session();
+
+		return session.get_world() != _edit_context.get_world() || session.get_state() != editor_play_state_e::playing_game_controlled;
 	}
 
 	void editor_world_t::serialize_camera(nlohmann::json& out_json) const
@@ -300,7 +293,7 @@ namespace sfg
 
 	void editor_world_t::pass_camera_input(const editor_world_camera_input_t& input)
 	{
-		if (_editor_control_enabled)
+		if (is_editor_control_enabled())
 			_camera->pass_input(_world, input);
 	}
 
@@ -311,7 +304,7 @@ namespace sfg
 
 	void editor_world_t::tick_camera(f32 dt_seconds)
 	{
-		if (_editor_control_enabled)
+		if (is_editor_control_enabled())
 			_camera->tick(_world, dt_seconds);
 	}
 
@@ -329,7 +322,7 @@ namespace sfg
 
 	void editor_world_t::fit_camera_to_bounds(const aabb_t& bounds)
 	{
-		if (_editor_control_enabled)
+		if (is_editor_control_enabled())
 			_camera->fit_to_bounds(_world, bounds);
 	}
 
