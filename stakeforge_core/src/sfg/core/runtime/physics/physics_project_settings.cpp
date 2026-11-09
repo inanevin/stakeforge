@@ -156,9 +156,9 @@ namespace sfg
 		}
 	}
 
-	physics_runtime_config_t physics_project_settings_t::make_runtime_config(u32 physics_rate, u32 max_sub_steps) const
+	world_physics_config_t physics_project_settings_t::make_runtime_config(u32 physics_rate, u32 max_sub_steps) const
 	{
-		physics_runtime_config_t config;
+		world_physics_config_t config;
 		config.active_collision_layers = 0;
 		for (u32 i = 0; i < PHYSICS_COLLISION_LAYER_MAX; ++i)
 			config.collision_masks[i] = 0;

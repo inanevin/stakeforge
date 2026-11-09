@@ -66,22 +66,25 @@ namespace sfg
 		SFG_ASSERT(!_initialized);
 
 		const project_settings_t& project_settings = engine_runtime_t::get().get_project_settings();
-		physics_runtime_config_t  physics_config   = project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps);
+		world_physics_config_t	  physics_config   = project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps);
 
 		physics_config.physics_enabled = true;
 
-		const world_init_config_t				 world_config{.render_resolution = render_resolution};
-		const world_particle_simulation_config_t particle_simulation_config = {};
-		const world_debug_draw_config_t			 debug_draw_config{
-			.line_vertex_max_count	   = GAME_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-			.line_index_max_count	   = GAME_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-			.triangle_vertex_max_count = GAME_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-			.triangle_index_max_count  = GAME_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-			.text_command_max_count	   = GAME_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
-			.text_budget_bytes		   = GAME_WORLD_DEBUG_TEXT_BUDGET_BYTES,
-			.text_vertex_max_count	   = GAME_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-			.text_index_max_count	   = GAME_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-			.texture_max_count		   = GAME_WORLD_DEBUG_TEXTURE_MAX_COUNT,
+		const world_init_config_t world_config{
+			.physics = physics_config,
+			.debug_draw =
+				{
+					.line_vertex_max_count	   = GAME_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
+					.line_index_max_count	   = GAME_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
+					.triangle_vertex_max_count = GAME_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
+					.triangle_index_max_count  = GAME_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
+					.text_command_max_count	   = GAME_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
+					.text_budget_bytes		   = GAME_WORLD_DEBUG_TEXT_BUDGET_BYTES,
+					.text_vertex_max_count	   = GAME_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
+					.text_index_max_count	   = GAME_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
+					.texture_max_count		   = GAME_WORLD_DEBUG_TEXTURE_MAX_COUNT,
+				},
+			.render_resolution = render_resolution,
 		};
 
 		const world_render_context_config_t render_context_config{
@@ -95,8 +98,8 @@ namespace sfg
 			.shadow_view_max	  = ENGINE_SHADOW_VIEW_MAX,
 		};
 
-		_main_world.init(world_config, debug_draw_config, physics_config, particle_simulation_config);
-		_render_context.init(render_context_config, debug_draw_config);
+		_main_world.init(world_config);
+		_render_context.init(render_context_config, world_config.debug_draw);
 		_package_meta = &package_meta;
 
 		for (u32 slot_index = 0; slot_index < GAME_WORLD_SNAPSHOT_SLOT_COUNT; ++slot_index)

@@ -328,21 +328,24 @@ namespace sfg
 	}
 	void editor_panel_ragdoll_viewer_t::create_preview_world()
 	{
-		editor_world_init_config_t init_config		  = editor_world_init_config_t::make_preview(editor_surface_controller_t::get().get_main_surface().swapchain_size);
-		init_config.physics.physics_enabled			  = true;
-		init_config.physics.max_bodies				  = 128;
-		init_config.physics.body_reserve			  = 128;
-		init_config.physics.max_body_pairs			  = 1024;
-		init_config.physics.max_contact_constraints	  = 1024;
-		init_config.physics.character_reserve		  = 0;
-		init_config.physics.contact_event_reserve	  = 256;
-		init_config.physics.temp_allocator_bytes	  = 2 * 1024 * 1024;
-		init_config.physics.ragdoll_pose_budget_bytes = 128 * 1024;
+		editor_world_init_config_t init_config = editor_world_init_config_t::make_preview(editor_surface_controller_t::get().get_main_surface().swapchain_size);
+
+		init_config.world.physics.physics_enabled			= true;
+		init_config.world.physics.max_bodies				= 128;
+		init_config.world.physics.body_reserve				= 128;
+		init_config.world.physics.max_body_pairs			= 1024;
+		init_config.world.physics.max_contact_constraints	= 1024;
+		init_config.world.physics.character_reserve			= 0;
+		init_config.world.physics.contact_event_reserve		= 256;
+		init_config.world.physics.temp_allocator_bytes		= 2 * 1024 * 1024;
+		init_config.world.physics.ragdoll_pose_budget_bytes = 128 * 1024;
 
 		editor_world_controller_t& controller = editor_world_controller_t::get();
-		_world								  = controller.create_world(init_config, editor_world_camera_type_e::orbit, editor_world_edit_type_e::view_with_debug, on_world_tick, this);
-		editor_world_t& editor_world		  = *controller.get_editor_world(_world);
-		world_t&		world				  = editor_world.get_world();
+
+		_world = controller.create_world(init_config, editor_world_camera_type_e::orbit, editor_world_edit_type_e::view_with_debug, on_world_tick, this);
+
+		editor_world_t& editor_world = *controller.get_editor_world(_world);
+		world_t&		world		 = editor_world.get_world();
 
 		editor_world.get_input_controller().set_pointer_drag_callbacks({
 			.begin	   = on_preview_drag_begin,
@@ -355,7 +358,8 @@ namespace sfg
 
 		const entity_id_t	  floor	   = world.create_entity("ragdoll_collision_floor");
 		component_physical_t& physical = world.get_component_table<component_physical_t>().add_or_get_as<component_physical_t>(floor);
-		physical.half_extent		   = {25.0f, 0.1f, 25.0f};
+
+		physical.half_extent = {25.0f, 0.1f, 25.0f};
 		world.set_entity_pos_local(floor, {0.0f, -0.1f, 0.0f});
 	}
 	void editor_panel_ragdoll_viewer_t::refresh_scene()

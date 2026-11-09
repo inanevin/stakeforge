@@ -32,11 +32,9 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/data/vector.hpp>
 #include <sfg/core/gfx/common/semaphore_data.hpp>
 #include <sfg/core/runtime/render/world_render_context.hpp>
-#include <sfg/core/runtime/physics/physics_config.hpp>
 #include <sfg/core/runtime/render/world_render_snapshot.hpp>
 #include <sfg/core/runtime/world/world.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
-#include <sfg/core/runtime/world/world_particle_simulation_config.hpp>
 
 namespace sfg
 {
@@ -44,17 +42,14 @@ namespace sfg
 
 	struct SFG_EDITOR_API editor_thumbnail_render_service_config_t
 	{
-		physics_runtime_config_t		   physics							 = {};
-		world_render_context_config_t	   render_context					 = {};
-		world_debug_draw_config_t		   debug_draw						 = {};
-		world_particle_simulation_config_t particle_simulation				 = {};
-		world_init_config_t				   world							 = {};
-		vec2u16_t						   render_resolution				 = vec2u16_t(256, 256);
-		u32								   world_pool_initial_capacity		 = 16;
-		u32								   world_pool_max_count				 = 64;
-		u32								   request_initial_capacity			 = 256;
-		u32								   texture_resource_initial_capacity = 32;
-		u8								   pixel_bytes						 = 4;
+		world_render_context_config_t render_context					= {};
+		world_init_config_t			  world								= {};
+		vec2u16_t					  render_resolution					= vec2u16_t(256, 256);
+		u32							  world_pool_initial_capacity		= 16;
+		u32							  world_pool_max_count				= 64;
+		u32							  request_initial_capacity			= 256;
+		u32							  texture_resource_initial_capacity = 32;
+		u8							  pixel_bytes						= 4;
 
 		static editor_thumbnail_render_service_config_t make_default();
 	};

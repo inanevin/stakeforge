@@ -24,12 +24,18 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "core/common/size_definitions.hpp"
 #include "core/math/vec2u16.hpp"
+#include "core/runtime/physics/physics_config.hpp"
+#include "core/runtime/world/world_debug_draw_config.hpp"
+#include "core/runtime/world/world_particle_simulation_config.hpp"
 
 namespace sfg
 {
 	struct world_init_config_t
 	{
-		vec2u16_t render_resolution				= vec2u16_t(512, 512);
-		u32		  animation_processor_page_size = 512 * 1024;
+		world_physics_config_t			   physics						 = {};
+		world_debug_draw_config_t		   debug_draw					 = {};
+		world_particle_simulation_config_t particle_simulation			 = {};
+		vec2u16_t						   render_resolution			 = vec2u16_t(512, 512);
+		u32								   animation_processor_page_size = 512 * 1024;
 	};
 }

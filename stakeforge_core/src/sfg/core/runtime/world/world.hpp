@@ -26,9 +26,6 @@ namespace sfg
 	class mat4x3_t;
 	class istream_t;
 	struct world_init_config_t;
-	struct world_debug_draw_config_t;
-	struct physics_runtime_config_t;
-	struct world_particle_simulation_config_t;
 	struct component_hierarchy_t;
 	struct prefab_internals_t;
 
@@ -63,7 +60,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void  init(const world_init_config_t& config, const world_debug_draw_config_t& debug_draw_config, const physics_runtime_config_t& physics_config, const world_particle_simulation_config_t& particle_simulation_config);
+		void  init(const world_init_config_t& config);
 		void  uninit();
 		void  begin_play();
 		void  end_play();

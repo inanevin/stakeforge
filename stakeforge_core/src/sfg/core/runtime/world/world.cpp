@@ -51,9 +51,10 @@ namespace sfg
 	world_t::world_t()	= default;
 	world_t::~world_t() = default;
 
-	void world_t::init(const world_init_config_t& config, const world_debug_draw_config_t& debug_draw_config, const physics_runtime_config_t& physics_config, const world_particle_simulation_config_t& particle_simulation_config)
+	void world_t::init(const world_init_config_t& config)
 	{
-		_debug_draw.init(debug_draw_config);
+		_debug_draw.init(config.debug_draw);
+
 		_component_tables.reserve(64);
 		_entity_free_list.reserve(1024);
 		_used_resources.reserve(512);
@@ -81,10 +82,10 @@ namespace sfg
 		_animation_processor.init(*this, config.animation_processor_page_size);
 		_audio_controller.init(*this);
 		_canvas_controller.init(*this);
-		_particle_simulation.init(*this, particle_simulation_config);
+		_particle_simulation.init(*this, config.particle_simulation);
 
-		if (physics_config.physics_enabled)
-			_physics_world.init(*this, physics_config);
+		if (config.physics.physics_enabled)
+			_physics_world.init(*this, config.physics);
 	}
 
 	void world_t::uninit()

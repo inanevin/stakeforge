@@ -33,11 +33,9 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/data/atomic.hpp>
 #include <sfg/core/data/vector.hpp>
 #include <sfg/core/math/quat.hpp>
-#include <sfg/core/runtime/physics/physics_config.hpp>
 #include <sfg/core/runtime/render/world_render_context.hpp>
 #include <sfg/core/runtime/world/world.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
-#include <sfg/core/runtime/world/world_particle_simulation_config.hpp>
 #include <sfg/core/runtime/world_renderer/world_renderer.hpp>
 #include <sfg/core/vendor/nhlohmann/json_fwd.hpp>
 
@@ -48,12 +46,8 @@ namespace sfg
 	struct render_view_t;
 	struct SFG_EDITOR_API editor_world_init_config_t
 	{
-		physics_runtime_config_t		   physics							= {};
-		world_render_context_config_t	   render_context					= {};
-		world_debug_draw_config_t		   debug_draw						= {};
-		world_particle_simulation_config_t particle_simulation				= {};
-		world_init_config_t				   world							= {};
-		u32								   selected_entity_initial_capacity = 0;
+		world_render_context_config_t render_context = {};
+		world_init_config_t			  world			 = {};
 
 		static editor_world_init_config_t make_main(vec2u16_t render_resolution);
 		static editor_world_init_config_t make_preview(vec2u16_t render_resolution);

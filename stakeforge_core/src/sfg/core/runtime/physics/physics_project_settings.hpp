@@ -49,8 +49,8 @@ namespace sfg
 		u64											   next_collision_layer_identifier			  = 2;
 		bool										   kinematic_sensors_collide_with_non_dynamic = false;
 
-		void					 normalize(const physics_project_settings_t* previous = nullptr);
-		physics_runtime_config_t make_runtime_config(u32 physics_rate, u32 max_sub_steps) const;
+		void				   normalize(const physics_project_settings_t* previous = nullptr);
+		world_physics_config_t make_runtime_config(u32 physics_rate, u32 max_sub_steps) const;
 
 		bool operator==(const physics_project_settings_t&) const = default;
 	};

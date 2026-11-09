@@ -100,7 +100,7 @@ namespace sfg
 
 		struct physics_layer_pair_filter_t final : JPH::ObjectLayerPairFilter
 		{
-			const physics_runtime_config_t* config = nullptr;
+			const world_physics_config_t* config = nullptr;
 
 			bool ShouldCollide(JPH::ObjectLayer layer_a, JPH::ObjectLayer layer_b) const override
 			{
@@ -257,7 +257,7 @@ namespace sfg
 		world_t*										 _world			 = nullptr;
 		JPH::PhysicsSystem*								 _system		 = nullptr;
 		JPH::TempAllocatorImpl*							 _temp_allocator = nullptr;
-		physics_runtime_config_t						 _config		 = {};
+		world_physics_config_t							 _config		 = {};
 		physics_broad_phase_interface_t					 _broad_phase_interface;
 		physics_object_broad_phase_filter_t				 _object_broad_phase_filter;
 		physics_layer_pair_filter_t						 _layer_pair_filter;
@@ -278,7 +278,7 @@ namespace sfg
 		{
 		}
 
-		void init(world_t& world, const physics_runtime_config_t& config)
+		void init(world_t& world, const world_physics_config_t& config)
 		{
 			_world					  = &world;
 			_config					  = config;
@@ -1736,7 +1736,7 @@ namespace sfg
 	physics_world_t::physics_world_t()	= default;
 	physics_world_t::~physics_world_t() = default;
 
-	void physics_world_t::init(world_t& world, const physics_runtime_config_t& config)
+	void physics_world_t::init(world_t& world, const world_physics_config_t& config)
 	{
 		SFG_ASSERT(_impl == nullptr);
 

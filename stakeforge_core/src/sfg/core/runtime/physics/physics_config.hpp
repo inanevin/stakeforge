@@ -27,9 +27,9 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	struct physics_runtime_config_t
+	struct world_physics_config_t
 	{
-		physics_runtime_config_t()
+		world_physics_config_t()
 		{
 			for (u32 i = 0; i < PHYSICS_COLLISION_LAYER_MAX; ++i)
 				collision_masks[i] = UINT64_MAX;

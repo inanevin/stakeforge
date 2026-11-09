@@ -67,13 +67,19 @@ namespace sfg
 					.enable_ssao  = 0,
 					.enable_bloom = 1,
 				},
-			.debug_draw =
+			.world =
 				{
-					.triangle_vertex_max_count = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_VERTEX_MAX,
-					.triangle_index_max_count  = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_INDEX_MAX,
+					.debug_draw =
+						{
+							.triangle_vertex_max_count = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_VERTEX_MAX,
+							.triangle_index_max_count  = editor_thumbnail_render_util_t::DEBUG_TRIANGLE_INDEX_MAX,
+						},
+					.particle_simulation =
+						{
+							.page_size = 4 * 1024,
+						},
+					.render_resolution = vec2u16_t(256, 256),
 				},
-			.particle_simulation			   = {.page_size = 4 * 1024},
-			.world							   = {.render_resolution = vec2u16_t(256, 256)},
 			.render_resolution				   = vec2u16_t(256, 256),
 			.world_pool_initial_capacity	   = 16,
 			.world_pool_max_count			   = 64,
@@ -154,7 +160,7 @@ namespace sfg
 		_readback_pixels.reserve(readback_desc.size);
 		backend.map_resource(_thumbnail_readback, _mapped_readback);
 
-		_render_context.init(config.render_context, config.debug_draw);
+		_render_context.init(config.render_context, config.world.debug_draw);
 
 		const shader_internals_t* shader = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/thumbnail_capture_copy.hlsl"_hs);
 
@@ -335,7 +341,8 @@ namespace sfg
 
 		thumbnail_world.world->unload_all_used_resources();
 		thumbnail_world.world->uninit();
-		thumbnail_world.world->init(_config.world, _config.debug_draw, _config.physics, _config.particle_simulation);
+		thumbnail_world.world->init(_config.world);
+
 		thumbnail_world.texture_resources.resize(0);
 		thumbnail_world.collision_mesh		  = NULL_RESOURCE_HANDLE;
 		thumbnail_world.collision_mesh_center = vec3f_t::zero;
@@ -358,7 +365,7 @@ namespace sfg
 			editor_thumbnail_world_t& thumbnail_world = _worlds[world_index];
 
 			thumbnail_world.world = new world_t();
-			thumbnail_world.world->init(_config.world, _config.debug_draw, _config.physics, _config.particle_simulation);
+			thumbnail_world.world->init(_config.world);
 			thumbnail_world.texture_resources.reserve(_config.texture_resource_initial_capacity);
 			_available_worlds.push_back(world_index);
 		}
