@@ -41,6 +41,7 @@ namespace sfg::ui
 {
 	class input_router_t;
 	enum class mouse_button_e : u8;
+	class ui_context;
 }
 
 namespace sfg
@@ -49,13 +50,31 @@ namespace sfg
 	class editor_icon_button_t;
 	class editor_popup_color_wheel_t;
 	class world_t;
-	enum class editor_primitive_type_e : u8;
-	namespace ui
-	{
-		class ui_context;
-	}
+	class ecs_component_table_t;
 	struct editor_command_listener_tag_t;
 	struct editor_command_t;
+	enum class editor_primitive_type_e : u8;
+
+	enum class editor_outliner_item_type_e : u8
+	{
+		entity,
+		folder,
+	};
+
+	struct editor_outliner_item_t
+	{
+		const char*					 name				  = nullptr;
+		const char*					 type_icon			  = nullptr;
+		entity_id_t					 entity				  = NULL_ENTITY_ID;
+		entity_guid_t				 entity_guid		  = NULL_ENTITY_GUID;
+		editor_world_folder_handle_t folder_handle		  = {};
+		color_t						 color				  = {};
+		u16							 depth				  = 0;
+		editor_outliner_item_type_e	 type				  = editor_outliner_item_type_e::entity;
+		bool						 has_children		  = false;
+		bool						 disabled			  = false;
+		bool						 has_prefab_reference = false;
+	};
 
 	struct editor_outliner_row_t
 	{
@@ -108,7 +127,17 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void				   collect_entities();
+		struct outliner_component_tables_t
+		{
+			const ecs_component_table_t* hierarchy = nullptr;
+			const ecs_component_table_t* name	   = nullptr;
+			const ecs_component_table_t* disabled  = nullptr;
+			const ecs_component_table_t* prefab	   = nullptr;
+		};
+
+		void				   collect_entities(const world_t& world, const editor_world_edit_context_t& context);
+		void				   append_folder_items(const world_t& world, const editor_world_edit_context_t& context, const outliner_component_tables_t& tables, editor_world_folder_handle_t handle, u16 depth);
+		void				   append_entity_items(const world_t& world, const editor_world_edit_context_t& context, const outliner_component_tables_t& tables, entity_id_t id, u16 depth);
 		editor_outliner_row_t& get_or_create_outliner_row(size_t index);
 		void				   update_outliner_row(editor_outliner_row_t& row, const editor_outliner_item_t& item, bool is_folded);
 		void				   update_outliner_row_background(const editor_outliner_row_t& row);
@@ -187,6 +216,7 @@ namespace sfg
 		editor_scrollbar_t								  _scrollbar				  = {};
 		string_t										  _search_str				  = {};
 		string_t										  _search_str_lower			  = {};
+		vector_t<editor_outliner_item_t>				  _outliner_items			  = {};
 		vector_t<editor_outliner_row_t>					  _outliner_rows			  = {};
 		pool_handle_t<u32, editor_command_listener_tag_t> _command_listener			  = {};
 		editor_selection_listener_handle_t				  _selection_listener		  = {};

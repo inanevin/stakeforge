@@ -23,7 +23,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/assets/editor_asset_io.hpp"
 #include "editor/assets/editor_asset_util.hpp"
 #include "editor/assets/editor_ragdoll_util.hpp"
-#include "editor/assets/editor_asset_io.hpp"
 #include "editor/assets/editor_asset_writer.hpp"
 #include "editor/assets/editor_asset_cooker.hpp"
 #include "editor/assets/editor_asset_manager.hpp"

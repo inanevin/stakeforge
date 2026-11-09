@@ -20,16 +20,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 */
 #include "editor/world/editor_world_edit_context.hpp"
-#include "editor/editor_command_system.hpp"
 #include "editor/editor_project.hpp"
-#include "editor/editor_world_controller.hpp"
-#include "editor/ui/widgets/editor_widgets_icons.hpp"
-#include <sfg/core/io/assert.hpp>
-#include <sfg/core/memory/memory.hpp>
-#include <sfg/core/runtime/world/ecs.hpp>
-#include <sfg/core/runtime/world/engine_components.hpp>
-#include <sfg/core/runtime/world/world.hpp>
-#include <sfg/core/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
@@ -42,7 +33,6 @@ namespace sfg
 		_folders.init(EDITOR_WORLD_EDIT_CONTEXT_MAX_FOLDERS);
 		_selection_listeners.init(EDITOR_WORLD_EDIT_CONTEXT_MAX_SELECTION_LISTENERS);
 		_entity_metadata.reserve(EDITOR_WORLD_EDIT_CONTEXT_INITIAL_ENTITY_CAPACITY);
-		_outliner_items.reserve(EDITOR_WORLD_EDIT_CONTEXT_INITIAL_ENTITY_CAPACITY);
 		_selected_entities.reserve(EDITOR_WORLD_EDIT_CONTEXT_INITIAL_ENTITY_CAPACITY);
 
 		_selection_generation = 0;
@@ -52,7 +42,6 @@ namespace sfg
 
 	void editor_world_edit_context_t::uninit()
 	{
-		_outliner_items.clear();
 		_entity_metadata.clear();
 		_selected_entities.clear();
 		_selection_listeners.uninit();
@@ -83,19 +72,65 @@ namespace sfg
 			return;
 
 		_world = world;
+
 		clear();
 	}
 
 	void editor_world_edit_context_t::clear()
 	{
-		_outliner_items.resize(0);
 		_entity_metadata.resize(0);
 		_folders.reset();
 		_selected_entities.resize(0);
+
 		_entity_anchor = NULL_ENTITY_ID;
 		_next_guid	   = 1;
 		++_selection_generation;
+
 		notify_selection_listeners();
+	}
+
+	void editor_world_edit_context_t::set_entity_folded(entity_guid_t guid, bool folded)
+	{
+		get_or_create_entity_metadata(guid).folded = folded;
+	}
+
+	bool editor_world_edit_context_t::is_entity_expanded(entity_guid_t guid) const
+	{
+		const editor_world_entity_metadata_t* meta = find_entity_metadata(guid);
+
+		return meta != nullptr && !meta->folded;
+	}
+
+	editor_world_entity_metadata_t& editor_world_edit_context_t::get_or_create_entity_metadata(entity_guid_t guid)
+	{
+		if (editor_world_entity_metadata_t* meta = find_entity_metadata(guid))
+			return *meta;
+
+		_entity_metadata.push_back({.guid = guid});
+
+		return _entity_metadata.back();
+	}
+
+	editor_world_entity_metadata_t* editor_world_edit_context_t::find_entity_metadata(entity_guid_t guid)
+	{
+		for (editor_world_entity_metadata_t& meta : _entity_metadata)
+		{
+			if (meta.guid == guid)
+				return &meta;
+		}
+
+		return nullptr;
+	}
+
+	const editor_world_entity_metadata_t* editor_world_edit_context_t::find_entity_metadata(entity_guid_t guid) const
+	{
+		for (const editor_world_entity_metadata_t& meta : _entity_metadata)
+		{
+			if (meta.guid == guid)
+				return &meta;
+		}
+
+		return nullptr;
 	}
 
 }

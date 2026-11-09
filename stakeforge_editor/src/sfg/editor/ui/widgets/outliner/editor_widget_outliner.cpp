@@ -114,8 +114,10 @@ namespace sfg
 
 		ui.set_pre_layout_tick(_entity_list_area, on_entity_tree_tick, this);
 
+		_outliner_items.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_outliner_rows.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 		_payload_entities.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
+
 		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
 		editor_payload_controller_t::get().register_listener(on_payload_drop, nullptr, nullptr, this);
 	}
@@ -143,6 +145,7 @@ namespace sfg
 		_ui->deallocate_widget(_entity_top_row);
 		_ui->deallocate_widget(_entity_list_area);
 
+		_outliner_items.resize(0);
 		_outliner_rows.clear();
 		_payload_entities.clear();
 
@@ -174,7 +177,9 @@ namespace sfg
 			_selection_listener = {};
 		}
 
+		_outliner_items.resize(0);
 		_edit_world = world;
+
 		if (!_edit_world.is_null() && _ui != nullptr)
 			_selection_listener = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().add_selection_listener(on_selection_changed, this);
 	}

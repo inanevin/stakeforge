@@ -19,24 +19,15 @@ holders grant the Stakeforge Game Linking Exception, version 1.0,
 in GAME-LINKING-EXCEPTION.md.
 
 */
-#include "editor/world/editor_world_edit_context.hpp"
-#include "editor/editor_command_system.hpp"
-#include "editor/editor_world_controller.hpp"
+#include "editor_widget_outliner.hpp"
 #include "editor/ui/widgets/editor_widgets_icons.hpp"
-#include <sfg/core/io/assert.hpp>
-#include <sfg/core/memory/memory.hpp>
 #include <sfg/core/runtime/world/ecs.hpp>
 #include <sfg/core/runtime/world/engine_components.hpp>
 #include <sfg/core/runtime/world/world.hpp>
-#include <sfg/core/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
-#define EDITOR_WORLD_EDIT_CONTEXT_INITIAL_ENTITY_CAPACITY 64
-#define EDITOR_WORLD_EDIT_CONTEXT_MAX_FOLDERS			  1024
-#define EDITOR_WORLD_EDIT_CONTEXT_MAX_SELECTION_LISTENERS 64
-
-	void editor_world_edit_context_t::collect_outliner_items(const world_t& world)
+	void editor_widget_outliner_t::collect_entities(const world_t& world, const editor_world_edit_context_t& context)
 	{
 		_outliner_items.resize(0);
 
@@ -53,12 +44,14 @@ namespace sfg
 			.prefab	   = prefab_table,
 		};
 
-		for (auto it = _folders.begin_handle(); it != _folders.end_handle(); ++it)
+		const auto& folders = context.get_folders();
+
+		for (auto it = folders.begin_handle(); it != folders.end_handle(); ++it)
 		{
 			const editor_world_folder_handle_t handle = *it;
 
-			if (_folders.get(handle).parent_handle.is_null())
-				append_folder_items(world, tables, handle, 0);
+			if (folders.get(handle).parent_handle.is_null())
+				append_folder_items(world, context, tables, handle, 0);
 		}
 
 		const ecs_component_table_ref_t table_refs[] = {
@@ -74,80 +67,46 @@ namespace sfg
 			if (hierarchy.parent != NULL_ENTITY_ID)
 				continue;
 
-			if (is_entity_assigned(world.get_entity_guid(row.id)))
+			const editor_world_folder_handle_t folder = context.get_entity_folder(world.get_entity_guid(row.id));
+
+			if (!folder.is_null() && folders.is_valid(folder))
 				continue;
 
-			append_entity_items(world, tables, row.id, 0);
+			append_entity_items(world, context, tables, row.id, 0);
 		}
 	}
 
-	void editor_world_edit_context_t::set_entity_folded(entity_guid_t guid, bool folded)
+	void editor_widget_outliner_t::append_folder_items(const world_t& world, const editor_world_edit_context_t& context, const outliner_component_tables_t& tables, editor_world_folder_handle_t handle, u16 depth)
 	{
-		get_or_create_entity_metadata(guid).folded = folded;
-	}
-
-	bool editor_world_edit_context_t::is_entity_expanded(entity_guid_t guid) const
-	{
-		const editor_world_entity_metadata_t* meta = find_entity_metadata(guid);
-		return meta != nullptr && !meta->folded;
-	}
-
-	editor_world_entity_metadata_t& editor_world_edit_context_t::get_or_create_entity_metadata(entity_guid_t guid)
-	{
-		if (editor_world_entity_metadata_t* meta = find_entity_metadata(guid))
-			return *meta;
-
-		_entity_metadata.push_back({.guid = guid});
-		return _entity_metadata.back();
-	}
-
-	editor_world_entity_metadata_t* editor_world_edit_context_t::find_entity_metadata(entity_guid_t guid)
-	{
-		for (editor_world_entity_metadata_t& meta : _entity_metadata)
-		{
-			if (meta.guid == guid)
-				return &meta;
-		}
-		return nullptr;
-	}
-
-	const editor_world_entity_metadata_t* editor_world_edit_context_t::find_entity_metadata(entity_guid_t guid) const
-	{
-		for (const editor_world_entity_metadata_t& meta : _entity_metadata)
-		{
-			if (meta.guid == guid)
-				return &meta;
-		}
-		return nullptr;
-	}
-
-	void editor_world_edit_context_t::append_folder_items(const world_t& world, const outliner_component_tables_t& tables, editor_world_folder_handle_t handle, u16 depth)
-	{
-		const editor_world_folder_t& folder		  = _folders.get(handle);
+		const auto&					 folders	  = context.get_folders();
+		const editor_world_folder_t& folder		  = folders.get(handle);
 		bool						 has_children = !folder.entity_guids.empty();
-		for (auto it = _folders.begin_handle(); !has_children && it != _folders.end_handle(); ++it)
-			has_children = _folders.get(*it).parent_handle == handle;
+
+		for (auto it = folders.begin_handle(); !has_children && it != folders.end_handle(); ++it)
+			has_children = folders.get(*it).parent_handle == handle;
 
 		_outliner_items.push_back({.name = folder.name, .type_icon = ICON_FOLDER, .folder_handle = handle, .color = folder.color, .depth = depth, .type = editor_outliner_item_type_e::folder, .has_children = has_children});
 
-		for (auto it = _folders.begin_handle(); it != _folders.end_handle(); ++it)
+		for (auto it = folders.begin_handle(); it != folders.end_handle(); ++it)
 		{
 			const editor_world_folder_handle_t child_handle = *it;
-			if (_folders.get(child_handle).parent_handle == handle)
-				append_folder_items(world, tables, child_handle, static_cast<u16>(depth + 1));
+
+			if (folders.get(child_handle).parent_handle == handle)
+				append_folder_items(world, context, tables, child_handle, static_cast<u16>(depth + 1));
 		}
 
 		for (entity_guid_t guid : folder.entity_guids)
 		{
 			const entity_id_t entity = world.find_by_guid(guid);
+
 			if (entity != NULL_ENTITY_ID && world.is_alive(entity))
-				append_entity_items(world, tables, entity, static_cast<u16>(depth + 1));
+				append_entity_items(world, context, tables, entity, static_cast<u16>(depth + 1));
 		}
 	}
 
-	void editor_world_edit_context_t::append_entity_items(const world_t& world, const outliner_component_tables_t& tables, entity_id_t id, u16 depth)
+	void editor_widget_outliner_t::append_entity_items(const world_t& world, const editor_world_edit_context_t& context, const outliner_component_tables_t& tables, entity_id_t id, u16 depth)
 	{
-		if (id == _editor_camera_entity)
+		if (id == context.get_editor_camera_entity())
 			return;
 
 		const component_hierarchy_t& hierarchy		  = tables.hierarchy->get_as_const<component_hierarchy_t>(id);
@@ -159,12 +118,10 @@ namespace sfg
 		_outliner_items.push_back({
 			.name				  = name.text,
 			.entity				  = id,
-			.parent_entity		  = hierarchy.parent,
 			.entity_guid		  = guid,
 			.depth				  = depth,
 			.type				  = editor_outliner_item_type_e::entity,
 			.has_children		  = hierarchy.first_child != NULL_ENTITY_ID,
-			.selected			  = is_entity_selected(id),
 			.disabled			  = disabled,
 			.has_prefab_reference = prefab_reference,
 		});
@@ -177,20 +134,10 @@ namespace sfg
 		while (child != NULL_ENTITY_ID)
 		{
 			const component_hierarchy_t& child_hierarchy = tables.hierarchy->get_as_const<component_hierarchy_t>(child);
-			append_entity_items(world, tables, child, static_cast<u16>(depth + 1));
+
+			append_entity_items(world, context, tables, child, static_cast<u16>(depth + 1));
 			child = child_hierarchy.next_sibling;
 		}
-	}
-
-	bool editor_world_edit_context_t::is_entity_assigned(entity_guid_t guid) const
-	{
-		const editor_world_entity_metadata_t* meta = find_entity_metadata(guid);
-		return meta != nullptr && !meta->folder_handle.is_null() && _folders.is_valid(meta->folder_handle);
-	}
-
-	bool editor_world_edit_context_t::is_entity_selected(entity_id_t entity) const
-	{
-		return std::find(_selected_entities.begin(), _selected_entities.end(), entity) != _selected_entities.end();
 	}
 
 }

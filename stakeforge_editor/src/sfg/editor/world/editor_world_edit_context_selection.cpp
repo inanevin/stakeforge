@@ -23,7 +23,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/editor_command_system.hpp"
 #include "editor/editor_world_controller.hpp"
 #include "editor/world/editor_world.hpp"
-#include "editor/ui/widgets/editor_widgets_icons.hpp"
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/memory/memory.hpp>
 #include <sfg/core/runtime/world/ecs.hpp>

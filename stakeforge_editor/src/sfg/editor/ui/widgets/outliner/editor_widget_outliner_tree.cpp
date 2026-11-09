@@ -32,6 +32,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/editor_world_controller.hpp"
 #include "editor/world/editor_world.hpp"
 
+#include <sfg/core/data/frame_string.hpp>
 #include <sfg/core/data/string_util.hpp>
 #include <sfg/core/runtime/ui/ui_context.hpp>
 
@@ -45,6 +46,7 @@ namespace sfg
 
 		if (_edit_world.is_null())
 		{
+			_outliner_items.resize(0);
 			_visibility_generation = 0;
 
 			for (editor_outliner_row_t& row : rows)
@@ -58,33 +60,33 @@ namespace sfg
 		_entity_generation	   = editor_command_system_t::get().get_entity_generation();
 		_visibility_generation = editor_world->get_input_controller().get_visibility_generation();
 
-		collect_entities();
+		collect_entities(editor_world->get_world(), editor_world->get_edit_context());
 		prune_entity_selection();
 
 		const bool search_active = !_search_str_lower.empty();
 		u16		   hidden_depth	 = UINT16_MAX;
 
-		editor_world_edit_context_t&		 metadata			   = editor_world->get_edit_context();
-		const span_t<editor_outliner_item_t> items				   = metadata.get_outliner_items();
-		frame_vector_t<u8>					 search_visible		   = {};
-		frame_vector_t<size_t>				 search_ancestor_stack = {};
+		editor_world_edit_context_t&			metadata			  = editor_world->get_edit_context();
+		const vector_t<editor_outliner_item_t>& items				  = _outliner_items;
+		frame_vector_t<u8>						search_visible		  = {};
+		frame_vector_t<size_t>					search_ancestor_stack = {};
 
 		if (search_active)
 		{
-			search_visible.reserve(items.size);
+			search_visible.reserve(items.size());
 			search_ancestor_stack.reserve(ENTITIES_INITIAL_ROW_CAPACITY);
 
-			for (size_t i = 0; i < items.size; ++i)
+			for (size_t i = 0; i < items.size(); ++i)
 				search_visible.push_back(0);
 
-			for (size_t i = 0; i < items.size; ++i)
+			for (size_t i = 0; i < items.size(); ++i)
 			{
-				const editor_outliner_item_t& item = items.data[i];
+				const editor_outliner_item_t& item = items[i];
 
 				while (search_ancestor_stack.size() > item.depth)
 					search_ancestor_stack.pop_back();
 
-				string_t name_lower = {};
+				frame_string_t<char> name_lower = {};
 
 				name_lower.assign(item.name, std::strlen(item.name));
 				string_util::to_lower(name_lower);
@@ -92,6 +94,7 @@ namespace sfg
 				if (name_lower.find(_search_str_lower.c_str()) != string_t::npos)
 				{
 					search_visible[i] = 1;
+
 					for (size_t ancestor_index : search_ancestor_stack)
 						search_visible[ancestor_index] = 1;
 				}
@@ -100,9 +103,9 @@ namespace sfg
 			}
 		}
 
-		for (size_t i = 0; i < items.size; ++i)
+		for (size_t i = 0; i < items.size(); ++i)
 		{
-			const editor_outliner_item_t& item = items.data[i];
+			const editor_outliner_item_t& item = items[i];
 
 			if (search_active && !search_visible[i])
 				continue;
@@ -111,6 +114,7 @@ namespace sfg
 			{
 				if (item.depth > hidden_depth)
 					continue;
+
 				hidden_depth = UINT16_MAX;
 			}
 
@@ -140,12 +144,10 @@ namespace sfg
 		const char* name  = world.get_entity_name(entity);
 		const char* text  = name != nullptr ? name : "Entity";
 
-		editor_world_edit_context_t&   metadata = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
-		editor_outliner_item_t*		   desc		= nullptr;
-		span_t<editor_outliner_item_t> items	= metadata.get_outliner_items();
-		for (size_t i = 0; i < items.size; ++i)
+		editor_outliner_item_t* desc = nullptr;
+
+		for (editor_outliner_item_t& cached_entity : _outliner_items)
 		{
-			editor_outliner_item_t& cached_entity = items.data[i];
 			if (cached_entity.entity == entity)
 			{
 				cached_entity.name = text;
@@ -158,20 +160,13 @@ namespace sfg
 			return;
 
 		const size_t row_index = find_visible_entity_index(entity);
+
 		if (row_index == SIZE_MAX)
 			return;
 
 		const bool is_folded = desc->has_children && !is_entity_expanded(entity);
+
 		update_outliner_row(_outliner_rows[row_index], *desc, is_folded);
-	}
-
-	void editor_widget_outliner_t::collect_entities()
-	{
-		if (_edit_world.is_null())
-			return;
-
-		const world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
-		editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().collect_outliner_items(world);
 	}
 
 	editor_outliner_row_t& editor_widget_outliner_t::get_or_create_outliner_row(size_t index)

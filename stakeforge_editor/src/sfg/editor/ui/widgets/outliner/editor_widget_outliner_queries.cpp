@@ -105,12 +105,12 @@ namespace sfg
 
 	const editor_outliner_item_t* editor_widget_outliner_t::find_outliner_item(entity_id_t entity) const
 	{
-		const span_t<editor_outliner_item_t> items = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context().get_outliner_items();
-		for (size_t i = 0; i < items.size; ++i)
+		for (const editor_outliner_item_t& item : _outliner_items)
 		{
-			if (items.data[i].type == editor_outliner_item_type_e::entity && items.data[i].entity == entity)
-				return &items.data[i];
+			if (item.type == editor_outliner_item_type_e::entity && item.entity == entity)
+				return &item;
 		}
+
 		return nullptr;
 	}
 

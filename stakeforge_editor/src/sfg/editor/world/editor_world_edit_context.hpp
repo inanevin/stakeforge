@@ -47,12 +47,6 @@ namespace sfg
 	using editor_selection_listener_handle_t = pool_handle_t<u32, editor_selection_listener_tag_t>;
 	using editor_selection_listener_fn		 = void (*)(editor_world_edit_context_t& context, void* user_data);
 
-	enum class editor_outliner_item_type_e : u8
-	{
-		entity,
-		folder,
-	};
-
 	enum class editor_world_view_e : u8
 	{
 		invalid,
@@ -82,23 +76,6 @@ namespace sfg
 		editor_world_folder_handle_t folder_handle = {};
 		entity_guid_t				 guid		   = NULL_ENTITY_GUID;
 		bool						 folded		   = true;
-	};
-
-	struct editor_outliner_item_t
-	{
-		const char*					 name				  = nullptr;
-		const char*					 type_icon			  = nullptr;
-		entity_id_t					 entity				  = NULL_ENTITY_ID;
-		entity_id_t					 parent_entity		  = NULL_ENTITY_ID;
-		entity_guid_t				 entity_guid		  = NULL_ENTITY_GUID;
-		editor_world_folder_handle_t folder_handle		  = {};
-		color_t						 color				  = {};
-		u16							 depth				  = 0;
-		editor_outliner_item_type_e	 type				  = editor_outliner_item_type_e::entity;
-		bool						 has_children		  = false;
-		bool						 selected			  = false;
-		bool						 disabled			  = false;
-		bool						 has_prefab_reference = false;
 	};
 
 	class SFG_EDITOR_API editor_world_edit_context_t final
@@ -140,7 +117,6 @@ namespace sfg
 		// outliner
 		// -----------------------------------------------------------------------------
 
-		void collect_outliner_items(const world_t& world);
 		void set_entity_folded(entity_guid_t guid, bool folded);
 
 		// -----------------------------------------------------------------------------
@@ -290,14 +266,9 @@ namespace sfg
 			return _folders.is_valid(handle);
 		}
 
-		inline span_t<editor_outliner_item_t> get_outliner_items()
+		inline const gen_pool_t<editor_world_folder_t, u32, editor_world_folder_tag_t>& get_folders() const
 		{
-			return {.data = _outliner_items.data(), .size = _outliner_items.size()};
-		}
-
-		inline span_t<const editor_outliner_item_t> get_outliner_items() const
-		{
-			return {.data = _outliner_items.data(), .size = _outliner_items.size()};
+			return _folders;
 		}
 
 		inline span_t<const entity_id_t> get_selected_entities() const
@@ -321,21 +292,9 @@ namespace sfg
 		}
 
 	private:
-		struct outliner_component_tables_t
-		{
-			const ecs_component_table_t* hierarchy = nullptr;
-			const ecs_component_table_t* name	   = nullptr;
-			const ecs_component_table_t* disabled  = nullptr;
-			const ecs_component_table_t* prefab	   = nullptr;
-		};
-
 		editor_world_entity_metadata_t&		  get_or_create_entity_metadata(entity_guid_t guid);
 		editor_world_entity_metadata_t*		  find_entity_metadata(entity_guid_t guid);
 		const editor_world_entity_metadata_t* find_entity_metadata(entity_guid_t guid) const;
-		void								  append_folder_items(const world_t& world, const outliner_component_tables_t& tables, editor_world_folder_handle_t handle, u16 depth);
-		void								  append_entity_items(const world_t& world, const outliner_component_tables_t& tables, entity_id_t id, u16 depth);
-		bool								  is_entity_assigned(entity_guid_t guid) const;
-		bool								  is_entity_selected(entity_id_t entity) const;
 		bool								  is_entity_mutation_allowed(const ecs_component_table_t& prefab_table, entity_id_t entity) const;
 		bool								  is_selected_mutable_root_entity(const world_t& world, const ecs_component_table_t& prefab_table, entity_id_t entity) const;
 		void								  remove_entity_from_folders(entity_guid_t guid);
@@ -345,8 +304,8 @@ namespace sfg
 		gen_pool_t<editor_selection_listener_t, u32, editor_selection_listener_tag_t> _selection_listeners;
 		gen_pool_t<editor_world_folder_t, u32, editor_world_folder_tag_t>			  _folders;
 		vector_t<editor_world_entity_metadata_t>									  _entity_metadata;
-		vector_t<editor_outliner_item_t>											  _outliner_items;
 		vector_t<entity_id_t>														  _selected_entities	  = {};
+		editor_world_view_settings_t												  _world_view_settings	  = {};
 		editor_world_handle_t														  _world				  = {};
 		entity_id_t																	  _entity_anchor		  = NULL_ENTITY_ID;
 		entity_id_t																	  _editor_camera_entity	  = NULL_ENTITY_ID;
@@ -358,7 +317,6 @@ namespace sfg
 		editor_world_view_e															  _world_view			  = editor_world_view_e::lit;
 		bool																		  _grid_enabled			  = false;
 		bool																		  _bounding_boxes_enabled = false;
-		editor_world_view_settings_t												  _world_view_settings	  = {};
 		bool																		  _physics_debug_enabled  = false;
 		editor_world_edit_type_e													  _edit_type			  = editor_world_edit_type_e::full_control;
 	};
