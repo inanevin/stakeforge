@@ -33,14 +33,13 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/math/math.hpp>
 #include <sfg/core/memory/memory.hpp>
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
-#include <sfg/core/runtime/render/render_view.hpp>
+#include <sfg/core/runtime/world_renderer/world_renderer_view.hpp>
 #include <sfg/core/runtime/render/render_globals.hpp>
+#include <sfg/core/runtime/world_renderer/stock_world_renderer.hpp>
 #include <sfg/core/runtime/render/render_resources.hpp>
-#include <sfg/core/runtime/render/world_rendering.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
 #include <sfg/core/runtime/resources/shader.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
-#include <sfg/core/runtime/world/world_snapshot_producer.hpp>
 
 namespace sfg
 {
@@ -160,12 +159,12 @@ namespace sfg
 		_readback_pixels.reserve(readback_desc.size);
 		backend.map_resource(_thumbnail_readback, _mapped_readback);
 
-		_render_context.init(config.render_context, config.world.debug_draw);
+		_world_renderer = new stock_world_renderer_t();
+		_world_renderer->init(config.render_context, config.world.debug_draw);
 
 		const shader_internals_t* shader = resource_manager_t::get().find_internals<shader_internals_t>("shaders/editor/thumbnail_capture_copy.hlsl"_hs);
 
 		_thumbnail_shader = render_resources_t::get().get_shader_hw(shader->psos[0]);
-		_snapshot.reserve();
 		_worlds.reserve(config.world_pool_max_count);
 		_available_worlds.reserve(config.world_pool_max_count);
 		_pending_renders.reserve(config.world_pool_max_count);
@@ -197,7 +196,10 @@ namespace sfg
 		}
 
 		_worlds.resize(0);
-		_render_context.uninit();
+		_world_renderer->uninit();
+		delete _world_renderer;
+		_world_renderer = nullptr;
+
 		backend.destroy_texture(_thumbnail_texture);
 		backend.destroy_resource(_thumbnail_readback);
 		backend.destroy_resource(_global_buffer);
@@ -208,7 +210,6 @@ namespace sfg
 		backend.destroy_semaphore(_semaphore_frame.sem);
 		backend.destroy_semaphore(_semaphore_transfer.sem);
 		backend.destroy_semaphore(_semaphore_readback.sem);
-		_snapshot			= {};
 		_semaphore_frame	= {};
 		_semaphore_transfer = {};
 		_semaphore_readback = {};
@@ -390,8 +391,10 @@ namespace sfg
 		thumbnail_world.world->tick_animation_logic(0.0f);
 		thumbnail_world.world->tick_finalize();
 
-		world_snapshot_producer_t::produce(*thumbnail_world.world, _snapshot, engine_runtime_t::get().get_project_settings(), _render_context);
-		editor_thumbnail_render_util_t::write_collision_mesh_debug_draw(thumbnail_world, _snapshot.debug_draw);
+		editor_thumbnail_render_util_t::write_collision_mesh_debug_draw(thumbnail_world);
+		_world_renderer->produce_snapshot(*thumbnail_world.world, engine_runtime_t::get().get_project_settings());
+		_world_renderer->publish_snapshot();
+		_world_renderer->acquire_snapshot();
 	}
 
 	void editor_thumbnail_render_service_t::render_world()
@@ -421,14 +424,7 @@ namespace sfg
 
 		SFG_MEMCPY(_mapped_global, &global_data, sizeof(global_buffer_data_t));
 
-		world_render_prep_data_t prep_data = {};
-
-		prep_data.reserve();
-
-		render_view_t view = {};
-
-		view.calculate(_snapshot.main_view, _render_context.get_size(), 1.0f);
-		world_rendering_t::render_world(_render_context, _snapshot, view, prep_data, 1.0f, 0, _global_index, render_globals_t::get_global_bind_layout());
+		_world_renderer->render(1.0f, 0, _global_index, render_globals_t::get_global_bind_layout());
 
 		_semaphore_frame.value++;
 		const gfx_handle_t queue_gfx = backend.get_queue_gfx();
@@ -467,7 +463,7 @@ namespace sfg
 		backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = _config.render_resolution.x, .height = _config.render_resolution.y});
 		backend.cmd_bind_layout(cmd, {.layout = render_globals_t::get_global_bind_layout()});
 
-		const gpu_index_t source_texture = _render_context.get_world_texture_index(0);
+		const gpu_index_t source_texture = _world_renderer->get_world_texture_final(0);
 
 		backend.cmd_bind_constants(cmd, {.data = &source_texture, .offset = constant_rp0, .count = 1, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = _thumbnail_shader});

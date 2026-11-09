@@ -34,7 +34,6 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	struct aabb_t;
-	struct world_debug_draw_snapshot_t;
 
 	struct editor_thumbnail_world_t
 	{
@@ -61,7 +60,7 @@ namespace sfg
 
 		static void setup_world_for_asset(editor_thumbnail_world_t& thumbnail_world, editor_asset_type_e asset_type, resource_handle_t asset_guid);
 		static void collect_texture_resources(editor_thumbnail_world_t& thumbnail_world);
-		static void write_collision_mesh_debug_draw(const editor_thumbnail_world_t& thumbnail_world, world_debug_draw_snapshot_t& debug_draw);
+		static void write_collision_mesh_debug_draw(const editor_thumbnail_world_t& thumbnail_world);
 		static bool is_ready_to_render(const editor_thumbnail_world_t& thumbnail_world);
 
 	private:

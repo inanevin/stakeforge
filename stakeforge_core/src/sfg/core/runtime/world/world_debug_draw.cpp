@@ -36,8 +36,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/resources/font.hpp"
 #include "core/runtime/resources/resource_manager.hpp"
 #include "core/runtime/resources/texture.hpp"
-#include "core/runtime/render/world_debug_draw_snapshot.hpp"
-#include "core/runtime/render/world_draw.hpp"
+#include "core/runtime/world_renderer/stock_world_renderer_debug_draw_snapshot.hpp"
+#include "core/runtime/world_renderer/stock_world_renderer_draw.hpp"
 #include "core/runtime/ui/vg/vg_canvas.hpp"
 
 namespace sfg
@@ -772,7 +772,7 @@ namespace sfg
 		}
 	}
 
-	void world_debug_draw_t::write_snapshot(world_debug_draw_snapshot_t& snapshot)
+	void world_debug_draw_t::write_snapshot(stock_world_renderer_debug_draw_snapshot_t& snapshot)
 	{
 		snapshot.line_vertices.resize(_vertices.size());
 
@@ -813,9 +813,9 @@ namespace sfg
 			const texture_internals_t* internals = resource_manager.find_internals<texture_internals_t>(command.texture);
 			SFG_ASSERT(internals != nullptr && !internals->texture.is_null());
 
-			u32 flags = world_debug_draw_texture_flag_none;
-			flags |= command.depth == debug_draw_depth_e::depth_tested ? world_debug_draw_texture_flag_depth_tested : 0;
-			flags |= command.is_linear_sample ? world_debug_draw_texture_flag_linear_sample : 0;
+			u32 flags = stock_world_renderer_debug_draw_texture_flag_none;
+			flags |= command.depth == debug_draw_depth_e::depth_tested ? stock_world_renderer_debug_draw_texture_flag_depth_tested : 0;
+			flags |= command.is_linear_sample ? stock_world_renderer_debug_draw_texture_flag_linear_sample : 0;
 
 			snapshot.textures.push_back({
 				.color		   = command.color,

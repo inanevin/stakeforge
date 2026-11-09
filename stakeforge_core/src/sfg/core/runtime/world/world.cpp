@@ -32,7 +32,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/platform/common_window.hpp"
 #include "core/runtime/physics/physics_config.hpp"
 #include "core/runtime/physics/physics_world.hpp"
-#include "core/runtime/render/world_render_view.hpp"
+#include "core/runtime/world_renderer/world_renderer_camera.hpp"
 #include "core/reflection/reflection_registry.hpp"
 #include "core/runtime/resources/prefab.hpp"
 #include "core/runtime/resources/resource_manager.hpp"
@@ -433,7 +433,7 @@ namespace sfg
 		world_util_t::sync_aabbs(*this);
 	}
 
-	bool world_t::refresh_main_camera(world_render_view_t& out_view)
+	bool world_t::refresh_main_camera(world_renderer_camera_t& out_view)
 	{
 		_main_camera_entity = world_util_t::get_active_camera(*this);
 

@@ -31,13 +31,14 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/data/bitmask.hpp>
 #include <sfg/core/data/vector.hpp>
 #include <sfg/core/gfx/common/semaphore_data.hpp>
-#include <sfg/core/runtime/render/world_render_context.hpp>
-#include <sfg/core/runtime/render/world_render_snapshot.hpp>
+#include <sfg/core/runtime/world_renderer/world_render_config.hpp>
 #include <sfg/core/runtime/world/world.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 
 namespace sfg
 {
+	class world_renderer_t;
+
 	struct editor_asset_t;
 
 	struct SFG_EDITOR_API editor_thumbnail_render_service_config_t
@@ -112,9 +113,8 @@ namespace sfg
 		bool save_rendered_thumbnail(const thumbnail_request_t& request);
 
 	private:
-		editor_thumbnail_render_service_config_t _config = {};
-		world_render_context_t					 _render_context;
-		world_render_snapshot_t					 _snapshot;
+		editor_thumbnail_render_service_config_t _config		 = {};
+		world_renderer_t*						 _world_renderer = nullptr;
 		vector_t<editor_thumbnail_world_t>		 _worlds;
 		vector_t<pending_render_t>				 _pending_renders;
 		vector_t<thumbnail_request_t>			 _requests;

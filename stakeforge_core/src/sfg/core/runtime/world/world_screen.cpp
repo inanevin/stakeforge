@@ -26,7 +26,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/math/math.hpp"
 #include "core/platform/common_window.hpp"
 #include "core/platform/process.hpp"
-#include "core/runtime/render/render_view.hpp"
+#include "core/runtime/world_renderer/world_renderer_view.hpp"
 
 namespace sfg
 {
@@ -129,7 +129,7 @@ namespace sfg
 		_render_size = render_size;
 	}
 
-	void world_screen_t::update_camera(const render_view_t& view)
+	void world_screen_t::update_camera(const world_renderer_view_t& view)
 	{
 		_view_proj	   = view.view_proj;
 		_inv_view_proj = view.inv_view_proj;

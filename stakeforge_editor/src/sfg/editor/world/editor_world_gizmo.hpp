@@ -35,7 +35,7 @@ namespace sfg
 	class color_t;
 	class world_debug_draw_t;
 	struct world_ray_t;
-	struct render_view_t;
+	struct world_renderer_view_t;
 
 	enum class editor_gizmo_axis_e : u8
 	{
@@ -72,7 +72,7 @@ namespace sfg
 	struct editor_gizmo_input_t
 	{
 		editor_gizmo_target_t			target		   = {};
-		const render_view_t*			view		   = nullptr;
+		const world_renderer_view_t*	view		   = nullptr;
 		vec2u16_t						resolution	   = vec2u16_t::zero;
 		f32								snap_translate = 0.0f;
 		f32								snap_rotate	   = 0.0f;

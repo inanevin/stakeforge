@@ -33,7 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	struct window_runtime_t;
-	struct render_view_t;
+	struct world_renderer_view_t;
 	enum class window_cursor_confinement_e : u8;
 
 	struct world_ray_t
@@ -63,7 +63,7 @@ namespace sfg
 
 		void	set_viewport(const vec4f_t& input_rect, vec2u16_t render_size, f32 dpi_scale);
 		void	set_render_size(vec2u16_t render_size);
-		void	update_camera(const render_view_t& view);
+		void	update_camera(const world_renderer_view_t& view);
 		void	clear_camera();
 		bool	world_to_screen(const vec3f_t& world_position, vec2f_t& out_screen_position) const;
 		bool	screen_to_world(const vec2f_t& screen_position, f32 ndc_depth, vec3f_t& out_world_position) const;

@@ -29,7 +29,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/data/frame_vector.hpp"
 #include "core/io/assert.hpp"
 #include "core/math/math.hpp"
-#include "core/runtime/render/world_canvas_render_snapshot.hpp"
+#include "core/runtime/world_renderer/stock_world_renderer_canvas_render_snapshot.hpp"
 #include "core/runtime/resources/shader_types.hpp"
 #include "core/runtime/plugin/game_plugin_runtime.hpp"
 #include "core/runtime/ui/ui_context.hpp"
@@ -298,7 +298,7 @@ namespace sfg
 			return world->get_screen().screen_to_render_position(position);
 		}
 
-		void append_runtime(const runtime_t& runtime, world_canvas_draw_snapshot_t& destination) const
+		void append_runtime(const runtime_t& runtime, stock_world_renderer_canvas_draw_snapshot_t& destination) const
 		{
 			const ui::vg_canvas_t& canvas			= runtime.context->get_canvas();
 			const u32			   vertex_offset	= static_cast<u32>(destination.vertices.size());
@@ -456,7 +456,7 @@ namespace sfg
 			runtime->context->tick(screen_rect, screen.get_dpi_scale(), dt_seconds);
 	}
 
-	void world_canvas_controller_t::write_render_snapshot(world_canvas_render_snapshot_t& snapshot) const
+	void world_canvas_controller_t::write_render_snapshot(stock_world_renderer_canvas_render_snapshot_t& snapshot) const
 	{
 		snapshot.clear();
 
@@ -470,7 +470,7 @@ namespace sfg
 
 		for (const impl_t::runtime_t* runtime : sorted)
 		{
-			world_canvas_draw_snapshot_t& destination = runtime->config.render_stage == canvas_render_stage_e::before_post_process ? snapshot.before_post_process : snapshot.after_post_process;
+			stock_world_renderer_canvas_draw_snapshot_t& destination = runtime->config.render_stage == canvas_render_stage_e::before_post_process ? snapshot.before_post_process : snapshot.after_post_process;
 			_impl->append_runtime(*runtime, destination);
 		}
 	}

@@ -24,9 +24,9 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "world_renderer.hpp"
 #include "core/data/atomic.hpp"
-#include "core/runtime/render/render_view.hpp"
-#include "core/runtime/render/world_render_context.hpp"
-#include "core/runtime/render/world_render_snapshot.hpp"
+#include "world_renderer_view.hpp"
+#include "stock_world_renderer_context.hpp"
+#include "stock_world_renderer_snapshot.hpp"
 
 namespace sfg
 {
@@ -53,16 +53,21 @@ namespace sfg
 		u8	 produce_snapshot(world_t& world, const project_settings_t& project_settings) override;
 		void publish_snapshot() override;
 		void acquire_snapshot() override;
-		void build_render_view(const world_render_view_t& camera, const vec2u16_t& resolution, f32 interpolation_alpha, render_view_t& out_view) const override;
-		void render(world_render_prep_data_t& prep_data, f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) override;
-		void draw_selection(gfx_handle_t cmd, const world_render_prep_data_t& prep_data, span_t<const entity_id_t> selected_entities, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const override;
-		void draw_entity_ids(gfx_handle_t cmd, const world_render_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const override;
+		void build_render_view(const world_renderer_camera_t& camera, const vec2u16_t& resolution, f32 interpolation_alpha, world_renderer_view_t& out_view) const override;
+		void render(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) override;
+		void draw_selection(gfx_handle_t cmd, span_t<const entity_id_t> selected_entities, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const override;
+		void draw_entity_ids(gfx_handle_t cmd, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout) const override;
 
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
 
-		const render_view_t& get_render_view(u8 frame_index) const override
+		vec2u16_t get_size() const override
+		{
+			return _render_context.get_size();
+		}
+
+		const world_renderer_view_t& get_render_view(u8 frame_index) const override
 		{
 			return _render_views[frame_index];
 		}
@@ -87,28 +92,18 @@ namespace sfg
 			return _render_context.get_depth_texture_index(frame_index);
 		}
 
-		const world_render_snapshot_t* get_latest_snapshot() const override
-		{
-			return _latest_snapshot_slot == UINT8_MAX ? nullptr : &_snapshot_slots[_latest_snapshot_slot];
-		}
-
-		const world_render_snapshot_t& get_render_snapshot() const override
-		{
-			return _snapshot_slots[_consumer_slot];
-		}
-
 		u8 get_render_snapshot_slot() const override
 		{
 			return _consumer_slot;
 		}
 
 	private:
-		render_view_t			_render_views[BACK_BUFFER_COUNT]	 = {};
-		world_render_context_t	_render_context						 = {};
-		world_render_snapshot_t _snapshot_slots[SNAPSHOT_SLOT_COUNT] = {};
-		atomic_t<u8>			_snapshot_mailbox					 = {};
-		u8						_producer_slot						 = 0;
-		u8						_consumer_slot						 = 0;
-		u8						_latest_snapshot_slot				 = UINT8_MAX;
+		frame_vector_t<stock_world_renderer_queue_item_t> _visible_draws					   = {};
+		world_renderer_view_t							  _render_views[BACK_BUFFER_COUNT]	   = {};
+		stock_world_renderer_context_t					  _render_context					   = {};
+		stock_world_renderer_snapshot_t					  _snapshot_slots[SNAPSHOT_SLOT_COUNT] = {};
+		atomic_t<u8>									  _snapshot_mailbox					   = {};
+		u8												  _producer_slot					   = 0;
+		u8												  _consumer_slot					   = 0;
 	};
 }

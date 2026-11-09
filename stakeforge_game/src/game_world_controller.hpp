@@ -25,8 +25,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/data/atomic.hpp>
 #include <sfg/core/gfx/common/gfx_constants.hpp>
 #include <sfg/core/math/vec2u16.hpp>
-#include <sfg/core/runtime/render/world_render_context.hpp>
-#include <sfg/core/runtime/render/world_render_snapshot.hpp>
+#include <sfg/core/runtime/world_renderer/world_renderer.hpp>
 #include <sfg/core/runtime/world/world.hpp>
 
 namespace sfg
@@ -75,12 +74,12 @@ namespace sfg
 
 		inline gpu_index_t get_world_texture_index(u8 frame_index) const
 		{
-			return _render_context.get_world_texture_index(frame_index);
+			return _world_renderer->get_world_texture_final(frame_index);
 		}
 
 		inline vec2u16_t get_render_resolution() const
 		{
-			return _render_context.get_size();
+			return _world_renderer->get_size();
 		}
 
 		inline bool is_initialized() const
@@ -91,22 +90,16 @@ namespace sfg
 	private:
 		void update_screen_camera();
 		void produce_snapshot();
-		void publish_snapshot();
 		f32	 calculate_render_alpha() const;
 
-		world_render_snapshot_t		   _snapshot_slots[3]  = {};
-		world_render_context_t		   _render_context	   = {};
-		world_t						   _main_world		   = {};
-		const project_package_meta_t*  _package_meta	   = nullptr;
-		const world_render_snapshot_t* _render_snapshot	   = nullptr;
-		atomic_t<i64>				   _last_fixed_step_us = 0;
-		atomic_t<i64>				   _fixed_step_us	   = 0;
-		atomic_t<u8>				   _snapshot_mailbox   = {};
-		i64							   _previous_time_us   = 0;
-		i64							   _accumulator_us	   = 0;
-		f32							   _render_alpha	   = 0.0f;
-		u8							   _producer_slot	   = 0;
-		u8							   _consumer_slot	   = 0;
-		bool						   _initialized		   = false;
+		world_renderer_t*			  _world_renderer	  = nullptr;
+		world_t						  _main_world		  = {};
+		const project_package_meta_t* _package_meta		  = nullptr;
+		atomic_t<i64>				  _last_fixed_step_us = 0;
+		atomic_t<i64>				  _fixed_step_us	  = 0;
+		i64							  _previous_time_us	  = 0;
+		i64							  _accumulator_us	  = 0;
+		f32							  _render_alpha		  = 0.0f;
+		bool						  _initialized		  = false;
 	};
 }

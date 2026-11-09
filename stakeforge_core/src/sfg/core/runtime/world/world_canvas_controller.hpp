@@ -33,7 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	class world_t;
-	struct world_canvas_render_snapshot_t;
+	struct stock_world_renderer_canvas_render_snapshot_t;
 
 	namespace ui
 	{
@@ -102,7 +102,7 @@ namespace sfg
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void write_render_snapshot(world_canvas_render_snapshot_t& snapshot) const;
+		void write_render_snapshot(stock_world_renderer_canvas_render_snapshot_t& snapshot) const;
 
 		// -----------------------------------------------------------------------------
 		// input

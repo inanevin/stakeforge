@@ -33,7 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/data/atomic.hpp>
 #include <sfg/core/data/vector.hpp>
 #include <sfg/core/math/quat.hpp>
-#include <sfg/core/runtime/render/world_render_context.hpp>
+#include <sfg/core/runtime/world_renderer/world_render_config.hpp>
 #include <sfg/core/runtime/world/world.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/runtime/world_renderer/world_renderer.hpp>
@@ -43,7 +43,7 @@ namespace sfg
 {
 	struct aabb_t;
 	struct physics_raycast_t;
-	struct render_view_t;
+	struct world_renderer_view_t;
 	struct SFG_EDITOR_API editor_world_init_config_t
 	{
 		world_render_context_config_t render_context = {};
@@ -225,7 +225,7 @@ namespace sfg
 
 	private:
 		bool get_gizmo_input(editor_gizmo_input_t& input) const;
-		void build_camera_view(render_view_t& out_view) const;
+		void build_camera_view(world_renderer_view_t& out_view) const;
 		void consume_entity_pick_result();
 
 	private:

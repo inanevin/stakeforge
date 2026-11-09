@@ -22,7 +22,7 @@
 
 namespace sfg
 {
-	struct world_render_view_t;
+	struct world_renderer_camera_t;
 	class mat4x3_t;
 	class istream_t;
 	struct world_init_config_t;
@@ -74,7 +74,7 @@ namespace sfg
 		void  tick_animation_logic(f32 dt);
 		void  on_animation_callback(entity_id_t entity, sid_t event);
 		void  tick_logic(f32 dt);
-		bool  refresh_main_camera(world_render_view_t& out_view);
+		bool  refresh_main_camera(world_renderer_camera_t& out_view);
 		void  tick_post(f32 dt);
 		void  tick_finalize();
 		void  key_event(u16 key, u16 scan_code, u8 action);

@@ -30,8 +30,9 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/math/aabb.hpp>
+#include <sfg/core/math/color.hpp>
 #include <sfg/core/math/math.hpp>
-#include <sfg/core/runtime/render/world_debug_draw_snapshot.hpp>
+#include <sfg/core/runtime/world/world_debug_draw.hpp>
 #include <sfg/core/runtime/resources/mesh.hpp>
 #include <sfg/core/runtime/resources/physics_collision_mesh.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
@@ -319,7 +320,7 @@ namespace sfg
 		}
 	}
 
-	void editor_thumbnail_render_util_t::write_collision_mesh_debug_draw(const editor_thumbnail_world_t& thumbnail_world, world_debug_draw_snapshot_t& debug_draw)
+	void editor_thumbnail_render_util_t::write_collision_mesh_debug_draw(const editor_thumbnail_world_t& thumbnail_world)
 	{
 		if (thumbnail_world.collision_mesh == NULL_RESOURCE_HANDLE)
 			return;
@@ -331,16 +332,13 @@ namespace sfg
 		const primitive_index* indices	   = aux.get<primitive_index>(collision_mesh->indices);
 		const u32			   index_count = math::min(collision_mesh->index_count, static_cast<u32>(DEBUG_TRIANGLE_INDEX_MAX / 3 * 3));
 
-		debug_draw.triangle_vertices.resize(index_count);
-		debug_draw.triangle_indices.resize(index_count);
+		world_debug_draw_t& debug_draw = thumbnail_world.world->get_debug_draw();
+		const vec4f_t&		accent	   = editor_theme_t::get().color_accent1;
+		const color_t		color(accent.x, accent.y, accent.z, accent.w);
 
-		for (u32 i = 0; i < index_count; ++i)
+		for (u32 i = 0; i < index_count; i += 3)
 		{
-			debug_draw.triangle_vertices[i] = {
-				.position = vertices[indices[i]] - thumbnail_world.collision_mesh_center,
-				.color	  = editor_theme_t::get().color_accent1,
-			};
-			debug_draw.triangle_indices[i] = i;
+			debug_draw.draw_triangle(vertices[indices[i]] - thumbnail_world.collision_mesh_center, vertices[indices[i + 1]] - thumbnail_world.collision_mesh_center, vertices[indices[i + 2]] - thumbnail_world.collision_mesh_center, color);
 		}
 	}
 

@@ -34,8 +34,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/math/math.hpp>
 #include <sfg/core/math/mat4x3.hpp>
 #include <sfg/core/runtime/physics/physics_world.hpp>
-#include <sfg/core/runtime/render/render_view.hpp>
-#include <sfg/core/runtime/render/world_render_view.hpp>
+#include <sfg/core/runtime/world_renderer/world_renderer_view.hpp>
+#include <sfg/core/runtime/world_renderer/world_renderer_camera.hpp>
 #include <sfg/core/runtime/resources/common_resources.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/runtime/world/world_debug_draw.hpp>
@@ -371,12 +371,12 @@ namespace sfg
 		return _gizmo_callbacks.get_target(_gizmo_callbacks.user_data, input.target);
 	}
 
-	void editor_world_t::build_camera_view(render_view_t& out_view) const
+	void editor_world_t::build_camera_view(world_renderer_view_t& out_view) const
 	{
-		const entity_id_t	camera_entity = _camera->get_entity();
-		world_render_view_t camera_view	  = {};
-		vec3f_t				scale		  = vec3f_t::one;
-		mat4x3_t			matrix		  = mat4x3_t::identity;
+		const entity_id_t		camera_entity = _camera->get_entity();
+		world_renderer_camera_t camera_view	  = {};
+		vec3f_t					scale		  = vec3f_t::one;
+		mat4x3_t				matrix		  = mat4x3_t::identity;
 
 		_world.calculate_entity_abs_transform(camera_entity, camera_view.pos, camera_view.rot, scale, matrix);
 
@@ -393,8 +393,8 @@ namespace sfg
 
 	void editor_world_t::update_gizmo_hover(vec2f_t relative_position)
 	{
-		render_view_t		 view  = {};
-		editor_gizmo_input_t input = {.view = &view};
+		world_renderer_view_t view	= {};
+		editor_gizmo_input_t  input = {.view = &view};
 
 		if (get_gizmo_input(input))
 		{
@@ -412,8 +412,8 @@ namespace sfg
 
 	bool editor_world_t::begin_gizmo_action(vec2f_t relative_position)
 	{
-		render_view_t		 view  = {};
-		editor_gizmo_input_t input = {.view = &view};
+		world_renderer_view_t view	= {};
+		editor_gizmo_input_t  input = {.view = &view};
 
 		if (!get_gizmo_input(input))
 			return false;
@@ -425,8 +425,8 @@ namespace sfg
 
 	void editor_world_t::update_gizmo_action(vec2f_t relative_position)
 	{
-		render_view_t		 view  = {};
-		editor_gizmo_input_t input = {.view = &view};
+		world_renderer_view_t view	= {};
+		editor_gizmo_input_t  input = {.view = &view};
 
 		if (!get_gizmo_input(input))
 		{
@@ -476,7 +476,7 @@ namespace sfg
 	{
 		SFG_ASSERT(_camera != nullptr);
 
-		render_view_t view = {};
+		world_renderer_view_t view = {};
 
 		build_camera_view(view);
 
@@ -594,8 +594,8 @@ namespace sfg
 
 	void editor_world_t::update_screen_camera()
 	{
-		world_render_view_t camera = {};
-		world_screen_t&		screen = _world.get_screen();
+		world_renderer_camera_t camera = {};
+		world_screen_t&			screen = _world.get_screen();
 
 		if (!_world.refresh_main_camera(camera))
 		{
@@ -603,7 +603,7 @@ namespace sfg
 			return;
 		}
 
-		render_view_t view = {};
+		world_renderer_view_t view = {};
 
 		_world_renderer->build_render_view(camera, screen.get_render_size(), 1.0f, view);
 		screen.update_camera(view);
@@ -682,8 +682,6 @@ namespace sfg
 
 	void editor_world_t::render(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
-		world_render_prep_data_t prep_data = {};
-
 		const editor_world_snapshot_data_t& data = _snapshot_slots[_world_renderer->get_render_snapshot_slot()];
 
 		if (_object_id_readback_valid[frame_index] && data.pick_request.id != 0 && data.pick_request.id != _last_render_pick_request_id)
@@ -700,8 +698,8 @@ namespace sfg
 			_last_render_pick_request_id = data.pick_request.id;
 		}
 
-		_world_renderer->render(prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
-		editor_world_rendering_t::render_world(_render_context, *_world_renderer, data, prep_data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
+		_world_renderer->render(interpolation_alpha, frame_index, global_cbv_index, global_layout);
+		editor_world_rendering_t::render_world(_render_context, *_world_renderer, data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
 
 		_object_id_readback_valid[frame_index] = true;
 	}

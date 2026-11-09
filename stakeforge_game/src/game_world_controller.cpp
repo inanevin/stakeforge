@@ -31,20 +31,16 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
 #include <sfg/core/runtime/engine/engine_threads.hpp>
 #include <sfg/core/runtime/project/project_settings.hpp>
-#include <sfg/core/runtime/render/render_view.hpp>
-#include <sfg/core/runtime/render/world_rendering.hpp>
+#include <sfg/core/runtime/world_renderer/stock_world_renderer.hpp>
+#include <sfg/core/runtime/world_renderer/world_renderer_view.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
-#include <sfg/core/runtime/world/world_snapshot_producer.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 #include <tracy/Tracy.hpp>
 
 namespace sfg
 {
-#define GAME_WORLD_SNAPSHOT_SLOT_COUNT			   3
-#define GAME_WORLD_SNAPSHOT_SLOT_MASK			   0x3
-#define GAME_WORLD_SNAPSHOT_FRESH_FLAG			   0x80
 #define GAME_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT	   (8192 * 4)
 #define GAME_WORLD_DEBUG_LINE_INDEX_MAX_COUNT	   (8192 * 6)
 #define GAME_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT 164000
@@ -99,24 +95,9 @@ namespace sfg
 		};
 
 		_main_world.init(world_config);
-		_render_context.init(render_context_config, world_config.debug_draw);
+		_world_renderer = new stock_world_renderer_t();
+		_world_renderer->init(render_context_config, world_config.debug_draw);
 		_package_meta = &package_meta;
-
-		for (u32 slot_index = 0; slot_index < GAME_WORLD_SNAPSHOT_SLOT_COUNT; ++slot_index)
-		{
-			world_render_snapshot_t& snapshot = _snapshot_slots[slot_index];
-
-			snapshot.reserve();
-			snapshot.main_view = {
-				.near_plane	 = 0.1f,
-				.far_plane	 = 1000.0f,
-				.fov_degrees = 60.0f,
-			};
-		}
-
-		_producer_slot = 0;
-		_consumer_slot = 1;
-		_snapshot_mailbox.store(2, std::memory_order_relaxed);
 
 		_previous_time_us = time_t::get_cpu_microseconds();
 		_accumulator_us	  = 0;
@@ -142,23 +123,19 @@ namespace sfg
 		if (_main_world.is_playing())
 			_main_world.end_play();
 
-		_render_context.uninit();
+		_world_renderer->uninit();
+		delete _world_renderer;
+		_world_renderer = nullptr;
+
 		_main_world.unload_all_used_resources();
 		_main_world.uninit();
 
-		for (u32 slot_index = 0; slot_index < GAME_WORLD_SNAPSHOT_SLOT_COUNT; ++slot_index)
-			_snapshot_slots[slot_index] = {};
-
-		_package_meta	 = nullptr;
-		_render_snapshot = nullptr;
-		_snapshot_mailbox.store(0, std::memory_order_relaxed);
+		_package_meta = nullptr;
 		_last_fixed_step_us.store(0, std::memory_order_relaxed);
 		_fixed_step_us.store(0, std::memory_order_relaxed);
 		_previous_time_us = 0;
 		_accumulator_us	  = 0;
 		_render_alpha	  = 0.0f;
-		_producer_slot	  = 0;
-		_consumer_slot	  = 0;
 		_initialized	  = false;
 	}
 
@@ -230,10 +207,10 @@ namespace sfg
 		SFG_ASSERT(_initialized);
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		if (_render_context.get_size() == render_resolution)
+		if (_world_renderer->get_size() == render_resolution)
 			return;
 
-		_render_context.resize(render_resolution);
+		_world_renderer->resize(render_resolution);
 		_main_world.get_screen().set_render_size(render_resolution);
 		update_screen_camera();
 	}
@@ -294,10 +271,6 @@ namespace sfg
 		_previous_time_us = time_t::get_cpu_microseconds();
 		_accumulator_us	  = 0;
 		_render_alpha	  = 0.0f;
-		_producer_slot	  = 0;
-		_consumer_slot	  = 1;
-		_render_snapshot  = nullptr;
-		_snapshot_mailbox.store(2, std::memory_order_relaxed);
 		_last_fixed_step_us.store(_previous_time_us, std::memory_order_relaxed);
 		_fixed_step_us.store(0, std::memory_order_relaxed);
 
@@ -331,18 +304,8 @@ namespace sfg
 
 		_render_alpha = calculate_render_alpha();
 
-		u8 mailbox = _snapshot_mailbox.load(std::memory_order_acquire);
+		_world_renderer->acquire_snapshot();
 
-		while (mailbox & GAME_WORLD_SNAPSHOT_FRESH_FLAG)
-		{
-			if (_snapshot_mailbox.compare_exchange_weak(mailbox, _consumer_slot, std::memory_order_acquire, std::memory_order_acquire))
-			{
-				_consumer_slot = static_cast<u8>((mailbox & GAME_WORLD_SNAPSHOT_SLOT_MASK) % GAME_WORLD_SNAPSHOT_SLOT_COUNT);
-				break;
-			}
-		}
-
-		_render_snapshot = &_snapshot_slots[_consumer_slot];
 		return true;
 	}
 
@@ -351,18 +314,9 @@ namespace sfg
 		ZoneScoped;
 
 		SFG_ASSERT(_initialized);
-		SFG_ASSERT(_render_snapshot != nullptr);
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 
-		world_render_prep_data_t prep_data = {};
-
-		prep_data.reserve();
-
-		render_view_t view = {};
-
-		view.calculate(_render_snapshot->main_view, _render_context.get_size(), _render_alpha);
-		world_rendering_t::render_world(_render_context, *_render_snapshot, view, prep_data, _render_alpha, frame_index, global_cbv_index, global_layout);
-		_render_snapshot = nullptr;
+		_world_renderer->render(_render_alpha, frame_index, global_cbv_index, global_layout);
 
 		gfx_backend::get().queue_signal(queue, &signal, &signal_value, 1);
 
@@ -371,8 +325,8 @@ namespace sfg
 
 	void game_world_controller_t::update_screen_camera()
 	{
-		world_render_view_t camera = {};
-		world_screen_t&		screen = _main_world.get_screen();
+		world_renderer_camera_t camera = {};
+		world_screen_t&			screen = _main_world.get_screen();
 
 		if (!_main_world.refresh_main_camera(camera))
 		{
@@ -380,26 +334,16 @@ namespace sfg
 			return;
 		}
 
-		render_view_t view = {};
+		world_renderer_view_t view = {};
 
-		view.calculate(camera, screen.get_render_size(), 1.0f);
+		_world_renderer->build_render_view(camera, screen.get_render_size(), 1.0f, view);
 		screen.update_camera(view);
 	}
 
 	void game_world_controller_t::produce_snapshot()
 	{
-		world_render_snapshot_t& snapshot = _snapshot_slots[_producer_slot];
-
-		world_snapshot_producer_t::produce(_main_world, snapshot, engine_runtime_t::get().get_project_settings(), _render_context);
-
-		publish_snapshot();
-	}
-
-	void game_world_controller_t::publish_snapshot()
-	{
-		const u8 previous = _snapshot_mailbox.exchange(_producer_slot | GAME_WORLD_SNAPSHOT_FRESH_FLAG, std::memory_order_release);
-
-		_producer_slot = static_cast<u8>((previous & GAME_WORLD_SNAPSHOT_SLOT_MASK) % GAME_WORLD_SNAPSHOT_SLOT_COUNT);
+		_world_renderer->produce_snapshot(_main_world, engine_runtime_t::get().get_project_settings());
+		_world_renderer->publish_snapshot();
 	}
 
 	f32 game_world_controller_t::calculate_render_alpha() const

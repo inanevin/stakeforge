@@ -24,7 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/data/char_util.hpp>
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/math/math.hpp>
-#include <sfg/core/runtime/render/render_view.hpp>
+#include <sfg/core/runtime/world_renderer/world_renderer_view.hpp>
 #include <sfg/core/runtime/world/world_debug_draw.hpp>
 #include <sfg/core/runtime/world/world_screen.hpp>
 
@@ -45,17 +45,17 @@ namespace sfg
 
 	struct editor_world_gizmo_t::frame_t
 	{
-		const render_view_t* view			   = nullptr;
-		quat_t				 axis_rotations[3] = {};
-		vec3f_t				 axes[3]		   = {};
-		vec3f_t				 ring_u[3]		   = {};
-		vec3f_t				 ring_v[3]		   = {};
-		vec3f_t				 camera_forward	   = vec3f_t::zero;
-		vec3f_t				 camera_right	   = vec3f_t::zero;
-		vec3f_t				 camera_up		   = vec3f_t::zero;
-		vec3f_t				 pivot			   = vec3f_t::zero;
-		vec2u16_t			 resolution		   = vec2u16_t::zero;
-		f32					 world_scale	   = 0.0f;
+		const world_renderer_view_t* view			   = nullptr;
+		quat_t						 axis_rotations[3] = {};
+		vec3f_t						 axes[3]		   = {};
+		vec3f_t						 ring_u[3]		   = {};
+		vec3f_t						 ring_v[3]		   = {};
+		vec3f_t						 camera_forward	   = vec3f_t::zero;
+		vec3f_t						 camera_right	   = vec3f_t::zero;
+		vec3f_t						 camera_up		   = vec3f_t::zero;
+		vec3f_t						 pivot			   = vec3f_t::zero;
+		vec2u16_t					 resolution		   = vec2u16_t::zero;
+		f32							 world_scale	   = 0.0f;
 	};
 
 	struct editor_world_gizmo_t::hit_t
@@ -73,8 +73,8 @@ namespace sfg
 
 	bool editor_world_gizmo_t::calculate_frame(const editor_gizmo_input_t& input, frame_t& out_frame) const
 	{
-		const render_view_t& view		= *input.view;
-		const vec2u16_t		 resolution = input.resolution;
+		const world_renderer_view_t& view		= *input.view;
+		const vec2u16_t				 resolution = input.resolution;
 
 		if (input.control_type == editor_transform_control_type_e::invalid || resolution.x == 0 || resolution.y == 0)
 			return false;
