@@ -64,3 +64,30 @@ VSOutput VSMain(VSInput IN)
     OUT.clip_distance = float4(IN.pos - item.clip_bounds.xy, item.clip_bounds.zw - IN.pos);
     return OUT;
 }
+
+SamplerState ui_text_nearest : static_sampler_nearest;
+SamplerState ui_text_linear : static_sampler_linear;
+
+float3 ui_text_coverage(Texture2D atlas, float2 uv)
+{
+#if defined(UI_TEXT_LCD)
+	float3 coverage = atlas.SampleLevel(ui_text_nearest, uv, 0).rgb;
+	return pow(coverage, 1.0f / 1.43f);
+#elif defined(UI_TEXT_SDF)
+	float distance = atlas.SampleLevel(ui_text_linear, uv, 0).r;
+	float width = max(0.0625f, fwidth(distance));
+	return smoothstep(0.5f - width, 0.5f + width, distance).xxx;
+#else
+	return atlas.SampleLevel(ui_text_nearest, uv, 0).rrr;
+#endif
+}
+
+float4 ui_text_color(float3 coverage, float4 color)
+{
+#if defined(UI_TEXT_LCD)
+	float alpha = max(coverage.r, max(coverage.g, coverage.b));
+	return float4(color.rgb * coverage * color.a, color.a * alpha);
+#else
+	return float4(color.rgb, color.a * coverage.r);
+#endif
+}

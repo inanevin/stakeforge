@@ -20,6 +20,7 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #include "core/runtime/ui/vg/vg_canvas.hpp"
+#include "core/runtime/resources/shader_types.hpp"
 #include "core/runtime/ui/vg/vg_path.hpp"
 #include "core/common/hashing.hpp"
 #include "core/io/assert.hpp"
@@ -473,7 +474,7 @@ namespace sfg::ui
 		for (vg_draw_t& db : _draws)
 		{
 			SFG_ASSERT(db.state.pipeline != NULL_RESOURCE_HANDLE);
-			db.pipeline = resolve_shader(db.state.pipeline, pipeline_variant_flags);
+			db.pipeline = resolve_shader(db.state.pipeline, pipeline_variant_flags | db.variant_flags);
 			SFG_ASSERT(!db.pipeline.is_null());
 
 			for (u8 i = 0; i < 4; ++i)
@@ -537,7 +538,10 @@ namespace sfg::ui
 			if (left.draw_order != right.draw_order)
 				return left.draw_order < right.draw_order;
 
-			return left.state.pipeline != right.state.pipeline ? left.state.pipeline < right.state.pipeline : a < b;
+			if (left.state.pipeline != right.state.pipeline)
+				return left.state.pipeline < right.state.pipeline;
+
+			return left.variant_flags != right.variant_flags ? left.variant_flags < right.variant_flags : a < b;
 		});
 
 		u32 group_first = 0;
@@ -547,7 +551,7 @@ namespace sfg::ui
 			vg_draw_t&		 draw  = _draws[_draw_order[i]];
 			const vg_draw_t& first = _draws[_draw_order[group_first]];
 
-			if (draw.draw_order != first.draw_order || draw.state.pipeline != first.state.pipeline)
+			if (draw.draw_order != first.draw_order || draw.state.pipeline != first.state.pipeline || draw.variant_flags != first.variant_flags)
 				group_first = i;
 
 			draw.shader_order = _draw_order[group_first];
@@ -720,7 +724,7 @@ namespace sfg::ui
 			.parameters	  = parameters,
 			.vertex_count = _vertex_count,
 		};
-		resource_handle_t previous_pipeline = NULL_RESOURCE_HANDLE;
+		render_resource_handle_t previous_pipeline = {};
 
 		if (_vertex_count != 0)
 			SFG_MEMCPY(vertices, _vertex_pool, _vertex_count * sizeof(vg_vertex_t));
@@ -741,14 +745,14 @@ namespace sfg::ui
 			for (u32 i = 0; i < draw.index_count; ++i)
 				indices[snapshot.index_count + i] = _index_pool[draw.index_offset + i] + draw.vertex_offset + vertex_base;
 
-			if (snapshot.batch_count == 0 || previous_pipeline != draw.state.pipeline)
+			if (snapshot.batch_count == 0 || previous_pipeline != draw.pipeline)
 			{
 				batches[snapshot.batch_count++] = {
 					.pipeline	  = draw.pipeline,
 					.index_offset = index_base + snapshot.index_count,
 					.index_count  = draw.index_count,
 				};
-				previous_pipeline = draw.state.pipeline;
+				previous_pipeline = draw.pipeline;
 			}
 			else
 				batches[snapshot.batch_count - 1].index_count += draw.index_count;
@@ -1401,12 +1405,13 @@ namespace sfg::ui
 		}
 
 		const text_cache_entry_t entry{
-			.hash	   = cache_hash,
-			.size	   = {bounds.valid ? bounds.max_x - bounds.min_x : math::max(0.0f, bounds.advance_x), bounds.max_y - bounds.min_y},
-			.vtx_start = _text_cache_vertex_count,
-			.vtx_count = vtx_count,
-			.idx_start = _text_cache_index_count,
-			.idx_count = idx_count,
+			.hash		   = cache_hash,
+			.size		   = {bounds.valid ? bounds.max_x - bounds.min_x : math::max(0.0f, bounds.advance_x), bounds.max_y - bounds.min_y},
+			.vtx_start	   = _text_cache_vertex_count,
+			.vtx_count	   = vtx_count,
+			.idx_start	   = _text_cache_index_count,
+			.idx_count	   = idx_count,
+			.variant_flags = paint.raster_mode == glyph_raster_mode_e::lcd ? shader_variant_flags_text_lcd : (paint.raster_mode == glyph_raster_mode_e::sdf ? shader_variant_flags_text_sdf : 0u),
 		};
 
 		_text_cache_vertex_count += vtx_count;
@@ -1439,6 +1444,8 @@ namespace sfg::ui
 
 		if (db == nullptr)
 			return;
+
+		db->variant_flags = entry.variant_flags;
 
 		const vec2f_t draw_pos = {math::round(pos.x), math::round(pos.y)};
 		const u32	  vtx_base = db->vertex_count;
@@ -1558,6 +1565,8 @@ namespace sfg::ui
 
 		if (db == nullptr)
 			return;
+
+		db->variant_flags = paint.raster_mode == glyph_raster_mode_e::lcd ? shader_variant_flags_text_lcd : (paint.raster_mode == glyph_raster_mode_e::sdf ? shader_variant_flags_text_sdf : 0u);
 
 		const vec2f_t		 draw_pos = {math::round(pos.x), math::round(pos.y)};
 		const u32			 px		  = get_text_paint_raster_px(paint);

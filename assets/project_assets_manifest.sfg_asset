@@ -155,6 +155,18 @@
         {
             "name": "default_transparent_unlit_material",
             "template": "editor/templates/materials/default_transparent_unlit_material.sfg_asset"
+        },
+        {
+            "name": "default_shader_canvas_ui",
+            "template": "editor/templates/shaders/default_shader_canvas_ui.sfg_asset"
+        },
+        {
+            "name": "default_shader_canvas_ui_text",
+            "template": "editor/templates/shaders/default_shader_canvas_ui_text.sfg_asset"
+        },
+        {
+            "name": "default_shader_canvas_ui_texture",
+            "template": "editor/templates/shaders/default_shader_canvas_ui_texture.sfg_asset"
         }
     ]
 }

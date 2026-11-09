@@ -45,6 +45,7 @@ namespace sfg
 			{.text = "Unlit Shader", .command = assets_action_menu_create_unlit_shader},
 			{.text = "UI Shader", .command = assets_action_menu_create_ui_shader},
 			{.text = "UI Text Shader", .command = assets_action_menu_create_ui_text_shader},
+			{.text = "UI Texture Shader", .command = assets_action_menu_create_ui_texture_shader},
 			{.text = "Skybox Shader", .command = assets_action_menu_create_skybox_shader},
 			{.text = "Sprite Lit Shader", .command = assets_action_menu_create_sprite_lit_shader},
 			{.text = "Sprite Unlit Shader", .command = assets_action_menu_create_sprite_unlit_shader},

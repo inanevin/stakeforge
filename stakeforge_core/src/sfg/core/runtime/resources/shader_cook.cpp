@@ -501,24 +501,15 @@ namespace sfg
 				return false;
 			}
 			break;
-		case shader_type_e::ui_shader:
-			if (!shader_cook_variants_t::cook_ui_shader(compile_source, include_paths, compiles, psos))
+		case shader_type_e::canvas_ui:
+		case shader_type_e::canvas_ui_text:
+		case shader_type_e::canvas_ui_texture:
+		case shader_type_e::editor_ui:
+		case shader_type_e::editor_ui_text:
+		case shader_type_e::editor_ui_texture:
+			if (!shader_cook_variants_t::cook_ui_shader(compile_source, include_paths, compiles, psos, cfg.type))
 			{
 				SFG_ERR("failed to cook UI shader variants: {0}", full_path);
-				return false;
-			}
-			break;
-		case shader_type_e::ui_text_shader:
-			if (!shader_cook_variants_t::cook_ui_text_shader(compile_source, include_paths, compiles, psos))
-			{
-				SFG_ERR("failed to cook UI text shader variants: {0}", full_path);
-				return false;
-			}
-			break;
-		case shader_type_e::canvas_ui_shader:
-			if (!shader_cook_variants_t::cook_canvas_ui_shader(compile_source, include_paths, compiles, psos))
-			{
-				SFG_ERR("failed to cook canvas UI shader variants: {0}", full_path);
 				return false;
 			}
 			break;
@@ -602,34 +593,6 @@ namespace sfg
 			if (!shader_cook_variants_t::cook_compute_shader(compile_source, include_paths, compiles, psos))
 			{
 				SFG_ERR("failed to cook compute shader variant: {0}", full_path);
-				return false;
-			}
-			break;
-		case shader_type_e::editor_ui_default:
-			if (!shader_cook_variants_t::cook_editor_ui_default(compile_source, include_paths, compiles, psos))
-			{
-				SFG_ERR("failed to cook editor UI default shader variants: {0}", full_path);
-				return false;
-			}
-			break;
-		case shader_type_e::editor_ui_lcd_text:
-			if (!shader_cook_variants_t::cook_editor_ui_lcd_text(compile_source, include_paths, compiles, psos))
-			{
-				SFG_ERR("failed to cook editor UI lcd text shader variants: {0}", full_path);
-				return false;
-			}
-			break;
-		case shader_type_e::editor_ui_text_grayscale:
-			if (!shader_cook_variants_t::cook_editor_ui_text_grayscale(compile_source, include_paths, compiles, psos))
-			{
-				SFG_ERR("failed to cook editor UI grayscale text shader variants: {0}", full_path);
-				return false;
-			}
-			break;
-		case shader_type_e::editor_ui_sdf:
-			if (!shader_cook_variants_t::cook_editor_ui_sdf(compile_source, include_paths, compiles, psos))
-			{
-				SFG_ERR("failed to cook editor UI sdf shader variants: {0}", full_path);
 				return false;
 			}
 			break;

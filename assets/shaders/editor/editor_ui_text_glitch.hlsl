@@ -1,6 +1,26 @@
-#include "canvas/ui.hlsl"
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
 
-SamplerState smp : static_sampler_nearest;
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+
+*/
+
+#include "canvas/ui.hlsl"
 
 static const float GLITCH_TIME_SCALE		 = 1.0f;
 static const float GLITCH_SCANLINE_SCALE	 = 0.45f;
@@ -50,9 +70,9 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 	const float uv_shift		 = jitter * GLITCH_MAJOR_UV_SHIFT + minor_band * GLITCH_MINOR_UV_SHIFT;
 	const float channel_split = GLITCH_CHANNEL_SPLIT + GLITCH_CHANNEL_SPLIT_PULSE * (0.5f + 0.5f * sin(t * GLITCH_CHANNEL_SPLIT_SPEED));
 
-	const float r = atlas.SampleLevel(smp, IN.uv + float2(uv_shift + channel_split, 0.0f), 0).r;
-	const float g = atlas.SampleLevel(smp, IN.uv + float2(uv_shift, 0.0f), 0).g;
-	const float b = atlas.SampleLevel(smp, IN.uv + float2(uv_shift - channel_split, 0.0f), 0).b;
+	const float r = ui_text_coverage(atlas, IN.uv + float2(uv_shift + channel_split, 0.0f)).r;
+	const float g = ui_text_coverage(atlas, IN.uv + float2(uv_shift, 0.0f)).g;
+	const float b = ui_text_coverage(atlas, IN.uv + float2(uv_shift - channel_split, 0.0f)).b;
 
 	float3 coverage = float3(r, g, b);
 	float alpha		= max(coverage.r, max(coverage.g, coverage.b));
@@ -63,5 +83,9 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 	float3 weight = coverage * IN.color.a;
 	float3 rgb	  = tint * weight * scan;
 	alpha		  = saturate(alpha * IN.color.a * (GLITCH_BASE_ALPHA + major_band * GLITCH_MAJOR_ALPHA + strike * GLITCH_STRIKE_ALPHA));
+#if defined(UI_TEXT_LCD)
 	return float4(rgb, alpha);
+#else
+	return float4(tint * scan, alpha);
+#endif
 }

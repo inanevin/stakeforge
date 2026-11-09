@@ -1,0 +1,15 @@
+{
+    "version": 0,
+    "guid": 1057,
+    "asset_type": "shader",
+    "sub_type": 30,
+    "source_type": "file",
+    "source_relative": "shaders/canvas/canvas_ui_texture.hlsl",
+    "cook_options": {
+        "schema": "sfg.schema.shader",
+        "type": 30,
+        "include_dirs": [
+            "assets/shaders/"
+        ]
+    }
+}

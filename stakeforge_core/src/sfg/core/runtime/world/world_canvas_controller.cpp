@@ -36,10 +36,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define CANVAS_DEFAULT_SHADER		 TO_SIDC("shaders/canvas/canvas_ui_default.hlsl")
-#define CANVAS_TEXTURE_SHADER		 TO_SIDC("shaders/canvas/canvas_ui_texture.hlsl")
-#define CANVAS_TEXT_GRAYSCALE_SHADER TO_SIDC("shaders/canvas/canvas_ui_text_grayscale.hlsl")
-#define CANVAS_TEXT_SDF_SHADER		 TO_SIDC("shaders/canvas/canvas_ui_sdf.hlsl")
 
 	struct world_canvas_controller_t::impl_t
 	{
@@ -69,9 +65,9 @@ namespace sfg
 
 			bool is_config_equal(const component_canvas_t& other) const
 			{
-				return config.default_font == other.default_font && config.text_pool_budget_bytes == other.text_pool_budget_bytes && config.vertex_pool_budget_bytes == other.vertex_pool_budget_bytes &&
-					   config.index_pool_budget_bytes == other.index_pool_budget_bytes && config.sort_order == other.sort_order && config.ui_scale == other.ui_scale && config.max_widgets == other.max_widgets && config.render_stage == other.render_stage &&
-					   config.input_enabled == other.input_enabled;
+				return config.default_shader == other.default_shader && config.text_shader == other.text_shader && config.texture_shader == other.texture_shader && config.default_font == other.default_font &&
+					   config.text_pool_budget_bytes == other.text_pool_budget_bytes && config.vertex_pool_budget_bytes == other.vertex_pool_budget_bytes && config.index_pool_budget_bytes == other.index_pool_budget_bytes &&
+					   config.sort_order == other.sort_order && config.ui_scale == other.ui_scale && config.max_widgets == other.max_widgets && config.render_stage == other.render_stage && config.input_enabled == other.input_enabled;
 			}
 
 			canvas_widget_handle_t make_handle(ui::widget_id_t id) const
@@ -256,10 +252,9 @@ namespace sfg
 				.render_snapshots_enabled  = false,
 			});
 			runtime.context->get_paint().set_pipelines({
-				.default_pipeline		 = CANVAS_DEFAULT_SHADER,
-				.text_pipeline			 = CANVAS_TEXT_GRAYSCALE_SHADER,
-				.grayscale_text_pipeline = CANVAS_TEXT_GRAYSCALE_SHADER,
-				.sdf_pipeline			 = CANVAS_TEXT_SDF_SHADER,
+				.default_pipeline = component.default_shader,
+				.text_pipeline	  = component.text_shader,
+				.texture_pipeline = component.texture_shader,
 			});
 
 			ecs_component_table_t&	   system_table = world->get_component_table(type_id_t<component_system_canvas_t>::value);
@@ -922,15 +917,11 @@ namespace sfg
 		rect.fill_color_b		 = tint;
 
 		ui::ui_render_state_t state = {};
-		state.pipeline				= CANVAS_TEXTURE_SHADER;
+		state.pipeline				= runtime->config.texture_shader;
 		state.constants[0].handle	= texture;
 		state.constants[0].type		= ui::ui_resource_type_e::texture;
 		runtime->context->get_paint().set_rect(id, rect, state);
 		return true;
 	}
 
-#undef CANVAS_DEFAULT_SHADER
-#undef CANVAS_TEXTURE_SHADER
-#undef CANVAS_TEXT_GRAYSCALE_SHADER
-#undef CANVAS_TEXT_SDF_SHADER
 }

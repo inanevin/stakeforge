@@ -71,7 +71,7 @@ namespace sfg
 
 		ui.set_widget_text(title, _config.title);
 		ui::ui_render_state_t title_state = {};
-		title_state.pipeline			  = theme.shader_glitch_lcd;
+		title_state.pipeline			  = theme.shader_glitch_text;
 		paint.set_text(title, ui.widget_text(title), ui.widget_text_len(title), {.font = theme.font_title, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
 
 		const ui::widget_id_t spacer = ui.allocate_widget();

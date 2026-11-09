@@ -476,7 +476,7 @@ namespace sfg::ui
 		}
 
 		ui_render_state_t text_state = {};
-		text_state.pipeline			 = _paint.get_pipelines().grayscale_text_pipeline;
+		text_state.pipeline			 = _paint.get_pipelines().text_pipeline;
 		if (text_state.pipeline == NULL_RESOURCE_HANDLE)
 			return;
 

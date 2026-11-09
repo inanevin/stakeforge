@@ -36,6 +36,7 @@ namespace sfg::ui
 		ui_render_state_t		 state		   = {};
 		ui_draw_parameters_t	 parameters	   = {};
 		render_resource_handle_t pipeline	   = {};
+		u32						 variant_flags = 0;
 		u32						 draw_order	   = 0;
 		u32						 shader_order  = 0;
 		u32						 vertex_offset = 0;
@@ -178,12 +179,13 @@ namespace sfg::ui
 	private:
 		struct text_cache_entry_t
 		{
-			u64		hash	  = 0;
-			vec2f_t size	  = vec2f_t::zero;
-			u32		vtx_start = 0;
-			u32		vtx_count = 0;
-			u32		idx_start = 0;
-			u32		idx_count = 0;
+			u64		hash		  = 0;
+			vec2f_t size		  = vec2f_t::zero;
+			u32		vtx_start	  = 0;
+			u32		vtx_count	  = 0;
+			u32		idx_start	  = 0;
+			u32		idx_count	  = 0;
+			u32		variant_flags = 0;
 		};
 
 		struct clip_entry_t

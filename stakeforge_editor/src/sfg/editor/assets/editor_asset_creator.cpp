@@ -88,10 +88,12 @@ namespace sfg
 			{
 			case shader_type_e::object_shader:
 				return object_shader_template == editor_object_shader_template_e::unlit ? COMMON_SHADERS "object/object_unlit.hlsl" : COMMON_SHADERS "object/object_lit.hlsl";
-			case shader_type_e::ui_shader:
-				return EDITOR_SHADERS "editor_ui_default.hlsl";
-			case shader_type_e::ui_text_shader:
-				return EDITOR_SHADERS "editor_ui_text_grayscale.hlsl";
+			case shader_type_e::canvas_ui:
+				return COMMON_SHADERS "canvas/canvas_ui.hlsl";
+			case shader_type_e::canvas_ui_text:
+				return COMMON_SHADERS "canvas/canvas_ui_text.hlsl";
+			case shader_type_e::canvas_ui_texture:
+				return COMMON_SHADERS "canvas/canvas_ui_texture.hlsl";
 			case shader_type_e::skybox_shader:
 				return COMMON_SHADERS "sky/skybox_cube.hlsl";
 			case shader_type_e::sprite_lit_shader:

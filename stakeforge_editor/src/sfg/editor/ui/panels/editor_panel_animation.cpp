@@ -1347,18 +1347,7 @@ namespace sfg
 			const ui::glyph_raster_mode_e raster_mode = editor_text_rasterization_t::get_rasterization_type();
 			ui::ui_render_state_t		  text_state  = {};
 
-			switch (raster_mode)
-			{
-			case ui::glyph_raster_mode_e::lcd:
-				text_state.pipeline = paint.get_pipelines().text_pipeline;
-				break;
-			case ui::glyph_raster_mode_e::grayscale:
-				text_state.pipeline = paint.get_pipelines().grayscale_text_pipeline;
-				break;
-			case ui::glyph_raster_mode_e::sdf:
-				text_state.pipeline = paint.get_pipelines().sdf_pipeline;
-				break;
-			}
+			text_state.pipeline = paint.get_pipelines().text_pipeline;
 
 			const ui::vg_text_paint_t text_paint{
 				.font		 = font,

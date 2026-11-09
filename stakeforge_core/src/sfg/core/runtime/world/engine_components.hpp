@@ -91,6 +91,9 @@ namespace sfg
 		static inline constexpr const char* DEBUG_NAME = "component_canvas";
 
 		resource_handle_t	  default_font			   = DEFAULT_FONT_ASSET_GUID;
+		resource_handle_t	  default_shader		   = DEFAULT_CANVAS_UI_SHADER_ASSET_GUID;
+		resource_handle_t	  text_shader			   = DEFAULT_CANVAS_UI_TEXT_SHADER_ASSET_GUID;
+		resource_handle_t	  texture_shader		   = DEFAULT_CANVAS_UI_TEXTURE_SHADER_ASSET_GUID;
 		u32					  text_pool_budget_bytes   = 16 * 1024;
 		u32					  vertex_pool_budget_bytes = 128 * 1024;
 		u32					  index_pool_budget_bytes  = 64 * 1024;

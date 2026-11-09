@@ -30,23 +30,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg::ui
 {
-	namespace
-	{
-		resource_handle_t text_pipeline_for(const paint_pipelines_t& pipelines, glyph_raster_mode_e raster_mode)
-		{
-			switch (raster_mode)
-			{
-			case glyph_raster_mode_e::lcd:
-				return pipelines.text_pipeline;
-			case glyph_raster_mode_e::grayscale:
-				return pipelines.grayscale_text_pipeline;
-			case glyph_raster_mode_e::sdf:
-				return pipelines.sdf_pipeline;
-			}
-			return NULL_RESOURCE_HANDLE;
-		}
-	}
-
 	void paint_layer_t::init(u32 max_widgets)
 	{
 		_defs.init(max_widgets);
@@ -110,7 +93,7 @@ namespace sfg::ui
 		def.render_state = state;
 
 		if (def.render_state.pipeline == NULL_RESOURCE_HANDLE)
-			def.render_state.pipeline = text_pipeline_for(_pipelines, s.raster_mode);
+			def.render_state.pipeline = _pipelines.text_pipeline;
 
 		mark_text_layout_dirty(id);
 	}
@@ -123,9 +106,8 @@ namespace sfg::ui
 
 			if (def.kind == paint_kind_e::text)
 			{
-				def.text.raster_mode	  = raster_mode;
-				def.text_run			  = {};
-				def.render_state.pipeline = text_pipeline_for(_pipelines, raster_mode);
+				def.text.raster_mode = raster_mode;
+				def.text_run		 = {};
 				mark_text_layout_dirty(static_cast<widget_id_t>(i));
 			}
 		}

@@ -350,10 +350,9 @@ namespace sfg
 		});
 
 		surface.ui->get_paint().set_pipelines({
-			.default_pipeline		 = "shaders/editor/editor_ui_default.hlsl"_hs,
-			.text_pipeline			 = "shaders/editor/editor_ui_text_lcd.hlsl"_hs,
-			.grayscale_text_pipeline = "shaders/editor/editor_ui_text_grayscale.hlsl"_hs,
-			.sdf_pipeline			 = "shaders/editor/editor_ui_sdf.hlsl"_hs,
+			.default_pipeline = "shaders/editor/editor_ui.hlsl"_hs,
+			.text_pipeline	  = "shaders/editor/editor_ui_text.hlsl"_hs,
+			.texture_pipeline = "shaders/editor/editor_ui_texture.hlsl"_hs,
 		});
 
 		surface.ui->set_debug_draw(_debug_mode);

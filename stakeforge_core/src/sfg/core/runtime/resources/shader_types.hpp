@@ -10,14 +10,14 @@ namespace sfg
 	enum class shader_type_e : u8
 	{
 		invalid,
-		editor_ui_default,
-		editor_ui_lcd_text,
-		editor_ui_sdf,
-		editor_ui_text_grayscale,
+		editor_ui,
+		editor_ui_text,
+		reserved_3,
+		reserved_4,
 		object_shader,
 		reserved_6,
-		ui_shader,
-		ui_text_shader,
+		reserved_7,
+		canvas_ui_text,
 		deferred_lighting,
 		post_combiner,
 		texture_blit,
@@ -37,8 +37,10 @@ namespace sfg
 		sprite_unlit_shader,
 		particle_shader,
 		debug_texture,
-		canvas_ui_shader,
+		canvas_ui,
 		editor_icon,
+		canvas_ui_texture,
+		editor_ui_texture,
 		count,
 	};
 
@@ -57,6 +59,8 @@ namespace sfg
 		shader_variant_flags_particle_additive			  = 1 << 10,
 		shader_variant_flags_canvas_hdr					  = 1 << 11,
 		shader_variant_flags_canvas_ldr					  = 1 << 12,
+		shader_variant_flags_text_lcd					  = 1 << 13,
+		shader_variant_flags_text_sdf					  = 1 << 14,
 	};
 
 	SFG_DEFINE_TYPE_ID(shader_type_e);

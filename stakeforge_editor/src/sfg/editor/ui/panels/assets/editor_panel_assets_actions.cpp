@@ -672,6 +672,9 @@ namespace sfg
 		case assets_action_menu_create_ui_text_shader:
 			text = "ui_text_shader";
 			break;
+		case assets_action_menu_create_ui_texture_shader:
+			text = "ui_texture_shader";
+			break;
 		case assets_action_menu_create_skybox_shader:
 			text = "skybox_shader";
 			break;
@@ -860,11 +863,15 @@ namespace sfg
 			return true;
 		case assets_action_menu_create_ui_shader:
 			out_desc.asset_type = editor_asset_type_e::shader;
-			out_desc.sub_type	= static_cast<u8>(shader_type_e::ui_shader);
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::canvas_ui);
 			return true;
 		case assets_action_menu_create_ui_text_shader:
 			out_desc.asset_type = editor_asset_type_e::shader;
-			out_desc.sub_type	= static_cast<u8>(shader_type_e::ui_text_shader);
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::canvas_ui_text);
+			return true;
+		case assets_action_menu_create_ui_texture_shader:
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::canvas_ui_texture);
 			return true;
 		case assets_action_menu_create_skybox_shader:
 			out_desc.asset_type = editor_asset_type_e::shader;

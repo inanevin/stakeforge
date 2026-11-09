@@ -439,7 +439,7 @@ namespace sfg
 
 			ui.set_widget_text(title_label, "stakeforge");
 			ui::ui_render_state_t title_state = {};
-			title_state.pipeline			  = theme.shader_glitch_lcd;
+			title_state.pipeline			  = theme.shader_glitch_text;
 			paint.set_text(title_label, ui.widget_text(title_label), ui.widget_text_len(title_label), {.font = theme.font_sfg, .color = theme.color_text0, .point_size = 20.0f, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
 
 			version_label = ui.allocate_widget();

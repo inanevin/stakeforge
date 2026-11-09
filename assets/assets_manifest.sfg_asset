@@ -196,58 +196,6 @@
             "editor_only": false
         },
         {
-            "name": "canvas_ui_default",
-            "path": "shaders/canvas/canvas_ui_default.hlsl",
-            "type": 7,
-            "config": {
-                "schema": "sfg.schema.shader",
-                "type": 28,
-                "include_dirs": [
-                    "assets/shaders/"
-                ]
-            },
-            "editor_only": false
-        },
-        {
-            "name": "canvas_ui_texture",
-            "path": "shaders/canvas/canvas_ui_texture.hlsl",
-            "type": 7,
-            "config": {
-                "schema": "sfg.schema.shader",
-                "type": 28,
-                "include_dirs": [
-                    "assets/shaders/"
-                ]
-            },
-            "editor_only": false
-        },
-        {
-            "name": "canvas_ui_text_grayscale",
-            "path": "shaders/canvas/canvas_ui_text_grayscale.hlsl",
-            "type": 7,
-            "config": {
-                "schema": "sfg.schema.shader",
-                "type": 28,
-                "include_dirs": [
-                    "assets/shaders/"
-                ]
-            },
-            "editor_only": false
-        },
-        {
-            "name": "canvas_ui_sdf",
-            "path": "shaders/canvas/canvas_ui_sdf.hlsl",
-            "type": 7,
-            "config": {
-                "schema": "sfg.schema.shader",
-                "type": 28,
-                "include_dirs": [
-                    "assets/shaders/"
-                ]
-            },
-            "editor_only": false
-        },
-        {
             "name": "debug_font",
             "path": "editor/templates/fonts/IBMPlexMono-Regular.ttf",
             "type": 2,
@@ -257,8 +205,8 @@
             "editor_only": false
         },
         {
-            "name": "ui_default",
-            "path": "shaders/editor/editor_ui_default.hlsl",
+            "name": "editor_ui",
+            "path": "shaders/editor/editor_ui.hlsl",
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
@@ -270,8 +218,8 @@
             "editor_only": true
         },
         {
-            "name": "ui_text_lcd",
-            "path": "shaders/editor/editor_ui_text_lcd.hlsl",
+            "name": "editor_ui_text",
+            "path": "shaders/editor/editor_ui_text.hlsl",
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
@@ -283,8 +231,8 @@
             "editor_only": true
         },
         {
-            "name": "ui_text_lcd_glitch",
-            "path": "shaders/editor/editor_ui_text_lcd_glitch.hlsl",
+            "name": "editor_ui_text_glitch",
+            "path": "shaders/editor/editor_ui_text_glitch.hlsl",
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
@@ -296,38 +244,12 @@
             "editor_only": true
         },
         {
-            "name": "ui_text_grayscale",
-            "path": "shaders/editor/editor_ui_text_grayscale.hlsl",
-            "type": 7,
-            "config": {
-                "schema": "sfg.schema.shader",
-                "type": 4,
-                "include_dirs": [
-                    "assets/shaders/"
-                ]
-            },
-            "editor_only": true
-        },
-        {
-            "name": "ui_sdf",
-            "path": "shaders/editor/editor_ui_sdf.hlsl",
-            "type": 7,
-            "config": {
-                "schema": "sfg.schema.shader",
-                "type": 3,
-                "include_dirs": [
-                    "assets/shaders/"
-                ]
-            },
-            "editor_only": true
-        },
-        {
-            "name": "ui_texture",
+            "name": "editor_ui_texture",
             "path": "shaders/editor/editor_ui_texture.hlsl",
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 1,
+                "type": 31,
                 "include_dirs": [
                     "assets/shaders/"
                 ]
@@ -335,12 +257,12 @@
             "editor_only": true
         },
         {
-            "name": "ui_texture_repeat",
+            "name": "editor_ui_texture_repeat",
             "path": "shaders/editor/editor_ui_texture_repeat.hlsl",
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 1,
+                "type": 31,
                 "include_dirs": [
                     "assets/shaders/"
                 ]
@@ -348,12 +270,12 @@
             "editor_only": true
         },
         {
-            "name": "ui_texture_mip",
+            "name": "editor_ui_texture_mip",
             "path": "shaders/editor/editor_ui_texture_mip.hlsl",
             "type": 7,
             "config": {
                 "schema": "sfg.schema.shader",
-                "type": 1,
+                "type": 31,
                 "include_dirs": [
                     "assets/shaders/"
                 ]
@@ -361,7 +283,7 @@
             "editor_only": true
         },
         {
-            "name": "ui_glitch_rect",
+            "name": "editor_ui_glitch_rect",
             "path": "shaders/editor/editor_ui_glitch_rect.hlsl",
             "type": 7,
             "config": {
@@ -374,7 +296,7 @@
             "editor_only": true
         },
         {
-            "name": "ui_color_wheel",
+            "name": "editor_ui_color_wheel",
             "path": "shaders/editor/editor_ui_color_wheel.hlsl",
             "type": 7,
             "config": {

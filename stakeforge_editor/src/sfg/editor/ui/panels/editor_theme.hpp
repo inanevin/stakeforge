@@ -78,7 +78,7 @@ namespace sfg
 		sid_t font_title		 = "editor/resources/fonts/Play/Play-Regular.ttf"_hs;
 		sid_t font_title_bold	 = "editor/resources/fonts/Play/Play-Bold.ttf"_hs;
 		sid_t font_icons		 = "editor/resources/fonts/icons.ttf"_hs;
-		sid_t shader_glitch_lcd	 = "shaders/editor/editor_ui_text_lcd_glitch.hlsl"_hs;
+		sid_t shader_glitch_text = "shaders/editor/editor_ui_text_glitch.hlsl"_hs;
 		sid_t shader_glitch_rect = "shaders/editor/editor_ui_glitch_rect.hlsl"_hs;
 
 		f32 aa_thickness			 = 2.0f;
