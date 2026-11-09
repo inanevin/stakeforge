@@ -487,35 +487,6 @@ namespace sfg
 		return true;
 	}
 
-	void editor_world_t::shoot_ray_from_camera(vec2f_t relative_position)
-	{
-		physics_world_t& physics = _world.get_physics();
-
-		if (!physics.is_init())
-			return;
-
-		physics_raycast_t ray = {};
-		physics_hit_t	  hit = {};
-
-		if (!get_camera_ray(relative_position, ray) || !physics.raycast_closest(ray, hit))
-			return;
-
-		const vec3f_t force = ray.direction * _edit_context.get_world_view_settings().physics_ray_force;
-
-		if (_world.get_component_table<component_system_ragdoll_t>().has(hit.entity))
-		{
-			physics.add_ragdoll_part_force(hit.entity, hit.sub_shape_id, force, hit.position);
-			return;
-		}
-
-		const component_physical_t* body = _world.get_component_table(type_id_t<component_physical_t>::value).find_as_const<component_physical_t>(hit.entity);
-
-		if (body == nullptr || body->motion_type != physics_motion_type_e::dynamic_body)
-			return;
-
-		physics.add_body_force(hit.entity, force);
-	}
-
 	void editor_world_t::consume_entity_pick_result()
 	{
 		const u64 packed_result = _pick_result.exchange(0, std::memory_order_acquire);

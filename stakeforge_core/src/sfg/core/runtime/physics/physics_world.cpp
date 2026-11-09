@@ -1828,14 +1828,6 @@ namespace sfg
 		_impl->destroy_ragdoll(entity);
 	}
 
-	void physics_world_t::add_ragdoll_part_force(entity_id_t entity, u32 part_index, const vec3f_t& force, const vec3f_t& position)
-	{
-		const component_system_ragdoll_t& ragdoll = _impl->_world->get_component_table<component_system_ragdoll_t>().get_as_const<component_system_ragdoll_t>(entity);
-		const JPH::BodyID				  body	  = ragdoll.ragdoll->GetBodyID(static_cast<i32>(part_index));
-
-		_impl->_system->GetBodyInterface().AddForce(body, physics_world_util_t::to_jolt(force), physics_world_util_t::to_jolt_position(position));
-	}
-
 	bool physics_world_t::begin_ragdoll_drag(entity_id_t entity, u32 part_index, const vec3f_t& position)
 	{
 		SFG_ASSERT(_impl->_ragdoll_drag == nullptr);
@@ -1933,16 +1925,6 @@ namespace sfg
 		}
 
 		_impl->_system->GetBodyInterface().SetAngularVelocity(JPH::BodyID(system_physics->body_id), physics_world_util_t::to_jolt(velocity));
-	}
-
-	void physics_world_t::add_body_force(entity_id_t entity, const vec3f_t& force)
-	{
-		const ecs_component_table_t&	  system_physics_table = _impl->_world->get_component_table(type_id_t<component_system_physics_t>::value);
-		const component_system_physics_t* system_physics	   = system_physics_table.find_as_const<component_system_physics_t>(entity);
-		SFG_ASSERT(system_physics != nullptr);
-		SFG_ASSERT(system_physics->character != nullptr || system_physics->body_id != UINT32_MAX);
-
-		_impl->_system->GetBodyInterface().AddForce(JPH::BodyID(system_physics->body_id), physics_world_util_t::to_jolt(force));
 	}
 
 	bool physics_world_t::add_body_impulse(entity_id_t entity, const vec3f_t& impulse)

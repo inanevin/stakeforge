@@ -73,7 +73,6 @@ namespace sfg
 		_grid_enabled			= false;
 		_bounding_boxes_enabled = false;
 		_physics_debug_enabled	= false;
-		_shoot_rays_enabled		= false;
 
 		_edit_type = editor_world_edit_type_e::full_control;
 	}

@@ -29,11 +29,10 @@ namespace sfg
 {
 	struct editor_world_view_settings_t
 	{
-		f32 physics_ray_force = 1000.0f;
-		f32 grid_scale		  = 1.0f;
-		f32 snap_translate	  = 0.0f;
-		f32 snap_rotate		  = 0.0f;
-		f32 snap_scale		  = 0.0f;
+		f32 grid_scale	   = 1.0f;
+		f32 snap_translate = 0.0f;
+		f32 snap_rotate	   = 0.0f;
+		f32 snap_scale	   = 0.0f;
 
 		bool operator==(const editor_world_view_settings_t&) const = default;
 	};

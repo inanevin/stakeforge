@@ -95,7 +95,6 @@ namespace sfg
 		static void on_grid_toggled(bool toggled, void* user_data);
 		static void on_bounding_boxes_toggled(bool toggled, void* user_data);
 		static void on_physics_debug_toggled(bool toggled, void* user_data);
-		static void on_shoot_rays_toggled(bool toggled, void* user_data);
 		static void on_perf_metrics_toggled(bool toggled, void* user_data);
 		static void on_perf_metrics_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
@@ -110,7 +109,6 @@ namespace sfg
 		editor_icon_button_t			   _grid_button;
 		editor_icon_button_t			   _bounding_boxes_button;
 		editor_icon_button_t			   _physics_debug_button;
-		editor_icon_button_t			   _shoot_rays_button;
 		transform_button_data_t			   _transform_button_data[3];
 		shading_button_data_t			   _shading_button_data[2];
 		ui::ui_context*					   _ui					   = nullptr;

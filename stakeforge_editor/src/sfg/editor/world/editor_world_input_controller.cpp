@@ -84,7 +84,7 @@ namespace sfg
 
 	void editor_world_input_controller_t::tick(const vec2f_t& relative_position, bool hovered)
 	{
-		if (!_pointer_drag_active && !_gizmo_press_consumed && !_shoot_ray_press_consumed && hovered)
+		if (!_pointer_drag_active && !_gizmo_press_consumed && hovered)
 			_world->update_gizmo_hover(relative_position);
 	}
 
@@ -124,12 +124,6 @@ namespace sfg
 			return;
 		}
 
-		if (_world->get_world().is_playing() && _world->get_edit_context().is_shoot_rays_enabled())
-		{
-			_shoot_ray_press_consumed = true;
-			return;
-		}
-
 		_gizmo_press_consumed = _world->begin_gizmo_action(relative_position);
 	}
 
@@ -161,13 +155,6 @@ namespace sfg
 		if (_camera_control)
 			return;
 
-		if (_shoot_ray_press_consumed)
-		{
-			_shoot_ray_press_consumed = false;
-			_world->shoot_ray_from_camera(relative_position);
-			return;
-		}
-
 		if (_gizmo_press_consumed)
 		{
 			_world->update_gizmo_action(relative_position);
@@ -187,7 +174,7 @@ namespace sfg
 
 	void editor_world_input_controller_t::pointer_hover_move(const vec2f_t& relative_position)
 	{
-		if (!_pointer_drag_active && !_gizmo_press_consumed && !_shoot_ray_press_consumed)
+		if (!_pointer_drag_active && !_gizmo_press_consumed)
 			_world->update_gizmo_hover(relative_position);
 	}
 
@@ -610,8 +597,7 @@ namespace sfg
 		_world->cancel_gizmo_action();
 		_world->clear_gizmo_hover();
 
-		_gizmo_press_consumed	  = false;
-		_shoot_ray_press_consumed = false;
+		_gizmo_press_consumed = false;
 	}
 
 	void editor_world_input_controller_t::focus_selection()

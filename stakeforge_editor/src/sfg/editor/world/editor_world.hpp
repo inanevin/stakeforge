@@ -145,7 +145,6 @@ namespace sfg
 		void cancel_gizmo_action();
 		void set_gizmo_callbacks(const editor_gizmo_callbacks_t& callbacks);
 		void request_entity_pick(vec2f_t relative_position, bool incremental_selection);
-		void shoot_ray_from_camera(vec2f_t relative_position);
 		bool get_camera_ray(vec2f_t relative_position, physics_raycast_t& ray) const;
 		void reset_input();
 		void begin_frame();

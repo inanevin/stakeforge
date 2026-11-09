@@ -124,19 +124,18 @@ namespace sfg
 		void hide(span_t<const entity_id_t> entities);
 
 	private:
-		vector_t<show_alone_entity_state_t>	  _show_alone_states		= {};
-		editor_world_pointer_drag_callbacks_t _drag_callbacks			= {};
-		editor_world_t*						  _world					= nullptr;
-		window_runtime_t*					  _camera_runtime			= nullptr;
-		window_runtime_t*					  _pointer_drag_runtime		= nullptr;
-		editor_world_handle_t				  _handle					= {};
-		u32									  _visibility_generation	= 0;
-		bool								  _show_alone_active		= false;
-		bool								  _camera_control			= false;
-		bool								  _gizmo_press_consumed		= false;
-		bool								  _shoot_ray_press_consumed = false;
-		bool								  _camera_pan_control		= false;
-		bool								  _pointer_drag_active		= false;
+		vector_t<show_alone_entity_state_t>	  _show_alone_states	 = {};
+		editor_world_pointer_drag_callbacks_t _drag_callbacks		 = {};
+		editor_world_t*						  _world				 = nullptr;
+		window_runtime_t*					  _camera_runtime		 = nullptr;
+		window_runtime_t*					  _pointer_drag_runtime	 = nullptr;
+		editor_world_handle_t				  _handle				 = {};
+		u32									  _visibility_generation = 0;
+		bool								  _show_alone_active	 = false;
+		bool								  _camera_control		 = false;
+		bool								  _gizmo_press_consumed	 = false;
+		bool								  _camera_pan_control	 = false;
+		bool								  _pointer_drag_active	 = false;
 
 		static editor_world_input_controller_t* s_active_camera_controller;
 		static editor_world_input_controller_t* s_active_drag_controller;

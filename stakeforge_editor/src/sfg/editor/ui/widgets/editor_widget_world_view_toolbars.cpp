@@ -339,15 +339,6 @@ namespace sfg
 		button_config.on_clicked   = on_physics_debug_toggled;
 		_physics_debug_button.init(ui, _physics_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _physics_debug_button);
-		editor_dividers_t::add_divider_ver(ui, _physics_frame, theme.border_thickness * 0.5f, theme.color_frame, theme.color_frame, ui::vg_gradient_e::none);
-
-		button_config.icon		   = ICON_EXPLOSION;
-		button_config.toggled_icon = ICON_EXPLOSION;
-		button_config.tooltip	   = "Physics Shoot Rays";
-		button_config.toggled	   = false;
-		button_config.on_clicked   = on_shoot_rays_toggled;
-		_shoot_rays_button.init(ui, _physics_frame, button_config);
-		set_icon_button_parent_relative_height(tree, _shoot_rays_button);
 
 		_perf_metrics_frame = ui.allocate_widget();
 		ui.set_widget_debug_name(_perf_metrics_frame, "world_view_perf_metrics_frame");
@@ -420,7 +411,6 @@ namespace sfg
 		if (_settings_popup.is_initialized())
 			editor_popup_controller_t::find(*_ui)->close_popup(false);
 
-		_shoot_rays_button.uninit();
 		_physics_debug_button.uninit();
 		_bounding_boxes_button.uninit();
 		_grid_button.uninit();
@@ -540,7 +530,6 @@ namespace sfg
 			return;
 
 		_physics_debug_button.set_toggled(context.is_physics_debug_enabled());
-		_shoot_rays_button.set_toggled(context.is_shoot_rays_enabled());
 	}
 
 	void editor_widget_world_view_toolbars_t::save_project_settings()
@@ -691,12 +680,6 @@ namespace sfg
 		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
 		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().set_physics_debug_enabled(toggled);
 		toolbar.save_project_settings();
-	}
-
-	void editor_widget_world_view_toolbars_t::on_shoot_rays_toggled(bool toggled, void* user_data)
-	{
-		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
-		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_edit_context().set_shoot_rays_enabled(toggled);
 	}
 
 	void editor_widget_world_view_toolbars_t::on_perf_metrics_toggled(bool toggled, void* user_data)

@@ -61,7 +61,6 @@ in GAME-LINKING-EXCEPTION.md.
 #define ICON_LIT			 "\u0040"
 #define ICON_UNLIT			 "\u005F"
 #define ICON_MESH			 "\u003D"
-#define ICON_EXPLOSION		 "\u003E"
 #define ICON_CUBES			 "\u003F"
 #define ICON_MOVE			 "\u0022"
 #define ICON_SCALE			 "\u0023"
