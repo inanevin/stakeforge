@@ -55,13 +55,28 @@ namespace sfg::ui
 
 		text_bounds_t measure_text_bounds(const char* text, size_t len, glyph_atlas_t& atlas, const font_runtime_t* font, const size_metrics_t& metrics, u32 px, glyph_raster_mode_e raster_mode, f32 scale, f32 spacing)
 		{
-			text_bounds_t bounds = {};
-			vec2f_t		  pen	 = {0.0f, metrics.ascent_px * scale};
-			u32			  prev	 = 0;
+			text_bounds_t bounds	 = {};
+			vec2f_t		  pen		 = {0.0f, metrics.ascent_px * scale};
+			u32			  prev		 = 0;
+			u32			  line_count = 1;
 
 			for (size_t i = 0; i < len; ++i)
 			{
 				const u32 c = static_cast<u8>(text[i]);
+
+				if (c == '\r' && i + 1 < len && text[i + 1] == '\n')
+					continue;
+
+				if (c == '\n' || c == '\r')
+				{
+					bounds.advance_x = math::max(bounds.advance_x, pen.x - (prev != 0 ? spacing : 0.0f));
+					pen.x			 = 0.0f;
+					pen.y += metrics.line_height_px * scale;
+					prev = 0;
+					++line_count;
+					continue;
+				}
+
 				if (prev != 0)
 					pen.x += atlas.get_kern_advance(font, prev, c, px) * scale;
 
@@ -95,12 +110,18 @@ namespace sfg::ui
 				prev = c;
 			}
 
-			bounds.advance_x = pen.x - spacing;
+			bounds.advance_x = math::max(bounds.advance_x, pen.x - (prev != 0 ? spacing : 0.0f));
 
 			if (!bounds.valid)
 			{
 				bounds.max_x = math::max(0.0f, bounds.advance_x);
 				bounds.max_y = metrics.line_height_px * scale;
+			}
+
+			if (line_count > 1)
+			{
+				bounds.min_y = 0.0f;
+				bounds.max_y = math::max(bounds.max_y, metrics.line_height_px * scale * line_count);
 			}
 
 			return bounds;
@@ -1250,26 +1271,41 @@ namespace sfg::ui
 		}
 
 		const u32 char_count = static_cast<u32>(len);
-		const u32 vtx_count	 = char_count * 4;
-		const u32 idx_count	 = char_count * 6;
+		u32		  vtx_count	 = char_count * 4;
+		u32		  idx_count	 = char_count * 6;
 
 		if (_text_cache_vertex_count + vtx_count > _text_cache_vertex_capacity || _text_cache_index_count + idx_count > _text_cache_index_capacity)
 			return {};
 
-		const u32			 px		 = get_text_paint_raster_px(paint);
-		glyph_atlas_t&		 atlas	 = resource_manager_t::get().get_glyph_atlas();
-		const size_metrics_t metrics = atlas.request_size_metrics(paint.font, px);
-		const f32			 scale	 = get_text_paint_draw_scale(paint, px);
-		const f32			 spacing = paint.spacing;
-		text_bounds_t		 bounds	 = {};
-		vec2f_t				 pen	 = {0.0f, metrics.ascent_px * scale};
-		vg_vertex_t*		 verts	 = &_text_cache_vertex_buffer[_text_cache_vertex_count];
-		vg_index_t*			 indices = &_text_cache_index_buffer[_text_cache_index_count];
-		u32					 prev	 = 0;
+		const u32			 px			   = get_text_paint_raster_px(paint);
+		glyph_atlas_t&		 atlas		   = resource_manager_t::get().get_glyph_atlas();
+		const size_metrics_t metrics	   = atlas.request_size_metrics(paint.font, px);
+		const f32			 scale		   = get_text_paint_draw_scale(paint, px);
+		const f32			 spacing	   = paint.spacing;
+		text_bounds_t		 bounds		   = {};
+		vec2f_t				 pen		   = {0.0f, metrics.ascent_px * scale};
+		vg_vertex_t*		 verts		   = &_text_cache_vertex_buffer[_text_cache_vertex_count];
+		vg_index_t*			 indices	   = &_text_cache_index_buffer[_text_cache_index_count];
+		u32					 prev		   = 0;
+		u32					 line_count	   = 1;
+		u32					 emitted_chars = 0;
 
 		for (u32 i = 0; i < char_count; ++i)
 		{
 			const u32 c = static_cast<u8>(text[i]);
+
+			if (c == '\r' && i + 1 < char_count && text[i + 1] == '\n')
+				continue;
+
+			if (c == '\n' || c == '\r')
+			{
+				bounds.advance_x = math::max(bounds.advance_x, pen.x - (prev != 0 ? spacing : 0.0f));
+				pen.x			 = 0.0f;
+				pen.y += metrics.line_height_px * scale;
+				prev = 0;
+				++line_count;
+				continue;
+			}
 
 			if (prev != 0)
 				pen.x += atlas.get_kern_advance(paint.font, prev, c, px) * scale;
@@ -1304,10 +1340,10 @@ namespace sfg::ui
 			const f32 v0 = paint.flip_uv ? glyph->uv_y + glyph->uv_h : glyph->uv_y;
 			const f32 v1 = paint.flip_uv ? glyph->uv_y : glyph->uv_y + glyph->uv_h;
 
-			vg_vertex_t& v0_out = verts[i * 4 + 0];
-			vg_vertex_t& v1_out = verts[i * 4 + 1];
-			vg_vertex_t& v2_out = verts[i * 4 + 2];
-			vg_vertex_t& v3_out = verts[i * 4 + 3];
+			vg_vertex_t& v0_out = verts[emitted_chars * 4 + 0];
+			vg_vertex_t& v1_out = verts[emitted_chars * 4 + 1];
+			vg_vertex_t& v2_out = verts[emitted_chars * 4 + 2];
+			vg_vertex_t& v3_out = verts[emitted_chars * 4 + 3];
 
 			v0_out.pos = {quad_left, quad_top};
 			v1_out.pos = {quad_right, quad_top};
@@ -1329,24 +1365,33 @@ namespace sfg::ui
 			v2_out.uv = {u1, v1};
 			v3_out.uv = {u0, v1};
 
-			const u32 base	   = i * 4;
-			indices[i * 6 + 0] = static_cast<vg_index_t>(base + 0);
-			indices[i * 6 + 1] = static_cast<vg_index_t>(base + 1);
-			indices[i * 6 + 2] = static_cast<vg_index_t>(base + 3);
-			indices[i * 6 + 3] = static_cast<vg_index_t>(base + 1);
-			indices[i * 6 + 4] = static_cast<vg_index_t>(base + 2);
-			indices[i * 6 + 5] = static_cast<vg_index_t>(base + 3);
+			const u32 base				   = emitted_chars * 4;
+			indices[emitted_chars * 6 + 0] = static_cast<vg_index_t>(base + 0);
+			indices[emitted_chars * 6 + 1] = static_cast<vg_index_t>(base + 1);
+			indices[emitted_chars * 6 + 2] = static_cast<vg_index_t>(base + 3);
+			indices[emitted_chars * 6 + 3] = static_cast<vg_index_t>(base + 1);
+			indices[emitted_chars * 6 + 4] = static_cast<vg_index_t>(base + 2);
+			indices[emitted_chars * 6 + 5] = static_cast<vg_index_t>(base + 3);
 
 			pen.x += glyph->advance_x * scale + spacing;
 			prev = c;
+			++emitted_chars;
 		}
 
-		bounds.advance_x = pen.x - spacing;
+		vtx_count		 = emitted_chars * 4;
+		idx_count		 = emitted_chars * 6;
+		bounds.advance_x = math::max(bounds.advance_x, pen.x - (prev != 0 ? spacing : 0.0f));
 
 		if (!bounds.valid)
 		{
 			bounds.max_x = math::max(0.0f, bounds.advance_x);
 			bounds.max_y = metrics.line_height_px * scale;
+		}
+
+		if (line_count > 1)
+		{
+			bounds.min_y = 0.0f;
+			bounds.max_y = math::max(bounds.max_y, metrics.line_height_px * scale * line_count);
 		}
 
 		for (u32 i = 0; i < vtx_count; ++i)
@@ -1540,7 +1585,19 @@ namespace sfg::ui
 
 		for (size_t i = 0; i < len; ++i)
 		{
-			const u32			 c = static_cast<u8>(text[i]);
+			const u32 c = static_cast<u8>(text[i]);
+
+			if (c == '\r' && i + 1 < len && text[i + 1] == '\n')
+				continue;
+
+			if (c == '\n' || c == '\r')
+			{
+				pen.x = pen_origin.x - bounds.min_x;
+				pen.y += metrics.line_height_px * scale;
+				prev = 0;
+				continue;
+			}
+
 			const glyph_entry_t* g = atlas.request_glyph(paint.font, c, px, paint.raster_mode);
 
 			if (prev != 0)
