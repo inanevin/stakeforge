@@ -122,7 +122,7 @@ namespace sfg
 		SFG_ASSERT(!_initialized);
 		_config = config;
 		_init_failure_reason.resize(0);
-		_package_directory = file_system_t::get_running_directory();
+		_package_directory = file_system_t::get_directory_of_file(process::get_executable_path().c_str());
 
 		const string_t resource_path = _package_directory + project_package_meta_t::RESOURCE_FILE_NAME;
 		const string_t meta_path	 = _package_directory + project_package_meta_t::FILE_NAME;
@@ -163,7 +163,7 @@ namespace sfg
 		frame_allocator_tls_t::init(config.main_frame_budget_bytes);
 		_frame_allocator_initialized = true;
 
-		const string_t plugin_path		  = file_system_t::get_directory_of_file(process::get_executable_path().c_str()) + _package_meta.project_name + ".dll";
+		const string_t plugin_path		  = _package_directory + _package_meta.project_name + ".dll";
 		string_t	   plugin_diagnostics = {};
 
 		if (!game_plugin_runtime_t::get().load(plugin_path.c_str(), plugin_diagnostics))

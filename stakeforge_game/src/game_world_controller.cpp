@@ -31,8 +31,10 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
 #include <sfg/core/runtime/engine/engine_threads.hpp>
 #include <sfg/core/runtime/project/project_settings.hpp>
-#include <sfg/core/runtime/world_renderer/stock_world_renderer.hpp>
+#include <sfg/core/runtime/plugin/game_plugin_runtime.hpp>
+#include <sfg/core/runtime/world_renderer/stock_world_renderer_context.hpp>
 #include <sfg/core/runtime/world_renderer/world_renderer_view.hpp>
+#include <sfg/core/runtime/world_renderer/world_renderer_camera.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
@@ -95,7 +97,14 @@ namespace sfg
 		};
 
 		_main_world.init(world_config);
-		_world_renderer = new stock_world_renderer_t();
+		_world_renderer = game_plugin_runtime_t::get().create_world_renderer(_main_world);
+
+		if (_world_renderer == nullptr)
+		{
+			_main_world.uninit();
+			return false;
+		}
+
 		_world_renderer->init(render_context_config, world_config.debug_draw);
 		_package_meta = &package_meta;
 
@@ -124,7 +133,7 @@ namespace sfg
 			_main_world.end_play();
 
 		_world_renderer->uninit();
-		delete _world_renderer;
+		game_plugin_runtime_t::get().destroy_world_renderer(_world_renderer);
 		_world_renderer = nullptr;
 
 		_main_world.unload_all_used_resources();
@@ -145,8 +154,6 @@ namespace sfg
 
 		SFG_ASSERT(_initialized);
 
-		_main_world.get_debug_draw().begin_frame();
-
 		const project_settings_t& settings = engine_runtime_t::get().get_project_settings();
 		const i64				  now	   = time_t::get_cpu_microseconds();
 		const i64				  delta_us = now - _previous_time_us;
@@ -165,6 +172,7 @@ namespace sfg
 			{
 				_accumulator_us -= fixed_us;
 
+				_main_world.get_debug_draw().begin_frame();
 				_main_world.tick_logic(dt_seconds);
 				_main_world.update_world_transforms_for_tick();
 				_main_world.tick_physics(dt_seconds);
@@ -195,7 +203,8 @@ namespace sfg
 
 		_main_world.tick_finalize();
 
-		_main_world.get_debug_draw().debug_draw_missing_resources(_main_world);
+		if (steps != 0)
+			_main_world.get_debug_draw().debug_draw_missing_resources(_main_world);
 
 		resource_manager_t::get().flush_material_updates();
 
@@ -261,7 +270,12 @@ namespace sfg
 		_main_world.clear_used_resources();
 		_main_world.reset_world_state();
 
-		world_cooker_t::world_from_json(_main_world, world_json);
+		if (!world_cooker_t::world_from_json(_main_world, world_json))
+		{
+			SFG_ERR("failed to deserialize packaged world: {0}", world);
+			return false;
+		}
+
 		_main_world.set_world_name(selected_world->name_hash);
 		_main_world.update_world_transforms();
 		update_screen_camera();
