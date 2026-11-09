@@ -187,21 +187,21 @@ namespace sfg
 
 	quat_t quat_t::look_at(const vec3f_t& source_point, const vec3f_t& target_point, const vec3f_t& up_vector)
 	{
-		vec3f_t forward_vec	 = (target_point - source_point).normalized();
-		vec3f_t right_vec	 = vec3f_t::cross(up_vector, forward_vec).normalized();
-		vec3f_t final_up_vec = vec3f_t::cross(forward_vec, right_vec);
+		vec3f_t backward_vec = (source_point - target_point).normalized();
+		vec3f_t right_vec	 = vec3f_t::cross(up_vector, backward_vec).normalized();
+		vec3f_t final_up_vec = vec3f_t::cross(backward_vec, right_vec);
 
 		f32 m00 = right_vec.x;
 		f32 m01 = final_up_vec.x;
-		f32 m02 = forward_vec.x;
+		f32 m02 = backward_vec.x;
 		f32 m10 = right_vec.y;
 		f32 m11 = final_up_vec.y;
-		f32 m12 = forward_vec.y;
+		f32 m12 = backward_vec.y;
 		f32 m20 = right_vec.z;
 		f32 m21 = final_up_vec.z;
-		f32 m22 = forward_vec.z;
+		f32 m22 = backward_vec.z;
 
-		quat_t q;
+		quat_t q	 = quat_t::identity;
 		f32	   trace = m00 + m11 + m22;
 
 		if (trace > 0.0f)
