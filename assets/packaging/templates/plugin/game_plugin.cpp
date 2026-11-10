@@ -22,6 +22,10 @@ in GAME-LINKING-EXCEPTION.md.
 #include "game_plugin_type_registry.hpp"
 #include "game_world.hpp"
 
+#ifdef SFG_EDITOR
+#include "editor/game_editor.hpp"
+#endif
+
 #include <sfg/core/runtime/plugin/game_plugin_api.hpp>
 
 namespace game
@@ -32,6 +36,13 @@ namespace game
 
 	void unload()
 	{
+	}
+
+	void editor_tick(sfg::world_t& world, f32 dt)
+	{
+#ifdef SFG_EDITOR
+		game_editor_t::tick(world, dt);
+#endif
 	}
 }
 
@@ -45,6 +56,7 @@ SFG_GAME_PLUGIN_ENTRY bool sfg_get_game_plugin_callbacks(u32 api_version, sfg::g
 		.register_types		= game::game_plugin_type_registry_t::register_types,
 		.load				= game::load,
 		.unload				= game::unload,
+		.editor_tick		= game::editor_tick,
 		.begin_play			= game::game_world_t::begin_play,
 		.end_play			= game::game_world_t::end_play,
 		.tick_logic			= game::game_world_t::tick_logic,

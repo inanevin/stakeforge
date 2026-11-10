@@ -44,28 +44,24 @@ namespace sfg
 
 	void editor_plugin_manager_t::init(const editor_project_runtime_t& project)
 	{
-		SFG_ASSERT(!game_plugin_runtime_t::get().is_loaded() && !_game_editor_plugin.is_loaded() && _work.is_null());
+		SFG_ASSERT(!game_plugin_runtime_t::get().is_loaded() && _work.is_null());
 
-		_build_directory		= project.plugin_intermediate_path;
-		_output_game_dll		= file_system_t::get_absolute_path((project.plugin_library_path + SFG_CONFIGURATION + "/" + project.name + ".dll").c_str());
-		_output_game_editor_dll = file_system_t::remove_extensions_from_path(_output_game_dll) + "_editor.dll";
-		_output_ready			= file_system_t::remove_extensions_from_path(_output_game_dll) + ".plugin_ready";
-		_game_editor_path_id	= editor_asset_path_t::hash_path(_output_game_editor_dll.c_str());
-		_ready_path_id			= editor_asset_path_t::hash_path(_output_ready.c_str());
-		_shadow_directory		= project.plugin_intermediate_path + "Loaded/";
-		_output_path_id			= editor_asset_path_t::hash_path(_output_game_dll.c_str());
-		_observed_stamp			= {};
-		_compile_result			= {};
-		_stage_result			= {};
-		_ide_session			= {};
-		_state					= state_e::startup;
-		_stopping				= false;
-		_reload_pending			= false;
-		_force_reload			= false;
-		_error_pending			= false;
-		_modal_open				= false;
-		_retry_time_us			= 0;
-		_retry_deadline_us		= 0;
+		_build_directory   = project.plugin_intermediate_path;
+		_output_game_dll   = file_system_t::get_absolute_path((project.plugin_library_path + SFG_CONFIGURATION + "/" + project.name + ".dll").c_str());
+		_shadow_directory  = project.plugin_intermediate_path + "Loaded/";
+		_output_path_id	   = editor_asset_path_t::hash_path(_output_game_dll.c_str());
+		_observed_stamp	   = {};
+		_compile_result	   = {};
+		_stage_result	   = {};
+		_ide_session	   = {};
+		_state			   = state_e::startup;
+		_stopping		   = false;
+		_reload_pending	   = false;
+		_force_reload	   = false;
+		_error_pending	   = false;
+		_modal_open		   = false;
+		_retry_time_us	   = 0;
+		_retry_deadline_us = 0;
 	}
 
 	void editor_plugin_manager_t::prepare_startup(editor_work_context_t& context)
@@ -78,7 +74,7 @@ namespace sfg
 			return;
 		}
 
-		if (!file_system_t::exists(_output_game_dll.c_str()) || !file_system_t::exists(_output_game_editor_dll.c_str()) || !file_system_t::exists(_output_ready.c_str()))
+		if (!file_system_t::exists(_output_game_dll.c_str()))
 		{
 			context.set_progress(0.4f, "Building C++ project for the first time");
 			_compile_result = plugin_compiler_t::compile(_build_directory.c_str(), _output_game_dll.c_str(), SFG_CONFIGURATION);
@@ -90,7 +86,7 @@ namespace sfg
 			}
 		}
 
-		context.set_progress(0.9f, "Preparing runtime and game editor DLLs");
+		context.set_progress(0.9f, "Preparing game DLL");
 		_stage_result = plugin_compiler_t::stage(_output_game_dll.c_str(), _shadow_directory.c_str(), {});
 	}
 
@@ -123,15 +119,24 @@ namespace sfg
 	{
 		SFG_ASSERT(_work.is_null());
 
-		if (!discard_staged_modules(_diagnostics))
+		game_plugin_runtime_t& plugin = game_plugin_runtime_t::get();
+
+		if (plugin.is_staged())
 		{
-			SFG_ERR("{0}", _diagnostics);
-			return;
+			const bool discarded = plugin.discard_staged(_diagnostics);
+
+			if (!discarded)
+			{
+				SFG_ERR("{0}", _diagnostics);
+				return;
+			}
 		}
 
-		if (!game_plugin_runtime_t::get().get_path().empty())
+		if (!plugin.get_path().empty())
 		{
-			if ((!_game_editor_plugin.get_path().empty() && !_game_editor_plugin.unload(_diagnostics)) || !game_plugin_runtime_t::get().unload(_diagnostics))
+			const bool unloaded = plugin.unload(_diagnostics);
+
+			if (!unloaded)
 				SFG_ERR("{0}", _diagnostics);
 		}
 
@@ -205,7 +210,7 @@ namespace sfg
 	{
 		for (const editor_file_change_t& change : changes)
 		{
-			if (change.root != editor_file_watch_root_e::plugin || (change.path_id != _output_path_id && change.path_id != _game_editor_path_id && change.path_id != _ready_path_id && change.path_id != NULL_SID))
+			if (change.root != editor_file_watch_root_e::plugin || (change.path_id != _output_path_id && change.path_id != NULL_SID))
 				continue;
 
 			_reload_pending	   = true;
@@ -261,7 +266,7 @@ namespace sfg
 
 		_compile_result		  = {};
 		_stage_result		  = {};
-		_stage_previous_stamp = _force_reload ? plugin_module_stamp_t{} : _observed_stamp;
+		_stage_previous_stamp = _force_reload ? plugin_binary_stamp_t{} : _observed_stamp;
 		_error_pending		  = false;
 		_state				  = operation;
 
@@ -269,7 +274,7 @@ namespace sfg
 			_reload_pending = false;
 
 		_progress_modal.set_progress(0.05f);
-		_displayed_status						  = operation == state_e::opening_ide ? "Opening the C++ solution in Visual Studio" : operation == state_e::compiling ? "Building the C++ project" : "Preparing runtime and game editor DLLs";
+		_displayed_status						  = operation == state_e::opening_ide ? "Opening the C++ solution in Visual Studio" : operation == state_e::compiling ? "Building the C++ project" : "Preparing game DLL";
 		const char*						  title	  = operation == state_e::opening_ide ? "Opening Visual Studio" : operation == state_e::compiling ? "Compiling C++ Project" : "Reloading C++ Project";
 		const editor_modal_content_desc_t content = _progress_modal.get_content_desc();
 		modal.request_modal(title, _displayed_status.c_str(), false, nullptr, 0, &content);
@@ -306,7 +311,7 @@ namespace sfg
 							return false;
 					}
 
-					context.set_progress(0.9f, "Copying runtime and game editor DLLs and symbols");
+					context.set_progress(0.9f, "Copying game DLL and symbols");
 					manager._stage_result = plugin_compiler_t::stage(manager._output_game_dll.c_str(), manager._shadow_directory.c_str(), manager._stage_previous_stamp);
 					return true;
 				},
@@ -382,34 +387,9 @@ namespace sfg
 		_retry_deadline_us = 0;
 	}
 
-	bool editor_plugin_manager_t::discard_staged_modules(string_t& diagnostics)
-	{
-		if (_game_editor_plugin.is_staged() && !_game_editor_plugin.discard_staged(diagnostics))
-			return false;
-
-		game_plugin_runtime_t& plugin = game_plugin_runtime_t::get();
-
-		return !plugin.is_staged() || plugin.discard_staged(diagnostics);
-	}
-
-	bool editor_plugin_manager_t::stage_modules(const char* game_path, const char* game_editor_path, string_t& diagnostics)
-	{
-		game_plugin_runtime_t& plugin = game_plugin_runtime_t::get();
-
-		if (!plugin.stage(game_path, diagnostics))
-			return false;
-
-		plugin.get_staged_schema().register_reflection_types();
-		const bool staged = _game_editor_plugin.stage(game_editor_path, diagnostics);
-		reflection_registry_t::get().remove_plugin_types();
-		return staged;
-	}
-
 	void editor_plugin_manager_t::activate_staged_module()
 	{
-		game_plugin_runtime_t& plugin				= game_plugin_runtime_t::get();
-		const string_t		   previous_game_path	= plugin.get_path();
-		const string_t		   previous_game_editor = _game_editor_plugin.get_path();
+		game_plugin_runtime_t& plugin = game_plugin_runtime_t::get();
 
 		editor_app_t::get().stop_render();
 
@@ -437,58 +417,33 @@ namespace sfg
 			}
 		}
 
-		bool ready = !_game_editor_plugin.is_loaded() || _game_editor_plugin.deactivate(_diagnostics);
-
-		if (ready && plugin.is_loaded())
-			ready = plugin.deactivate(_diagnostics);
+		bool ready = plugin.stage(_stage_result.game_path.c_str(), _diagnostics);
 
 		if (ready)
-			ready = stage_modules(_stage_result.game_path.c_str(), _stage_result.game_editor_path.c_str(), _diagnostics);
-
-		if (!ready)
 		{
-			_error_pending				  = true;
-			string_t recovery_diagnostics = {};
-			bool	 recovered			  = discard_staged_modules(recovery_diagnostics);
-
-			if (recovered && !previous_game_path.empty() && !plugin.is_loaded())
-				recovered = stage_modules(previous_game_path.c_str(), previous_game_editor.c_str(), recovery_diagnostics);
-			else if (recovered && plugin.is_loaded() && !_game_editor_plugin.is_loaded())
-				recovered = _game_editor_plugin.stage(previous_game_editor.c_str(), recovery_diagnostics);
-
-			if (!recovered)
-			{
-				_diagnostics += "\nCould not restore the previous plugin pair: " + recovery_diagnostics;
-				string_t discard_diagnostics = {};
-
-				if (!discard_staged_modules(discard_diagnostics))
-					_diagnostics += "\n" + discard_diagnostics;
-			}
-		}
-
-		if (plugin.is_staged())
-		{
-			SFG_ASSERT(!plugin.is_loaded());
-
-			const bool activated = plugin.activate_staged(_diagnostics, [](const plugin_type_schema_t& previous, const plugin_type_schema_t& current, const plugin_type_schema_delta_t& delta) {
+			ready = plugin.activate_staged(_diagnostics, [](const plugin_type_schema_t& previous, const plugin_type_schema_t& current, const plugin_type_schema_delta_t& delta) {
 				if (editor_world_controller_t::is_initialized())
 					editor_world_controller_t::get().apply_plugin_type_schema(previous, current, delta);
 			});
-			SFG_ASSERT(activated);
-		}
-
-		if (_game_editor_plugin.is_staged())
-		{
-			SFG_ASSERT(!_game_editor_plugin.is_loaded());
-
-			const bool activated = _game_editor_plugin.activate_staged(_diagnostics);
-			SFG_ASSERT(activated);
 		}
 
 		if (ready)
 			_observed_stamp = _stage_result.stamp;
 		else
+		{
+			_error_pending = true;
+
+			if (plugin.is_staged())
+			{
+				string_t   discard_diagnostics = {};
+				const bool discarded		   = plugin.discard_staged(discard_diagnostics);
+
+				if (!discarded)
+					_diagnostics += "\n" + discard_diagnostics;
+			}
+
 			SFG_ERR("{0}", _diagnostics);
+		}
 
 		for (editor_panel_inspector_t* inspector : inspectors)
 			inspector->refresh_display();

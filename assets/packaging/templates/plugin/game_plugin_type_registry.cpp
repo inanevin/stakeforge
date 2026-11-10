@@ -23,6 +23,10 @@ in GAME-LINKING-EXCEPTION.md.
 #include "game_plugin_type_registry.hpp"
 #include "game_components.hpp"
 
+#ifdef SFG_EDITOR
+#include "editor/game_editor_type_registry.hpp"
+#endif
+
 #include <sfg/core/reflection/reflection_container_ops.hpp>
 #include <sfg/core/runtime/resources/resource_type.hpp>
 #include <sfg/core/reflection/plugin_type_schema.hpp>
@@ -303,5 +307,9 @@ namespace game
 					},
 					.flags = reflected_type_flag_component,
 				});
+
+#ifdef SFG_EDITOR
+		game_editor_type_registry_t::register_types(schema);
+#endif
 	}
 }

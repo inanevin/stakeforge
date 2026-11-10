@@ -39,7 +39,7 @@ namespace sfg
 	struct world_config_t;
 	enum class world_config_type_e : u8;
 
-	inline constexpr u32 GAME_PLUGIN_API_VERSION = 20;
+	inline constexpr u32 GAME_PLUGIN_API_VERSION = 21;
 
 	struct game_plugin_callbacks_t
 	{
@@ -49,6 +49,7 @@ namespace sfg
 		void (*register_types)(plugin_type_schema_t& schema)															   = nullptr;
 		void (*load)()																									   = nullptr;
 		void (*unload)()																								   = nullptr;
+		void (*editor_tick)(world_t& world, f32 dt)																		   = nullptr;
 		void (*begin_play)(world_t& world)																				   = nullptr;
 		void (*end_play)(world_t& world)																				   = nullptr;
 		void (*tick_logic)(world_t& world, f32 dt)																		   = nullptr;

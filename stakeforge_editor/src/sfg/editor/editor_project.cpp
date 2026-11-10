@@ -184,64 +184,32 @@ namespace sfg
 			return false;
 		}
 
-		const string_t runtime_path		= source_path + "runtime/";
 		const string_t game_editor_path = source_path + "editor/";
 
-		if (!file_system_t::ensure_directory(runtime_path.c_str()) || !file_system_t::ensure_directory(game_editor_path.c_str()))
+		if (!file_system_t::ensure_directory(game_editor_path.c_str()))
 		{
-			SFG_ERR("could not create runtime and game editor source directories in {0}", source_path);
+			SFG_ERR("could not create editor source directory in {0}", source_path);
 			return false;
 		}
 
-		const string_t legacy_cmake = source_path + "CMakeLists.txt.pre_game_editor";
-		const bool	   legacy		= file_system_t::exists((source_path + "CMakeLists.txt").c_str()) && !file_system_t::exists((runtime_path + "CMakeLists.txt").c_str());
-
-		if (legacy)
+		if (file_system_t::exists((source_path + "runtime/CMakeLists.txt").c_str()))
 		{
-			if (!file_system_t::exists(legacy_cmake.c_str()) && !file_system_t::copy_file((source_path + "CMakeLists.txt").c_str(), legacy_cmake.c_str()))
-				return false;
-
-			vector_t<string_t> files = {};
-			file_system_t::get_files_recursive(source_path.c_str(), files);
-
-			for (const string_t& file : files)
-			{
-				const string_t relative = file_system_t::get_relative(source_path.c_str(), file.c_str());
-
-				if (relative.starts_with("runtime/") || relative.starts_with("editor/") || relative == "CMakeLists.txt" || relative == "CMakeLists.txt.pre_game_editor" || relative == ".clang-format")
-					continue;
-
-				const string_t destination = runtime_path + relative;
-
-				if (file_system_t::exists(destination.c_str()))
-				{
-					SFG_ERR("cannot migrate plugin source because the destination already exists: {0}", destination);
-					return false;
-				}
-
-				if (!file_system_t::ensure_directory(file_system_t::get_directory_of_file(destination.c_str()).c_str()) || !file_system_t::replace_file(file.c_str(), destination.c_str()))
-					return false;
-			}
-
-			if (!file_system_t::copy_file((template_path + "CMakeLists.txt").c_str(), (source_path + "CMakeLists.txt").c_str()))
-				return false;
-
-			SFG_INFO("migrated plugin sources to {0}; previous CMake configuration saved to {1}", runtime_path, legacy_cmake);
+			SFG_ERR("C++ project at {0} uses the old two-DLL layout. Move game sources to Source and merge editor hooks into game_plugin.cpp before regenerating.", source_path);
+			return false;
 		}
 
 		for (const char* name : {"CMakeLists.txt",
 								 ".clang-format",
-								 "runtime/CMakeLists.txt",
-								 "runtime/game_plugin.cpp",
-								 "runtime/game_world.hpp",
-								 "runtime/game_world.cpp",
-								 "runtime/game_components.hpp",
-								 "runtime/game_plugin_type_registry.hpp",
-								 "runtime/game_plugin_type_registry.cpp",
-								 "editor/CMakeLists.txt",
-								 "editor/game_editor_plugin.cpp",
-								 "editor/game_editor_plugin_type_registry.hpp",
-								 "editor/game_editor_plugin_type_registry.cpp"})
+								 "game_plugin.cpp",
+								 "game_world.hpp",
+								 "game_world.cpp",
+								 "game_components.hpp",
+								 "game_plugin_type_registry.hpp",
+								 "game_plugin_type_registry.cpp",
+								 "editor/game_editor.hpp",
+								 "editor/game_editor.cpp",
+								 "editor/game_editor_type_registry.hpp",
+								 "editor/game_editor_type_registry.cpp"})
 		{
 			const string_t destination = source_path + name;
 
@@ -258,7 +226,7 @@ namespace sfg
 		}
 
 		const string_t signature_path = _runtime.plugin_intermediate_path + "stakeforge_generation.txt";
-		const string_t signature	  = "runtime-game_editor-v1\n" + sdk_path + "\n" + source_path + "\n" + library_path + "\n" + _runtime.name + "\n" + settings_text;
+		const string_t signature	  = "game-plugin-v2\n" + sdk_path + "\n" + source_path + "\n" + library_path + "\n" + _runtime.name + "\n" + settings_text;
 		const bool	   fresh		  = !file_system_t::exists(signature_path.c_str()) || file_system_t::read_file_as_string(signature_path.c_str()) != signature;
 		string_t	   command		  = "\"" + cmake_path + "\" -S \"" + source_path + "\" -B \"" + build_path + "\"";
 		command += " -G \"" + generator + "\" -A \"" + architecture + ",version=" + windows_sdk + "\" -T \"" + toolset + "\"";

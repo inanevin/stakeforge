@@ -39,8 +39,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/world/editor_world.hpp"
 #include "editor/world/editor_world_util.hpp"
 
-#include "editor/plugin/editor_plugin_manager.hpp"
-
 #include <sfg/core/runtime/plugin/game_plugin_runtime.hpp>
 #include <sfg/core/common/hashing.hpp>
 #include <sfg/core/data/frame_vector.hpp>
@@ -315,7 +313,7 @@ namespace sfg
 			editor_world->invoke_tick_callback(frame_delta_seconds);
 
 			if (handle == _main_world)
-				editor_plugin_manager_t::get().get_game_editor_plugin().tick_logic(editor_world->get_world(), frame_delta_seconds);
+				game_plugin_runtime_t::get().editor_tick(editor_world->get_world(), frame_delta_seconds);
 
 			world_t& world = editor_world->get_world();
 

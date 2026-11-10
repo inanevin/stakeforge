@@ -45,8 +45,13 @@ namespace sfg
 
 	bool game_plugin_runtime_t::stage(const char* path, string_t& diagnostics)
 	{
-		if (_staged_library != nullptr && !discard_staged(diagnostics))
-			return false;
+		if (_staged_library != nullptr)
+		{
+			const bool discarded = discard_staged(diagnostics);
+
+			if (!discarded)
+				return false;
+		}
 
 		SFG_ASSERT(_playing_world_count == 0);
 
@@ -59,13 +64,21 @@ namespace sfg
 
 		const game_plugin_entry_fn entry	  = reinterpret_cast<game_plugin_entry_fn>(process::get_library_symbol(library, "sfg_get_game_plugin_callbacks", diagnostics));
 		game_plugin_callbacks_t	   callbacks  = {};
-		const bool				   compatible = entry != nullptr && entry(GAME_PLUGIN_API_VERSION, callbacks);
-		const bool				   complete = compatible && callbacks.register_types != nullptr && callbacks.load != nullptr && callbacks.unload != nullptr &&
-											  (callbacks.begin_play != nullptr && callbacks.end_play != nullptr && callbacks.tick_logic != nullptr && callbacks.tick_physics != nullptr && callbacks.tick_animation != nullptr && callbacks.key_event != nullptr &&
-											   callbacks.mouse_button_event != nullptr && callbacks.mouse_move_event != nullptr && callbacks.mouse_wheel_event != nullptr && callbacks.focus_event != nullptr && callbacks.physics_contact != nullptr &&
-											   callbacks.animation_event != nullptr && callbacks.canvas_event != nullptr);
+		bool					   compatible = false;
 
-		if (!complete || ((callbacks.create_world_renderer == nullptr) != (callbacks.destroy_world_renderer == nullptr)))
+		if (entry != nullptr)
+			compatible = entry(GAME_PLUGIN_API_VERSION, callbacks);
+
+		const bool lifecycle_complete = callbacks.register_types != nullptr && callbacks.load != nullptr && callbacks.unload != nullptr;
+		const bool play_complete	  = callbacks.begin_play != nullptr && callbacks.end_play != nullptr;
+		const bool ticks_complete	  = callbacks.editor_tick != nullptr && callbacks.tick_logic != nullptr && callbacks.tick_physics != nullptr && callbacks.tick_animation != nullptr;
+		const bool keyboard_complete  = callbacks.key_event != nullptr && callbacks.focus_event != nullptr;
+		const bool mouse_complete	  = callbacks.mouse_button_event != nullptr && callbacks.mouse_move_event != nullptr && callbacks.mouse_wheel_event != nullptr;
+		const bool events_complete	  = callbacks.physics_contact != nullptr && callbacks.animation_event != nullptr && callbacks.canvas_event != nullptr;
+		const bool renderer_complete  = (callbacks.create_world_renderer == nullptr) == (callbacks.destroy_world_renderer == nullptr);
+		const bool complete			  = lifecycle_complete && play_complete && ticks_complete && keyboard_complete && mouse_complete && events_complete && renderer_complete;
+
+		if (!compatible || !complete)
 		{
 			if (entry != nullptr)
 				diagnostics = "Game plugin has an incompatible API or missing callbacks: " + string_t(path);
@@ -82,7 +95,7 @@ namespace sfg
 
 		_staged_callbacks = callbacks;
 		_staged_path	  = path;
-		_staged_schema.reset(new plugin_type_schema_t(reflection_owner_e::game_plugin));
+		_staged_schema.reset(new plugin_type_schema_t());
 		callbacks.register_types(*_staged_schema);
 
 		if (!_staged_schema->validate(diagnostics))
@@ -147,7 +160,7 @@ namespace sfg
 		SFG_ASSERT(_library != nullptr && _playing_world_count == 0 && _world_renderer_count == 0);
 
 		_callbacks.unload();
-		reflection_registry_t::get().remove_plugin_types(reflection_owner_e::game_plugin);
+		reflection_registry_t::get().remove_plugin_types();
 
 		if (!process::unload_library(_library, diagnostics))
 		{
@@ -264,6 +277,12 @@ namespace sfg
 			_callbacks.end_play(world);
 
 		--_playing_world_count;
+	}
+
+	void game_plugin_runtime_t::editor_tick(world_t& world, f32 dt)
+	{
+		if (_library != nullptr)
+			_callbacks.editor_tick(world, dt);
 	}
 
 	void game_plugin_runtime_t::tick_logic(world_t& world, f32 dt)

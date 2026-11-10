@@ -42,10 +42,6 @@ namespace sfg
 		plugin_type_schema_t(const plugin_type_schema_t& other)			   = delete;
 		plugin_type_schema_t& operator=(const plugin_type_schema_t& other) = delete;
 
-		explicit plugin_type_schema_t(reflection_owner_e owner, reflection_owner_e dependency_owner = reflection_owner_e::engine) : _owner(owner), _dependency_owner(dependency_owner)
-		{
-		}
-
 		// -----------------------------------------------------------------------------
 		// impl
 		// -----------------------------------------------------------------------------
@@ -57,7 +53,7 @@ namespace sfg
 			descriptor.type_id		   = type_id_t<T>::value;
 			descriptor.size			   = sizeof(T);
 			descriptor.alignment	   = alignof(T);
-			descriptor.owner		   = _owner;
+			descriptor.owner		   = reflection_owner_e::game_plugin;
 			descriptor.default_init_fn = [](void* obj) { std::construct_at(static_cast<T*>(obj), T{}); };
 
 			add_type(std::move(descriptor));
@@ -85,11 +81,9 @@ namespace sfg
 		bool is_field_valid(const reflected_type_descriptor_t& type, const reflected_field_descriptor_t& field, size_t depth, string_t& diagnostics) const;
 		bool is_type_valid(const reflected_type_descriptor_t& type, size_t depth, string_t& diagnostics) const;
 
-		vector_t<reflected_type_descriptor_t> _types			= {};
-		text_allocator_t					  _text_allocator	= {};
-		size_t								  _field_count		= 0;
-		bool								  _valid			= true;
-		reflection_owner_e					  _owner			= reflection_owner_e::engine;
-		reflection_owner_e					  _dependency_owner = reflection_owner_e::engine;
+		vector_t<reflected_type_descriptor_t> _types		  = {};
+		text_allocator_t					  _text_allocator = {};
+		size_t								  _field_count	  = 0;
+		bool								  _valid		  = true;
 	};
 }

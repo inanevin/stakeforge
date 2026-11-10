@@ -19,19 +19,11 @@ holders grant the Stakeforge Game Linking Exception, version 1.0,
 in GAME-LINKING-EXCEPTION.md.
 
 */
-
-#pragma once
-
-namespace sfg
-{
-	class plugin_type_schema_t;
-}
+#include "game_editor.hpp"
 
 namespace game
 {
-	class game_editor_plugin_type_registry_t final
+	void game_editor_t::tick(sfg::world_t& world, f32 dt)
 	{
-	public:
-		static void register_types(sfg::plugin_type_schema_t& schema);
-	};
+	}
 }

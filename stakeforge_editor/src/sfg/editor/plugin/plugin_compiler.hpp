@@ -36,14 +36,6 @@ namespace sfg
 		bool operator==(const plugin_binary_stamp_t& other) const = default;
 	};
 
-	struct plugin_module_stamp_t
-	{
-		plugin_binary_stamp_t game		  = {};
-		plugin_binary_stamp_t game_editor = {};
-
-		bool operator==(const plugin_module_stamp_t& other) const = default;
-	};
-
 	enum class plugin_stage_state_e : u8
 	{
 		failed,
@@ -55,17 +47,16 @@ namespace sfg
 	struct plugin_compile_result_t
 	{
 		string_t			  diagnostics;
-		plugin_module_stamp_t stamp		= {};
+		plugin_binary_stamp_t stamp		= {};
 		i32					  exit_code = -1;
 		bool				  success	= false;
 	};
 
 	struct plugin_stage_result_t
 	{
-		string_t			  game_editor_path = {};
 		string_t			  game_path;
 		string_t			  diagnostics;
-		plugin_module_stamp_t stamp = {};
+		plugin_binary_stamp_t stamp = {};
 		plugin_stage_state_e  state = plugin_stage_state_e::failed;
 	};
 
@@ -83,8 +74,8 @@ namespace sfg
 		plugin_compiler_t(const plugin_compiler_t& other)			 = delete;
 		plugin_compiler_t& operator=(const plugin_compiler_t& other) = delete;
 
-		static plugin_compile_result_t compile(const char* build_directory, const char* output_game_dll, const char* configuration, bool build_game_editor = true);
-		static plugin_stage_result_t   stage(const char* output_game_dll, const char* shadow_directory, const plugin_module_stamp_t& previous_stamp);
+		static plugin_compile_result_t compile(const char* build_directory, const char* output_game_dll, const char* configuration);
+		static plugin_stage_result_t   stage(const char* output_game_dll, const char* shadow_directory, const plugin_binary_stamp_t& previous_stamp);
 		static bool					   open_project(const char* solution_path, plugin_ide_session_t& session, string_t& diagnostics);
 	};
 }

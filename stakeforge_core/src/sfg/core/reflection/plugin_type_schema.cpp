@@ -100,9 +100,13 @@ namespace sfg
 
 		for (const reflected_type_descriptor_t& type : _types)
 		{
-			const reflected_type_t* existing = reflection_registry_t::get().find_type(type.type_id);
+			const reflected_type_t* existing		  = reflection_registry_t::get().find_type(type.type_id);
+			const bool				valid_name		  = type.name != nullptr && type.name[0] != '\0';
+			const bool				valid_id		  = type.type_id != 0 && type.type_id != NULL_SID;
+			const bool				unique_id		  = find_type(type.type_id) == &type;
+			const bool				conflicting_owner = existing != nullptr && existing->owner != reflection_owner_e::game_plugin;
 
-			if (type.name == nullptr || type.name[0] == '\0' || type.type_id == 0 || type.type_id == NULL_SID || find_type(type.type_id) != &type || (existing != nullptr && existing->owner != _owner))
+			if (!valid_name || !valid_id || !unique_id || conflicting_owner)
 			{
 				diagnostics = "Plugin reflection contains an invalid or conflicting type ID.";
 				SFG_ERR("{0}", diagnostics);
@@ -242,7 +246,7 @@ namespace sfg
 				if (!is_type_valid(*plugin, depth + 1, diagnostics))
 					return false;
 			}
-			else if (existing != nullptr && (existing->owner == reflection_owner_e::engine || existing->owner == _dependency_owner))
+			else if (existing != nullptr && existing->owner == reflection_owner_e::engine)
 				expected_size = existing->size;
 			else
 			{

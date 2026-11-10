@@ -65,6 +65,7 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
+		void editor_tick(world_t& world, f32 dt);
 		void tick_logic(world_t& world, f32 dt);
 		void tick_physics(world_t& world, f32 dt);
 		void tick_animation(world_t& world, f32 dt);

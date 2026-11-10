@@ -146,17 +146,39 @@ try {
         $automationType = [Type]::GetTypeFromProgID($programId, $true)
         $dte = Invoke-VisualStudio { [Activator]::CreateInstance($automationType) }
         Invoke-VisualStudio { $dte.UserControl = $true }
-        Invoke-VisualStudio { $dte.MainWindow.Visible = $true }
         Invoke-VisualStudio { $dte.Solution.Open($solution) }
     }
 
-    Invoke-VisualStudio { $dte.MainWindow.Activate() }
     $ideExecutable = Invoke-VisualStudio { $dte.FullName }
     $assemblyPath = Join-Path (Split-Path -Parent $ideExecutable) 'PublicAssemblies/envdte.dll'
     $automationAssembly = [Reflection.Assembly]::LoadFrom($assemblyPath)
+    $mainWindowProperty = $automationAssembly.GetType('EnvDTE.DTE', $true).GetProperty('MainWindow')
     $windowProperty = $automationAssembly.GetType('EnvDTE.Window', $true).GetProperty('HWnd')
-    $mainWindow = Invoke-VisualStudio { $dte.MainWindow }
-    $window = Invoke-VisualStudio { $windowProperty.GetValue($mainWindow) }
+
+    while ($true) {
+        $window = Invoke-VisualStudio {
+            $mainWindow = $mainWindowProperty.GetValue($dte)
+
+            if ($null -eq $mainWindow) {
+                return [IntPtr]::Zero
+            }
+
+            $mainWindow.Visible = $true
+            [void]$mainWindow.Activate()
+            return [IntPtr]$windowProperty.GetValue($mainWindow)
+        }
+
+        if ($window -ne [IntPtr]::Zero) {
+            break
+        }
+
+        if ([DateTime]::UtcNow -ge $deadline) {
+            throw 'Timed out waiting for the Visual Studio main window.'
+        }
+
+        Start-Sleep -Milliseconds 250
+    }
+
     [uint32]$ideProcessId = 0
 
     if ([Stakeforge.VisualStudioAutomation]::GetWindowThreadProcessId([IntPtr]$window, [ref]$ideProcessId) -eq 0) {

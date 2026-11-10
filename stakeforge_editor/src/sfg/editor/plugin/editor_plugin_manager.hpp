@@ -22,7 +22,6 @@ in GAME-LINKING-EXCEPTION.md.
 #pragma once
 
 #include "plugin_compiler.hpp"
-#include "game_editor_plugin_runtime.hpp"
 #include "editor/editor_work_controller.hpp"
 #include "editor/ui/editor_modal_progress_bar.hpp"
 
@@ -82,17 +81,12 @@ namespace sfg
 
 		bool is_loaded() const
 		{
-			return game_plugin_runtime_t::get().is_loaded() && _game_editor_plugin.is_loaded();
+			return game_plugin_runtime_t::get().is_loaded();
 		}
 
 		const plugin_ide_session_t& get_ide_session() const
 		{
 			return _ide_session;
-		}
-
-		game_editor_plugin_runtime_t& get_game_editor_plugin()
-		{
-			return _game_editor_plugin;
 		}
 
 	private:
@@ -108,38 +102,31 @@ namespace sfg
 		void start_work(state_e operation);
 		void complete_work(bool succeeded);
 		void activate_staged_module();
-		bool stage_modules(const char* game_path, const char* game_editor_path, string_t& diagnostics);
-		bool discard_staged_modules(string_t& diagnostics);
 
 	private:
-		game_editor_plugin_runtime_t _game_editor_plugin = {};
-		plugin_compile_result_t		 _compile_result	 = {};
-		plugin_stage_result_t		 _stage_result		 = {};
-		editor_work_status_t		 _work_status		 = {};
-		editor_modal_progress_bar_t	 _progress_modal	 = {};
-		string_t					 _build_directory;
-		string_t					 _output_game_dll;
-		string_t					 _output_game_editor_dll;
-		string_t					 _output_ready;
-		string_t					 _shadow_directory;
-		string_t					 _solution_path;
-		string_t					 _diagnostics;
-		string_t					 _displayed_status;
-		plugin_module_stamp_t		 _observed_stamp	   = {};
-		plugin_module_stamp_t		 _stage_previous_stamp = {};
-		plugin_ide_session_t		 _ide_session		   = {};
-		plugin_ide_session_t		 _opened_ide_session   = {};
-		sid_t						 _game_editor_path_id  = NULL_SID;
-		sid_t						 _ready_path_id		   = NULL_SID;
-		sid_t						 _output_path_id	   = NULL_SID;
-		i64							 _retry_time_us		   = 0;
-		i64							 _retry_deadline_us	   = 0;
-		editor_work_handle_t		 _work				   = {};
-		state_e						 _state				   = state_e::idle;
-		bool						 _reload_pending	   = false;
-		bool						 _force_reload		   = false;
-		bool						 _error_pending		   = false;
-		bool						 _modal_open		   = false;
-		bool						 _stopping			   = false;
+		plugin_compile_result_t		_compile_result = {};
+		plugin_stage_result_t		_stage_result	= {};
+		editor_work_status_t		_work_status	= {};
+		editor_modal_progress_bar_t _progress_modal = {};
+		string_t					_build_directory;
+		string_t					_output_game_dll;
+		string_t					_shadow_directory;
+		string_t					_solution_path;
+		string_t					_diagnostics;
+		string_t					_displayed_status;
+		plugin_binary_stamp_t		_observed_stamp		  = {};
+		plugin_binary_stamp_t		_stage_previous_stamp = {};
+		plugin_ide_session_t		_ide_session		  = {};
+		plugin_ide_session_t		_opened_ide_session	  = {};
+		sid_t						_output_path_id		  = NULL_SID;
+		i64							_retry_time_us		  = 0;
+		i64							_retry_deadline_us	  = 0;
+		editor_work_handle_t		_work				  = {};
+		state_e						_state				  = state_e::idle;
+		bool						_reload_pending		  = false;
+		bool						_force_reload		  = false;
+		bool						_error_pending		  = false;
+		bool						_modal_open			  = false;
+		bool						_stopping			  = false;
 	};
 }

@@ -19,26 +19,14 @@ holders grant the Stakeforge Game Linking Exception, version 1.0,
 in GAME-LINKING-EXCEPTION.md.
 
 */
-#pragma once
+#include "game_editor_type_registry.hpp"
 
-#include <sfg/core/common/size_definitions.hpp>
+#include "../game_components.hpp"
+#include <sfg/core/reflection/plugin_type_schema.hpp>
 
-#define SFG_GAME_EDITOR_PLUGIN_ENTRY extern "C" __declspec(dllexport)
-
-namespace sfg
+namespace game
 {
-	class world_t;
-	class plugin_type_schema_t;
-
-	inline constexpr u32 GAME_EDITOR_PLUGIN_API_VERSION = 12;
-
-	struct game_editor_plugin_callbacks_t
+	void game_editor_type_registry_t::register_types(sfg::plugin_type_schema_t& schema)
 	{
-		void (*register_types)(plugin_type_schema_t& schema) = nullptr;
-		void (*load)()										 = nullptr;
-		void (*unload)()									 = nullptr;
-		void (*tick_logic)(world_t& world, f32 dt)			 = nullptr;
-	};
-
-	using game_editor_plugin_entry_fn = bool (*)(u32 api_version, game_editor_plugin_callbacks_t& callbacks);
+	}
 }

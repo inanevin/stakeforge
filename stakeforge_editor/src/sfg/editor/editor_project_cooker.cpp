@@ -158,7 +158,7 @@ namespace sfg
 
 		_packaged_plugin_path = project.plugin_library_path + "Packaged/" + SFG_CONFIGURATION + "/" + project.name + ".dll";
 
-		plugin_compile_result_t result = plugin_compiler_t::compile(project.plugin_intermediate_path.c_str(), _packaged_plugin_path.c_str(), "Packaged", false);
+		plugin_compile_result_t result = plugin_compiler_t::compile(project.plugin_intermediate_path.c_str(), _packaged_plugin_path.c_str(), "Packaged");
 
 		if (!result.success)
 		{

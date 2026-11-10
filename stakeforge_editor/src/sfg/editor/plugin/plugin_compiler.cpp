@@ -118,7 +118,7 @@ namespace sfg
 		return true;
 	}
 
-	plugin_compile_result_t plugin_compiler_t::compile(const char* build_directory, const char* output_game_dll, const char* configuration, bool build_game_editor)
+	plugin_compile_result_t plugin_compiler_t::compile(const char* build_directory, const char* output_game_dll, const char* configuration)
 	{
 		plugin_compile_result_t result	   = {};
 		const string_t			executable = process::get_executable_path();
@@ -126,7 +126,7 @@ namespace sfg
 		if (executable.empty())
 			return result;
 
-		const string_t target = file_system_t::get_filename_from_path(output_game_dll) + (build_game_editor ? "_plugin" : "");
+		const string_t target = file_system_t::get_filename_from_path(output_game_dll);
 
 		const string_t			 cmake	   = file_system_t::get_directory_of_file(executable.c_str()) + "assets/stakeforge_sdk/tools/cmake/bin/cmake.exe";
 		const string_t			 command   = "\"" + cmake + "\" --build \"" + build_directory + "\" --config " + configuration + " --target \"" + target + "\"";
@@ -140,7 +140,7 @@ namespace sfg
 
 		if (GetFileAttributesExW(output.c_str(), GetFileExInfoStandard, &attributes))
 		{
-			result.stamp.game = {
+			result.stamp = {
 				.write_time = (static_cast<u64>(attributes.ftLastWriteTime.dwHighDateTime) << 32) | attributes.ftLastWriteTime.dwLowDateTime,
 				.size		= (static_cast<u64>(attributes.nFileSizeHigh) << 32) | attributes.nFileSizeLow,
 			};
@@ -150,25 +150,6 @@ namespace sfg
 			result.success = false;
 			result.diagnostics += "\nBuild succeeded but the expected game DLL is missing: ";
 			result.diagnostics += output_game_dll;
-		}
-
-		if (result.success && build_game_editor)
-		{
-			const string_t	game_editor_path   = file_system_t::remove_extensions_from_path(output_game_dll) + "_editor.dll";
-			const wstring_t game_editor_output = string_util::to_wstr(game_editor_path);
-
-			if (GetFileAttributesExW(game_editor_output.c_str(), GetFileExInfoStandard, &attributes))
-			{
-				result.stamp.game_editor = {
-					.write_time = (static_cast<u64>(attributes.ftLastWriteTime.dwHighDateTime) << 32) | attributes.ftLastWriteTime.dwLowDateTime,
-					.size		= (static_cast<u64>(attributes.nFileSizeHigh) << 32) | attributes.nFileSizeLow,
-				};
-			}
-			else
-			{
-				result.success = false;
-				result.diagnostics += "\nBuild succeeded but the expected game editor DLL is missing: " + game_editor_path;
-			}
 		}
 
 		const string_t log_path = string_t(build_directory) + "build.log";
@@ -182,13 +163,12 @@ namespace sfg
 		return result;
 	}
 
-	plugin_stage_result_t plugin_compiler_t::stage(const char* output_game_dll, const char* shadow_directory, const plugin_module_stamp_t& previous_stamp)
+	plugin_stage_result_t plugin_compiler_t::stage(const char* output_game_dll, const char* shadow_directory, const plugin_binary_stamp_t& previous_stamp)
 	{
-		plugin_stage_result_t result	 = {};
-		const string_t		  base		 = file_system_t::remove_extensions_from_path(output_game_dll);
-		const string_t		  sources[]	 = {output_game_dll, base + "_editor.dll", base + ".pdb", base + "_editor.pdb", base + ".plugin_ready"};
-		HANDLE				  files[]	 = {INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
-		u64					  ready_time = 0;
+		plugin_stage_result_t result	= {};
+		const string_t		  base		= file_system_t::remove_extensions_from_path(output_game_dll);
+		const string_t		  sources[] = {output_game_dll, base + ".pdb"};
+		HANDLE				  files[]	= {INVALID_HANDLE_VALUE, INVALID_HANDLE_VALUE};
 
 		for (u32 index = 0; index < std::size(files); ++index)
 		{
@@ -199,7 +179,7 @@ namespace sfg
 			{
 				const DWORD error = GetLastError();
 
-				if ((index == 2 || index == 3) && error == ERROR_FILE_NOT_FOUND)
+				if (index == 1 && error == ERROR_FILE_NOT_FOUND)
 					continue;
 
 				result.state	   = error == ERROR_SHARING_VIOLATION || error == ERROR_LOCK_VIOLATION || error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND ? plugin_stage_state_e::retry : plugin_stage_state_e::failed;
@@ -207,7 +187,7 @@ namespace sfg
 				break;
 			}
 
-			if (index < 2 || index == 4)
+			if (index == 0)
 			{
 				BY_HANDLE_FILE_INFORMATION info = {};
 
@@ -217,24 +197,11 @@ namespace sfg
 					break;
 				}
 
-				const plugin_binary_stamp_t stamp{
+				result.stamp = {
 					.write_time = (static_cast<u64>(info.ftLastWriteTime.dwHighDateTime) << 32) | info.ftLastWriteTime.dwLowDateTime,
 					.size		= (static_cast<u64>(info.nFileSizeHigh) << 32) | info.nFileSizeLow,
 				};
-
-				if (index == 0)
-					result.stamp.game = stamp;
-				else if (index == 1)
-					result.stamp.game_editor = stamp;
-				else
-					ready_time = stamp.write_time;
 			}
-		}
-
-		if (result.diagnostics.empty() && (ready_time < result.stamp.game.write_time || ready_time < result.stamp.game_editor.write_time))
-		{
-			result.state	   = plugin_stage_state_e::retry;
-			result.diagnostics = "Waiting for the runtime and game editor build to finish.";
 		}
 
 		if (result.diagnostics.empty() && result.stamp == previous_stamp)
@@ -248,7 +215,7 @@ namespace sfg
 			if (!copied)
 				result.diagnostics = "Cannot create plugin DLL copy directory: " + directory;
 
-			for (u32 index = 0; copied && index < 4; ++index)
+			for (u32 index = 0; copied && index < std::size(files); ++index)
 			{
 				if (files[index] == INVALID_HANDLE_VALUE)
 					continue;
@@ -263,8 +230,6 @@ namespace sfg
 
 				if (index == 0)
 					result.game_path = destination;
-				else if (index == 1)
-					result.game_editor_path = destination;
 			}
 
 			result.state = copied ? plugin_stage_state_e::ready : plugin_stage_state_e::failed;

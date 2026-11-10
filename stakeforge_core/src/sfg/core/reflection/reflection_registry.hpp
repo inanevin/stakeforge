@@ -199,7 +199,6 @@ namespace sfg
 	{
 		engine,
 		game_plugin,
-		game_editor_plugin,
 	};
 
 	struct reflected_field_span_t
@@ -274,7 +273,7 @@ namespace sfg
 		bool type_from_stream(sid_t type_id, void* obj, void* user_data, istream_t& in_stream);
 		bool type_from_json(sid_t type_id, void* obj, void* user_data, const nlohmann::json& in_json);
 		void initialize_type(sid_t type_id, void* obj) const;
-		void remove_plugin_types(reflection_owner_e owner = reflection_owner_e::game_plugin);
+		void remove_plugin_types();
 
 		const reflected_type_t*	 find_type(sid_t type_id) const;
 		const reflected_field_t* get_field(u32 index) const;
@@ -307,11 +306,8 @@ namespace sfg
 		}
 
 	private:
-		vector_t<reflected_type_t> _game_editor_types = {};
-		vector_t<reflected_field_t> _game_editor_fields = {};
-		text_allocator_t _game_editor_text_allocator = {};
-		vector_t<reflected_type_t>	_game_plugin_types		   = {};
-		vector_t<reflected_field_t> _game_plugin_fields		   = {};
+		vector_t<reflected_type_t>	_game_plugin_types			= {};
+		vector_t<reflected_field_t> _game_plugin_fields			= {};
 		text_allocator_t			_game_plugin_text_allocator = {};
 		vector_t<reflected_type_t>	_types;
 		vector_t<reflected_field_t> _fields;
