@@ -116,6 +116,12 @@ namespace sfg
 		capture_trace(track);
 
 		memory_category_t* cat = find_category(track.category_id);
+
+		if (cat != nullptr && strcmp(cat->name, "GPU") == 0)
+			_vram_usage_bytes.fetch_add(track.size, std::memory_order_relaxed);
+		else if (cat == nullptr || strncmp(cat->name, "GPU_", 4) != 0)
+			_ram_usage_bytes.fetch_add(track.size, std::memory_order_relaxed);
+
 		if (cat != nullptr)
 		{
 			cat->total_size += track.size;
@@ -135,6 +141,7 @@ namespace sfg
 		LOCK_GUARD(_category_mtx);
 
 		auto it = _allocations.find(ptr);
+
 		if (it == _allocations.end())
 		{
 			// TracyFree(ptr);
@@ -142,7 +149,14 @@ namespace sfg
 		}
 
 		const memory_track_t track = it->second;
-		if (memory_category_t* cat = find_category(track.category_id))
+		memory_category_t*	 cat   = find_category(track.category_id);
+
+		if (cat != nullptr && strcmp(cat->name, "GPU") == 0)
+			_vram_usage_bytes.fetch_sub(track.size, std::memory_order_relaxed);
+		else if (cat == nullptr || strncmp(cat->name, "GPU_", 4) != 0)
+			_ram_usage_bytes.fetch_sub(track.size, std::memory_order_relaxed);
+
+		if (cat != nullptr)
 		{
 			SFG_ASSERT(cat->total_size >= track.size);
 			cat->total_size -= track.size;

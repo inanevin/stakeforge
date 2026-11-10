@@ -113,7 +113,7 @@ namespace sfg
 		bool						  map_position(const component_system_canvas_t& runtime, const vec2f_t& position, vec2f_t& mapped, f32& distance) const;
 		component_system_canvas_t*	  route_pointer(const vec2f_t& position);
 		void						  append_runtime(const component_system_canvas_t& runtime, world_canvas_draw_snapshot_t& destination) const;
-		static bool					  is_config_equal(const component_canvas_t& config, const component_canvas_t& other);
+		static bool					  is_recreation_required(const component_canvas_t& config, const component_canvas_t& other);
 		static canvas_widget_handle_t make_handle(const component_system_canvas_t& runtime, u16 id);
 		static u16					  resolve_handle(const component_system_canvas_t& runtime, canvas_widget_handle_t handle);
 		static void					  invalidate_recursive(component_system_canvas_t& runtime, u16 id);

@@ -29,6 +29,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/memory/malloc_allocator_stl.hpp"
 
 #include "core/data/mutex.hpp"
+#include "core/data/atomic.hpp"
 #include "core/data/hash_map.hpp"
 #include "core/common/size_definitions.hpp"
 
@@ -63,6 +64,16 @@ namespace sfg
 			static memory_tracer_t instance = {};
 
 			return instance;
+		}
+
+		inline u64 get_ram_usage_bytes() const
+		{
+			return _ram_usage_bytes.load(std::memory_order_relaxed);
+		}
+
+		inline u64 get_vram_usage_bytes() const
+		{
+			return _vram_usage_bytes.load(std::memory_order_relaxed);
 		}
 
 		void on_allocation(void* ptr, size_t sz);
@@ -103,6 +114,9 @@ namespace sfg
 		vector_malloc<memory_category_t> _categories;
 		alloc_map						 _allocations;
 
+		atomic_t<u64> _ram_usage_bytes	= 0;
+		atomic_t<u64> _vram_usage_bytes = 0;
+
 		static u8 s_category_counter;
 	};
 
@@ -120,6 +134,9 @@ namespace sfg
 		}
 	};
 
+#define SFG_MEMTRACE_RAM_USAGE_BYTES()	sfg::memory_tracer_t::get().get_ram_usage_bytes()
+#define SFG_MEMTRACE_VRAM_USAGE_BYTES() sfg::memory_tracer_t::get().get_vram_usage_bytes()
+
 #define SFG_MEMTRACE_CONCAT_IMPL(A, B) A##B
 #define SFG_MEMTRACE_CONCAT(A, B)	   SFG_MEMTRACE_CONCAT_IMPL(A, B)
 #define SFG_MEMTRACE_CATEGORY(NAME)	   sfg::memory_tracer_t::get().push_category(NAME)
@@ -130,6 +147,9 @@ namespace sfg
 }
 
 #else
+
+#define SFG_MEMTRACE_RAM_USAGE_BYTES()	0ULL
+#define SFG_MEMTRACE_VRAM_USAGE_BYTES() 0ULL
 
 #define SFG_MEMTRACE_CATEGORY(NAME)
 #define SFG_MEMTRACE_CATEGORY_POP()

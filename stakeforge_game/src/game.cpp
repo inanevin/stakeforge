@@ -36,6 +36,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
 #include <sfg/core/runtime/engine/engine_threads.hpp>
 #include <sfg/core/runtime/engine/perf_metrics.hpp>
+#include <sfg/core/memory/memory_tracer.hpp>
 #include <sfg/core/runtime/render/render_resources.hpp>
 #include <sfg/core/runtime/resources/common_resources.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
@@ -257,6 +258,8 @@ namespace sfg
 
 			engine_runtime_t::get().tick();
 
+			perf_metrics_t::update_ram_usage_bytes(SFG_MEMTRACE_RAM_USAGE_BYTES());
+			perf_metrics_t::update_vram_usage_bytes(SFG_MEMTRACE_VRAM_USAGE_BYTES());
 			perf_metrics_t::update_main_thread(time_t::get_cpu_microseconds() - main_thread_start_us);
 			FrameMarkNamed("main");
 			time_t::yield_thread();

@@ -148,6 +148,11 @@ namespace sfg::ui
 			_user_ui_scale = get_valid_scale(f);
 		}
 
+		inline void set_pipeline_variant_flags(u32 flags)
+		{
+			_pipeline_variant_flags = flags;
+		}
+
 		inline layout_tree_t& get_tree()
 		{
 			return _tree;

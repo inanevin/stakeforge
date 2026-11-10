@@ -46,6 +46,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/platform/time.hpp>
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
 #include <sfg/core/runtime/engine/perf_metrics.hpp>
+#include <sfg/core/memory/memory_tracer.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
 #include <sfg/core/runtime/render/render_resources.hpp>
 #include <sfg/core/runtime/ui/input/input_router.hpp>
@@ -563,6 +564,8 @@ namespace sfg
 
 			_renderer.ensure_render(_world_controller);
 
+			perf_metrics_t::update_ram_usage_bytes(SFG_MEMTRACE_RAM_USAGE_BYTES());
+			perf_metrics_t::update_vram_usage_bytes(SFG_MEMTRACE_VRAM_USAGE_BYTES());
 			perf_metrics_t::update_main_thread(time_t::get_cpu_microseconds() - main_thread_start_us);
 			FrameMarkNamed("main");
 		}

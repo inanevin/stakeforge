@@ -29,6 +29,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/platform/time.hpp>
 #include <sfg/core/runtime/project/project_package_meta.hpp>
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
+#include <sfg/core/runtime/engine/perf_metrics.hpp>
 #include <sfg/core/runtime/engine/engine_threads.hpp>
 #include <sfg/core/runtime/project/project_settings.hpp>
 #include <sfg/core/runtime/plugin/game_plugin_runtime.hpp>
@@ -36,6 +37,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/world_renderer/world_renderer_view.hpp>
 #include <sfg/core/runtime/world_renderer/world_renderer_camera.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
+#include <sfg/core/runtime/resources/common_resources.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
 #include <sfg/core/runtime/world/world_init_config.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
@@ -205,6 +207,25 @@ namespace sfg
 
 		if (steps != 0)
 			_main_world.get_debug_draw().debug_draw_missing_resources(_main_world);
+
+		if (steps != 0 && _main_world.get_stats_debug_type() != world_stats_debug_type_e::none)
+		{
+			_main_world.draw_stats({
+				.font							 = DEFAULT_FONT_ASSET_GUID,
+				.ram_usage_bytes				 = perf_metrics_t::get_ram_usage_bytes(),
+				.vram_usage_bytes				 = perf_metrics_t::get_vram_usage_bytes(),
+				.main_thread_cpu_ms				 = perf_metrics_t::get_main_thread_time_ms(),
+				.render_thread_cpu_ms			 = perf_metrics_t::get_render_thread_time_ms(),
+				.render_thread_work_cpu_ms		 = perf_metrics_t::get_render_thread_work_time_ms(),
+				.main_fps						 = perf_metrics_t::get_main_thread_fps(),
+				.render_fps						 = perf_metrics_t::get_render_thread_fps(),
+				.world_draw_call_count			 = perf_metrics_t::get_world_draw_call_count(),
+				.world_visible_renderables_count = perf_metrics_t::get_world_visible_renderables_count(),
+				.world_bone_count				 = perf_metrics_t::get_world_bone_count(),
+				.world_light_count				 = perf_metrics_t::get_world_light_count(),
+				.world_probe_count				 = perf_metrics_t::get_world_probe_count(),
+			});
+		}
 
 		resource_manager_t::get().flush_material_updates();
 

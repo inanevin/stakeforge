@@ -657,6 +657,7 @@ namespace sfg
 		prep_data.visible_queue.resize(0);
 		prep_data.view_model_depth_queue.resize(0);
 		prep_data.view_model_queue.resize(0);
+		prep_data.visible_renderables_count = 0;
 
 		// build and sort the queues for each view
 		for (u32 view_index = 0; view_index < prep_data.views.size(); ++view_index)
@@ -678,6 +679,9 @@ namespace sfg
 
 				if (!renderable.aabb.is_empty() && (world_space_aabb ? frustum_t::test(view.frustum, renderable.aabb) : frustum_t::test(view.frustum, renderable.aabb, linear_model, position)) == frustum_result::outside)
 					continue;
+
+				if (view_index == 0)
+					++prep_data.visible_renderables_count;
 
 				const vec3f_t							local_center = (renderable.aabb.bounds_min + renderable.aabb.bounds_max) * 0.5f;
 				const vec3f_t							world_center = world_space_aabb ? local_center : model * local_center;

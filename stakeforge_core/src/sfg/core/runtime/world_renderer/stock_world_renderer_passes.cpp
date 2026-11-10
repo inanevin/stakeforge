@@ -39,6 +39,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/resources/shader_types.hpp"
 #include "core/runtime/ui/glyph_atlas.hpp"
 #include "core/runtime/ui/ui_renderer.hpp"
+#include "core/runtime/engine/perf_metrics.hpp"
 #include <execution>
 #include <tracy/Tracy.hpp>
 
@@ -113,6 +114,8 @@ namespace sfg
 			u32 bound_material = UINT32_MAX;
 
 			bind_material(backend, cmd, bound_material, snapshot.environment.material_index, material, frame_index);
+			perf_metrics_t::add_world_draw_calls(1);
+
 			backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 36, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 
 			END_DEBUG_EVENT((&backend), cmd);
@@ -189,6 +192,8 @@ namespace sfg
 										   });
 			}
 		}
+
+		perf_metrics_t::add_world_draw_calls(static_cast<u32>(packets.size));
 	}
 
 	void stock_world_renderer_passes_t::render_shadows(
@@ -915,6 +920,8 @@ namespace sfg
 		backend.cmd_bind_constants(cmd, {.data = &fog_data_index, .offset = constant_rp5, .count = 1, .param_index = 0});
 
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_lighting_shader()});
+		perf_metrics_t::add_world_draw_calls(1);
+
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 
 		backend.cmd_end_render_pass(cmd, {});
@@ -997,6 +1004,7 @@ namespace sfg
 				backend.cmd_begin_render_pass(cmd, {.color_attachments = &color_attachment, .color_attachment_count = 1});
 
 			renderer.draw(cmd, draw_snapshot.batches + first_batch, end_batch - first_batch, frame_index, ctx.get_size(), world_data);
+			perf_metrics_t::add_world_draw_calls(end_batch - first_batch);
 			backend.cmd_end_render_pass(cmd, {});
 			first_batch = end_batch;
 		}
@@ -1411,6 +1419,8 @@ namespace sfg
 			backend.cmd_begin_render_pass(cmd, {.color_attachments = &fxaa_attachment, .color_attachment_count = 1});
 			backend.cmd_bind_constants(cmd, {.data = fxaa_constants, .offset = constant_rp0, .count = 2, .param_index = 0});
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_fxaa_shader()});
+			perf_metrics_t::add_world_draw_calls(1);
+
 			backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 			backend.cmd_end_render_pass(cmd, {});
 		}
@@ -1443,6 +1453,8 @@ namespace sfg
 		// engine post combine.
 		backend.cmd_bind_constants(cmd, {.data = tonemap_constants, .offset = constant_rp0, .count = 3, .param_index = 0});
 		backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_post_combiner_shader()});
+		perf_metrics_t::add_world_draw_calls(1);
+
 		backend.cmd_draw_instanced(cmd, {.vertex_count_per_instance = 3, .instance_count = 1, .start_vertex_location = 0, .start_instance_location = 0});
 		end_post_process(ctx, snapshot, frame_index);
 	}
@@ -1486,6 +1498,8 @@ namespace sfg
 			backend.cmd_bind_constants(cmd, {.data = &view_data_index, .offset = constant_rp0, .count = 1, .param_index = 0});
 			backend.cmd_bind_constants(cmd, {.data = &texture_buffer_index, .offset = constant_obj0, .count = 1, .param_index = 0});
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_debug_texture_shader()});
+			perf_metrics_t::add_world_draw_calls(1);
+
 			backend.cmd_draw_instanced(cmd,
 									   {
 										   .vertex_count_per_instance = 6,
@@ -1505,6 +1519,8 @@ namespace sfg
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_debug_line_shader()});
 			backend.cmd_bind_vertex_buffers(cmd, {.buffer = ctx.get_debug_line_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_line_t)), .offset = 0});
 			backend.cmd_bind_index_buffers(cmd, {.buffer = ctx.get_debug_line_index_buffer(frame_index), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
+			perf_metrics_t::add_world_draw_calls(1);
+
 			backend.cmd_draw_indexed_instanced(cmd,
 											   {
 												   .index_count_per_instance = static_cast<u32>(debug_draw.line_indices.size()),
@@ -1527,6 +1543,8 @@ namespace sfg
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_debug_text_shader()});
 			backend.cmd_bind_vertex_buffers(cmd, {.buffer = ctx.get_debug_text_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_text_t)), .offset = 0});
 			backend.cmd_bind_index_buffers(cmd, {.buffer = ctx.get_debug_text_index_buffer(frame_index), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
+			perf_metrics_t::add_world_draw_calls(1);
+
 			backend.cmd_draw_indexed_instanced(cmd,
 											   {
 												   .index_count_per_instance = static_cast<u32>(debug_draw.text_indices.size()),
@@ -1545,6 +1563,8 @@ namespace sfg
 			backend.cmd_bind_pipeline(cmd, {.pipeline = ctx.get_debug_triangle_shader()});
 			backend.cmd_bind_vertex_buffers(cmd, {.buffer = ctx.get_debug_triangle_vertex_buffer(frame_index), .slot = 0, .vertex_size = static_cast<u16>(sizeof(vertex_debug_triangle_t)), .offset = 0});
 			backend.cmd_bind_index_buffers(cmd, {.buffer = ctx.get_debug_triangle_index_buffer(frame_index), .offset = 0, .index_size = static_cast<u8>(sizeof(primitive_index))});
+			perf_metrics_t::add_world_draw_calls(1);
+
 			backend.cmd_draw_indexed_instanced(cmd,
 											   {
 												   .index_count_per_instance = static_cast<u32>(debug_draw.triangle_indices.size()),

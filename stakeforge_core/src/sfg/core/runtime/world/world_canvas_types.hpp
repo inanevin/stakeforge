@@ -41,22 +41,22 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_canvas";
 
-		resource_handle_t	  default_font			   = DEFAULT_FONT_ASSET_GUID;
-		resource_handle_t	  default_shader		   = DEFAULT_CANVAS_UI_SHADER_ASSET_GUID;
-		resource_handle_t	  text_shader			   = DEFAULT_CANVAS_UI_TEXT_SHADER_ASSET_GUID;
-		resource_handle_t	  texture_shader		   = DEFAULT_CANVAS_UI_TEXTURE_SHADER_ASSET_GUID;
-		vec2f_t				  canvas_size			   = {1000.0f, 600.0f};
-		vec2f_t				  pivot					   = {0.5f, 0.5f};
-		f32					  pixels_per_unit		   = 500.0f;
-		u32					  text_pool_budget_bytes   = 16 * 1024;
-		u32					  vertex_pool_budget_bytes = 128 * 1024;
-		u32					  index_pool_budget_bytes  = 64 * 1024;
-		i32					  sort_order			   = 0;
-		f32					  ui_scale				   = 1.0f;
-		u16					  max_widgets			   = 256;
-		canvas_render_stage_e render_stage			   = canvas_render_stage_e::after_post_process;
-		bool				  is_3d					   = false;
-		bool				  input_enabled			   = true;
+		resource_handle_t	  default_font			= DEFAULT_FONT_ASSET_GUID;
+		resource_handle_t	  default_shader		= DEFAULT_CANVAS_UI_SHADER_ASSET_GUID;
+		resource_handle_t	  text_shader			= DEFAULT_CANVAS_UI_TEXT_SHADER_ASSET_GUID;
+		resource_handle_t	  texture_shader		= DEFAULT_CANVAS_UI_TEXTURE_SHADER_ASSET_GUID;
+		vec2f_t				  canvas_size			= {1000.0f, 600.0f};
+		vec2f_t				  pivot					= {0.5f, 0.5f};
+		f32					  pixels_per_unit		= 500.0f;
+		f32					  text_pool_budget_mb	= 16.0f / 1024.0f;
+		f32					  vertex_pool_budget_mb = 128.0f / 1024.0f;
+		f32					  index_pool_budget_mb	= 64.0f / 1024.0f;
+		i32					  sort_order			= 0;
+		f32					  ui_scale				= 1.0f;
+		u16					  max_widgets			= 256;
+		canvas_render_stage_e render_stage			= canvas_render_stage_e::after_post_process;
+		bool				  is_3d					= false;
+		bool				  input_enabled			= true;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_canvas_t);

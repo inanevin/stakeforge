@@ -24,11 +24,59 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	atomic_t<u32> perf_metrics_t::s_world_draw_call_count			= 0;
+	atomic_t<u32> perf_metrics_t::s_world_visible_renderables_count = 0;
+	atomic_t<u32> perf_metrics_t::s_world_bone_count				= 0;
+	atomic_t<u32> perf_metrics_t::s_world_light_count				= 0;
+	atomic_t<u32> perf_metrics_t::s_world_probe_count				= 0;
+	atomic_t<u64> perf_metrics_t::s_ram_usage_bytes					= 0;
+	atomic_t<u64> perf_metrics_t::s_vram_usage_bytes				= 0;
+
 	atomic_t<i64> perf_metrics_t::s_main_thread_time_us		   = 0;
 	atomic_t<i64> perf_metrics_t::s_render_thread_time_us	   = 0;
 	atomic_t<i64> perf_metrics_t::s_render_thread_work_time_us = 0;
 	atomic_t<f32> perf_metrics_t::s_main_thread_fps			   = 0.0f;
 	atomic_t<f32> perf_metrics_t::s_render_thread_fps		   = 0.0f;
+
+	void perf_metrics_t::update_world_draw_call_count(u32 count)
+	{
+		s_world_draw_call_count.store(count, std::memory_order_relaxed);
+	}
+
+	void perf_metrics_t::update_world_visible_renderables_count(u32 count)
+	{
+		s_world_visible_renderables_count.store(count, std::memory_order_relaxed);
+	}
+
+	void perf_metrics_t::update_world_bone_count(u32 count)
+	{
+		s_world_bone_count.store(count, std::memory_order_relaxed);
+	}
+
+	void perf_metrics_t::update_world_light_count(u32 count)
+	{
+		s_world_light_count.store(count, std::memory_order_relaxed);
+	}
+
+	void perf_metrics_t::update_world_probe_count(u32 count)
+	{
+		s_world_probe_count.store(count, std::memory_order_relaxed);
+	}
+
+	void perf_metrics_t::update_ram_usage_bytes(u64 bytes)
+	{
+		s_ram_usage_bytes.store(bytes, std::memory_order_relaxed);
+	}
+
+	void perf_metrics_t::update_vram_usage_bytes(u64 bytes)
+	{
+		s_vram_usage_bytes.store(bytes, std::memory_order_relaxed);
+	}
+
+	void perf_metrics_t::add_world_draw_calls(u32 count)
+	{
+		s_world_draw_call_count.fetch_add(count, std::memory_order_relaxed);
+	}
 
 	void perf_metrics_t::update_main_thread(i64 time_us)
 	{

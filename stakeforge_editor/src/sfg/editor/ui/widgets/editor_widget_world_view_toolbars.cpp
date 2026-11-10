@@ -24,7 +24,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/editor_project.hpp"
 #include "editor/editor_world_controller.hpp"
 #include "editor/ui/editor_popup_controller.hpp"
-#include "editor/ui/editor_text_rasterization.hpp"
 #include "editor/ui/panels/editor_theme.hpp"
 #include "editor/ui/widgets/editor_widgets_dividers.hpp"
 #include "editor/ui/widgets/editor_widgets_icons.hpp"
@@ -33,13 +32,10 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/world/editor_world_edit_context.hpp"
 
 #include <sfg/core/io/log.hpp>
-#include <sfg/core/runtime/engine/perf_metrics.hpp>
 #include <sfg/core/runtime/ui/ui_context.hpp>
 
 namespace sfg
 {
-#define EDITOR_WORLD_VIEW_PERF_METRICS_UPDATE_TICKS 120
-
 	static void set_icon_button_parent_relative_height(ui::layout_tree_t& tree, const editor_icon_button_t& button)
 	{
 		ui::layout_in_t& in = tree.in(button.get_root());
@@ -339,71 +335,6 @@ namespace sfg
 		button_config.on_clicked   = on_physics_debug_toggled;
 		_physics_debug_button.init(ui, _physics_frame, button_config);
 		set_icon_button_parent_relative_height(tree, _physics_debug_button);
-
-		_perf_metrics_frame = ui.allocate_widget();
-		ui.set_widget_debug_name(_perf_metrics_frame, "world_view_perf_metrics_frame");
-		tree.attach(_right_column, _perf_metrics_frame);
-
-		ui::layout_in_t& perf_metrics_frame_in = tree.in(_perf_metrics_frame);
-		perf_metrics_frame_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
-		perf_metrics_frame_in.pos_mode_y	   = ui::pos_mode_e::relative_in_parent;
-		perf_metrics_frame_in.pos_value		   = {1.0f, 1.0f};
-		perf_metrics_frame_in.anchor_x		   = ui::anchor_e::end;
-		perf_metrics_frame_in.anchor_y		   = ui::anchor_e::end;
-		perf_metrics_frame_in.size_mode_x	   = ui::axis_mode_e::max_children;
-		perf_metrics_frame_in.size_mode_y	   = ui::axis_mode_e::sum_children;
-		perf_metrics_frame_in.size_value.x	   = 0.3f;
-		perf_metrics_frame_in.flow			   = ui::flow_e::column;
-		perf_metrics_frame_in.child_spacing	   = theme.item_spacing;
-		perf_metrics_frame_in.child_margins	   = {theme.margin_vertical * 2, theme.margin_horizontal, theme.margin_vertical * 2, theme.margin_horizontal};
-		perf_metrics_frame_in.child_clip_mode  = ui::clip_mode_e::cpu_rect;
-
-		const vec4f_t perf_metrics_frame_color = {theme.color_frame.x, theme.color_frame.y, theme.color_frame.z, 0.9f};
-		paint.set_rect(_perf_metrics_frame,
-					   {
-						   .fill_color_a = perf_metrics_frame_color,
-						   .fill_color_b = perf_metrics_frame_color,
-						   .rounding	 = theme.item_rounding * 2,
-					   });
-		ui.set_pre_layout_tick(_perf_metrics_frame, on_perf_metrics_tick, this);
-
-		const char* const perf_metric_labels[5] = {
-			"Main thread: 0.00 ms",
-			"Render thread: 0.00 ms",
-			"Render thread work: 0.00 ms",
-			"Main thread: 0 FPS",
-			"Render thread: 0 FPS",
-		};
-
-		for (u32 i = 0; i < 5; ++i)
-		{
-			_perf_metrics_labels[i] = ui.allocate_widget();
-			ui.set_widget_debug_name(_perf_metrics_labels[i], "world_view_perf_metrics_label");
-			tree.attach(_perf_metrics_frame, _perf_metrics_labels[i]);
-			tree.draw_order(_perf_metrics_labels[i]) = tree.draw_order_const(_perf_metrics_frame) + 1;
-
-			ui::layout_in_t& label_in = tree.in(_perf_metrics_labels[i]);
-			label_in.size_mode_x	  = ui::axis_mode_e::parent_relative;
-			label_in.size_mode_y	  = ui::axis_mode_e::fixed;
-			label_in.size_value		  = {1.0f, theme.text_default_px_size};
-
-			ui.set_widget_text(_perf_metrics_labels[i], perf_metric_labels[i]);
-			paint.set_text(_perf_metrics_labels[i],
-						   ui.widget_text(_perf_metrics_labels[i]),
-						   ui.widget_text_len(_perf_metrics_labels[i]),
-						   {
-							   .font		= theme.font_default,
-							   .color		= theme.color_text0,
-							   .point_size	= theme.text_default_px_size,
-							   .spacing		= 0,
-							   .raster_mode = editor_text_rasterization_t::get_rasterization_type(),
-						   });
-		}
-
-		tree.set_visible(_perf_metrics_frame, project_settings.world_view_perf_metrics_enabled);
-
-		if (project_settings.world_view_perf_metrics_enabled)
-			refresh_perf_metrics();
 	}
 
 	void editor_widget_world_view_toolbars_t::uninit()
@@ -428,28 +359,23 @@ namespace sfg
 
 		_ui->deallocate_widget(_root);
 
-		_ui					= nullptr;
-		_edit_world			= {};
-		_root				= NULL_WIDGET;
-		_left_column		= NULL_WIDGET;
-		_right_column		= NULL_WIDGET;
-		_top_left_row		= NULL_WIDGET;
-		_top_right_row		= NULL_WIDGET;
-		_global_frame		= NULL_WIDGET;
-		_controls_frame		= NULL_WIDGET;
-		_shading_frame		= NULL_WIDGET;
-		_view_frame			= NULL_WIDGET;
-		_physics_frame		= NULL_WIDGET;
-		_perf_metrics_frame = NULL_WIDGET;
-		_global_spacer		= NULL_WIDGET;
-		_controls_spacer	= NULL_WIDGET;
-		_shading_spacer		= NULL_WIDGET;
-		_view_spacer		= NULL_WIDGET;
-		_edit_type			= editor_world_edit_type_e::full_control;
-		_perf_metrics_ticks = 0;
-
-		for (ui::widget_id_t& label : _perf_metrics_labels)
-			label = NULL_WIDGET;
+		_ui				 = nullptr;
+		_edit_world		 = {};
+		_root			 = NULL_WIDGET;
+		_left_column	 = NULL_WIDGET;
+		_right_column	 = NULL_WIDGET;
+		_top_left_row	 = NULL_WIDGET;
+		_top_right_row	 = NULL_WIDGET;
+		_global_frame	 = NULL_WIDGET;
+		_controls_frame	 = NULL_WIDGET;
+		_shading_frame	 = NULL_WIDGET;
+		_view_frame		 = NULL_WIDGET;
+		_physics_frame	 = NULL_WIDGET;
+		_global_spacer	 = NULL_WIDGET;
+		_controls_spacer = NULL_WIDGET;
+		_shading_spacer	 = NULL_WIDGET;
+		_view_spacer	 = NULL_WIDGET;
+		_edit_type		 = editor_world_edit_type_e::full_control;
 	}
 
 	void editor_widget_world_view_toolbars_t::set_edit_world(editor_world_handle_t world, editor_world_edit_type_e edit_type)
@@ -482,6 +408,7 @@ namespace sfg
 			context.set_grid_enabled(project_settings.world_view_grid_enabled);
 			context.set_bounding_boxes_enabled(project_settings.world_view_aabb_enabled);
 			context.set_physics_debug_enabled(project_settings.world_view_physics_debug_enabled);
+			editor_world_controller_t::get().get_editor_world(_edit_world)->get_world().set_stats_debug_type(project_settings.world_view_perf_metrics_enabled ? world_stats_debug_type_e::full : world_stats_debug_type_e::none);
 
 			refresh();
 		}
@@ -530,6 +457,7 @@ namespace sfg
 			return;
 
 		_physics_debug_button.set_toggled(context.is_physics_debug_enabled());
+		_perf_metrics_button.set_toggled(editor_world_controller_t::get().get_editor_world(_edit_world)->get_world().get_stats_debug_type() == world_stats_debug_type_e::full);
 	}
 
 	void editor_widget_world_view_toolbars_t::save_project_settings()
@@ -547,26 +475,6 @@ namespace sfg
 
 		if (!project.save(project._runtime.path.c_str()))
 			SFG_ERR("failed to save world view settings");
-	}
-
-	void editor_widget_world_view_toolbars_t::refresh_perf_metrics()
-	{
-		char text[64] = {};
-
-		std::snprintf(text, sizeof(text), "Main thread: %.2f ms", static_cast<double>(perf_metrics_t::get_main_thread_time_ms()));
-		_ui->set_widget_text(_perf_metrics_labels[0], text);
-
-		std::snprintf(text, sizeof(text), "Render thread: %.2f ms", static_cast<double>(perf_metrics_t::get_render_thread_time_ms()));
-		_ui->set_widget_text(_perf_metrics_labels[1], text);
-
-		std::snprintf(text, sizeof(text), "Render thread work: %.2f ms", static_cast<double>(perf_metrics_t::get_render_thread_work_time_ms()));
-		_ui->set_widget_text(_perf_metrics_labels[2], text);
-
-		std::snprintf(text, sizeof(text), "Main thread: %.0f FPS", static_cast<double>(perf_metrics_t::get_main_thread_fps()));
-		_ui->set_widget_text(_perf_metrics_labels[3], text);
-
-		std::snprintf(text, sizeof(text), "Render thread: %.0f FPS", static_cast<double>(perf_metrics_t::get_render_thread_fps()));
-		_ui->set_widget_text(_perf_metrics_labels[4], text);
 	}
 
 	void editor_widget_world_view_toolbars_t::on_transform_control_toggled(bool toggled, void* user_data)
@@ -687,31 +595,11 @@ namespace sfg
 		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
 		editor_project_t&					 project = editor_project_t::get();
 
-		toolbar._ui->get_tree().set_visible(toolbar._perf_metrics_frame, toggled);
-		toolbar._perf_metrics_ticks = 0;
+		editor_world_controller_t::get().get_editor_world(toolbar._edit_world)->get_world().set_stats_debug_type(toggled ? world_stats_debug_type_e::full : world_stats_debug_type_e::none);
 
 		project.settings.world_view_perf_metrics_enabled = toggled;
 
-		if (toggled)
-			toolbar.refresh_perf_metrics();
-
 		if (!project.save(project._runtime.path.c_str()))
 			SFG_ERR("failed to save world view settings");
-	}
-
-	void editor_widget_world_view_toolbars_t::on_perf_metrics_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
-	{
-		editor_widget_world_view_toolbars_t& toolbar = *static_cast<editor_widget_world_view_toolbars_t*>(user_data);
-
-		if (!toolbar._perf_metrics_button.is_toggled())
-			return;
-
-		++toolbar._perf_metrics_ticks;
-
-		if (toolbar._perf_metrics_ticks < EDITOR_WORLD_VIEW_PERF_METRICS_UPDATE_TICKS)
-			return;
-
-		toolbar._perf_metrics_ticks = 0;
-		toolbar.refresh_perf_metrics();
 	}
 }

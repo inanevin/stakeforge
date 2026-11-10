@@ -30,6 +30,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/gfx/util/gfx_util.hpp"
 #include "core/io/assert.hpp"
 #include "core/runtime/engine/engine_threads.hpp"
+#include "core/runtime/engine/perf_metrics.hpp"
 #include "core/runtime/resources/shader_types.hpp"
 #include <execution>
 #include <tracy/Tracy.hpp>
@@ -126,6 +127,8 @@ namespace sfg
 
 	void stock_world_renderer_t::render_scene(f32 interpolation_alpha, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
+		perf_metrics_t::update_world_draw_call_count(0);
+
 		SFG_ASSERT(SFG_IS_RENDER_THREAD() || !SFG_IS_RENDER_RUNNING());
 
 		// main cam view.
@@ -227,6 +230,11 @@ namespace sfg
 		stock_world_renderer_util_t::prep_debug_buffer(ctx, snapshot, frame_index);
 		stock_world_renderer_util_t::prep_render_queues(ctx, snapshot, prep_data, interpolation_alpha, frame_index);
 		stock_world_renderer_util_t::prep_render_pass_buffers(ctx, snapshot, prep_data, view, light_counts, frame_index);
+
+		perf_metrics_t::update_world_visible_renderables_count(prep_data.visible_renderables_count);
+		perf_metrics_t::update_world_bone_count(static_cast<u32>(snapshot.bones.size()));
+		perf_metrics_t::update_world_light_count(static_cast<u32>(snapshot.lights.size()));
+		perf_metrics_t::update_world_probe_count(prep_data.reflection_probe_count);
 
 		// rendering
 		const gfx_handle_t cmd_depth			  = ctx.get_command_buffer_depth(frame_index);

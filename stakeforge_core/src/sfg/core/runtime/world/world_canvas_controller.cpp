@@ -147,11 +147,10 @@ namespace sfg
 		}
 	};
 
-	bool world_canvas_controller_t::is_config_equal(const component_canvas_t& config, const component_canvas_t& other)
+	bool world_canvas_controller_t::is_recreation_required(const component_canvas_t& config, const component_canvas_t& other)
 	{
-		return config.default_shader == other.default_shader && config.text_shader == other.text_shader && config.texture_shader == other.texture_shader && config.text_pool_budget_bytes == other.text_pool_budget_bytes &&
-			   config.vertex_pool_budget_bytes == other.vertex_pool_budget_bytes && config.index_pool_budget_bytes == other.index_pool_budget_bytes && config.is_3d == other.is_3d && config.ui_scale == other.ui_scale &&
-			   config.max_widgets == other.max_widgets && config.render_stage == other.render_stage;
+		return config.text_pool_budget_mb != other.text_pool_budget_mb || config.vertex_pool_budget_mb != other.vertex_pool_budget_mb || config.index_pool_budget_mb != other.index_pool_budget_mb || config.max_widgets != other.max_widgets ||
+			   config.is_3d != other.is_3d;
 	}
 
 	canvas_widget_handle_t world_canvas_controller_t::make_handle(const component_system_canvas_t& runtime, u16 id)
@@ -200,11 +199,12 @@ namespace sfg
 	{
 		ecs_component_table_t&	   system_table = _world->get_component_table(type_id_t<component_system_canvas_t>::value);
 		component_system_canvas_t& runtime		= system_table.add_or_get_as<component_system_canvas_t>(entity);
-		runtime.context							= sfg_new<ui::ui_context>();
-		runtime.widgets							= static_cast<canvas_widget_state_t*>(SFG_MALLOC(sizeof(canvas_widget_state_t) * component.max_widgets));
-		runtime.events							= sfg_new<world_canvas_events_t>();
-		runtime.config							= component;
-		runtime.entity							= entity;
+
+		runtime.context = sfg_new<ui::ui_context>();
+		runtime.widgets = static_cast<canvas_widget_state_t*>(SFG_MALLOC(sizeof(canvas_widget_state_t) * component.max_widgets));
+		runtime.events	= sfg_new<world_canvas_events_t>();
+		runtime.config	= component;
+		runtime.entity	= entity;
 
 		if (runtime.widgets == nullptr)
 		{
@@ -229,23 +229,27 @@ namespace sfg
 		const u32 pipeline_flags = (component.render_stage == canvas_render_stage_e::before_post_process ? shader_variant_flags_canvas_hdr : shader_variant_flags_canvas_ldr) | (component.is_3d ? shader_variant_flags_canvas_3d : 0u);
 		const f32 dpi_scale		 = component.is_3d ? 1.0f : _world->get_screen().get_dpi_scale();
 
+		const u32 text_pool_budget_bytes   = static_cast<u32>(component.text_pool_budget_mb * 1024.0f * 1024.0f);
+		const u32 vertex_pool_budget_bytes = static_cast<u32>(component.vertex_pool_budget_mb * 1024.0f * 1024.0f);
+		const u32 index_pool_budget_bytes  = static_cast<u32>(component.index_pool_budget_mb * 1024.0f * 1024.0f);
+
 		runtime.context->init({
 			.canvas =
 				{
-					.vertex_pool_budget_bytes		= component.vertex_pool_budget_bytes,
-					.index_pool_budget_bytes		= component.index_pool_budget_bytes,
+					.vertex_pool_budget_bytes		= vertex_pool_budget_bytes,
+					.index_pool_budget_bytes		= index_pool_budget_bytes,
 					.draw_capacity					= static_cast<u32>(component.max_widgets) * 8u,
-					.text_cache_vertex_budget_bytes = component.vertex_pool_budget_bytes,
-					.text_cache_index_budget_bytes	= component.index_pool_budget_bytes,
+					.text_cache_vertex_budget_bytes = vertex_pool_budget_bytes,
+					.text_cache_index_budget_bytes	= index_pool_budget_bytes,
 					.clip_stack_initial_capacity	= math::min<u32>(component.max_widgets, 64u),
 					.text_cache_initial_capacity	= component.max_widgets,
 				},
 			.user_ui_scale			   = component.ui_scale,
 			.dpi_scale				   = dpi_scale,
 			.max_widgets			   = component.max_widgets,
-			.text_pool_budget_bytes	   = component.text_pool_budget_bytes,
-			.snapshot_vertex_max_bytes = component.vertex_pool_budget_bytes,
-			.snapshot_index_max_bytes  = component.index_pool_budget_bytes,
+			.text_pool_budget_bytes	   = text_pool_budget_bytes,
+			.snapshot_vertex_max_bytes = vertex_pool_budget_bytes,
+			.snapshot_index_max_bytes  = index_pool_budget_bytes,
 			.pipeline_variant_flags	   = pipeline_flags,
 			.apply_project_ui_scale	   = !component.is_3d,
 			.render_snapshots_enabled  = false,
@@ -488,11 +492,47 @@ namespace sfg
 				component_system_canvas_t& runtime	 = row.get_mutable<component_system_canvas_t>(0);
 				const component_canvas_t&  component = row.get<component_canvas_t>(1);
 
-				if (!is_config_equal(runtime.config, component))
+				if (is_recreation_required(runtime.config, component))
 					destroy_entities.push_back(row.id);
 				else
 				{
 					SFG_ASSERT(!component.is_3d || (component.canvas_size.x > 0.0f && component.canvas_size.y > 0.0f && component.pixels_per_unit > 0.0f));
+
+					if (runtime.config.ui_scale != component.ui_scale)
+						runtime.context->set_user_ui_scale(component.ui_scale);
+
+					if (runtime.config.render_stage != component.render_stage)
+					{
+						const u32 pipeline_flags = (component.render_stage == canvas_render_stage_e::before_post_process ? shader_variant_flags_canvas_hdr : shader_variant_flags_canvas_ldr) | (component.is_3d ? shader_variant_flags_canvas_3d : 0u);
+
+						runtime.context->set_pipeline_variant_flags(pipeline_flags);
+					}
+
+					if (runtime.config.default_shader != component.default_shader || runtime.config.text_shader != component.text_shader || runtime.config.texture_shader != component.texture_shader)
+					{
+						ui::paint_layer_t& paint = runtime.context->get_paint();
+
+						for (u16 id = 0; id < component.max_widgets; ++id)
+						{
+							const canvas_widget_kind_e kind = runtime.widgets[id].kind;
+
+							if (kind == canvas_widget_kind_e::none)
+								continue;
+
+							const resource_handle_t previous_pipeline = kind == canvas_widget_kind_e::text ? runtime.config.text_shader : kind == canvas_widget_kind_e::image ? runtime.config.texture_shader : runtime.config.default_shader;
+							ui::paint_def_t&		def				  = paint.def(id);
+
+							if (def.render_state.pipeline == previous_pipeline)
+								def.render_state.pipeline = kind == canvas_widget_kind_e::text ? component.text_shader : kind == canvas_widget_kind_e::image ? component.texture_shader : component.default_shader;
+						}
+
+						paint.set_pipelines({
+							.default_pipeline = component.default_shader,
+							.text_pipeline	  = component.text_shader,
+							.texture_pipeline = component.texture_shader,
+						});
+					}
+
 					runtime.config = component;
 				}
 			}

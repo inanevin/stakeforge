@@ -177,6 +177,8 @@ namespace sfg
 		frame_vector_t<stock_world_renderer_shadow_view_t> shadow_views			  = {};
 		u32												   reflection_probe_count = 0;
 
+		u32 visible_renderables_count = 0;
+
 		inline void reserve()
 		{
 			views.reserve(16);

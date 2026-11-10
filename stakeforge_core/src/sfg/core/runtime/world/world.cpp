@@ -28,6 +28,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/input/input_common.hpp"
 #include "core/input/input_mappings.hpp"
 #include "core/math/math.hpp"
+#include "core/math/color.hpp"
 #include "core/memory/memory.hpp"
 #include "core/platform/common_window.hpp"
 #include "core/runtime/physics/physics_config.hpp"
@@ -103,6 +104,7 @@ namespace sfg
 			_physics_world.uninit();
 
 		_debug_draw.uninit();
+		_stats_debug_type = world_stats_debug_type_e::none;
 
 		for (ecs_component_table_t& table : _component_tables)
 			table.uninit();
@@ -127,6 +129,46 @@ namespace sfg
 
 		_world_name			  = NULL_SID;
 		_requested_level_load = NULL_SID;
+	}
+
+	void world_t::draw_stats(const world_stats_debug_data_t& data)
+	{
+		if (_stats_debug_type == world_stats_debug_type_e::none)
+			return;
+
+		const vec2u16_t resolution = _screen.get_render_size();
+		const vec2f_t	position   = {static_cast<f32>(resolution.x) - 12.0f, 12.0f};
+		char			text[512]  = {};
+
+		std::snprintf(text,
+					  sizeof(text),
+					  "Main CPU: %.2f ms\nRender CPU: %.2f ms\nRender work CPU: %.2f ms\nMain FPS: %.0f\nRender FPS: %.0f\nResolution: %u x %u",
+					  static_cast<double>(data.main_thread_cpu_ms),
+					  static_cast<double>(data.render_thread_cpu_ms),
+					  static_cast<double>(data.render_thread_work_cpu_ms),
+					  static_cast<double>(data.main_fps),
+					  static_cast<double>(data.render_fps),
+					  static_cast<u32>(resolution.x),
+					  static_cast<u32>(resolution.y));
+
+		if (_stats_debug_type == world_stats_debug_type_e::full)
+		{
+			const size_t length = std::strlen(text);
+
+			std::snprintf(text + length,
+						  sizeof(text) - length,
+						  "\nWorld draw calls: %u\nVisible renderables: %u\nBones: %u\nLights: %u\nProbes: %u\nRAM: %.2f MiB\nVRAM: %.2f MiB",
+						  data.world_draw_call_count,
+						  data.world_visible_renderables_count,
+						  data.world_bone_count,
+						  data.world_light_count,
+						  data.world_probe_count,
+						  static_cast<double>(data.ram_usage_bytes) / (1024.0 * 1024.0),
+						  static_cast<double>(data.vram_usage_bytes) / (1024.0 * 1024.0));
+		}
+
+		_debug_draw.draw_text_2d(position + vec2f_t(1.0f, 1.0f), text, color_t::black, 16.0f, debug_draw_text_alignment_e::top_right, data.font);
+		_debug_draw.draw_text_2d(position, text, color_t::white, 16.0f, debug_draw_text_alignment_e::top_right, data.font);
 	}
 
 	void world_t::begin_play()

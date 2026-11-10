@@ -32,6 +32,15 @@ namespace sfg
 	class SFG_API perf_metrics_t final
 	{
 	public:
+		static void update_world_draw_call_count(u32 count);
+		static void update_world_visible_renderables_count(u32 count);
+		static void update_world_bone_count(u32 count);
+		static void update_world_light_count(u32 count);
+		static void update_world_probe_count(u32 count);
+		static void update_ram_usage_bytes(u64 bytes);
+		static void update_vram_usage_bytes(u64 bytes);
+		static void add_world_draw_calls(u32 count);
+
 		static void update_main_thread(i64 time_us);
 		static void update_render_thread(i64 time_us, i64 wait_time_us);
 
@@ -75,7 +84,49 @@ namespace sfg
 			return s_render_thread_fps.load(std::memory_order_relaxed);
 		}
 
+		static inline u32 get_world_draw_call_count()
+		{
+			return s_world_draw_call_count.load(std::memory_order_relaxed);
+		}
+
+		static inline u32 get_world_visible_renderables_count()
+		{
+			return s_world_visible_renderables_count.load(std::memory_order_relaxed);
+		}
+
+		static inline u32 get_world_bone_count()
+		{
+			return s_world_bone_count.load(std::memory_order_relaxed);
+		}
+
+		static inline u32 get_world_light_count()
+		{
+			return s_world_light_count.load(std::memory_order_relaxed);
+		}
+
+		static inline u32 get_world_probe_count()
+		{
+			return s_world_probe_count.load(std::memory_order_relaxed);
+		}
+
+		static inline u64 get_ram_usage_bytes()
+		{
+			return s_ram_usage_bytes.load(std::memory_order_relaxed);
+		}
+
+		static inline u64 get_vram_usage_bytes()
+		{
+			return s_vram_usage_bytes.load(std::memory_order_relaxed);
+		}
+
 	private:
+		static atomic_t<u32> s_world_draw_call_count;
+		static atomic_t<u32> s_world_visible_renderables_count;
+		static atomic_t<u32> s_world_bone_count;
+		static atomic_t<u32> s_world_light_count;
+		static atomic_t<u32> s_world_probe_count;
+		static atomic_t<u64> s_ram_usage_bytes;
+		static atomic_t<u64> s_vram_usage_bytes;
 		static atomic_t<i64> s_main_thread_time_us;
 		static atomic_t<i64> s_render_thread_time_us;
 		static atomic_t<i64> s_render_thread_work_time_us;

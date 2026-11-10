@@ -29,6 +29,30 @@ namespace sfg
 	struct component_hierarchy_t;
 	struct prefab_internals_t;
 
+	enum class world_stats_debug_type_e : u8
+	{
+		none,
+		compact,
+		full,
+	};
+
+	struct world_stats_debug_data_t
+	{
+		resource_handle_t font							  = NULL_RESOURCE_HANDLE;
+		u64				  ram_usage_bytes				  = 0;
+		u64				  vram_usage_bytes				  = 0;
+		f32				  main_thread_cpu_ms			  = 0.0f;
+		f32				  render_thread_cpu_ms			  = 0.0f;
+		f32				  render_thread_work_cpu_ms		  = 0.0f;
+		f32				  main_fps						  = 0.0f;
+		f32				  render_fps					  = 0.0f;
+		u32				  world_draw_call_count			  = 0;
+		u32				  world_visible_renderables_count = 0;
+		u32				  world_bone_count				  = 0;
+		u32				  world_light_count				  = 0;
+		u32				  world_probe_count				  = 0;
+	};
+
 	struct prefab_spawn_params_t
 	{
 		entity_id_t parent		= NULL_ENTITY_ID;
@@ -77,6 +101,7 @@ namespace sfg
 		bool  refresh_main_camera(world_renderer_camera_t& out_view);
 		void  tick_post(f32 dt);
 		void  tick_finalize();
+		void  draw_stats(const world_stats_debug_data_t& data);
 		void  key_event(u16 key, u16 scan_code, u8 action);
 		void  focus_event(bool focused);
 		void  mouse_button_event(u8 button, u8 action, f32 position_x, f32 position_y);
@@ -262,6 +287,16 @@ namespace sfg
 			return _canvas_controller;
 		}
 
+		inline world_stats_debug_type_e get_stats_debug_type() const
+		{
+			return _stats_debug_type;
+		}
+
+		inline void set_stats_debug_type(world_stats_debug_type_e type)
+		{
+			_stats_debug_type = type;
+		}
+
 		inline world_screen_t& get_screen()
 		{
 			return _screen;
@@ -382,6 +417,7 @@ namespace sfg
 		entity_id_t						_main_camera_entity			  = NULL_ENTITY_ID;
 		u32								_play_resource_count		  = 0;
 		u32								_active_component_query_count = 0;
+		world_stats_debug_type_e		_stats_debug_type			  = world_stats_debug_type_e::none;
 		bool							_is_playing					  = false;
 	};
 

@@ -41,6 +41,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/world/world_debug_draw.hpp>
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
+#include <sfg/core/runtime/engine/perf_metrics.hpp>
 #include <sfg/core/runtime/engine/engine_threads.hpp>
 #include <sfg/core/runtime/world/ecs.hpp>
 #include <sfg/core/runtime/world/engine_components.hpp>
@@ -566,6 +567,25 @@ namespace sfg
 
 	void editor_world_t::draw_debug()
 	{
+		if (_world.get_stats_debug_type() != world_stats_debug_type_e::none)
+		{
+			_world.draw_stats({
+				.font							 = TO_SIDC("editor/templates/fonts/IBMPlexMono-Regular.ttf"),
+				.ram_usage_bytes				 = perf_metrics_t::get_ram_usage_bytes(),
+				.vram_usage_bytes				 = perf_metrics_t::get_vram_usage_bytes(),
+				.main_thread_cpu_ms				 = perf_metrics_t::get_main_thread_time_ms(),
+				.render_thread_cpu_ms			 = perf_metrics_t::get_render_thread_time_ms(),
+				.render_thread_work_cpu_ms		 = perf_metrics_t::get_render_thread_work_time_ms(),
+				.main_fps						 = perf_metrics_t::get_main_thread_fps(),
+				.render_fps						 = perf_metrics_t::get_render_thread_fps(),
+				.world_draw_call_count			 = perf_metrics_t::get_world_draw_call_count(),
+				.world_visible_renderables_count = perf_metrics_t::get_world_visible_renderables_count(),
+				.world_bone_count				 = perf_metrics_t::get_world_bone_count(),
+				.world_light_count				 = perf_metrics_t::get_world_light_count(),
+				.world_probe_count				 = perf_metrics_t::get_world_probe_count(),
+			});
+		}
+
 		if (_edit_context.is_physics_debug_enabled() && _world.get_physics().is_init())
 			_world.get_physics().draw_debug(_world.get_debug_draw());
 
