@@ -773,25 +773,26 @@ namespace sfg
 
 	void world_debug_draw_t::write_render_snapshot(world_debug_render_snapshot_t& snapshot)
 	{
-		snapshot.line_vertices.resize(_vertices.size());
+		const size_t line_count		= std::min(_vertices.size() / 4, std::min(snapshot.line_vertices.capacity() / 4, snapshot.line_indices.capacity() / 6));
+		const size_t triangle_count = std::min(_triangle_vertices.size() / 3, std::min(snapshot.triangle_vertices.capacity() / 3, snapshot.triangle_indices.capacity() / 3));
 
-		if (!_vertices.empty())
-			SFG_MEMCPY(snapshot.line_vertices.data(), _vertices.data(), _vertices.size() * sizeof(vertex_debug_line_t));
+		snapshot.line_vertices.resize(line_count * 4);
+		snapshot.line_indices.resize(line_count * 6);
 
-		snapshot.line_indices.resize(_indices.size());
+		if (line_count != 0)
+		{
+			SFG_MEMCPY(snapshot.line_vertices.data(), _vertices.data(), snapshot.line_vertices.size() * sizeof(vertex_debug_line_t));
+			SFG_MEMCPY(snapshot.line_indices.data(), _indices.data(), snapshot.line_indices.size() * sizeof(primitive_index));
+		}
 
-		if (!_indices.empty())
-			SFG_MEMCPY(snapshot.line_indices.data(), _indices.data(), _indices.size() * sizeof(primitive_index));
+		snapshot.triangle_vertices.resize(triangle_count * 3);
+		snapshot.triangle_indices.resize(triangle_count * 3);
 
-		snapshot.triangle_vertices.resize(_triangle_vertices.size());
-
-		if (!_triangle_vertices.empty())
-			SFG_MEMCPY(snapshot.triangle_vertices.data(), _triangle_vertices.data(), _triangle_vertices.size() * sizeof(vertex_debug_triangle_t));
-
-		snapshot.triangle_indices.resize(_triangle_indices.size());
-
-		if (!_triangle_indices.empty())
-			SFG_MEMCPY(snapshot.triangle_indices.data(), _triangle_indices.data(), _triangle_indices.size() * sizeof(primitive_index));
+		if (triangle_count != 0)
+		{
+			SFG_MEMCPY(snapshot.triangle_vertices.data(), _triangle_vertices.data(), snapshot.triangle_vertices.size() * sizeof(vertex_debug_triangle_t));
+			SFG_MEMCPY(snapshot.triangle_indices.data(), _triangle_indices.data(), snapshot.triangle_indices.size() * sizeof(primitive_index));
+		}
 
 		snapshot.text_vertices.resize(0);
 		snapshot.text_indices.resize(0);
@@ -801,6 +802,9 @@ namespace sfg
 
 		for (const texture_command_t& command : _texture_commands)
 		{
+			if (snapshot.textures.full())
+				break;
+
 			const resource_entry_t* entry = resource_manager.find_entry(command.texture);
 
 			if (entry == nullptr || entry->type != resource_type_e::texture || entry->state != resource_state_e::ready)
@@ -834,7 +838,16 @@ namespace sfg
 
 		for (const text_command_t& command : _text_commands)
 		{
-			if (snapshot.text_vertices.size() + command.text_length * 4 > _config.text_vertex_max_count || snapshot.text_indices.size() + command.text_length * 6 > _config.text_index_max_count)
+			const size_t vertex_budget = snapshot.text_vertices.capacity() - snapshot.text_vertices.size();
+			const size_t index_budget  = snapshot.text_indices.capacity() - snapshot.text_indices.size();
+
+			if (command.text_length > vertex_budget / 4)
+			{
+				++_dropped_text_count;
+				continue;
+			}
+
+			if (command.text_length > index_budget / 6)
 			{
 				++_dropped_text_count;
 				continue;

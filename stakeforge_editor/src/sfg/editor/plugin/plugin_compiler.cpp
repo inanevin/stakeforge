@@ -126,7 +126,7 @@ namespace sfg
 		if (executable.empty())
 			return result;
 
-		const string_t target = file_system_t::get_filename_from_path(output_game_dll) + (build_game_editor ? "_editor" : "");
+		const string_t target = file_system_t::get_filename_from_path(output_game_dll) + (build_game_editor ? "_plugin" : "");
 
 		const string_t			 cmake	   = file_system_t::get_directory_of_file(executable.c_str()) + "assets/stakeforge_sdk/tools/cmake/bin/cmake.exe";
 		const string_t			 command   = "\"" + cmake + "\" --build \"" + build_directory + "\" --config " + configuration + " --target \"" + target + "\"";

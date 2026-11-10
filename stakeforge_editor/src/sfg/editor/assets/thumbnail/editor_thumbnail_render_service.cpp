@@ -57,14 +57,16 @@ namespace sfg
 		return {
 			.render_context =
 				{
-					.size		  = vec2u16_t(256, 256),
-					.entity_max	  = 1024,
-					.sprite_max	  = 16,
-					.particle_max = 0,
-					.bone_max	  = 256,
-					.light_max	  = 4,
-					.enable_ssao  = 0,
-					.enable_bloom = 1,
+					.size		   = vec2u16_t(256, 256),
+					.entity_max	   = 1024,
+					.mesh_draw_max = 4096,
+					.material_max  = 1024,
+					.sprite_max	   = 16,
+					.particle_max  = 0,
+					.bone_max	   = 256,
+					.light_max	   = 4,
+					.enable_ssao   = 0,
+					.enable_bloom  = 1,
 				},
 			.world =
 				{

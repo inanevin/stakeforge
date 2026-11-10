@@ -22,7 +22,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "stock_world_renderer_snapshot_producer.hpp"
 #include "stock_world_renderer_draw_common.hpp"
-#include "stock_world_renderer_context.hpp"
 #include "stock_world_renderer_snapshot.hpp"
 #include "core/runtime/world/world.hpp"
 #include "core/runtime/world/world_debug_draw.hpp"
@@ -62,6 +61,9 @@ namespace sfg
 			}
 			else
 			{
+				if (snapshot.materials.full())
+					return UINT32_MAX;
+
 				const resource_entry_t* mat_entry = rm.find_entry(mat_handle);
 
 				if (mat_entry == nullptr || mat_entry->type != resource_type_e::material)
@@ -175,6 +177,9 @@ namespace sfg
 			if (it != entity_to_render_id.end())
 				return it->second;
 
+			if (snapshot.entities.full())
+				return UINT32_MAX;
+
 			const u32 emplaced_id	= static_cast<u32>(snapshot.entities.size());
 			entity_to_render_id[id] = emplaced_id;
 
@@ -196,7 +201,7 @@ namespace sfg
 
 	}
 
-	void stock_world_renderer_snapshot_producer_t::produce(world_t& world, stock_world_renderer_snapshot_t& snapshot, const project_settings_t& project_settings, const stock_world_renderer_context_t& render_context)
+	void stock_world_renderer_snapshot_producer_t::produce(world_t& world, stock_world_renderer_snapshot_t& snapshot, const project_settings_t& project_settings)
 	{
 		snapshot.shadows	   = project_settings.shadows;
 		snapshot.quality_level = project_settings.quality_level;
@@ -248,7 +253,13 @@ namespace sfg
 		for (world_canvas_draw_snapshot_t* stage : canvas_stages)
 		{
 			for (u32 i = 0; i < stage->canvas_data.size(); ++i)
-				stage->canvas_data[i].entity_index = push_render_object(entity_to_render_id, snapshot, stage->owners[i], transform_table);
+			{
+				const u32 entity_index = push_render_object(entity_to_render_id, snapshot, stage->owners[i], transform_table);
+
+				SFG_ASSERT(entity_index != UINT32_MAX);
+
+				stage->canvas_data[i].entity_index = entity_index;
+			}
 		}
 
 		// extract main camera
@@ -394,7 +405,6 @@ namespace sfg
 
 		// lights.
 		{
-			const u32						light_max	 = render_context.get_light_max();
 			const ecs_component_table_ref_t table_refs[] = {
 				transform_table.ref(),
 				alive_table.ref(),
@@ -404,7 +414,7 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
-				if (snapshot.lights.size() >= light_max)
+				if (snapshot.lights.full())
 					break;
 
 				const component_system_transform_t& transform = row.get<component_system_transform_t>(0);
@@ -457,6 +467,9 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
+				if (snapshot.reflection_probes.full())
+					break;
+
 				const component_system_transform_t& transform		 = row.get<component_system_transform_t>(0);
 				const component_reflection_probe_t& reflection_probe = row.get<component_reflection_probe_t>(2);
 
@@ -519,6 +532,9 @@ namespace sfg
 
 				for (u32 i = 0; i < mesh_runtime->primitive_count; i++)
 				{
+					if (snapshot.mesh_draws.full())
+						break;
+
 					const mesh_primitive_runtime_t& prim = primitives[i];
 
 					if (mesh_renderer.materials.size() <= prim.material_index)
@@ -532,6 +548,9 @@ namespace sfg
 						continue;
 
 					const u32 entity_index = push_render_object(entity_to_render_id, snapshot, row.id, transform_table);
+
+					if (entity_index == UINT32_MAX)
+						break;
 
 					// mesh draw
 					stock_world_renderer_mesh_draw_t& draw = snapshot.mesh_draws.emplace_back();
@@ -594,25 +613,19 @@ namespace sfg
 				const u8						renderable_flags = (system_aabb.is_world_space ? stock_world_renderer_renderable_flag_world_space_aabb : stock_world_renderer_renderable_flag_none) |
 																   (view_model_table.has(row.id) ? stock_world_renderer_renderable_flag_view_model : stock_world_renderer_renderable_flag_none);
 
-				const render_resource_handle_t vertex_buffer = mesh_internals->vertex_buffer;
-				const render_resource_handle_t index_buffer	 = mesh_internals->index_buffer;
-				const u32					   idx			 = static_cast<u32>(snapshot.bones.size());
-				const span_t<const mat4x3_t>   bones		 = world.get_animation_processor().get_skinning_matrices(system_skinned_mesh_renderer.bone_alloc);
+				const render_resource_handle_t vertex_buffer  = mesh_internals->vertex_buffer;
+				const render_resource_handle_t index_buffer	  = mesh_internals->index_buffer;
+				u32							   skinning_index = UINT32_MAX;
+				const span_t<const mat4x3_t>   bones		  = world.get_animation_processor().get_skinning_matrices(system_skinned_mesh_renderer.bone_alloc);
 
-				for (size_t i = 0; i < bones.size; ++i)
-				{
-					const mat4x3_t& bone = bones.data[i];
-
-					snapshot.bones.push_back({
-						.gpu_bone =
-							{
-								.model = bone.to_matrix4x4(),
-							},
-					});
-				}
+				if (bones.size > snapshot.bones.capacity() - snapshot.bones.size())
+					continue;
 
 				for (u32 i = 0; i < mesh_runtime->primitive_count; i++)
 				{
+					if (snapshot.mesh_draws.full())
+						break;
+
 					const mesh_primitive_runtime_t& prim = primitives[i];
 
 					if (skinned_mesh_renderer.materials.size() <= prim.material_index)
@@ -627,13 +640,33 @@ namespace sfg
 
 					const u32 entity_index = push_render_object(entity_to_render_id, snapshot, row.id, transform_table);
 
+					if (entity_index == UINT32_MAX)
+						break;
+
+					if (skinning_index == UINT32_MAX)
+					{
+						skinning_index = static_cast<u32>(snapshot.bones.size());
+
+						for (size_t i = 0; i < bones.size; ++i)
+						{
+							const mat4x3_t& bone = bones.data[i];
+
+							snapshot.bones.push_back({
+								.gpu_bone =
+									{
+										.model = bone.to_matrix4x4(),
+									},
+							});
+						}
+					}
+
 					// mesh draw
 					stock_world_renderer_mesh_draw_t& draw = snapshot.mesh_draws.emplace_back();
 
 					draw.vertex_buffer	= vertex_buffer;
 					draw.index_buffer	= index_buffer;
 					draw.draw_flags		= 0;
-					draw.skinning_index = idx;
+					draw.skinning_index = skinning_index;
 					draw.index_count	= prim.index_count;
 					draw.vertex_count	= UINT32_MAX;
 					draw.start_index	= prim.start_index;
@@ -669,6 +702,9 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
+				if (snapshot.sprite_draws.full())
+					break;
+
 				const component_sprite_renderer_t&		  sprite		   = row.get<component_sprite_renderer_t>(2);
 				const component_system_sprite_renderer_t& system_sprite	   = row.get<component_system_sprite_renderer_t>(3);
 				const material_runtime_t*				  material_runtime = rm.find_runtime<material_runtime_t>(sprite.material);
@@ -690,6 +726,10 @@ namespace sfg
 				const f32 frame_height = system_sprite.uv_size.y * static_cast<f32>(system_sprite.texture_size.y);
 				const f32 aspect	   = frame_width / frame_height;
 				const u32 entity_index = push_render_object(entity_to_render_id, snapshot, row.id, transform_table);
+
+				if (entity_index == UINT32_MAX)
+					continue;
+
 				const u32 sprite_index = static_cast<u32>(snapshot.sprite_draws.size());
 
 				// sprite draw
@@ -728,6 +768,12 @@ namespace sfg
 
 			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
 			{
+				if (snapshot.particles.full())
+					break;
+
+				if (snapshot.particle_draws.full())
+					break;
+
 				const component_system_transform_t&		   transform	  = row.get<component_system_transform_t>(0);
 				const component_particle_emitter_t&		   emitter		  = row.get<component_particle_emitter_t>(2);
 				const component_system_particle_emitter_t& system_emitter = row.get<component_system_particle_emitter_t>(3);
@@ -755,6 +801,13 @@ namespace sfg
 				if (material_index == UINT32_MAX)
 					continue;
 
+				const u32 entity_index = push_render_object(entity_to_render_id, snapshot, row.id, transform_table);
+
+				if (entity_index == UINT32_MAX)
+					continue;
+
+				const u32 particle_count = std::min(system_emitter.particle_count, static_cast<u32>(snapshot.particles.capacity() - snapshot.particles.size()));
+
 				const curve_runtime_t* size_curve	  = emitter.size_over_lifetime != NULL_RESOURCE_HANDLE ? rm.find_runtime<curve_runtime_t>(emitter.size_over_lifetime) : nullptr;
 				const curve_runtime_t* opacity_curve  = emitter.opacity_over_lifetime != NULL_RESOURCE_HANDLE ? rm.find_runtime<curve_runtime_t>(emitter.opacity_over_lifetime) : nullptr;
 				const curve_runtime_t* color_curve	  = emitter.color_over_lifetime != NULL_RESOURCE_HANDLE ? rm.find_runtime<curve_runtime_t>(emitter.color_over_lifetime) : nullptr;
@@ -762,7 +815,7 @@ namespace sfg
 
 				const particle_state_t* particles = particle_memory.get<particle_state_t>(system_emitter.particles);
 
-				for (u32 particle_index = 0; particle_index < system_emitter.particle_count; ++particle_index)
+				for (u32 particle_index = 0; particle_index < particle_count; ++particle_index)
 				{
 					const particle_state_t& particle		   = particles[particle_index];
 					const f32				normalized_age	   = particle.age / particle.lifetime;
@@ -794,7 +847,6 @@ namespace sfg
 				const f32 frame_width		  = sprite_runtime->uv_size.x * static_cast<f32>(sprite_runtime->header.size.x);
 				const f32 frame_height		  = sprite_runtime->uv_size.y * static_cast<f32>(sprite_runtime->header.size.y);
 				const u32 particle_draw_index = static_cast<u32>(snapshot.particle_draws.size());
-				const u32 entity_index		  = push_render_object(entity_to_render_id, snapshot, row.id, transform_table);
 				u32		  pass_mask			  = stock_world_renderer_pass_flags_forward | stock_world_renderer_pass_flags_id;
 
 				if ((snapshot.materials[material_index].pass_mask & stock_world_renderer_pass_flags_reflections) != 0)
@@ -804,7 +856,7 @@ namespace sfg
 					.uv_start		= vec2f_t::zero,
 					.uv_size		= sprite_runtime->uv_size,
 					.particle_start = particle_start,
-					.particle_count = system_emitter.particle_count,
+					.particle_count = particle_count,
 					.aspect			= frame_width / frame_height,
 					.alignment		= static_cast<u8>(emitter.alignment),
 				});
@@ -822,6 +874,7 @@ namespace sfg
 			}
 		}
 
-		std::sort(snapshot.lights.begin(), snapshot.lights.end(), [](const stock_world_renderer_light_t& l0, const stock_world_renderer_light_t& l1) -> bool { return l0.type < l1.type; });
+		if (snapshot.lights.size() > 1)
+			std::sort(snapshot.lights.begin(), snapshot.lights.end(), [](const stock_world_renderer_light_t& l0, const stock_world_renderer_light_t& l1) -> bool { return l0.type < l1.type; });
 	}
 }

@@ -80,6 +80,8 @@ namespace sfg
 				{
 					.size				  = render_resolution,
 					.entity_max			  = 1024 * 10,
+					.mesh_draw_max		  = 32768,
+					.material_max		  = 4096,
 					.sprite_max			  = 256,
 					.particle_max		  = 8192,
 					.bone_max			  = 4096,
@@ -114,6 +116,8 @@ namespace sfg
 				{
 					.size				  = render_resolution,
 					.entity_max			  = 128,
+					.mesh_draw_max		  = 1024,
+					.material_max		  = 256,
 					.sprite_max			  = 16,
 					.particle_max		  = 0,
 					.bone_max			  = MAX_SKELETON_BONES,

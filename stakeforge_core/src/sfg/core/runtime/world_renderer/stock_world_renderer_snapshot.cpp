@@ -1,0 +1,75 @@
+/*
+This file is a part of stakeforge_engine: https://github.com/inanevin/stakeforge
+Copyright [2025-] Inan Evin
+
+Stakeforge is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, version 3 of the License.
+
+Stakeforge is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with Stakeforge. If not, see <https://www.gnu.org/licenses/>.
+
+As an additional permission under section 7 of GPLv3, the copyright
+holders grant the Stakeforge Game Linking Exception, version 1.0,
+in GAME-LINKING-EXCEPTION.md.
+
+*/
+
+#include "stock_world_renderer_snapshot.hpp"
+#include "world_render_config.hpp"
+#include "core/runtime/world/world_debug_draw_config.hpp"
+
+namespace sfg
+{
+	void stock_world_renderer_snapshot_t::init(const world_render_context_config_t& config, const world_debug_draw_config_t& debug_draw_config)
+	{
+		const u32	 sprite_count		 = std::min(config.sprite_max, config.entity_max);
+		const u32	 particle_draw_count = std::min(config.particle_max, config.entity_max);
+		const size_t renderable_count	 = static_cast<size_t>(config.mesh_draw_max) + sprite_count + particle_draw_count;
+
+		SFG_ASSERT(renderable_count <= UINT32_MAX);
+
+		materials.init(config.material_max);
+		entities.init(config.entity_max);
+		bones.init(config.bone_max);
+		lights.init(config.light_max);
+		reflection_probes.init(config.reflection_probe_max);
+		renderables.init(renderable_count);
+		mesh_draws.init(config.mesh_draw_max);
+		sprite_draws.init(sprite_count);
+		particle_draws.init(particle_draw_count);
+		particles.init(config.particle_max);
+
+		debug_draw.init(debug_draw_config);
+		canvas.init(config);
+	}
+
+	void stock_world_renderer_snapshot_t::uninit()
+	{
+		materials.uninit();
+		entities.uninit();
+		bones.uninit();
+		lights.uninit();
+		reflection_probes.uninit();
+		renderables.uninit();
+		mesh_draws.uninit();
+		sprite_draws.uninit();
+		particle_draws.uninit();
+		particles.uninit();
+
+		debug_draw.uninit();
+		canvas.uninit();
+
+		shadows		  = {};
+		main_view	  = {};
+		environment	  = {};
+		fog			  = {};
+		post_process  = {};
+		quality_level = engine_quality_level_e::high;
+	}
+}

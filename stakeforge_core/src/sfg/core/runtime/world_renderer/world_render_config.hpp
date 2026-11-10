@@ -30,6 +30,8 @@ namespace sfg
 	{
 		vec2u16_t size					  = vec2u16_t::zero;
 		u32		  entity_max			  = 0;
+		u32		  mesh_draw_max			  = 0;
+		u32		  material_max			  = 0;
 		u32		  sprite_max			  = 0;
 		u32		  particle_max			  = 0;
 		u32		  bone_max				  = 0;

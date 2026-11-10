@@ -90,6 +90,8 @@ namespace sfg
 		const world_render_context_config_t render_context_config{
 			.size				  = render_resolution,
 			.entity_max			  = GAME_WORLD_ENTITY_MAX_COUNT,
+			.mesh_draw_max		  = 32768,
+			.material_max		  = 4096,
 			.sprite_max			  = GAME_WORLD_SPRITE_MAX_COUNT,
 			.particle_max		  = GAME_WORLD_PARTICLE_MAX_COUNT,
 			.bone_max			  = GAME_WORLD_BONE_MAX_COUNT,

@@ -46,7 +46,7 @@ namespace sfg
 
 		for (stock_world_renderer_snapshot_t& snapshot : _snapshot_slots)
 		{
-			snapshot.reserve();
+			snapshot.init(config, debug_draw_config);
 			snapshot.main_view = {
 				.near_plane	 = 0.1f,
 				.far_plane	 = 1000.0f,
@@ -66,7 +66,7 @@ namespace sfg
 		_render_context.uninit();
 
 		for (stock_world_renderer_snapshot_t& snapshot : _snapshot_slots)
-			snapshot = {};
+			snapshot.uninit();
 
 		_snapshot_mailbox.store(0, std::memory_order_relaxed);
 		_producer_slot = 0;
@@ -80,7 +80,7 @@ namespace sfg
 
 	u8 stock_world_renderer_t::produce_snapshot(world_t& world, const project_settings_t& project_settings)
 	{
-		stock_world_renderer_snapshot_producer_t::produce(world, _snapshot_slots[_producer_slot], project_settings, _render_context);
+		stock_world_renderer_snapshot_producer_t::produce(world, _snapshot_slots[_producer_slot], project_settings);
 
 		return _producer_slot;
 	}

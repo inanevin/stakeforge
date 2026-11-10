@@ -273,6 +273,18 @@ namespace sfg
 		if (canvas.get_indices().size == 0)
 			return;
 
+		if (canvas.get_vertices().size > destination.vertices.capacity() - vertex_offset)
+			return;
+
+		if (canvas.get_indices().size > destination.indices.capacity() - index_offset)
+			return;
+
+		if (draw_count > destination.parameters.capacity() - parameter_offset)
+			return;
+
+		if (draw_count > destination.batches.capacity() - batch_offset)
+			return;
+
 		destination.vertices.resize(vertex_offset + canvas.get_vertices().size);
 		destination.indices.resize(index_offset + canvas.get_indices().size);
 		destination.parameters.resize(parameter_offset + draw_count);
@@ -594,6 +606,14 @@ namespace sfg
 
 		for (const component_system_canvas_t* runtime : sorted)
 		{
+			if (runtime->config.is_3d)
+			{
+				const size_t canvas_count = snapshot.before_post_process.canvas_data.size() + snapshot.after_post_process.canvas_data.size();
+
+				if (canvas_count == snapshot.canvas_max)
+					continue;
+			}
+
 			world_canvas_draw_snapshot_t& destination = runtime->config.render_stage == canvas_render_stage_e::before_post_process ? snapshot.before_post_process : snapshot.after_post_process;
 
 			append_runtime(*runtime, destination);

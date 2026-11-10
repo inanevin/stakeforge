@@ -22,7 +22,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #pragma once
 
-#include "core/data/vector.hpp"
+#include "core/data/fixed_vector.hpp"
 #include "core/gfx/common/gfx_constants.hpp"
 #include "core/math/vec2f.hpp"
 #include "core/math/vec3f.hpp"
@@ -32,6 +32,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	struct world_debug_draw_config_t;
+
 	enum world_debug_texture_flags_e : u32
 	{
 		world_debug_texture_flag_none		   = 0,
@@ -51,12 +53,15 @@ namespace sfg
 
 	struct world_debug_render_snapshot_t
 	{
-		vector_t<vertex_debug_line_t>	  line_vertices;
-		vector_t<primitive_index>		  line_indices;
-		vector_t<vertex_debug_triangle_t> triangle_vertices;
-		vector_t<primitive_index>		  triangle_indices;
-		vector_t<vertex_debug_text_t>	  text_vertices;
-		vector_t<primitive_index>		  text_indices;
-		vector_t<world_debug_texture_t>	  textures;
+		fixed_vector_t<vertex_debug_line_t>		line_vertices	  = {};
+		fixed_vector_t<primitive_index>			line_indices	  = {};
+		fixed_vector_t<vertex_debug_triangle_t> triangle_vertices = {};
+		fixed_vector_t<primitive_index>			triangle_indices  = {};
+		fixed_vector_t<vertex_debug_text_t>		text_vertices	  = {};
+		fixed_vector_t<primitive_index>			text_indices	  = {};
+		fixed_vector_t<world_debug_texture_t>	textures		  = {};
+
+		void init(const world_debug_draw_config_t& config);
+		void uninit();
 	};
 }

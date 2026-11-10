@@ -35,7 +35,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/data/frame_vector.hpp"
 #include "core/data/inplace_vector.hpp"
 #include "core/data/span.hpp"
-#include "core/data/vector.hpp"
+#include "core/data/fixed_vector.hpp"
 #include "core/math/frustum.hpp"
 #include "core/math/mat4x4.hpp"
 #include "core/math/vec2f.hpp"
@@ -46,6 +46,9 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	struct world_render_context_config_t;
+	struct world_debug_draw_config_t;
+
 	enum class stock_world_renderer_fog_type_e : u32
 	{
 		linear,
@@ -280,55 +283,26 @@ namespace sfg
 
 	struct stock_world_renderer_snapshot_t
 	{
-		engine_shadow_settings_t						  shadows			= {};
-		world_renderer_camera_t							  main_view			= {};
-		stock_world_renderer_environment_t				  environment		= {};
-		stock_world_renderer_fog_t						  fog				= {};
-		stock_world_renderer_post_process_t				  post_process		= {};
-		world_debug_render_snapshot_t					  debug_draw		= {};
-		world_canvas_render_snapshot_t					  canvas			= {};
-		vector_t<stock_world_renderer_material_t>		  materials			= {};
-		vector_t<stock_world_renderer_entity_t>			  entities			= {};
-		vector_t<stock_world_renderer_bone_t>			  bones				= {};
-		vector_t<stock_world_renderer_light_t>			  lights			= {};
-		vector_t<stock_world_renderer_reflection_probe_t> reflection_probes = {};
-		vector_t<stock_world_renderer_renderable_t>		  renderables		= {};
-		vector_t<stock_world_renderer_mesh_draw_t>		  mesh_draws		= {};
-		vector_t<stock_world_renderer_sprite_draw_t>	  sprite_draws		= {};
-		vector_t<stock_world_renderer_particle_draw_t>	  particle_draws	= {};
-		vector_t<stock_world_renderer_particle_t>		  particles			= {};
-		engine_quality_level_e							  quality_level		= engine_quality_level_e::high;
+		engine_shadow_settings_t								shadows			  = {};
+		world_renderer_camera_t									main_view		  = {};
+		stock_world_renderer_environment_t						environment		  = {};
+		stock_world_renderer_fog_t								fog				  = {};
+		stock_world_renderer_post_process_t						post_process	  = {};
+		world_debug_render_snapshot_t							debug_draw		  = {};
+		world_canvas_render_snapshot_t							canvas			  = {};
+		fixed_vector_t<stock_world_renderer_material_t>			materials		  = {};
+		fixed_vector_t<stock_world_renderer_entity_t>			entities		  = {};
+		fixed_vector_t<stock_world_renderer_bone_t>				bones			  = {};
+		fixed_vector_t<stock_world_renderer_light_t>			lights			  = {};
+		fixed_vector_t<stock_world_renderer_reflection_probe_t> reflection_probes = {};
+		fixed_vector_t<stock_world_renderer_renderable_t>		renderables		  = {};
+		fixed_vector_t<stock_world_renderer_mesh_draw_t>		mesh_draws		  = {};
+		fixed_vector_t<stock_world_renderer_sprite_draw_t>		sprite_draws	  = {};
+		fixed_vector_t<stock_world_renderer_particle_draw_t>	particle_draws	  = {};
+		fixed_vector_t<stock_world_renderer_particle_t>			particles		  = {};
+		engine_quality_level_e									quality_level	  = engine_quality_level_e::high;
 
-		inline void reserve()
-		{
-			materials.reserve(16);
-			entities.reserve(16);
-			bones.reserve(16);
-			lights.reserve(16);
-			reflection_probes.reserve(16);
-			renderables.reserve(16);
-			mesh_draws.reserve(16);
-			sprite_draws.reserve(16);
-			particle_draws.reserve(16);
-			particles.reserve(16);
-
-			debug_draw.line_vertices.reserve(16);
-			debug_draw.line_indices.reserve(16);
-			debug_draw.triangle_vertices.reserve(16);
-			debug_draw.triangle_indices.reserve(16);
-			debug_draw.text_vertices.reserve(16);
-			debug_draw.text_indices.reserve(16);
-			debug_draw.textures.reserve(16);
-
-			canvas.before_post_process.batches.reserve(16);
-			canvas.before_post_process.parameters.reserve(16);
-			canvas.before_post_process.vertices.reserve(16);
-			canvas.before_post_process.indices.reserve(16);
-
-			canvas.after_post_process.batches.reserve(16);
-			canvas.after_post_process.parameters.reserve(16);
-			canvas.after_post_process.vertices.reserve(16);
-			canvas.after_post_process.indices.reserve(16);
-		}
+		void init(const world_render_context_config_t& config, const world_debug_draw_config_t& debug_draw_config);
+		void uninit();
 	};
 }

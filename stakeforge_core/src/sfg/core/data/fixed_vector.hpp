@@ -59,7 +59,7 @@ namespace sfg
 				return;
 
 			_data = static_cast<T*>(SFG_ALIGNED_MALLOC(get_allocation_alignment(), get_allocation_size(_capacity)));
-			SFG_ASSERT(_data != nullptr);
+			SFG_FAIL(_data != nullptr, "failed to allocate fixed vector storage");
 		}
 
 		inline void uninit()

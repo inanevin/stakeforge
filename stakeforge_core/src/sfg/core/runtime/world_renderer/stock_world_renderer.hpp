@@ -24,6 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "world_renderer.hpp"
 #include "core/data/atomic.hpp"
+#include "core/data/vector.hpp"
 #include "world_renderer_view.hpp"
 #include "stock_world_renderer_context.hpp"
 #include "stock_world_renderer_snapshot.hpp"
