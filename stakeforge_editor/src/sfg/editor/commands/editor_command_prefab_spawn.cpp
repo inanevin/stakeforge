@@ -21,10 +21,13 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #include "editor/commands/editor_command_prefab_spawn.hpp"
+#include "editor_command_entity_util.hpp"
 #include "editor/editor_world_controller.hpp"
 #include "editor/world/editor_world.hpp"
 #include "editor/editor_command_system.hpp"
 #include "editor/world/editor_world_edit_context.hpp"
+#include <sfg/core/data/istream.hpp>
+#include <sfg/core/data/ostream.hpp>
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/runtime/resources/world_cook.hpp>
@@ -36,30 +39,18 @@ namespace sfg
 {
 	namespace
 	{
-		chunk_handle32_t copy_selection_to_aux(editor_command_system_t& system, span_t<const entity_id_t> selection)
-		{
-			if (selection.size == 0)
-				return {};
-
-			entity_id_t*		   dst	  = nullptr;
-			const chunk_handle32_t handle = system.get_aux_data().allocate<entity_id_t>(selection.size, dst);
-			SFG_MEMCPY(dst, selection.data, sizeof(entity_id_t) * selection.size);
-			return handle;
-		}
-
-		void apply_selection(editor_world_handle_t context, span_t<const entity_id_t> entities, entity_id_t anchor)
-		{
-			editor_world_controller_t::get().get_editor_world(context)->get_edit_context().apply_entity_selection(entities, anchor);
-		}
-
 		bool prefab_spawn_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
 			world_t&							   world   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
-			world.destroy_entity_tree(payload.root);
-			payload.root						  = NULL_ENTITY_ID;
-			const entity_id_t* previous_selection = payload.previous_selection_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.previous_selection) : nullptr;
-			apply_selection(payload.previous_selection_context, {.data = previous_selection, .size = payload.previous_selection_count}, payload.previous_anchor);
+			const entity_id_t					   root	   = world.find_by_guid(payload.root_guid);
+
+			if (root == NULL_ENTITY_ID)
+				return false;
+
+			world.destroy_entity_tree(root);
+			editor_command_entity_util_t::restore_selection(payload.previous_selection_context, system.get_aux_data(), payload.previous_selection, payload.previous_anchor_guid);
+
 			return true;
 		}
 
@@ -67,23 +58,56 @@ namespace sfg
 		{
 			editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
 			world_t&							   world   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
-			payload.root								   = world_cooker_t::spawn_prefab(world, payload.prefab, {});
+			const entity_id_t					   parent  = world.find_by_guid(payload.parent_guid);
+			entity_id_t							   root	   = NULL_ENTITY_ID;
 
-			if (payload.root == NULL_ENTITY_ID)
+			if (payload.parent_guid != NULL_ENTITY_GUID && parent == NULL_ENTITY_ID)
 				return false;
 
-			world_cooker_t::make_prefab_chain(world, payload.root, payload.prefab);
+			if (payload.snapshot)
+			{
+				if (!editor_command_entity_util_t::can_restore_tree(world, system.get_aux_data(), payload.snapshot))
+					return false;
 
-			if (payload.parent != NULL_ENTITY_ID)
-				world.attach_to(payload.root, payload.parent);
+				istream_t stream(system.get_aux_data().get<u8>(payload.snapshot), payload.snapshot.size);
+
+				root = world_cooker_t::entity_from_stream(world, stream, false);
+			}
+			else
+				root = world_cooker_t::spawn_prefab(world, payload.prefab, {});
+
+			if (root == NULL_ENTITY_ID)
+				return false;
+
+			world_cooker_t::make_prefab_chain(world, root, payload.prefab);
+
+			if (payload.snapshot)
+			{
+				world.scan_for_resources(root);
+				world.load_all_used_resources();
+			}
+
+			if (parent != NULL_ENTITY_ID)
+				world.attach_to(root, parent);
 
 			if (payload.place)
 			{
-				const mat4x3_t parent_matrix = world.calculate_entity_parent_abs_matrix(payload.root);
-				world.set_entity_pos_local(payload.root, world_t::abs_pos_to_local(payload.position, parent_matrix));
+				const mat4x3_t parent_matrix = world.calculate_entity_parent_abs_matrix(root);
+
+				world.set_entity_pos_local(root, world_t::abs_pos_to_local(payload.position, parent_matrix));
 			}
 
-			apply_selection(editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context().get_world(), {.data = &payload.root, .size = 1}, payload.root);
+			if (!payload.snapshot)
+			{
+				ostream_t stream = {};
+
+				world_cooker_t::entity_to_stream(world, root, stream);
+				payload.snapshot = system.get_aux_data().allocate_bytes(stream.get_size(), alignof(u8));
+				SFG_MEMCPY(system.get_aux_data().get<u8>(payload.snapshot), stream.get_raw(), stream.get_size());
+			}
+
+			payload.root_guid = world.get_entity_guid(root);
+			editor_world_controller_t::get().get_editor_world(payload.world)->get_edit_context().apply_entity_selection({.data = &root, .size = 1}, root);
 
 			return true;
 		}
@@ -91,11 +115,13 @@ namespace sfg
 		bool prefab_spawn_cleanup(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
+
 			if (payload.previous_selection)
-			{
 				system.get_aux_data().free(payload.previous_selection);
-				payload.previous_selection = {};
-			}
+
+			if (payload.snapshot)
+				system.get_aux_data().free(payload.snapshot);
+
 			return true;
 		}
 	}
@@ -117,11 +143,10 @@ namespace sfg
 			.previous_selection_context = selection_controller.get_world(),
 			.prefab						= prefab,
 			.position					= world_position != nullptr ? *world_position : vec3f_t::zero,
-			.previous_selection			= copy_selection_to_aux(command_system, selection),
-			.parent						= parent,
-			.root						= NULL_ENTITY_ID,
-			.previous_anchor			= selection_controller.get_entity_anchor(),
-			.previous_selection_count	= static_cast<u32>(selection.size),
+			.previous_selection			= editor_command_entity_util_t::capture_entities(world_controller.get_editor_world(selection_controller.get_world())->get_world(), command_system.get_aux_data(), selection),
+			.parent_guid				= target_world->get_world().get_entity_guid(parent),
+			.root_guid					= NULL_ENTITY_GUID,
+			.previous_anchor_guid		= world_controller.get_editor_world(selection_controller.get_world())->get_world().get_entity_guid(selection_controller.get_entity_anchor()),
 			.place						= world_position != nullptr,
 		};
 
@@ -140,11 +165,13 @@ namespace sfg
 		if (handle.is_null())
 		{
 			SFG_ERR("failed to issue prefab spawn command");
+
 			return NULL_ENTITY_ID;
 		}
 
 		editor_command_t&					   command		  = command_system.get_command(handle);
 		editor_command_prefab_spawn_payload_t& stored_payload = command_system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
-		return stored_payload.root;
+
+		return target_world->get_world().find_by_guid(stored_payload.root_guid);
 	}
 }

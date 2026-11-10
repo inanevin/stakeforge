@@ -20,6 +20,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 */
 #include "editor/world/editor_world_edit_context.hpp"
+#include "editor/commands/editor_command_entity_util.hpp"
 #include "editor/editor_command_system.hpp"
 #include "editor/editor_world_controller.hpp"
 #include "editor/world/editor_world.hpp"
@@ -43,25 +44,23 @@ namespace sfg
 			chunk_handle32_t	  previous_entities = {};
 			chunk_handle32_t	  next_entities		= {};
 			editor_world_handle_t context			= {};
-			entity_id_t			  previous_anchor	= NULL_ENTITY_ID;
-			entity_id_t			  next_anchor		= NULL_ENTITY_ID;
-			u32					  previous_count	= 0;
-			u32					  next_count		= 0;
+			entity_guid_t		  previous_anchor	= NULL_ENTITY_GUID;
+			entity_guid_t		  next_anchor		= NULL_ENTITY_GUID;
 		};
 
 		bool on_entity_selection_undo(editor_command_system_t& system, editor_command_t& command)
 		{
-			const editor_command_entity_selection_payload_t& payload  = system.get_payload_as<editor_command_entity_selection_payload_t>(command);
-			const entity_id_t*								 entities = payload.previous_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.previous_entities) : nullptr;
-			editor_world_controller_t::get().get_editor_world(payload.context)->get_edit_context().apply_entity_selection({.data = entities, .size = payload.previous_count}, payload.previous_anchor);
+			const editor_command_entity_selection_payload_t& payload = system.get_payload_as<editor_command_entity_selection_payload_t>(command);
+			editor_command_entity_util_t::restore_selection(payload.context, system.get_aux_data(), payload.previous_entities, payload.previous_anchor);
+
 			return true;
 		}
 
 		bool on_entity_selection_redo(editor_command_system_t& system, editor_command_t& command)
 		{
-			const editor_command_entity_selection_payload_t& payload  = system.get_payload_as<editor_command_entity_selection_payload_t>(command);
-			const entity_id_t*								 entities = payload.next_count != 0 ? system.get_aux_data().get<entity_id_t>(payload.next_entities) : nullptr;
-			editor_world_controller_t::get().get_editor_world(payload.context)->get_edit_context().apply_entity_selection({.data = entities, .size = payload.next_count}, payload.next_anchor);
+			const editor_command_entity_selection_payload_t& payload = system.get_payload_as<editor_command_entity_selection_payload_t>(command);
+			editor_command_entity_util_t::restore_selection(payload.context, system.get_aux_data(), payload.next_entities, payload.next_anchor);
+
 			return true;
 		}
 
@@ -156,36 +155,28 @@ namespace sfg
 	void editor_world_edit_context_t::issue_entity_selection(span_t<const entity_id_t> entities, entity_id_t anchor)
 	{
 		bool same_selection = _selected_entities.size() == entities.size;
+
 		for (size_t i = 0; same_selection && i < entities.size; ++i)
 			same_selection = _selected_entities[i] == entities.data[i];
+
 		if (same_selection && _entity_anchor == anchor)
 		{
 			notify_selection_listeners();
+
 			return;
 		}
 
 		editor_command_system_t& command_system = editor_command_system_t::get();
+		const world_t&			 world			= editor_world_controller_t::get().get_editor_world(_world)->get_world();
 
 		editor_command_entity_selection_payload_t payload = {};
-		payload.context									  = _world;
-		payload.previous_anchor							  = _entity_anchor;
-		payload.next_anchor								  = anchor;
-		payload.previous_count							  = static_cast<u32>(_selected_entities.size());
-		payload.next_count								  = static_cast<u32>(entities.size);
 
-		if (payload.previous_count != 0)
-		{
-			entity_id_t* previous	  = nullptr;
-			payload.previous_entities = command_system.get_aux_data().allocate<entity_id_t>(payload.previous_count, previous);
-			SFG_MEMCPY(previous, _selected_entities.data(), sizeof(entity_id_t) * payload.previous_count);
-		}
+		payload.context			= _world;
+		payload.previous_anchor = world.get_entity_guid(_entity_anchor);
+		payload.next_anchor		= world.get_entity_guid(anchor);
 
-		if (payload.next_count != 0)
-		{
-			entity_id_t* next	  = nullptr;
-			payload.next_entities = command_system.get_aux_data().allocate<entity_id_t>(payload.next_count, next);
-			SFG_MEMCPY(next, entities.data, sizeof(entity_id_t) * payload.next_count);
-		}
+		payload.previous_entities = editor_command_entity_util_t::capture_entities(world, command_system.get_aux_data(), {.data = _selected_entities.data(), .size = _selected_entities.size()});
+		payload.next_entities	  = editor_command_entity_util_t::capture_entities(world, command_system.get_aux_data(), entities);
 
 		const editor_command_issue_desc_t desc{
 			.undo		= on_entity_selection_undo,

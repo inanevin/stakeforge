@@ -37,7 +37,7 @@ namespace sfg
 	{
 		chunk_handle32_t	  previous_streams = {};
 		chunk_handle32_t	  post_streams	   = {};
-		chunk_handle32_t	  entities		   = {};
+		chunk_handle32_t	  entity_guids	   = {};
 		editor_world_handle_t world			   = {};
 		sid_t				  component_type   = 0;
 		u32					  count			   = 0;

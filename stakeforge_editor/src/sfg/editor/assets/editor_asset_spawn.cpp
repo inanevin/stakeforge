@@ -24,6 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/assets/editor_asset_io.hpp"
 #include "editor/assets/editor_asset_manager.hpp"
 #include "editor/assets/editor_asset_util.hpp"
+#include "editor/commands/editor_command_entity_util.hpp"
 #include "editor/commands/editor_command_prefab_spawn.hpp"
 #include "editor/editor_command_system.hpp"
 #include "editor/editor_world_controller.hpp"
@@ -55,10 +56,8 @@ namespace sfg
 			chunk_handle32_t	  name																  = {};
 			chunk_handle32_t	  previous_selection												  = {};
 			editor_world_handle_t world																  = {};
-			entity_id_t			  parent															  = NULL_ENTITY_ID;
-			entity_id_t			  entity															  = NULL_ENTITY_ID;
-			entity_id_t			  previous_anchor													  = NULL_ENTITY_ID;
-			u32					  previous_selection_count											  = 0;
+			entity_guid_t		  parent_guid														  = NULL_ENTITY_GUID;
+			entity_guid_t		  previous_anchor_guid												  = NULL_ENTITY_GUID;
 			u32					  material_count													  = 0;
 			editor_asset_type_e	  type																  = editor_asset_type_e::invalid;
 			bool				  skinned															  = false;
@@ -87,11 +86,14 @@ namespace sfg
 		{
 			asset_spawn_payload_t& payload		= system.get_payload_as<asset_spawn_payload_t>(command);
 			editor_world_t&		   editor_world = *editor_world_controller_t::get().get_editor_world(payload.world);
-			editor_world.get_world().destroy_entity_tree(payload.entity);
-			payload.entity = NULL_ENTITY_ID;
+			const entity_id_t	   entity		= editor_world.get_world().find_by_guid(payload.guid);
 
-			const entity_id_t* selection = payload.previous_selection_count == 0 ? nullptr : system.get_aux_data().get<entity_id_t>(payload.previous_selection);
-			editor_world.get_edit_context().apply_entity_selection({.data = selection, .size = payload.previous_selection_count}, payload.previous_anchor);
+			if (entity == NULL_ENTITY_ID)
+				return false;
+
+			editor_world.get_world().destroy_entity_tree(entity);
+
+			editor_command_entity_util_t::restore_selection(payload.world, system.get_aux_data(), payload.previous_selection, payload.previous_anchor_guid);
 
 			return true;
 		}
@@ -101,10 +103,18 @@ namespace sfg
 			asset_spawn_payload_t& payload		= system.get_payload_as<asset_spawn_payload_t>(command);
 			editor_world_t&		   editor_world = *editor_world_controller_t::get().get_editor_world(payload.world);
 			world_t&			   world		= editor_world.get_world();
-			const entity_id_t	   entity		= world.create_entity(system.get_aux_data().get_text(payload.name), payload.guid);
+			const entity_id_t	   parent		= world.find_by_guid(payload.parent_guid);
 
-			if (payload.parent != NULL_ENTITY_ID)
-				world.attach_to(entity, payload.parent);
+			if (payload.parent_guid != NULL_ENTITY_GUID && parent == NULL_ENTITY_ID)
+				return false;
+
+			if (world.find_by_guid(payload.guid) != NULL_ENTITY_ID)
+				return false;
+
+			const entity_id_t entity = world.create_entity(system.get_aux_data().get_text(payload.name), payload.guid);
+
+			if (parent != NULL_ENTITY_ID)
+				world.attach_to(entity, parent);
 
 			if (payload.place)
 			{
@@ -121,6 +131,7 @@ namespace sfg
 				for (u32 i = 0; i < payload.material_count; ++i)
 					renderer.materials.push_back(payload.materials[i]);
 			}
+
 			else
 			{
 				component_mesh_renderer_t& renderer = world.get_component_table<component_mesh_renderer_t>().add_or_get_as<component_mesh_renderer_t>(entity);
@@ -146,9 +157,8 @@ namespace sfg
 			}
 
 			world.scan_for_resources(entity, true);
-			payload.entity = entity;
-			payload.guid   = world.get_entity_guid(entity);
-			editor_world.get_edit_context().apply_entity_selection({.data = &payload.entity, .size = 1}, payload.entity);
+			payload.guid = world.get_entity_guid(entity);
+			editor_world.get_edit_context().apply_entity_selection({.data = &entity, .size = 1}, entity);
 
 			return true;
 		}
@@ -166,7 +176,8 @@ namespace sfg
 
 		bool spawn_asset(const editor_asset_spawn_desc_t& desc, const editor_asset_t& asset)
 		{
-			asset_spawn_payload_t payload{.asset = asset.guid, .world = desc.world, .parent = desc.parent, .type = asset.asset_type};
+			const world_t&		  world = editor_world_controller_t::get().get_editor_world(desc.world)->get_world();
+			asset_spawn_payload_t payload{.asset = asset.guid, .world = desc.world, .parent_guid = world.get_entity_guid(desc.parent), .type = asset.asset_type};
 
 			switch (asset.asset_type)
 			{
@@ -190,6 +201,7 @@ namespace sfg
 				payload.skeleton = animation.preview_skeleton;
 				break;
 			}
+
 			case editor_asset_type_e::animation_library: {
 				animation_library_def_t library = {};
 				nlohmann::json			source	= {};
@@ -197,12 +209,14 @@ namespace sfg
 				if (!editor_asset_io_t::parse_embedded_source_json(asset, source) || !reflection_registry_t::get().type_from_json(type_id_t<animation_library_def_t>::value, &library, nullptr, source))
 				{
 					SFG_ERR("failed to read animation library {0} for spawning", asset.guid);
+
 					return false;
 				}
 
 				payload.skeleton = library.skeleton;
 				break;
 			}
+
 			case editor_asset_type_e::ragdoll: {
 				ragdoll_def_t  ragdoll = {};
 				nlohmann::json source  = {};
@@ -210,12 +224,14 @@ namespace sfg
 				if (!editor_asset_io_t::parse_embedded_source_json(asset, source) || !reflection_registry_t::get().type_from_json(type_id_t<ragdoll_def_t>::value, &ragdoll, nullptr, source))
 				{
 					SFG_ERR("failed to read ragdoll {0} for spawning", asset.guid);
+
 					return false;
 				}
 
 				payload.skeleton = ragdoll.target_skeleton;
 				break;
 			}
+
 			default:
 				return false;
 			}
@@ -232,6 +248,7 @@ namespace sfg
 					if (skeleton_asset == nullptr || skeleton_asset->asset_type != editor_asset_type_e::skeleton || !editor_asset_util_t::load_skeleton_def(*skeleton_asset, skeleton))
 					{
 						SFG_WARN("asset {0} needs a valid skeleton before it can be spawned", asset.guid);
+
 						return false;
 					}
 
@@ -245,6 +262,7 @@ namespace sfg
 				if (mesh_asset == nullptr || mesh_asset->asset_type != editor_asset_type_e::mesh)
 				{
 					SFG_WARN("asset {0} needs a valid preview mesh before it can be spawned", asset.guid);
+
 					return false;
 				}
 
@@ -259,12 +277,14 @@ namespace sfg
 				if (payload.skinned && payload.skeleton == NULL_RESOURCE_HANDLE)
 				{
 					SFG_WARN("skinned mesh {0} needs a unique skeleton preview-mesh association before it can be spawned", payload.mesh);
+
 					return false;
 				}
 
 				if (asset.asset_type == editor_asset_type_e::ragdoll && !payload.skinned)
 				{
 					SFG_WARN("ragdoll {0} needs a skinned preview mesh", asset.guid);
+
 					return false;
 				}
 
@@ -285,6 +305,7 @@ namespace sfg
 				if (payload.material_count > std::size(payload.materials))
 				{
 					SFG_WARN("mesh {0} uses more material slots than a renderer supports", payload.mesh);
+
 					return false;
 				}
 
@@ -303,15 +324,9 @@ namespace sfg
 			const span_t<const entity_id_t> selection = context.get_selected_entities();
 			const char*						name	  = editor_asset_util_t::find_asset_display_name(asset.guid);
 			payload.name							  = system.get_aux_data().allocate_text(name != nullptr ? name : "Asset");
-			payload.previous_anchor					  = context.get_entity_anchor();
-			payload.previous_selection_count		  = static_cast<u32>(selection.size);
+			payload.previous_anchor_guid			  = world.get_entity_guid(context.get_entity_anchor());
 
-			if (selection.size != 0)
-			{
-				entity_id_t* destination   = nullptr;
-				payload.previous_selection = system.get_aux_data().allocate<entity_id_t>(selection.size, destination);
-				SFG_MEMCPY(destination, selection.data, selection.size * sizeof(entity_id_t));
-			}
+			payload.previous_selection = editor_command_entity_util_t::capture_entities(world, system.get_aux_data(), selection);
 
 			const editor_command_handle_t command = system.issue_command(
 				{

@@ -20,6 +20,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 */
 #include "editor/ui/widgets/outliner/editor_widget_outliner.hpp"
+#include "editor/commands/editor_command_entity_util.hpp"
 #include "editor/world/editor_world_edit_context.hpp"
 #include "editor/editor_world_controller.hpp"
 #include "editor/world/editor_world.hpp"
@@ -404,68 +405,93 @@ namespace sfg
 	void editor_widget_outliner_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
 	{
 		editor_widget_outliner_t& panel = *static_cast<editor_widget_outliner_t*>(user_data);
+
 		switch (command.type)
 		{
 		case editor_command_type_e::entity_info_paste: {
 			const editor_command_paste_entity_info_payload_t& payload = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
+
 			if (!(payload.world == panel._edit_world))
 				return;
 
 			if (!panel._search_str_lower.empty())
 			{
 				panel.refresh_entities();
+
 				return;
 			}
 
-			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			frame_vector_t<entity_id_t> entities = {};
+			const world_t&				world	 = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			const bool					resolved = editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities);
+
+			SFG_ASSERT(resolved);
+
 			for (u32 i = 0; i < payload.count; ++i)
 				panel.refresh_entity_name(entities[i]);
 			break;
 		}
+
 		case editor_command_type_e::entity_info_edit: {
 			const editor_command_edit_entity_info_payload_t& payload = system.get_payload_as<editor_command_edit_entity_info_payload_t>(command);
+
 			if (!(payload.world == panel._edit_world))
 				return;
 
 			if (!panel._search_str_lower.empty())
 			{
 				panel.refresh_entities();
+
 				return;
 			}
 
-			const entity_id_t* entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			frame_vector_t<entity_id_t> entities = {};
+			const world_t&				world	 = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			const bool					resolved = editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities);
+
+			SFG_ASSERT(resolved);
+
 			for (u32 i = 0; i < payload.count; ++i)
 				panel.refresh_entity_name(entities[i]);
 			break;
 		}
+
 		case editor_command_type_e::prefab_spawn: {
 			const editor_command_prefab_spawn_payload_t& payload = system.get_payload_as<editor_command_prefab_spawn_payload_t>(command);
+
 			if (!(payload.world == panel._edit_world))
 				return;
 
 			panel.refresh_entities();
 			break;
 		}
+
 		case editor_command_type_e::primitive_spawn: {
 			const editor_command_primitive_spawn_payload_t& payload = system.get_payload_as<editor_command_primitive_spawn_payload_t>(command);
+
 			if (!(payload.world == panel._edit_world))
 				return;
 
 			panel.refresh_entities();
 			break;
 		}
+
 		case editor_command_type_e::component_add: {
 			const editor_command_add_component_payload_t& payload = system.get_payload_as<editor_command_add_component_payload_t>(command);
+
 			if (payload.world == panel._edit_world && payload.component_type == type_id_t<component_prefab_reference_t>::value)
 				panel.refresh_entities();
 			break;
 		}
+
 		case editor_command_type_e::component_remove: {
 			const editor_command_remove_component_payload_t& payload = system.get_payload_as<editor_command_remove_component_payload_t>(command);
+
 			if (payload.world == panel._edit_world && payload.component_type == type_id_t<component_prefab_reference_t>::value)
 				panel.refresh_entities();
 			break;
 		}
+
 		default:
 			break;
 		}

@@ -46,18 +46,18 @@ namespace sfg
 
 	struct editor_command_paste_entity_info_payload_t
 	{
-		chunk_handle32_t		  old_infos = {};
-		chunk_handle32_t		  entities	= {};
-		editor_entity_info_data_t info		= {};
-		editor_world_handle_t	  world		= {};
-		u32						  count		= 0;
+		chunk_handle32_t		  old_infos	   = {};
+		chunk_handle32_t		  entity_guids = {};
+		editor_entity_info_data_t info		   = {};
+		editor_world_handle_t	  world		   = {};
+		u32						  count		   = 0;
 	};
 
 	struct editor_command_edit_entity_info_payload_t
 	{
 		chunk_handle32_t	  previous_infos = {};
 		chunk_handle32_t	  post_infos	 = {};
-		chunk_handle32_t	  entities		 = {};
+		chunk_handle32_t	  entity_guids	 = {};
 		editor_world_handle_t world			 = {};
 		u32					  count			 = 0;
 	};

@@ -40,10 +40,10 @@ namespace sfg
 		resource_handle_t	  prefab					 = NULL_RESOURCE_HANDLE;
 		vec3f_t				  position					 = vec3f_t::zero;
 		chunk_handle32_t	  previous_selection		 = {};
-		entity_id_t			  parent					 = NULL_ENTITY_ID;
-		entity_id_t			  root						 = NULL_ENTITY_ID;
-		entity_id_t			  previous_anchor			 = NULL_ENTITY_ID;
-		u32					  previous_selection_count	 = 0;
+		chunk_handle32_t	  snapshot					 = {};
+		entity_guid_t		  parent_guid				 = NULL_ENTITY_GUID;
+		entity_guid_t		  root_guid					 = NULL_ENTITY_GUID;
+		entity_guid_t		  previous_anchor_guid		 = NULL_ENTITY_GUID;
 		bool				  place						 = false;
 	};
 

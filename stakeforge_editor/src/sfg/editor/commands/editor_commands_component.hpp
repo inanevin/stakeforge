@@ -42,7 +42,7 @@ namespace sfg
 
 	struct editor_command_add_component_payload_t
 	{
-		chunk_handle32_t	  entities		 = {};
+		chunk_handle32_t	  entity_guids	 = {};
 		editor_world_handle_t world			 = {};
 		sid_t				  component_type = 0;
 		u32					  count			 = 0;
@@ -51,7 +51,7 @@ namespace sfg
 	struct editor_command_remove_component_payload_t
 	{
 		chunk_handle32_t	  streams		 = {};
-		chunk_handle32_t	  entities		 = {};
+		chunk_handle32_t	  entity_guids	 = {};
 		editor_world_handle_t world			 = {};
 		sid_t				  component_type = 0;
 		u32					  count			 = 0;
@@ -60,7 +60,7 @@ namespace sfg
 	struct editor_command_reset_component_payload_t
 	{
 		chunk_handle32_t	  streams		 = {};
-		chunk_handle32_t	  entities		 = {};
+		chunk_handle32_t	  entity_guids	 = {};
 		editor_world_handle_t world			 = {};
 		sid_t				  component_type = 0;
 		u32					  count			 = 0;
@@ -70,7 +70,7 @@ namespace sfg
 	{
 		chunk_handle32_t	  old_streams	 = {};
 		chunk_handle32_t	  paste_stream	 = {};
-		chunk_handle32_t	  entities		 = {};
+		chunk_handle32_t	  entity_guids	 = {};
 		editor_world_handle_t world			 = {};
 		sid_t				  component_type = 0;
 		u32					  count			 = 0;

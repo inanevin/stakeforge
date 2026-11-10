@@ -214,6 +214,7 @@ namespace sfg
 			}
 
 			SFG_ERR("failed to capture project settings command snapshots");
+
 			return false;
 		}
 
@@ -230,11 +231,8 @@ namespace sfg
 
 		if (handle.is_null())
 		{
-			system.get_aux_data().free(payload.previous_project_settings);
-			system.get_aux_data().free(payload.post_project_settings);
-			system.get_aux_data().free(payload.previous_editor_settings);
-			system.get_aux_data().free(payload.post_editor_settings);
 			SFG_ERR("failed to issue project settings edit command");
+
 			return false;
 		}
 

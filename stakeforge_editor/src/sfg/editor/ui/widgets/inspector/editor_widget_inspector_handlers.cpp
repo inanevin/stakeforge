@@ -20,6 +20,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 */
 #include "editor/ui/widgets/inspector/editor_widget_inspector.hpp"
+#include "editor/commands/editor_command_entity_util.hpp"
 #include "editor/world/editor_world_edit_context.hpp"
 #include "editor/editor_command_system.hpp"
 #include "editor/editor_surface_controller.hpp"
@@ -199,57 +200,100 @@ namespace sfg
 	void editor_widget_inspector_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
 	{
 		editor_widget_inspector_t& panel = *static_cast<editor_widget_inspector_t*>(user_data);
+
 		switch (command.type)
 		{
 		case editor_command_type_e::component_add: {
 			const editor_command_add_component_payload_t& payload  = system.get_payload_as<editor_command_add_component_payload_t>(command);
-			const entity_id_t*							  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			frame_vector_t<entity_id_t>					  entities = {};
+			const world_t&								  world	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			const bool									  resolved = editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities);
+
+			SFG_ASSERT(resolved);
+
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities.data(), .size = payload.count}))
 				panel.refresh_display();
 			break;
 		}
+
 		case editor_command_type_e::component_remove: {
 			const editor_command_remove_component_payload_t& payload  = system.get_payload_as<editor_command_remove_component_payload_t>(command);
-			const entity_id_t*								 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			frame_vector_t<entity_id_t>						 entities = {};
+			const world_t&									 world	  = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			const bool										 resolved = editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities);
+
+			SFG_ASSERT(resolved);
+
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities.data(), .size = payload.count}))
 				panel.refresh_display();
 			break;
 		}
+
 		case editor_command_type_e::component_reset: {
 			const editor_command_reset_component_payload_t& payload	 = system.get_payload_as<editor_command_reset_component_payload_t>(command);
-			const entity_id_t*								entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			frame_vector_t<entity_id_t>						entities = {};
+			const world_t&									world	 = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			const bool										resolved = editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities);
+
+			SFG_ASSERT(resolved);
+
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities.data(), .size = payload.count}))
 				panel.refresh_component_reflection(payload.component_type);
 			break;
 		}
+
 		case editor_command_type_e::component_paste: {
 			const editor_command_paste_component_payload_t& payload	 = system.get_payload_as<editor_command_paste_component_payload_t>(command);
-			const entity_id_t*								entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			frame_vector_t<entity_id_t>						entities = {};
+			const world_t&									world	 = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			const bool										resolved = editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities);
+
+			SFG_ASSERT(resolved);
+
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities.data(), .size = payload.count}))
 				panel.refresh_component_reflection(payload.component_type);
 			break;
 		}
+
 		case editor_command_type_e::component_edit: {
 			const editor_command_component_edit_payload_t& payload	= system.get_payload_as<editor_command_component_edit_payload_t>(command);
-			const entity_id_t*							   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			frame_vector_t<entity_id_t>					   entities = {};
+			const world_t&								   world	= editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			const bool									   resolved = editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities);
+
+			SFG_ASSERT(resolved);
+
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities.data(), .size = payload.count}))
 				panel.refresh_component_reflection(payload.component_type);
 			break;
 		}
+
 		case editor_command_type_e::entity_info_paste: {
 			const editor_command_paste_entity_info_payload_t& payload  = system.get_payload_as<editor_command_paste_entity_info_payload_t>(command);
-			const entity_id_t*								  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			frame_vector_t<entity_id_t>						  entities = {};
+			const world_t&									  world	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			const bool										  resolved = editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities);
+
+			SFG_ASSERT(resolved);
+
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities.data(), .size = payload.count}))
 				panel.refresh_display();
 			break;
 		}
+
 		case editor_command_type_e::entity_info_edit: {
 			const editor_command_edit_entity_info_payload_t& payload  = system.get_payload_as<editor_command_edit_entity_info_payload_t>(command);
-			const entity_id_t*								 entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities, .size = payload.count}))
+			frame_vector_t<entity_id_t>						 entities = {};
+			const world_t&									 world	  = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			const bool										 resolved = editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities);
+
+			SFG_ASSERT(resolved);
+
+			if (payload.world == panel._edit_world && panel.is_displaying_any_entity({.data = entities.data(), .size = payload.count}))
 				panel.refresh_display();
 			break;
 		}
+
 		default:
 			break;
 		}

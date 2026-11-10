@@ -20,6 +20,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 */
 #include "editor/commands/editor_commands_component.hpp"
+#include "editor_command_entity_util.hpp"
 #include "editor/editor_world_controller.hpp"
 #include "editor/world/editor_world.hpp"
 #include "editor/editor_command_system.hpp"
@@ -75,14 +76,6 @@ namespace sfg
 			initialize_component_data(table, component);
 		}
 
-		chunk_handle32_t create_entity_array(editor_command_system_t& system, const frame_vector_t<entity_id_t>& entities)
-		{
-			entity_id_t*		   dst	  = nullptr;
-			const chunk_handle32_t handle = system.get_aux_data().allocate<entity_id_t>(entities.size(), dst);
-			SFG_MEMCPY(dst, entities.data(), sizeof(entity_id_t) * entities.size());
-			return handle;
-		}
-
 		chunk_handle32_t create_stream_array(editor_command_system_t& system, size_t count)
 		{
 			const chunk_handle32_t handle = system.get_aux_data().allocate_bytes(sizeof(chunk_handle32_t) * count, alignof(chunk_handle32_t));
@@ -109,8 +102,18 @@ namespace sfg
 		bool add_component_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_add_component_payload_t& payload	 = system.get_payload_as<editor_command_add_component_payload_t>(command);
-			ecs_component_table_t&					table	 = editor_world_controller_t::get().get_editor_world(payload.world)->get_world().get_component_table(payload.component_type);
-			const entity_id_t*						entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			world_t&								world	 = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			frame_vector_t<entity_id_t>				entities = {};
+
+			if (!editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities))
+				return false;
+
+			ecs_component_table_t* target_table = world.find_component_table(payload.component_type);
+
+			if (target_table == nullptr)
+				return false;
+
+			ecs_component_table_t& table = *target_table;
 
 			for (u32 i = 0; i < payload.count; ++i)
 			{
@@ -125,8 +128,17 @@ namespace sfg
 		{
 			editor_command_add_component_payload_t& payload	 = system.get_payload_as<editor_command_add_component_payload_t>(command);
 			world_t&								world	 = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
-			ecs_component_table_t&					table	 = world.get_component_table(payload.component_type);
-			const entity_id_t*						entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			frame_vector_t<entity_id_t>				entities = {};
+
+			if (!editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities))
+				return false;
+
+			ecs_component_table_t* target_table = world.find_component_table(payload.component_type);
+
+			if (target_table == nullptr)
+				return false;
+
+			ecs_component_table_t& table = *target_table;
 
 			for (u32 i = 0; i < payload.count; ++i)
 			{
@@ -141,29 +153,51 @@ namespace sfg
 		bool add_component_cleanup(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_add_component_payload_t& payload = system.get_payload_as<editor_command_add_component_payload_t>(command);
-			if (payload.entities)
+
+			if (payload.entity_guids)
 			{
-				system.get_aux_data().free(payload.entities);
-				payload.entities = {};
+				system.get_aux_data().free(payload.entity_guids);
+				payload.entity_guids = {};
 			}
+
 			return true;
 		}
 
 		bool remove_component_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_remove_component_payload_t& payload	= system.get_payload_as<editor_command_remove_component_payload_t>(command);
-			ecs_component_table_t&					   table	= editor_world_controller_t::get().get_editor_world(payload.world)->get_world().get_component_table(payload.component_type);
-			const entity_id_t*						   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			const chunk_handle32_t*					   streams	= system.get_aux_data().get<chunk_handle32_t>(payload.streams);
+			world_t&								   world	= editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			frame_vector_t<entity_id_t>				   entities = {};
 
-			return editor_commands_component_t::apply_streams(table, {.data = entities, .size = payload.count}, system.get_aux_data(), {.data = streams, .size = payload.count}, editor_component_stream_mode_e::restore);
+			if (!editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities))
+				return false;
+
+			ecs_component_table_t* target_table = world.find_component_table(payload.component_type);
+
+			if (target_table == nullptr)
+				return false;
+
+			ecs_component_table_t&	table	= *target_table;
+			const chunk_handle32_t* streams = system.get_aux_data().get<chunk_handle32_t>(payload.streams);
+
+			return editor_commands_component_t::apply_streams(table, {.data = entities.data(), .size = payload.count}, system.get_aux_data(), {.data = streams, .size = payload.count}, editor_component_stream_mode_e::restore);
 		}
 
 		bool remove_component_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_remove_component_payload_t& payload	= system.get_payload_as<editor_command_remove_component_payload_t>(command);
-			ecs_component_table_t&					   table	= editor_world_controller_t::get().get_editor_world(payload.world)->get_world().get_component_table(payload.component_type);
-			const entity_id_t*						   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			world_t&								   world	= editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			frame_vector_t<entity_id_t>				   entities = {};
+
+			if (!editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities))
+				return false;
+
+			ecs_component_table_t* target_table = world.find_component_table(payload.component_type);
+
+			if (target_table == nullptr)
+				return false;
+
+			ecs_component_table_t& table = *target_table;
 
 			for (u32 i = 0; i < payload.count; ++i)
 			{
@@ -177,15 +211,17 @@ namespace sfg
 		void free_remove_component_payload(editor_command_system_t& system, editor_command_remove_component_payload_t& payload)
 		{
 			free_streams(system, payload.streams, payload.count);
+
 			if (payload.streams)
 			{
 				system.get_aux_data().free(payload.streams);
 				payload.streams = {};
 			}
-			if (payload.entities)
+
+			if (payload.entity_guids)
 			{
-				system.get_aux_data().free(payload.entities);
-				payload.entities = {};
+				system.get_aux_data().free(payload.entity_guids);
+				payload.entity_guids = {};
 			}
 		}
 
@@ -199,18 +235,38 @@ namespace sfg
 		bool reset_component_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_reset_component_payload_t& payload  = system.get_payload_as<editor_command_reset_component_payload_t>(command);
-			ecs_component_table_t&					  table	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world().get_component_table(payload.component_type);
-			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			const chunk_handle32_t*					  streams  = system.get_aux_data().get<chunk_handle32_t>(payload.streams);
+			world_t&								  world	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			frame_vector_t<entity_id_t>				  entities = {};
 
-			return editor_commands_component_t::apply_streams(table, {.data = entities, .size = payload.count}, system.get_aux_data(), {.data = streams, .size = payload.count}, editor_component_stream_mode_e::restore);
+			if (!editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities))
+				return false;
+
+			ecs_component_table_t* target_table = world.find_component_table(payload.component_type);
+
+			if (target_table == nullptr)
+				return false;
+
+			ecs_component_table_t&	table	= *target_table;
+			const chunk_handle32_t* streams = system.get_aux_data().get<chunk_handle32_t>(payload.streams);
+
+			return editor_commands_component_t::apply_streams(table, {.data = entities.data(), .size = payload.count}, system.get_aux_data(), {.data = streams, .size = payload.count}, editor_component_stream_mode_e::restore);
 		}
 
 		bool reset_component_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_reset_component_payload_t& payload  = system.get_payload_as<editor_command_reset_component_payload_t>(command);
-			ecs_component_table_t&					  table	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world().get_component_table(payload.component_type);
-			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			world_t&								  world	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			frame_vector_t<entity_id_t>				  entities = {};
+
+			if (!editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities))
+				return false;
+
+			ecs_component_table_t* target_table = world.find_component_table(payload.component_type);
+
+			if (target_table == nullptr)
+				return false;
+
+			ecs_component_table_t& table = *target_table;
 
 			for (u32 i = 0; i < payload.count; ++i)
 			{
@@ -224,15 +280,17 @@ namespace sfg
 		void free_reset_component_payload(editor_command_system_t& system, editor_command_reset_component_payload_t& payload)
 		{
 			free_streams(system, payload.streams, payload.count);
+
 			if (payload.streams)
 			{
 				system.get_aux_data().free(payload.streams);
 				payload.streams = {};
 			}
-			if (payload.entities)
+
+			if (payload.entity_guids)
 			{
-				system.get_aux_data().free(payload.entities);
-				payload.entities = {};
+				system.get_aux_data().free(payload.entity_guids);
+				payload.entity_guids = {};
 			}
 		}
 
@@ -246,39 +304,62 @@ namespace sfg
 		bool paste_component_undo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_paste_component_payload_t& payload  = system.get_payload_as<editor_command_paste_component_payload_t>(command);
-			ecs_component_table_t&					  table	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world().get_component_table(payload.component_type);
-			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			const chunk_handle32_t*					  streams  = system.get_aux_data().get<chunk_handle32_t>(payload.old_streams);
+			world_t&								  world	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			frame_vector_t<entity_id_t>				  entities = {};
 
-			return editor_commands_component_t::apply_streams(table, {.data = entities, .size = payload.count}, system.get_aux_data(), {.data = streams, .size = payload.count}, editor_component_stream_mode_e::restore);
+			if (!editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities))
+				return false;
+
+			ecs_component_table_t* target_table = world.find_component_table(payload.component_type);
+
+			if (target_table == nullptr)
+				return false;
+
+			ecs_component_table_t&	table	= *target_table;
+			const chunk_handle32_t* streams = system.get_aux_data().get<chunk_handle32_t>(payload.old_streams);
+
+			return editor_commands_component_t::apply_streams(table, {.data = entities.data(), .size = payload.count}, system.get_aux_data(), {.data = streams, .size = payload.count}, editor_component_stream_mode_e::restore);
 		}
 
 		bool paste_component_redo(editor_command_system_t& system, editor_command_t& command)
 		{
 			editor_command_paste_component_payload_t& payload  = system.get_payload_as<editor_command_paste_component_payload_t>(command);
-			ecs_component_table_t&					  table	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world().get_component_table(payload.component_type);
-			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
+			world_t&								  world	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world();
+			frame_vector_t<entity_id_t>				  entities = {};
 
-			return editor_commands_component_t::apply_streams(table, {.data = entities, .size = payload.count}, system.get_aux_data(), {.data = &payload.paste_stream, .size = 1}, editor_component_stream_mode_e::paste);
+			if (!editor_command_entity_util_t::resolve_entities(world, system.get_aux_data(), payload.entity_guids, entities))
+				return false;
+
+			ecs_component_table_t* target_table = world.find_component_table(payload.component_type);
+
+			if (target_table == nullptr)
+				return false;
+
+			ecs_component_table_t& table = *target_table;
+
+			return editor_commands_component_t::apply_streams(table, {.data = entities.data(), .size = payload.count}, system.get_aux_data(), {.data = &payload.paste_stream, .size = 1}, editor_component_stream_mode_e::paste);
 		}
 
 		void free_paste_component_payload(editor_command_system_t& system, editor_command_paste_component_payload_t& payload)
 		{
 			free_streams(system, payload.old_streams, payload.count);
+
 			if (payload.old_streams)
 			{
 				system.get_aux_data().free(payload.old_streams);
 				payload.old_streams = {};
 			}
+
 			if (payload.paste_stream)
 			{
 				system.get_aux_data().free(payload.paste_stream);
 				payload.paste_stream = {};
 			}
-			if (payload.entities)
+
+			if (payload.entity_guids)
 			{
-				system.get_aux_data().free(payload.entities);
-				payload.entities = {};
+				system.get_aux_data().free(payload.entity_guids);
+				payload.entity_guids = {};
 			}
 		}
 
@@ -368,8 +449,10 @@ namespace sfg
 
 	bool editor_commands_component_t::add(editor_world_handle_t world, entity_id_t entity, sid_t component_type)
 	{
-		frame_vector_t<entity_id_t> entities;
+		frame_vector_t<entity_id_t> entities = {};
+
 		entities.push_back(entity);
+
 		return add(world, entities, component_type);
 	}
 
@@ -380,6 +463,7 @@ namespace sfg
 
 		ecs_component_table_t&		table	 = editor_world_controller_t::get().get_editor_world(world)->get_world().get_component_table(component_type);
 		frame_vector_t<entity_id_t> affected = {};
+
 		affected.reserve(entities.size());
 
 		for (entity_id_t entity : entities)
@@ -394,10 +478,11 @@ namespace sfg
 		editor_command_system_t& command_system = editor_command_system_t::get();
 
 		editor_command_add_component_payload_t payload = {};
-		payload.entities							   = create_entity_array(command_system, affected);
-		payload.world								   = world;
-		payload.component_type						   = component_type;
-		payload.count								   = static_cast<u32>(affected.size());
+
+		payload.entity_guids   = editor_command_entity_util_t::capture_entities(editor_world_controller_t::get().get_editor_world(world)->get_world(), command_system.get_aux_data(), {.data = affected.data(), .size = affected.size()});
+		payload.world		   = world;
+		payload.component_type = component_type;
+		payload.count		   = static_cast<u32>(affected.size());
 
 		const editor_command_issue_desc_t desc{
 			.undo		= add_component_undo,
@@ -413,6 +498,7 @@ namespace sfg
 		if (handle.is_null())
 		{
 			SFG_ERR("failed to issue add component command");
+
 			return false;
 		}
 
@@ -421,8 +507,10 @@ namespace sfg
 
 	bool editor_commands_component_t::remove(editor_world_handle_t world, entity_id_t entity, sid_t component_type)
 	{
-		frame_vector_t<entity_id_t> entities;
+		frame_vector_t<entity_id_t> entities = {};
+
 		entities.push_back(entity);
+
 		return remove(world, entities, component_type);
 	}
 
@@ -433,6 +521,7 @@ namespace sfg
 
 		ecs_component_table_t&		table	 = editor_world_controller_t::get().get_editor_world(world)->get_world().get_component_table(component_type);
 		frame_vector_t<entity_id_t> affected = {};
+
 		affected.reserve(entities.size());
 
 		for (entity_id_t entity : entities)
@@ -447,16 +536,18 @@ namespace sfg
 		editor_command_system_t& command_system = editor_command_system_t::get();
 
 		editor_command_remove_component_payload_t payload = {};
-		payload.streams									  = create_stream_array(command_system, affected.size());
-		payload.entities								  = create_entity_array(command_system, affected);
-		payload.world									  = world;
-		payload.component_type							  = component_type;
-		payload.count									  = static_cast<u32>(affected.size());
+
+		payload.streams		   = create_stream_array(command_system, affected.size());
+		payload.entity_guids   = editor_command_entity_util_t::capture_entities(editor_world_controller_t::get().get_editor_world(world)->get_world(), command_system.get_aux_data(), {.data = affected.data(), .size = affected.size()});
+		payload.world		   = world;
+		payload.component_type = component_type;
+		payload.count		   = static_cast<u32>(affected.size());
 
 		if (!serialize_removed_components(command_system, table, affected, payload.streams))
 		{
 			SFG_ERR("failed to serialize components for remove command");
 			free_remove_component_payload(command_system, payload);
+
 			return false;
 		}
 
@@ -474,6 +565,7 @@ namespace sfg
 		if (handle.is_null())
 		{
 			SFG_ERR("failed to issue remove component command");
+
 			return false;
 		}
 
@@ -482,8 +574,10 @@ namespace sfg
 
 	bool editor_commands_component_t::reset(editor_world_handle_t world, entity_id_t entity, sid_t component_type)
 	{
-		frame_vector_t<entity_id_t> entities;
+		frame_vector_t<entity_id_t> entities = {};
+
 		entities.push_back(entity);
+
 		return reset(world, entities, component_type);
 	}
 
@@ -498,6 +592,7 @@ namespace sfg
 			return true;
 
 		frame_vector_t<entity_id_t> affected = {};
+
 		affected.reserve(entities.size());
 
 		for (entity_id_t entity : entities)
@@ -512,16 +607,18 @@ namespace sfg
 		editor_command_system_t& command_system = editor_command_system_t::get();
 
 		editor_command_reset_component_payload_t payload = {};
-		payload.streams									 = create_stream_array(command_system, affected.size());
-		payload.entities								 = create_entity_array(command_system, affected);
-		payload.world									 = world;
-		payload.component_type							 = component_type;
-		payload.count									 = static_cast<u32>(affected.size());
+
+		payload.streams		   = create_stream_array(command_system, affected.size());
+		payload.entity_guids   = editor_command_entity_util_t::capture_entities(editor_world_controller_t::get().get_editor_world(world)->get_world(), command_system.get_aux_data(), {.data = affected.data(), .size = affected.size()});
+		payload.world		   = world;
+		payload.component_type = component_type;
+		payload.count		   = static_cast<u32>(affected.size());
 
 		if (!serialize_removed_components(command_system, table, affected, payload.streams))
 		{
 			SFG_ERR("failed to serialize components for reset command");
 			free_reset_component_payload(command_system, payload);
+
 			return false;
 		}
 
@@ -539,6 +636,7 @@ namespace sfg
 		if (handle.is_null())
 		{
 			SFG_ERR("failed to issue reset component command");
+
 			return false;
 		}
 
@@ -547,8 +645,10 @@ namespace sfg
 
 	bool editor_commands_component_t::paste(editor_world_handle_t world, entity_id_t entity, sid_t component_type, const u8* data, size_t data_size)
 	{
-		frame_vector_t<entity_id_t> entities;
+		frame_vector_t<entity_id_t> entities = {};
+
 		entities.push_back(entity);
+
 		return paste(world, entities, component_type, data, data_size);
 	}
 
@@ -563,6 +663,7 @@ namespace sfg
 			return true;
 
 		frame_vector_t<entity_id_t> affected = {};
+
 		affected.reserve(entities.size());
 
 		for (entity_id_t entity : entities)
@@ -577,17 +678,19 @@ namespace sfg
 		editor_command_system_t& command_system = editor_command_system_t::get();
 
 		editor_command_paste_component_payload_t payload = {};
-		payload.old_streams								 = create_stream_array(command_system, affected.size());
-		payload.paste_stream							 = copy_data_to_aux(command_system, data, data_size);
-		payload.entities								 = create_entity_array(command_system, affected);
-		payload.world									 = world;
-		payload.component_type							 = component_type;
-		payload.count									 = static_cast<u32>(affected.size());
+
+		payload.old_streams	   = create_stream_array(command_system, affected.size());
+		payload.paste_stream   = copy_data_to_aux(command_system, data, data_size);
+		payload.entity_guids   = editor_command_entity_util_t::capture_entities(editor_world_controller_t::get().get_editor_world(world)->get_world(), command_system.get_aux_data(), {.data = affected.data(), .size = affected.size()});
+		payload.world		   = world;
+		payload.component_type = component_type;
+		payload.count		   = static_cast<u32>(affected.size());
 
 		if (!serialize_removed_components(command_system, table, affected, payload.old_streams))
 		{
 			SFG_ERR("failed to serialize components for paste command");
 			free_paste_component_payload(command_system, payload);
+
 			return false;
 		}
 
@@ -605,6 +708,7 @@ namespace sfg
 		if (handle.is_null())
 		{
 			SFG_ERR("failed to issue paste component command");
+
 			return false;
 		}
 

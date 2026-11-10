@@ -42,15 +42,13 @@ namespace sfg
 
 	struct editor_command_primitive_spawn_payload_t
 	{
-		chunk_handle32_t		previous_selection		 = {};
-		editor_world_handle_t	world					 = {};
-		entity_id_t				parent					 = NULL_ENTITY_ID;
-		entity_id_t				entity					 = NULL_ENTITY_ID;
-		entity_id_t				previous_anchor			 = NULL_ENTITY_ID;
-		entity_guid_t			guid					 = NULL_ENTITY_GUID;
-		u64						folder_guid				 = 0;
-		u32						previous_selection_count = 0;
-		editor_primitive_type_e primitive				 = editor_primitive_type_e::cube;
+		chunk_handle32_t		previous_selection	 = {};
+		editor_world_handle_t	world				 = {};
+		entity_guid_t			parent_guid			 = NULL_ENTITY_GUID;
+		entity_guid_t			previous_anchor_guid = NULL_ENTITY_GUID;
+		entity_guid_t			guid				 = NULL_ENTITY_GUID;
+		u64						folder_guid			 = 0;
+		editor_primitive_type_e primitive			 = editor_primitive_type_e::cube;
 	};
 
 	class SFG_EDITOR_API editor_command_primitive_spawn_t final

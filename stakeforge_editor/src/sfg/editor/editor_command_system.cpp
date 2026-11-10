@@ -175,10 +175,8 @@ namespace sfg
 
 	editor_command_handle_t editor_command_system_t::issue_command(const editor_command_issue_desc_t& desc, const void* payload_data)
 	{
-		history_t& history = _histories[_play_history_active];
-
-		truncate_redo(history);
-		trim_history_for_new_command(history);
+		const bool use_play_history = _play_history_active && !desc.world.is_null();
+		history_t& history			= _histories[use_play_history];
 
 		const chunk_handle32_t		  payload = copy_payload(desc, payload_data);
 		const editor_command_handle_t handle  = _commands.emplace();
@@ -198,8 +196,12 @@ namespace sfg
 		{
 			SFG_ERR("failed to redo issued command {0}", command.debug_name != nullptr ? command.debug_name : "");
 			destroy_command(handle);
+
 			return {};
 		}
+
+		truncate_redo(history);
+		trim_history_for_new_command(history);
 
 		history.commands.push_back(handle);
 		history.cursor = static_cast<u32>(history.commands.size());
@@ -223,6 +225,12 @@ namespace sfg
 		if (!command.undo(*this, command))
 		{
 			SFG_ERR("failed to undo command {0}", command.debug_name != nullptr ? command.debug_name : "");
+
+			history.commands.erase(history.commands.begin() + history.cursor - 1);
+			--history.cursor;
+			destroy_command(handle);
+			++_generation;
+
 			return false;
 		}
 
@@ -245,6 +253,11 @@ namespace sfg
 		if (!command.redo(*this, command))
 		{
 			SFG_ERR("failed to redo command {0}", command.debug_name != nullptr ? command.debug_name : "");
+
+			history.commands.erase(history.commands.begin() + history.cursor);
+			destroy_command(handle);
+			++_generation;
+
 			return false;
 		}
 
