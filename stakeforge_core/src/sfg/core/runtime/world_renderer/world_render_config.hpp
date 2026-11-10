@@ -26,7 +26,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	struct world_render_context_config_t
+	struct SFG_API world_render_context_config_t
 	{
 		vec2u16_t size					  = vec2u16_t::zero;
 		u32		  entity_max			  = 0;
@@ -42,6 +42,9 @@ namespace sfg
 		u16		  shadow_view_max		  = 0;
 		u8		  enable_ssao			  = 1;
 		u8		  enable_bloom			  = 1;
+
+		static world_render_context_config_t make_main(vec2u16_t render_resolution);
+		static world_render_context_config_t make_preview(vec2u16_t render_resolution);
 	};
 
 }

@@ -24,8 +24,11 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "core/io/assert.hpp"
 #include "core/io/log.hpp"
+#include "core/memory/memory.hpp"
 #include "core/platform/process.hpp"
 #include "core/runtime/world_renderer/stock_world_renderer.hpp"
+#include "core/runtime/engine/engine_runtime.hpp"
+#include "core/runtime/world/world_config.hpp"
 
 namespace sfg
 {
@@ -175,6 +178,47 @@ namespace sfg
 		_path.resize(0);
 
 		return true;
+	}
+
+	world_config_t game_plugin_runtime_t::get_world_config(world_config_type_e type, vec2u16_t render_resolution) const
+	{
+		SFG_ASSERT(type == world_config_type_e::main || type == world_config_type_e::preview);
+
+		const world_config_t defaults{
+			.world			= type == world_config_type_e::main ? world_init_config_t::make_main(render_resolution) : world_init_config_t::make_preview(render_resolution),
+			.render_context = type == world_config_type_e::main ? world_render_context_config_t::make_main(render_resolution) : world_render_context_config_t::make_preview(render_resolution),
+		};
+
+		return get_world_config(type, defaults);
+	}
+
+	world_config_t game_plugin_runtime_t::get_world_config(world_config_type_e type, const world_config_t& defaults) const
+	{
+		SFG_ASSERT(type == world_config_type_e::main || type == world_config_type_e::preview);
+		SFG_ASSERT(defaults.world.render_resolution == defaults.render_context.size);
+
+		world_config_t				 config	  = defaults;
+		const project_settings_t&	 settings = engine_runtime_t::get().get_project_settings();
+		const world_physics_config_t physics  = settings.physics.make_runtime_config(settings.world_physics_rate, settings.max_sim_steps);
+
+		SFG_MEMCPY(config.world.physics.collision_masks, physics.collision_masks, sizeof(physics.collision_masks));
+		config.world.physics.active_collision_layers					= physics.active_collision_layers;
+		config.world.physics.physics_rate								= physics.physics_rate;
+		config.world.physics.max_sub_steps								= physics.max_sub_steps;
+		config.world.physics.kinematic_sensors_collide_with_non_dynamic = physics.kinematic_sensors_collide_with_non_dynamic;
+
+		if (_callbacks.get_world_config == nullptr)
+			return config;
+
+		world_config_t plugin_config = config;
+		const bool	   configured	 = _callbacks.get_world_config(type, config.world.render_resolution, plugin_config);
+
+		if (!configured)
+			return config;
+
+		SFG_ASSERT(plugin_config.world.render_resolution == plugin_config.render_context.size);
+
+		return plugin_config;
 	}
 
 	world_renderer_t* game_plugin_runtime_t::create_world_renderer(world_t& world)

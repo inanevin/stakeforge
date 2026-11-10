@@ -27,7 +27,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	struct world_physics_config_t
+	struct SFG_API world_physics_config_t
 	{
 		world_physics_config_t()
 		{
@@ -51,5 +51,8 @@ namespace sfg
 		u32		max_sub_steps								 = 4;
 		bool	physics_enabled								 = false;
 		bool	kinematic_sensors_collide_with_non_dynamic	 = false;
+
+		static world_physics_config_t make_main();
+		static world_physics_config_t make_preview();
 	};
 }

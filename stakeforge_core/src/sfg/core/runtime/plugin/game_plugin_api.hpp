@@ -35,11 +35,15 @@ namespace sfg
 	enum class input_action;
 	struct physics_contact_event_t;
 	struct canvas_event_t;
+	struct vec2u16_t;
+	struct world_config_t;
+	enum class world_config_type_e : u8;
 
-	inline constexpr u32 GAME_PLUGIN_API_VERSION = 19;
+	inline constexpr u32 GAME_PLUGIN_API_VERSION = 20;
 
 	struct game_plugin_callbacks_t
 	{
+		bool (*get_world_config)(world_config_type_e type, vec2u16_t render_resolution, world_config_t& config)			   = nullptr;
 		world_renderer_t* (*create_world_renderer)(world_t& world)														   = nullptr;
 		void (*destroy_world_renderer)(world_renderer_t* renderer)														   = nullptr;
 		void (*register_types)(plugin_type_schema_t& schema)															   = nullptr;

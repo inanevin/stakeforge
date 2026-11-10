@@ -479,8 +479,12 @@ namespace sfg
 
 	void editor_panel_animation_library_t::create_preview_world()
 	{
-		const editor_world_init_config_t config		= editor_world_init_config_t::make_preview(editor_surface_controller_t::get().get_main_surface().swapchain_size);
-		editor_world_controller_t&		 controller = editor_world_controller_t::get();
+		const vec2u16_t		 render_resolution = editor_surface_controller_t::get().get_main_surface().swapchain_size;
+		const world_config_t config{
+			.world			= world_init_config_t::make_preview(render_resolution),
+			.render_context = world_render_context_config_t::make_preview(render_resolution),
+		};
+		editor_world_controller_t& controller = editor_world_controller_t::get();
 
 		_world = controller.create_world(config, editor_world_camera_type_e::orbit, editor_world_edit_type_e::view_with_debug);
 

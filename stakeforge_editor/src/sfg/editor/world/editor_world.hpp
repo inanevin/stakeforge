@@ -33,9 +33,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/data/atomic.hpp>
 #include <sfg/core/data/vector.hpp>
 #include <sfg/core/math/quat.hpp>
-#include <sfg/core/runtime/world_renderer/world_render_config.hpp>
 #include <sfg/core/runtime/world/world.hpp>
-#include <sfg/core/runtime/world/world_init_config.hpp>
+#include <sfg/core/runtime/world/world_config.hpp>
 #include <sfg/core/runtime/world_renderer/world_renderer.hpp>
 #include <sfg/core/vendor/nhlohmann/json_fwd.hpp>
 
@@ -44,15 +43,6 @@ namespace sfg
 	struct aabb_t;
 	struct physics_raycast_t;
 	struct world_renderer_view_t;
-
-	struct SFG_EDITOR_API editor_world_init_config_t
-	{
-		world_render_context_config_t render_context = {};
-		world_init_config_t			  world			 = {};
-
-		static editor_world_init_config_t make_main(vec2u16_t render_resolution);
-		static editor_world_init_config_t make_preview(vec2u16_t render_resolution);
-	};
 
 	struct editor_world_pick_request_t
 	{
@@ -113,7 +103,7 @@ namespace sfg
 		// lifetime
 		// -----------------------------------------------------------------------------
 
-		void init(const editor_world_init_config_t& init_config, editor_world_handle_t handle, editor_world_camera_type_e camera_type, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data);
+		void init(const world_config_t& init_config, editor_world_handle_t handle, editor_world_camera_type_e camera_type, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data);
 		void uninit();
 
 		// -----------------------------------------------------------------------------

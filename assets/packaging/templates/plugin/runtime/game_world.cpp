@@ -25,9 +25,15 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/input/input_common.hpp>
 #include <sfg/core/input/input_mappings.hpp>
 #include <sfg/core/runtime/world/world.hpp>
+#include <sfg/core/runtime/world/world_config.hpp>
 
 namespace game
 {
+	bool game_world_t::get_world_config(sfg::world_config_type_e type, sfg::vec2u16_t render_resolution, sfg::world_config_t& config)
+	{
+		return true;
+	}
+
 	void game_world_t::begin_play(sfg::world_t& world)
 	{
 	}

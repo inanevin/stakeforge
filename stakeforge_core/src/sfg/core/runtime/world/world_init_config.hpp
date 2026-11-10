@@ -30,12 +30,15 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	struct world_init_config_t
+	struct SFG_API world_init_config_t
 	{
 		world_physics_config_t			   physics						 = {};
 		world_debug_draw_config_t		   debug_draw					 = {};
 		world_particle_simulation_config_t particle_simulation			 = {};
 		vec2u16_t						   render_resolution			 = vec2u16_t(512, 512);
 		u32								   animation_processor_page_size = 512 * 1024;
+
+		static world_init_config_t make_main(vec2u16_t render_resolution);
+		static world_init_config_t make_preview(vec2u16_t render_resolution);
 	};
 }

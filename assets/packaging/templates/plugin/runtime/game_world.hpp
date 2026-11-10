@@ -31,6 +31,9 @@ namespace sfg
 	enum class input_action;
 	struct physics_contact_event_t;
 	struct canvas_event_t;
+	struct vec2u16_t;
+	struct world_config_t;
+	enum class world_config_type_e : u8;
 }
 
 namespace game
@@ -41,6 +44,8 @@ namespace game
 		// -----------------------------------------------------------------------------
 		// lifetime
 		// -----------------------------------------------------------------------------
+
+		static bool get_world_config(sfg::world_config_type_e type, sfg::vec2u16_t render_resolution, sfg::world_config_t& config);
 
 		// set up gameplay when the world starts playing.
 		static void begin_play(sfg::world_t& world);

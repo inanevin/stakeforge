@@ -81,6 +81,9 @@ namespace sfg
 		// accessors
 		// -----------------------------------------------------------------------------
 
+		world_config_t get_world_config(world_config_type_e type, vec2u16_t render_resolution) const;
+		world_config_t get_world_config(world_config_type_e type, const world_config_t& defaults) const;
+
 		const game_plugin_callbacks_t& get_callbacks() const
 		{
 			return _callbacks;

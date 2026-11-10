@@ -39,68 +39,19 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/resources/world_cook.hpp>
 #include <sfg/core/runtime/resources/common_resources.hpp>
 #include <sfg/core/runtime/resources/resource_manager.hpp>
-#include <sfg/core/runtime/world/world_init_config.hpp>
+#include <sfg/core/runtime/world/world_config.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 #include <tracy/Tracy.hpp>
 
 namespace sfg
 {
-#define GAME_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT	   (8192 * 4)
-#define GAME_WORLD_DEBUG_LINE_INDEX_MAX_COUNT	   (8192 * 6)
-#define GAME_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT 164000
-#define GAME_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT  164000
-#define GAME_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT	   256
-#define GAME_WORLD_DEBUG_TEXT_BUDGET_BYTES		   32768
-#define GAME_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT	   16384
-#define GAME_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT	   24576
-#define GAME_WORLD_DEBUG_TEXTURE_MAX_COUNT		   8192
-#define GAME_WORLD_LIGHT_MAX_COUNT				   1024
-#define GAME_WORLD_REFLECTION_PROBE_MAX_COUNT	   256
-#define GAME_WORLD_ENTITY_MAX_COUNT				   (1024 * 10)
-#define GAME_WORLD_SPRITE_MAX_COUNT				   256
-#define GAME_WORLD_PARTICLE_MAX_COUNT			   8192
-#define GAME_WORLD_BONE_MAX_COUNT				   4096
-
 	bool game_world_controller_t::init(vec2u16_t render_resolution, const project_package_meta_t& package_meta)
 	{
 		SFG_ASSERT(!_initialized);
 
-		const project_settings_t& project_settings = engine_runtime_t::get().get_project_settings();
-		world_physics_config_t	  physics_config   = project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps);
+		const world_config_t config = game_plugin_runtime_t::get().get_world_config(world_config_type_e::main, render_resolution);
 
-		physics_config.physics_enabled = true;
-
-		const world_init_config_t world_config{
-			.physics = physics_config,
-			.debug_draw =
-				{
-					.line_vertex_max_count	   = GAME_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-					.line_index_max_count	   = GAME_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-					.triangle_vertex_max_count = GAME_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-					.triangle_index_max_count  = GAME_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-					.text_command_max_count	   = GAME_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
-					.text_budget_bytes		   = GAME_WORLD_DEBUG_TEXT_BUDGET_BYTES,
-					.text_vertex_max_count	   = GAME_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-					.text_index_max_count	   = GAME_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-					.texture_max_count		   = GAME_WORLD_DEBUG_TEXTURE_MAX_COUNT,
-				},
-			.render_resolution = render_resolution,
-		};
-
-		const world_render_context_config_t render_context_config{
-			.size				  = render_resolution,
-			.entity_max			  = GAME_WORLD_ENTITY_MAX_COUNT,
-			.mesh_draw_max		  = 32768,
-			.material_max		  = 4096,
-			.sprite_max			  = GAME_WORLD_SPRITE_MAX_COUNT,
-			.particle_max		  = GAME_WORLD_PARTICLE_MAX_COUNT,
-			.bone_max			  = GAME_WORLD_BONE_MAX_COUNT,
-			.light_max			  = GAME_WORLD_LIGHT_MAX_COUNT,
-			.reflection_probe_max = GAME_WORLD_REFLECTION_PROBE_MAX_COUNT,
-			.shadow_view_max	  = ENGINE_SHADOW_VIEW_MAX,
-		};
-
-		_main_world.init(world_config);
+		_main_world.init(config.world);
 		_world_renderer = game_plugin_runtime_t::get().create_world_renderer(_main_world);
 
 		if (_world_renderer == nullptr)
@@ -109,7 +60,8 @@ namespace sfg
 			return false;
 		}
 
-		_world_renderer->init(render_context_config, world_config.debug_draw);
+		_world_renderer->init(config.render_context, config.world.debug_draw);
+
 		_package_meta = &package_meta;
 
 		_previous_time_us = time_t::get_cpu_microseconds();

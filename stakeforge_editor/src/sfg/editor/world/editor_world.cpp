@@ -53,102 +53,10 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define EDITOR_WORLD_SELECTED_ENTITY_INITIAL_CAPACITY	256
-#define EDITOR_WORLD_PICK_RESULT_REQUEST_SHIFT			32
-#define EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT		(8192 * 4)
-#define EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT			(8192 * 6)
-#define EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT	164000
-#define EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT		164000
-#define EDITOR_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT		256
-#define EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES			32768
-#define EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT		16384
-#define EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT			24576
-#define EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT			8192
-#define EDITOR_MAIN_WORLD_LIGHT_MAX_COUNT				1024
-#define EDITOR_MAIN_WORLD_REFLECTION_PROBE_MAX_COUNT	256
-#define EDITOR_PREVIEW_WORLD_LIGHT_MAX_COUNT			16
-#define EDITOR_PREVIEW_WORLD_REFLECTION_PROBE_MAX_COUNT 8
+#define EDITOR_WORLD_SELECTED_ENTITY_INITIAL_CAPACITY 256
+#define EDITOR_WORLD_PICK_RESULT_REQUEST_SHIFT		  32
 
-	editor_world_init_config_t editor_world_init_config_t::make_main(vec2u16_t render_resolution)
-	{
-		world_physics_config_t physics_config = {};
-
-		physics_config.physics_enabled = true;
-
-		return {
-			.render_context =
-				{
-					.size				  = render_resolution,
-					.entity_max			  = 1024 * 10,
-					.mesh_draw_max		  = 32768,
-					.material_max		  = 4096,
-					.sprite_max			  = 256,
-					.particle_max		  = 8192,
-					.bone_max			  = 4096,
-					.light_max			  = EDITOR_MAIN_WORLD_LIGHT_MAX_COUNT,
-					.reflection_probe_max = EDITOR_MAIN_WORLD_REFLECTION_PROBE_MAX_COUNT,
-					.shadow_view_max	  = ENGINE_SHADOW_VIEW_MAX,
-				},
-			.world =
-				{
-					.physics = physics_config,
-					.debug_draw =
-						{
-							.line_vertex_max_count	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-							.line_index_max_count	   = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-							.triangle_vertex_max_count = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-							.triangle_index_max_count  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-							.text_command_max_count	   = EDITOR_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
-							.text_budget_bytes		   = EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES,
-							.text_vertex_max_count	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-							.text_index_max_count	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-							.texture_max_count		   = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
-						},
-					.render_resolution = render_resolution,
-				},
-		};
-	}
-
-	editor_world_init_config_t editor_world_init_config_t::make_preview(vec2u16_t render_resolution)
-	{
-		return {
-			.render_context =
-				{
-					.size				  = render_resolution,
-					.entity_max			  = 128,
-					.mesh_draw_max		  = 1024,
-					.material_max		  = 256,
-					.sprite_max			  = 16,
-					.particle_max		  = 0,
-					.bone_max			  = MAX_SKELETON_BONES,
-					.light_max			  = EDITOR_PREVIEW_WORLD_LIGHT_MAX_COUNT,
-					.reflection_probe_max = EDITOR_PREVIEW_WORLD_REFLECTION_PROBE_MAX_COUNT,
-					.shadow_view_max	  = 8,
-				},
-			.world =
-				{
-					.debug_draw =
-						{
-							.line_vertex_max_count	   = EDITOR_WORLD_DEBUG_LINE_VERTEX_MAX_COUNT,
-							.line_index_max_count	   = EDITOR_WORLD_DEBUG_LINE_INDEX_MAX_COUNT,
-							.triangle_vertex_max_count = EDITOR_WORLD_DEBUG_TRIANGLE_VERTEX_MAX_COUNT,
-							.triangle_index_max_count  = EDITOR_WORLD_DEBUG_TRIANGLE_INDEX_MAX_COUNT,
-							.text_command_max_count	   = EDITOR_WORLD_DEBUG_TEXT_COMMAND_MAX_COUNT,
-							.text_budget_bytes		   = EDITOR_WORLD_DEBUG_TEXT_BUDGET_BYTES,
-							.text_vertex_max_count	   = EDITOR_WORLD_DEBUG_TEXT_VERTEX_MAX_COUNT,
-							.text_index_max_count	   = EDITOR_WORLD_DEBUG_TEXT_INDEX_MAX_COUNT,
-							.texture_max_count		   = EDITOR_WORLD_DEBUG_TEXTURE_MAX_COUNT,
-						},
-					.particle_simulation =
-						{
-							.page_size = 4 * 1024,
-						},
-					.render_resolution = render_resolution,
-				},
-		};
-	}
-
-	void editor_world_t::init(const editor_world_init_config_t& init_config, editor_world_handle_t handle, editor_world_camera_type_e camera_type, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
+	void editor_world_t::init(const world_config_t& init_config, editor_world_handle_t handle, editor_world_camera_type_e camera_type, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
 	{
 		SFG_ASSERT(init_config.world.render_resolution == init_config.render_context.size);
 

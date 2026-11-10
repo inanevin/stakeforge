@@ -328,7 +328,11 @@ namespace sfg
 	}
 	void editor_panel_ragdoll_viewer_t::create_preview_world()
 	{
-		editor_world_init_config_t init_config = editor_world_init_config_t::make_preview(editor_surface_controller_t::get().get_main_surface().swapchain_size);
+		const vec2u16_t render_resolution = editor_surface_controller_t::get().get_main_surface().swapchain_size;
+		world_config_t	init_config{
+			.world			= world_init_config_t::make_preview(render_resolution),
+			.render_context = world_render_context_config_t::make_preview(render_resolution),
+		};
 
 		init_config.world.physics.physics_enabled			= true;
 		init_config.world.physics.max_bodies				= 128;

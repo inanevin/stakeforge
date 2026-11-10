@@ -186,17 +186,22 @@ namespace sfg
 
 	void editor_panel_mesh_viewer_t::create_preview_world()
 	{
-		const editor_world_init_config_t init_config = editor_world_init_config_t::make_preview(editor_surface_controller_t::get().get_main_surface().swapchain_size);
+		const vec2u16_t		 render_resolution = editor_surface_controller_t::get().get_main_surface().swapchain_size;
+		const world_config_t init_config{
+			.world			= world_init_config_t::make_preview(render_resolution),
+			.render_context = world_render_context_config_t::make_preview(render_resolution),
+		};
 
 		editor_world_controller_t& controller = editor_world_controller_t::get();
-		_world								  = controller.create_world(init_config, editor_world_camera_type_e::orbit, editor_world_edit_type_e::view_with_debug);
-		editor_world_t* const editor_world	  = controller.get_editor_world(_world);
+
+		_world = controller.create_world(init_config, editor_world_camera_type_e::orbit, editor_world_edit_type_e::view_with_debug);
+
+		editor_world_t* const editor_world = controller.get_editor_world(_world);
 
 		_environment_entity = editor_world_util_t::install_default_scene_dark(editor_world->get_world());
 
 		_world_view.set_edit_world(_world);
 	}
-
 	void editor_panel_mesh_viewer_t::destroy_preview_world()
 	{
 		if (_world.is_null())

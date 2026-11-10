@@ -41,6 +41,7 @@ SFG_GAME_PLUGIN_ENTRY bool sfg_get_game_plugin_callbacks(u32 api_version, sfg::g
 		return false;
 
 	callbacks = {
+		.get_world_config	= game::game_world_t::get_world_config,
 		.register_types		= game::game_plugin_type_registry_t::register_types,
 		.load				= game::load,
 		.unload				= game::unload,

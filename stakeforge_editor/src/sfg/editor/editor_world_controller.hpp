@@ -44,7 +44,7 @@ namespace sfg
 	class editor_command_system_t;
 	class editor_world_t;
 	class world_t;
-	struct editor_world_init_config_t;
+	struct world_config_t;
 	enum class editor_world_camera_type_e : u8;
 	struct editor_asset_deletion_listener_tag_t;
 	struct editor_command_listener_tag_t;
@@ -71,23 +71,20 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		editor_world_handle_t create_world(const editor_world_init_config_t& init_config,
-										   editor_world_camera_type_e		 camera_type,
-										   editor_world_edit_type_e			 edit_type				 = editor_world_edit_type_e::full_control,
-										   editor_world_tick_callback_t		 tick_callback			 = nullptr,
-										   void*							 tick_callback_user_data = nullptr);
-		void				  destroy_world(editor_world_handle_t handle);
-		void				  destroy_worlds();
-		void				  resize_world(editor_world_handle_t handle, vec2u16_t render_resolution);
-		bool				  acquire_render_worlds();
-		bool				  render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
-		void				  tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps);
-		void				  update_physics_settings(const u64* collision_masks, u64 active_layers, u32 physics_rate, u32 max_sub_steps, bool kinematic_sensors_collide_with_non_dynamic);
-		void				  load_dummy_world();
-		bool				  load_main_world(sid_t asset_guid);
-		bool				  save_main_world();
-		void				  mark_world_dirty(editor_world_handle_t handle);
-		void				  apply_plugin_type_schema(const plugin_type_schema_t& previous, const plugin_type_schema_t& current, const plugin_type_schema_delta_t& delta);
+		editor_world_handle_t create_world(
+			const world_config_t& init_config, editor_world_camera_type_e camera_type, editor_world_edit_type_e edit_type = editor_world_edit_type_e::full_control, editor_world_tick_callback_t tick_callback = nullptr, void* tick_callback_user_data = nullptr);
+		void destroy_world(editor_world_handle_t handle);
+		void destroy_worlds();
+		void resize_world(editor_world_handle_t handle, vec2u16_t render_resolution);
+		bool acquire_render_worlds();
+		bool render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
+		void tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps);
+		void update_physics_settings(const u64* collision_masks, u64 active_layers, u32 physics_rate, u32 max_sub_steps, bool kinematic_sensors_collide_with_non_dynamic);
+		void load_dummy_world();
+		bool load_main_world(sid_t asset_guid);
+		bool save_main_world();
+		void mark_world_dirty(editor_world_handle_t handle);
+		void apply_plugin_type_schema(const plugin_type_schema_t& previous, const plugin_type_schema_t& current, const plugin_type_schema_delta_t& delta);
 
 		// -----------------------------------------------------------------------------
 		// accessors

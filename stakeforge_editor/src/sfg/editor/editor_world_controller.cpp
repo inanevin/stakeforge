@@ -41,6 +41,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "editor/plugin/editor_plugin_manager.hpp"
 
+#include <sfg/core/runtime/plugin/game_plugin_runtime.hpp>
 #include <sfg/core/common/hashing.hpp>
 #include <sfg/core/data/frame_vector.hpp>
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
@@ -105,16 +106,9 @@ namespace sfg
 		s_instance = nullptr;
 	}
 
-	editor_world_handle_t editor_world_controller_t::create_world(
-		const editor_world_init_config_t& init_config, editor_world_camera_type_e camera_type, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
+	editor_world_handle_t editor_world_controller_t::create_world(const world_config_t& init_config, editor_world_camera_type_e camera_type, editor_world_edit_type_e edit_type, editor_world_tick_callback_t tick_callback, void* tick_callback_user_data)
 	{
 		editor_app_t::get().stop_render();
-
-		editor_world_init_config_t world_config		= init_config;
-		const project_settings_t&  project_settings = engine_runtime_t::get().get_project_settings();
-
-		world_config.world.physics				   = project_settings.physics.make_runtime_config(project_settings.world_physics_rate, project_settings.max_sim_steps);
-		world_config.world.physics.physics_enabled = init_config.world.physics.physics_enabled;
 
 		const editor_world_handle_t handle = _worlds.add();
 
@@ -122,7 +116,7 @@ namespace sfg
 
 		editor_world_t* const editor_world = _worlds.get(handle);
 
-		editor_world->init(world_config, handle, camera_type, edit_type, tick_callback, tick_callback_user_data);
+		editor_world->init(init_config, handle, camera_type, edit_type, tick_callback, tick_callback_user_data);
 
 		return handle;
 	}
@@ -394,7 +388,7 @@ namespace sfg
 
 		destroy_main_world_internal();
 
-		const editor_world_init_config_t init_config = editor_world_init_config_t::make_main(editor_surface_controller_t::get().get_main_surface().swapchain_size);
+		const world_config_t init_config = game_plugin_runtime_t::get().get_world_config(world_config_type_e::main, editor_surface_controller_t::get().get_main_surface().swapchain_size);
 
 		const editor_world_handle_t handle		 = create_world(init_config, editor_world_camera_type_e::fly);
 		editor_world_t* const		editor_world = _worlds.get(handle);
@@ -425,7 +419,7 @@ namespace sfg
 
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		const editor_world_init_config_t init_config = editor_world_init_config_t::make_main(editor_surface_controller_t::get().get_main_surface().swapchain_size);
+		const world_config_t init_config = game_plugin_runtime_t::get().get_world_config(world_config_type_e::main, editor_surface_controller_t::get().get_main_surface().swapchain_size);
 
 		const editor_world_handle_t handle = create_world(init_config, editor_world_camera_type_e::fly);
 
@@ -462,9 +456,11 @@ namespace sfg
 		if (editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::entities))
 			static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
 
-		editor_project_t& project		 = editor_project_t::get();
+		editor_project_t& project = editor_project_t::get();
+
 		project.settings.last_world_guid = asset_guid;
 		project.save(project._runtime.path.c_str());
+
 		return true;
 	}
 
@@ -651,7 +647,8 @@ namespace sfg
 
 		controller.destroy_world(controller._main_world);
 
-		editor_project_t& project		 = editor_project_t::get();
+		editor_project_t& project = editor_project_t::get();
+
 		project.settings.last_world_guid = NULL_SID;
 		project.save(project._runtime.path.c_str());
 	}
