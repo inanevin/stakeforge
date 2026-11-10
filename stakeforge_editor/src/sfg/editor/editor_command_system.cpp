@@ -20,7 +20,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 */
 #include "editor/editor_command_system.hpp"
-#include "editor/editor_world_controller.hpp"
 #include <sfg/core/input/input_mappings.hpp>
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/platform/common_window.hpp>
@@ -38,14 +37,20 @@ namespace sfg
 		s_instance = this;
 		_config	   = config;
 
-		_commands.reserve(config.command_max_count);
+		_commands.reserve(config.command_max_count * 2);
 		_listeners.reserve(config.listener_initial_capacity);
-		_history.reserve(config.command_max_count);
+
+		for (history_t& history : _histories)
+		{
+			history.commands.reserve(config.command_max_count);
+			history.cursor = 0;
+		}
+
 		_aux_data.init(config.aux_data_page_size_bytes);
 
-		_cursor			   = 0;
-		_generation		   = 0;
-		_entity_generation = 0;
+		_play_history_active = false;
+		_generation			 = 0;
+		_entity_generation	 = 0;
 	}
 
 	void editor_command_system_t::uninit()
@@ -53,13 +58,16 @@ namespace sfg
 		clear();
 		_commands.clear();
 		_listeners.clear();
-		_history.clear();
+
+		for (history_t& history : _histories)
+			history.commands.clear();
+
 		_aux_data.uninit();
 
-		_config			   = {};
-		_cursor			   = 0;
-		_generation		   = 0;
-		_entity_generation = 0;
+		_config				 = {};
+		_play_history_active = false;
+		_generation			 = 0;
+		_entity_generation	 = 0;
 
 		if (s_instance == this)
 			s_instance = nullptr;
@@ -67,73 +75,99 @@ namespace sfg
 
 	void editor_command_system_t::clear()
 	{
-		for (const editor_command_handle_t handle : _history)
-		{
-			if (_commands.is_valid(handle))
-				destroy_command(handle);
-		}
+		for (history_t& history : _histories)
+			clear_history(history);
 
-		_history.resize(0);
 		_commands.resize_zero();
 		_aux_data.reset();
 
-		_cursor = 0;
+		++_generation;
+	}
+
+	void editor_command_system_t::begin_play_history()
+	{
+		SFG_ASSERT(!_play_history_active);
+		SFG_ASSERT(_histories[1].commands.empty());
+
+		_play_history_active = true;
+		++_generation;
+	}
+
+	void editor_command_system_t::end_play_history()
+	{
+		SFG_ASSERT(_play_history_active);
+
+		clear_history(_histories[1]);
+
+		_play_history_active = false;
 		++_generation;
 	}
 
 	void editor_command_system_t::clear_world(editor_world_handle_t world)
 	{
-		size_t write_cursor = 0;
-		u32	   cursor		= _cursor;
-		bool   removed		= false;
-		for (size_t read_cursor = 0; read_cursor < _history.size(); ++read_cursor)
+		bool removed = false;
+
+		for (history_t& history : _histories)
 		{
-			const editor_command_handle_t handle  = _history[read_cursor];
-			editor_command_t&			  command = _commands.get(handle);
-			if (command.world == world)
+			size_t write_cursor = 0;
+			u32	   cursor		= history.cursor;
+
+			for (size_t read_cursor = 0; read_cursor < history.commands.size(); ++read_cursor)
 			{
-				if (read_cursor < _cursor)
-					--cursor;
-				destroy_command(handle);
-				removed = true;
-				continue;
+				const editor_command_handle_t handle  = history.commands[read_cursor];
+				editor_command_t&			  command = _commands.get(handle);
+
+				if (command.world == world)
+				{
+					if (read_cursor < history.cursor)
+						--cursor;
+
+					destroy_command(handle);
+					removed = true;
+					continue;
+				}
+
+				history.commands[write_cursor++] = handle;
 			}
 
-			_history[write_cursor++] = handle;
+			history.commands.resize(write_cursor);
+			history.cursor = cursor;
 		}
 
-		_history.resize(write_cursor);
-		_cursor = cursor;
 		if (removed)
 			++_generation;
 	}
 
 	void editor_command_system_t::clear_user_data(void* user_data)
 	{
-		size_t write_cursor = 0;
-		u32	   cursor		= _cursor;
-		bool   removed		= false;
+		bool removed = false;
 
-		for (size_t read_cursor = 0; read_cursor < _history.size(); ++read_cursor)
+		for (history_t& history : _histories)
 		{
-			const editor_command_handle_t handle  = _history[read_cursor];
-			editor_command_t&			  command = _commands.get(handle);
+			size_t write_cursor = 0;
+			u32	   cursor		= history.cursor;
 
-			if (command.user_data == user_data)
+			for (size_t read_cursor = 0; read_cursor < history.commands.size(); ++read_cursor)
 			{
-				if (read_cursor < _cursor)
-					--cursor;
+				const editor_command_handle_t handle  = history.commands[read_cursor];
+				editor_command_t&			  command = _commands.get(handle);
 
-				destroy_command(handle);
-				removed = true;
-				continue;
+				if (command.user_data == user_data)
+				{
+					if (read_cursor < history.cursor)
+						--cursor;
+
+					destroy_command(handle);
+					removed = true;
+					continue;
+				}
+
+				history.commands[write_cursor++] = handle;
 			}
 
-			_history[write_cursor++] = handle;
+			history.commands.resize(write_cursor);
+			history.cursor = cursor;
 		}
-
-		_history.resize(write_cursor);
-		_cursor = cursor;
 
 		if (removed)
 			++_generation;
@@ -141,8 +175,10 @@ namespace sfg
 
 	editor_command_handle_t editor_command_system_t::issue_command(const editor_command_issue_desc_t& desc, const void* payload_data)
 	{
-		truncate_redo();
-		trim_history_for_new_command();
+		history_t& history = _histories[_play_history_active];
+
+		truncate_redo(history);
+		trim_history_for_new_command(history);
 
 		const chunk_handle32_t		  payload = copy_payload(desc, payload_data);
 		const editor_command_handle_t handle  = _commands.emplace();
@@ -165,8 +201,8 @@ namespace sfg
 			return {};
 		}
 
-		_history.push_back(handle);
-		_cursor = static_cast<u32>(_history.size());
+		history.commands.push_back(handle);
+		history.cursor = static_cast<u32>(history.commands.size());
 		bump_generation(command);
 
 		if (desc.notify)
@@ -177,15 +213,11 @@ namespace sfg
 
 	bool editor_command_system_t::undo()
 	{
-		const editor_play_session_t& session = editor_world_controller_t::get().get_play_session();
-
-		if (session.is_playing() || session.is_play_requested())
-			return false;
-
 		if (!can_undo())
 			return false;
 
-		const editor_command_handle_t handle  = _history[_cursor - 1];
+		history_t&					  history = _histories[_play_history_active];
+		const editor_command_handle_t handle  = history.commands[history.cursor - 1];
 		editor_command_t&			  command = _commands.get(handle);
 
 		if (!command.undo(*this, command))
@@ -194,7 +226,7 @@ namespace sfg
 			return false;
 		}
 
-		--_cursor;
+		--history.cursor;
 		bump_generation(command);
 		notify_listeners(command);
 
@@ -203,15 +235,11 @@ namespace sfg
 
 	bool editor_command_system_t::redo()
 	{
-		const editor_play_session_t& session = editor_world_controller_t::get().get_play_session();
-
-		if (session.is_playing() || session.is_play_requested())
-			return false;
-
 		if (!can_redo())
 			return false;
 
-		const editor_command_handle_t handle  = _history[_cursor];
+		history_t&					  history = _histories[_play_history_active];
+		const editor_command_handle_t handle  = history.commands[history.cursor];
 		editor_command_t&			  command = _commands.get(handle);
 
 		if (!command.redo(*this, command))
@@ -220,7 +248,7 @@ namespace sfg
 			return false;
 		}
 
-		++_cursor;
+		++history.cursor;
 		bump_generation(command);
 		notify_listeners(command);
 
@@ -272,27 +300,38 @@ namespace sfg
 			_listeners.remove(handle);
 	}
 
-	void editor_command_system_t::truncate_redo()
+	void editor_command_system_t::clear_history(history_t& history)
 	{
-		while (_history.size() > _cursor)
+		for (const editor_command_handle_t handle : history.commands)
+			destroy_command(handle);
+
+		history.commands.resize(0);
+		history.cursor = 0;
+	}
+
+	void editor_command_system_t::truncate_redo(history_t& history)
+	{
+		while (history.commands.size() > history.cursor)
 		{
-			const editor_command_handle_t handle = _history.back();
-			_history.pop_back();
+			const editor_command_handle_t handle = history.commands.back();
+
+			history.commands.pop_back();
 			destroy_command(handle);
 		}
 	}
 
-	void editor_command_system_t::trim_history_for_new_command()
+	void editor_command_system_t::trim_history_for_new_command(history_t& history)
 	{
-		if (_history.size() < _config.command_max_count)
+		if (history.commands.size() < _config.command_max_count)
 			return;
 
-		const editor_command_handle_t handle = _history.front();
-		_history.erase(_history.begin());
+		const editor_command_handle_t handle = history.commands.front();
+
+		history.commands.erase(history.commands.begin());
 		destroy_command(handle);
 
-		if (_cursor != 0)
-			--_cursor;
+		if (history.cursor != 0)
+			--history.cursor;
 	}
 
 	void editor_command_system_t::destroy_command(editor_command_handle_t handle)

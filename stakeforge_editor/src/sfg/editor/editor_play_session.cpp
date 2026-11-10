@@ -125,6 +125,8 @@ namespace sfg
 		_saved_world_dirty = worlds.is_main_world_dirty();
 		_state			   = state;
 
+		editor_command_system_t::get().begin_play_history();
+
 		editor_world.update_camera_control();
 		editor_world.update_world_transforms();
 		editor_world.get_world().begin_play();
@@ -161,6 +163,8 @@ namespace sfg
 
 		if (!restored)
 			SFG_ERR("failed to restore world snapshot");
+
+		editor_command_system_t::get().end_play_history();
 
 		resource_manager_t::get().flush_material_updates();
 
@@ -257,7 +261,6 @@ namespace sfg
 
 			editor_world.serialize_camera(camera);
 			editor_world.get_edit_context().apply_entity_selection({}, NULL_ENTITY_ID);
-			editor_command_system_t::get().clear_world(_world);
 
 			// reset
 			world_t& world = editor_world.get_world();

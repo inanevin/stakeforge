@@ -147,6 +147,8 @@ namespace sfg
 		void clear();
 		void clear_world(editor_world_handle_t world);
 		void clear_user_data(void* user_data);
+		void begin_play_history();
+		void end_play_history();
 
 		// -----------------------------------------------------------------------------
 		// impl
@@ -215,22 +217,24 @@ namespace sfg
 
 		inline bool can_undo() const
 		{
-			return _cursor != 0;
+			return _histories[_play_history_active].cursor != 0;
 		}
 
 		inline bool can_redo() const
 		{
-			return _cursor < _history.size();
+			const history_t& history = _histories[_play_history_active];
+
+			return history.cursor < history.commands.size();
 		}
 
 		inline u32 get_history_size() const
 		{
-			return static_cast<u32>(_history.size());
+			return static_cast<u32>(_histories[_play_history_active].commands.size());
 		}
 
 		inline u32 get_history_cursor() const
 		{
-			return _cursor;
+			return _histories[_play_history_active].cursor;
 		}
 
 		inline u32 get_generation() const
@@ -261,8 +265,15 @@ namespace sfg
 		}
 
 	private:
-		void			 truncate_redo();
-		void			 trim_history_for_new_command();
+		struct history_t
+		{
+			vector_t<editor_command_handle_t> commands = {};
+			u32								  cursor   = 0;
+		};
+
+		void			 clear_history(history_t& history);
+		void			 truncate_redo(history_t& history);
+		void			 trim_history_for_new_command(history_t& history);
 		void			 destroy_command(editor_command_handle_t handle);
 		void			 bump_generation(const editor_command_t& command);
 		void			 notify_listeners(const editor_command_t& command);
@@ -271,12 +282,12 @@ namespace sfg
 	private:
 		dynamic_gen_pool_t<editor_command_t, u32, editor_command_tag_t>					  _commands;
 		dynamic_gen_pool_t<editor_command_listener_t, u32, editor_command_listener_tag_t> _listeners;
-		vector_t<editor_command_handle_t>												  _history;
+		history_t																		  _histories[2] = {};
 		chunk_allocator_t																  _aux_data;
-		editor_command_system_config_t													  _config			 = {};
-		u32																				  _cursor			 = 0;
-		u32																				  _generation		 = 0;
-		u32																				  _entity_generation = 0;
+		editor_command_system_config_t													  _config			   = {};
+		u32																				  _generation		   = 0;
+		u32																				  _entity_generation   = 0;
+		bool																			  _play_history_active = false;
 
 		static editor_command_system_t* s_instance;
 	};
