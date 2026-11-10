@@ -20,6 +20,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 */
 #include "editor/editor_command_system.hpp"
+#include "editor/editor_world_controller.hpp"
 #include <sfg/core/input/input_mappings.hpp>
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/platform/common_window.hpp>
@@ -176,6 +177,11 @@ namespace sfg
 
 	bool editor_command_system_t::undo()
 	{
+		const editor_play_session_t& session = editor_world_controller_t::get().get_play_session();
+
+		if (session.is_playing() || session.is_play_requested())
+			return false;
+
 		if (!can_undo())
 			return false;
 
@@ -197,6 +203,11 @@ namespace sfg
 
 	bool editor_command_system_t::redo()
 	{
+		const editor_play_session_t& session = editor_world_controller_t::get().get_play_session();
+
+		if (session.is_playing() || session.is_play_requested())
+			return false;
+
 		if (!can_redo())
 			return false;
 
