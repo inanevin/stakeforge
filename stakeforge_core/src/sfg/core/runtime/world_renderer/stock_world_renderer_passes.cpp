@@ -129,6 +129,10 @@ namespace sfg
 		stock_world_renderer_draw_state_t  state										   = {};
 		u32								   draw_index									   = 0;
 
+		const gpu_index_t mesh_instance_buffer_index = ctx.get_mesh_instance_buffer_index(frame_index);
+
+		gfx_backend::get().cmd_bind_constants(cmd, {.data = &mesh_instance_buffer_index, .offset = constant_rp6, .count = 1, .param_index = 0});
+
 		while (draw_index < draws.size)
 		{
 			const u32 packet_count = stock_world_renderer_util_t::prep_draw_packets(ctx, snapshot, draws, required_pass_mask, initial_variant_flags, frame_index, {.data = packets, .size = std::size(packets)}, draw_index);

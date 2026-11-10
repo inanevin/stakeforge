@@ -768,6 +768,39 @@ namespace sfg
 			return left_renderable.sort_key == right_renderable.sort_key ? left.depth < right.depth : left_renderable.sort_key < right_renderable.sort_key;
 		});
 
+		// write mesh instances in queue order before recording any passes
+		stock_world_renderer_draw_mesh_instance_gpu_t* mapped_mesh_instances = reinterpret_cast<stock_world_renderer_draw_mesh_instance_gpu_t*>(ctx.get_mapped_mesh_instance_buffer(frame_index));
+		u32											   mesh_instance_count	 = 0;
+
+		auto append_mesh_instances = [&](frame_vector_t<stock_world_renderer_queue_item_t>& queue) {
+			for (stock_world_renderer_queue_item_t& item : queue)
+			{
+				const stock_world_renderer_renderable_t& renderable = snapshot.renderables[item.renderable_index];
+
+				if (renderable.type != stock_world_renderer_renderable_type_e::mesh)
+					continue;
+
+				SFG_ASSERT(mesh_instance_count < ctx.get_mesh_instance_max());
+
+				const stock_world_renderer_mesh_draw_t& draw = snapshot.mesh_draws[renderable.payload_index];
+
+				item.instance_index							 = mesh_instance_count;
+				mapped_mesh_instances[mesh_instance_count++] = {
+					.entity_index	= renderable.entity_index,
+					.skinning_index = draw.skinning_index,
+					.entity_id		= snapshot.entities[renderable.entity_index].entity_id,
+				};
+			}
+		};
+
+		append_mesh_instances(prep_data.depth_queue);
+		append_mesh_instances(prep_data.opaque_queue);
+		append_mesh_instances(prep_data.transparent_queue);
+		append_mesh_instances(prep_data.shadow_queue);
+		append_mesh_instances(prep_data.visible_queue);
+		append_mesh_instances(prep_data.view_model_depth_queue);
+		append_mesh_instances(prep_data.view_model_queue);
+
 		// build sprite instances
 		stock_world_renderer_draw_sprite_instance_gpu_t* mapped_instances = reinterpret_cast<stock_world_renderer_draw_sprite_instance_gpu_t*>(ctx.get_mapped_sprite_instance_buffer(frame_index));
 		render_resources_t&								 render_resources = render_resources_t::get();
@@ -786,7 +819,7 @@ namespace sfg
 				const stock_world_renderer_sprite_draw_t& sprite = snapshot.sprite_draws[renderable.payload_index];
 				const stock_world_renderer_entity_t&	  entity = snapshot.entities[renderable.entity_index];
 
-				item.sprite_instance_index		 = instance_count;
+				item.instance_index				 = instance_count;
 				mapped_instances[instance_count] = {
 					.uv_start		  = sprite.uv_start,
 					.uv_size		  = sprite.uv_size,
@@ -830,7 +863,7 @@ namespace sfg
 				const bool									sort_particles = force_sort || material.particle_variant_flags != shader_variant_flags_particle_additive;
 
 				SFG_ASSERT(particle_instance_count + draw.particle_count <= ctx.get_particle_instance_max());
-				item.particle_instance_index = particle_instance_count;
+				item.instance_index = particle_instance_count;
 
 				// non additive particles get sorted back to front.
 				if (sort_particles)
@@ -929,7 +962,7 @@ namespace sfg
 					const stock_world_renderer_queue_item_t& next_item		 = draws[run_end];
 					const stock_world_renderer_renderable_t& next_renderable = snapshot.renderables[next_item.renderable_index];
 
-					if (next_renderable.type != stock_world_renderer_renderable_type_e::sprite || next_renderable.material_index != renderable.material_index || next_item.sprite_instance_index != item.sprite_instance_index + run_end - draw_index)
+					if (next_renderable.type != stock_world_renderer_renderable_type_e::sprite || next_renderable.material_index != renderable.material_index || next_item.instance_index != item.instance_index + run_end - draw_index)
 						break;
 
 					if (required_pass_mask != 0 && (next_renderable.pass_mask & required_pass_mask) != required_pass_mask)
@@ -939,7 +972,7 @@ namespace sfg
 				}
 
 				packet.instance_buffer_index = ctx.get_sprite_instance_buffer_index(frame_index);
-				packet.object_constants[0]	 = item.sprite_instance_index;
+				packet.object_constants[0]	 = item.instance_index;
 				packet.object_constant_count = 1;
 				packet.element_count		 = 6;
 				packet.instance_count		 = run_end - draw_index;
@@ -953,7 +986,7 @@ namespace sfg
 
 				const f32 geometry[5]		 = {draw.uv_start.x, draw.uv_start.y, draw.uv_size.x, draw.uv_size.y, draw.aspect};
 				packet.instance_buffer_index = ctx.get_particle_instance_buffer_index(frame_index);
-				packet.object_constants[0]	 = item.particle_instance_index;
+				packet.object_constants[0]	 = item.instance_index;
 				packet.object_constants[1]	 = draw.alignment;
 				packet.object_constants[2]	 = entity.entity_id;
 				SFG_MEMCPY(packet.object_constants + 3, geometry, sizeof(geometry));
@@ -991,15 +1024,47 @@ namespace sfg
 				packet.element_count		 = draw.index_count;
 				packet.start_index			 = draw.start_index;
 				packet.start_vertex			 = draw.start_vertex;
-				packet.object_constants[0]	 = renderable.entity_index;
-				packet.object_constants[1]	 = editor_pass && draw.skinning_index == UINT32_MAX ? 0 : draw.skinning_index;
-				packet.object_constant_count = 2;
+				packet.object_constants[0]	 = item.instance_index;
+				packet.object_constant_count = 1;
 
-				if ((initial_variant_flags & shader_variant_flags_id_write) != 0)
+				while (run_end < draws.size)
 				{
-					packet.object_constants[2]	 = snapshot.entities[renderable.entity_index].entity_id;
-					packet.object_constant_count = 3;
+					const stock_world_renderer_queue_item_t& next_item		 = draws[run_end];
+					const stock_world_renderer_renderable_t& next_renderable = snapshot.renderables[next_item.renderable_index];
+
+					if (next_renderable.type != stock_world_renderer_renderable_type_e::mesh)
+						break;
+
+					if (next_item.instance_index != item.instance_index + run_end - draw_index)
+						break;
+
+					if (next_renderable.material_index != renderable.material_index || next_renderable.flags != renderable.flags)
+						break;
+
+					if (required_pass_mask != 0 && (next_renderable.pass_mask & required_pass_mask) != required_pass_mask)
+						break;
+
+					const stock_world_renderer_mesh_draw_t& next_draw = snapshot.mesh_draws[next_renderable.payload_index];
+
+					if (next_draw.vertex_buffer != draw.vertex_buffer || next_draw.index_buffer != draw.index_buffer)
+						break;
+
+					if (next_draw.vertex_stride != draw.vertex_stride || next_draw.index_stride != draw.index_stride)
+						break;
+
+					if (next_draw.index_count != draw.index_count || next_draw.start_index != draw.start_index || next_draw.start_vertex != draw.start_vertex)
+						break;
+
+					if (next_draw.direct_pso != draw.direct_pso || next_draw.draw_flags != draw.draw_flags)
+						break;
+
+					if ((next_draw.skinning_index == UINT32_MAX) != (draw.skinning_index == UINT32_MAX))
+						break;
+
+					++run_end;
 				}
+
+				packet.instance_count = run_end - draw_index;
 
 				break;
 			}

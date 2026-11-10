@@ -85,6 +85,15 @@ namespace sfg
 		u8									   flags		  = stock_world_renderer_renderable_flag_none;
 	};
 
+	struct stock_world_renderer_draw_mesh_instance_gpu_t
+	{
+		u32 entity_index   = UINT32_MAX;
+		u32 skinning_index = UINT32_MAX;
+		u32 entity_id	   = UINT32_MAX;
+	};
+
+	static_assert(sizeof(stock_world_renderer_draw_mesh_instance_gpu_t) == 12);
+
 	struct stock_world_renderer_sprite_draw_t
 	{
 		render_resource_handle_t texture		  = {};

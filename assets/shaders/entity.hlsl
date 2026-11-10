@@ -31,3 +31,10 @@ struct gpu_entity
     float4 position;
     float4 forward;
 };
+
+struct mesh_instance_data
+{
+    uint entity_index;
+    uint skinning_index;
+    uint entity_id;
+};

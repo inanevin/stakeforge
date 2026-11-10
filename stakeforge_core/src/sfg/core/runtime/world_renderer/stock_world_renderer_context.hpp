@@ -278,6 +278,11 @@ namespace sfg
 			return _config.bone_max;
 		}
 
+		inline u64 get_mesh_instance_max() const
+		{
+			return _config.mesh_draw_max == 0 ? 1 : static_cast<u64>(_config.mesh_draw_max) * (4 + _config.shadow_view_max + (_config.reflection_probe_max == 0 ? 0 : STOCK_WORLD_RENDERER_REFLECTION_FACE_COUNT * 3));
+		}
+
 		inline u32 get_sprite_max() const
 		{
 			return _config.sprite_max;
@@ -683,6 +688,16 @@ namespace sfg
 			return _pfd[frame_index].mapped_entity_buffer;
 		}
 
+		inline u8* get_mapped_mesh_instance_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_mesh_instance_buffer;
+		}
+
+		inline gpu_index_t get_mesh_instance_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].mesh_instance_buffer_index;
+		}
+
 		inline u8* get_mapped_sprite_instance_buffer(u8 frame_index) const
 		{
 			return _pfd[frame_index].mapped_sprite_instance_buffer;
@@ -853,6 +868,7 @@ namespace sfg
 			u8*			 mapped_fog_render_pass_data										= nullptr;
 			u8*			 mapped_post_process_render_pass_data								= nullptr;
 			u8*			 mapped_entity_buffer												= nullptr;
+			u8*			 mapped_mesh_instance_buffer										= nullptr;
 			u8*			 mapped_sprite_instance_buffer										= nullptr;
 			u8*			 mapped_particle_instance_buffer									= nullptr;
 			u8*			 mapped_debug_texture_buffer										= nullptr;
@@ -877,6 +893,7 @@ namespace sfg
 			gfx_handle_t ssao_render_pass_data												= {};
 			gfx_handle_t bloom_render_pass_data												= {};
 			gfx_handle_t entity_buffer														= {};
+			gfx_handle_t mesh_instance_buffer												= {};
 			gfx_handle_t sprite_instance_buffer												= {};
 			gfx_handle_t particle_instance_buffer											= {};
 			gfx_handle_t debug_texture_buffer												= {};
@@ -933,6 +950,7 @@ namespace sfg
 			gpu_index_t	 ssao_render_pass_data_index										= NULL_GPU_INDEX;
 			gpu_index_t	 bloom_render_pass_data_index										= NULL_GPU_INDEX;
 			gpu_index_t	 entity_buffer_index												= NULL_GPU_INDEX;
+			gpu_index_t	 mesh_instance_buffer_index											= NULL_GPU_INDEX;
 			gpu_index_t	 sprite_instance_buffer_index										= NULL_GPU_INDEX;
 			gpu_index_t	 particle_instance_buffer_index										= NULL_GPU_INDEX;
 			gpu_index_t	 debug_texture_buffer_index											= NULL_GPU_INDEX;

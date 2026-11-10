@@ -30,6 +30,7 @@
 #define SFG_RENDER_PASS_LIGHTING sfg_constant_rp3
 #define SFG_RENDER_PASS_SPECIFIC sfg_constant_rp4
 #define SFG_RENDER_PASS_FOG sfg_constant_rp5
+#define SFG_RENDER_PASS_MESH_INSTANCES sfg_constant_rp6
 
 static const uint SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_REFLECTIONS = 1u << 0;
 static const uint SFG_RENDER_PASS_VIEW_FLAG_SAMPLE_FOG = 1u << 1;

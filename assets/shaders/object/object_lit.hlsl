@@ -100,17 +100,22 @@ struct vs_output
     float3 world_tan : TEXCOORD2;
     float3 world_bit : TEXCOORD3;
     float2 uv : TEXCOORD4;
+#ifdef WRITE_ID
+    nointerpolation uint entity_id : TEXCOORD5;
+#endif
 };
 
 #endif
 
-vs_output VSMain(vs_input IN)
+vs_output VSMain(vs_input IN, uint instance_id : SV_InstanceID)
 {
     vs_output OUT;
     render_pass_data_view view_data = sfg_get_cbv<render_pass_data_view>(SFG_RENDER_PASS_VIEW);
     StructuredBuffer<gpu_entity> entity_buffer = sfg_get_ssbo<gpu_entity>(SFG_RENDER_PASS_ENTITIES);
 
-    gpu_entity entity = entity_buffer[sfg_constant_obj0];
+    StructuredBuffer<mesh_instance_data> instances = sfg_get_ssbo<mesh_instance_data>(SFG_RENDER_PASS_MESH_INSTANCES);
+    mesh_instance_data instance = instances[sfg_constant_obj0 + instance_id];
+    gpu_entity entity = entity_buffer[instance.entity_index];
 
     float4 obj_pos;
 #ifndef USE_ZPREPASS
@@ -131,7 +136,7 @@ vs_output VSMain(vs_input IN)
     [unroll]
     for (int i = 0; i < 4; ++i)
     {
-        uint bone_index = sfg_constant_obj1 + IN.bone_indices[i];
+        uint bone_index = instance.skinning_index + IN.bone_indices[i];
         float weight = IN.bone_weights[i];
         float4x4 bone_mat = bone_buffer[bone_index].bone;
 
@@ -158,6 +163,9 @@ vs_output VSMain(vs_input IN)
     float3 world_pos = mul(entity.model, obj_pos).xyz;
     OUT.pos = mul(view_data.view_proj, float4(world_pos, 1.0));
     OUT.uv = IN.uv;
+#ifdef WRITE_ID
+    OUT.entity_id = instance.entity_id;
+#endif
 
 #ifndef USE_ZPREPASS
     float3 world_normal = normalize(mul(entity.normal_matrix, float4(obj_norm, 0.0)).xyz);
@@ -271,7 +279,7 @@ uint PSMain(vs_output IN) : SV_TARGET
         discard;
 #endif
 
-    return sfg_constant_obj2;
+    return IN.entity_id;
 }
 
 #elif defined(USE_ZPREPASS)

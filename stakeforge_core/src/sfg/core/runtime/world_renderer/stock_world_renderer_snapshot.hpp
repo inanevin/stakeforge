@@ -161,10 +161,9 @@ namespace sfg
 
 	struct stock_world_renderer_queue_item_t
 	{
-		f32 depth					= 0.0f;
-		u32 renderable_index		= UINT32_MAX;
-		u32 sprite_instance_index	= UINT32_MAX;
-		u32 particle_instance_index = UINT32_MAX;
+		f32 depth			 = 0.0f;
+		u32 renderable_index = UINT32_MAX;
+		u32 instance_index	 = UINT32_MAX;
 	};
 
 	struct stock_world_renderer_prep_data_t
