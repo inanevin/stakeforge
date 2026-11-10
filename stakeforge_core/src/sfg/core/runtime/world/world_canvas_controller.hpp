@@ -39,6 +39,7 @@ namespace sfg
 
 	namespace ui
 	{
+		class ui_context;
 		struct layout_in_t;
 		struct vg_rect_paint_t;
 		struct vg_text_style_t;
@@ -99,6 +100,12 @@ namespace sfg
 		bool set_frame_style(entity_id_t canvas, canvas_widget_handle_t widget, const ui::vg_rect_paint_t& style);
 		bool set_text_style(entity_id_t canvas, canvas_widget_handle_t widget, const ui::vg_text_style_t& style);
 		bool set_image(entity_id_t canvas, canvas_widget_handle_t widget, resource_handle_t texture, const vec4f_t& tint);
+
+		// -----------------------------------------------------------------------------
+		// accessors
+		// -----------------------------------------------------------------------------
+
+		ui::ui_context* get_ui_context(entity_id_t canvas);
 
 	private:
 		void						  create_canvas(entity_id_t entity, const component_canvas_t& component);

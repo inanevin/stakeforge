@@ -691,19 +691,39 @@ namespace sfg
 		}
 	}
 
+	ui::ui_context* world_canvas_controller_t::get_ui_context(entity_id_t canvas)
+	{
+		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
+
+		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
+			return nullptr;
+		}
+
+		return runtime->context;
+	}
+
 	canvas_widget_handle_t world_canvas_controller_t::create_frame(entity_id_t canvas, canvas_widget_handle_t parent, const ui::layout_in_t& layout, const ui::vg_rect_paint_t& style)
 	{
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return NULL_CANVAS_WIDGET_HANDLE;
+		}
 
 		const ui::widget_id_t parent_id = parent == NULL_CANVAS_WIDGET_HANDLE ? runtime->context->get_root() : resolve_handle(*runtime, parent);
 
 		if (parent_id == NULL_WIDGET)
+		{
+			SFG_ERR("invalid parent widget handle {0} for canvas entity {1}", parent, canvas);
 			return NULL_CANVAS_WIDGET_HANDLE;
+		}
 
-		const ui::widget_id_t id  = runtime->context->allocate_widget();
+		const ui::widget_id_t id = runtime->context->allocate_widget();
+
 		runtime->widgets[id].kind = canvas_widget_kind_e::frame;
 		runtime->context->get_tree().attach(parent_id, id);
 		runtime->context->get_tree().in(id) = layout;
@@ -717,14 +737,21 @@ namespace sfg
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return NULL_CANVAS_WIDGET_HANDLE;
+		}
 
 		const ui::widget_id_t parent_id = parent == NULL_CANVAS_WIDGET_HANDLE ? runtime->context->get_root() : resolve_handle(*runtime, parent);
 
 		if (parent_id == NULL_WIDGET)
+		{
+			SFG_ERR("invalid parent widget handle {0} for canvas entity {1}", parent, canvas);
 			return NULL_CANVAS_WIDGET_HANDLE;
+		}
 
-		const ui::widget_id_t id  = runtime->context->allocate_widget();
+		const ui::widget_id_t id = runtime->context->allocate_widget();
+
 		runtime->widgets[id].kind = canvas_widget_kind_e::text;
 		runtime->context->get_tree().attach(parent_id, id);
 		runtime->context->get_tree().in(id) = layout;
@@ -745,14 +772,21 @@ namespace sfg
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return NULL_CANVAS_WIDGET_HANDLE;
+		}
 
 		const ui::widget_id_t parent_id = parent == NULL_CANVAS_WIDGET_HANDLE ? runtime->context->get_root() : resolve_handle(*runtime, parent);
 
 		if (parent_id == NULL_WIDGET)
+		{
+			SFG_ERR("invalid parent widget handle {0} for canvas entity {1}", parent, canvas);
 			return NULL_CANVAS_WIDGET_HANDLE;
+		}
 
-		const ui::widget_id_t id  = runtime->context->allocate_widget();
+		const ui::widget_id_t id = runtime->context->allocate_widget();
+
 		runtime->widgets[id].kind = canvas_widget_kind_e::image;
 		runtime->context->get_tree().attach(parent_id, id);
 		runtime->context->get_tree().in(id) = layout;
@@ -767,14 +801,21 @@ namespace sfg
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return NULL_CANVAS_WIDGET_HANDLE;
+		}
 
 		const ui::widget_id_t parent_id = parent == NULL_CANVAS_WIDGET_HANDLE ? runtime->context->get_root() : resolve_handle(*runtime, parent);
 
 		if (parent_id == NULL_WIDGET)
+		{
+			SFG_ERR("invalid parent widget handle {0} for canvas entity {1}", parent, canvas);
 			return NULL_CANVAS_WIDGET_HANDLE;
+		}
 
-		const ui::widget_id_t id  = runtime->context->allocate_widget();
+		const ui::widget_id_t id = runtime->context->allocate_widget();
+
 		runtime->widgets[id].kind = canvas_widget_kind_e::button;
 		runtime->context->get_tree().attach(parent_id, id);
 		runtime->context->get_tree().in(id) = layout;
@@ -801,20 +842,23 @@ namespace sfg
 			.on_wheel		 = world_canvas_events_t::on_wheel,
 			.user_data		 = runtime->events,
 		};
+
 		runtime->context->get_input().set_listener(id, listener);
 
-		const ui::widget_id_t label	 = runtime->context->allocate_widget();
+		const ui::widget_id_t label = runtime->context->allocate_widget();
+
 		runtime->widgets[label].kind = canvas_widget_kind_e::text;
 		runtime->widgets[id].label	 = label;
 		runtime->context->get_tree().attach(id, label);
 		runtime->context->get_tree().draw_order(label) = runtime->context->get_tree().draw_order_const(id);
 
 		ui::layout_in_t& label_layout = runtime->context->get_tree().in(label);
-		label_layout.pos_mode_x		  = ui::pos_mode_e::relative_in_parent;
-		label_layout.pos_mode_y		  = ui::pos_mode_e::relative_in_parent;
-		label_layout.pos_value		  = {0.5f, 0.5f};
-		label_layout.anchor_x		  = ui::anchor_e::center;
-		label_layout.anchor_y		  = ui::anchor_e::center;
+
+		label_layout.pos_mode_x = ui::pos_mode_e::relative_in_parent;
+		label_layout.pos_mode_y = ui::pos_mode_e::relative_in_parent;
+		label_layout.pos_value	= {0.5f, 0.5f};
+		label_layout.anchor_x	= ui::anchor_e::center;
+		label_layout.anchor_y	= ui::anchor_e::center;
 		runtime->context->set_widget_text(label, text);
 
 		ui::vg_text_style_t resolved_style = text_style;
@@ -831,12 +875,18 @@ namespace sfg
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return false;
+		}
 
 		const ui::widget_id_t id = resolve_handle(*runtime, widget);
 
 		if (id == NULL_WIDGET)
+		{
+			SFG_ERR("invalid widget handle {0} for canvas entity {1}", widget, canvas);
 			return false;
+		}
 
 		invalidate_recursive(*runtime, id);
 		runtime->context->deallocate_widget(id);
@@ -848,7 +898,10 @@ namespace sfg
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return false;
+		}
 
 		const ui::widget_id_t root	= runtime->context->get_root();
 		ui::widget_id_t		  child = runtime->context->get_tree().node(root).first_child;
@@ -856,6 +909,7 @@ namespace sfg
 		while (child != NULL_WIDGET)
 		{
 			const ui::widget_id_t next = runtime->context->get_tree().node(child).next_sibling;
+
 			invalidate_recursive(*runtime, child);
 			runtime->context->deallocate_widget(child);
 			child = next;
@@ -869,12 +923,18 @@ namespace sfg
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return false;
+		}
 
 		const ui::widget_id_t id = resolve_handle(*runtime, widget);
 
 		if (id == NULL_WIDGET)
+		{
+			SFG_ERR("invalid widget handle {0} for canvas entity {1}", widget, canvas);
 			return false;
+		}
 
 		runtime->context->get_tree().in(id) = layout;
 		runtime->context->get_tree().mark_layout_dirty();
@@ -886,12 +946,18 @@ namespace sfg
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return false;
+		}
 
 		const ui::widget_id_t id = resolve_handle(*runtime, widget);
 
 		if (id == NULL_WIDGET)
+		{
+			SFG_ERR("invalid widget handle {0} for canvas entity {1}", widget, canvas);
 			return false;
+		}
 
 		runtime->context->get_tree().set_visible(id, visible);
 		return true;
@@ -902,12 +968,18 @@ namespace sfg
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return false;
+		}
 
 		const ui::widget_id_t id = resolve_handle(*runtime, widget);
 
 		if (id == NULL_WIDGET)
+		{
+			SFG_ERR("invalid widget handle {0} for canvas entity {1}", widget, canvas);
 			return false;
+		}
 
 		ui::layout_in_t& layout = runtime->context->get_tree().in(id);
 
@@ -924,18 +996,27 @@ namespace sfg
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return false;
+		}
 
 		ui::widget_id_t id = resolve_handle(*runtime, widget);
 
 		if (id == NULL_WIDGET)
+		{
+			SFG_ERR("invalid widget handle {0} for canvas entity {1}", widget, canvas);
 			return false;
+		}
 
 		if (runtime->widgets[id].kind == canvas_widget_kind_e::button)
 			id = runtime->widgets[id].label;
 
 		if (runtime->widgets[id].kind != canvas_widget_kind_e::text)
+		{
+			SFG_ERR("widget handle {0} on canvas entity {1} is not text or a button label", widget, canvas);
 			return false;
+		}
 
 		runtime->context->set_widget_text(id, text);
 		return true;
@@ -946,12 +1027,24 @@ namespace sfg
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return false;
+		}
 
 		const ui::widget_id_t id = resolve_handle(*runtime, widget);
 
-		if (id == NULL_WIDGET || (runtime->widgets[id].kind != canvas_widget_kind_e::frame && runtime->widgets[id].kind != canvas_widget_kind_e::button))
+		if (id == NULL_WIDGET)
+		{
+			SFG_ERR("invalid widget handle {0} for canvas entity {1}", widget, canvas);
 			return false;
+		}
+
+		if (runtime->widgets[id].kind != canvas_widget_kind_e::frame && runtime->widgets[id].kind != canvas_widget_kind_e::button)
+		{
+			SFG_ERR("widget handle {0} on canvas entity {1} is not a frame or button", widget, canvas);
+			return false;
+		}
 
 		runtime->context->get_paint().set_rect(id, style);
 		return true;
@@ -962,18 +1055,27 @@ namespace sfg
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return false;
+		}
 
 		ui::widget_id_t id = resolve_handle(*runtime, widget);
 
 		if (id == NULL_WIDGET)
+		{
+			SFG_ERR("invalid widget handle {0} for canvas entity {1}", widget, canvas);
 			return false;
+		}
 
 		if (runtime->widgets[id].kind == canvas_widget_kind_e::button)
 			id = runtime->widgets[id].label;
 
 		if (runtime->widgets[id].kind != canvas_widget_kind_e::text)
+		{
+			SFG_ERR("widget handle {0} on canvas entity {1} is not text or a button label", widget, canvas);
 			return false;
+		}
 
 		ui::vg_text_style_t resolved_style = style;
 
@@ -989,21 +1091,35 @@ namespace sfg
 		component_system_canvas_t* runtime = _world->get_component_table(type_id_t<component_system_canvas_t>::value).find_as<component_system_canvas_t>(canvas);
 
 		if (runtime == nullptr)
+		{
+			SFG_ERR("canvas entity {0} has no runtime canvas", canvas);
 			return false;
+		}
 
 		const ui::widget_id_t id = resolve_handle(*runtime, widget);
 
-		if (id == NULL_WIDGET || runtime->widgets[id].kind != canvas_widget_kind_e::image)
+		if (id == NULL_WIDGET)
+		{
+			SFG_ERR("invalid widget handle {0} for canvas entity {1}", widget, canvas);
 			return false;
+		}
+
+		if (runtime->widgets[id].kind != canvas_widget_kind_e::image)
+		{
+			SFG_ERR("widget handle {0} on canvas entity {1} is not an image", widget, canvas);
+			return false;
+		}
 
 		ui::vg_rect_paint_t rect = {};
-		rect.fill_color_a		 = tint;
-		rect.fill_color_b		 = tint;
+
+		rect.fill_color_a = tint;
+		rect.fill_color_b = tint;
 
 		ui::ui_render_state_t state = {};
-		state.pipeline				= runtime->config.texture_shader;
-		state.constants[0].handle	= texture;
-		state.constants[0].type		= ui::ui_resource_type_e::texture;
+
+		state.pipeline			  = runtime->config.texture_shader;
+		state.constants[0].handle = texture;
+		state.constants[0].type	  = ui::ui_resource_type_e::texture;
 		runtime->context->get_paint().set_rect(id, rect, state);
 		return true;
 	}
