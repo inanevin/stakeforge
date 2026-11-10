@@ -42,6 +42,12 @@ namespace sfg
 		{
 			outFile.write(file_input.data(), file_input.size());
 			outFile.close();
+
+			if (!outFile.good())
+			{
+				SFG_ERR("failed writing to file! {0}", target_file);
+				return false;
+			}
 		}
 		else
 		{
@@ -50,6 +56,111 @@ namespace sfg
 		}
 
 		return true;
+	}
+
+	bool serializer_t::write_files_transactional(span_t<const serialized_file_t> files)
+	{
+		struct staged_file_t
+		{
+			string_t temporary	   = {};
+			string_t backup		   = {};
+			bool	 existed	   = false;
+			bool	 retain_backup = false;
+		};
+
+		vector_t<staged_file_t> staged	  = {};
+		size_t					committed = 0;
+		bool					succeeded = true;
+
+		staged.resize(files.size);
+
+		// prepare all files before replacing any of them
+		for (size_t i = 0; i < files.size; ++i)
+		{
+			staged_file_t& file	  = staged[i];
+			const string_t suffix = "." + std::to_string(hashing_t::generate_guid64());
+
+			file.temporary = files.data[i].path + suffix + ".tmp";
+			file.backup	   = files.data[i].path + suffix + ".bak";
+			file.existed   = file_system_t::exists(files.data[i].path);
+
+			const bool copy = file_system_t::copy_file(files.data[i].path, file.backup.c_str());
+
+			if (file.existed)
+			{
+				if (!copy)
+				{
+					succeeded = false;
+					break;
+				}
+
+				if (!write_to_file(files.data[i].contents, file.temporary.c_str()))
+					succeeded = false;
+
+				break;
+			}
+		}
+
+		if (succeeded)
+		{
+			for (; committed < files.size; ++committed)
+			{
+				if (!file_system_t::replace_file(staged[committed].temporary.c_str(), files.data[committed].path))
+				{
+					succeeded = false;
+					break;
+				}
+			}
+		}
+
+		// put earlier files back if a later replacement failed
+		if (!succeeded)
+		{
+			while (committed != 0)
+			{
+				--committed;
+
+				staged_file_t& file = staged[committed];
+
+				if (file.existed)
+				{
+					if (!file_system_t::replace_file(file.backup.c_str(), files.data[committed].path))
+					{
+						file.retain_backup = true;
+						SFG_ERR("failed to roll back {0}; original file retained at {1}", files.data[committed].path, file.backup);
+					}
+				}
+				else
+				{
+					std::error_code error = {};
+
+					std::filesystem::remove(files.data[committed].path, error);
+
+					if (error)
+						SFG_ERR("failed to remove new file during rollback {0}: {1}", files.data[committed].path, error.message());
+				}
+			}
+		}
+
+		for (const staged_file_t& file : staged)
+		{
+			const string_t* paths[] = {&file.temporary, &file.backup};
+
+			for (const string_t* path : paths)
+			{
+				if (path->empty() || (path == &file.backup && file.retain_backup))
+					continue;
+
+				std::error_code error = {};
+
+				std::filesystem::remove(*path, error);
+
+				if (error)
+					SFG_ERR("failed to remove staged file {0}: {1}", *path, error.message());
+			}
+		}
+
+		return succeeded;
 	}
 
 	bool serializer_t::save_to_file(const char* path, const ostream_t& stream)

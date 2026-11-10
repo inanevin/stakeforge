@@ -25,16 +25,24 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "core/common/size_definitions.hpp"
 #include "core/data/string_view.hpp"
+#include "core/data/span.hpp"
 
 namespace sfg
 {
 	class ostream_t;
 	class istream_t;
 
+	struct serialized_file_t
+	{
+		string_view_t contents = {};
+		const char*	  path	   = nullptr;
+	};
+
 	class SFG_API serializer_t
 	{
 	public:
 		static bool		 write_to_file(string_view_t file_input, const char* target_path);
+		static bool		 write_files_transactional(span_t<const serialized_file_t> files);
 		static bool		 save_to_file(const char* path, const ostream_t& stream);
 		static bool		 save_to_file_atomic(const char* path, const ostream_t& stream);
 		static bool		 save_to_file_compressed(const char* path, const ostream_t& stream);

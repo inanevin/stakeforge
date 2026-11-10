@@ -25,11 +25,21 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "editor/world/editor_world_handle.hpp"
 #include <sfg/core/data/frame_vector.hpp>
+#include <sfg/core/data/span.hpp>
 #include <sfg/core/memory/chunk_handle.hpp>
 #include <sfg/core/runtime/world/ecs_defs.hpp>
 
 namespace sfg
 {
+	class chunk_allocator_t;
+
+	enum class editor_component_stream_mode_e : u8
+	{
+		edit,
+		restore,
+		paste,
+	};
+
 	struct editor_command_add_component_payload_t
 	{
 		chunk_handle32_t	  entities		 = {};
@@ -71,6 +81,7 @@ namespace sfg
 	public:
 		editor_commands_component_t() = delete;
 
+		static bool apply_streams(ecs_component_table_t& table, span_t<const entity_id_t> entities, chunk_allocator_t& aux_data, span_t<const chunk_handle32_t> streams, editor_component_stream_mode_e mode);
 		static bool add(editor_world_handle_t world, entity_id_t entity, sid_t component_type);
 		static bool add(editor_world_handle_t world, const frame_vector_t<entity_id_t>& entities, sid_t component_type);
 		static bool remove(editor_world_handle_t world, entity_id_t entity, sid_t component_type);

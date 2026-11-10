@@ -713,33 +713,60 @@ namespace sfg
 
 	bool editor_asset_manager_t::save_and_cook_embedded_asset_async(sid_t asset_id, const nlohmann::json& embedded_source)
 	{
-		editor_asset_t* asset = _database.find_asset(asset_id);
-		if (asset == nullptr)
+		return save_and_cook_embedded_assets_async({.data = &asset_id, .size = 1}, {.data = &embedded_source, .size = 1});
+	}
+
+	bool editor_asset_manager_t::save_and_cook_embedded_assets_async(span_t<const sid_t> asset_ids, span_t<const nlohmann::json> embedded_sources)
+	{
+		SFG_ASSERT(asset_ids.size == embedded_sources.size);
+
+		struct pending_asset_t
 		{
-			SFG_ERR("failed to find embedded asset {0}", asset_id);
-			return false;
+			string_t				   source = {};
+			editor_asset_t*			   asset  = nullptr;
+			const editor_asset_node_t* node	  = nullptr;
+		};
+
+		frame_vector_t<pending_asset_t> pending = {};
+
+		pending.reserve(asset_ids.size);
+
+		for (size_t i = 0; i < asset_ids.size; ++i)
+		{
+			editor_asset_t* asset = _database.find_asset(asset_ids.data[i]);
+
+			if (asset == nullptr || asset->source_type != editor_asset_source_type_e::embedded)
+			{
+				SFG_ERR("embedded asset not found: {0}", asset_ids.data[i]);
+				return false;
+			}
+
+			const editor_asset_node_t* node = _database.find_asset_node_value(asset_ids.data[i]);
+
+			if (node == nullptr)
+			{
+				SFG_ERR("embedded asset node not found: {0}", asset_ids.data[i]);
+				return false;
+			}
+
+			try
+			{
+				pending.push_back({.source = embedded_sources.data[i].is_null() ? string_t{} : embedded_sources.data[i].dump(), .asset = asset, .node = node});
+			}
+			catch (const nlohmann::json::exception& error)
+			{
+				SFG_ERR("failed to serialize embedded asset {0}: {1}", asset_ids.data[i], error.what());
+				return false;
+			}
 		}
 
-		if (asset->source_type != editor_asset_source_type_e::embedded)
-		{
-			SFG_ERR("asset {0} does not have an embedded source", asset_id);
-			return false;
-		}
+		for (pending_asset_t& update : pending)
+			update.asset->embedded_source = std::move(update.source);
 
-		const editor_asset_node_handle_t node = _database.find_asset_node(asset_id);
+		for (const pending_asset_t& update : pending)
+			schedule_asset_cook(update.asset->guid, *update.asset, update.node->full_path.c_str(), update.node->name.c_str(), true);
 
-		if (node.is_null())
-		{
-			SFG_ERR("failed to find embedded asset node {0}", asset_id);
-			return false;
-		}
-
-		const editor_asset_node_t& asset_node = _database.get_asset_tree().value(node);
-
-		editor_asset_io_t::set_embedded_source_json(*asset, embedded_source);
 		notify_changed();
-
-		schedule_asset_cook(asset_id, *asset, asset_node.full_path.c_str(), asset_node.name.c_str(), true);
 
 		return true;
 	}

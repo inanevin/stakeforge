@@ -21,6 +21,7 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #include "editor/commands/editor_command_component_edit.hpp"
+#include "editor_commands_component.hpp"
 #include "editor/editor_world_controller.hpp"
 #include "editor/world/editor_world.hpp"
 #include "editor/editor_command_system.hpp"
@@ -131,30 +132,15 @@ namespace sfg
 			const entity_id_t*	   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			chunk_handle32_t*	   streams	= system.get_aux_data().get<chunk_handle32_t>(streams_handle);
 
-			for (u32 i = 0; i < payload.count; ++i)
+			if (!editor_commands_component_t::apply_streams(table, {.data = entities, .size = payload.count}, system.get_aux_data(), {.data = streams, .size = payload.count}, editor_component_stream_mode_e::edit))
+				return false;
+
+			if (payload.component_type == type_id_t<component_transform_t>::value)
 			{
-				if (!table.has(entities[i]))
-				{
-					SFG_ERR("component {0} missing on entity {1}", payload.component_type, entities[i]);
-					return false;
-				}
-
-				void* component = table.get(entities[i]);
-
-				if (table.get_type_desc().size != 0)
-					reflection_registry_t::get().initialize_type(table.get_type_desc().type_id, component);
-
-				istream_t stream(streams[i] ? system.get_aux_data().get<u8>(streams[i]) : nullptr, streams[i].size);
-
-				if (!reflection_registry_t::get().type_from_stream(table.get_type_desc().type_id, component, nullptr, stream))
-				{
-					SFG_ERR("failed to apply component edit {0} for entity {1}", payload.component_type, entities[i]);
-					return false;
-				}
-
-				if (payload.component_type == type_id_t<component_transform_t>::value)
+				for (u32 i = 0; i < payload.count; ++i)
 				{
 					component_system_transform_t& system_transform = world.get_component_table<component_system_transform_t>().get_as<component_system_transform_t>(entities[i]);
+
 					system_transform.flags |= system_transform_flag_dirty;
 				}
 			}

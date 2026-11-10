@@ -86,10 +86,14 @@ namespace sfg
 			const sid_t*			curve_ids = system.get_aux_data().get<sid_t>(payload.curve_ids);
 			const chunk_handle32_t* jsons	  = system.get_aux_data().get<chunk_handle32_t>(jsons_handle);
 
+			frame_vector_t<nlohmann::json> embedded_sources = {};
+
+			embedded_sources.reserve(payload.count);
+
 			for (u32 index = 0; index < payload.count; ++index)
 			{
-				const char*			 text	  = system.get_aux_data().get<char>(jsons[index]);
-				const nlohmann::json embedded = nlohmann::json::parse(text, text + jsons[index].size, nullptr, false);
+				const char*	   text		= system.get_aux_data().get<char>(jsons[index]);
+				nlohmann::json embedded = nlohmann::json::parse(text, text + jsons[index].size, nullptr, false);
 
 				if (embedded.is_discarded())
 				{
@@ -97,11 +101,10 @@ namespace sfg
 					return false;
 				}
 
-				if (!assets.save_and_cook_embedded_asset_async(curve_ids[index], embedded))
-					return false;
+				embedded_sources.push_back(std::move(embedded));
 			}
 
-			return true;
+			return assets.save_and_cook_embedded_assets_async({.data = curve_ids, .size = payload.count}, {.data = embedded_sources.data(), .size = embedded_sources.size()});
 		}
 
 		bool curve_edit_undo(editor_command_system_t& system, editor_command_t& command)

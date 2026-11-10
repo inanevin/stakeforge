@@ -125,21 +125,25 @@ namespace sfg
 			const sid_t*			physical_material_ids = system.get_aux_data().get<sid_t>(payload.physical_material_ids);
 			const chunk_handle32_t* jsons				  = system.get_aux_data().get<chunk_handle32_t>(jsons_handle);
 
+			frame_vector_t<nlohmann::json> embedded_sources = {};
+
+			embedded_sources.reserve(payload.count);
+
 			for (u32 i = 0; i < payload.count; ++i)
 			{
-				const char*			 json_text = system.get_aux_data().get<char>(jsons[i]);
-				const nlohmann::json embedded  = nlohmann::json::parse(json_text, json_text + jsons[i].size, nullptr, false);
+				const char*	   json_text = system.get_aux_data().get<char>(jsons[i]);
+				nlohmann::json embedded	 = nlohmann::json::parse(json_text, json_text + jsons[i].size, nullptr, false);
+
 				if (embedded.is_discarded())
 				{
 					SFG_ERR("failed to parse physical material edit json for asset {0}", physical_material_ids[i]);
 					return false;
 				}
 
-				if (!asset_manager.save_and_cook_embedded_asset_async(physical_material_ids[i], embedded))
-					return false;
+				embedded_sources.push_back(std::move(embedded));
 			}
 
-			return true;
+			return asset_manager.save_and_cook_embedded_assets_async({.data = physical_material_ids, .size = payload.count}, {.data = embedded_sources.data(), .size = embedded_sources.size()});
 		}
 
 		bool physical_material_edit_undo(editor_command_system_t& system, editor_command_t& command)

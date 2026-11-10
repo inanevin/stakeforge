@@ -97,6 +97,7 @@ namespace sfg
 		void									notify_changed();
 		void									process_file_changes(span_t<const editor_file_change_t> changes);
 		bool									save_and_cook_embedded_asset_async(sid_t asset_id, const nlohmann::json& embedded_source);
+		bool									save_and_cook_embedded_assets_async(span_t<const sid_t> asset_ids, span_t<const nlohmann::json> embedded_sources);
 		bool									save_and_cook_file_asset_blob_async(sid_t asset_id, const ostream_t& source);
 		bool									save_and_cook_file_asset_options_async(sid_t asset_id, const nlohmann::json& cook_options);
 		editor_asset_deletion_listener_handle_t add_asset_deletion_listener(editor_asset_deletion_listener_fn fn, void* user_data);

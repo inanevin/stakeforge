@@ -75,46 +75,6 @@ namespace sfg
 			initialize_component_data(table, component);
 		}
 
-		bool restore_component(ecs_component_table_t& table, entity_id_t entity, chunk_allocator_t& aux_data, chunk_handle32_t stream_handle)
-		{
-			void* component = table.has(entity) ? table.get(entity) : table.add(entity);
-
-			if (table.get_type_desc().size == 0)
-				return true;
-
-			initialize_component_data(table, component);
-			istream_t stream(stream_handle ? aux_data.get<u8>(stream_handle) : nullptr, stream_handle.size);
-
-			if (!reflection_registry_t::get().type_from_stream(table.get_type_desc().type_id, component, nullptr, stream))
-			{
-				SFG_ERR("failed to restore component {0} for entity {1}", table.get_type_desc().type_id, entity);
-				return false;
-			}
-
-			return true;
-		}
-
-		bool paste_component_data(ecs_component_table_t& table, entity_id_t entity, chunk_allocator_t& aux_data, chunk_handle32_t stream_handle)
-		{
-			if (!table.has(entity))
-				return true;
-
-			if (table.get_type_desc().size == 0)
-				return true;
-
-			void* component = table.get(entity);
-			initialize_component_data(table, component);
-			istream_t stream(aux_data.get<u8>(stream_handle), stream_handle.size);
-
-			if (!reflection_registry_t::get().type_from_stream(table.get_type_desc().type_id, component, nullptr, stream))
-			{
-				SFG_ERR("failed to paste component {0} for entity {1}", table.get_type_desc().type_id, entity);
-				return false;
-			}
-
-			return true;
-		}
-
 		chunk_handle32_t create_entity_array(editor_command_system_t& system, const frame_vector_t<entity_id_t>& entities)
 		{
 			entity_id_t*		   dst	  = nullptr;
@@ -195,15 +155,8 @@ namespace sfg
 			ecs_component_table_t&					   table	= editor_world_controller_t::get().get_editor_world(payload.world)->get_world().get_component_table(payload.component_type);
 			const entity_id_t*						   entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			const chunk_handle32_t*					   streams	= system.get_aux_data().get<chunk_handle32_t>(payload.streams);
-			for (u32 i = 0; i < payload.count; ++i)
-			{
-				if (!restore_component(table, entities[i], system.get_aux_data(), streams[i]))
-				{
-					SFG_ERR("failed to undo remove component command for entity {0}", entities[i]);
-					return false;
-				}
-			}
-			return true;
+
+			return editor_commands_component_t::apply_streams(table, {.data = entities, .size = payload.count}, system.get_aux_data(), {.data = streams, .size = payload.count}, editor_component_stream_mode_e::restore);
 		}
 
 		bool remove_component_redo(editor_command_system_t& system, editor_command_t& command)
@@ -249,15 +202,8 @@ namespace sfg
 			ecs_component_table_t&					  table	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world().get_component_table(payload.component_type);
 			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			const chunk_handle32_t*					  streams  = system.get_aux_data().get<chunk_handle32_t>(payload.streams);
-			for (u32 i = 0; i < payload.count; ++i)
-			{
-				if (!restore_component(table, entities[i], system.get_aux_data(), streams[i]))
-				{
-					SFG_ERR("failed to undo reset component command for entity {0}", entities[i]);
-					return false;
-				}
-			}
-			return true;
+
+			return editor_commands_component_t::apply_streams(table, {.data = entities, .size = payload.count}, system.get_aux_data(), {.data = streams, .size = payload.count}, editor_component_stream_mode_e::restore);
 		}
 
 		bool reset_component_redo(editor_command_system_t& system, editor_command_t& command)
@@ -303,15 +249,8 @@ namespace sfg
 			ecs_component_table_t&					  table	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world().get_component_table(payload.component_type);
 			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
 			const chunk_handle32_t*					  streams  = system.get_aux_data().get<chunk_handle32_t>(payload.old_streams);
-			for (u32 i = 0; i < payload.count; ++i)
-			{
-				if (!restore_component(table, entities[i], system.get_aux_data(), streams[i]))
-				{
-					SFG_ERR("failed to undo paste component command for entity {0}", entities[i]);
-					return false;
-				}
-			}
-			return true;
+
+			return editor_commands_component_t::apply_streams(table, {.data = entities, .size = payload.count}, system.get_aux_data(), {.data = streams, .size = payload.count}, editor_component_stream_mode_e::restore);
 		}
 
 		bool paste_component_redo(editor_command_system_t& system, editor_command_t& command)
@@ -319,15 +258,8 @@ namespace sfg
 			editor_command_paste_component_payload_t& payload  = system.get_payload_as<editor_command_paste_component_payload_t>(command);
 			ecs_component_table_t&					  table	   = editor_world_controller_t::get().get_editor_world(payload.world)->get_world().get_component_table(payload.component_type);
 			const entity_id_t*						  entities = system.get_aux_data().get<entity_id_t>(payload.entities);
-			for (u32 i = 0; i < payload.count; ++i)
-			{
-				if (!paste_component_data(table, entities[i], system.get_aux_data(), payload.paste_stream))
-				{
-					SFG_ERR("failed to redo paste component command for entity {0}", entities[i]);
-					return false;
-				}
-			}
-			return true;
+
+			return editor_commands_component_t::apply_streams(table, {.data = entities, .size = payload.count}, system.get_aux_data(), {.data = &payload.paste_stream, .size = 1}, editor_component_stream_mode_e::paste);
 		}
 
 		void free_paste_component_payload(editor_command_system_t& system, editor_command_paste_component_payload_t& payload)
@@ -380,6 +312,58 @@ namespace sfg
 
 			return true;
 		}
+	}
+
+	bool editor_commands_component_t::apply_streams(ecs_component_table_t& table, span_t<const entity_id_t> entities, chunk_allocator_t& aux_data, span_t<const chunk_handle32_t> streams, editor_component_stream_mode_e mode)
+	{
+		SFG_ASSERT(streams.size == entities.size || streams.size == 1);
+
+		const ecs_component_type_desc_t& type	= table.get_type_desc();
+		const size_t					 stride = (static_cast<size_t>(type.size) + type.alignment - 1) & ~(static_cast<size_t>(type.alignment) - 1);
+		u8*								 staged = stride != 0 && entities.size != 0 ? static_cast<u8*>(frame_allocator_tls_t::allocate(stride * entities.size, type.alignment)) : nullptr;
+
+		for (size_t i = 0; i < entities.size; ++i)
+		{
+			if (!table.has(entities.data[i]))
+			{
+				if (mode == editor_component_stream_mode_e::edit)
+				{
+					SFG_ERR("component {0} missing on entity {1}", type.type_id, entities.data[i]);
+					return false;
+				}
+
+				if (mode == editor_component_stream_mode_e::paste)
+					continue;
+			}
+
+			if (type.size == 0)
+				continue;
+
+			void*				   component = staged + i * stride;
+			const chunk_handle32_t handle	 = streams.data[streams.size == 1 ? 0 : i];
+			istream_t			   stream(handle ? aux_data.get<u8>(handle) : nullptr, handle.size);
+
+			reflection_registry_t::get().initialize_type(type.type_id, component);
+
+			if (!reflection_registry_t::get().type_from_stream(type.type_id, component, nullptr, stream))
+			{
+				SFG_ERR("failed to deserialize component {0} for entity {1}", type.type_id, entities.data[i]);
+				return false;
+			}
+		}
+
+		for (size_t i = 0; i < entities.size; ++i)
+		{
+			if (mode == editor_component_stream_mode_e::paste && !table.has(entities.data[i]))
+				continue;
+
+			void* component = mode == editor_component_stream_mode_e::restore ? table.add(entities.data[i]) : table.get(entities.data[i]);
+
+			if (type.size != 0)
+				SFG_MEMCPY(component, staged + i * stride, type.size);
+		}
+
+		return true;
 	}
 
 	bool editor_commands_component_t::add(editor_world_handle_t world, entity_id_t entity, sid_t component_type)

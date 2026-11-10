@@ -21,12 +21,14 @@ in GAME-LINKING-EXCEPTION.md.
 */
 #include "editor/commands/editor_command_project_settings.hpp"
 #include "editor/editor_command_system.hpp"
+#include "editor/editor_directories.hpp"
 #include "editor/editor_project.hpp"
 #include "editor/editor_world_controller.hpp"
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/memory/memory.hpp>
 #include <sfg/core/reflection/reflection_registry.hpp>
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
+#include <sfg/core/serialization/serialization.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 
 namespace sfg
@@ -69,11 +71,54 @@ namespace sfg
 
 		bool apply_and_save_project_settings(const editor_command_project_settings_data_t& settings)
 		{
-			editor_command_project_settings_t::apply(settings);
+			editor_command_project_settings_data_t normalized		= settings;
+			const editor_project_t&				   project			= editor_project_t::get();
+			const string_t&						   editor_path		= editor_directories_t::get_editor_settings();
+			string_t							   project_contents = {};
+			string_t							   editor_contents	= {};
 
-			const bool project_saved = editor_project_t::get().save(editor_project_t::get()._runtime.path.c_str());
-			const bool editor_saved	 = editor_settings_t::get().save();
-			return project_saved && editor_saved;
+			normalized.project.project_settings.normalize();
+			normalized.editor.normalize();
+
+			try
+			{
+				nlohmann::json project_json = nlohmann::json::object();
+				nlohmann::json editor_json	= editor_settings_t::get();
+
+				if (!reflection_registry_t::get().type_to_json(type_id_t<editor_project_settings_data_t>::value, &normalized.project, nullptr, project_json["settings"]) ||
+					!reflection_registry_t::get().type_to_json(type_id_t<editor_settings_configurable_t>::value, &normalized.editor, nullptr, editor_json["configurable"]))
+				{
+					SFG_ERR("failed to serialize settings for project {0}", project._runtime.path);
+					return false;
+				}
+
+				project_json["layout"] = project.layout;
+				project_contents	   = project_json.dump(4);
+				editor_contents		   = editor_json.dump(4);
+			}
+			catch (const nlohmann::json::exception& error)
+			{
+				SFG_ERR("failed to serialize settings for project {0}: {1}", project._runtime.path, error.what());
+				return false;
+			}
+
+			const serialized_file_t files[] = {
+				{
+					.contents = project_contents,
+					.path	  = project._runtime.path.c_str(),
+				},
+				{
+					.contents = editor_contents,
+					.path	  = editor_path.c_str(),
+				},
+			};
+
+			if (!serializer_t::write_files_transactional({.data = files, .size = std::size(files)}))
+				return false;
+
+			editor_command_project_settings_t::apply(normalized);
+
+			return true;
 		}
 
 		bool project_settings_undo(editor_command_system_t& system, editor_command_t& command)
