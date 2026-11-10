@@ -33,7 +33,7 @@ file(GENERATE OUTPUT "${SFG_SDK_GENERATED}/sdk_build.json"
 add_custom_target(stakeforge_editor_packer
     COMMAND "${Python3_EXECUTABLE}" "${CMAKE_SOURCE_DIR}/assets/packaging/pack_editor.py"
         --manifest "${SFG_SDK_GENERATED}/sdk_build.json"
-    DEPENDS stakeforge_core stakeforge_editor
+    DEPENDS stakeforge_core stakeforge_editor stakeforge_game
     COMMENT "Packaging editor assets, SDK and runtime binaries"
     VERBATIM)
 set_target_properties(stakeforge_editor_packer PROPERTIES FOLDER "stakeforge")

@@ -45,6 +45,7 @@
     "system_libraries": ["d3d12", "dxgi", "dxguid", "Dwmapi", "Shcore", "Winmm"],
     "runtime_files": [
         "$<TARGET_FILE:stakeforge_core>", "$<TARGET_FILE:stakeforge_editor>",
+        "$<TARGET_FILE:stakeforge_game>",
         "@CMAKE_SOURCE_DIR@/stakeforge_core/deps/dx12_bin/dxcompiler.dll",
         "@CMAKE_SOURCE_DIR@/stakeforge_core/deps/dx12_bin/dxil.dll",
         "@CMAKE_SOURCE_DIR@/stakeforge_core/deps/pix/bin/WinPixEventRuntime.dll",

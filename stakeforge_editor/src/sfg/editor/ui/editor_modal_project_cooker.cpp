@@ -45,7 +45,7 @@ namespace sfg
 			.fill_x		   = true,
 		};
 
-		modal.request_modal("Cook Project", "Configure the packaged worlds, resources, and window.", true, buttons, static_cast<u16>(std::size(buttons)), &content);
+		modal.request_modal("Cook Project", "Configure the packaged worlds, resources, window, and optional executable icon.", true, buttons, static_cast<u16>(std::size(buttons)), &content);
 	}
 
 	void editor_modal_project_cooker_t::init(ui::ui_context& ui, ui::widget_id_t parent)

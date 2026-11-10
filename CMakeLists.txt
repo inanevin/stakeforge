@@ -56,6 +56,7 @@ include("${CMAKE_BINARY_DIR}/packaging/build_info.cmake")
 # ------------- TARGETS -------------
 
 add_subdirectory(stakeforge_core)
+add_subdirectory(stakeforge_game)
 add_subdirectory(stakeforge_editor)
 add_subdirectory(stakeforge_editor_launcher)
 include(assets/packaging/packaging.cmake)

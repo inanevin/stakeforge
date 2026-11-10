@@ -43,6 +43,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/io/assert.hpp>
 #include <sfg/core/io/file_system.hpp>
 #include <sfg/core/io/log.hpp>
+#include <sfg/core/platform/executable_util.hpp>
 #include <sfg/core/runtime/project/project_package_meta.hpp>
 #include <sfg/core/runtime/resources/resource_manifest.hpp>
 #include <sfg/core/reflection/plugin_type_schema.hpp>
@@ -597,8 +598,29 @@ namespace sfg
 
 	bool editor_project_cooker_t::publish_game_files()
 	{
-		const editor_project_runtime_t& project_runtime = editor_project_t::get()._runtime;
-		const string_t					running_path	= file_system_t::get_running_directory();
+		const editor_project_runtime_t& project_runtime	 = editor_project_t::get()._runtime;
+		const string_t					running_path	 = file_system_t::get_running_directory();
+		string_t						icon_source_path = {};
+
+		if (_cook_options->icon_texture != NULL_RESOURCE_HANDLE)
+		{
+			const editor_asset_t* icon_asset = editor_asset_manager_t::get().find_asset(_cook_options->icon_texture);
+
+			if (icon_asset == nullptr || icon_asset->asset_type != editor_asset_type_e::texture)
+			{
+				_cook_failure_reason = "The selected executable icon texture is missing or is not a texture.";
+				return false;
+			}
+
+			if (icon_asset->source_relative.empty())
+			{
+				_cook_failure_reason = "The selected executable icon texture has no source image.";
+				return false;
+			}
+
+			icon_source_path = editor_asset_path_t::get_source_full_path(project_runtime.assets_path.c_str(), *icon_asset);
+		}
+
 		struct file_copy_t
 		{
 			const char* source_name = nullptr;
@@ -623,6 +645,12 @@ namespace sfg
 			{
 				_cook_failure_reason = string_t("Failed to publish game runtime file: ") + file.source_name;
 				return false;
+			}
+
+			if (file.target_name == nullptr && !icon_source_path.empty())
+			{
+				if (!executable_util_t::set_icon(target_path.c_str(), icon_source_path.c_str(), _cook_failure_reason))
+					return false;
 			}
 		}
 

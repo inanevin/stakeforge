@@ -20,6 +20,7 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #include "core/platform/process.hpp"
+#include "core/platform/executable_util.hpp"
 #include "core/common/hashing.hpp"
 #include "core/data/string_util.hpp"
 #include "core/io/assert.hpp"
@@ -1615,11 +1616,13 @@ namespace sfg
 		const auto	outer_size = get_outer_size_for_config(size, window_style);
 
 		HWND hwnd = CreateWindowExA(ex_style, title, title, stylew, pos.x, pos.y, outer_size.x, outer_size.y, nullptr, nullptr, instance, nullptr);
+
 		if (hwnd == nullptr)
 		{
 			SFG_ERR("CreateWindowExA failed!");
 			return false;
 		}
+
 		if (window_style == window_style_e::alpha)
 			configure_alpha_window(hwnd, window_alpha);
 
@@ -1638,9 +1641,48 @@ namespace sfg
 			return false;
 		}
 
+		if (FindResourceW(instance, MAKEINTRESOURCEW(executable_util_t::ICON_RESOURCE_ID), reinterpret_cast<LPCWSTR>(RT_GROUP_ICON)) != nullptr)
+		{
+			const UINT dpi = GetDpiForWindow(hwnd);
+			struct icon_size_t
+			{
+				WPARAM type			 = ICON_BIG;
+				i32	   width_metric	 = SM_CXICON;
+				i32	   height_metric = SM_CYICON;
+			};
+			const icon_size_t icon_sizes[] = {
+				{
+					.type		   = ICON_BIG,
+					.width_metric  = SM_CXICON,
+					.height_metric = SM_CYICON,
+				},
+				{
+					.type		   = ICON_SMALL,
+					.width_metric  = SM_CXSMICON,
+					.height_metric = SM_CYSMICON,
+				},
+			};
+
+			for (const icon_size_t& icon_size : icon_sizes)
+			{
+				const HICON icon =
+					static_cast<HICON>(LoadImageW(instance, MAKEINTRESOURCEW(executable_util_t::ICON_RESOURCE_ID), IMAGE_ICON, GetSystemMetricsForDpi(icon_size.width_metric, dpi), GetSystemMetricsForDpi(icon_size.height_metric, dpi), LR_DEFAULTCOLOR));
+
+				if (icon == nullptr)
+				{
+					SFG_ERR("failed loading window icon, Windows error {0}", GetLastError());
+					continue;
+				}
+
+				SendMessageW(hwnd, WM_SETICON, icon_size.type, reinterpret_cast<LPARAM>(icon));
+			}
+		}
+
 		UINT window_pos_flags = SWP_NOMOVE | SWP_NOSIZE;
+
 		if (window_style == window_style_e::borderless)
 			window_pos_flags |= SWP_FRAMECHANGED;
+
 		SetWindowPos(hwnd, always_on_top ? HWND_TOPMOST : HWND_TOP, 0, 0, 0, 0, window_pos_flags);
 		ShowWindow(hwnd, SW_SHOW);
 		UpdateWindow(hwnd);
@@ -1653,9 +1695,26 @@ namespace sfg
 	{
 		HWND hwnd = static_cast<HWND>(window_handle);
 		SFG_ASSERT(hwnd != nullptr);
+
 		if (g_raw_input_target == hwnd)
 			g_raw_input_target = nullptr;
-		DestroyWindow(hwnd);
+
+		const HICON icons[] = {
+			reinterpret_cast<HICON>(SendMessageW(hwnd, WM_SETICON, ICON_BIG, 0)),
+			reinterpret_cast<HICON>(SendMessageW(hwnd, WM_SETICON, ICON_SMALL, 0)),
+		};
+
+		if (!DestroyWindow(hwnd))
+			SFG_ERR("failed destroying window, Windows error {0}", GetLastError());
+
+		for (HICON icon : icons)
+		{
+			if (icon != nullptr)
+			{
+				if (!DestroyIcon(icon))
+					SFG_ERR("failed destroying window icon, Windows error {0}", GetLastError());
+			}
+		}
 	}
 
 	void process::set_window_runtime(void* window_handle, window_runtime_t& runtime)
