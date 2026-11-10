@@ -386,47 +386,56 @@ namespace sfg
 
 	bool shader_cook_variants_t::cook_ui_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos, shader_type_e type)
 	{
-		const bool canvas		 = type == shader_type_e::canvas_ui || type == shader_type_e::canvas_ui_text || type == shader_type_e::canvas_ui_texture;
-		const bool text			 = type == shader_type_e::canvas_ui_text || type == shader_type_e::editor_ui_text;
-		const u8   variant_count = text ? 3 : 1;
-		const u32  text_flags[]	 = {0, shader_variant_flags_text_lcd, shader_variant_flags_text_sdf};
+		const bool canvas		= type == shader_type_e::canvas_ui || type == shader_type_e::canvas_ui_text || type == shader_type_e::canvas_ui_texture;
+		const bool text			= type == shader_type_e::canvas_ui_text || type == shader_type_e::editor_ui_text;
+		const u8   text_count	= text ? 3 : 1;
+		const u8   space_count	= canvas ? 2 : 1;
+		const u32  text_flags[] = {0, shader_variant_flags_text_lcd, shader_variant_flags_text_sdf};
 
-		out_compiles.reserve(variant_count);
-		out_psos.reserve(variant_count * (canvas ? 2 : 1));
+		out_compiles.reserve(text_count * space_count);
+		out_psos.reserve(text_count * space_count * (canvas ? 2 : 1));
 
-		for (u8 variant = 0; variant < variant_count; ++variant)
+		for (u8 space = 0; space < space_count; ++space)
 		{
-			vector_t<string_t> defines = {};
-
-			if (variant == 1)
-				defines.push_back("UI_TEXT_LCD");
-			else if (variant == 2)
-				defines.push_back("UI_TEXT_SDF");
-
-			out_compiles.push_back({});
-
-			if (!add_compile_variant_vs_ps(out_compiles.back(), source, defines, include_paths))
-				return false;
-
-			shader_desc_t desc{
-				.depth_stencil_desc = {.attachment_format = format_e::undefined, .flags = 0},
-				.topo				= topology::triangle_list,
-				.fill				= fill_mode::solid,
-				.cull				= cull_mode::back,
-				.front				= front_face::cw,
-				.poly_mode			= polygon_mode::fill,
-				.samples			= 1,
-			};
-			const color_blend_attachment_t blend = variant == 1 ? blend_attachments_t::get_lcd_text() : blend_attachments_t::get_alpha_blend();
-
-			vertex_inputs_t::get_editor_ui(desc);
-			add_attachment(desc, canvas ? format_e::r8g8b8a8_srgb : format_e::b8g8r8a8_srgb, blend);
-			out_psos.push_back({.desc = desc, .variant_flags = text_flags[variant] | (canvas ? shader_variant_flags_canvas_ldr : 0u), .compile_variant_index = variant});
-
-			if (canvas)
+			for (u8 variant = 0; variant < text_count; ++variant)
 			{
-				desc.attachments[0].format = format_e::r16g16b16a16_sfloat;
-				out_psos.push_back({.desc = desc, .variant_flags = text_flags[variant] | shader_variant_flags_canvas_hdr, .compile_variant_index = variant});
+				vector_t<string_t> defines = {};
+
+				if (variant == 1)
+					defines.push_back("UI_TEXT_LCD");
+				else if (variant == 2)
+					defines.push_back("UI_TEXT_SDF");
+
+				if (space != 0)
+					defines.push_back("UI_WORLD_SPACE");
+
+				const u8 compile_index = static_cast<u8>(out_compiles.size());
+				out_compiles.push_back({});
+
+				if (!add_compile_variant_vs_ps(out_compiles.back(), source, defines, include_paths))
+					return false;
+
+				shader_desc_t desc{
+					.depth_stencil_desc = {.attachment_format = space != 0 ? format_e::d32_sfloat : format_e::undefined, .depth_compare = compare_op::gequal, .flags = space != 0 ? dsf_depth_test | dsf_depth_write : 0u},
+					.topo				= topology::triangle_list,
+					.fill				= fill_mode::solid,
+					.cull				= cull_mode::back,
+					.front				= front_face::cw,
+					.poly_mode			= polygon_mode::fill,
+					.samples			= 1,
+				};
+				const color_blend_attachment_t blend = variant == 1 ? blend_attachments_t::get_lcd_text() : blend_attachments_t::get_alpha_blend();
+				const u32					   flags = text_flags[variant] | (space != 0 ? shader_variant_flags_canvas_3d : 0u);
+
+				vertex_inputs_t::get_editor_ui(desc);
+				add_attachment(desc, canvas ? format_e::r8g8b8a8_srgb : format_e::b8g8r8a8_srgb, blend);
+				out_psos.push_back({.desc = desc, .variant_flags = flags | (canvas ? shader_variant_flags_canvas_ldr : 0u), .compile_variant_index = compile_index});
+
+				if (canvas)
+				{
+					desc.attachments[0].format = format_e::r16g16b16a16_sfloat;
+					out_psos.push_back({.desc = desc, .variant_flags = flags | shader_variant_flags_canvas_hdr, .compile_variant_index = compile_index});
+				}
 			}
 		}
 

@@ -38,6 +38,8 @@ namespace sfg::ui
 	{
 		SFG_ASSERT(cfg.vertex_buffer_max_bytes >= sizeof(vg_vertex_t) && cfg.index_buffer_max_bytes >= sizeof(vg_index_t));
 
+		_canvas_data_capacity = cfg.world_canvas_max;
+
 		gfx_backend& backend = gfx_backend::get();
 		_vtx_capacity		 = cfg.vertex_buffer_max_bytes;
 		_idx_capacity		 = cfg.index_buffer_max_bytes;
@@ -80,6 +82,20 @@ namespace sfg::ui
 			p.parameter_buffer = backend.create_resource(parameter_desc);
 			backend.map_resource(p.parameter_buffer, p.mapped_parameters);
 			p.parameter_index = backend.get_resource_gpu_index(p.parameter_buffer);
+
+			if (_canvas_data_capacity != 0)
+			{
+				resource_desc_t canvas_data_desc{
+					.size			 = _canvas_data_capacity * static_cast<u32>(sizeof(ui_canvas_data_t)),
+					.structure_size	 = sizeof(ui_canvas_data_t),
+					.structure_count = _canvas_data_capacity,
+					.flags			 = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible,
+				};
+				canvas_data_desc.set_name("ui_canvas_data");
+				p.canvas_data_buffer = backend.create_resource(canvas_data_desc);
+				backend.map_resource(p.canvas_data_buffer, p.mapped_canvas_data);
+				p.canvas_data_index = backend.get_resource_gpu_index(p.canvas_data_buffer);
+			}
 		}
 	}
 
@@ -93,6 +109,10 @@ namespace sfg::ui
 			backend.destroy_resource(p.index_buffer);
 			backend.destroy_resource(p.projection_buffer);
 			backend.destroy_resource(p.parameter_buffer);
+
+			if (_canvas_data_capacity != 0)
+				backend.destroy_resource(p.canvas_data_buffer);
+
 			p = {};
 		}
 
@@ -101,35 +121,48 @@ namespace sfg::ui
 		_parameter_capacity = 0;
 	}
 
-	void ui_renderer_t::render(gfx_handle_t cmd, const vg_draw_snapshot_t* snap, u8 frame_index, vec2u16_t fb_size)
+	void ui_renderer_t::render(gfx_handle_t cmd, const vg_draw_snapshot_t* snap, u8 frame_index, vec2u16_t fb_size, const ui_world_render_data_t& world_data)
 	{
 		ZoneScoped;
 
 		if (snap == nullptr || snap->batch_count == 0)
 			return;
 
-		if (snap->vertex_count > _vtx_capacity / sizeof(vg_vertex_t) || snap->index_count > _idx_capacity / sizeof(vg_index_t) || snap->parameter_count > _parameter_capacity)
+		if (upload(*snap, frame_index, fb_size, world_data))
+			draw(cmd, snap->batches, snap->batch_count, frame_index, fb_size, world_data);
+	}
+
+	bool ui_renderer_t::upload(const vg_draw_snapshot_t& snap, u8 frame_index, vec2u16_t fb_size, const ui_world_render_data_t& world_data)
+	{
+		ZoneScoped;
+
+		if (snap.vertex_count > _vtx_capacity / sizeof(vg_vertex_t) || snap.index_count > _idx_capacity / sizeof(vg_index_t) || snap.parameter_count > _parameter_capacity)
 		{
 			SFG_ERR("UI snapshot exceeds upload capacity");
-			return;
+			return false;
 		}
 
-		gfx_backend&		backend	   = gfx_backend::get();
 		render_resources_t& resources  = render_resources_t::get();
 		const u8			frame_slot = frame_index % BACK_BUFFER_COUNT;
 		per_frame_data_t&	pfd		   = _pfd[frame_slot];
 		const mat4x4_t		projection = mat4x4_t::ortho(0.0f, static_cast<f32>(fb_size.x), 0.0f, static_cast<f32>(fb_size.y), 0.0f, 1.0f);
 
 		SFG_MEMCPY(pfd.mapped_projection, projection.m, sizeof(projection));
-		SFG_MEMCPY(pfd.mapped_vtx, snap->vertices, snap->vertex_count * sizeof(vg_vertex_t));
-		SFG_MEMCPY(pfd.mapped_idx, snap->indices, snap->index_count * sizeof(vg_index_t));
+		SFG_MEMCPY(pfd.mapped_vtx, snap.vertices, snap.vertex_count * sizeof(vg_vertex_t));
+		SFG_MEMCPY(pfd.mapped_idx, snap.indices, snap.index_count * sizeof(vg_index_t));
+
+		if (world_data.canvas_data_count != 0)
+		{
+			SFG_ASSERT(world_data.canvas_data_count <= _canvas_data_capacity);
+			SFG_MEMCPY(pfd.mapped_canvas_data, world_data.canvas_data, world_data.canvas_data_count * sizeof(ui_canvas_data_t));
+		}
 
 		const gpu_index_t atlas_index = resources.get_texture_gpu_index(resource_manager_t::get().get_glyph_atlas().get_texture(), 0);
 
-		for (u32 i = 0; i < snap->parameter_count; ++i)
+		for (u32 i = 0; i < snap.parameter_count; ++i)
 		{
-			const ui_draw_parameters_t& source = snap->parameters[i];
-			ui_draw_parameters_gpu_t	parameters{.clip = source.clip};
+			const ui_draw_parameters_t& source = snap.parameters[i];
+			ui_draw_parameters_gpu_t	parameters{.clip = source.clip, .canvas_index = source.canvas_index};
 
 			for (u32 j = 0; j < 4; ++j)
 			{
@@ -138,7 +171,7 @@ namespace sfg::ui
 				switch (ref.type)
 				{
 				case ui_resource_type_e::gpu_index:
-				case ui_resource_type_e::test:
+				case ui_resource_type_e::uint:
 					parameters.constants[j] = ref.gpu_indices[0];
 					break;
 				case ui_resource_type_e::gpu_index_fof:
@@ -166,8 +199,19 @@ namespace sfg::ui
 			SFG_MEMCPY(pfd.mapped_parameters + i * sizeof(parameters), &parameters, sizeof(parameters));
 		}
 
-		const gpu_index_t			   constants[] = {pfd.projection_index, pfd.parameter_index};
-		const command_bind_constants_t bind_constants{.data = constants, .offset = constant_rp0, .count = 2, .param_index = 0};
+		return true;
+	}
+
+	void ui_renderer_t::draw(gfx_handle_t cmd, const vg_draw_batch_t* batches, u32 batch_count, u8 frame_index, vec2u16_t fb_size, const ui_world_render_data_t& world_data)
+	{
+		ZoneScoped;
+
+		gfx_backend&			backend	  = gfx_backend::get();
+		render_resources_t&		resources = render_resources_t::get();
+		const per_frame_data_t& pfd		  = _pfd[frame_index % BACK_BUFFER_COUNT];
+
+		const gpu_index_t			   constants[] = {pfd.projection_index, pfd.parameter_index, pfd.canvas_data_index, world_data.view_index, world_data.entity_index};
+		const command_bind_constants_t bind_constants{.data = constants, .offset = constant_rp0, .count = 5, .param_index = 0};
 		backend.cmd_bind_constants(cmd, bind_constants);
 
 		const command_set_scissors_t scissors{.x = 0, .y = 0, .width = fb_size.x, .height = fb_size.y};
@@ -179,9 +223,9 @@ namespace sfg::ui
 		const command_bind_index_buffers_t indices{.buffer = pfd.index_buffer, .offset = 0, .index_size = sizeof(vg_index_t)};
 		backend.cmd_bind_index_buffers(cmd, indices);
 
-		for (u32 i = 0; i < snap->batch_count; ++i)
+		for (u32 i = 0; i < batch_count; ++i)
 		{
-			const vg_draw_batch_t&		  batch = snap->batches[i];
+			const vg_draw_batch_t&		  batch = batches[i];
 			const command_bind_pipeline_t pipeline{.pipeline = resources.get_shader_hw(batch.pipeline)};
 			backend.cmd_bind_pipeline(cmd, pipeline);
 

@@ -59,23 +59,19 @@ namespace sfg::ui
 			SFG_ASSERT(cfg.snapshot_index_max_bytes <= cfg.canvas.index_pool_budget_bytes);
 		}
 
-		_user_ui_scale			  = get_valid_scale(cfg.user_ui_scale);
-		_dpi_scale				  = get_valid_scale(cfg.dpi_scale);
-		_ui_scale				  = _dpi_scale * engine_runtime_t::get().get_project_settings().ui_scale * _user_ui_scale;
-		_pipeline_variant_flags	  = cfg.pipeline_variant_flags;
-		_render_snapshots_enabled = cfg.render_snapshots_enabled;
+		_apply_project_ui_scale = cfg.apply_project_ui_scale;
+		_user_ui_scale			= get_valid_scale(cfg.user_ui_scale);
+		_dpi_scale				= get_valid_scale(cfg.dpi_scale);
+		_ui_scale				= _dpi_scale * (_apply_project_ui_scale ? engine_runtime_t::get().get_project_settings().ui_scale : 1.0f) * _user_ui_scale;
+		_pipeline_variant_flags = cfg.pipeline_variant_flags;
 
 		_tree.init(cfg.max_widgets);
 		_paint.init(cfg.max_widgets);
 		_input.init(cfg.input, cfg.max_widgets);
 
-		vg_canvas_config_t canvas_config = cfg.canvas;
-
-		if (_render_snapshots_enabled)
-		{
-			canvas_config.vertex_pool_budget_bytes = math::min(canvas_config.vertex_pool_budget_bytes, static_cast<u64>(cfg.snapshot_vertex_max_bytes));
-			canvas_config.index_pool_budget_bytes  = math::min(canvas_config.index_pool_budget_bytes, static_cast<u64>(cfg.snapshot_index_max_bytes));
-		}
+		vg_canvas_config_t canvas_config	   = cfg.canvas;
+		canvas_config.vertex_pool_budget_bytes = math::min(canvas_config.vertex_pool_budget_bytes, static_cast<u64>(cfg.snapshot_vertex_max_bytes));
+		canvas_config.index_pool_budget_bytes  = math::min(canvas_config.index_pool_budget_bytes, static_cast<u64>(cfg.snapshot_index_max_bytes));
 
 		_canvas.init(canvas_config);
 		_text_pool.init(cfg.text_pool_budget_bytes);
@@ -88,18 +84,15 @@ namespace sfg::ui
 		_debug_hover_text.ptr = _text_pool.allocate(DEBUG_HOVER_TEXT_CAPACITY);
 		_debug_hover_text.len = 0;
 
-		if (_render_snapshots_enabled)
-		{
-			const u32 snap_vtx_cap = cfg.snapshot_vertex_max_bytes / static_cast<u32>(sizeof(vg_vertex_t));
-			const u32 snap_idx_cap = cfg.snapshot_index_max_bytes / static_cast<u32>(sizeof(vg_index_t));
+		const u32 snap_vtx_cap = cfg.snapshot_vertex_max_bytes / static_cast<u32>(sizeof(vg_vertex_t));
+		const u32 snap_idx_cap = cfg.snapshot_index_max_bytes / static_cast<u32>(sizeof(vg_index_t));
 
-			for (snapshot_slot_t& slot : _snapshot_slots)
-				allocate_snapshot_slot(slot, cfg.canvas.draw_capacity, snap_vtx_cap, snap_idx_cap);
+		for (snapshot_slot_t& slot : _snapshot_slots)
+			allocate_snapshot_slot(slot, cfg.canvas.draw_capacity, snap_vtx_cap, snap_idx_cap);
 
-			_producer_slot = 0;
-			_consumer_slot = 1;
-			_snapshot_mailbox.store(2, std::memory_order_relaxed);
-		}
+		_producer_slot = 0;
+		_consumer_slot = 1;
+		_snapshot_mailbox.store(2, std::memory_order_relaxed);
 	}
 
 	void ui_context::uninit()
@@ -122,9 +115,8 @@ namespace sfg::ui
 		_input.uninit();
 		_paint.uninit();
 		_tree.uninit();
-		_debug_font				  = NULL_RESOURCE_HANDLE;
-		_pipeline_variant_flags	  = 0;
-		_render_snapshots_enabled = true;
+		_debug_font				= NULL_RESOURCE_HANDLE;
+		_pipeline_variant_flags = 0;
 	}
 
 	void ui_context::allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_capacity, u32 vertex_capacity, u32 index_capacity)
@@ -152,7 +144,7 @@ namespace sfg::ui
 		ZoneScoped;
 
 		_dpi_scale = dpi_scale > 0.0f ? dpi_scale : 1.0f;
-		_ui_scale  = _dpi_scale * engine_runtime_t::get().get_project_settings().ui_scale * _user_ui_scale;
+		_ui_scale  = _dpi_scale * (_apply_project_ui_scale ? engine_runtime_t::get().get_project_settings().ui_scale : 1.0f) * _user_ui_scale;
 
 		_tree.set_topology_mutation_allowed(true);
 		_input.begin_frame(_tree, dt_seconds);
@@ -165,9 +157,7 @@ namespace sfg::ui
 		_tree.solve(screen_rect, _ui_scale);
 
 		run_post_layout_ticks(dt_seconds);
-
 		_input.finalize_frame(_tree);
-
 		_canvas.frame_begin(screen_rect);
 		_paint.paint_all(_tree, _input, _canvas, _ui_scale, _dpi_scale);
 
@@ -175,9 +165,7 @@ namespace sfg::ui
 			draw_debug_hovered_widget();
 
 		_canvas.frame_end();
-
 		_canvas.resolve(_pipeline_variant_flags);
-
 		_tree.set_topology_mutation_allowed(true);
 	}
 
@@ -488,7 +476,6 @@ namespace sfg::ui
 		ZoneScoped;
 
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
-		SFG_ASSERT(_render_snapshots_enabled);
 
 		snapshot_slot_t& slot = _snapshot_slots[_producer_slot];
 		slot.snapshot		  = _canvas.copy_frame(slot.batches, slot.vertices, slot.indices, slot.parameters);
@@ -500,7 +487,6 @@ namespace sfg::ui
 	vg_draw_snapshot_t ui_context::acquire_render_snapshot()
 	{
 		SFG_ASSERT(SFG_IS_RENDER_THREAD());
-		SFG_ASSERT(_render_snapshots_enabled);
 
 		u8 cur = _snapshot_mailbox.load(std::memory_order_acquire);
 
@@ -516,9 +502,9 @@ namespace sfg::ui
 		return _snapshot_slots[_consumer_slot].snapshot;
 	}
 
-	void ui_context::on_mouse_move(const vec2f_t& pos)
+	void ui_context::on_mouse_move(const vec2f_t& pos, bool hover_enabled)
 	{
-		_input.on_mouse_move(pos);
+		_input.on_mouse_move(pos, hover_enabled);
 	}
 
 	void ui_context::on_mouse_button(mouse_button_e btn, bool pressed)

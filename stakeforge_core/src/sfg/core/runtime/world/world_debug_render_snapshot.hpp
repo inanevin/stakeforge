@@ -32,24 +32,31 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	struct stock_world_renderer_debug_draw_texture_t
+	enum world_debug_texture_flags_e : u32
+	{
+		world_debug_texture_flag_none		   = 0,
+		world_debug_texture_flag_depth_tested  = 1 << 0,
+		world_debug_texture_flag_linear_sample = 1 << 1,
+	};
+
+	struct world_debug_texture_t
 	{
 		vec4f_t					 color		   = vec4f_t::zero;
 		vec3f_t					 position	   = vec3f_t::zero;
 		render_resource_handle_t texture	   = {};
 		vec2f_t					 size_px	   = vec2f_t::zero;
 		vec2f_t					 screen_offset = vec2f_t::zero;
-		u32						 flags		   = 0;
+		u32						 flags		   = world_debug_texture_flag_none;
 	};
 
-	struct stock_world_renderer_debug_draw_snapshot_t
+	struct world_debug_render_snapshot_t
 	{
-		vector_t<vertex_debug_line_t>						line_vertices;
-		vector_t<primitive_index>							line_indices;
-		vector_t<vertex_debug_triangle_t>					triangle_vertices;
-		vector_t<primitive_index>							triangle_indices;
-		vector_t<vertex_debug_text_t>						text_vertices;
-		vector_t<primitive_index>							text_indices;
-		vector_t<stock_world_renderer_debug_draw_texture_t> textures;
+		vector_t<vertex_debug_line_t>	  line_vertices;
+		vector_t<primitive_index>		  line_indices;
+		vector_t<vertex_debug_triangle_t> triangle_vertices;
+		vector_t<primitive_index>		  triangle_indices;
+		vector_t<vertex_debug_text_t>	  text_vertices;
+		vector_t<primitive_index>		  text_indices;
+		vector_t<world_debug_texture_t>	  textures;
 	};
 }

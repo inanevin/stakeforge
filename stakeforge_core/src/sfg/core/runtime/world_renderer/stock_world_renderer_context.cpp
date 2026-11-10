@@ -474,12 +474,14 @@ namespace sfg
 		_canvas_before_renderer->init({
 			.vertex_buffer_max_bytes = config.canvas_vertex_max_bytes,
 			.index_buffer_max_bytes	 = config.canvas_index_max_bytes,
+			.world_canvas_max		 = config.entity_max,
 		});
 
 		_canvas_after_renderer = new ui::ui_renderer_t{};
 		_canvas_after_renderer->init({
 			.vertex_buffer_max_bytes = config.canvas_vertex_max_bytes,
 			.index_buffer_max_bytes	 = config.canvas_index_max_bytes,
+			.world_canvas_max		 = config.entity_max,
 		});
 
 		create_texture(_config.size);

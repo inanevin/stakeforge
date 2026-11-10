@@ -24,7 +24,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/common/sfg_exports.hpp"
 
 #include "core/common/size_definitions.hpp"
-#include "core/data/unique.hpp"
+#include "world_canvas_types.hpp"
 #include "core/math/vec2f.hpp"
 #include "core/math/vec4f.hpp"
 #include "core/runtime/resources/resource_handle.hpp"
@@ -33,7 +33,9 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	class world_t;
-	struct stock_world_renderer_canvas_render_snapshot_t;
+	struct world_canvas_render_snapshot_t;
+	struct world_canvas_draw_snapshot_t;
+	struct component_system_canvas_t;
 
 	namespace ui
 	{
@@ -42,47 +44,11 @@ namespace sfg
 		struct vg_text_style_t;
 	}
 
-	using canvas_widget_handle_t = u32;
-#define NULL_CANVAS_WIDGET_HANDLE 0
-
-	enum class canvas_event_type_e : u8
-	{
-		press,
-		release,
-		click,
-		double_click,
-		hover_enter,
-		hover_exit,
-		hover_move,
-		drag_begin,
-		drag,
-		drag_end,
-		focus_gain,
-		focus_lose,
-		key,
-		wheel,
-	};
-
-	struct canvas_event_t
-	{
-		vec2f_t				   position	   = vec2f_t::zero;
-		vec2f_t				   delta	   = vec2f_t::zero;
-		canvas_widget_handle_t widget	   = NULL_CANVAS_WIDGET_HANDLE;
-		entity_id_t			   canvas	   = NULL_ENTITY_ID;
-		f32					   wheel_delta = 0.0f;
-		u16					   key		   = 0;
-		u16					   scan_code   = 0;
-		canvas_event_type_e	   type		   = canvas_event_type_e::click;
-		u8					   button	   = UINT8_MAX;
-		u8					   action	   = 0;
-		u8					   from_nav	   = 0;
-	};
-
 	class SFG_API world_canvas_controller_t final
 	{
 	public:
-		world_canvas_controller_t();
-		~world_canvas_controller_t();
+		world_canvas_controller_t()											   = default;
+		~world_canvas_controller_t()										   = default;
 		world_canvas_controller_t(const world_canvas_controller_t&)			   = delete;
 		world_canvas_controller_t& operator=(const world_canvas_controller_t&) = delete;
 
@@ -102,7 +68,7 @@ namespace sfg
 		// rendering
 		// -----------------------------------------------------------------------------
 
-		void write_render_snapshot(stock_world_renderer_canvas_render_snapshot_t& snapshot) const;
+		void write_render_snapshot(world_canvas_render_snapshot_t& snapshot) const;
 
 		// -----------------------------------------------------------------------------
 		// input
@@ -135,7 +101,17 @@ namespace sfg
 		bool set_image(entity_id_t canvas, canvas_widget_handle_t widget, resource_handle_t texture, const vec4f_t& tint);
 
 	private:
-		struct impl_t;
-		unique_t<impl_t> _impl;
+		void						  create_canvas(entity_id_t entity, const component_canvas_t& component);
+		void						  destroy_canvas(entity_id_t entity);
+		bool						  map_position(const component_system_canvas_t& runtime, const vec2f_t& position, vec2f_t& mapped, f32& distance) const;
+		component_system_canvas_t*	  route_pointer(const vec2f_t& position);
+		void						  append_runtime(const component_system_canvas_t& runtime, world_canvas_draw_snapshot_t& destination) const;
+		static bool					  is_config_equal(const component_canvas_t& config, const component_canvas_t& other);
+		static canvas_widget_handle_t make_handle(const component_system_canvas_t& runtime, u16 id);
+		static u16					  resolve_handle(const component_system_canvas_t& runtime, canvas_widget_handle_t handle);
+		static void					  invalidate_recursive(component_system_canvas_t& runtime, u16 id);
+
+		world_t* _world				= nullptr;
+		u16		 _widget_generation = 0;
 	};
 }

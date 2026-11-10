@@ -114,12 +114,12 @@ namespace sfg
 		}
 
 	private:
-		frame_vector_t<stock_world_renderer_queue_item_t> _visible_draws					   = {};
-		world_renderer_view_t							  _render_views[BACK_BUFFER_COUNT]	   = {};
-		stock_world_renderer_context_t					  _render_context					   = {};
-		stock_world_renderer_snapshot_t					  _snapshot_slots[SNAPSHOT_SLOT_COUNT] = {};
-		atomic_t<u8>									  _snapshot_mailbox					   = {};
-		u8												  _producer_slot					   = 0;
-		u8												  _consumer_slot					   = 0;
+		vector_t<stock_world_renderer_queue_item_t> _visible_draws						 = {};
+		world_renderer_view_t						_render_views[BACK_BUFFER_COUNT]	 = {};
+		stock_world_renderer_context_t				_render_context						 = {};
+		stock_world_renderer_snapshot_t				_snapshot_slots[SNAPSHOT_SLOT_COUNT] = {};
+		atomic_t<u8>								_snapshot_mailbox					 = {};
+		u8											_producer_slot						 = 0;
+		u8											_consumer_slot						 = 0;
 	};
 }

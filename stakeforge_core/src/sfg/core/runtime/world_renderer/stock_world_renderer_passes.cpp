@@ -935,6 +935,80 @@ namespace sfg
 		backend.close_command_buffer(cmd);
 	}
 
+	void stock_world_renderer_passes_t::render_canvas(gfx_handle_t cmd, const stock_world_renderer_context_t& ctx, const world_canvas_draw_snapshot_t& canvas, ui::ui_renderer_t& renderer, gfx_handle_t target, u8 frame_index)
+	{
+		const ui::vg_draw_snapshot_t draw_snapshot = canvas.get_snapshot();
+
+		if (draw_snapshot.batch_count == 0)
+			return;
+
+		gfx_backend&						 backend		  = gfx_backend::get();
+		const bool							 has_world_canvas = !canvas.canvas_data.empty();
+		const render_pass_color_attachment_t color_attachment{
+			.texture	= target,
+			.load_op	= load_op::load,
+			.store_op	= store_op::store,
+			.view_index = 1,
+		};
+
+		const ui::ui_world_render_data_t world_data{
+			.canvas_data	   = canvas.canvas_data.data(),
+			.canvas_data_count = static_cast<u32>(canvas.canvas_data.size()),
+			.view_index		   = ctx.get_view_render_pass_data_index(frame_index),
+			.entity_index	   = ctx.get_entity_buffer_index(frame_index),
+		};
+
+		if (!renderer.upload(draw_snapshot, frame_index, ctx.get_size(), world_data))
+			return;
+
+		if (has_world_canvas)
+		{
+			const barrier_t barrier{
+				.from_states = resource_state_depth_read | resource_state_non_ps_resource | resource_state_ps_resource, .to_states = resource_state_depth_write, .texture = ctx.get_depth_texture(frame_index), .flags = barrier_flags::baf_is_texture};
+			backend.cmd_barrier(cmd, {.barriers = &barrier, .barrier_count = 1});
+		}
+
+		u32 first_batch = 0;
+
+		while (first_batch < draw_snapshot.batch_count)
+		{
+			const bool is_3d	 = draw_snapshot.batches[first_batch].is_3d;
+			u32		   end_batch = first_batch + 1;
+
+			while (end_batch < draw_snapshot.batch_count && draw_snapshot.batches[end_batch].is_3d == is_3d)
+				++end_batch;
+
+			if (is_3d)
+			{
+				backend.cmd_begin_render_pass_depth(cmd,
+													{
+														.color_attachments = &color_attachment,
+														.depth_stencil_attachment =
+															{
+																.texture		= ctx.get_depth_texture(frame_index),
+																.depth_load_op	= load_op::load,
+																.depth_store_op = store_op::store,
+																.view_index		= 0,
+															},
+														.color_attachment_count = 1,
+													});
+			}
+			else
+				backend.cmd_begin_render_pass(cmd, {.color_attachments = &color_attachment, .color_attachment_count = 1});
+
+			renderer.draw(cmd, draw_snapshot.batches + first_batch, end_batch - first_batch, frame_index, ctx.get_size(), world_data);
+			backend.cmd_end_render_pass(cmd, {});
+			first_batch = end_batch;
+		}
+
+		if (has_world_canvas)
+		{
+			const barrier_t barrier{
+				.from_states = resource_state_depth_write, .to_states = resource_state_depth_read | resource_state_non_ps_resource | resource_state_ps_resource, .texture = ctx.get_depth_texture(frame_index), .flags = barrier_flags::baf_is_texture};
+			backend.cmd_barrier(cmd, {.barriers = &barrier, .barrier_count = 1});
+		}
+	}
+
 	void stock_world_renderer_passes_t::render_forward(
 		const stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, const stock_world_renderer_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)
 	{
@@ -1065,14 +1139,7 @@ namespace sfg
 			END_DEBUG_EVENT((&backend), cmd);
 		}
 
-		const ui::vg_draw_snapshot_t canvas_snapshot = snapshot.canvas.before_post_process.get_snapshot();
-
-		if (canvas_snapshot.batch_count != 0)
-		{
-			backend.cmd_begin_render_pass(cmd, {.color_attachments = &color_attachment, .color_attachment_count = 1});
-			ctx.get_canvas_before_renderer().render(cmd, &canvas_snapshot, frame_index, size);
-			backend.cmd_end_render_pass(cmd, {});
-		}
+		render_canvas(cmd, ctx, snapshot.canvas.before_post_process, ctx.get_canvas_before_renderer(), ctx.get_lighting_texture(frame_index), frame_index);
 
 		const barrier_t end_barriers[3] = {
 			{
@@ -1394,13 +1461,12 @@ namespace sfg
 
 		BEGIN_DEBUG_EVENT((&backend), cmd, "world_finalize");
 
-		const ui::vg_draw_snapshot_t					  canvas_snapshot  = snapshot.canvas.after_post_process.get_snapshot();
-		const stock_world_renderer_debug_draw_snapshot_t& debug_draw	   = snapshot.debug_draw;
-		const bool										  has_canvas_draws = canvas_snapshot.batch_count != 0;
-		const bool										  has_debug_draws  = !debug_draw.textures.empty() || !debug_draw.line_indices.empty() || !debug_draw.text_indices.empty() || !debug_draw.triangle_indices.empty();
-		const bool										  has_overlays	   = has_canvas_draws || has_debug_draws;
+		render_canvas(cmd, ctx, snapshot.canvas.after_post_process, ctx.get_canvas_after_renderer(), ctx.get_world_texture(frame_index), frame_index);
 
-		if (has_overlays)
+		const world_debug_render_snapshot_t& debug_draw		 = snapshot.debug_draw;
+		const bool							 has_debug_draws = !debug_draw.textures.empty() || !debug_draw.line_indices.empty() || !debug_draw.text_indices.empty() || !debug_draw.triangle_indices.empty();
+
+		if (has_debug_draws)
 		{
 			const render_pass_color_attachment_t overlay_attachment = {
 				.texture	= ctx.get_world_texture(frame_index),
@@ -1410,14 +1476,6 @@ namespace sfg
 			};
 
 			backend.cmd_begin_render_pass(cmd, {.color_attachments = &overlay_attachment, .color_attachment_count = 1});
-		}
-
-		if (has_canvas_draws)
-		{
-			ctx.get_canvas_after_renderer().render(cmd, &canvas_snapshot, frame_index, size);
-
-			backend.cmd_set_viewport(cmd, {.x = 0.0f, .y = 0.0f, .min_depth = 0.0f, .max_depth = 1.0f, .width = size.x, .height = size.y});
-			backend.cmd_set_scissors(cmd, {.x = 0, .y = 0, .width = size.x, .height = size.y});
 		}
 
 		if (!debug_draw.textures.empty())
@@ -1497,7 +1555,7 @@ namespace sfg
 											   });
 		}
 
-		if (has_overlays)
+		if (has_debug_draws)
 			backend.cmd_end_render_pass(cmd, {});
 
 		END_DEBUG_EVENT((&backend), cmd);

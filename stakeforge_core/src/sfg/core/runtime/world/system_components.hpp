@@ -33,6 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/memory/chunk_handle.hpp"
 #include "core/runtime/render/render_resource_handle.hpp"
 #include "core/runtime/world/ecs_defs.hpp"
+#include "world_canvas_types.hpp"
 #include "core/runtime/resources/common_resources.hpp"
 
 namespace JPH
@@ -44,6 +45,14 @@ namespace JPH
 
 namespace sfg
 {
+	namespace ui
+	{
+		class ui_context;
+	}
+
+	struct canvas_widget_state_t;
+	struct world_canvas_events_t;
+
 	enum class system_constraint_type_e : u8
 	{
 		fixed,
@@ -227,7 +236,11 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_system_canvas";
 
-		u32 runtime_index = UINT32_MAX;
+		ui::ui_context*		   context = nullptr;
+		canvas_widget_state_t* widgets = nullptr;
+		world_canvas_events_t* events  = nullptr;
+		component_canvas_t	   config  = {};
+		entity_id_t			   entity  = NULL_ENTITY_ID;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_system_canvas_t);

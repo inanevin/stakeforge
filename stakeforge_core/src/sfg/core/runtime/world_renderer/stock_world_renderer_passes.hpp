@@ -30,6 +30,11 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	namespace ui
+	{
+		class ui_renderer_t;
+	}
+	struct world_canvas_draw_snapshot_t;
 	class stock_world_renderer_context_t;
 	struct stock_world_renderer_prep_data_t;
 	struct world_renderer_view_t;
@@ -82,6 +87,7 @@ namespace sfg
 		static void render_prefilter_diffuse_sh(const stock_world_renderer_context_t& ctx, const stock_world_renderer_reflection_allocation_t& allocation, u8 frame_index, gpu_index_t global_cbv_index);
 		static void render_ssao(const stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, const stock_world_renderer_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index);
 		static void render_lighting(const stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, const stock_world_renderer_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
+		static void render_canvas(gfx_handle_t cmd, const stock_world_renderer_context_t& ctx, const world_canvas_draw_snapshot_t& canvas, ui::ui_renderer_t& renderer, gfx_handle_t target, u8 frame_index);
 		static void render_forward(const stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, const stock_world_renderer_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		static void render_bloom(const stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, const stock_world_renderer_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index);
 		static gfx_handle_t begin_post_process(stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);

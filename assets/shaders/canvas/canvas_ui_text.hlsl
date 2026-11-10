@@ -26,5 +26,5 @@ float4 PSMain(VSOutput IN) : SV_TARGET
 {
 	Texture2D atlas = sfg_get_texture_non_uniform<Texture2D>(IN.constants.x);
 	float3 coverage = ui_text_coverage(atlas, IN.uv);
-	return ui_text_color(coverage, IN.color);
+	return ui_output_color(ui_text_color(coverage, IN.color));
 }

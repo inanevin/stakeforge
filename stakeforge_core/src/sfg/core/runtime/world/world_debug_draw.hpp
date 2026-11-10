@@ -46,7 +46,7 @@ namespace sfg
 	class mat4x3_t;
 	class world_t;
 	struct aabb_t;
-	struct stock_world_renderer_debug_draw_snapshot_t;
+	struct world_debug_render_snapshot_t;
 
 	enum class debug_draw_depth_e : u8
 	{
@@ -117,7 +117,7 @@ namespace sfg
 		void draw_texture_3d(
 			const vec3f_t& position, resource_handle_t texture, const vec2f_t& size_px, const color_t& color, debug_draw_depth_e depth = debug_draw_depth_e::always_visible, const vec2f_t& screen_offset = vec2f_t::zero, bool is_linear_sample = true);
 		void debug_draw_missing_resources(const world_t& world);
-		void write_snapshot(stock_world_renderer_debug_draw_snapshot_t& snapshot);
+		void write_render_snapshot(world_debug_render_snapshot_t& snapshot);
 
 		// -----------------------------------------------------------------------------
 		// accessors

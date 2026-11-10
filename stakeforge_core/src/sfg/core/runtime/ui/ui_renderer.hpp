@@ -30,11 +30,22 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg::ui
 {
 	struct vg_draw_snapshot_t;
+	struct vg_draw_batch_t;
+	struct ui_canvas_data_t;
+
+	struct ui_world_render_data_t
+	{
+		const ui_canvas_data_t* canvas_data		  = nullptr;
+		u32						canvas_data_count = 0;
+		gpu_index_t				view_index		  = NULL_GPU_INDEX;
+		gpu_index_t				entity_index	  = NULL_GPU_INDEX;
+	};
 
 	struct ui_renderer_config_t
 	{
 		u32 vertex_buffer_max_bytes = 1u << 20;
 		u32 index_buffer_max_bytes	= 1u << 20;
+		u32 world_canvas_max		= 0;
 	};
 
 	class SFG_API ui_renderer_t final
@@ -51,25 +62,31 @@ namespace sfg::ui
 
 		void init(const ui_renderer_config_t& cfg = {});
 		void uninit();
-		void render(gfx_handle_t cmd, const vg_draw_snapshot_t* snap, u8 frame_index, vec2u16_t fb_size);
+		void render(gfx_handle_t cmd, const vg_draw_snapshot_t* snap, u8 frame_index, vec2u16_t fb_size, const ui_world_render_data_t& world_data = {});
+		bool upload(const vg_draw_snapshot_t& snap, u8 frame_index, vec2u16_t fb_size, const ui_world_render_data_t& world_data = {});
+		void draw(gfx_handle_t cmd, const vg_draw_batch_t* batches, u32 batch_count, u8 frame_index, vec2u16_t fb_size, const ui_world_render_data_t& world_data = {});
 
 	private:
 		struct per_frame_data_t
 		{
-			u8*			 mapped_vtx		   = nullptr;
-			u8*			 mapped_idx		   = nullptr;
-			u8*			 mapped_projection = nullptr;
-			u8*			 mapped_parameters = nullptr;
-			gfx_handle_t vertex_buffer	   = {};
-			gfx_handle_t index_buffer	   = {};
-			gfx_handle_t projection_buffer = {};
-			gfx_handle_t parameter_buffer  = {};
-			gpu_index_t	 projection_index  = NULL_GPU_INDEX;
-			gpu_index_t	 parameter_index   = NULL_GPU_INDEX;
+			u8*			 mapped_canvas_data = nullptr;
+			u8*			 mapped_vtx			= nullptr;
+			u8*			 mapped_idx			= nullptr;
+			u8*			 mapped_projection	= nullptr;
+			u8*			 mapped_parameters	= nullptr;
+			gfx_handle_t canvas_data_buffer = {};
+			gfx_handle_t vertex_buffer		= {};
+			gfx_handle_t index_buffer		= {};
+			gfx_handle_t projection_buffer	= {};
+			gfx_handle_t parameter_buffer	= {};
+			gpu_index_t	 canvas_data_index	= NULL_GPU_INDEX;
+			gpu_index_t	 projection_index	= NULL_GPU_INDEX;
+			gpu_index_t	 parameter_index	= NULL_GPU_INDEX;
 		};
 
 	private:
 		per_frame_data_t _pfd[BACK_BUFFER_COUNT] = {};
+		u32				 _canvas_data_capacity	 = 0;
 		u32				 _vtx_capacity			 = 0;
 		u32				 _idx_capacity			 = 0;
 		u32				 _parameter_capacity	 = 0;

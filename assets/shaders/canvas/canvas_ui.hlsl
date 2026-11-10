@@ -25,5 +25,5 @@
 
 float4 PSMain(VSOutput IN) : SV_TARGET
 {
-	return IN.color;
+	return ui_output_color(IN.color);
 }

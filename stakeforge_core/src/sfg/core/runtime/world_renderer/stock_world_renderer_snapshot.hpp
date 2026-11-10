@@ -23,8 +23,8 @@ in GAME-LINKING-EXCEPTION.md.
 #pragma once
 
 #include "stock_world_renderer_draw.hpp"
-#include "stock_world_renderer_debug_draw_snapshot.hpp"
-#include "stock_world_renderer_canvas_render_snapshot.hpp"
+#include "core/runtime/world/world_debug_render_snapshot.hpp"
+#include "core/runtime/world/world_canvas_render_snapshot.hpp"
 #include "stock_world_renderer_bone.hpp"
 #include "stock_world_renderer_entity.hpp"
 #include "stock_world_renderer_light.hpp"
@@ -283,8 +283,8 @@ namespace sfg
 		stock_world_renderer_environment_t				  environment		= {};
 		stock_world_renderer_fog_t						  fog				= {};
 		stock_world_renderer_post_process_t				  post_process		= {};
-		stock_world_renderer_debug_draw_snapshot_t		  debug_draw		= {};
-		stock_world_renderer_canvas_render_snapshot_t	  canvas			= {};
+		world_debug_render_snapshot_t					  debug_draw		= {};
+		world_canvas_render_snapshot_t					  canvas			= {};
 		vector_t<stock_world_renderer_material_t>		  materials			= {};
 		vector_t<stock_world_renderer_entity_t>			  entities			= {};
 		vector_t<stock_world_renderer_bone_t>			  bones				= {};

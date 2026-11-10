@@ -583,7 +583,7 @@ namespace sfg
 		ZoneScoped;
 
 		// debug copy
-		const stock_world_renderer_debug_draw_snapshot_t& debug_draw = snapshot.debug_draw;
+		const world_debug_render_snapshot_t& debug_draw = snapshot.debug_draw;
 
 		if (!debug_draw.textures.empty())
 		{
@@ -594,7 +594,7 @@ namespace sfg
 
 			for (size_t i = 0; i < debug_draw.textures.size(); ++i)
 			{
-				const stock_world_renderer_debug_draw_texture_t& texture = debug_draw.textures[i];
+				const world_debug_texture_t& texture = debug_draw.textures[i];
 
 				mapped_textures[i] = {
 					.color		   = texture.color,

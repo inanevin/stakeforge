@@ -215,7 +215,7 @@ namespace sfg
 		snapshot.fog		  = {};
 		snapshot.post_process = {};
 
-		world.get_debug_draw().write_snapshot(snapshot.debug_draw);
+		world.get_debug_draw().write_render_snapshot(snapshot.debug_draw);
 		world.get_canvas_controller().write_render_snapshot(snapshot.canvas);
 
 		const ecs_component_table_t& transform_table					= world.get_component_table(type_id_t<component_system_transform_t>::value);
@@ -242,6 +242,14 @@ namespace sfg
 
 		frame_hash_map_t<entity_id_t, u32>		 entity_to_render_id	= {};
 		frame_hash_map_t<resource_handle_t, u32> material_guid_to_index = {};
+
+		world_canvas_draw_snapshot_t* canvas_stages[] = {&snapshot.canvas.before_post_process, &snapshot.canvas.after_post_process};
+
+		for (world_canvas_draw_snapshot_t* stage : canvas_stages)
+		{
+			for (u32 i = 0; i < stage->canvas_data.size(); ++i)
+				stage->canvas_data[i].entity_index = push_render_object(entity_to_render_id, snapshot, stage->owners[i], transform_table);
+		}
 
 		// extract main camera
 		{

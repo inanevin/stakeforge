@@ -23,16 +23,20 @@ in GAME-LINKING-EXCEPTION.md.
 #pragma once
 
 #include "core/data/vector.hpp"
+#include "ecs_defs.hpp"
 #include "core/runtime/ui/vg/vg_canvas.hpp"
 
 namespace sfg
 {
-	struct stock_world_renderer_canvas_draw_snapshot_t
+	struct world_canvas_draw_snapshot_t
 	{
 		vector_t<ui::vg_draw_batch_t>	   batches	  = {};
 		vector_t<ui::ui_draw_parameters_t> parameters = {};
 		vector_t<ui::vg_vertex_t>		   vertices	  = {};
 		vector_t<ui::vg_index_t>		   indices	  = {};
+
+		vector_t<ui::ui_canvas_data_t> canvas_data = {};
+		vector_t<entity_id_t>		   owners	   = {};
 
 		inline void clear()
 		{
@@ -40,6 +44,8 @@ namespace sfg
 			parameters.resize(0);
 			vertices.resize(0);
 			indices.resize(0);
+			canvas_data.resize(0);
+			owners.resize(0);
 		}
 
 		inline ui::vg_draw_snapshot_t get_snapshot() const
@@ -57,10 +63,10 @@ namespace sfg
 		}
 	};
 
-	struct stock_world_renderer_canvas_render_snapshot_t
+	struct world_canvas_render_snapshot_t
 	{
-		stock_world_renderer_canvas_draw_snapshot_t before_post_process = {};
-		stock_world_renderer_canvas_draw_snapshot_t after_post_process	= {};
+		world_canvas_draw_snapshot_t before_post_process = {};
+		world_canvas_draw_snapshot_t after_post_process	 = {};
 
 		inline void clear()
 		{

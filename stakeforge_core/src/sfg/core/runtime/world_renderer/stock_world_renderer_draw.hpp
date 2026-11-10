@@ -108,13 +108,6 @@ namespace sfg
 	static_assert(sizeof(stock_world_renderer_renderable_t) == 64);
 	static_assert(sizeof(stock_world_renderer_draw_sprite_instance_gpu_t) == 40);
 
-	enum stock_world_renderer_debug_draw_texture_flags_e : u32
-	{
-		stock_world_renderer_debug_draw_texture_flag_none		   = 0,
-		stock_world_renderer_debug_draw_texture_flag_depth_tested  = 1 << 0,
-		stock_world_renderer_debug_draw_texture_flag_linear_sample = 1 << 1,
-	};
-
 	struct stock_world_renderer_debug_draw_texture_gpu_t
 	{
 		vec4f_t		color		  = vec4f_t::zero;
@@ -122,7 +115,7 @@ namespace sfg
 		gpu_index_t texture_index = NULL_GPU_INDEX;
 		vec2f_t		size_px		  = vec2f_t::zero;
 		vec2f_t		screen_offset = vec2f_t::zero;
-		u32			flags		  = stock_world_renderer_debug_draw_texture_flag_none;
+		u32			flags		  = 0;
 	};
 
 	static_assert(sizeof(stock_world_renderer_debug_draw_texture_gpu_t) == 52);

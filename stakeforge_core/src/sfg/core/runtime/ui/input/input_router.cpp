@@ -39,7 +39,8 @@ namespace sfg::ui
 
 	void input_router_t::init(const input_config_t& cfg, u32 max_widgets)
 	{
-		_config = cfg;
+		_config		   = cfg;
+		_hover_enabled = true;
 		_listeners.clear();
 		_focus_order.init(max_widgets);
 		_hit_order.init(max_widgets);
@@ -318,15 +319,19 @@ namespace sfg::ui
 		return false;
 	}
 
-	widget_id_t input_router_t::hit_test(const vec2f_t& pos) const
+	widget_id_t input_router_t::get_hit_widget(const vec2f_t& pos) const
 	{
 		const widget_id_t target = raw_hit_test(pos);
+
 		if (!_popup_scope.active)
 			return target;
+
 		if (is_in_popup_scope(target))
 			return target;
+
 		if (_popup_scope.hover_policy == popup_hover_policy_e::pass_outside)
 			return target;
+
 		return NULL_WIDGET;
 	}
 
@@ -413,22 +418,28 @@ namespace sfg::ui
 		_accum_time += dt_seconds;
 
 		refresh_state(tree);
-		const widget_id_t target = hit_test(_mouse);
+
+		const widget_id_t target = (_hover_enabled ? get_hit_widget(_mouse) : NULL_WIDGET);
+
 		if (target != _hovered)
 			fire_hover_change(target);
 
 		for (u32 i = 0; i < static_cast<u32>(mouse_button_e::count); ++i)
 		{
 			press_state_t& ps = _pressed_state[i];
+
 			if (_pressed[i] == NULL_WIDGET)
 				continue;
+
 			ps.held_seconds += dt_seconds;
 
 			const vec2f_t delta = _mouse - ps.press_pos;
+
 			if (!ps.dragging && (math::abs(delta.x) > _config.drag_threshold_pixels || math::abs(delta.y) > _config.drag_threshold_pixels))
 			{
 				ps.dragging = true;
 				auto it		= _listeners.find(_pressed[i]);
+
 				if (it != _listeners.end() && it->second.on_drag_begin)
 					it->second.on_drag_begin(*this, _pressed[i], _mouse, delta, it->second.user_data);
 			}
@@ -436,6 +447,7 @@ namespace sfg::ui
 			if (ps.dragging)
 			{
 				auto it = _listeners.find(_pressed[i]);
+
 				if (it != _listeners.end() && it->second.on_drag)
 					it->second.on_drag(*this, _pressed[i], _mouse, _mouse - _mouse_prev, it->second.user_data);
 			}
@@ -456,16 +468,17 @@ namespace sfg::ui
 		rebuild_hit_test(tree);
 	}
 
-	void input_router_t::on_mouse_move(const vec2f_t& pos)
+	void input_router_t::on_mouse_move(const vec2f_t& pos, bool hover_enabled)
 	{
-		_mouse = pos;
+		_mouse		   = pos;
+		_hover_enabled = hover_enabled;
 
 		if (_tree == nullptr)
 			return;
 
 		refresh_state(*_tree);
 
-		const widget_id_t target = hit_test(_mouse);
+		const widget_id_t target = (_hover_enabled ? get_hit_widget(_mouse) : NULL_WIDGET);
 
 		fire_hover_change(target);
 	}
@@ -496,14 +509,14 @@ namespace sfg::ui
 					{
 						_pressed[b]		  = NULL_WIDGET;
 						_pressed_state[b] = {};
-						fire_hover_change(hit_test(_mouse));
+						fire_hover_change((_hover_enabled ? get_hit_widget(_mouse) : NULL_WIDGET));
 						return;
 					}
 
 					if (_tree != nullptr)
 						rebuild_hit_test(*_tree);
 
-					target = hit_test(_mouse);
+					target = (_hover_enabled ? get_hit_widget(_mouse) : NULL_WIDGET);
 					fire_hover_change(target);
 				}
 			}
@@ -552,7 +565,7 @@ namespace sfg::ui
 			return;
 		}
 
-		const widget_id_t under = hit_test(_mouse);
+		const widget_id_t under = (_hover_enabled ? get_hit_widget(_mouse) : NULL_WIDGET);
 
 		if (under != target || ps.held_seconds > _config.click_max_seconds)
 			return;

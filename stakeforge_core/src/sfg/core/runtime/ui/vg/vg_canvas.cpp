@@ -483,7 +483,7 @@ namespace sfg::ui
 				ui_resolved_resource_ref_t& dst = db.parameters.constants[i];
 				dst.type						= ref.type;
 
-				if (ref.type == ui_resource_type_e::gpu_index || ref.type == ui_resource_type_e::test)
+				if (ref.type == ui_resource_type_e::gpu_index || ref.type == ui_resource_type_e::uint)
 				{
 					dst.gpu_indices[0] = ref.gpu_indices[0];
 				}

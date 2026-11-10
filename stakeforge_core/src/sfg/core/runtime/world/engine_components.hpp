@@ -34,6 +34,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/physics/physics_types.hpp"
 #include "core/runtime/resources/common_resources.hpp"
 #include "core/runtime/world/ecs_defs.hpp"
+#include "world_canvas_types.hpp"
 
 namespace sfg
 {
@@ -77,34 +78,6 @@ namespace sfg
 	};
 
 	SFG_DEFINE_TYPE_ID(component_name_t);
-
-	enum class canvas_render_stage_e : u8
-	{
-		before_post_process,
-		after_post_process,
-	};
-
-	SFG_DEFINE_TYPE_ID(canvas_render_stage_e);
-
-	struct component_canvas_t
-	{
-		static inline constexpr const char* DEBUG_NAME = "component_canvas";
-
-		resource_handle_t	  default_font			   = DEFAULT_FONT_ASSET_GUID;
-		resource_handle_t	  default_shader		   = DEFAULT_CANVAS_UI_SHADER_ASSET_GUID;
-		resource_handle_t	  text_shader			   = DEFAULT_CANVAS_UI_TEXT_SHADER_ASSET_GUID;
-		resource_handle_t	  texture_shader		   = DEFAULT_CANVAS_UI_TEXTURE_SHADER_ASSET_GUID;
-		u32					  text_pool_budget_bytes   = 16 * 1024;
-		u32					  vertex_pool_budget_bytes = 128 * 1024;
-		u32					  index_pool_budget_bytes  = 64 * 1024;
-		i32					  sort_order			   = 0;
-		f32					  ui_scale				   = 1.0f;
-		u16					  max_widgets			   = 256;
-		canvas_render_stage_e render_stage			   = canvas_render_stage_e::after_post_process;
-		bool				  input_enabled			   = true;
-	};
-
-	SFG_DEFINE_TYPE_ID(component_canvas_t);
 
 	struct component_mesh_renderer_t
 	{

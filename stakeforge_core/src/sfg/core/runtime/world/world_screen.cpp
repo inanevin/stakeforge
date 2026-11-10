@@ -34,8 +34,8 @@ namespace sfg
 	{
 		SFG_ASSERT(render_size.x > 0 && render_size.y > 0);
 
-		_render_size = render_size;
-		_input_rect	 = {0.0f, 0.0f, static_cast<f32>(render_size.x), static_cast<f32>(render_size.y)};
+		_render_size   = render_size;
+		_viewport_rect = {0.0f, 0.0f, static_cast<f32>(render_size.x), static_cast<f32>(render_size.y)};
 	}
 
 	void world_screen_t::uninit()
@@ -44,7 +44,7 @@ namespace sfg
 
 		_view_proj	   = mat4x4_t::identity;
 		_inv_view_proj = mat4x4_t::identity;
-		_input_rect	   = vec4f_t::zero;
+		_viewport_rect = vec4f_t::zero;
 		_render_size   = vec2u16_t::zero;
 		_dpi_scale	   = 1.0f;
 		_has_camera	   = false;
@@ -113,8 +113,8 @@ namespace sfg
 		SFG_ASSERT(render_size.x > 0 && render_size.y > 0);
 		SFG_ASSERT(dpi_scale > 0.0f);
 
-		_input_rect = input_rect;
-		_dpi_scale	= dpi_scale;
+		_viewport_rect = input_rect;
+		_dpi_scale	   = dpi_scale;
 
 		set_render_size(render_size);
 	}
@@ -154,8 +154,8 @@ namespace sfg
 			return false;
 
 		out_screen_position = {
-			_input_rect.x + relative_position.x * _input_rect.z,
-			_input_rect.y + relative_position.y * _input_rect.w,
+			_viewport_rect.x + relative_position.x * _viewport_rect.z,
+			_viewport_rect.y + relative_position.y * _viewport_rect.w,
 		};
 
 		return true;
@@ -167,8 +167,8 @@ namespace sfg
 			return false;
 
 		const vec2f_t relative_position = {
-			(screen_position.x - _input_rect.x) / _input_rect.z,
-			(screen_position.y - _input_rect.y) / _input_rect.w,
+			(screen_position.x - _viewport_rect.x) / _viewport_rect.z,
+			(screen_position.y - _viewport_rect.y) / _viewport_rect.w,
 		};
 
 		return relative_position_to_world_position(_inv_view_proj, relative_position, ndc_depth, out_world_position);
@@ -177,8 +177,8 @@ namespace sfg
 	vec2f_t world_screen_t::screen_to_render_position(const vec2f_t& screen_position) const
 	{
 		return {
-			(screen_position.x - _input_rect.x) * static_cast<f32>(_render_size.x) / _input_rect.z,
-			(screen_position.y - _input_rect.y) * static_cast<f32>(_render_size.y) / _input_rect.w,
+			(screen_position.x - _viewport_rect.x) * static_cast<f32>(_render_size.x) / _viewport_rect.z,
+			(screen_position.y - _viewport_rect.y) * static_cast<f32>(_render_size.y) / _viewport_rect.w,
 		};
 	}
 

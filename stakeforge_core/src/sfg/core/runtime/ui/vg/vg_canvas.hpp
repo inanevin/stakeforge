@@ -50,6 +50,7 @@ namespace sfg::ui
 		render_resource_handle_t pipeline	  = {};
 		u32						 index_offset = 0;
 		u32						 index_count  = 0;
+		bool					 is_3d		  = false;
 	};
 
 	struct vg_draw_snapshot_t

@@ -137,7 +137,7 @@ namespace sfg::ui
 		// events
 		// -----------------------------------------------------------------------------
 
-		void				  on_mouse_move(const vec2f_t& pos);
+		void				  on_mouse_move(const vec2f_t& pos, bool hover_enabled = true);
 		void				  on_mouse_button(mouse_button_e btn, bool pressed);
 		void				  on_wheel(f32 delta);
 		void				  on_key(const key_event_t& ev);
@@ -149,6 +149,8 @@ namespace sfg::ui
 		// -----------------------------------------------------------------------------
 		// accessors
 		// -----------------------------------------------------------------------------
+
+		widget_id_t get_hit_widget(const vec2f_t& pos) const;
 
 		bool is_widget_visible(const layout_tree_t& tree, widget_id_t id) const;
 
@@ -176,7 +178,6 @@ namespace sfg::ui
 	private:
 		void		rebuild_hit_test(const layout_tree_t& tree);
 		widget_id_t raw_hit_test(const vec2f_t& pos) const;
-		widget_id_t hit_test(const vec2f_t& pos) const;
 		widget_id_t find_focus_target(widget_id_t id) const;
 		bool		is_in_popup_scope(widget_id_t id) const;
 		bool		is_in_subtree(widget_id_t id, widget_id_t root) const;
@@ -232,5 +233,6 @@ namespace sfg::ui
 		popup_scope_t _popup_scope			= {};
 		widget_id_t	  _focus_scope			= NULL_WIDGET;
 		widget_id_t	  _previous_scope_focus = NULL_WIDGET;
+		bool		  _hover_enabled		= true;
 	};
 }

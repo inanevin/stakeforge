@@ -20,6 +20,18 @@ in GAME-LINKING-EXCEPTION.md.
 
 */
 #include "layout_defines.hlsl"
+#if defined(UI_WORLD_SPACE)
+#include "entity.hlsl"
+#include "render_pass_defines.hlsl"
+
+struct ui_canvas_data
+{
+    float2 origin;
+    float units_per_pixel;
+    uint entity_index;
+    uint first_parameter;
+};
+#endif
 
 struct projection_cb
 {
@@ -30,6 +42,7 @@ struct ui_draw_parameters
 {
     float4 clip_bounds;
     uint4 constants;
+    uint canvas_index;
 };
 
 struct VSInput
@@ -56,7 +69,17 @@ VSOutput VSMain(VSInput IN)
     StructuredBuffer<ui_draw_parameters> parameters = sfg_get_ssbo<ui_draw_parameters>(sfg_constant_rp1);
     ui_draw_parameters item = parameters[IN.parameter_index];
     VSOutput OUT = (VSOutput)0;
+#if defined(UI_WORLD_SPACE)
+    StructuredBuffer<ui_canvas_data> canvas_data = sfg_get_ssbo<ui_canvas_data>(sfg_constant_rp2);
+    ConstantBuffer<render_pass_data_view> view_data = sfg_get_cbv<render_pass_data_view>(sfg_constant_rp3);
+    StructuredBuffer<gpu_entity> entities = sfg_get_ssbo<gpu_entity>(sfg_constant_rp4);
+    ui_canvas_data canvas = canvas_data[item.canvas_index];
+    float2 local = (canvas.origin - IN.pos) * canvas.units_per_pixel;
+    OUT.pos = mul(view_data.view_proj, mul(entities[canvas.entity_index].model, float4(local, 0.0f, 1.0f)));
+    OUT.pos.z *= 1.0f + float(IN.parameter_index - canvas.first_parameter) * 0.000001f;
+#else
     OUT.pos = mul(projection.projection, float4(IN.pos, 0.0f, 1.0f));
+#endif
     OUT.uv = IN.uv;
     OUT.color = IN.color;
     OUT.pixel = IN.pos;
@@ -90,4 +113,12 @@ float4 ui_text_color(float3 coverage, float4 color)
 #else
 	return float4(color.rgb, color.a * coverage.r);
 #endif
+}
+
+float4 ui_output_color(float4 color)
+{
+#if defined(UI_WORLD_SPACE)
+    clip(color.a - 0.001f);
+#endif
+    return color;
 }

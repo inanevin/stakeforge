@@ -385,7 +385,7 @@ namespace sfg
 			state.pipeline					  = TEXTURE_VIEWER_TEXTURE_SHADER;
 			state.constants[0].handle		  = _texture_guid;
 			state.constants[0].type			  = _resource_type == editor_widget_texture_viewer_resource_e::sprite ? ui::ui_resource_type_e::sprite : ui::ui_resource_type_e::texture;
-			state.constants[1].type			  = ui::ui_resource_type_e::test;
+			state.constants[1].type			  = ui::ui_resource_type_e::uint;
 			state.constants[1].gpu_indices[0] = static_cast<gpu_index_t>(_selected_mip);
 		}
 

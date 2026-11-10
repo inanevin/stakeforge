@@ -393,8 +393,7 @@ namespace sfg
 			backend.queue_wait(queue_gfx, &bloom_semaphore, &bloom_ready, 1);
 		}
 
-		_visible_draws = std::move(prep_data.visible_queue);
-		_visible_draws.resize(prep_data.views[0].visible_range.count);
+		_visible_draws.assign(prep_data.visible_queue.begin(), prep_data.visible_queue.begin() + prep_data.views[0].visible_range.count);
 	}
 
 	void stock_world_renderer_t::render_post_process(u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout)

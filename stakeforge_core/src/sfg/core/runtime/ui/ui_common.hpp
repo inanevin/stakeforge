@@ -51,7 +51,7 @@ namespace sfg::ui
 		gpu_index,
 		gpu_index_fof,
 		texture,
-		test,
+		uint,
 		sprite,
 		evictable_texture,
 		glyph_atlas,
@@ -84,19 +84,31 @@ namespace sfg::ui
 		ui_resource_type_e		 type							= ui_resource_type_e::none;
 	};
 
+	struct ui_canvas_data_t
+	{
+		vec2f_t origin			= vec2f_t::zero;
+		f32		units_per_pixel = 1.0f;
+		u32		entity_index	= 0;
+		u32		first_parameter = 0;
+	};
+
+	static_assert(sizeof(ui_canvas_data_t) == 20);
+
 	struct ui_draw_parameters_t
 	{
 		vec4f_t					   clip			= vec4f_t::zero;
 		ui_resolved_resource_ref_t constants[4] = {};
+		u32						   canvas_index = 0;
 	};
 
 	struct ui_draw_parameters_gpu_t
 	{
 		vec4f_t		clip		 = vec4f_t::zero;
 		gpu_index_t constants[4] = {NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX, NULL_GPU_INDEX};
+		u32			canvas_index = 0;
 	};
 
-	static_assert(sizeof(ui_draw_parameters_gpu_t) == 32);
+	static_assert(sizeof(ui_draw_parameters_gpu_t) == 36);
 
 	struct vg_vertex_t
 	{

@@ -84,7 +84,7 @@ namespace sfg
 
 		inline const vec4f_t& get_input_rect() const
 		{
-			return _input_rect;
+			return _viewport_rect;
 		}
 
 		inline vec2u16_t get_render_size() const
@@ -120,7 +120,7 @@ namespace sfg
 	private:
 		mat4x4_t					_view_proj					 = mat4x4_t::identity;
 		mat4x4_t					_inv_view_proj				 = mat4x4_t::identity;
-		vec4f_t						_input_rect					 = vec4f_t::zero;
+		vec4f_t						_viewport_rect				 = vec4f_t::zero;
 		vec2i16_t					_cursor_confinement_position = vec2i16_t::zero;
 		vec2u16_t					_render_size				 = vec2u16_t::zero;
 		f32							_dpi_scale					 = 1.0f;

@@ -60,6 +60,7 @@ namespace sfg
 		shader_variant_flags_canvas_hdr					  = 1 << 11,
 		shader_variant_flags_canvas_ldr					  = 1 << 12,
 		shader_variant_flags_text_lcd					  = 1 << 13,
+		shader_variant_flags_canvas_3d					  = 1 << 15,
 		shader_variant_flags_text_sdf					  = 1 << 14,
 	};
 
