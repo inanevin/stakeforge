@@ -44,6 +44,7 @@ namespace sfg
 	struct aabb_t;
 	struct physics_raycast_t;
 	struct world_renderer_view_t;
+
 	struct SFG_EDITOR_API editor_world_init_config_t
 	{
 		world_render_context_config_t render_context = {};

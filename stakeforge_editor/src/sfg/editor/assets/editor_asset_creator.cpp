@@ -296,7 +296,17 @@ namespace sfg
 
 		bool create_world_asset(const editor_asset_create_desc_t& desc, const char* parent_path, editor_asset_t* out_asset, string_t* out_asset_path)
 		{
-			const editor_asset_write_none_desc_t write_desc{
+			const char*	   template_relative = "editor/templates/worlds/world.sfg_asset";
+			nlohmann::json embedded_source	 = {};
+
+			if (!editor_asset_writer_t::read_embedded_source(template_relative, embedded_source))
+			{
+				SFG_ERR("failed to read world asset template {0}", template_relative);
+				return false;
+			}
+
+			const editor_asset_write_embedded_desc_t write_desc{
+				.embedded_source = &embedded_source,
 				.parent_path	 = parent_path,
 				.name			 = desc.name,
 				.guid			 = desc.guid,
@@ -304,7 +314,8 @@ namespace sfg
 				.sub_type		 = desc.sub_type,
 				.allow_overwrite = desc.allow_overwrite,
 			};
-			return editor_asset_writer_t::write_none_source_asset(write_desc, out_asset, out_asset_path);
+
+			return editor_asset_writer_t::write_embedded_asset(write_desc, out_asset, out_asset_path);
 		}
 	}
 

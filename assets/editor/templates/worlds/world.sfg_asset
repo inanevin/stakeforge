@@ -1,0 +1,144 @@
+{
+    "asset_type": "world",
+    "cook_options": {},
+    "embedded_source": {
+        "editor_camera": {
+            "move_speed": 12.0,
+            "pitch_degrees": 0.0,
+            "position": {
+                "x": 0.0,
+                "y": 0.0,
+                "z": 2.5
+            },
+            "roll_degrees": 0.0,
+            "rotation": {
+                "w": 1.0,
+                "x": 0.0,
+                "y": 0.0,
+                "z": 0.0
+            },
+            "yaw_degrees": 0.0
+        },
+        "folders": [],
+        "root_entities": [
+            {
+                "components": [
+                    {
+                        "data": {
+                            "area_size": {
+                                "x": 1.0,
+                                "y": 1.0
+                            },
+                            "cast_shadows": true,
+                            "color": {
+                                "w": 1.0,
+                                "x": 1.0,
+                                "y": 1.0,
+                                "z": 1.0
+                            },
+                            "cookie_texture": 18446744073709551615,
+                            "inner_cone_degrees": 30.0,
+                            "intensity": 4.5,
+                            "outer_cone_degrees": 45.0,
+                            "range": 10.0,
+                            "shadow_bias": 0.0010000000474974513,
+                            "shadow_cascade_count": 4,
+                            "shadow_near_plane": 0.10000000149011612,
+                            "shadow_normal_bias": 0.009999999776482582,
+                            "shadow_resolution": 1024,
+                            "two_sided": false,
+                            "type": 0
+                        },
+                        "entity": 13568413682410309674,
+                        "type": 6144564901835356278
+                    },
+                    {
+                        "data": {
+                            "ambient_color": {
+                                "w": 1.0,
+                                "x": 1.0,
+                                "y": 1.0,
+                                "z": 1.0
+                            },
+                            "debug_cluster_heatmap": false,
+                            "intensity": 1.0,
+                            "skybox_material": 1028
+                        },
+                        "entity": 13568413682410309674,
+                        "type": 8724712900218136519
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 13568413682410309674,
+                        "local_pos": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "local_rot": [
+                            -0.2756374776363373,
+                            0.0,
+                            0.0,
+                            0.9612616896629333
+                        ],
+                        "local_scale": [
+                            1.0,
+                            1.0,
+                            1.0
+                        ],
+                        "name": "environment",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            },
+            {
+                "components": [
+                    {
+                        "data": {
+                            "materials": [
+                                1048
+                            ],
+                            "mesh": 1047
+                        },
+                        "entity": 17226686572103073856,
+                        "type": 146804687333956351
+                    }
+                ],
+                "local_entities": [
+                    {
+                        "guid": 17226686572103073856,
+                        "local_pos": [
+                            0.0,
+                            0.0,
+                            0.0
+                        ],
+                        "local_rot": [
+                            0.0,
+                            0.0,
+                            0.0,
+                            1.0
+                        ],
+                        "local_scale": [
+                            50.0,
+                            1.0,
+                            50.0
+                        ],
+                        "name": "ground",
+                        "parent_guid": 18446744073709551615,
+                        "prefab": 18446744073709551615,
+                        "prefab_entity_guids": []
+                    }
+                ]
+            }
+        ]
+    },
+    "guid": 18446744073709551615,
+    "source_relative": "",
+    "source_type": "embedded",
+    "sub_type": 0,
+    "thumbnail_guid": 18446744073709551615,
+    "version": 0
+}
