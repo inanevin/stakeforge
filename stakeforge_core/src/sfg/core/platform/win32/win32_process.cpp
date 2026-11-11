@@ -387,6 +387,7 @@ namespace
 	void apply_borderless_min_max_info(HWND hwnd, MINMAXINFO& min_max_info)
 	{
 		MONITORINFO monitor_info{};
+
 		if (!get_monitor_info(hwnd, monitor_info))
 			return;
 
@@ -397,7 +398,6 @@ namespace
 		min_max_info.ptMaxPosition.y = work_rect.top - monitor_rect.top;
 		min_max_info.ptMaxSize.x	 = work_rect.right - work_rect.left;
 		min_max_info.ptMaxSize.y	 = work_rect.bottom - work_rect.top;
-		min_max_info.ptMaxTrackSize	 = min_max_info.ptMaxSize;
 	}
 
 	void push_event(sfg::window_runtime_t& runtime, const sfg::window_event_t& ev)
