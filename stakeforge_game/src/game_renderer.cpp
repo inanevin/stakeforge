@@ -277,9 +277,7 @@ namespace sfg
 		backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
 		render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
 
-		render_resources.drain_requests();
-		render_resources.flush_texture_region_data_uploads(frame_index);
-		render_resources.flush_material_parameter_updates(frame_index);
+		render_resources.drain_requests(frame_index);
 
 		const gfx_handle_t queue_gfx	  = backend.get_queue_gfx();
 		const gfx_handle_t queue_transfer = backend.get_queue_transfer();

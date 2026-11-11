@@ -116,7 +116,7 @@ namespace sfg
 			return false;
 		}
 
-		render_resources_t::get().drain_requests();
+		render_resources_t::get().drain_requests(0x80);
 		resource_manager_t::get().flush();
 
 		if (!_renderer.init(config.renderer))
@@ -481,7 +481,9 @@ namespace sfg
 
 			editor_project_t& project = editor_project_t::get();
 
+			render_resources_t::get().recycle_handles();
 			frame_allocator_tls_t::reset();
+
 			const editor_app_mode_e pending_mode = _pending_mode.exchange(editor_app_mode_e::none, std::memory_order_acquire);
 
 			if (pending_mode != editor_app_mode_e::none)

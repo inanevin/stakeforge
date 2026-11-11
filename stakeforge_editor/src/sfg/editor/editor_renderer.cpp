@@ -279,13 +279,9 @@ namespace sfg
 		backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
 		render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
 
-		{
-			ZoneScopedN("render_resources_drain");
-			render_resources_t::get().drain_requests();
-		}
+		/* render res */
 
-		render_resources_t::get().flush_texture_region_data_uploads(_frame_index);
-		render_resources_t::get().flush_material_parameter_updates(_frame_index);
+		render_resources_t::get().drain_requests(_frame_index);
 
 		/* graphics & transfer */
 
@@ -317,7 +313,6 @@ namespace sfg
 
 			render_resources_t::get().drain_destroy_requests();
 			_frame_counter++;
-
 			perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, render_thread_wait_us);
 			return;
 		}
@@ -404,9 +399,7 @@ namespace sfg
 		backend.queue_signal(queue_gfx, &pfd.semaphore_frame.sem, &pfd.semaphore_frame.value, 1);
 
 		render_resources_t::get().drain_destroy_requests();
-
 		_frame_counter++;
-
 		perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, render_thread_wait_us);
 	}
 
@@ -431,8 +424,7 @@ namespace sfg
 		_world_controller = nullptr;
 
 		render_resources_t& render_resources = render_resources_t::get();
-		render_resources.drain_requests();
-		render_resources.flush_texture_region_data_uploads(_frame_index);
+		render_resources.drain_requests(_frame_index);
 
 		gfx_backend&	   backend	 = gfx_backend::get();
 		per_frame_data_t&  pfd		 = _pfd[_frame_index];

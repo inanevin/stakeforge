@@ -1733,6 +1733,21 @@ namespace sfg
 		return id;
 	}
 
+	u64 dx12_backend_t::get_completed_semaphore_value(gfx_handle_t id) const
+	{
+		const semaphore_t& sem		 = _semaphores.get(id);
+		const u64		   completed = sem.ptr->GetCompletedValue();
+
+		if (completed == UINT64_MAX)
+		{
+			SFG_ERR("failed to query GPU completion: device removed");
+			throw_if_failed(_device->GetDeviceRemovedReason());
+			throw_if_failed(DXGI_ERROR_DEVICE_REMOVED);
+		}
+
+		return completed;
+	}
+
 	void dx12_backend_t::wait_semaphore(gfx_handle_t id, u64 value) const
 	{
 		const semaphore_t& sem = _semaphores.get(id);

@@ -309,6 +309,7 @@ namespace sfg
 		void destroy_bind_layout(gfx_handle_t id);
 
 		void wait_semaphore(gfx_handle_t id, u64 value) const;
+		u64	 get_completed_semaphore_value(gfx_handle_t id) const;
 		void map_resource(gfx_handle_t id, u8*& ptr) const;
 		void unmap_resource(gfx_handle_t id) const;
 

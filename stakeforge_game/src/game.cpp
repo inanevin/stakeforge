@@ -173,7 +173,7 @@ namespace sfg
 		if (!load_package_resources())
 			return false;
 
-		render_resources_t::get().drain_requests();
+		render_resources_t::get().drain_requests(0x80);
 
 		vector_t<monitor_info_t> monitors = {};
 		process::get_all_monitors(monitors);
@@ -236,6 +236,7 @@ namespace sfg
 		{
 			const i64 main_thread_start_us = time_t::get_cpu_microseconds();
 
+			render_resources_t::get().recycle_handles();
 			frame_allocator_tls_t::reset();
 			process::pump_os_messages();
 
@@ -388,7 +389,7 @@ namespace sfg
 		const bool	loaded	  = _world_controller.load_world_by_name_hash(name_hash);
 
 		resource_manager_t::get().flush();
-		render_resources_t::get().drain_requests();
+		render_resources_t::get().drain_requests(0x80);
 		_renderer.start();
 
 		return loaded;

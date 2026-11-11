@@ -97,15 +97,15 @@ namespace sfg
 		u16						 data_size							  = 0;
 	};
 
-	class SFG_API render_resources_t
+	class SFG_API render_resources_t final
 	{
 	public:
-		static render_resources_t& get();
+		render_resources_t()										   = default;
+		~render_resources_t()										   = default;
+		render_resources_t(const render_resources_t& other)			   = delete;
+		render_resources_t& operator=(const render_resources_t& other) = delete;
 
-		render_resources_t()									 = default;
-		~render_resources_t()									 = default;
-		render_resources_t(const render_resources_t&)			 = delete;
-		render_resources_t& operator=(const render_resources_t&) = delete;
+		static render_resources_t& get();
 
 		void init(const render_resources_config_t& config = {});
 		void uninit();
@@ -143,14 +143,9 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void drain_requests();
-		void flush_texture_region_data_uploads(u8 frame_index);
-		void flush_material_parameter_updates(u8 frame_index);
+		void recycle_handles();
+		void drain_requests(u8 frame_index);
 		void drain_destroy_requests();
-		void release_retired_resources(bool force = false);
-		void release_retired_textures(bool force = false);
-		void release_retired_samplers(bool force = false);
-		void release_retired_shaders(bool force = false);
 
 		// -----------------------------------------------------------------------------
 		// accessors
@@ -256,32 +251,18 @@ namespace sfg
 			gpu_index_t				 gpu_index								= NULL_GPU_INDEX;
 		};
 
-		struct retired_texture_t
-		{
-			render_resource_handle_t render_handle = {};
-			gfx_handle_t			 texture	   = {};
-			u8						 frames		   = 0;
-		};
-
 		struct retired_resource_t
 		{
-			render_resource_handle_t render_handle = {};
-			gfx_handle_t			 resource	   = {};
-			u8						 frames		   = 0;
+			u64						 completion_value = 0;
+			render_resource_handle_t render_handle	  = {};
+			gfx_handle_t			 hw_handle		  = {};
+			request_kind_e			 kind			  = request_kind_e::destroy_resource;
 		};
 
-		struct retired_sampler_t
+		struct recycled_handle_t
 		{
-			render_resource_handle_t render_handle = {};
-			gfx_handle_t			 sampler	   = {};
-			u8						 frames		   = 0;
-		};
-
-		struct retired_shader_t
-		{
-			render_resource_handle_t render_handle = {};
-			gfx_handle_t			 shader		   = {};
-			u8						 frames		   = 0;
+			render_resource_handle_t handle = {};
+			request_kind_e			 kind	= request_kind_e::destroy_resource;
 		};
 
 		struct material_parameter_update_t
@@ -297,12 +278,15 @@ namespace sfg
 		static void							   set_render_thread_texture(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle, gfx_handle_t hw_handle, const texture_desc_t& desc);
 		static const render_thread_resource_t& get_render_thread_resource_entry(const vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle);
 		static gfx_handle_t					   remove_render_thread_resource(vector_t<render_thread_resource_t>& resources, render_resource_handle_t render_handle);
-		void								   drain_material_parameter_update_requests();
+
+		void release_retired_resources(bool force);
+
+		semaphore_data_t								 _retirement_semaphore = {};
+		moodycamel::ReaderWriterQueue<recycled_handle_t> _recycled_handles;
 
 		moodycamel::ReaderWriterQueue<request_t>				   _request_q;
 		moodycamel::ReaderWriterQueue<material_parameter_update_t> _material_parameter_update_q;
 		texture_queue_t											   _texture_upload_queue = {};
-		vector_t<request_t>										   _deferred_destroys;
 		vector_t<request_t>										   _pending_texture_region_data_uploads;
 		vector_t<material_parameter_update_t>					   _pending_material_parameter_updates;
 		gfx_handle_t											   _texture_region_upload_staging[BACK_BUFFER_COUNT] = {};
@@ -327,8 +311,5 @@ namespace sfg
 		vector_t<render_thread_resource_t> _rt_samplers;
 		vector_t<render_thread_resource_t> _rt_shaders;
 		vector_t<retired_resource_t>	   _retired_resources;
-		vector_t<retired_texture_t>		   _retired_textures;
-		vector_t<retired_sampler_t>		   _retired_samplers;
-		vector_t<retired_shader_t>		   _retired_shaders;
 	};
 }
