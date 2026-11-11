@@ -52,6 +52,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/resources/physics_collision_mesh_cook.hpp>
 #include <sfg/core/runtime/resources/prefab.hpp>
 #include <sfg/core/runtime/resources/shader_cook.hpp>
+#include <sfg/core/runtime/resources/shader.hpp>
 #include <sfg/core/runtime/resources/skeleton_cook.hpp>
 #include <sfg/core/runtime/resources/skeleton_def.hpp>
 #include <sfg/core/runtime/resources/sprite_cook.hpp>
@@ -215,6 +216,33 @@ namespace sfg
 		return true;
 	}
 
+	bool editor_asset_cooker_t::is_custom_shader_cook_pending(const editor_asset_t& asset)
+	{
+		SFG_ASSERT(asset.asset_type == editor_asset_type_e::shader);
+		SFG_ASSERT(asset.sub_type == static_cast<u8>(shader_type_e::custom_shader));
+
+		const string_t cache_path = editor_asset_path_t::get_cache_path_for_guid(asset.guid);
+
+		if (!file_system_t::exists(cache_path.c_str()))
+			return true;
+
+		istream_t stream = serializer_t::load_from_file_slice(cache_path.c_str(), 0, sizeof(resource_header_t) + sizeof(shader_cooked_header_t));
+
+		if (stream.get_size() < sizeof(resource_header_t) + sizeof(shader_cooked_header_t))
+			return true;
+
+		resource_header_t header = {};
+		header.deserialize(stream);
+
+		if (header.type != resource_type_e::shader || header.magic != shader_loader_t::WIRE_MAGIC || header.version != shader_loader_t::WIRE_VERSION)
+			return true;
+
+		shader_cooked_header_t shader_header = {};
+		stream >> shader_header.custom_fallback;
+
+		return shader_header.custom_fallback != 0;
+	}
+
 	bool editor_asset_cooker_t::cook_audio(const editor_asset_t& asset, const char* asset_name)
 	{
 		SFG_ASSERT(asset.asset_type == editor_asset_type_e::audio);
@@ -249,9 +277,24 @@ namespace sfg
 		shader_cook_config_t config		  = {};
 		nlohmann::json		 cook_options = {};
 
-		if (!editor_asset_io_t::parse_cook_options_json(asset, cook_options) || !reflection_registry_t::get().type_from_json(type_id_t<shader_cook_config_t>::value, &config, nullptr, cook_options))
+		const bool parsed = editor_asset_io_t::parse_cook_options_json(asset, cook_options);
+
+		if (!parsed)
+			return false;
+
+		try
 		{
-			SFG_ERR("failed to deserialize shader cook options for asset {0}", asset.guid);
+			const bool converted = reflection_registry_t::get().type_from_json(type_id_t<shader_cook_config_t>::value, &config, nullptr, cook_options);
+
+			if (!converted)
+			{
+				SFG_ERR("failed to deserialize shader cook options for asset {0}", asset.guid);
+				return false;
+			}
+		}
+		catch (const nlohmann::json::exception& exception)
+		{
+			SFG_ERR("invalid shader cook options for asset {0}: {1}", asset.guid, exception.what());
 			return false;
 		}
 
@@ -259,11 +302,14 @@ namespace sfg
 		ostream_t				 stream			  = {};
 		const string_t			 source_full_path = editor_asset_path_t::get_source_full_path(editor_project_t::get()._runtime.assets_path.c_str(), asset);
 		shader_data_definition_t definition		  = {};
-		if (!shader_cooker::cook_from_file(config, source_full_path.c_str(), header, stream, definition))
+		const bool				 cooked			  = shader_cooker::cook_from_file(config, source_full_path.c_str(), header, stream, definition);
+
+		if (!cooked)
 		{
 			SFG_ERR("failed to cook shader asset {0}", asset.guid);
 			return false;
 		}
+
 		if (out_definition != nullptr)
 			*out_definition = definition;
 

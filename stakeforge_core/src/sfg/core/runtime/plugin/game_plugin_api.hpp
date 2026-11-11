@@ -37,12 +37,15 @@ namespace sfg
 	struct canvas_event_t;
 	struct vec2u16_t;
 	struct world_config_t;
+	struct shader_custom_cook_request_t;
+	struct shader_custom_cook_result_t;
 	enum class world_config_type_e : u8;
 
-	inline constexpr u32 GAME_PLUGIN_API_VERSION = 21;
+	inline constexpr u32 GAME_PLUGIN_API_VERSION = 22;
 
 	struct game_plugin_callbacks_t
 	{
+		bool (*cook_custom_shader)(const shader_custom_cook_request_t& request, shader_custom_cook_result_t& result)	   = nullptr;
 		bool (*get_world_config)(world_config_type_e type, vec2u16_t render_resolution, world_config_t& config)			   = nullptr;
 		world_renderer_t* (*create_world_renderer)(world_t& world)														   = nullptr;
 		void (*destroy_world_renderer)(world_renderer_t* renderer)														   = nullptr;

@@ -2,6 +2,7 @@
 
 #include "core/runtime/resources/shader_cook_variants.hpp"
 #include "core/runtime/resources/shader_types.hpp"
+#include "core/runtime/resources/shader_limits.hpp"
 #include "core/gfx/backend/backend.hpp"
 #include "core/gfx/common/blend_attachments.hpp"
 #include "core/gfx/common/vertex_inputs.hpp"
@@ -682,6 +683,71 @@ namespace sfg
 		out_psos.push_back({.desc = id_desc, .variant_flags = shader_variant_flags_id_write, .compile_variant_index = 1});
 
 		return true;
+	}
+
+	bool shader_custom_cook_result_t::is_valid() const
+	{
+		if (compiles.empty() || compiles.size() > SFG_SHADER_MAX_COMPILE_VARIANTS)
+			return false;
+
+		if (psos.empty() || psos.size() > SFG_SHADER_MAX_PSO_VARIANTS)
+			return false;
+
+		for (const cook_compile_variant_t& variant : compiles)
+		{
+			if (variant.stages.empty() || variant.stages.size() > SFG_SHADER_MAX_STAGE_PER_VARIANT)
+				return false;
+
+			u8 stage_mask = 0;
+
+			for (const cook_stage_blob_t& stage : variant.stages)
+			{
+				if (stage.bytes.empty() || stage.stage > shader_stage_e::compute)
+					return false;
+
+				const u8 stage_bit = static_cast<u8>(1u << stage.stage);
+
+				if ((stage_mask & stage_bit) != 0)
+					return false;
+
+				stage_mask |= stage_bit;
+			}
+
+			if ((stage_mask & (1u << shader_stage_e::compute)) != 0)
+			{
+				if (variant.stages.size() != 1)
+					return false;
+			}
+			else if ((stage_mask & (1u << shader_stage_e::vertex)) == 0)
+				return false;
+		}
+
+		for (size_t i = 0; i < psos.size(); ++i)
+		{
+			const cook_pso_variant_t& pso = psos[i];
+
+			if (pso.compile_variant_index >= compiles.size())
+				return false;
+
+			if (pso.desc.attachment_count > shader_desc_t::MAX_ATTACHMENTS || pso.desc.input_count > shader_desc_t::MAX_VERTEX_INPUTS)
+				return false;
+
+			for (size_t j = 0; j < i; ++j)
+			{
+				if (psos[j].variant_flags == pso.variant_flags)
+					return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool shader_cook_variants_t::cook_custom_fallback(vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
+	{
+		const string_t source = "float4 VSMain(uint id : SV_VertexID) : SV_Position { return float4(0, 0, 0, 1); }\n"
+								"float4 PSMain() : SV_Target0 { return float4(1, 0, 1, 1); }\n";
+
+		return cook_shader_with_blend(source, {}, blend_attachments_t::get_none(), 0, false, out_compiles, out_psos);
 	}
 
 	bool shader_cook_variants_t::cook_compute_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)

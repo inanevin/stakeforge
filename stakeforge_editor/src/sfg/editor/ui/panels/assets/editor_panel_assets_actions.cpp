@@ -687,6 +687,9 @@ namespace sfg
 		case assets_action_menu_create_particle_shader:
 			text = "particle_shader";
 			break;
+		case assets_action_menu_create_custom_shader:
+			text = "custom_shader";
+			break;
 		case assets_action_menu_create_texture_sampler:
 			text = "texture_sampler";
 			break;
@@ -888,6 +891,10 @@ namespace sfg
 		case assets_action_menu_create_particle_shader:
 			out_desc.asset_type = editor_asset_type_e::shader;
 			out_desc.sub_type	= static_cast<u8>(shader_type_e::particle_shader);
+			return true;
+		case assets_action_menu_create_custom_shader:
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::custom_shader);
 			return true;
 		case assets_action_menu_create_texture_sampler:
 			out_desc.asset_type = editor_asset_type_e::texture_sampler;

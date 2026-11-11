@@ -41,6 +41,7 @@ namespace sfg
 
 	enum assets_action_menu_command_e : u16
 	{
+		assets_action_menu_create_custom_shader				 = 49,
 		assets_action_menu_create_animation_library			 = 47,
 		assets_action_menu_create_ui_texture_shader			 = 48,
 		assets_action_menu_create_folder					 = 1,

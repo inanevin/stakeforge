@@ -15,10 +15,15 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('S', 'H', 'D', 'R');
-		static constexpr u32 WIRE_VERSION = 13;
+		static constexpr u32 WIRE_VERSION = 14;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static void unload(resource_entry_t& entry, resource_context_t& ctx);
+	};
+
+	struct shader_cooked_header_t
+	{
+		u8 custom_fallback = 0;
 	};
 
 	struct shader_runtime_stage_entry_t

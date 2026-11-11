@@ -42,6 +42,7 @@ namespace sfg
 		static bool cook_asset(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool is_cookable(editor_asset_type_e asset_type);
 		static bool is_asset_cooked(const editor_asset_t& asset);
+		static bool is_custom_shader_cook_pending(const editor_asset_t& asset);
 
 		static bool cook_audio(const editor_asset_t& asset, const char* asset_name = nullptr);
 		static bool cook_shader(const editor_asset_t& asset, const char* asset_name = nullptr, shader_data_definition_t* out_definition = nullptr);

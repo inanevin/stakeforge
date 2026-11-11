@@ -57,6 +57,9 @@ namespace sfg
 			out["schema"]		= "sfg.schema.shader";
 			out["include_dirs"] = {"assets/shaders/"};
 			out["type"]			= static_cast<u8>(shader_type);
+
+			if (shader_type == shader_type_e::custom_shader)
+				out["custom_type_name"] = "";
 		}
 
 		const char* get_material_template_relative(editor_material_type_e material_type)
@@ -102,6 +105,8 @@ namespace sfg
 				return COMMON_SHADERS "sprite/sprite_unlit.hlsl";
 			case shader_type_e::particle_shader:
 				return COMMON_SHADERS "sprite/particle.hlsl";
+			case shader_type_e::custom_shader:
+				return COMMON_SHADERS "custom/custom.hlsl";
 			default:
 				return COMMON_SHADERS "object/object_lit.hlsl";
 			}

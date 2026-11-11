@@ -899,6 +899,28 @@ namespace sfg
 		_asset_cook_work_count++;
 	}
 
+	void editor_asset_manager_t::cook_pending_custom_shaders()
+	{
+		for (const auto& asset_pair : _database.get_assets())
+		{
+			const editor_asset_t& asset = asset_pair.second;
+
+			if (asset.asset_type != editor_asset_type_e::shader)
+				continue;
+
+			if (asset.sub_type != static_cast<u8>(shader_type_e::custom_shader))
+				continue;
+
+			if (!editor_asset_cooker_t::is_custom_shader_cook_pending(asset))
+				continue;
+
+			const bool scheduled = cook_asset_async(asset.guid);
+
+			if (!scheduled)
+				SFG_ERR("failed to schedule custom shader cook: {0}", asset.guid);
+		}
+	}
+
 	void editor_asset_manager_t::flush_asset_cook_jobs()
 	{
 		while (_asset_cook_work_count != 0)

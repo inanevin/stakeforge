@@ -196,6 +196,7 @@ namespace sfg
 		case assets_action_menu_create_sprite_lit_shader:
 		case assets_action_menu_create_sprite_unlit_shader:
 		case assets_action_menu_create_particle_shader:
+		case assets_action_menu_create_custom_shader:
 		case assets_action_menu_create_texture_sampler:
 		case assets_action_menu_create_curve:
 		case assets_action_menu_create_ragdoll:

@@ -12,6 +12,7 @@
 #include "core/io/file_system.hpp"
 #include "core/io/log.hpp"
 #include "core/reflection/reflection_container_ops.hpp"
+#include "core/runtime/plugin/game_plugin_runtime.hpp"
 #include "core/reflection/reflection_registry.hpp"
 #include "core/serialization/compression.hpp"
 
@@ -474,11 +475,52 @@ namespace sfg
 
 		const string_t compile_source = make_compile_source(source);
 
-		vector_t<cook_compile_variant_t> compiles = {};
-		vector_t<cook_pso_variant_t>	 psos	  = {};
+		vector_t<cook_compile_variant_t> compiles	   = {};
+		vector_t<cook_pso_variant_t>	 psos		   = {};
+		shader_cooked_header_t			 cooked_header = {};
 
 		switch (cfg.type)
 		{
+		case shader_type_e::custom_shader: {
+			const game_plugin_callbacks_t& callbacks = game_plugin_runtime_t::get().get_callbacks();
+			shader_custom_cook_result_t	   result	 = {};
+			bool						   cooked	 = false;
+
+			if (callbacks.cook_custom_shader != nullptr)
+			{
+				const shader_custom_cook_request_t request{
+					.type_name	   = cfg.custom_type_name,
+					.source		   = compile_source,
+					.include_paths = include_paths,
+					.source_path   = full_path,
+				};
+				cooked = callbacks.cook_custom_shader(request, result);
+
+				if (cooked)
+					cooked = result.is_valid();
+			}
+
+			if (cooked)
+			{
+				compiles = std::move(result.compiles);
+				psos	 = std::move(result.psos);
+			}
+			else
+			{
+				SFG_WARN("using custom shader fallback for {0} (type: {1})", full_path, cfg.custom_type_name);
+				cooked_header.custom_fallback = 1;
+
+				const bool fallback_cooked = shader_cook_variants_t::cook_custom_fallback(compiles, psos);
+
+				if (!fallback_cooked)
+				{
+					SFG_ERR("failed to cook custom shader fallback: {0}", full_path);
+					return false;
+				}
+			}
+
+			break;
+		}
 		case shader_type_e::object_shader:
 			if (!shader_cook_variants_t::cook_object_shader(compile_source, include_paths, compiles, psos))
 			{
@@ -664,13 +706,17 @@ namespace sfg
 			SFG_MEMCPY(payload.get_raw() + size, &total, sizeof(u32));
 		}
 
-		stream = compressor_t::compress(payload);
+		ostream_t compressed = compressor_t::compress(payload);
 
-		if (stream.get_size() == 0)
+		if (compressed.get_size() == 0)
 		{
 			SFG_ERR("failed to compress shader payload: {0}", full_path);
 			return false;
 		}
+
+		stream = {};
+		stream << cooked_header.custom_fallback;
+		stream.write_raw(compressed.get_raw(), compressed.get_size());
 
 		return true;
 	}
@@ -684,6 +730,9 @@ namespace sfg
 	u64 shader_cooker::collect_source_tick(const shader_cook_config_t& cfg, const char* full_path)
 	{
 		u64 source_tick = hashing_t::hash_u64_combine(file_system_t::get_last_modified_ticks(full_path), static_cast<u64>(cfg.type));
+
+		if (cfg.type == shader_type_e::custom_shader)
+			source_tick = hashing_t::hash_u64_combine(source_tick, hashing_t::hash_u64(cfg.custom_type_name.c_str()));
 
 		vector_t<string_t> include_paths = {};
 		build_include_paths(cfg, full_path, include_paths);
@@ -746,6 +795,13 @@ namespace sfg
 					 .size			= sizeof(vector_t<string_t>),
 					 .type			= reflected_value_type_e::container},
 					{.name = "type", .display_name = "Type", .sub_type_id = type_id_t<shader_type_e>::value, .offset = offsetof(shader_cook_config_t, type), .size = sizeof(shader_type_e), .type = reflected_value_type_e::u8},
+					{
+						.name		  = "custom_type_name",
+						.display_name = "Shader Type Name",
+						.offset		  = offsetof(shader_cook_config_t, custom_type_name),
+						.size		  = sizeof(string_t),
+						.type		  = reflected_value_type_e::string,
+					},
 				},
 			.type_id   = type_id_t<shader_cook_config_t>::value,
 			.size	   = sizeof(shader_cook_config_t),

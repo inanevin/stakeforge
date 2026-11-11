@@ -76,6 +76,7 @@ namespace sfg
 		void tick();
 		void clear();
 		void flush_asset_cook_jobs();
+		void cook_pending_custom_shaders();
 		void initialize_cooked_resource_tracking();
 		void initialize_source_file_tracking();
 

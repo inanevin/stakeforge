@@ -41,6 +41,7 @@ namespace sfg
 		editor_icon,
 		canvas_ui_texture,
 		editor_ui_texture,
+		custom_shader,
 		count,
 	};
 

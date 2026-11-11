@@ -29,9 +29,26 @@ namespace sfg
 		u8			  compile_variant_index = 0;
 	};
 
+	struct shader_custom_cook_request_t
+	{
+		const string_t&			  type_name;
+		const string_t&			  source;
+		const vector_t<string_t>& include_paths;
+		const char*				  source_path = nullptr;
+	};
+
+	struct SFG_API shader_custom_cook_result_t
+	{
+		vector_t<cook_compile_variant_t> compiles = {};
+		vector_t<cook_pso_variant_t>	 psos	  = {};
+
+		bool is_valid() const;
+	};
+
 	class SFG_API shader_cook_variants_t
 	{
 	public:
+		static bool cook_custom_fallback(vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos);
 		static bool cook_object_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos);
 		static bool cook_sprite_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos);
 		static bool cook_particle_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos);

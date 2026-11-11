@@ -60,6 +60,7 @@ namespace sfg
 		project_settings_edit,
 		material_edit,
 		shader_edit,
+		shader_options_edit,
 		texture_sampler_edit,
 		audio_edit,
 		curve_edit,

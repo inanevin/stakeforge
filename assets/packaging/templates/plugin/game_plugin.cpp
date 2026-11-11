@@ -27,9 +27,15 @@ in GAME-LINKING-EXCEPTION.md.
 #endif
 
 #include <sfg/core/runtime/plugin/game_plugin_api.hpp>
+#include <sfg/core/runtime/resources/shader_cook_variants.hpp>
 
 namespace game
 {
+	bool cook_custom_shader(const sfg::shader_custom_cook_request_t& request, sfg::shader_custom_cook_result_t& result)
+	{
+		return false;
+	}
+
 	void load()
 	{
 	}
@@ -52,6 +58,7 @@ SFG_GAME_PLUGIN_ENTRY bool sfg_get_game_plugin_callbacks(u32 api_version, sfg::g
 		return false;
 
 	callbacks = {
+		.cook_custom_shader = game::cook_custom_shader,
 		.get_world_config	= game::game_world_t::get_world_config,
 		.register_types		= game::game_plugin_type_registry_t::register_types,
 		.load				= game::load,

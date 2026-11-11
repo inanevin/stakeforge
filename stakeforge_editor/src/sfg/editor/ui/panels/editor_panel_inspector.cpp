@@ -84,6 +84,7 @@ namespace sfg
 							   });
 		_material_editor.init(ui, _content);
 		_texture_sampler_editor.init(ui, _content);
+		_shader_editor.init(ui, _content);
 		_curve_editor.init(ui, _content);
 		_physical_material_editor.init(ui, _content);
 		_audio_viewer.init(ui, _content);
@@ -112,6 +113,7 @@ namespace sfg
 		_audio_viewer.uninit();
 		_curve_editor.uninit();
 		_physical_material_editor.uninit();
+		_shader_editor.uninit();
 		_texture_sampler_editor.uninit();
 		_material_editor.uninit();
 		_entity_inspector.uninit();
@@ -122,6 +124,7 @@ namespace sfg
 		_display_entities.resize(0);
 		_material_ids.resize(0);
 		_texture_sampler_ids.resize(0);
+		_shader_ids.resize(0);
 		_curve_ids.resize(0);
 		_physical_material_ids.resize(0);
 
@@ -146,6 +149,7 @@ namespace sfg
 		_display_entities.resize(0);
 		_material_ids.resize(0);
 		_texture_sampler_ids.resize(0);
+		_shader_ids.resize(0);
 		_curve_ids.resize(0);
 		_physical_material_ids.resize(0);
 		_texture_id = 0;
@@ -155,6 +159,7 @@ namespace sfg
 		_entity_inspector.set_display_entity(span_t<const entity_id_t>{});
 		_material_editor.set_materials({});
 		_texture_sampler_editor.set_texture_samplers({});
+		_shader_editor.set_shaders({});
 		_curve_editor.set_curves({});
 		_physical_material_editor.set_physical_materials({});
 		_texture_viewer.clear_texture();
@@ -218,6 +223,8 @@ namespace sfg
 		}
 		else if (_display == editor_panel_inspector_display_e::material)
 			_material_editor.set_materials({.data = _material_ids.data(), .size = _material_ids.size()});
+		else if (_display == editor_panel_inspector_display_e::shader)
+			_shader_editor.set_shaders({.data = _shader_ids.data(), .size = _shader_ids.size()});
 		else if (_display == editor_panel_inspector_display_e::texture_sampler)
 			_texture_sampler_editor.set_texture_samplers({.data = _texture_sampler_ids.data(), .size = _texture_sampler_ids.size()});
 		else if (_display == editor_panel_inspector_display_e::curve)
@@ -296,6 +303,24 @@ namespace sfg
 		_texture_sampler_ids.assign(samplers.data, samplers.data + samplers.size);
 		_texture_sampler_editor.set_texture_samplers({.data = _texture_sampler_ids.data(), .size = _texture_sampler_ids.size()});
 		_display	 = editor_panel_inspector_display_e::texture_sampler;
+		_last_source = editor_panel_inspector_source_e::asset;
+
+		apply_display_visibility();
+		reset_scroll_state();
+	}
+
+	void editor_panel_inspector_t::set_display_shader(span_t<const sid_t> shaders)
+	{
+		save_entity_scroll_state();
+
+		_display_entities.resize(0);
+		_texture_viewer.clear_texture();
+		_sprite_viewer.clear_resource();
+		_audio_viewer.clear_audio();
+
+		_shader_ids.assign(shaders.data, shaders.data + shaders.size);
+		_shader_editor.set_shaders({.data = _shader_ids.data(), .size = _shader_ids.size()});
+		_display	 = editor_panel_inspector_display_e::shader;
 		_last_source = editor_panel_inspector_source_e::asset;
 
 		apply_display_visibility();
@@ -396,6 +421,9 @@ namespace sfg
 		const editor_panel_t*			   assets_panel		   = editor_surface_controller_t::get().find_panel(editor_panel_type_e::assets);
 		const bool						   has_asset_selection = assets_panel != nullptr && !static_cast<const editor_panel_assets_t*>(assets_panel)->is_asset_selection_empty();
 
+		frame_vector_t<sid_t> selected_shaders = {};
+		const bool			  has_shaders	   = collect_selected_shaders(selected_shaders);
+
 		frame_vector_t<sid_t> selected_materials		  = {};
 		frame_vector_t<sid_t> selected_samplers			  = {};
 		frame_vector_t<sid_t> selected_curves			  = {};
@@ -421,6 +449,8 @@ namespace sfg
 
 			if (has_materials)
 				set_display_material({.data = selected_materials.data(), .size = selected_materials.size()});
+			else if (has_shaders)
+				set_display_shader({.data = selected_shaders.data(), .size = selected_shaders.size()});
 			else if (has_samplers)
 				set_display_texture_sampler({.data = selected_samplers.data(), .size = selected_samplers.size()});
 			else if (has_curves)
@@ -454,6 +484,8 @@ namespace sfg
 		{
 			if (has_materials)
 				set_display_material({.data = selected_materials.data(), .size = selected_materials.size()});
+			else if (has_shaders)
+				set_display_shader({.data = selected_shaders.data(), .size = selected_shaders.size()});
 			else if (has_samplers)
 				set_display_texture_sampler({.data = selected_samplers.data(), .size = selected_samplers.size()});
 			else if (has_curves)
@@ -491,6 +523,12 @@ namespace sfg
 		if (has_materials)
 		{
 			set_display_material({.data = selected_materials.data(), .size = selected_materials.size()});
+			return;
+		}
+
+		if (has_shaders)
+		{
+			set_display_shader({.data = selected_shaders.data(), .size = selected_shaders.size()});
 			return;
 		}
 
@@ -539,6 +577,7 @@ namespace sfg
 
 		tree.set_visible(_entity_inspector.get_root(), _display == editor_panel_inspector_display_e::entity, false);
 		tree.set_visible(_material_editor.get_root(), _display == editor_panel_inspector_display_e::material, false);
+		tree.set_visible(_shader_editor.get_root(), _display == editor_panel_inspector_display_e::shader, false);
 		tree.set_visible(_texture_sampler_editor.get_root(), _display == editor_panel_inspector_display_e::texture_sampler, false);
 		tree.set_visible(_curve_editor.get_root(), _display == editor_panel_inspector_display_e::curve, false);
 		tree.set_visible(_physical_material_editor.get_root(), _display == editor_panel_inspector_display_e::physical_material, false);
@@ -631,6 +670,36 @@ namespace sfg
 			if (asset == nullptr || asset->asset_type != editor_asset_type_e::texture_sampler)
 			{
 				out_samplers.resize(0);
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool editor_panel_inspector_t::collect_selected_shaders(frame_vector_t<sid_t>& out_shaders) const
+	{
+		out_shaders.resize(0);
+
+		editor_panel_t* panel = editor_surface_controller_t::get().find_panel(editor_panel_type_e::assets);
+
+		if (panel == nullptr)
+			return false;
+
+		static_cast<editor_panel_assets_t*>(panel)->collect_selected_asset_guids(out_shaders);
+
+		if (out_shaders.empty())
+			return false;
+
+		const editor_asset_manager_t& assets = editor_asset_manager_t::get();
+
+		for (sid_t guid : out_shaders)
+		{
+			const editor_asset_t* asset = assets.find_asset(guid);
+
+			if (asset == nullptr || asset->asset_type != editor_asset_type_e::shader)
+			{
+				out_shaders.resize(0);
 				return false;
 			}
 		}
@@ -781,7 +850,7 @@ namespace sfg
 		static_cast<editor_panel_inspector_t*>(user_data)->refresh_from_available_selection(editor_panel_inspector_source_e::entity);
 	}
 
-	void editor_panel_inspector_t::on_asset_deletion(editor_asset_manager_t&, span_t<const sid_t> asset_ids, void* user_data)
+	void editor_panel_inspector_t::on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data)
 	{
 		editor_panel_inspector_t& panel				 = *static_cast<editor_panel_inspector_t*>(user_data);
 		bool					  asset_is_displayed = false;
@@ -794,6 +863,9 @@ namespace sfg
 			{
 			case editor_panel_inspector_display_e::material:
 				asset_is_displayed = std::find(panel._material_ids.begin(), panel._material_ids.end(), asset_id) != panel._material_ids.end();
+				break;
+			case editor_panel_inspector_display_e::shader:
+				asset_is_displayed = std::find(panel._shader_ids.begin(), panel._shader_ids.end(), asset_id) != panel._shader_ids.end();
 				break;
 			case editor_panel_inspector_display_e::texture_sampler:
 				asset_is_displayed = std::find(panel._texture_sampler_ids.begin(), panel._texture_sampler_ids.end(), asset_id) != panel._texture_sampler_ids.end();
@@ -825,14 +897,19 @@ namespace sfg
 			panel.set_display_none();
 	}
 
-	void editor_panel_inspector_t::on_command_system_event(editor_command_system_t&, const editor_command_t& command, void* user_data)
+	void editor_panel_inspector_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
 	{
 		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
+
 		switch (command.type)
 		{
 		case editor_command_type_e::material_edit:
 		case editor_command_type_e::shader_edit:
 			if (panel._display == editor_panel_inspector_display_e::material)
+				panel.refresh_display();
+			break;
+		case editor_command_type_e::shader_options_edit:
+			if (panel._display == editor_panel_inspector_display_e::shader)
 				panel.refresh_display();
 			break;
 		case editor_command_type_e::texture_sampler_edit:

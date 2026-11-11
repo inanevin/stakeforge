@@ -28,6 +28,8 @@ namespace sfg
 		istream_t stream = {};
 
 		stream.open(file_stream.get_raw(), file_stream.get_size());
+		stream.skip_by(sizeof(shader_cooked_header_t));
+
 		istream_t payload = compressor_t::decompress(stream);
 
 		if (payload.empty())

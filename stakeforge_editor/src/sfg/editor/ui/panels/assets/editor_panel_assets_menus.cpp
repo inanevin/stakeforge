@@ -50,6 +50,10 @@ namespace sfg
 			{.text = "Sprite Lit Shader", .command = assets_action_menu_create_sprite_lit_shader},
 			{.text = "Sprite Unlit Shader", .command = assets_action_menu_create_sprite_unlit_shader},
 			{.text = "Particle Shader", .command = assets_action_menu_create_particle_shader},
+			{
+				.text	 = "Custom Shader",
+				.command = assets_action_menu_create_custom_shader,
+			},
 		};
 
 		editor_action_menu_row_desc_t ASSETS_ACTION_MENU_MATERIAL_ROWS[] = {

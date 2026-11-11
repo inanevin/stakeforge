@@ -30,6 +30,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/ui/widgets/editor_widget_curve_editor.hpp"
 #include "editor/ui/widgets/editor_widget_physical_material_editor.hpp"
 #include "editor/ui/widgets/editor_widget_texture_sampler_editor.hpp"
+#include "editor/ui/widgets/editor_widget_shader_editor.hpp"
 #include "editor/ui/widgets/editor_widget_texture_viewer.hpp"
 #include "editor/ui/widgets/editor_widgets_scrollbar.hpp"
 #include "editor/ui/widgets/inspector/editor_widget_inspector.hpp"
@@ -47,6 +48,7 @@ namespace sfg
 		entity,
 		material,
 		texture_sampler,
+		shader,
 		curve,
 		physical_material,
 		audio,
@@ -98,6 +100,7 @@ namespace sfg
 			f32			scroll_y = 0.0f;
 		};
 
+		void				   set_display_shader(span_t<const sid_t> shaders);
 		void				   set_display_material(span_t<const sid_t> materials);
 		void				   set_display_texture_sampler(span_t<const sid_t> samplers);
 		void				   set_display_curve(span_t<const sid_t> curves);
@@ -110,6 +113,7 @@ namespace sfg
 		void				   save_entity_scroll_state();
 		void				   restore_entity_scroll_state();
 		void				   reset_scroll_state();
+		bool				   collect_selected_shaders(frame_vector_t<sid_t>& out_shaders) const;
 		bool				   collect_selected_materials(frame_vector_t<sid_t>& out_materials) const;
 		bool				   collect_selected_texture_samplers(frame_vector_t<sid_t>& out_samplers) const;
 		bool				   collect_selected_curves(frame_vector_t<sid_t>& out_curves) const;
@@ -125,6 +129,7 @@ namespace sfg
 
 	private:
 		editor_widget_inspector_t								 _entity_inspector		   = {};
+		editor_widget_shader_editor_t							 _shader_editor			   = {};
 		editor_widget_material_editor_t							 _material_editor		   = {};
 		editor_widget_texture_sampler_editor_t					 _texture_sampler_editor   = {};
 		editor_widget_curve_editor_t							 _curve_editor			   = {};
@@ -135,6 +140,7 @@ namespace sfg
 		editor_scrollbar_t										 _scrollbar				   = {};
 		vector_t<entity_scroll_state_t>							 _entity_scroll_states	   = {};
 		vector_t<entity_id_t>									 _display_entities		   = {};
+		vector_t<sid_t>											 _shader_ids			   = {};
 		vector_t<sid_t>											 _material_ids			   = {};
 		vector_t<sid_t>											 _texture_sampler_ids	   = {};
 		vector_t<sid_t>											 _curve_ids				   = {};

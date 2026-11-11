@@ -21,6 +21,7 @@ in GAME-LINKING-EXCEPTION.md.
 */
 #include "editor/plugin/editor_plugin_manager.hpp"
 #include "editor/assets/editor_asset_path.hpp"
+#include "editor/assets/editor_asset_manager.hpp"
 #include "editor/editor_app.hpp"
 #include "editor/editor_file_watch_controller.hpp"
 #include "editor/editor_project.hpp"
@@ -118,6 +119,8 @@ namespace sfg
 	void editor_plugin_manager_t::uninit()
 	{
 		SFG_ASSERT(_work.is_null());
+
+		editor_asset_manager_t::get().flush_asset_cook_jobs();
 
 		game_plugin_runtime_t& plugin = game_plugin_runtime_t::get();
 
@@ -391,6 +394,7 @@ namespace sfg
 	{
 		game_plugin_runtime_t& plugin = game_plugin_runtime_t::get();
 
+		editor_asset_manager_t::get().flush_asset_cook_jobs();
 		editor_app_t::get().stop_render();
 
 		vector_t<editor_panel_inspector_t*> inspectors = {};
@@ -428,7 +432,10 @@ namespace sfg
 		}
 
 		if (ready)
+		{
 			_observed_stamp = _stage_result.stamp;
+			editor_asset_manager_t::get().cook_pending_custom_shaders();
+		}
 		else
 		{
 			_error_pending = true;

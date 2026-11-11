@@ -54,6 +54,10 @@ namespace sfg
 					},
 					{.name = "canvas_ui_texture", .display_name = "UI Texture Shader"},
 					{.name = "editor_ui_texture", .display_name = "Editor UI Texture"},
+					{
+						.name		  = "custom_shader",
+						.display_name = "Custom Shader",
+					},
 				},
 			.type_id   = type_id_t<shader_type_e>::value,
 			.size	   = sizeof(shader_type_e),

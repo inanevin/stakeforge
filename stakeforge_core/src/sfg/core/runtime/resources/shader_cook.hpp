@@ -17,8 +17,9 @@ namespace sfg
 
 	struct shader_cook_config_t
 	{
-		vector_t<string_t> include_dirs = {};
-		shader_type_e	   type			= shader_type_e::invalid;
+		vector_t<string_t> include_dirs		= {};
+		string_t		   custom_type_name = {};
+		shader_type_e	   type				= shader_type_e::invalid;
 	};
 
 	class SFG_API shader_cooker
