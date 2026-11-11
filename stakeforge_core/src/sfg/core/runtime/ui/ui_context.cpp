@@ -478,7 +478,7 @@ namespace sfg::ui
 		snapshot_slot_t& slot = _snapshot_slots[_producer_slot];
 		slot.snapshot		  = _canvas.copy_frame(slot.batches, slot.vertices, slot.indices, slot.parameters);
 
-		const u8 prev  = _snapshot_mailbox.exchange(_producer_slot | SNAPSHOT_FRESH_FLAG, std::memory_order_release);
+		const u8 prev  = _snapshot_mailbox.exchange(_producer_slot | SNAPSHOT_FRESH_FLAG, std::memory_order_acq_rel);
 		_producer_slot = static_cast<u8>((prev & SNAPSHOT_SLOT_MASK) % SNAPSHOT_SLOT_COUNT);
 	}
 
@@ -490,7 +490,7 @@ namespace sfg::ui
 
 		while (cur & SNAPSHOT_FRESH_FLAG)
 		{
-			if (_snapshot_mailbox.compare_exchange_weak(cur, _consumer_slot, std::memory_order_acquire, std::memory_order_acquire))
+			if (_snapshot_mailbox.compare_exchange_weak(cur, _consumer_slot, std::memory_order_acq_rel, std::memory_order_acquire))
 			{
 				_consumer_slot = static_cast<u8>((cur & SNAPSHOT_SLOT_MASK) % SNAPSHOT_SLOT_COUNT);
 				break;

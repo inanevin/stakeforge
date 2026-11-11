@@ -268,29 +268,9 @@ namespace sfg
 
 		world_controller.acquire_render_worlds();
 
-		{
-			ZoneScopedN("render_resources_drain");
-			render_resources_t::get().drain_requests();
-		}
-
-		if (render_targets.empty())
-		{
-			render_resources_t::get().drain_destroy_requests();
-			perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, render_thread_wait_us);
-			return;
-		}
-
 		texture_queue_t& texture_queue = render_resources_t::get().get_texture_upload_queue();
 
 		/* time calc, globals, frame index */
-
-		const i64  now			= time_t::get_cpu_microseconds();
-		static i64 prev_time	= now;
-		const i64  delta		= now - prev_time;
-		prev_time				= now;
-		static f32 elapsed_time = 0.0f;
-		elapsed_time += time_t::micro_to_s(delta);
-		const f32 delta_time = time_t::micro_to_s(delta);
 
 		_frame_index		  = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
 		per_frame_data_t& pfd = _pfd[_frame_index];
@@ -299,11 +279,13 @@ namespace sfg
 		backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
 		render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
 
+		{
+			ZoneScopedN("render_resources_drain");
+			render_resources_t::get().drain_requests();
+		}
+
 		render_resources_t::get().flush_texture_region_data_uploads(_frame_index);
 		render_resources_t::get().flush_material_parameter_updates(_frame_index);
-
-		const global_buffer_data_t global_data = {.delta_time = delta_time, .elapsed_time = elapsed_time};
-		SFG_MEMCPY(pfd.mapped_global, &global_data, sizeof(global_buffer_data_t));
 
 		/* graphics & transfer */
 
@@ -316,7 +298,7 @@ namespace sfg
 
 		/* flush uploads, begin graphics & transits */
 
-		texture_queue.submit({
+		const bool uploads_submitted = texture_queue.submit({
 			.queue_gfx		= queue_gfx,
 			.queue_transfer = queue_transfer,
 			.cmd_prepare	= cmd_prepare,
@@ -324,6 +306,33 @@ namespace sfg
 			.cmd_transit	= cmd_transit,
 			.semaphore		= &pfd.semaphore_transfer,
 		});
+
+		if (render_targets.empty())
+		{
+			if (uploads_submitted)
+			{
+				pfd.semaphore_frame.value++;
+				backend.queue_signal(queue_gfx, &pfd.semaphore_frame.sem, &pfd.semaphore_frame.value, 1);
+			}
+
+			render_resources_t::get().drain_destroy_requests();
+			_frame_counter++;
+
+			perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, render_thread_wait_us);
+			return;
+		}
+
+		const i64  now		 = time_t::get_cpu_microseconds();
+		static i64 prev_time = now;
+		const i64  delta	 = now - prev_time;
+		prev_time			 = now;
+
+		static f32 elapsed_time = 0.0f;
+		elapsed_time += time_t::micro_to_s(delta);
+
+		const f32				   delta_time  = time_t::micro_to_s(delta);
+		const global_buffer_data_t global_data = {.delta_time = delta_time, .elapsed_time = elapsed_time};
+		SFG_MEMCPY(pfd.mapped_global, &global_data, sizeof(global_buffer_data_t));
 
 		pfd.semaphore_world.value++;
 

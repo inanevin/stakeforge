@@ -260,26 +260,20 @@ namespace sfg
 		gfx_backend&		backend			 = gfx_backend::get();
 		render_resources_t& render_resources = render_resources_t::get();
 
-		if (_minimized)
+		if (!_minimized)
 		{
-			render_resources.drain_requests();
-			render_resources.drain_destroy_requests();
+			const i64 wait_start_us = time_t::get_cpu_microseconds();
+			backend.wait_for_swapchain_latency(_swapchain);
+			render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
 
-			perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, render_thread_wait_us);
-			return;
+			backend.get_back_buffer_index(_swapchain);
+			_world_controller->acquire_render_world();
 		}
-
-		i64 wait_start_us = time_t::get_cpu_microseconds();
-		backend.wait_for_swapchain_latency(_swapchain);
-		render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
-
-		backend.get_back_buffer_index(_swapchain);
-		_world_controller->acquire_render_world();
 
 		const u8		  frame_index = static_cast<u8>(_frame_counter % BACK_BUFFER_COUNT);
 		per_frame_data_t& pfd		  = _pfd[frame_index];
 
-		wait_start_us = time_t::get_cpu_microseconds();
+		const i64 wait_start_us = time_t::get_cpu_microseconds();
 		backend.wait_semaphore(pfd.semaphore_frame.sem, pfd.semaphore_frame.value);
 		render_thread_wait_us += time_t::get_cpu_microseconds() - wait_start_us;
 
@@ -287,9 +281,37 @@ namespace sfg
 		render_resources.flush_texture_region_data_uploads(frame_index);
 		render_resources.flush_material_parameter_updates(frame_index);
 
-		const i64 now		 = time_t::get_cpu_microseconds();
-		const i64 delta_us	 = _previous_time_us == 0 ? 0 : now - _previous_time_us;
-		_previous_time_us	 = now;
+		const gfx_handle_t queue_gfx	  = backend.get_queue_gfx();
+		const gfx_handle_t queue_transfer = backend.get_queue_transfer();
+
+		const bool uploads_submitted = render_resources.get_texture_upload_queue().submit({
+			.queue_gfx		= queue_gfx,
+			.queue_transfer = queue_transfer,
+			.cmd_prepare	= pfd.cmd_gfx_prepare,
+			.cmd_transfer	= pfd.cmd_transfer,
+			.cmd_transit	= pfd.cmd_gfx_transit,
+			.semaphore		= &pfd.semaphore_transfer,
+		});
+
+		if (_minimized)
+		{
+			if (uploads_submitted)
+			{
+				pfd.semaphore_frame.value++;
+				backend.queue_signal(queue_gfx, &pfd.semaphore_frame.sem, &pfd.semaphore_frame.value, 1);
+			}
+
+			render_resources.drain_destroy_requests();
+			_frame_counter++;
+
+			perf_metrics_t::update_render_thread(time_t::get_cpu_microseconds() - render_thread_start_us, render_thread_wait_us);
+			return;
+		}
+
+		const i64 now	   = time_t::get_cpu_microseconds();
+		const i64 delta_us = _previous_time_us == 0 ? 0 : now - _previous_time_us;
+		_previous_time_us  = now;
+
 		const f32 delta_time = time_t::micro_to_s(delta_us);
 		_elapsed_time += delta_time;
 
@@ -298,18 +320,6 @@ namespace sfg
 			.elapsed_time = _elapsed_time,
 		};
 		SFG_MEMCPY(pfd.mapped_global, &global_data, sizeof(game_global_buffer_data_t));
-
-		const gfx_handle_t queue_gfx	  = backend.get_queue_gfx();
-		const gfx_handle_t queue_transfer = backend.get_queue_transfer();
-
-		render_resources.get_texture_upload_queue().submit({
-			.queue_gfx		= queue_gfx,
-			.queue_transfer = queue_transfer,
-			.cmd_prepare	= pfd.cmd_gfx_prepare,
-			.cmd_transfer	= pfd.cmd_transfer,
-			.cmd_transit	= pfd.cmd_gfx_transit,
-			.semaphore		= &pfd.semaphore_transfer,
-		});
 
 		pfd.semaphore_world.value++;
 		const bool world_submitted = _world_controller->render_world(queue_gfx, pfd.semaphore_world.sem, pfd.semaphore_world.value, frame_index, pfd.global_index, render_globals_t::get_global_bind_layout());
