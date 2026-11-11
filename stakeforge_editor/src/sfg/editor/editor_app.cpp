@@ -325,7 +325,7 @@ namespace sfg
 		_normal_world_load_pending = proj.settings.last_world_guid != NULL_SID;
 
 		if (!_normal_world_load_pending || !editor_plugin_manager_t::get().is_loaded())
-			_world_controller.load_dummy_world();
+			_world_controller.load_main_world(NULL_SID);
 
 		editor_project_cooker_t::get().init();
 
@@ -505,7 +505,7 @@ namespace sfg
 					_normal_world_load_pending = false;
 
 					if (!_world_controller.load_main_world(project.settings.last_world_guid))
-						_world_controller.load_dummy_world();
+						_world_controller.load_main_world(NULL_SID);
 				}
 
 				_asset_manager.tick();

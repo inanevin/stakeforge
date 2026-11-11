@@ -102,10 +102,12 @@ namespace sfg
 								});
 
 		_command_listener = editor_command_system_t::get().add_listener(on_command_system_event, this);
+		ui.set_pre_layout_tick(_root, on_refresh_tick, this);
 	}
 
 	void editor_panel_project_settings_t::uninit()
 	{
+		_ui->clear_pre_layout_tick(_root);
 		editor_command_system_t::get().remove_listener(_command_listener);
 		_editor_reflection.uninit();
 		_reflection.uninit();
@@ -118,6 +120,8 @@ namespace sfg
 		_scroll_area		   = NULL_WIDGET;
 		_content			   = NULL_WIDGET;
 		_project_edit_active   = false;
+		_refresh_pending	   = false;
+
 		editor_panel_t::uninit();
 	}
 
@@ -125,6 +129,7 @@ namespace sfg
 	{
 		void* object		= &editor_project_t::get().settings;
 		void* editor_object = &editor_settings_t::get().configurable;
+
 		_reflection.save_fold_states();
 		_editor_reflection.save_fold_states();
 
@@ -165,16 +170,24 @@ namespace sfg
 			return;
 
 		const editor_command_project_settings_data_t previous = _project_edit_previous;
+
 		editor_project_t::get().settings.project_settings.normalize(&previous.project.project_settings);
 		editor_settings_t::get().configurable.normalize();
+
 		const editor_command_project_settings_data_t post = editor_command_project_settings_t::read();
 		_project_edit_active							  = false;
+
 		if (previous == post)
 			return;
 
 		editor_command_project_settings_t::apply(previous);
-		if (!editor_command_project_settings_t::edit(previous, post))
+
+		const bool issued = editor_command_project_settings_t::edit(previous, post);
+
+		if (!issued)
 			editor_command_project_settings_t::apply(post);
+
+		_refresh_pending = true;
 	}
 
 	void editor_panel_project_settings_t::on_project_settings_edit_begin(void* user_data)
@@ -187,10 +200,23 @@ namespace sfg
 		static_cast<editor_panel_project_settings_t*>(user_data)->submit_project_settings_edit();
 	}
 
-	void editor_panel_project_settings_t::on_command_system_event(editor_command_system_t&, const editor_command_t& command, void* user_data)
+	void editor_panel_project_settings_t::on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data)
 	{
+		editor_panel_project_settings_t& panel = *static_cast<editor_panel_project_settings_t*>(user_data);
+
 		if (command.type == editor_command_type_e::project_settings_edit)
-			static_cast<editor_panel_project_settings_t*>(user_data)->refresh_reflection();
+			panel._refresh_pending = true;
+	}
+
+	void editor_panel_project_settings_t::on_refresh_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
+	{
+		editor_panel_project_settings_t& panel = *static_cast<editor_panel_project_settings_t*>(user_data);
+
+		if (!panel._refresh_pending)
+			return;
+
+		panel._refresh_pending = false;
+		panel.refresh_reflection();
 	}
 
 }

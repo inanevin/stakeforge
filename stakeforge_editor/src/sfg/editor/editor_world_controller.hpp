@@ -80,7 +80,6 @@ namespace sfg
 		bool render_worlds(gfx_handle_t queue, gfx_handle_t signal, u64 signal_value, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		void tick(u32 world_tick_rate, u32 world_physics_rate, u32 max_sim_steps);
 		void update_physics_settings(const u64* collision_masks, u64 active_layers, u32 physics_rate, u32 max_sub_steps, bool kinematic_sensors_collide_with_non_dynamic);
-		void load_dummy_world();
 		bool load_main_world(sid_t asset_guid);
 		bool save_main_world();
 		void mark_world_dirty(editor_world_handle_t handle);

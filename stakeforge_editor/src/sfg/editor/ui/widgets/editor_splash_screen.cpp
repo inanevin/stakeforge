@@ -52,10 +52,12 @@ namespace sfg
 {
 	void editor_splash_screen_t::init(ui::ui_context& ui, ui::widget_id_t parent, const editor_splash_screen_config_t& config)
 	{
-		_ui							= &ui;
-		ui::layout_tree_t&	  tree	= ui.get_tree();
-		ui::paint_layer_t&	  paint = ui.get_paint();
-		const editor_theme_t& theme = editor_theme_t::get();
+		_ui = &ui;
+
+		ui::layout_tree_t&	  tree				  = ui.get_tree();
+		ui::paint_layer_t&	  paint				  = ui.get_paint();
+		const editor_theme_t& theme				  = editor_theme_t::get();
+		const f32			  logical_owner_width = static_cast<f32>(config.owner_size.x) / ui::get_valid_scale(ui.get_ui_scale());
 
 		_root = ui.allocate_widget();
 		ui.set_widget_debug_name(_root, "splash_screen");
@@ -108,10 +110,10 @@ namespace sfg
 		tree.set_visible(_title, true);
 
 		ui.set_widget_text(_title, "stakeforge");
+
 		ui::ui_render_state_t title_state = {};
 		title_state.pipeline			  = theme.shader_glitch_text;
-		paint.set_text(
-			_title, ui.widget_text(_title), ui.widget_text_len(_title), {.font = theme.font_sfg, .color = theme.color_text0, .point_size = static_cast<f32>(config.owner_size.x) * 0.05f, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
+		paint.set_text(_title, ui.widget_text(_title), ui.widget_text_len(_title), {.font = theme.font_sfg, .color = theme.color_text0, .point_size = logical_owner_width * 0.05f, .spacing = 0, .raster_mode = ui::glyph_raster_mode_e::lcd}, title_state);
 
 		_version = ui.allocate_widget();
 		ui.set_widget_debug_name(_version, "splash_version");
@@ -123,7 +125,7 @@ namespace sfg
 		paint.set_text(_version,
 					   ui.widget_text(_version),
 					   ui.widget_text_len(_version),
-					   {.font = theme.font_title, .color = theme.color_text1, .point_size = static_cast<f32>(config.owner_size.x) * 0.02f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+					   {.font = theme.font_title, .color = theme.color_text1, .point_size = logical_owner_width * 0.02f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_build = ui.allocate_widget();
 		ui.set_widget_debug_name(_build, "splash_build");
@@ -132,10 +134,8 @@ namespace sfg
 		tree.set_visible(_build, true);
 
 		ui.set_widget_text(_build, SFG_EDITOR_SPLASH_BUILD_TEXT);
-		paint.set_text(_build,
-					   ui.widget_text(_build),
-					   ui.widget_text_len(_build),
-					   {.font = theme.font_title, .color = theme.color_text2, .point_size = static_cast<f32>(config.owner_size.x) * 0.02f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+		paint.set_text(
+			_build, ui.widget_text(_build), ui.widget_text_len(_build), {.font = theme.font_title, .color = theme.color_text2, .point_size = logical_owner_width * 0.02f, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		const editor_project_runtime_t& project_runtime = editor_project_t::get()._runtime;
 		const string_t					project_path	= string_t("Project Path: ") + project_runtime.path;
@@ -166,6 +166,7 @@ namespace sfg
 					   {.font = theme.font_default, .color = theme.color_text1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
 
 		_progress.init(ui, _column, {.progress_text = "Loading", .progress_amount = 0.0f, .frame_height = theme.item_height});
+
 		ui::layout_in_t& progress_in		  = tree.in(_progress.get_root());
 		progress_in.pos_mode_y				  = ui::pos_mode_e::relative_in_parent;
 		progress_in.pos_value.y				  = 1.0f;

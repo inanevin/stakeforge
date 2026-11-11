@@ -30,7 +30,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-	static inline constexpr u32 PHYSICS_COLLISION_LAYER_MAX = 64;
+	static inline constexpr u32 PHYSICS_COLLISION_LAYER_MAX = 32;
 
 	struct physics_collision_layer_t
 	{

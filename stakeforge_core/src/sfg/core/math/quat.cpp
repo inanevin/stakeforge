@@ -113,22 +113,34 @@ namespace sfg
 
 	vec3f_t quat_t::to_euler(const quat_t& q)
 	{
-		vec3f_t e;
+		const double x = q.x;
+		const double y = q.y;
+		const double z = q.z;
+		const double w = q.w;
+
+		const double sin_pitch_cos_yaw = 2.0 * (y * z + w * x);
+		const double cos_pitch_cos_yaw = w * w - x * x - y * y + z * z;
+		const double sin_yaw		   = 2.0 * (w * y - x * z);
+		const double cos_yaw		   = std::sqrt(sin_pitch_cos_yaw * sin_pitch_cos_yaw + cos_pitch_cos_yaw * cos_pitch_cos_yaw);
+
+		if (cos_yaw <= MATH_EPS)
+		{
+			const f32 yaw  = sin_yaw >= 0.0 ? 90.0f : -90.0f;
+			const f32 roll = static_cast<f32>(math::radians_to_degrees(std::atan2(2.0 * (w * z - x * y), w * w - x * x + y * y - z * z)));
+
+			return {0.0f, yaw, roll};
+		}
+
+		vec3f_t e = vec3f_t::zero;
 
 		// X (pitch)
-		f32 sinp = 2.0f * (q.w * q.x + q.y * q.z);
-		f32 cosp = 1.0f - 2.0f * (q.x * q.x + q.y * q.y);
-		e.x		 = math::radians_to_degrees(std::atan2(sinp, cosp));
+		e.x = static_cast<f32>(math::radians_to_degrees(std::atan2(sin_pitch_cos_yaw, cos_pitch_cos_yaw)));
 
 		// Y (yaw)
-		f32 siny = 2.0f * (q.w * q.y - q.z * q.x);
-		siny	 = math::clamp(siny, -1.0f, 1.0f);
-		e.y		 = math::radians_to_degrees(std::asin(siny));
+		e.y = static_cast<f32>(math::radians_to_degrees(std::atan2(sin_yaw, cos_yaw)));
 
 		// Z (roll)
-		f32 sinr = 2.0f * (q.w * q.z + q.x * q.y);
-		f32 cosr = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);
-		e.z		 = math::radians_to_degrees(std::atan2(sinr, cosr));
+		e.z = static_cast<f32>(math::radians_to_degrees(std::atan2(2.0 * (x * y + w * z), w * w + x * x - y * y - z * z)));
 
 		return e;
 	}

@@ -25,7 +25,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/io/log.hpp"
 #include "core/math/math.hpp"
 #include "core/memory/memory.hpp"
-#include "core/runtime/engine/engine_runtime.hpp"
 #include "core/runtime/engine/engine_threads.hpp"
 #include "core/runtime/resources/font.hpp"
 #include "core/runtime/resources/resource_manager.hpp"
@@ -59,10 +58,9 @@ namespace sfg::ui
 			SFG_ASSERT(cfg.snapshot_index_max_bytes <= cfg.canvas.index_pool_budget_bytes);
 		}
 
-		_apply_project_ui_scale = cfg.apply_project_ui_scale;
 		_user_ui_scale			= get_valid_scale(cfg.user_ui_scale);
 		_dpi_scale				= get_valid_scale(cfg.dpi_scale);
-		_ui_scale				= _dpi_scale * (_apply_project_ui_scale ? engine_runtime_t::get().get_project_settings().ui_scale : 1.0f) * _user_ui_scale;
+		_ui_scale				= _dpi_scale * _user_ui_scale;
 		_pipeline_variant_flags = cfg.pipeline_variant_flags;
 
 		_tree.init(cfg.max_widgets);
@@ -144,7 +142,7 @@ namespace sfg::ui
 		ZoneScoped;
 
 		_dpi_scale = dpi_scale > 0.0f ? dpi_scale : 1.0f;
-		_ui_scale  = _dpi_scale * (_apply_project_ui_scale ? engine_runtime_t::get().get_project_settings().ui_scale : 1.0f) * _user_ui_scale;
+		_ui_scale  = _dpi_scale * _user_ui_scale;
 
 		_tree.set_topology_mutation_allowed(true);
 		_input.begin_frame(_tree, dt_seconds);

@@ -480,15 +480,15 @@ namespace sfg
 					val = in_json;
 				else
 					val = in_json.value<string_t>(field.name, "");
-				const size_t copy_size = val.size() > field.size ? field.size : val.size();
 
-				if (copy_size != 0)
+				if (val.size() >= field.size)
 				{
-					SFG_MEMCPY(data, &val[0], copy_size);
-
-					if (copy_size < field.size)
-						reinterpret_cast<char*>(data)[copy_size] = '\0';
+					SFG_ERR("text exceeds character array capacity {0}", field.size);
+					return false;
 				}
+
+				SFG_MEMCPY(data, val.data(), val.size());
+				reinterpret_cast<char*>(data)[val.size()] = '\0';
 				break;
 			}
 			case reflected_value_type_e::boolean:

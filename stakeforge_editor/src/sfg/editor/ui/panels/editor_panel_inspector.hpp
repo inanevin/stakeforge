@@ -63,6 +63,12 @@ namespace sfg
 		asset,
 	};
 
+	struct editor_panel_inspector_reload_state_t
+	{
+		frame_vector_t<entity_guid_t> entities = {};
+		f32							  scroll_y = 0.0f;
+	};
+
 	class SFG_EDITOR_API editor_panel_inspector_t final : public editor_panel_t
 	{
 	public:
@@ -82,16 +88,18 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void set_display_none();
-		void set_display_entity(entity_id_t entity);
-		void set_display_entity(span_t<const entity_id_t> entities);
-		void refresh_display();
-		void prepare_component_reload();
-		void refresh_from_selection();
-		void refresh_from_assets();
-		void refresh_component_reflection(sid_t component_type);
-		void set_edit_world(editor_world_handle_t world);
-		void on_asset_selection_changed();
+		void								  set_display_none();
+		void								  set_display_entity(entity_id_t entity);
+		void								  set_display_entity(span_t<const entity_id_t> entities);
+		void								  refresh_display();
+		void								  prepare_component_reload();
+		editor_panel_inspector_reload_state_t begin_world_reload();
+		void								  end_world_reload(const editor_panel_inspector_reload_state_t& state, bool restored);
+		void								  refresh_from_selection();
+		void								  refresh_from_assets();
+		void								  refresh_component_reflection(sid_t component_type);
+		void								  set_edit_world(editor_world_handle_t world);
+		void								  on_asset_selection_changed();
 
 	private:
 		struct entity_scroll_state_t
@@ -156,5 +164,6 @@ namespace sfg
 		ui::widget_id_t											 _content				   = NULL_WIDGET;
 		editor_panel_inspector_display_e						 _display				   = editor_panel_inspector_display_e::none;
 		editor_panel_inspector_source_e							 _last_source			   = editor_panel_inspector_source_e::none;
+		bool													 _world_reload_active	   = false;
 	};
 }

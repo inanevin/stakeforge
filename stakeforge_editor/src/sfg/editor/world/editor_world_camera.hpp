@@ -97,6 +97,7 @@ namespace sfg
 	protected:
 		static void	   calculate_focus_target(const vec3f_t& camera_position, const quat_t& camera_rotation, const aabb_t& bounds, vec3f_t& target_position, quat_t& target_rotation);
 		static vec2f_t get_camera_angles(const quat_t& rotation);
+		static vec3f_t get_camera_euler_angles(const quat_t& rotation);
 		void		   begin_focus(world_t& world, const vec3f_t& target_position, const quat_t& target_rotation);
 		void		   cancel_focus();
 		bool		   tick_focus(world_t& world, f32 dt_seconds);

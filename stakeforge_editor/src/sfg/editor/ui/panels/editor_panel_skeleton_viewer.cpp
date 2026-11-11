@@ -1535,6 +1535,7 @@ namespace sfg
 		const joint_row_t&		row		  = _joint_rows[_skeleton.joints.size() + _selected_slot_index];
 		const ui::layout_out_t& row_out	  = _ui->get_tree().out(row.root);
 		const ui::layout_out_t& label_out = _ui->get_tree().out(row.label);
+		const f32				scale	  = ui::get_valid_scale(_ui->get_ui_scale());
 
 		_rename_slot_index = _selected_slot_index;
 		editor_popup_controller_t::find(*_ui)->request_input_popup({
@@ -1544,7 +1545,7 @@ namespace sfg
 			.text		 = _skeleton.slots[_rename_slot_index].slot_name,
 			.placeholder = "Slot Name",
 			.pos		 = {label_out.pos.x, row_out.pos.y},
-			.width		 = row_out.pos.x + row_out.size.x - label_out.pos.x,
+			.width		 = (row_out.pos.x + row_out.size.x - label_out.pos.x) / scale,
 		});
 	}
 

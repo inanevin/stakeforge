@@ -213,6 +213,70 @@ namespace sfg
 		_entity_inspector.prepare_component_reload();
 	}
 
+	editor_panel_inspector_reload_state_t editor_panel_inspector_t::begin_world_reload()
+	{
+		SFG_ASSERT(!_world_reload_active);
+
+		editor_panel_inspector_reload_state_t state{.scroll_y = _ui->get_tree().in_const(_scroll_area).scroll_offset.y};
+
+		if (_display == editor_panel_inspector_display_e::entity)
+		{
+			const world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+
+			state.entities.reserve(_display_entities.size());
+
+			for (entity_id_t entity : _display_entities)
+			{
+				if (world.is_alive(entity))
+					state.entities.push_back(world.get_entity_guid(entity));
+			}
+		}
+
+		_world_reload_active = true;
+		_entity_inspector.set_display_entity(span_t<const entity_id_t>{});
+		_display_entities.resize(0);
+		_entity_scroll_states.resize(0);
+
+		return state;
+	}
+
+	void editor_panel_inspector_t::end_world_reload(const editor_panel_inspector_reload_state_t& state, bool restored)
+	{
+		SFG_ASSERT(_world_reload_active);
+
+		_world_reload_active = false;
+
+		if (_display != editor_panel_inspector_display_e::entity)
+			return;
+
+		frame_vector_t<entity_id_t> entities = {};
+
+		if (restored)
+		{
+			const world_t& world = editor_world_controller_t::get().get_editor_world(_edit_world)->get_world();
+
+			entities.reserve(state.entities.size());
+
+			for (entity_guid_t guid : state.entities)
+			{
+				const entity_id_t entity = world.find_by_guid(guid);
+
+				if (entity != NULL_ENTITY_ID)
+					entities.push_back(entity);
+			}
+		}
+
+		if (entities.empty())
+		{
+			set_display_none();
+			return;
+		}
+
+		set_display_entity({.data = entities.data(), .size = entities.size()});
+		_scrollbar.set_scroll_y_immediate(state.scroll_y);
+		save_entity_scroll_state();
+	}
+
 	void editor_panel_inspector_t::refresh_display()
 	{
 		if (_display == editor_panel_inspector_display_e::entity)
@@ -845,9 +909,14 @@ namespace sfg
 		return nullptr;
 	}
 
-	void editor_panel_inspector_t::on_entity_selection_changed(editor_world_edit_context_t&, void* user_data)
+	void editor_panel_inspector_t::on_entity_selection_changed(editor_world_edit_context_t& context, void* user_data)
 	{
-		static_cast<editor_panel_inspector_t*>(user_data)->refresh_from_available_selection(editor_panel_inspector_source_e::entity);
+		editor_panel_inspector_t& panel = *static_cast<editor_panel_inspector_t*>(user_data);
+
+		if (panel._world_reload_active)
+			return;
+
+		panel.refresh_from_available_selection(editor_panel_inspector_source_e::entity);
 	}
 
 	void editor_panel_inspector_t::on_asset_deletion(editor_asset_manager_t& asset_manager, span_t<const sid_t> asset_ids, void* user_data)
@@ -903,6 +972,10 @@ namespace sfg
 
 		switch (command.type)
 		{
+		case editor_command_type_e::project_settings_edit:
+			if (panel._display == editor_panel_inspector_display_e::entity)
+				panel.refresh_display();
+			break;
 		case editor_command_type_e::material_edit:
 		case editor_command_type_e::shader_edit:
 			if (panel._display == editor_panel_inspector_display_e::material)

@@ -147,8 +147,32 @@ namespace sfg
 		editor_app_t::get().stop_render();
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		editor_world_controller_t& worlds		= editor_world_controller_t::get();
-		editor_world_t&			   editor_world = *worlds.get_editor_world(_world);
+		editor_world_controller_t&		worlds		   = editor_world_controller_t::get();
+		editor_world_t&					editor_world   = *worlds.get_editor_world(_world);
+		world_t&						world		   = editor_world.get_world();
+		editor_world_edit_context_t&	edit_context   = editor_world.get_edit_context();
+		const span_t<const entity_id_t> selection	   = edit_context.get_selected_entities();
+		frame_vector_t<entity_guid_t>	selected_guids = {};
+
+		selected_guids.reserve(selection.size);
+
+		for (entity_id_t entity : selection)
+		{
+			if (world.is_alive(entity))
+				selected_guids.push_back(world.get_entity_guid(entity));
+		}
+
+		const entity_id_t anchor	  = edit_context.get_entity_anchor();
+		entity_guid_t	  anchor_guid = NULL_ENTITY_GUID;
+
+		if (anchor != NULL_ENTITY_ID)
+		{
+			if (world.is_alive(anchor))
+				anchor_guid = world.get_entity_guid(anchor);
+		}
+
+		editor_panel_inspector_t*					inspector		= static_cast<editor_panel_inspector_t*>(editor_surface_controller_t::get().find_panel(editor_panel_type_e::inspector));
+		const editor_panel_inspector_reload_state_t inspector_state = inspector != nullptr ? inspector->begin_world_reload() : editor_panel_inspector_reload_state_t{};
 
 		editor_surface_controller_t::get().get_input_router().release_game_input();
 		editor_world.reset_input();
@@ -166,6 +190,28 @@ namespace sfg
 
 		editor_command_system_t::get().end_play_history();
 
+		if (restored)
+		{
+			frame_vector_t<entity_id_t> entities = {};
+
+			entities.reserve(selected_guids.size());
+
+			for (entity_guid_t guid : selected_guids)
+			{
+				const entity_id_t entity = world.find_by_guid(guid);
+
+				if (entity != NULL_ENTITY_ID)
+					entities.push_back(entity);
+			}
+
+			entity_id_t restored_anchor = world.find_by_guid(anchor_guid);
+
+			if (restored_anchor == NULL_ENTITY_ID)
+				restored_anchor = entities.empty() ? NULL_ENTITY_ID : entities.back();
+
+			edit_context.apply_entity_selection({.data = entities.data(), .size = entities.size()}, restored_anchor);
+		}
+
 		resource_manager_t::get().flush_material_updates();
 
 		editor_world.get_world().tick_finalize();
@@ -177,6 +223,9 @@ namespace sfg
 		_world			   = {};
 
 		refresh_panels();
+
+		if (inspector != nullptr)
+			inspector->end_world_reload(inspector_state, restored);
 	}
 
 	void editor_play_session_t::change_controls(editor_play_state_e state)
@@ -401,8 +450,5 @@ namespace sfg
 
 		if (editor_panel_t* panel = surfaces.find_panel(editor_panel_type_e::entities))
 			static_cast<editor_panel_entities_t*>(panel)->refresh_entities();
-
-		if (editor_panel_t* panel = surfaces.find_panel(editor_panel_type_e::inspector))
-			static_cast<editor_panel_inspector_t*>(panel)->refresh_from_selection();
 	}
 }

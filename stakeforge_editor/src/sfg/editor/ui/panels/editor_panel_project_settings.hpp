@@ -54,6 +54,7 @@ namespace sfg
 		static void on_project_settings_edit_begin(void* user_data);
 		static void on_project_settings_edit_submitted(void* user_data);
 		static void on_command_system_event(editor_command_system_t& system, const editor_command_t& command, void* user_data);
+		static void on_refresh_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
 		vector_t<editor_widget_reflection_fold_state_t> _field_states		   = {};
@@ -65,5 +66,6 @@ namespace sfg
 		ui::widget_id_t									_scroll_area		   = NULL_WIDGET;
 		ui::widget_id_t									_content			   = NULL_WIDGET;
 		bool											_project_edit_active   = false;
+		bool											_refresh_pending	   = false;
 	};
 }

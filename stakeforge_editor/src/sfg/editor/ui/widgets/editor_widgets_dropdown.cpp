@@ -375,20 +375,25 @@ namespace sfg
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 
 		editor_popup_item_desc_t items[editor_popup_controller_t::MAX_ITEMS] = {};
+
 		SFG_ASSERT(_config.item_count <= editor_popup_controller_t::MAX_ITEMS);
 		build_popup_items(items);
 
 		const editor_theme_t&	theme	 = editor_theme_t::get();
 		const ui::layout_out_t& root_out = _ui->get_tree().out(_root);
-		editor_popup_desc_t		desc	 = {};
-		desc.items						 = items;
-		desc.item_count					 = _config.item_count;
-		desc.pos						 = {root_out.pos.x, root_out.pos.y + root_out.size.y + theme.item_spacing};
-		desc.width						 = root_out.size.x;
-		desc.pressed					 = on_popup_item_pressed;
-		desc.closed						 = _config.is_bitmask ? on_popup_closed : nullptr;
-		desc.user_data					 = this;
-		desc.close_on_pressed			 = !_config.is_bitmask;
+		const f32				scale	 = ui::get_valid_scale(_ui->get_ui_scale());
+
+		const editor_popup_desc_t desc{
+			.items			  = items,
+			.pressed		  = on_popup_item_pressed,
+			.closed			  = _config.is_bitmask ? on_popup_closed : nullptr,
+			.user_data		  = this,
+			.pos			  = {root_out.pos.x, root_out.pos.y + root_out.size.y + theme.item_spacing * scale},
+			.width			  = root_out.size.x / scale,
+			.item_count		  = _config.item_count,
+			.close_on_pressed = !_config.is_bitmask,
+		};
+
 		popup->request_popup(desc);
 	}
 

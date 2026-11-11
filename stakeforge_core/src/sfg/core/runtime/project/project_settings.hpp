@@ -45,7 +45,7 @@ namespace sfg
 	{
 		f32 shadow_distance		 = 200.0f;
 		f32 shadow_fade_distance = 30.0f;
-		u32 texel_budget		 = 16u * 1024u * 1024u;
+		u32 memory_budget_mb	 = 64;
 		u16 min_resolution		 = 256;
 		u16 max_resolution		 = 2048;
 		u16 max_views			 = 48;
@@ -61,7 +61,6 @@ namespace sfg
 		u32						   world_tick_rate	  = 60;
 		u32						   world_physics_rate = 100;
 		u32						   max_sim_steps	  = 4;
-		f32						   ui_scale			  = 1.0f;
 		engine_quality_level_e	   quality_level	  = engine_quality_level_e::high;
 
 		void normalize(const project_settings_t* previous = nullptr);

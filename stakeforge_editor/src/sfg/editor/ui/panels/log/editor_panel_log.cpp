@@ -190,14 +190,20 @@ namespace sfg
 	void editor_panel_log_t::uninit()
 	{
 		_scrollbar.uninit();
+
 		for (editor_icon_button_t& button : _filter_buttons)
 			button.uninit();
+
 		_collapse_button.uninit();
 		_clear_button.uninit();
 		_search_input.uninit();
 		_source_dropdown.uninit();
-		_rows.clear();
-		_drained_logs.clear();
+
+		_rows.resize(0);
+		_drained_logs.resize(0);
+		_next_log_sequence	= 0;
+		_storage_generation = 0;
+
 		editor_panel_t::uninit();
 	}
 

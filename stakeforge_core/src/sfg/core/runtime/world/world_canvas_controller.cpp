@@ -251,9 +251,9 @@ namespace sfg
 			.snapshot_vertex_max_bytes = vertex_pool_budget_bytes,
 			.snapshot_index_max_bytes  = index_pool_budget_bytes,
 			.pipeline_variant_flags	   = pipeline_flags,
-			.apply_project_ui_scale	   = !component.is_3d,
 			.render_snapshots_enabled  = false,
 		});
+
 		runtime.context->get_paint().set_pipelines({
 			.default_pipeline = component.default_shader,
 			.text_pipeline	  = component.text_shader,

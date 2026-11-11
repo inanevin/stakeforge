@@ -25,34 +25,33 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/common/sfg_exports.hpp"
 
 #include "core/common/type_id.hpp"
-#include "core/data/string.hpp"
-#include "core/data/vector.hpp"
 #include "core/runtime/physics/physics_config.hpp"
 
 namespace sfg
 {
-	struct physics_collision_layer_definition_t
+	struct SFG_API physics_collision_layer_definition_t
 	{
-		string_t name		   = {};
-		u64		 collides_with = 0;
-		u64		 identifier	   = 0;
-		u8		 slot		   = 0;
+		u64	 collides_with = 0;
+		u64	 identifier	   = 0;
+		char name[256]	   = "Unnamed Layer";
+		u8	 slot		   = 0;
 
-		bool operator==(const physics_collision_layer_definition_t&) const = default;
+		bool operator==(const physics_collision_layer_definition_t& other) const;
 	};
 
 	struct SFG_API physics_project_settings_t
 	{
 		physics_project_settings_t();
 
-		vector_t<physics_collision_layer_definition_t> collision_layers							  = {};
-		u64											   next_collision_layer_identifier			  = 2;
-		bool										   kinematic_sensors_collide_with_non_dynamic = false;
+		physics_collision_layer_definition_t collision_layers[PHYSICS_COLLISION_LAYER_MAX] = {};
+		u64									 next_collision_layer_identifier			   = 2;
+		size_t								 collision_layer_count						   = 1;
+		bool								 kinematic_sensors_collide_with_non_dynamic	   = false;
 
 		void				   normalize(const physics_project_settings_t* previous = nullptr);
 		world_physics_config_t make_runtime_config(u32 physics_rate, u32 max_sub_steps) const;
 
-		bool operator==(const physics_project_settings_t&) const = default;
+		bool operator==(const physics_project_settings_t& other) const;
 	};
 
 	SFG_DEFINE_TYPE_ID(physics_collision_layer_definition_t);

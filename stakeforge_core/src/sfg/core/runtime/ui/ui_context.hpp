@@ -50,7 +50,6 @@ namespace sfg::ui
 		u32				   snapshot_vertex_max_bytes = 1u << 20;
 		u32				   snapshot_index_max_bytes	 = 1u << 20;
 		u32				   pipeline_variant_flags	 = 0;
-		bool			   apply_project_ui_scale	 = true;
 		bool			   render_snapshots_enabled	 = true;
 	};
 
@@ -241,7 +240,6 @@ namespace sfg::ui
 		resource_handle_t						   _debug_font			   = NULL_RESOURCE_HANDLE;
 		u32										   _pipeline_variant_flags = 0;
 		bool									   _debug_draw			   = false;
-		bool									   _apply_project_ui_scale = true;
 		fixed_vector_t<pre_layout_tick_def_t>	   _pre_layout_tick_defs;
 		fixed_vector_t<post_layout_tick_def_t>	   _post_layout_tick_defs;
 	};

@@ -477,22 +477,27 @@ namespace sfg
 		{
 			if (field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER)
 			{
-				const vector_t<physics_collision_layer_definition_t>& layers = editor_project_t::get().settings.project_settings.physics.collision_layers;
-				items.reserve(layers.size());
+				const physics_project_settings_t& physics = editor_project_t::get().settings.project_settings.physics;
+				items.reserve(physics.collision_layer_count);
 
-				for (u32 i = 0; i < layers.size(); ++i)
-					items.push_back({.text = layers[i].name.empty() ? "Unnamed Layer" : layers[i].name.c_str(), .value = layers[i].slot});
+				for (size_t i = 0; i < physics.collision_layer_count; ++i)
+				{
+					const physics_collision_layer_definition_t& layer = physics.collision_layers[i];
+
+					items.push_back({.text = layer.name[0] == '\0' ? "Unnamed Layer" : layer.name, .value = layer.slot});
+				}
 			}
 			else if (field->sub_type_id == REFLECTION_SUB_TYPE_IDENTIFIER_COLLISION_LAYER_MASK)
 			{
-				const vector_t<physics_collision_layer_definition_t>& layers = editor_project_t::get().settings.project_settings.physics.collision_layers;
-				items.reserve(layers.size() + 1);
+				const physics_project_settings_t& physics = editor_project_t::get().settings.project_settings.physics;
+				items.reserve(physics.collision_layer_count + 1);
 				items.push_back({.text = "None", .value = 0});
 
-				for (u32 i = 0; i < layers.size(); ++i)
+				for (size_t i = 0; i < physics.collision_layer_count; ++i)
 				{
-					if (layers[i].slot < 64)
-						items.push_back({.text = layers[i].name.empty() ? "Unnamed Layer" : layers[i].name.c_str(), .value = 1ull << layers[i].slot});
+					const physics_collision_layer_definition_t& layer = physics.collision_layers[i];
+
+					items.push_back({.text = layer.name[0] == '\0' ? "Unnamed Layer" : layer.name, .value = 1ull << layer.slot});
 				}
 			}
 			else

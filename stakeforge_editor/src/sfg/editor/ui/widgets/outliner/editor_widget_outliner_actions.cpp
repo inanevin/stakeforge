@@ -275,10 +275,12 @@ namespace sfg
 		editor_popup_controller_t* popup = editor_popup_controller_t::find(*_ui);
 
 		editor_world_edit_context_t& metadata = editor_world_controller_t::get().get_editor_world(_edit_world)->get_edit_context();
+
 		if (!metadata.is_folder_valid(folder))
 			return;
 
 		const editor_outliner_row_t* const row = find_row_by_folder(folder);
+
 		if (row == nullptr)
 			return;
 
@@ -286,7 +288,8 @@ namespace sfg
 
 		const ui::layout_out_t& row_out	  = tree.out(row->root);
 		const ui::layout_out_t& label_out = tree.out(row->label);
-		const f32				width	  = row_out.pos.x + row_out.size.x - label_out.pos.x;
+		const f32				scale	  = ui::get_valid_scale(_ui->get_ui_scale());
+		const f32				width	  = (row_out.pos.x + row_out.size.x - label_out.pos.x) / scale;
 
 		_edit_folder = folder;
 		popup->request_input_popup({

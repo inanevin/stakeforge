@@ -274,7 +274,11 @@ namespace sfg
 		node.tab_area.add_tab(panel->get_instance_id(), panel->get_title(), panel->get_icon());
 		node.panels.push_back(panel);
 		panel->assign(*_ui, node.body);
-		node.tab_area.select_tab(panel->get_instance_id());
+
+		if (node.tab_area.get_active_tab() == panel->get_instance_id())
+			panel->make_visible(true);
+		else
+			node.tab_area.select_tab(panel->get_instance_id());
 
 		remember_window_size();
 	}

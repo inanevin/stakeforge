@@ -84,19 +84,20 @@ namespace sfg
 			file.backup	   = files.data[i].path + suffix + ".bak";
 			file.existed   = file_system_t::exists(files.data[i].path);
 
-			const bool copy = file_system_t::copy_file(files.data[i].path, file.backup.c_str());
-
 			if (file.existed)
 			{
+				const bool copy = file_system_t::copy_file(files.data[i].path, file.backup.c_str());
+
 				if (!copy)
 				{
 					succeeded = false;
 					break;
 				}
+			}
 
-				if (!write_to_file(files.data[i].contents, file.temporary.c_str()))
-					succeeded = false;
-
+			if (!write_to_file(files.data[i].contents, file.temporary.c_str()))
+			{
+				succeeded = false;
 				break;
 			}
 		}

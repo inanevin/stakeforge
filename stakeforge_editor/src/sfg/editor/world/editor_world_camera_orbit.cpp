@@ -74,10 +74,10 @@ namespace sfg
 		if (is_focus_enabled())
 		{
 			const quat_t  rotation = world.get_entity_rot_local(_camera_entity);
-			const vec2f_t angles   = get_camera_angles(rotation);
+			const vec3f_t angles   = get_camera_euler_angles(rotation);
 
 			_camera_pitch_degrees = angles.x;
-			_camera_roll_degrees  = 0.0f;
+			_camera_roll_degrees  = angles.z;
 			_camera_yaw_degrees	  = angles.y;
 			_target				  = world.get_entity_pos_local(_camera_entity) + rotation.get_forward() * _distance;
 			_distance_target	  = _distance;
@@ -144,10 +144,14 @@ namespace sfg
 			return;
 
 		_camera_yaw_degrees -= _mouse_delta.x * EDITOR_WORLD_CAMERA_ORBIT_MOUSE_SENSITIVITY;
-		_camera_pitch_degrees -= _mouse_delta.y * EDITOR_WORLD_CAMERA_ORBIT_MOUSE_SENSITIVITY;
 
 		if (_mouse_delta.y != 0.0f)
-			_camera_pitch_degrees = math::clamp(_camera_pitch_degrees, -89.0f, 89.0f);
+		{
+			const f32 min_pitch = math::min(_camera_pitch_degrees, -89.0f);
+			const f32 max_pitch = math::max(_camera_pitch_degrees, 89.0f);
+
+			_camera_pitch_degrees = math::clamp(_camera_pitch_degrees - _mouse_delta.y * EDITOR_WORLD_CAMERA_ORBIT_MOUSE_SENSITIVITY, min_pitch, max_pitch);
+		}
 
 		_mouse_delta = vec2f_t::zero;
 
@@ -192,11 +196,18 @@ namespace sfg
 		rotation.z = rotation_json.value<f32>("z", rotation.z);
 		rotation.w = rotation_json.value<f32>("w", rotation.w);
 
-		const vec3f_t euler = quat_t::to_euler(rotation);
+		const vec3f_t euler = get_camera_euler_angles(rotation);
+		const f32	  yaw	= in_json.value<f32>("yaw_degrees", euler.y);
+		const f32	  pitch = in_json.value<f32>("pitch_degrees", euler.x);
+		const f32	  roll	= in_json.value<f32>("roll_degrees", euler.z);
 
-		_camera_yaw_degrees	  = in_json.value<f32>("yaw_degrees", euler.y);
-		_camera_pitch_degrees = in_json.value<f32>("pitch_degrees", euler.x);
-		_camera_roll_degrees  = in_json.value<f32>("roll_degrees", euler.z);
+		rotation = quat_t::from_euler(pitch, yaw, roll);
+
+		const vec3f_t angles = get_camera_euler_angles(rotation);
+
+		_camera_yaw_degrees	  = angles.y;
+		_camera_pitch_degrees = angles.x;
+		_camera_roll_degrees  = angles.z;
 		_distance			  = in_json.value<f32>("distance", _distance);
 		_distance_target	  = in_json.value<f32>("distance_target", _distance);
 		_distance_velocity	  = in_json.value<f32>("distance_velocity", 0.0f);
@@ -223,7 +234,7 @@ namespace sfg
 	{
 		cancel_focus();
 
-		const vec3f_t angles = quat_t::to_euler(rotation);
+		const vec3f_t angles = get_camera_euler_angles(rotation);
 
 		_camera_pitch_degrees = angles.x;
 		_camera_yaw_degrees	  = angles.y;

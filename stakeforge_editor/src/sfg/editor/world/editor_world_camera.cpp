@@ -78,6 +78,29 @@ namespace sfg
 		return {pitch, yaw};
 	}
 
+	vec3f_t editor_world_camera_t::get_camera_euler_angles(const quat_t& rotation)
+	{
+		vec3f_t angles = quat_t::to_euler(rotation);
+
+		if (angles.x > 90.0f)
+			angles.x -= 180.0f;
+		else if (angles.x < -90.0f)
+			angles.x += 180.0f;
+		else
+			return angles;
+
+		angles.y = 180.0f - angles.y;
+		angles.z += 180.0f;
+
+		if (angles.y > 180.0f)
+			angles.y -= 360.0f;
+
+		if (angles.z > 180.0f)
+			angles.z -= 360.0f;
+
+		return angles;
+	}
+
 	void editor_world_camera_t::begin_focus(world_t& world, const vec3f_t& target_position, const quat_t& target_rotation)
 	{
 		_focus_start_rotation  = world.get_entity_rot_local(get_entity());

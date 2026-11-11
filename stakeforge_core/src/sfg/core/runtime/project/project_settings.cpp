@@ -36,10 +36,10 @@ namespace sfg
 			tags.resize(ENTITY_TAG_MAX);
 
 		physics.normalize(previous != nullptr ? &previous->physics : nullptr);
+
 		world_tick_rate				 = math::clamp(world_tick_rate, 15u, 240u);
 		world_physics_rate			 = math::clamp(world_physics_rate, 30u, 240u);
 		max_sim_steps				 = math::clamp(max_sim_steps, 1u, 8u);
-		ui_scale					 = math::clamp(ui_scale, 0.1f, 8.0f);
 		shadows.min_resolution		 = math::clamp<u16>(shadows.min_resolution, 64, 8192);
 		shadows.max_resolution		 = math::clamp<u16>(shadows.max_resolution, shadows.min_resolution, 8192);
 		shadows.max_views			 = math::min<u16>(shadows.max_views, ENGINE_SHADOW_VIEW_MAX);
@@ -86,20 +86,48 @@ namespace sfg
 					 .max_clamp			= 500.0f,
 					 .clamp_granularity = 1.0f,
 					 .type				= reflected_value_type_e::f32},
-					{.name		   = "texel_budget",
-					 .display_name = "Texel Budget",
-					 .tooltip	   = "Maximum total texels allocated to visible realtime shadow views.",
-					 .offset	   = offsetof(engine_shadow_settings_t, texel_budget),
-					 .size		   = sizeof(u32),
-					 .type		   = reflected_value_type_e::u32},
-					{.name = "min_resolution", .display_name = "Minimum Resolution", .offset = offsetof(engine_shadow_settings_t, min_resolution), .size = sizeof(u16), .type = reflected_value_type_e::u16},
-					{.name = "max_resolution", .display_name = "Maximum Resolution", .offset = offsetof(engine_shadow_settings_t, max_resolution), .size = sizeof(u16), .type = reflected_value_type_e::u16},
-					{.name		   = "max_views",
-					 .display_name = "Maximum Views",
-					 .tooltip	   = "Maximum directional cascades, spot maps, and point-light cube faces rendered per world view.",
-					 .offset	   = offsetof(engine_shadow_settings_t, max_views),
-					 .size		   = sizeof(u16),
-					 .type		   = reflected_value_type_e::u16},
+					{
+						.name		  = "memory_budget_mb",
+						.display_name = "Shadow Budget (MB)",
+						.tooltip	  = "Memory budget for visible realtime shadow views before quality scaling. One MB is 1024 x 1024 bytes; each depth texel uses 4 bytes.",
+						.offset		  = offsetof(engine_shadow_settings_t, memory_budget_mb),
+						.size		  = sizeof(u32),
+						.type		  = reflected_value_type_e::u32,
+					},
+					{
+						.name			   = "min_resolution",
+						.display_name	   = "Minimum Resolution",
+						.offset			   = offsetof(engine_shadow_settings_t, min_resolution),
+						.size			   = sizeof(u16),
+						.flags			   = reflected_field_flag_clamped,
+						.min_clamp		   = 64.0f,
+						.max_clamp		   = 8192.0f,
+						.clamp_granularity = 64.0f,
+						.type			   = reflected_value_type_e::u16,
+					},
+					{
+						.name			   = "max_resolution",
+						.display_name	   = "Maximum Resolution",
+						.offset			   = offsetof(engine_shadow_settings_t, max_resolution),
+						.size			   = sizeof(u16),
+						.flags			   = reflected_field_flag_clamped,
+						.min_clamp		   = 64.0f,
+						.max_clamp		   = 8192.0f,
+						.clamp_granularity = 64.0f,
+						.type			   = reflected_value_type_e::u16,
+					},
+					{
+						.name			   = "max_views",
+						.display_name	   = "Maximum Views",
+						.tooltip		   = "Maximum directional cascades, spot maps, and point-light cube faces rendered per world view.",
+						.offset			   = offsetof(engine_shadow_settings_t, max_views),
+						.size			   = sizeof(u16),
+						.flags			   = reflected_field_flag_clamped,
+						.min_clamp		   = 0.0f,
+						.max_clamp		   = static_cast<f32>(ENGINE_SHADOW_VIEW_MAX),
+						.clamp_granularity = 1.0f,
+						.type			   = reflected_value_type_e::u16,
+					},
 				},
 			.type_id   = type_id_t<engine_shadow_settings_t>::value,
 			.size	   = sizeof(engine_shadow_settings_t),
@@ -151,15 +179,6 @@ namespace sfg
 					 .max_clamp			= 8.0f,
 					 .clamp_granularity = 1.0f,
 					 .type				= reflected_value_type_e::u32},
-					{.name				= "ui_scale",
-					 .display_name		= "UI Scale",
-					 .offset			= offsetof(project_settings_t, ui_scale),
-					 .size				= sizeof(f32),
-					 .flags				= reflected_field_flag_clamped,
-					 .min_clamp			= 0.1f,
-					 .max_clamp			= 8.0f,
-					 .clamp_granularity = 0.1f,
-					 .type				= reflected_value_type_e::f32},
 					{.name		   = "quality_level",
 					 .display_name = "Quality Level",
 					 .sub_type_id  = type_id_t<engine_quality_level_e>::value,

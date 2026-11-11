@@ -119,7 +119,7 @@ namespace sfg
 		}
 
 		const u16 shadow_view_max	  = math::min(shadow_context.get_view_max(), quality_view_max);
-		const u64 shadow_texel_budget = static_cast<u64>(static_cast<double>(shadows.texel_budget) * quality_scale);
+		const u64 shadow_texel_budget = static_cast<u64>(static_cast<double>(shadows.memory_budget_mb) * (1024.0 * 1024.0 / 4.0) * quality_scale);
 		const f32 shadow_distance	  = shadows.shadow_distance * quality_scale;
 
 		for (u32 light_index = 0; light_index < snapshot.lights.size() && prep_data.shadow_views.size() < shadow_view_max; ++light_index)

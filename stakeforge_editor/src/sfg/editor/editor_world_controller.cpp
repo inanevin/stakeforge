@@ -379,27 +379,28 @@ namespace sfg
 		return load_main_world_now(asset_guid);
 	}
 
-	void editor_world_controller_t::load_dummy_world()
-	{
-		editor_app_t::get().stop_render();
-		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
-
-		destroy_main_world_internal();
-
-		const world_config_t init_config = game_plugin_runtime_t::get().get_world_config(world_config_type_e::main, editor_surface_controller_t::get().get_main_surface().swapchain_size);
-
-		const editor_world_handle_t handle		 = create_world(init_config, editor_world_camera_type_e::fly);
-		editor_world_t* const		editor_world = _worlds.get(handle);
-
-		world_t& world = editor_world->get_world();
-
-		editor_world_util_t::install_default_scene_light(world);
-		set_main_world(handle, NULL_SID, "unnamed");
-	}
-
 	bool editor_world_controller_t::load_main_world_now(sid_t asset_guid)
 	{
 		editor_app_t::get().stop_render();
+
+		if (asset_guid == NULL_SID)
+		{
+			SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
+			destroy_main_world_internal();
+
+			const world_config_t init_config = game_plugin_runtime_t::get().get_world_config(world_config_type_e::main, editor_surface_controller_t::get().get_main_surface().swapchain_size);
+
+			const editor_world_handle_t handle		 = create_world(init_config, editor_world_camera_type_e::fly);
+			editor_world_t* const		editor_world = _worlds.get(handle);
+
+			world_t& world = editor_world->get_world();
+
+			editor_world_util_t::install_default_scene_light(world);
+			set_main_world(handle, NULL_SID, "unnamed");
+
+			return true;
+		}
 
 		const editor_asset_t* asset = editor_asset_manager_t::get().find_asset(asset_guid);
 
@@ -603,22 +604,23 @@ namespace sfg
 
 	void editor_world_controller_t::on_save_dirty_world_modal(void* user_data)
 	{
-		editor_world_controller_t& controller	  = *static_cast<editor_world_controller_t*>(user_data);
-		const sid_t				   asset_guid	  = controller._pending_main_world_asset_guid;
+		editor_world_controller_t& controller = *static_cast<editor_world_controller_t*>(user_data);
+		const sid_t				   asset_guid = controller._pending_main_world_asset_guid;
+
 		controller._pending_main_world_asset_guid = NULL_SID;
 
-		if (asset_guid != NULL_SID && controller.save_main_world())
+		if (controller.save_main_world())
 			controller.load_main_world_now(asset_guid);
 	}
 
 	void editor_world_controller_t::on_dont_save_dirty_world_modal(void* user_data)
 	{
-		editor_world_controller_t& controller	  = *static_cast<editor_world_controller_t*>(user_data);
-		const sid_t				   asset_guid	  = controller._pending_main_world_asset_guid;
+		editor_world_controller_t& controller = *static_cast<editor_world_controller_t*>(user_data);
+		const sid_t				   asset_guid = controller._pending_main_world_asset_guid;
+
 		controller._pending_main_world_asset_guid = NULL_SID;
 
-		if (asset_guid != NULL_SID)
-			controller.load_main_world_now(asset_guid);
+		controller.load_main_world_now(asset_guid);
 	}
 
 	void editor_world_controller_t::on_cancel_dirty_world_modal(void* user_data)
