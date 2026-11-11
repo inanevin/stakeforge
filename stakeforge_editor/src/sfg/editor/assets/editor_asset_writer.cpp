@@ -80,10 +80,11 @@ namespace sfg
 
 		sid_t guid			 = NULL_SID;
 		sid_t thumbnail_guid = NULL_SID;
+
 		resolve_asset_guids(desc.guid, desc.allow_overwrite, asset_path.c_str(), desc.asset_type, guid, thumbnail_guid);
 
 		editor_asset_t asset = {};
-		asset.version		 = editor_asset_t::VERSION;
+		asset.version		 = editor_asset_t::WIRE_VERSION;
 		asset.guid			 = guid;
 		asset.thumbnail_guid = thumbnail_guid;
 		asset.asset_type	 = desc.asset_type;
@@ -137,6 +138,7 @@ namespace sfg
 
 		if (out_asset_path != nullptr)
 			*out_asset_path = asset_path;
+
 		return true;
 	}
 
@@ -146,6 +148,7 @@ namespace sfg
 			return false;
 
 		const string_t asset_path = editor_asset_path_t::make_asset_path(desc.parent_path, desc.name);
+
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
 		{
 			SFG_ERR("can't write asset as asset with this name already exists! {0}", asset_path.c_str());
@@ -154,15 +157,17 @@ namespace sfg
 
 		sid_t guid			 = NULL_SID;
 		sid_t thumbnail_guid = NULL_SID;
+
 		resolve_asset_guids(desc.guid, desc.allow_overwrite, asset_path.c_str(), desc.asset_type, guid, thumbnail_guid);
 
 		editor_asset_t asset = {};
-		asset.version		 = editor_asset_t::VERSION;
+		asset.version		 = editor_asset_t::WIRE_VERSION;
 		asset.guid			 = guid;
 		asset.thumbnail_guid = thumbnail_guid;
 		asset.asset_type	 = desc.asset_type;
 		asset.source_type	 = desc.source_type;
 		asset.sub_type		 = desc.sub_type;
+
 		if (desc.cook_options != nullptr)
 			editor_asset_io_t::set_cook_options_json(asset, *desc.cook_options);
 
@@ -180,8 +185,10 @@ namespace sfg
 
 		if (out_asset != nullptr)
 			*out_asset = asset;
+
 		if (out_asset_path != nullptr)
 			*out_asset_path = asset_path;
+
 		return true;
 	}
 
@@ -191,6 +198,7 @@ namespace sfg
 			return false;
 
 		const string_t asset_path = editor_asset_path_t::make_asset_path(desc.parent_path, desc.name);
+
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
 		{
 			SFG_ERR("can't write asset as asset with this name already exists! {0}", asset_path.c_str());
@@ -199,15 +207,17 @@ namespace sfg
 
 		sid_t guid			 = NULL_SID;
 		sid_t thumbnail_guid = NULL_SID;
+
 		resolve_asset_guids(desc.guid, desc.allow_overwrite, asset_path.c_str(), desc.asset_type, guid, thumbnail_guid);
 
 		editor_asset_t asset = {};
-		asset.version		 = editor_asset_t::VERSION;
+		asset.version		 = editor_asset_t::WIRE_VERSION;
 		asset.guid			 = guid;
 		asset.thumbnail_guid = thumbnail_guid;
 		asset.asset_type	 = desc.asset_type;
 		asset.source_type	 = editor_asset_source_type_e::embedded;
 		asset.sub_type		 = desc.sub_type;
+
 		editor_asset_io_t::set_embedded_source_json(asset, *desc.embedded_source);
 
 		if (!editor_asset_io_t::write_asset(asset_path.c_str(), asset))
@@ -218,8 +228,10 @@ namespace sfg
 
 		if (out_asset != nullptr)
 			*out_asset = asset;
+
 		if (out_asset_path != nullptr)
 			*out_asset_path = asset_path;
+
 		return true;
 	}
 
@@ -229,15 +241,17 @@ namespace sfg
 			return false;
 
 		const string_t asset_path = editor_asset_path_t::make_asset_path(desc.parent_path, desc.name);
+
 		if (!desc.allow_overwrite && file_system_t::exists(asset_path.c_str()))
 			return false;
 
 		sid_t guid			 = NULL_SID;
 		sid_t thumbnail_guid = NULL_SID;
+
 		resolve_asset_guids(desc.guid, desc.allow_overwrite, asset_path.c_str(), desc.asset_type, guid, thumbnail_guid);
 
 		editor_asset_t asset = {};
-		asset.version		 = editor_asset_t::VERSION;
+		asset.version		 = editor_asset_t::WIRE_VERSION;
 		asset.guid			 = guid;
 		asset.thumbnail_guid = thumbnail_guid;
 		asset.asset_type	 = desc.asset_type;
@@ -252,8 +266,10 @@ namespace sfg
 
 		if (out_asset != nullptr)
 			*out_asset = asset;
+
 		if (out_asset_path != nullptr)
 			*out_asset_path = asset_path;
+
 		return true;
 	}
 

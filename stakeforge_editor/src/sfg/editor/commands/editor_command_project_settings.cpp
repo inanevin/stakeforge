@@ -23,6 +23,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/editor_command_system.hpp"
 #include "editor/editor_directories.hpp"
 #include "editor/editor_project.hpp"
+#include "editor/editor_upgrader.hpp"
 #include "editor/editor_world_controller.hpp"
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/memory/memory.hpp>
@@ -92,6 +93,7 @@ namespace sfg
 					return false;
 				}
 
+				editor_upgrader_t::write_project_wire_versions(project_json);
 				project_json["layout"] = project.layout;
 				project_contents	   = project_json.dump(4);
 				editor_contents		   = editor_json.dump(4);

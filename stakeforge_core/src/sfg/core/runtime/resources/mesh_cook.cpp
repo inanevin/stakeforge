@@ -27,6 +27,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/common/hashing.hpp"
 #include "core/data/istream.hpp"
 #include "core/data/ostream.hpp"
+#include "core/io/assert.hpp"
 #include "core/io/log.hpp"
 #include "core/reflection/reflection_registry.hpp"
 #include "core/serialization/compression.hpp"
@@ -34,13 +35,12 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define MESH_DEF_BLOB_MAGIC	  make_resource_wire_magic('M', 'D', 'E', 'F')
-#define MESH_DEF_BLOB_VERSION 1
+#define MESH_DEF_BLOB_MAGIC make_resource_wire_magic('M', 'D', 'E', 'F')
 
 	bool mesh_cooker::serialize_def_blob(const mesh_def_t& def, ostream_t& stream)
 	{
 		stream << static_cast<u32>(MESH_DEF_BLOB_MAGIC);
-		stream << static_cast<u32>(MESH_DEF_BLOB_VERSION);
+		stream << static_cast<u32>(BLOB_WIRE_VERSION);
 
 		if (!reflection_registry_t::get().type_to_stream(type_id_t<mesh_def_t>::value, const_cast<mesh_def_t*>(&def), nullptr, stream))
 		{
@@ -49,6 +49,7 @@ namespace sfg
 		}
 
 		const u32 preview_material_count = static_cast<u32>(def.preview_materials.size());
+
 		stream << preview_material_count;
 
 		for (const resource_handle_t material : def.preview_materials)
@@ -59,36 +60,13 @@ namespace sfg
 
 	bool mesh_cooker::deserialize_def_blob(istream_t& stream, mesh_def_t& out)
 	{
-		if (stream.get_size() < sizeof(u32))
-		{
-			SFG_ERR("mesh definition blob is too small");
-			return false;
-		}
-
-		u32 magic = 0;
-		stream >> magic;
-
-		if (magic != MESH_DEF_BLOB_MAGIC)
-		{
-			stream.seek(0);
-
-			return reflection_registry_t::get().type_from_stream(type_id_t<mesh_def_t>::value, &out, nullptr, stream);
-		}
-
-		if (stream.get_size() < sizeof(u32) * 2)
-		{
-			SFG_ERR("mesh definition blob version is missing");
-			return false;
-		}
-
+		u32 magic	= 0;
 		u32 version = 0;
-		stream >> version;
 
-		if (version != MESH_DEF_BLOB_VERSION)
-		{
-			SFG_ERR("unsupported mesh definition blob version: {0}", version);
-			return false;
-		}
+		stream >> magic >> version;
+
+		SFG_ASSERT(magic == MESH_DEF_BLOB_MAGIC);
+		SFG_ASSERT(version == BLOB_WIRE_VERSION);
 
 		if (!reflection_registry_t::get().type_from_stream(type_id_t<mesh_def_t>::value, &out, nullptr, stream))
 			return false;
@@ -100,6 +78,7 @@ namespace sfg
 		}
 
 		u32 preview_material_count = 0;
+
 		stream >> preview_material_count;
 
 		if (static_cast<size_t>(preview_material_count) > (stream.get_size() - stream.tellg()) / sizeof(resource_handle_t))
@@ -119,6 +98,7 @@ namespace sfg
 	bool mesh_cooker::cook_from_file(const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
 		istream_t mesh_def_stream = serializer_t::load_from_file_compressed(full_path);
+
 		if (mesh_def_stream.empty())
 		{
 			SFG_ERR("failed to read mesh definition file: {0}", full_path);
@@ -126,6 +106,7 @@ namespace sfg
 		}
 
 		mesh_def_t def = {};
+
 		if (!deserialize_def_blob(mesh_def_stream, def))
 		{
 			SFG_ERR("failed to deserialize mesh definition file: {0}", full_path);
@@ -182,6 +163,5 @@ namespace sfg
 		return true;
 	}
 
-#undef MESH_DEF_BLOB_VERSION
 #undef MESH_DEF_BLOB_MAGIC
 }

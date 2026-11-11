@@ -23,6 +23,7 @@ in GAME-LINKING-EXCEPTION.md.
 #pragma once
 
 #include "core/common/sfg_exports.hpp"
+#include "core/common/size_definitions.hpp"
 
 namespace sfg
 {
@@ -34,6 +35,8 @@ namespace sfg
 	class SFG_API animation_cooker
 	{
 	public:
+		static constexpr u32 BLOB_WIRE_VERSION = 0;
+
 		static bool serialize_def_blob(const animation_def_t& def, ostream_t& stream);
 		static bool deserialize_def_blob(istream_t& stream, animation_def_t& out);
 		static bool cook_from_file(const char* full_path, resource_header_t& out_header, ostream_t& stream);

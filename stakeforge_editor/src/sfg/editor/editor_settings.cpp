@@ -22,7 +22,6 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/editor_settings.hpp"
 #include "editor/editor_directories.hpp"
 
-#include <sfg/core/io/file_system.hpp>
 #include <sfg/core/io/log.hpp>
 #include <sfg/core/math/math.hpp>
 #include <sfg/core/reflection/reflection_registry.hpp>
@@ -82,62 +81,6 @@ namespace sfg
 
 		return true;
 	}
-
-	bool editor_settings_t::ensure_loaded()
-	{
-		const string_t settings = editor_directories_t::get_editor_settings();
-
-		if (!file_system_t::exists(settings.c_str()))
-		{
-			editor_settings_t defaults = {};
-
-			if (!defaults.save())
-				return false;
-
-			*this = std::move(defaults);
-
-			return true;
-		}
-
-		const string_t		 json_text = file_system_t::read_file_as_string(settings.c_str());
-		const nlohmann::json json	   = nlohmann::json::parse(json_text, nullptr, false);
-
-		if (json.is_discarded())
-		{
-			SFG_ERR("failed to parse editor settings {0}", settings);
-			return false;
-		}
-
-		editor_settings_t loaded = {};
-
-		try
-		{
-			json.get_to(loaded);
-		}
-		catch (const nlohmann::json::exception& error)
-		{
-			SFG_ERR("failed to deserialize editor settings {0}: {1}", settings, error.what());
-			return false;
-		}
-
-		for (u8 i = 0; i < static_cast<u8>(editor_panel_type_e::max); ++i)
-		{
-			const editor_panel_window_size_t& size	= loaded.panel_window_sizes[i];
-			const bool						  unset = size.width == 0.0f && size.height == 0.0f;
-			const bool						  valid = size.width > 0.0f && size.width <= 65535.0f && size.height > 0.0f && size.height <= 65535.0f;
-
-			if (!unset && !valid)
-			{
-				SFG_ERR("invalid window size for panel {0} in editor settings {1}", editor_panel_type_to_string(static_cast<editor_panel_type_e>(i)), settings);
-				return false;
-			}
-		}
-
-		*this = std::move(loaded);
-
-		return true;
-	}
-
 }
 
 namespace sfg
@@ -199,6 +142,7 @@ namespace sfg
 
 	void to_json(nlohmann::json& j, const editor_settings_t& settings)
 	{
+		j["wire_version"]		= editor_settings_t::WIRE_VERSION;
 		j["import"]				= settings.import;
 		j["project_cook"]		= reflected_to_json(settings.project_cook);
 		j["configurable"]		= reflected_to_json(settings.configurable);

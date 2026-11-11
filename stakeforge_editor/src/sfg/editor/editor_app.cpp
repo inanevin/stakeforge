@@ -28,6 +28,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/editor_project_cooker.hpp"
 #include "editor/editor_settings.hpp"
 #include "editor/editor_surface_controller.hpp"
+#include "editor/editor_upgrader.hpp"
 #include "editor/plugin/editor_plugin_manager.hpp"
 #include "editor/ui/editor_text_rasterization.hpp"
 #include "editor/ui/panels/editor_panel_world.hpp"
@@ -76,7 +77,7 @@ namespace sfg
 		editor_text_rasterization_t::set_subpixel_enabled(true);
 		editor_directories_t::init_paths();
 
-		if (!editor_settings_t::get().ensure_loaded())
+		if (!editor_upgrader_t::validate_editor_settings())
 			return false;
 
 		/* engine globals, init backend & engine & editor managers */
@@ -417,8 +418,12 @@ namespace sfg
 				_splash_work = _work_controller.submit_work({
 					.fn =
 						[](editor_work_context_t& context, void* user_data) {
-							editor_app_t& app		   = *static_cast<editor_app_t*>(user_data);
-							const bool	  assets_ready = editor_asset_manager_util_t::ensure_project_assets(app._asset_manager, context);
+							editor_app_t& app = *static_cast<editor_app_t*>(user_data);
+
+							if (!editor_upgrader_t::validate_project_assets())
+								return false;
+
+							const bool assets_ready = editor_asset_manager_util_t::ensure_project_assets(app._asset_manager, context);
 
 							editor_plugin_manager_t::get().prepare_startup(context);
 							return assets_ready;
@@ -430,11 +435,20 @@ namespace sfg
 							SFG_ASSERT(handle == app._splash_work);
 
 							app._splash_work = {};
+
+							if (state == editor_work_state_e::failed)
+							{
+								editor_plugin_manager_t::get().begin_shutdown();
+								editor_plugin_manager_t::get().uninit();
+								app.request_switch_mode(editor_app_mode_e::project_creator);
+								return;
+							}
+
 							editor_plugin_manager_t::get().complete_startup();
 							app.request_switch_mode(editor_app_mode_e::normal);
 						},
 					.user_data		= this,
-					.initial_status = "Ensuring default assets",
+					.initial_status = "Validating project assets",
 				});
 			}
 		}

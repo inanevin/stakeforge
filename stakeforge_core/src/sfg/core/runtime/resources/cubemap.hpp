@@ -36,7 +36,7 @@ namespace sfg
 	{
 	public:
 		static inline constexpr u32 WIRE_MAGIC		 = make_resource_wire_magic('C', 'U', 'B', 'E');
-		static inline constexpr u32 WIRE_VERSION	 = 1;
+		static inline constexpr u32 WIRE_VERSION	 = 0;
 		static inline constexpr u8	FACE_COUNT		 = 6;
 		static inline constexpr u8	MAX_MIPS		 = 16;
 		static inline constexpr u8	MAX_SUBRESOURCES = FACE_COUNT * MAX_MIPS;

@@ -38,6 +38,8 @@ namespace sfg
 	class SFG_API world_cooker_t
 	{
 	public:
+		static constexpr u32 WIRE_VERSION = 0;
+
 		static void		   world_to_stream(const world_t& world, ostream_t& out_stream);
 		static bool		   world_to_json(const world_t& world, nlohmann::json& out_json);
 		static bool		   world_from_json(world_t& world, const nlohmann::json& in_json);

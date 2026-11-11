@@ -49,6 +49,8 @@ namespace sfg
 	class SFG_API texture_cooker
 	{
 	public:
+		static constexpr u32 BLOB_WIRE_VERSION = 0;
+
 		static bool cook_from_file(const texture_cook_config_t& cfg, const char* full_path, resource_header_t& out_header, ostream_t& stream);
 		static bool cook_from_data(const texture_cook_config_t& cfg, span_t<u8> data, resource_header_t& out_header, ostream_t& stream);
 	};

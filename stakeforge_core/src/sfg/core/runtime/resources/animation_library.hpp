@@ -89,7 +89,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC	  = make_resource_wire_magic('A', 'L', 'I', 'B');
-		static constexpr u32 WIRE_VERSION = 8;
+		static constexpr u32 WIRE_VERSION = 0;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static bool runtime_load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);

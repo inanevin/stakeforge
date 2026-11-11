@@ -45,6 +45,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/runtime/resources/material_def.hpp>
 #include <sfg/core/runtime/resources/mesh_cook.hpp>
 #include <sfg/core/runtime/resources/mesh.hpp>
+#include <sfg/core/runtime/resources/physics_collision_mesh_cook.hpp>
 #include <sfg/core/runtime/resources/physics_collision_mesh_def.hpp>
 #include <sfg/core/runtime/resources/skeleton.hpp>
 #include <sfg/core/runtime/resources/texture_cook.hpp>
@@ -365,15 +366,6 @@ namespace sfg
 				return false;
 			out = wrapped;
 			return true;
-		}
-
-		template <typename T> bool serialize_reflected_to_stream(const T& value, ostream_t& out)
-		{
-			reflection_registry_t& registry = reflection_registry_t::get();
-			if (registry.find_type(type_id_t<T>::value) == nullptr)
-				return false;
-
-			return registry.type_to_stream(type_id_t<T>::value, const_cast<T*>(&value), nullptr, out);
 		}
 
 		sid_t get_sampler_guid(const tg3_model& model, const tg3_material& material)
@@ -1434,7 +1426,7 @@ namespace sfg
 			const string_t blob_path  = editor_asset_path_t::make_blob_path(target_directory, asset_name.c_str());
 			ostream_t	   def_stream = {};
 
-			if (!serialize_reflected_to_stream(collision_def, def_stream))
+			if (!physics_collision_mesh_cooker::serialize_def_blob(collision_def, def_stream))
 			{
 				SFG_ERR("failed to serialize GLB physics collision mesh definition {0}", asset_name.c_str());
 				return false;

@@ -27,6 +27,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/common/hashing.hpp"
 #include "core/data/istream.hpp"
 #include "core/data/ostream.hpp"
+#include "core/io/assert.hpp"
 #include "core/io/log.hpp"
 #include "core/reflection/reflection_registry.hpp"
 #include "core/serialization/compression.hpp"
@@ -34,9 +35,38 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+#define PHYSICS_COLLISION_MESH_DEF_BLOB_MAGIC make_resource_wire_magic('C', 'D', 'E', 'F')
+
+	bool physics_collision_mesh_cooker::serialize_def_blob(const physics_collision_mesh_def_t& def, ostream_t& stream)
+	{
+		stream << static_cast<u32>(PHYSICS_COLLISION_MESH_DEF_BLOB_MAGIC);
+		stream << BLOB_WIRE_VERSION;
+
+		const bool serialized = reflection_registry_t::get().type_to_stream(type_id_t<physics_collision_mesh_def_t>::value, const_cast<physics_collision_mesh_def_t*>(&def), nullptr, stream);
+
+		if (!serialized)
+			SFG_ERR("failed to serialize physics collision mesh definition blob");
+
+		return serialized;
+	}
+
+	bool physics_collision_mesh_cooker::deserialize_def_blob(istream_t& stream, physics_collision_mesh_def_t& out)
+	{
+		u32 magic	= 0;
+		u32 version = 0;
+
+		stream >> magic >> version;
+
+		SFG_ASSERT(magic == PHYSICS_COLLISION_MESH_DEF_BLOB_MAGIC);
+		SFG_ASSERT(version == BLOB_WIRE_VERSION);
+
+		return reflection_registry_t::get().type_from_stream(type_id_t<physics_collision_mesh_def_t>::value, &out, nullptr, stream);
+	}
+
 	bool physics_collision_mesh_cooker::cook_from_file(const char* full_path, resource_header_t& out_header, ostream_t& stream)
 	{
 		istream_t def_stream = serializer_t::load_from_file_compressed(full_path);
+
 		if (def_stream.empty())
 		{
 			SFG_ERR("failed to read physics collision mesh definition file: {0}", full_path);
@@ -44,7 +74,8 @@ namespace sfg
 		}
 
 		physics_collision_mesh_def_t def = {};
-		if (!reflection_registry_t::get().type_from_stream(type_id_t<physics_collision_mesh_def_t>::value, &def, nullptr, def_stream))
+
+		if (!deserialize_def_blob(def_stream, def))
 		{
 			SFG_ERR("failed to deserialize physics collision mesh definition file: {0}", full_path);
 			return false;

@@ -43,7 +43,7 @@ namespace sfg
 		physics_collision_mesh_loader_t() = delete;
 
 		static inline constexpr u32 WIRE_MAGIC	 = make_resource_wire_magic('P', 'C', 'M', 'H');
-		static inline constexpr u32 WIRE_VERSION = 2;
+		static inline constexpr u32 WIRE_VERSION = 0;
 
 		static bool load(resource_entry_t& entry, resource_context_t& ctx, resource_file_system_t& rfs, size_t payload_offset);
 		static bool runtime_load(resource_entry_t& entry, resource_context_t& ctx, istream_t& stream);

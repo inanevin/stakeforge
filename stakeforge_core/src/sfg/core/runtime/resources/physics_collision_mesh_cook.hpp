@@ -23,9 +23,11 @@ in GAME-LINKING-EXCEPTION.md.
 #pragma once
 
 #include "core/common/sfg_exports.hpp"
+#include "core/common/size_definitions.hpp"
 
 namespace sfg
 {
+	class istream_t;
 	class ostream_t;
 	struct physics_collision_mesh_def_t;
 	struct resource_header_t;
@@ -33,8 +35,12 @@ namespace sfg
 	class SFG_API physics_collision_mesh_cooker final
 	{
 	public:
+		static constexpr u32 BLOB_WIRE_VERSION = 0;
+
 		physics_collision_mesh_cooker() = delete;
 
+		static bool serialize_def_blob(const physics_collision_mesh_def_t& def, ostream_t& stream);
+		static bool deserialize_def_blob(istream_t& stream, physics_collision_mesh_def_t& out);
 		static bool cook_from_file(const char* full_path, resource_header_t& out_header, ostream_t& stream);
 		static bool cook_from_def(const physics_collision_mesh_def_t& def, resource_header_t& out_header, ostream_t& stream, bool compress = true);
 	};

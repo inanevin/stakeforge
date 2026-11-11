@@ -53,7 +53,7 @@ namespace sfg
 
 	struct SFG_EDITOR_API editor_asset_t
 	{
-		static constexpr u32 VERSION = 0;
+		static constexpr u32 WIRE_VERSION = 0;
 
 		string_t				   embedded_source = {};
 		string_t				   cook_options	   = "{}";

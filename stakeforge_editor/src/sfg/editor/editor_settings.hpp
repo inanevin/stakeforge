@@ -62,6 +62,8 @@ namespace sfg
 
 	struct SFG_EDITOR_API editor_settings_t
 	{
+		static constexpr u32 WIRE_VERSION = 0;
+
 		inline static editor_settings_t& get()
 		{
 			static editor_settings_t instance = {};
@@ -70,7 +72,6 @@ namespace sfg
 		}
 
 		bool save();
-		bool ensure_loaded();
 
 		editor_import_settings_t	   import														 = {};
 		editor_project_cook_options_t  project_cook													 = {};

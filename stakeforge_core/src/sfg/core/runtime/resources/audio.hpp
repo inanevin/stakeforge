@@ -60,7 +60,7 @@ namespace sfg
 	{
 	public:
 		static constexpr u32 WIRE_MAGIC			 = make_resource_wire_magic('A', 'U', 'D', 'R');
-		static constexpr u32 WIRE_VERSION		 = 1;
+		static constexpr u32 WIRE_VERSION		 = 0;
 		static constexpr u32 HEADER_WIRE_SIZE	 = sizeof(u64) * 2 + sizeof(u32) + sizeof(u16) + sizeof(u8) * 3;
 		static constexpr u32 RUNTIME_SAMPLE_RATE = 48000;
 

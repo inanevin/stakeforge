@@ -20,6 +20,8 @@ in GAME-LINKING-EXCEPTION.md.
 
 */
 #include "editor/editor_project.hpp"
+#include "editor/editor_upgrader.hpp"
+
 #include <sfg/core/data/string_util.hpp>
 #include <sfg/core/io/file_system.hpp>
 #include <sfg/core/io/log.hpp>
@@ -57,6 +59,7 @@ namespace sfg
 
 		try
 		{
+			editor_upgrader_t::write_project_wire_versions(js);
 			js["layout"] = layout;
 			contents	 = js.dump(4);
 		}
@@ -80,8 +83,8 @@ namespace sfg
 		if (!file_system_t::exists(path))
 			return false;
 
-		const string_t&		 contents = file_system_t::read_file_as_string(path);
-		const nlohmann::json js		  = nlohmann::json::parse(contents, nullptr, false);
+		const string_t& contents = file_system_t::read_file_as_string(path);
+		nlohmann::json	js		 = nlohmann::json::parse(contents, nullptr, false);
 
 		if (js.is_discarded())
 		{
@@ -91,19 +94,23 @@ namespace sfg
 
 		editor_project_t project = {};
 
-		if (!reflection_registry_t::get().type_from_json(type_id_t<editor_project_t>::value, &project, nullptr, js))
-		{
-			SFG_ERR("failed to deserialize project settings {0}", path);
-			return false;
-		}
-
 		try
 		{
+			editor_upgrader_t::validate_project_file(js);
+
+			const bool converted = reflection_registry_t::get().type_from_json(type_id_t<editor_project_t>::value, &project, nullptr, js);
+
+			if (!converted)
+			{
+				SFG_ERR("failed to deserialize project settings {0}", path);
+				return false;
+			}
+
 			project.layout = js.value("layout", editor_layout_t{});
 		}
 		catch (const nlohmann::json::exception& error)
 		{
-			SFG_ERR("failed to deserialize project layout {0}: {1}", path, error.what());
+			SFG_ERR("failed to deserialize project {0}: {1}", path, error.what());
 			return false;
 		}
 

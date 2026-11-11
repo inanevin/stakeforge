@@ -65,6 +65,8 @@ namespace sfg
 
 	struct SFG_EDITOR_API editor_project_t
 	{
+		static constexpr u32 WIRE_VERSION = 0;
+
 		static editor_project_t& get()
 		{
 			static editor_project_t instance = {};
