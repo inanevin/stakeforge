@@ -186,8 +186,8 @@ namespace sfg
 		mesh_internals_t*  internals = mem.get<mesh_internals_t>(entry.internals);
 
 		clear_mesh_runtime_cpu_data(*runtime);
-		render_resources_t::get().enqueue_destroy_resource(internals->vertex_buffer);
-		render_resources_t::get().enqueue_destroy_resource(internals->index_buffer);
+		render_resources_t::get().release_resource(internals->vertex_buffer);
+		render_resources_t::get().release_resource(internals->index_buffer);
 		mem.free(runtime->primitives);
 		*runtime   = {};
 		*internals = {};

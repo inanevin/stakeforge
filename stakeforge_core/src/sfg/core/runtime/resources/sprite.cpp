@@ -169,8 +169,9 @@ namespace sfg
 		chunk_allocator_t&	mem		  = ctx.resource_manager.get_memory();
 		sprite_internals_t* internals = mem.get<sprite_internals_t>(entry.internals);
 
-		render_resources_t::get().enqueue_destroy_texture(internals->texture);
-		render_resources_t::get().enqueue_destroy_resource(internals->staging);
+		render_resources_t::get().release_texture(internals->texture);
+		render_resources_t::get().release_resource(internals->staging);
+
 		*internals = {};
 	}
 

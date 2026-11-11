@@ -50,7 +50,9 @@ namespace sfg
 	{
 		chunk_allocator_t&			 mem	   = ctx.resource_manager.get_memory();
 		texture_sampler_internals_t* internals = mem.get<texture_sampler_internals_t>(entry.internals);
-		render_resources_t::get().enqueue_destroy_sampler(internals->sampler);
+
+		render_resources_t::get().release_sampler(internals->sampler);
+
 		*internals = {};
 	}
 

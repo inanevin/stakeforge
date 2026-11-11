@@ -134,7 +134,8 @@ namespace sfg
 		shader_internals_t* internals = mem.get<shader_internals_t>(entry.internals);
 
 		for (u8 i = 0; i < internals->pso_count; ++i)
-			render_resources_t::get().enqueue_destroy_shader(internals->psos[i]);
+			render_resources_t::get().release_shader(internals->psos[i]);
+
 		*internals = {};
 	}
 

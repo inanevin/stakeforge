@@ -63,6 +63,9 @@ namespace sfg::ui
 		u32							vertex_count	= 0;
 		u32							index_count		= 0;
 		u32							parameter_count = 0;
+
+		void retain_resources() const;
+		void release_resources() const;
 	};
 
 	struct vg_canvas_config_t

@@ -152,6 +152,11 @@ namespace sfg::ui
 			_pipeline_variant_flags = flags;
 		}
 
+		inline u32 get_pipeline_variant_flags() const
+		{
+			return _pipeline_variant_flags;
+		}
+
 		inline layout_tree_t& get_tree()
 		{
 			return _tree;
@@ -213,7 +218,6 @@ namespace sfg::ui
 		};
 
 		void allocate_snapshot_slot(snapshot_slot_t& slot, u32 draw_capacity, u32 vertex_capacity, u32 index_capacity);
-		void free_snapshot_slot(snapshot_slot_t& slot);
 		void clear_widget_state_recursive(widget_id_t id);
 		void run_pre_layout_ticks(f32 dt_seconds);
 		void run_post_layout_ticks(f32 dt_seconds);

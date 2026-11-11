@@ -70,15 +70,16 @@ namespace sfg
 	{
 		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
 
-		enqueue_destroy_sampler(_default_linear_sampler);
-		enqueue_destroy_texture(_invalid_texture);
-		enqueue_destroy_resource(_invalid_texture_staging);
-		enqueue_destroy_texture(_white_texture);
-		enqueue_destroy_resource(_white_texture_staging);
-		enqueue_destroy_texture(_black_texture);
-		enqueue_destroy_resource(_black_texture_staging);
-		enqueue_destroy_texture(_brdf_lut);
-		enqueue_destroy_resource(_brdf_lut_staging);
+		release_sampler(_default_linear_sampler);
+		release_texture(_invalid_texture);
+		release_resource(_invalid_texture_staging);
+		release_texture(_white_texture);
+		release_resource(_white_texture_staging);
+		release_texture(_black_texture);
+		release_resource(_black_texture_staging);
+		release_texture(_brdf_lut);
+		release_resource(_brdf_lut_staging);
+
 		drain_requests(0x80);
 
 		for (request_t& request : _pending_texture_region_data_uploads)
@@ -200,32 +201,92 @@ namespace sfg
 		return handle;
 	}
 
-	void render_resources_t::enqueue_destroy_resource(render_resource_handle_t handle)
+	void render_resources_t::retain_resource(render_resource_handle_t handle)
 	{
 		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(!handle.is_null());
-		_request_q.enqueue({.kind = request_kind_e::destroy_resource, .render_handle = handle});
+
+		render_resource_t& resource = _resources.get(handle);
+		SFG_ASSERT(resource.reference_count != 0);
+		SFG_ASSERT(resource.reference_count != UINT32_MAX);
+		++resource.reference_count;
 	}
 
-	void render_resources_t::enqueue_destroy_texture(render_resource_handle_t handle)
+	void render_resources_t::retain_texture(render_resource_handle_t handle)
 	{
 		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(!handle.is_null());
-		_request_q.enqueue({.kind = request_kind_e::destroy_texture, .render_handle = handle});
+
+		render_resource_t& resource = _textures.get(handle);
+		SFG_ASSERT(resource.reference_count != 0);
+		SFG_ASSERT(resource.reference_count != UINT32_MAX);
+		++resource.reference_count;
 	}
 
-	void render_resources_t::enqueue_destroy_sampler(render_resource_handle_t handle)
+	void render_resources_t::retain_sampler(render_resource_handle_t handle)
 	{
 		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(!handle.is_null());
-		_request_q.enqueue({.kind = request_kind_e::destroy_sampler, .render_handle = handle});
+
+		render_resource_t& resource = _samplers.get(handle);
+		SFG_ASSERT(resource.reference_count != 0);
+		SFG_ASSERT(resource.reference_count != UINT32_MAX);
+		++resource.reference_count;
 	}
 
-	void render_resources_t::enqueue_destroy_shader(render_resource_handle_t handle)
+	void render_resources_t::retain_shader(render_resource_handle_t handle)
 	{
 		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
-		SFG_ASSERT(!handle.is_null());
-		_request_q.enqueue({.kind = request_kind_e::destroy_shader, .render_handle = handle});
+
+		render_resource_t& resource = _shaders.get(handle);
+		SFG_ASSERT(resource.reference_count != 0);
+		SFG_ASSERT(resource.reference_count != UINT32_MAX);
+		++resource.reference_count;
+	}
+
+	void render_resources_t::release_resource(render_resource_handle_t handle)
+	{
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
+
+		render_resource_t& resource = _resources.get(handle);
+		SFG_ASSERT(resource.reference_count != 0);
+		--resource.reference_count;
+
+		if (resource.reference_count == 0)
+			_request_q.enqueue({.kind = request_kind_e::destroy_resource, .render_handle = handle});
+	}
+
+	void render_resources_t::release_texture(render_resource_handle_t handle)
+	{
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
+
+		render_resource_t& resource = _textures.get(handle);
+		SFG_ASSERT(resource.reference_count != 0);
+		--resource.reference_count;
+
+		if (resource.reference_count == 0)
+			_request_q.enqueue({.kind = request_kind_e::destroy_texture, .render_handle = handle});
+	}
+
+	void render_resources_t::release_sampler(render_resource_handle_t handle)
+	{
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
+
+		render_resource_t& resource = _samplers.get(handle);
+		SFG_ASSERT(resource.reference_count != 0);
+		--resource.reference_count;
+
+		if (resource.reference_count == 0)
+			_request_q.enqueue({.kind = request_kind_e::destroy_sampler, .render_handle = handle});
+	}
+
+	void render_resources_t::release_shader(render_resource_handle_t handle)
+	{
+		SFG_ASSERT(is_main_thread() || !SFG_IS_RENDER_RUNNING());
+
+		render_resource_t& resource = _shaders.get(handle);
+		SFG_ASSERT(resource.reference_count != 0);
+		--resource.reference_count;
+
+		if (resource.reference_count == 0)
+			_request_q.enqueue({.kind = request_kind_e::destroy_shader, .render_handle = handle});
 	}
 
 	void render_resources_t::enqueue_texture_upload(const render_texture_upload_desc_t& desc)
@@ -315,7 +376,6 @@ namespace sfg
 		req.kind		  = request_kind_e::replace_texture;
 		req.texture		  = desc.texture;
 		req.staging		  = desc.staging;
-		req.old_staging	  = desc.old_staging;
 		req.texture_desc  = desc.texture_desc;
 		req.target_states = desc.target_states;
 		req.ownership	  = desc.ownership;
@@ -324,6 +384,8 @@ namespace sfg
 			req.mips.push_back(desc.mips.data[i]);
 
 		_request_q.enqueue(std::move(req));
+
+		release_resource(desc.old_staging);
 	}
 
 	void render_resources_t::enqueue_data_upload(const render_data_upload_desc_t& desc)
@@ -527,11 +589,10 @@ namespace sfg
 			case request_kind_e::replace_texture: {
 				const render_thread_resource_t& old_resource = get_render_thread_resource_entry(_rt_textures, req.texture);
 				const gfx_handle_t				old_texture	 = old_resource.hw_handle;
-				const gfx_handle_t				old_staging	 = get_render_thread_resource_entry(_rt_resources, req.old_staging).hw_handle;
 				const gfx_handle_t				new_texture	 = backend.create_texture(req.texture_desc);
+
 				set_render_thread_texture(_rt_textures, req.texture, new_texture, req.texture_desc);
 				_retired_resources.push_back({.hw_handle = old_texture, .kind = request_kind_e::destroy_texture});
-				_retired_resources.push_back({.render_handle = req.old_staging, .hw_handle = old_staging, .kind = request_kind_e::destroy_resource});
 
 				const texture_upload_desc_t desc = {
 					.texture		   = new_texture,

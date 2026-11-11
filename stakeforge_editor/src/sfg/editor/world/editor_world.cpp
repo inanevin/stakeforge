@@ -34,6 +34,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/math/math.hpp>
 #include <sfg/core/math/mat4x3.hpp>
 #include <sfg/core/runtime/physics/physics_world.hpp>
+#include <sfg/core/runtime/render/render_resources.hpp>
 #include <sfg/core/runtime/world_renderer/world_renderer_view.hpp>
 #include <sfg/core/runtime/world_renderer/world_renderer_camera.hpp>
 #include <sfg/core/runtime/resources/common_resources.hpp>
@@ -129,7 +130,12 @@ namespace sfg
 		_edit_context.set_editor_camera_entity(NULL_ENTITY_ID);
 
 		for (editor_world_snapshot_data_t& snapshot : _snapshot_slots)
+		{
+			for (const editor_world_icon_t& icon : snapshot.icons)
+				render_resources_t::get().release_texture(icon.texture);
+
 			snapshot = {};
+		}
 
 		_world_renderer->uninit();
 		delete _world_renderer;
@@ -553,6 +559,9 @@ namespace sfg
 
 		_view_rotation = camera_entity == NULL_ENTITY_ID ? quat_t::identity : _world.get_component_table<component_system_transform_t>().get_as_const<component_system_transform_t>(camera_entity).abs_rot;
 
+		for (const editor_world_icon_t& icon : data.icons)
+			render_resources_t::get().release_texture(icon.texture);
+
 		data.icons.resize(0);
 
 		if (is_editor_control_enabled())
@@ -609,6 +618,9 @@ namespace sfg
 			}
 		}
 
+		for (const editor_world_icon_t& icon : data.icons)
+			render_resources_t::get().retain_texture(icon.texture);
+
 		_world_renderer->publish_snapshot();
 	}
 
@@ -631,9 +643,7 @@ namespace sfg
 		}
 
 		_world_renderer->render_scene(interpolation_alpha, frame_index, global_cbv_index, global_layout);
-
 		_world_renderer->render_post_process(frame_index, global_cbv_index, global_layout);
-
 		_world_renderer->render_finalize(frame_index, global_cbv_index, global_layout);
 		editor_world_rendering_t::render_world(_render_context, *_world_renderer, data, interpolation_alpha, frame_index, global_cbv_index, global_layout);
 

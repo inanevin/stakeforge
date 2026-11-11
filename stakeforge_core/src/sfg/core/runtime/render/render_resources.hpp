@@ -17,6 +17,7 @@ namespace sfg
 {
 	struct render_resource_t
 	{
+		u32 reference_count = 1;
 	};
 
 	struct render_resources_config_t
@@ -123,10 +124,15 @@ namespace sfg
 		// destroy
 		// -----------------------------------------------------------------------------
 
-		void enqueue_destroy_resource(render_resource_handle_t handle);
-		void enqueue_destroy_texture(render_resource_handle_t handle);
-		void enqueue_destroy_sampler(render_resource_handle_t handle);
-		void enqueue_destroy_shader(render_resource_handle_t handle);
+		void retain_resource(render_resource_handle_t handle);
+		void retain_texture(render_resource_handle_t handle);
+		void retain_sampler(render_resource_handle_t handle);
+		void retain_shader(render_resource_handle_t handle);
+
+		void release_resource(render_resource_handle_t handle);
+		void release_texture(render_resource_handle_t handle);
+		void release_sampler(render_resource_handle_t handle);
+		void release_shader(render_resource_handle_t handle);
 
 		// -----------------------------------------------------------------------------
 		// upload
@@ -222,7 +228,6 @@ namespace sfg
 			render_resource_handle_t									  render_handle		= {};
 			render_resource_handle_t									  texture			= {};
 			render_resource_handle_t									  staging			= {};
-			render_resource_handle_t									  old_staging		= {};
 			render_resource_handle_t									  dst_texture		= {};
 			render_resource_handle_t									  src_buffer		= {};
 			render_resource_handle_t									  resource			= {};

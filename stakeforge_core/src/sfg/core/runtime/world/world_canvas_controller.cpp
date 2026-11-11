@@ -263,12 +263,12 @@ namespace sfg
 
 	void world_canvas_controller_t::append_runtime(const component_system_canvas_t& runtime, world_canvas_draw_snapshot_t& destination) const
 	{
-		const ui::vg_canvas_t& canvas			= runtime.context->get_canvas();
-		const u32			   vertex_offset	= static_cast<u32>(destination.vertices.size());
-		const u32			   index_offset		= static_cast<u32>(destination.indices.size());
-		const u32			   parameter_offset = static_cast<u32>(destination.parameters.size());
-		const u32			   batch_offset		= static_cast<u32>(destination.batches.size());
-		const u32			   draw_count		= canvas.get_draw_count();
+		ui::vg_canvas_t& canvas			  = runtime.context->get_canvas();
+		const u32		 vertex_offset	  = static_cast<u32>(destination.vertices.size());
+		const u32		 index_offset	  = static_cast<u32>(destination.indices.size());
+		const u32		 parameter_offset = static_cast<u32>(destination.parameters.size());
+		const u32		 batch_offset	  = static_cast<u32>(destination.batches.size());
+		const u32		 draw_count		  = canvas.get_draw_count();
 
 		if (canvas.get_indices().size == 0)
 			return;
@@ -289,6 +289,8 @@ namespace sfg
 		destination.indices.resize(index_offset + canvas.get_indices().size);
 		destination.parameters.resize(parameter_offset + draw_count);
 		destination.batches.resize(batch_offset + draw_count);
+
+		canvas.resolve(runtime.context->get_pipeline_variant_flags());
 
 		const ui::vg_draw_snapshot_t appended =
 			canvas.copy_frame(destination.batches.data() + batch_offset, destination.vertices.data() + vertex_offset, destination.indices.data() + index_offset, destination.parameters.data() + parameter_offset, vertex_offset, index_offset, parameter_offset);

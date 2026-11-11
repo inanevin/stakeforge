@@ -61,6 +61,8 @@ namespace sfg
 
 	void stock_world_renderer_t::uninit()
 	{
+		SFG_ASSERT(!SFG_IS_RENDER_RUNNING());
+
 		_visible_draws = {};
 
 		_render_context.uninit();
@@ -80,13 +82,14 @@ namespace sfg
 
 	u8 stock_world_renderer_t::produce_snapshot(world_t& world, const project_settings_t& project_settings)
 	{
+		_snapshot_slots[_producer_slot].release_resources();
 		stock_world_renderer_snapshot_producer_t::produce(world, _snapshot_slots[_producer_slot], project_settings);
-
 		return _producer_slot;
 	}
 
 	void stock_world_renderer_t::publish_snapshot()
 	{
+		_snapshot_slots[_producer_slot].retain_resources();
 		const u8 previous = _snapshot_mailbox.exchange(_producer_slot | STOCK_WORLD_RENDERER_SNAPSHOT_FRESH_FLAG, std::memory_order_acq_rel);
 		_producer_slot	  = previous & STOCK_WORLD_RENDERER_SNAPSHOT_SLOT_MASK;
 	}

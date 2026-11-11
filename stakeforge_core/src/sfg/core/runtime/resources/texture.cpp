@@ -248,8 +248,9 @@ namespace sfg
 		texture_internals_t* internals = mem.get<texture_internals_t>(entry.internals);
 
 		free_texture_runtime_mips(*runtime);
-		render_resources_t::get().enqueue_destroy_texture(internals->texture);
-		render_resources_t::get().enqueue_destroy_resource(internals->staging);
+		render_resources_t::get().release_texture(internals->texture);
+		render_resources_t::get().release_resource(internals->staging);
+
 		*internals = {};
 	}
 

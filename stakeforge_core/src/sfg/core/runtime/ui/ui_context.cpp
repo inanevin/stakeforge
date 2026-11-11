@@ -96,7 +96,16 @@ namespace sfg::ui
 	void ui_context::uninit()
 	{
 		for (snapshot_slot_t& slot : _snapshot_slots)
-			free_snapshot_slot(slot);
+		{
+			slot.snapshot.release_resources();
+
+			SFG_FREE(slot.batches);
+			SFG_FREE(slot.vertices);
+			SFG_FREE(slot.indices);
+			SFG_FREE(slot.parameters);
+			slot = {};
+		}
+
 		_snapshot_mailbox.store(0, std::memory_order_relaxed);
 		_producer_slot = 0;
 		_consumer_slot = 0;
@@ -128,15 +137,6 @@ namespace sfg::ui
 		slot.snapshot		 = {};
 	}
 
-	void ui_context::free_snapshot_slot(snapshot_slot_t& slot)
-	{
-		SFG_FREE(slot.batches);
-		SFG_FREE(slot.vertices);
-		SFG_FREE(slot.indices);
-		SFG_FREE(slot.parameters);
-		slot = {};
-	}
-
 	void ui_context::tick(const vec4f_t& screen_rect, f32 dpi_scale, f32 dt_seconds)
 	{
 		ZoneScoped;
@@ -163,7 +163,6 @@ namespace sfg::ui
 			draw_debug_hovered_widget();
 
 		_canvas.frame_end();
-		_canvas.resolve(_pipeline_variant_flags);
 		_tree.set_topology_mutation_allowed(true);
 	}
 
@@ -476,7 +475,12 @@ namespace sfg::ui
 		SFG_ASSERT(SFG_IS_MAIN_THREAD());
 
 		snapshot_slot_t& slot = _snapshot_slots[_producer_slot];
-		slot.snapshot		  = _canvas.copy_frame(slot.batches, slot.vertices, slot.indices, slot.parameters);
+
+		slot.snapshot.release_resources();
+
+		_canvas.resolve(_pipeline_variant_flags);
+		slot.snapshot = _canvas.copy_frame(slot.batches, slot.vertices, slot.indices, slot.parameters);
+		slot.snapshot.retain_resources();
 
 		const u8 prev  = _snapshot_mailbox.exchange(_producer_slot | SNAPSHOT_FRESH_FLAG, std::memory_order_acq_rel);
 		_producer_slot = static_cast<u8>((prev & SNAPSHOT_SLOT_MASK) % SNAPSHOT_SLOT_COUNT);

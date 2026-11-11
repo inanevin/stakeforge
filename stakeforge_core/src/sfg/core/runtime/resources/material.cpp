@@ -178,7 +178,7 @@ namespace sfg
 		if (runtime->parameter_count != 0)
 		{
 			for (u8 frame_index = 0; frame_index < BACK_BUFFER_COUNT; ++frame_index)
-				render_resources_t::get().enqueue_destroy_resource(internals->parameter_buffers[frame_index]);
+				render_resources_t::get().release_resource(internals->parameter_buffers[frame_index]);
 		}
 
 		*internals = {};

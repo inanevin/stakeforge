@@ -138,10 +138,10 @@ namespace sfg
 
 		void enqueue_destroy(const cubemap_internals_t& internals)
 		{
-			render_resources_t::get().enqueue_destroy_texture(internals.texture);
+			render_resources_t::get().release_texture(internals.texture);
 
 			for (u8 face = 0; face < cubemap_loader_t::FACE_COUNT; ++face)
-				render_resources_t::get().enqueue_destroy_resource(internals.staging[face]);
+				render_resources_t::get().release_resource(internals.staging[face]);
 		}
 	}
 

@@ -19,25 +19,57 @@ holders grant the Stakeforge Game Linking Exception, version 1.0,
 in GAME-LINKING-EXCEPTION.md.
 */
 
-#include "core/runtime/ui/vg/vg_canvas.hpp"
-#include "core/runtime/resources/shader_types.hpp"
-#include "core/runtime/ui/vg/vg_path.hpp"
+#include "vg_canvas.hpp"
+#include "vg_path.hpp"
+#include "core/runtime/ui/glyph_atlas.hpp"
 #include "core/common/hashing.hpp"
 #include "core/io/assert.hpp"
 #include "core/io/log.hpp"
 #include "core/math/math.hpp"
 #include "core/memory/memory.hpp"
+#include "core/runtime/render/render_resources.hpp"
 #include "core/runtime/resources/resource_manager.hpp"
+#include "core/runtime/resources/shader_types.hpp"
 #include "core/runtime/resources/shader.hpp"
 #include "core/runtime/resources/sprite.hpp"
 #include "core/runtime/resources/texture.hpp"
-#include "core/runtime/ui/glyph_atlas.hpp"
 
 namespace sfg::ui
 {
 
 	namespace
 	{
+		template <bool retain> void update_snapshot_resources(const vg_draw_snapshot_t& snapshot)
+		{
+			render_resources_t& resources  = render_resources_t::get();
+			constexpr auto		texture_op = retain ? &render_resources_t::retain_texture : &render_resources_t::release_texture;
+			constexpr auto		shader_op  = retain ? &render_resources_t::retain_shader : &render_resources_t::release_shader;
+
+			for (u32 i = 0; i < snapshot.batch_count; ++i)
+				(resources.*shader_op)(snapshot.batches[i].pipeline);
+
+			for (u32 i = 0; i < snapshot.parameter_count; ++i)
+			{
+				for (const ui_resolved_resource_ref_t& ref : snapshot.parameters[i].constants)
+				{
+					switch (ref.type)
+					{
+					case ui_resource_type_e::texture:
+					case ui_resource_type_e::sprite:
+						(resources.*texture_op)(ref.texture);
+						break;
+					case ui_resource_type_e::evictable_texture:
+						if (!ref.texture.is_null())
+							(resources.*texture_op)(ref.texture);
+
+						break;
+					default:
+						break;
+					}
+				}
+			}
+		}
+
 		struct text_bounds_t
 		{
 			f32	 min_x	   = 0.0f;
@@ -407,10 +439,13 @@ namespace sfg::ui
 	{
 		if (_vertex_pool)
 			SFG_FREE(_vertex_pool);
+
 		if (_index_pool)
 			SFG_FREE(_index_pool);
+
 		if (_text_cache_vertex_buffer)
 			SFG_FREE(_text_cache_vertex_buffer);
+
 		if (_text_cache_index_buffer)
 			SFG_FREE(_text_cache_index_buffer);
 
@@ -518,8 +553,10 @@ namespace sfg::ui
 		_draw_order.resize(0);
 		_scissor_clip_stack.resize(0);
 		_cpu_clip_stack.resize(0);
+
 		_vertex_count = 0;
 		_index_count  = 0;
+
 		_scissor_clip_stack.push_back({screen_clip});
 		_cpu_clip_stack.push_back({screen_clip});
 	}
@@ -1706,5 +1743,15 @@ namespace sfg::ui
 
 		if (_text_run_generation == 0)
 			_text_run_generation = 1;
+	}
+
+	void vg_draw_snapshot_t::retain_resources() const
+	{
+		update_snapshot_resources<true>(*this);
+	}
+
+	void vg_draw_snapshot_t::release_resources() const
+	{
+		update_snapshot_resources<false>(*this);
 	}
 }

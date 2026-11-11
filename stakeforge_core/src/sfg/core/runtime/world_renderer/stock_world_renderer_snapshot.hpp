@@ -301,7 +301,11 @@ namespace sfg
 		fixed_vector_t<stock_world_renderer_particle_t>			particles		  = {};
 		engine_quality_level_e									quality_level	  = engine_quality_level_e::high;
 
+		bool resources_retained = false;
+
 		void init(const world_render_context_config_t& config, const world_debug_draw_config_t& debug_draw_config);
 		void uninit();
+		void retain_resources();
+		void release_resources();
 	};
 }
