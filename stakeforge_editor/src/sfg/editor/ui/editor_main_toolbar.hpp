@@ -24,7 +24,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "editor/editor_exports.hpp"
 
-#include "editor/ui/widgets/editor_widget_checkbox.hpp"
 #include "editor/ui/widgets/editor_widgets_icon_button.hpp"
 #include <sfg/core/common/size_definitions.hpp>
 #include <sfg/core/vendor/nhlohmann/json_fwd.hpp>
@@ -42,10 +41,10 @@ namespace sfg
 	class SFG_EDITOR_API editor_main_toolbar_t final
 	{
 	public:
-		editor_main_toolbar_t()										   = default;
-		~editor_main_toolbar_t()									   = default;
-		editor_main_toolbar_t(const editor_main_toolbar_t&)			   = delete;
-		editor_main_toolbar_t& operator=(const editor_main_toolbar_t&) = delete;
+		editor_main_toolbar_t()												 = default;
+		~editor_main_toolbar_t()											 = default;
+		editor_main_toolbar_t(const editor_main_toolbar_t& other)			 = delete;
+		editor_main_toolbar_t& operator=(const editor_main_toolbar_t& other) = delete;
 
 		// -----------------------------------------------------------------------------
 		// lifetime
@@ -75,23 +74,26 @@ namespace sfg
 
 	private:
 		void refresh_play_controls();
-		void init_play_option(const char* label, editor_checkbox_t& checkbox, bool& value, const editor_widget_callbacks_t& callbacks);
 
 		static void on_play_toggled(bool toggled, void* user_data);
-		static void on_edit_mode_changed(void* user_data);
+		static void on_pause_toggled(bool toggled, void* user_data);
+		static void on_edit_mode_toggled(bool toggled, void* user_data);
+		static void on_debug_toggled(bool toggled, void* user_data);
 		static void on_step_pressed(bool toggled, void* user_data);
 		static void on_play_controls_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
-		editor_checkbox_t	 _edit_mode_checkbox;
 		editor_icon_button_t _play_button;
+		editor_icon_button_t _pause_button;
 		editor_icon_button_t _step_button;
+		editor_icon_button_t _edit_button;
+		editor_icon_button_t _debug_button;
 		ui::ui_context*		 _ui					 = nullptr;
 		ui::widget_id_t		 _root					 = NULL_WIDGET;
 		ui::widget_id_t		 _play_frame			 = NULL_WIDGET;
 		editor_world_view_e	 _pending_world_view	 = {};
 		editor_play_state_e	 _displayed_state		 = {};
-		bool				 _edit_mode				 = false;
+		bool				 _displayed_playing		 = false;
 		bool				 _displayed_paused		 = false;
 		bool				 _has_pending_world_view = false;
 	};

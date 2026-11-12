@@ -40,9 +40,8 @@ namespace sfg
 		session.process_id	  = json.value<u32>("process_id", 0);
 	}
 
-	bool plugin_compiler_t::open_project(const char* solution_path, plugin_ide_session_t& session, string_t& diagnostics)
+	bool plugin_compiler_t::run_visual_studio(const char* solution_path, const string_t& arguments, string_t& diagnostics)
 	{
-		session					  = {};
 		const string_t executable = process::get_executable_path();
 
 		if (executable.empty())
@@ -88,7 +87,7 @@ namespace sfg
 			return false;
 		}
 
-		const string_t command = "\"" + host + "\" -NoLogo -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File \"" + script + "\" -SolutionPath \"" + absolute_solution + "\"";
+		const string_t command = "\"" + host + "\" -NoLogo -NoProfile -NonInteractive -STA -ExecutionPolicy Bypass -File \"" + script + "\" -SolutionPath \"" + absolute_solution + "\" " + arguments;
 
 		process_execute_result_t execution = process::execute(command.c_str());
 		diagnostics						   = std::move(execution.output);
@@ -99,23 +98,66 @@ namespace sfg
 
 		if (!execution.started || execution.exit_code != 0)
 		{
-			SFG_ERR("could not open Visual Studio (exit {0}). Log: {1}\n{2}", execution.exit_code, log_path, diagnostics);
+			SFG_ERR("Visual Studio automation failed (exit {0}). Log: {1}\n{2}", execution.exit_code, log_path, diagnostics);
 			return false;
 		}
 
-		const nlohmann::json response = nlohmann::json::parse(diagnostics, nullptr, false);
+		return true;
+	}
 
+	bool plugin_compiler_t::open_project(const char* solution_path, plugin_ide_session_t& session, string_t& diagnostics)
+	{
+		session			  = {};
+		const bool opened = run_visual_studio(solution_path, "", diagnostics);
+		if (!opened)
+			return false;
+
+		const nlohmann::json response = nlohmann::json::parse(diagnostics, nullptr, false);
 		if (response.is_discarded())
 		{
-			diagnostics = "Could not read the Visual Studio session. See " + log_path;
+			diagnostics = "Could not read the Visual Studio session for " + string_t(solution_path);
 			SFG_ERR("{0}", diagnostics);
 			return false;
 		}
 
-		response.get_to(session);
-		diagnostics = "Opened " + absolute_solution + " in Visual Studio process " + std::to_string(session.process_id);
+		try
+		{
+			plugin_ide_session_t opened_session = {};
+			response.get_to(opened_session);
+			if (opened_session.process_id == 0 || opened_session.creation_time == 0)
+			{
+				diagnostics = "Invalid Visual Studio session for " + string_t(solution_path);
+				SFG_ERR("{0}", diagnostics);
+				return false;
+			}
+
+			session = opened_session;
+		}
+		catch (const nlohmann::json::exception& error)
+		{
+			diagnostics = "Invalid Visual Studio session for " + string_t(solution_path) + ": " + error.what();
+			SFG_ERR("{0}", diagnostics);
+			return false;
+		}
+
+		diagnostics = "Opened " + string_t(solution_path) + " in Visual Studio process " + std::to_string(session.process_id);
 		SFG_INFO("{0}", diagnostics);
 		return true;
+	}
+
+	bool plugin_compiler_t::set_debugging(const char* solution_path, const plugin_ide_session_t& session, bool enabled, string_t& diagnostics)
+	{
+		const bool debugger_present = IsDebuggerPresent() != FALSE;
+		if (!enabled && !debugger_present)
+			return true;
+
+		const string_t arguments =
+			string_t(enabled ? "-Action Attach" : "-Action Detach") + " -IdeProcessId " + std::to_string(session.process_id) + " -IdeCreationTime " + std::to_string(session.creation_time) + " -TargetProcessId " + std::to_string(GetCurrentProcessId());
+		const bool succeeded = run_visual_studio(solution_path, arguments, diagnostics);
+		if (succeeded)
+			SFG_INFO("{0}", diagnostics);
+
+		return succeeded;
 	}
 
 	plugin_compile_result_t plugin_compiler_t::compile(const char* build_directory, const char* output_game_dll, const char* configuration)

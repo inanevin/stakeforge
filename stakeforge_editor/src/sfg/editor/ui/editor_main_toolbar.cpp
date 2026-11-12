@@ -22,7 +22,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "editor/ui/editor_main_toolbar.hpp"
 #include "editor/editor_world_controller.hpp"
-#include "editor/ui/editor_text_rasterization.hpp"
+#include "editor/plugin/editor_plugin_manager.hpp"
 #include "editor/ui/panels/editor_theme.hpp"
 #include "editor/ui/widgets/editor_widgets_icons.hpp"
 #include "editor/world/editor_world.hpp"
@@ -38,6 +38,7 @@ namespace sfg
 		_pending_world_view		= editor_world_view_e::lit;
 		_displayed_state		= editor_play_state_e::not_playing;
 		_displayed_paused		= false;
+		_displayed_playing		= false;
 		_has_pending_world_view = false;
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
@@ -94,7 +95,7 @@ namespace sfg
 							  .icon_color		   = theme.color_accent2,
 							  .disabled_color	   = theme.color_text_disabled,
 							  .icon				   = ICON_PLAY,
-							  .toggled_icon		   = ICON_PAUSE,
+							  .toggled_icon		   = ICON_STOP,
 							  .tooltip			   = "Play",
 							  .on_clicked		   = on_play_toggled,
 							  .user_data		   = this,
@@ -103,6 +104,26 @@ namespace sfg
 							  .rounding			   = theme.item_rounding,
 							  .toggle_enabled	   = true,
 						  });
+
+		_pause_button.init(ui,
+						   _play_frame,
+						   {
+							   .frame_color			= vec4f_t::zero,
+							   .toggled_frame_color = theme.color_accent1_dim,
+							   .hover_color			= theme.color_panel_light1,
+							   .toggled_hover_color = theme.color_accent1_dim,
+							   .press_color			= theme.color_frame_light,
+							   .icon_color			= theme.color_text0,
+							   .disabled_color		= theme.color_text_disabled,
+							   .icon				= ICON_PAUSE,
+							   .tooltip				= "Pause",
+							   .on_clicked			= on_pause_toggled,
+							   .user_data			= this,
+							   .size				= button_size,
+							   .icon_size			= theme.text_big_px_size,
+							   .rounding			= theme.item_rounding,
+							   .toggle_enabled		= true,
+						   });
 
 		_step_button.init(ui,
 						  _play_frame,
@@ -121,66 +142,62 @@ namespace sfg
 							  .rounding		  = theme.item_rounding,
 						  });
 
-		tree.in(_play_button.get_root()).size_mode_x = ui::axis_mode_e::fixed;
-		tree.in(_step_button.get_root()).size_mode_x = ui::axis_mode_e::fixed;
+		_edit_button.init(ui,
+						  _play_frame,
+						  {
+							  .frame_color		   = vec4f_t::zero,
+							  .toggled_frame_color = theme.color_accent1_dim,
+							  .hover_color		   = theme.color_panel_light1,
+							  .toggled_hover_color = theme.color_accent1_dim,
+							  .press_color		   = theme.color_frame_light,
+							  .icon_color		   = theme.color_text0,
+							  .disabled_color	   = theme.color_text_disabled,
+							  .icon				   = ICON_PEN,
+							  .tooltip			   = "Edit",
+							  .on_clicked		   = on_edit_mode_toggled,
+							  .user_data		   = this,
+							  .size				   = button_size,
+							  .icon_size		   = theme.text_big_px_size,
+							  .rounding			   = theme.item_rounding,
+							  .toggle_enabled	   = true,
+						  });
 
-		_edit_mode = editor_world_controller_t::get().get_play_session().is_edit_mode_enabled();
-		init_play_option("Edit Mode", _edit_mode_checkbox, _edit_mode, {.edited = on_edit_mode_changed, .user_data = this});
+		_debug_button.init(ui,
+						   _play_frame,
+						   {
+							   .frame_color			= vec4f_t::zero,
+							   .toggled_frame_color = theme.color_accent1_dim,
+							   .hover_color			= theme.color_panel_light1,
+							   .toggled_hover_color = theme.color_accent1_dim,
+							   .press_color			= theme.color_frame_light,
+							   .icon_color			= theme.color_text0,
+							   .disabled_color		= theme.color_text_disabled,
+							   .icon				= ICON_DEBUG,
+							   .toggled_icon		= ICON_STOP,
+							   .tooltip				= "Debug",
+							   .on_clicked			= on_debug_toggled,
+							   .user_data			= this,
+							   .size				= button_size,
+							   .icon_size			= theme.text_big_px_size,
+							   .rounding			= theme.item_rounding,
+							   .toggle_enabled		= true,
+						   });
+
+		tree.in(_play_button.get_root()).size_mode_x  = ui::axis_mode_e::fixed;
+		tree.in(_pause_button.get_root()).size_mode_x = ui::axis_mode_e::fixed;
+		tree.in(_step_button.get_root()).size_mode_x  = ui::axis_mode_e::fixed;
+		tree.in(_edit_button.get_root()).size_mode_x  = ui::axis_mode_e::fixed;
+		tree.in(_debug_button.get_root()).size_mode_x = ui::axis_mode_e::fixed;
 
 		refresh_play_controls();
 		ui.set_pre_layout_tick(_play_frame, on_play_controls_tick, this);
 	}
 
-	void editor_main_toolbar_t::init_play_option(const char* label, editor_checkbox_t& checkbox, bool& value, const editor_widget_callbacks_t& callbacks)
-	{
-		ui::ui_context&		  ui	= *_ui;
-		ui::layout_tree_t&	  tree	= ui.get_tree();
-		const editor_theme_t& theme = editor_theme_t::get();
-		const ui::widget_id_t frame = ui.allocate_widget();
-
-		ui.set_widget_debug_name(frame, label);
-		tree.attach(_play_frame, frame);
-
-		ui::layout_in_t& frame_in = tree.in(frame);
-		frame_in.size_mode_x	  = ui::axis_mode_e::sum_children;
-		frame_in.size_mode_y	  = ui::axis_mode_e::parent_relative;
-		frame_in.size_value.y	  = 1.0f;
-		frame_in.flow			  = ui::flow_e::row;
-		frame_in.child_spacing	  = theme.item_spacing;
-		frame_in.child_margins	  = {theme.margin_vertical, 0.0f, theme.margin_vertical, 0.0f};
-
-		const ui::widget_id_t text = ui.allocate_widget();
-		tree.attach(frame, text);
-		ui.set_widget_text(text, label);
-
-		ui::layout_in_t& text_in = tree.in(text);
-		text_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
-		text_in.pos_value.y		 = 0.5f;
-		text_in.anchor_y		 = ui::anchor_e::center;
-		text_in.size_mode_x		 = ui::axis_mode_e::fixed;
-		text_in.size_mode_y		 = ui::axis_mode_e::fixed;
-		text_in.size_value		 = {static_cast<f32>(ui.widget_text_len(text)) * theme.text_default_px_size * 0.7f, theme.text_default_px_size};
-		ui.get_paint().set_text(
-			text, ui.widget_text(text), ui.widget_text_len(text), {.font = theme.font_default, .color = theme.color_text1, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
-
-		u8* field = reinterpret_cast<u8*>(&value);
-
-		checkbox.init(ui,
-					  frame,
-					  {
-						  .field	 = {.fields = {.data = &field, .size = 1}, .field_size = sizeof(value)},
-						  .callbacks = callbacks,
-					  });
-
-		ui::layout_in_t& checkbox_in = tree.in(checkbox.get_root());
-		checkbox_in.pos_mode_y		 = ui::pos_mode_e::relative_in_parent;
-		checkbox_in.pos_value.y		 = 0.5f;
-		checkbox_in.anchor_y		 = ui::anchor_e::center;
-	}
-
 	void editor_main_toolbar_t::uninit()
 	{
-		_edit_mode_checkbox.uninit();
+		_debug_button.uninit();
+		_edit_button.uninit();
+		_pause_button.uninit();
 		_step_button.uninit();
 		_play_button.uninit();
 		_ui->deallocate_widget(_root);
@@ -191,6 +208,7 @@ namespace sfg
 		_pending_world_view		= editor_world_view_e::lit;
 		_displayed_state		= editor_play_state_e::not_playing;
 		_displayed_paused		= false;
+		_displayed_playing		= false;
 		_has_pending_world_view = false;
 	}
 
@@ -248,10 +266,16 @@ namespace sfg
 
 		_play_button.set_toggled(state != editor_play_state_e::not_playing);
 		_play_button.set_disabled(main_world.is_null());
-		_step_button.set_disabled(!session.is_playing() || !session.is_paused());
+		_pause_button.set_toggled(session.is_paused());
+		_pause_button.set_disabled(!session.is_playing());
+		_step_button.set_disabled(!session.is_playing());
+		_edit_button.set_toggled(session.is_edit_mode_enabled());
+		_debug_button.set_toggled(editor_plugin_manager_t::get().is_debugger_attached());
+		_debug_button.set_disabled(!editor_plugin_manager_t::get().is_idle());
 
-		_displayed_state  = state;
-		_displayed_paused = session.is_paused();
+		_displayed_playing = session.is_playing();
+		_displayed_state   = state;
+		_displayed_paused  = session.is_paused();
 	}
 
 	void editor_main_toolbar_t::on_play_toggled(bool toggled, void* user_data)
@@ -265,11 +289,22 @@ namespace sfg
 		toolbar.refresh_play_controls();
 	}
 
-	void editor_main_toolbar_t::on_edit_mode_changed(void* user_data)
+	void editor_main_toolbar_t::on_pause_toggled(bool toggled, void* user_data)
+	{
+		editor_world_controller_t::get().get_play_session().request_pause(toggled);
+	}
+
+	void editor_main_toolbar_t::on_edit_mode_toggled(bool toggled, void* user_data)
 	{
 		editor_main_toolbar_t& toolbar = *static_cast<editor_main_toolbar_t*>(user_data);
+		editor_world_controller_t::get().get_play_session().set_edit_mode(toggled);
+		toolbar.refresh_play_controls();
+	}
 
-		editor_world_controller_t::get().get_play_session().set_edit_mode(toolbar._edit_mode);
+	void editor_main_toolbar_t::on_debug_toggled(bool toggled, void* user_data)
+	{
+		editor_main_toolbar_t& toolbar = *static_cast<editor_main_toolbar_t*>(user_data);
+		editor_plugin_manager_t::get().set_debugging(toggled);
 		toolbar.refresh_play_controls();
 	}
 
@@ -290,13 +325,12 @@ namespace sfg
 
 		const editor_play_session_t& session = world_controller.get_play_session();
 
-		if (toolbar._edit_mode != session.is_edit_mode_enabled())
-		{
-			toolbar._edit_mode = session.is_edit_mode_enabled();
-			toolbar._edit_mode_checkbox.refresh_field_data();
-		}
-
-		if (toolbar._displayed_state != session.get_requested_state() || toolbar._displayed_paused != session.is_paused() || ui.get_tree().is_disabled(toolbar._play_button.get_root()) != main_world.is_null())
+		const bool state_changed		 = toolbar._displayed_state != session.get_requested_state() || toolbar._displayed_playing != session.is_playing();
+		const bool options_changed		 = toolbar._edit_button.is_toggled() != session.is_edit_mode_enabled() || toolbar._debug_button.is_toggled() != editor_plugin_manager_t::get().is_debugger_attached();
+		const bool world_changed		 = ui.get_tree().is_disabled(toolbar._play_button.get_root()) != main_world.is_null();
+		const bool debugger_disabled	 = !editor_plugin_manager_t::get().is_idle();
+		const bool debugger_busy_changed = ui.get_tree().is_disabled(toolbar._debug_button.get_root()) != debugger_disabled;
+		if (state_changed || options_changed || world_changed || debugger_busy_changed || toolbar._displayed_paused != session.is_paused())
 			toolbar.refresh_play_controls();
 
 		if (main_world.is_null())

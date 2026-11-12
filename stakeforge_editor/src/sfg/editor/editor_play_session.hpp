@@ -40,10 +40,10 @@ namespace sfg
 	class SFG_EDITOR_API editor_play_session_t final
 	{
 	public:
-		editor_play_session_t()										   = default;
-		~editor_play_session_t()									   = default;
-		editor_play_session_t(const editor_play_session_t&)			   = delete;
-		editor_play_session_t& operator=(const editor_play_session_t&) = delete;
+		editor_play_session_t()												 = default;
+		~editor_play_session_t()											 = default;
+		editor_play_session_t(const editor_play_session_t& other)			 = delete;
+		editor_play_session_t& operator=(const editor_play_session_t& other) = delete;
 
 		// -----------------------------------------------------------------------------
 		// lifetime

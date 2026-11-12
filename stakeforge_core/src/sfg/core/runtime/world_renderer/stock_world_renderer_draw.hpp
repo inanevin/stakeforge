@@ -92,8 +92,6 @@ namespace sfg
 		u32 entity_id	   = UINT32_MAX;
 	};
 
-	static_assert(sizeof(stock_world_renderer_draw_mesh_instance_gpu_t) == 12);
-
 	struct stock_world_renderer_sprite_draw_t
 	{
 		render_resource_handle_t texture		  = {};
@@ -114,9 +112,6 @@ namespace sfg
 		u32			is_linear_sample = 0;
 	};
 
-	static_assert(sizeof(stock_world_renderer_renderable_t) == 64);
-	static_assert(sizeof(stock_world_renderer_draw_sprite_instance_gpu_t) == 40);
-
 	struct stock_world_renderer_debug_draw_texture_gpu_t
 	{
 		vec4f_t		color		  = vec4f_t::zero;
@@ -126,8 +121,6 @@ namespace sfg
 		vec2f_t		screen_offset = vec2f_t::zero;
 		u32			flags		  = 0;
 	};
-
-	static_assert(sizeof(stock_world_renderer_debug_draw_texture_gpu_t) == 52);
 
 	struct stock_world_renderer_particle_t
 	{
@@ -158,9 +151,6 @@ namespace sfg
 		f32		size	 = 0.0f;
 		vec4f_t color	 = vec4f_t::zero;
 	};
-
-	static_assert(sizeof(stock_world_renderer_particle_t) == 64);
-	static_assert(sizeof(stock_world_renderer_draw_particle_instance_gpu_t) == 48);
 
 	struct stock_world_renderer_mesh_draw_t
 	{

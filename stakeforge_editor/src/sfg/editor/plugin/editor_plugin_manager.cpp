@@ -38,6 +38,9 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/platform/time.hpp>
 #include <sfg/core/reflection/plugin_type_schema.hpp>
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 namespace sfg
 {
 #define PLUGIN_RETRY_INTERVAL_US 250000
@@ -55,6 +58,8 @@ namespace sfg
 		_compile_result	   = {};
 		_stage_result	   = {};
 		_ide_session	   = {};
+		_debugger_session  = {};
+		_debugger_attached = false;
 		_state			   = state_e::startup;
 		_stopping		   = false;
 		_reload_pending	   = false;
@@ -143,10 +148,12 @@ namespace sfg
 				SFG_ERR("{0}", _diagnostics);
 		}
 
-		_state		   = state_e::idle;
-		_ide_session   = {};
-		_error_pending = false;
-		_modal_open	   = false;
+		_state			   = state_e::idle;
+		_ide_session	   = {};
+		_debugger_session  = {};
+		_debugger_attached = false;
+		_error_pending	   = false;
+		_modal_open		   = false;
 	}
 
 	bool editor_plugin_manager_t::is_operation_allowed() const
@@ -191,6 +198,14 @@ namespace sfg
 		if (_stopping || !is_idle())
 			return;
 
+		if (!resolve_solution_path())
+			return;
+
+		start_work(state_e::opening_ide);
+	}
+
+	bool editor_plugin_manager_t::resolve_solution_path()
+	{
 		const string_t& project_name = editor_project_t::get()._runtime.name;
 
 		_solution_path = _build_directory + project_name + ".slnx";
@@ -203,10 +218,27 @@ namespace sfg
 			_diagnostics   = "Could not find the C++ solution in " + _build_directory + ". Recompile C++ Project to regenerate it.";
 			_error_pending = true;
 			SFG_ERR("{0}", _diagnostics);
-			return;
+			return false;
 		}
 
-		start_work(state_e::opening_ide);
+		return true;
+	}
+
+	void editor_plugin_manager_t::set_debugging(bool enabled)
+	{
+		if (_stopping || !is_idle())
+			return;
+
+		if (enabled)
+		{
+			if (!resolve_solution_path())
+				return;
+
+			_opened_ide_session = {};
+			start_work(state_e::attaching_debugger);
+		}
+		else if (_debugger_attached)
+			start_work(state_e::detaching_debugger);
 	}
 
 	void editor_plugin_manager_t::process_file_changes(span_t<const editor_file_change_t> changes)
@@ -226,6 +258,9 @@ namespace sfg
 	{
 		if (_stopping)
 			return;
+
+		if (_debugger_attached && is_idle())
+			_debugger_attached = IsDebuggerPresent() != FALSE;
 
 		editor_modal_controller_t& modal = *editor_surface_controller_t::get().get_main_surface().modal_controller;
 
@@ -273,12 +308,23 @@ namespace sfg
 		_error_pending		  = false;
 		_state				  = operation;
 
-		if (operation != state_e::opening_ide)
+		if (operation == state_e::compiling || operation == state_e::staging)
 			_reload_pending = false;
 
 		_progress_modal.set_progress(0.05f);
-		_displayed_status						  = operation == state_e::opening_ide ? "Opening the C++ solution in Visual Studio" : operation == state_e::compiling ? "Building the C++ project" : "Preparing game DLL";
-		const char*						  title	  = operation == state_e::opening_ide ? "Opening Visual Studio" : operation == state_e::compiling ? "Compiling C++ Project" : "Reloading C++ Project";
+		_displayed_status = operation == state_e::opening_ide ? "Opening the C++ solution in Visual Studio" : operation == state_e::compiling ? "Building the C++ project" : "Preparing game DLL";
+		const char* title = operation == state_e::opening_ide ? "Opening Visual Studio" : operation == state_e::compiling ? "Compiling C++ Project" : "Reloading C++ Project";
+		if (operation == state_e::attaching_debugger)
+		{
+			_displayed_status = "Attaching the Visual Studio debugger";
+			title			  = "Attaching Debugger";
+		}
+		else if (operation == state_e::detaching_debugger)
+		{
+			_displayed_status = "Detaching the Visual Studio debugger";
+			title			  = "Stopping Debugger";
+		}
+
 		const editor_modal_content_desc_t content = _progress_modal.get_content_desc();
 		modal.request_modal(title, _displayed_status.c_str(), false, nullptr, 0, &content);
 		_modal_open = true;
@@ -290,6 +336,23 @@ namespace sfg
 			.fn =
 				[](editor_work_context_t& context, void* user_data) {
 					editor_plugin_manager_t& manager = *static_cast<editor_plugin_manager_t*>(user_data);
+
+					if (manager._state == state_e::attaching_debugger)
+					{
+						context.set_progress(0.1f, "Opening the C++ solution in Visual Studio");
+						const bool opened = plugin_compiler_t::open_project(manager._solution_path.c_str(), manager._opened_ide_session, manager._diagnostics);
+						if (!opened)
+							return false;
+
+						context.set_progress(0.5f, "Waiting for Visual Studio to attach");
+						return plugin_compiler_t::set_debugging(manager._solution_path.c_str(), manager._opened_ide_session, true, manager._diagnostics);
+					}
+
+					if (manager._state == state_e::detaching_debugger)
+					{
+						context.set_progress(0.5f, "Waiting for Visual Studio to detach");
+						return plugin_compiler_t::set_debugging(manager._solution_path.c_str(), manager._debugger_session, false, manager._diagnostics);
+					}
 
 					if (manager._state == state_e::opening_ide)
 					{
@@ -349,6 +412,25 @@ namespace sfg
 		{
 			_ide_session   = _opened_ide_session;
 			_error_pending = !succeeded;
+			return;
+		}
+
+		if (operation == state_e::attaching_debugger)
+		{
+			_ide_session	   = _opened_ide_session;
+			_debugger_attached = succeeded;
+			_debugger_session  = succeeded ? _opened_ide_session : plugin_ide_session_t{};
+			_error_pending	   = !succeeded;
+			return;
+		}
+
+		if (operation == state_e::detaching_debugger)
+		{
+			_debugger_attached = !succeeded;
+			_error_pending	   = !succeeded;
+			if (succeeded)
+				_debugger_session = {};
+
 			return;
 		}
 

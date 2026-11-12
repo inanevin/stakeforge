@@ -73,9 +73,10 @@ namespace sfg
 
 	void editor_play_session_t::request_step()
 	{
-		SFG_ASSERT(is_playing() && _paused);
+		SFG_ASSERT(is_playing());
 
-		_step_requested = true;
+		_pause_requested = true;
+		_step_requested	 = true;
 	}
 
 	void editor_play_session_t::apply_requests()
@@ -87,7 +88,11 @@ namespace sfg
 		}
 
 		if (!is_playing())
+		{
 			enter_play(_requested_state);
+			if (!is_playing())
+				return;
+		}
 		else if (_state != _requested_state)
 			change_controls(_requested_state);
 

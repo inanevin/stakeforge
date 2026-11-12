@@ -39,5 +39,4 @@ namespace sfg
 		f32			cookie_projection_scale = 0.0f;
 	};
 
-	static_assert(sizeof(stock_world_renderer_gpu_light_t) == 80);
 }

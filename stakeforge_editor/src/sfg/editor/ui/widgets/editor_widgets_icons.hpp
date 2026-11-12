@@ -60,6 +60,8 @@ in GAME-LINKING-EXCEPTION.md.
 #define ICON_SUN			 "\u003C"
 #define ICON_LIT			 "\u0040"
 #define ICON_UNLIT			 "\u005F"
+#define ICON_STOP			 "\u0053"
+#define ICON_DEBUG			 "\u0074"
 #define ICON_MESH			 "\u003D"
 #define ICON_CUBES			 "\u003F"
 #define ICON_MOVE			 "\u0022"

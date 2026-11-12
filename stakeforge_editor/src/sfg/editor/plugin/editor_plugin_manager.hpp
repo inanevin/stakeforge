@@ -66,6 +66,7 @@ namespace sfg
 		void compile_project();
 		void reload_project();
 		void open_project();
+		void set_debugging(bool enabled);
 		void process_file_changes(span_t<const editor_file_change_t> changes);
 
 		// -----------------------------------------------------------------------------
@@ -84,6 +85,11 @@ namespace sfg
 			return game_plugin_runtime_t::get().is_loaded();
 		}
 
+		bool is_debugger_attached() const
+		{
+			return _debugger_attached;
+		}
+
 		const plugin_ide_session_t& get_ide_session() const
 		{
 			return _ide_session;
@@ -97,11 +103,14 @@ namespace sfg
 			compiling,
 			staging,
 			opening_ide,
+			attaching_debugger,
+			detaching_debugger,
 		};
 
 		void start_work(state_e operation);
 		void complete_work(bool succeeded);
 		void activate_staged_module();
+		bool resolve_solution_path();
 
 	private:
 		plugin_compile_result_t		_compile_result = {};
@@ -118,6 +127,7 @@ namespace sfg
 		plugin_binary_stamp_t		_stage_previous_stamp = {};
 		plugin_ide_session_t		_ide_session		  = {};
 		plugin_ide_session_t		_opened_ide_session	  = {};
+		plugin_ide_session_t		_debugger_session	  = {};
 		sid_t						_output_path_id		  = NULL_SID;
 		i64							_retry_time_us		  = 0;
 		i64							_retry_deadline_us	  = 0;
@@ -128,5 +138,6 @@ namespace sfg
 		bool						_error_pending		  = false;
 		bool						_modal_open			  = false;
 		bool						_stopping			  = false;
+		bool						_debugger_attached	  = false;
 	};
 }

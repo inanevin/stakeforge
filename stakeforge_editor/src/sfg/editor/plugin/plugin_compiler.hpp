@@ -77,5 +77,9 @@ namespace sfg
 		static plugin_compile_result_t compile(const char* build_directory, const char* output_game_dll, const char* configuration);
 		static plugin_stage_result_t   stage(const char* output_game_dll, const char* shadow_directory, const plugin_binary_stamp_t& previous_stamp);
 		static bool					   open_project(const char* solution_path, plugin_ide_session_t& session, string_t& diagnostics);
+		static bool					   set_debugging(const char* solution_path, const plugin_ide_session_t& session, bool enabled, string_t& diagnostics);
+
+	private:
+		static bool run_visual_studio(const char* solution_path, const string_t& arguments, string_t& diagnostics);
 	};
 }
