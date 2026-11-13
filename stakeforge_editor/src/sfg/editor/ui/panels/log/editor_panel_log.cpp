@@ -19,14 +19,120 @@ holders grant the Stakeforge Game Linking Exception, version 1.0,
 in GAME-LINKING-EXCEPTION.md.
 
 */
-#include "editor/ui/panels/log/editor_panel_log.hpp"
-#include "editor/ui/panels/log/editor_panel_log_internal.hpp"
+#include "editor_panel_log.hpp"
+#include "editor_log_store.hpp"
+#include "editor/ui/editor_text_rasterization.hpp"
+#include "editor/ui/panels/editor_theme.hpp"
 #include "editor/ui/widgets/editor_widgets_icons.hpp"
+#include <sfg/core/data/frame_string.hpp>
+#include <sfg/core/data/string_util.hpp>
+#include <sfg/core/io/log.hpp>
+#include <sfg/core/platform/process.hpp>
 #include <sfg/core/runtime/ui/ui_context.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 
 namespace sfg
 {
+#define EDITOR_LOG_AUTO_SCROLL_SLOP	  1.0f
+#define EDITOR_LOG_TIME_PREFIX_LENGTH 11
+
+	namespace
+	{
+		const editor_dropdown_item_t LOG_SOURCE_ITEMS[] = {
+			{
+				.text  = "All",
+				.value = static_cast<u16>(log_source_filter_e::all),
+			},
+			{
+				.text  = "Engine",
+				.value = static_cast<u16>(log_source_filter_e::engine),
+			},
+			{
+				.text  = "Game",
+				.value = static_cast<u16>(log_source_filter_e::game),
+			},
+		};
+
+		const char* log_source_filter_to_string(log_source_filter_e filter)
+		{
+			switch (filter)
+			{
+			case log_source_filter_e::all:
+				return "all";
+			case log_source_filter_e::engine:
+				return "engine";
+			case log_source_filter_e::game:
+				return "game";
+			}
+
+			return "all";
+		}
+
+		log_source_filter_e log_source_filter_from_string(const char* value)
+		{
+			const sid_t id = TO_SID(value);
+
+			if (id == TO_SID("engine") || id == TO_SID("editor"))
+				return log_source_filter_e::engine;
+
+			if (id == TO_SID("game"))
+				return log_source_filter_e::game;
+
+			return log_source_filter_e::all;
+		}
+
+		u8 log_level_to_filter_flag(log_level level)
+		{
+			switch (level)
+			{
+			case log_level::error:
+				return log_level_filter_err;
+			case log_level::warning:
+				return log_level_filter_warn;
+			case log_level::trace:
+				return log_level_filter_trace;
+			case log_level::info:
+			case log_level::progress:
+				return log_level_filter_info;
+			}
+			return log_level_filter_info;
+		}
+
+		const char* log_level_to_icon(log_level level)
+		{
+			switch (level)
+			{
+			case log_level::error:
+				return ICON_ERROR;
+			case log_level::warning:
+				return ICON_WARN;
+			case log_level::trace:
+				return ICON_TRACE;
+			case log_level::info:
+			case log_level::progress:
+				return ICON_INFO;
+			}
+			return ICON_INFO;
+		}
+
+		vec4f_t log_level_to_color(log_level level, const editor_theme_t& theme)
+		{
+			switch (level)
+			{
+			case log_level::error:
+				return theme.color_accent_err;
+			case log_level::warning:
+				return theme.color_accent_warn;
+			case log_level::trace:
+				return theme.color_accent1;
+			case log_level::info:
+			case log_level::progress:
+				return theme.color_text0;
+			}
+			return theme.color_text0;
+		}
+	}
+
 	editor_panel_log_t::editor_panel_log_t()
 	{
 		set_type(editor_panel_type_e::log);
@@ -34,16 +140,8 @@ namespace sfg
 		set_icon(ICON_PEN);
 	}
 
-	vector_t<editor_panel_log_t::log_record_t> editor_panel_log_t::_stored_logs				 = {};
-	vector_t<editor_panel_log_t::log_record_t> editor_panel_log_t::_pending_logs			 = {};
-	mutex_t									   editor_panel_log_t::_log_storage_mtx			 = {};
-	u64										   editor_panel_log_t::_next_stored_log_sequence = 1;
-	u32										   editor_panel_log_t::_log_storage_generation	 = 1;
-	bool									   editor_panel_log_t::_log_listener_installed	 = false;
-
 	void editor_panel_log_t::init(ui::ui_context& ui, ui::widget_id_t parent)
 	{
-		install_log_listener();
 		editor_panel_t::init(ui, parent);
 
 		ui::layout_tree_t&	  tree	= ui.get_tree();
@@ -67,19 +165,21 @@ namespace sfg
 		top_in.child_spacing	= theme.item_spacing;
 		top_in.child_margins	= {0.0f, theme.margin_horizontal, 0.0f, theme.margin_horizontal};
 
-		editor_dropdown_config_t source_dropdown_config = {};
-		source_dropdown_config.items					= LOG_SOURCE_ITEMS;
-		source_dropdown_config.item_count				= static_cast<u16>(sizeof(LOG_SOURCE_ITEMS) / sizeof(LOG_SOURCE_ITEMS[0]));
-		source_dropdown_config.selected					= get_selected_source;
-		source_dropdown_config.pressed					= on_source_pressed;
-		source_dropdown_config.user_data				= this;
-		source_dropdown_config.width					= editor_dropdown_width_e::fixed;
-		source_dropdown_config.pos_y					= editor_dropdown_pos_y_e::center;
-		source_dropdown_config.fixed_width				= theme.item_width;
-		_source_dropdown.init(ui, _top_row, source_dropdown_config);
+		_source_dropdown.init(ui,
+							  _top_row,
+							  {
+								  .items	   = LOG_SOURCE_ITEMS,
+								  .selected	   = get_selected_source,
+								  .pressed	   = on_source_pressed,
+								  .user_data   = this,
+								  .item_count  = static_cast<u16>(sizeof(LOG_SOURCE_ITEMS) / sizeof(LOG_SOURCE_ITEMS[0])),
+								  .width	   = editor_dropdown_width_e::fixed,
+								  .pos_y	   = editor_dropdown_pos_y_e::center,
+								  .fixed_width = theme.item_width,
+							  });
 
 		editor_icon_button_config_t button_config = {};
-		button_config.frame_color				  = {0.0f, 0.0f, 0.0f, 0.0f};
+		button_config.frame_color				  = vec4f_t::zero;
 		button_config.outline_color				  = vec4f_t::zero;
 		button_config.toggled_frame_color		  = theme.color_frame_light;
 		button_config.toggled_outline_color		  = theme.color_outline_light;
@@ -117,15 +217,6 @@ namespace sfg
 			_filter_buttons[i].init(ui, _top_row, button_config);
 		}
 
-		button_config.icon		   = ICON_DD_DOWN;
-		button_config.toggled_icon = ICON_DD_DOWN;
-		button_config.icon_color   = theme.color_text0;
-		button_config.tooltip	   = "Collapse";
-		button_config.toggled	   = _is_collapsed;
-		button_config.user_data	   = this;
-		button_config.on_clicked   = on_collapse_pressed;
-		_collapse_button.init(ui, _top_row, button_config);
-
 		button_config.icon			 = ICON_TRASH;
 		button_config.toggled_icon	 = nullptr;
 		button_config.icon_color	 = theme.color_accent_err;
@@ -136,16 +227,18 @@ namespace sfg
 		button_config.on_clicked	 = on_clear_pressed;
 		_clear_button.init(ui, _top_row, button_config);
 
-		u8*							search_field  = reinterpret_cast<u8*>(&_search_text);
-		editor_input_field_config_t search_config = {};
-		search_config.placeholder				  = "Search";
-		search_config.field						  = {
-			.fields = {.data = &search_field, .size = 1},
-			.type	= editor_input_field_field_type_e::string,
-		};
-		search_config.callbacks.edited	  = on_search_changed;
-		search_config.callbacks.user_data = this;
-		_search_input.init(ui, _top_row, search_config);
+		u8* search_field = reinterpret_cast<u8*>(&_search_text);
+		_search_input.init(ui,
+						   _top_row,
+						   {
+							   .field =
+								   {
+									   .fields = {.data = &search_field, .size = 1},
+									   .type   = editor_input_field_field_type_e::string,
+								   },
+							   .callbacks	= {.edited = on_search_changed, .user_data = this},
+							   .placeholder = "Search",
+						   });
 
 		ui::layout_in_t& search_in = tree.in(_search_input.get_root());
 		search_in.pos_mode_x	   = ui::pos_mode_e::relative_in_parent;
@@ -171,20 +264,14 @@ namespace sfg
 		body_in.child_spacing	 = 0.0f;
 		body_in.child_margins	 = {theme.margin_vertical, theme.margin_horizontal, theme.margin_vertical, theme.margin_horizontal};
 
-		ui::vg_rect_paint_t body_rect = {};
-		body_rect.fill_color_a		  = theme.color_frame;
-		body_rect.fill_color_b		  = theme.color_frame;
-		paint.set_rect(_body, body_rect);
+		paint.set_rect(_body, {.fill_color_a = theme.color_frame, .fill_color_b = theme.color_frame});
+		_scrollbar.init(ui, {.target = _body, .axes = editor_scrollbar_axis_xy});
 
-		editor_scrollbar_config_t scrollbar_config = {};
-		scrollbar_config.target					   = _body;
-		scrollbar_config.axes					   = editor_scrollbar_axis_xy;
-		_scrollbar.init(ui, scrollbar_config);
-
-		_rows.reserve(EDITOR_LOG_PANEL_ROW_CAPACITY);
-		_drained_logs.reserve(32);
+		_rows.init(editor_log_store_t::RECORD_CAPACITY);
+		_rows.resize(editor_log_store_t::RECORD_CAPACITY);
+		_filter_dirty = true;
 		ui.set_pre_layout_tick(_body, on_log_tick, this);
-		drain_pending_logs();
+		refresh_rows();
 	}
 
 	void editor_panel_log_t::uninit()
@@ -194,15 +281,13 @@ namespace sfg
 		for (editor_icon_button_t& button : _filter_buttons)
 			button.uninit();
 
-		_collapse_button.uninit();
 		_clear_button.uninit();
 		_search_input.uninit();
 		_source_dropdown.uninit();
 
-		_rows.resize(0);
-		_drained_logs.resize(0);
-		_next_log_sequence	= 0;
-		_storage_generation = 0;
+		_rows.uninit();
+		_revision	  = 0;
+		_filter_dirty = true;
 
 		editor_panel_t::uninit();
 	}
@@ -212,7 +297,6 @@ namespace sfg
 		j					  = nlohmann::json::object();
 		j["source_type"]	  = log_source_filter_to_string(_source_filter);
 		j["log_filter_flags"] = static_cast<u32>(_log_filter_flags);
-		j["is_collapsed"]	  = _is_collapsed;
 	}
 
 	void editor_panel_log_t::deserialize(const nlohmann::json& j)
@@ -220,17 +304,170 @@ namespace sfg
 		const string_t source_type = j.value<string_t>("source_type", "all");
 		_source_filter			   = log_source_filter_from_string(source_type.c_str());
 		_log_filter_flags		   = static_cast<u8>(j.value<u32>("log_filter_flags", static_cast<u32>(log_level_filter_all)));
-		_is_collapsed			   = j.value("is_collapsed", false);
 	}
 
 	void editor_panel_log_t::make_visible(bool visible)
 	{
-		_is_visible = visible;
+		_is_visible	  = visible;
+		_filter_dirty = true;
 		editor_panel_t::make_visible(visible);
-		if (visible)
-			refresh_log_filter_visibility();
-		else
+		if (!visible)
 			_source_dropdown.close();
+	}
+
+	void editor_panel_log_t::refresh_rows()
+	{
+		if (!_is_visible)
+			return;
+		const editor_log_store_t& store			  = editor_log_store_t::get();
+		const bool				  history_changed = _revision != store.get_revision();
+		if (!history_changed && !_filter_dirty)
+			return;
+
+		const bool scroll_to_end								= history_changed && is_scrolled_to_end();
+		bool	   visible[editor_log_store_t::RECORD_CAPACITY] = {};
+		for (u32 i = 0; i < store.get_record_count(); ++i)
+		{
+			const editor_log_record_t& record		  = store.get_record(i);
+			const char*				   text			  = store.get_text(record);
+			const u32				   slot			  = static_cast<u32>(record.sequence % editor_log_store_t::RECORD_CAPACITY);
+			log_row_t&				   row			  = _rows[slot];
+			const bool				   changed		  = row.sequence != record.sequence;
+			bool					   matches_filter = row.visible;
+			if (changed || _filter_dirty)
+				matches_filter = is_record_visible(record, text);
+			if (!matches_filter)
+			{
+				row.sequence = record.sequence;
+				continue;
+			}
+
+			visible[slot]	   = true;
+			const bool created = row.root == NULL_WIDGET;
+			if (created)
+				create_row(row);
+			if (changed || !row.visible)
+				update_row(row, record, text);
+			if (!created && (changed || _filter_dirty))
+			{
+				ui::layout_tree_t& tree = _ui->get_tree();
+				tree.attach(_body, row.root);
+				tree.draw_order(row.root) = tree.draw_order_const(_body) + 1;
+			}
+			set_row_visible(row, true);
+		}
+
+		for (u32 i = 0; i < editor_log_store_t::RECORD_CAPACITY; ++i)
+		{
+			log_row_t& row = _rows[i];
+			if (visible[i] || !row.visible)
+				continue;
+			set_row_visible(row, false);
+			_ui->clear_widget_text(row.text);
+		}
+
+		_revision	  = store.get_revision();
+		_filter_dirty = false;
+		if (scroll_to_end)
+			_scrollbar.scroll_to_end_y();
+	}
+
+	void editor_panel_log_t::create_row(log_row_t& row)
+	{
+		ui::ui_context&		  ui	= *_ui;
+		ui::layout_tree_t&	  tree	= ui.get_tree();
+		ui::paint_layer_t&	  paint = ui.get_paint();
+		const editor_theme_t& theme = editor_theme_t::get();
+
+		row.root = ui.allocate_widget();
+		ui.set_widget_debug_name(row.root, "log_row");
+		tree.attach(_body, row.root);
+		tree.draw_order(row.root) = tree.draw_order_const(_body) + 1;
+		ui::layout_in_t& row_in	  = tree.in(row.root);
+		row_in.size_mode_x		  = ui::axis_mode_e::sum_children;
+		row_in.size_mode_y		  = ui::axis_mode_e::max_children;
+		row_in.flow				  = ui::flow_e::row;
+		row_in.child_spacing	  = theme.item_spacing;
+		ui.get_input().set_listener(row.root, {.on_click = on_log_row_clicked, .user_data = this});
+
+		row.icon = ui.allocate_widget();
+		ui.set_widget_debug_name(row.icon, "log_row_icon");
+		tree.attach(row.root, row.icon);
+		ui::layout_in_t& icon_in = tree.in(row.icon);
+		icon_in.size_mode_x		 = ui::axis_mode_e::fixed;
+		icon_in.size_mode_y		 = ui::axis_mode_e::parent_relative;
+		icon_in.size_value		 = {theme.item_height, 1.0f};
+		paint.set_text(row.icon, nullptr, 0, {.font = theme.font_icons, .color = theme.color_text0, .point_size = theme.icon_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+
+		row.text = ui.allocate_widget();
+		ui.set_widget_debug_name(row.text, "log_row_text");
+		tree.attach(row.root, row.text);
+		paint.set_text(row.text, nullptr, 0, {.font = theme.font_default_mono, .color = theme.color_text0, .point_size = theme.text_default_px_size, .spacing = 0, .raster_mode = editor_text_rasterization_t::get_rasterization_type()});
+	}
+
+	void editor_panel_log_t::update_row(log_row_t& row, const editor_log_record_t& record, const char* text)
+	{
+		const std::time_t timestamp	 = static_cast<std::time_t>(record.timestamp);
+		std::tm			  local_time = {};
+#ifdef SFG_PLATFORM_WINDOWS
+		const bool time_valid = localtime_s(&local_time, &timestamp) == 0;
+#else
+		const bool time_valid = localtime_r(&timestamp, &local_time) != nullptr;
+#endif
+		char prefix[EDITOR_LOG_TIME_PREFIX_LENGTH + 1] = "[--:--:--] ";
+		if (time_valid)
+		{
+			const size_t written = std::strftime(prefix, sizeof(prefix), "[%H:%M:%S] ", &local_time);
+			SFG_ASSERT(written == EDITOR_LOG_TIME_PREFIX_LENGTH);
+		}
+		else
+			SFG_ERR("failed to convert log timestamp {0}", record.timestamp);
+
+		frame_string_t<char> display_text = {};
+		display_text.reserve(EDITOR_LOG_TIME_PREFIX_LENGTH + record.text_size + (record.truncated ? 12 : 0));
+		display_text.append(prefix, EDITOR_LOG_TIME_PREFIX_LENGTH);
+		display_text.append(text, record.text_size);
+		if (record.truncated)
+			display_text += " [truncated]";
+
+		const vec4f_t color						  = log_level_to_color(record.level, editor_theme_t::get());
+		_ui->get_paint().def(row.icon).text.color = color;
+		_ui->get_paint().def(row.text).text.color = color;
+		_ui->set_widget_text(row.icon, log_level_to_icon(record.level));
+		_ui->set_widget_text(row.text, display_text.c_str(), static_cast<u32>(display_text.size()));
+		row.sequence = record.sequence;
+	}
+
+	void editor_panel_log_t::set_row_visible(log_row_t& row, bool visible)
+	{
+		if (row.visible == visible)
+			return;
+		ui::layout_tree_t& tree = _ui->get_tree();
+		tree.in(row.root).flags = visible ? ui::wf_visible | ui::wf_input : 0;
+		tree.in(row.icon).flags = visible ? ui::wf_visible : 0;
+		tree.in(row.text).flags = visible ? ui::wf_visible : 0;
+		row.visible				= visible;
+	}
+
+	bool editor_panel_log_t::is_record_visible(const editor_log_record_t& record, const char* text) const
+	{
+		if (_source_filter == log_source_filter_e::engine && record.source != log_source_e::engine)
+			return false;
+		if (_source_filter == log_source_filter_e::game && record.source != log_source_e::game)
+			return false;
+		if ((_log_filter_flags & log_level_to_filter_flag(record.level)) == 0)
+			return false;
+		if (_search_text.empty())
+			return true;
+
+		return string_util::contains_case_insensitive(text, record.text_size, _search_text.c_str(), _search_text.size());
+	}
+
+	bool editor_panel_log_t::is_scrolled_to_end() const
+	{
+		const ui::layout_in_t&	in	= _ui->get_tree().in_const(_body);
+		const ui::layout_out_t& out = _ui->get_tree().out(_body);
+		return out.max_scroll.y <= 0.0f || in.scroll_offset.y <= -out.max_scroll.y + EDITOR_LOG_AUTO_SCROLL_SLOP;
 	}
 
 	u16 editor_panel_log_t::get_selected_source(void* user_data)
@@ -238,4 +475,49 @@ namespace sfg
 		return static_cast<u16>(static_cast<editor_panel_log_t*>(user_data)->_source_filter);
 	}
 
+	void editor_panel_log_t::on_source_pressed(u16 value, void* user_data)
+	{
+		editor_panel_log_t& panel = *static_cast<editor_panel_log_t*>(user_data);
+		panel._source_filter	  = static_cast<log_source_filter_e>(value);
+		panel._filter_dirty		  = true;
+	}
+
+	void editor_panel_log_t::on_filter_pressed(bool toggled, void* user_data)
+	{
+		const log_filter_button_data_t& data = *static_cast<log_filter_button_data_t*>(user_data);
+		if (toggled)
+			data.panel->_log_filter_flags |= data.flag;
+		else
+			data.panel->_log_filter_flags &= static_cast<u8>(~data.flag);
+		data.panel->_filter_dirty = true;
+	}
+
+	void editor_panel_log_t::on_clear_pressed(bool toggled, void* user_data)
+	{
+		editor_log_store_t::get().clear();
+	}
+
+	void editor_panel_log_t::on_search_changed(void* user_data)
+	{
+		static_cast<editor_panel_log_t*>(user_data)->_filter_dirty = true;
+	}
+
+	void editor_panel_log_t::on_log_row_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data)
+	{
+		if (btn != ui::mouse_button_e::left)
+			return;
+
+		const editor_panel_log_t& panel = *static_cast<editor_panel_log_t*>(user_data);
+		const auto				  row	= std::find_if(panel._rows.begin(), panel._rows.end(), [id](const log_row_t& entry) { return entry.root == id; });
+		SFG_ASSERT(row != panel._rows.end());
+		const char* text   = panel._ui->widget_text(row->text);
+		const u32	length = panel._ui->widget_text_len(row->text);
+		SFG_ASSERT(length >= EDITOR_LOG_TIME_PREFIX_LENGTH);
+		process::push_clipboard(text + EDITOR_LOG_TIME_PREFIX_LENGTH);
+	}
+
+	void editor_panel_log_t::on_log_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
+	{
+		static_cast<editor_panel_log_t*>(user_data)->refresh_rows();
+	}
 }

@@ -37,6 +37,7 @@ namespace sfg
 		SFG_API void				 replace_all(string_t& str, const string_t& to_replace, const string_t& replacement);
 		SFG_API void				 to_upper(string_t& str);
 		SFG_API void				 to_lower(string_t& str);
+		SFG_API bool				 contains_case_insensitive(const char* text, size_t text_size, const char* search, size_t search_size);
 		SFG_API string_t			 to_pascal_case(const char* str);
 		template <class STRING> void to_lower(STRING& input)
 		{

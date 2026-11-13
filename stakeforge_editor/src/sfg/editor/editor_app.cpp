@@ -33,7 +33,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/ui/editor_text_rasterization.hpp"
 #include "editor/ui/panels/editor_panel_world.hpp"
 #include "editor/ui/panels/editor_primary_base.hpp"
-#include "editor/ui/panels/log/editor_panel_log.hpp"
+#include "editor/ui/panels/log/editor_log_store.hpp"
 #include "editor/ui/widgets/editor_splash_screen.hpp"
 #include "editor/world/editor_world.hpp"
 #include <sfg/core/data/vector.hpp>
@@ -133,6 +133,7 @@ namespace sfg
 		editor_surface_controller_t::get().init(_renderer, _payload_controller);
 
 		frame_allocator_tls_t::init(config.main_frame_budget_bytes);
+		editor_log_store_t::get().init();
 		_work_controller.init();
 
 		const string_t& last_project = editor_settings_t::get().last_project_path;
@@ -153,6 +154,7 @@ namespace sfg
 		if (editor_surface_controller_t::get().is_empty())
 		{
 			_work_controller.uninit();
+			editor_log_store_t::get().uninit();
 			editor_surface_controller_t::get().uninit();
 			_renderer.uninit();
 			_resource_preload.uninit();
@@ -199,7 +201,7 @@ namespace sfg
 		runtime.uninit();
 		runtime.uninit_globals();
 		runtime.uninit_backend();
-		editor_panel_log_t::uninit_log_storage();
+		editor_log_store_t::get().uninit();
 
 		frame_allocator_tls_t::uninit();
 		_splash_work_status = {};
@@ -570,6 +572,7 @@ namespace sfg
 			_last_tick_us = now;
 
 			engine_runtime_t::get().tick();
+			editor_log_store_t::get().drain();
 			surfaces.tick_surfaces(dt);
 
 			if (surfaces.is_empty())

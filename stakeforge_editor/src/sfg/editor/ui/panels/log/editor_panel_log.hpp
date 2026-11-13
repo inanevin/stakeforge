@@ -28,18 +28,13 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/ui/widgets/editor_widgets_dropdown.hpp"
 #include "editor/ui/widgets/editor_widgets_icon_button.hpp"
 #include "editor/ui/widgets/editor_widgets_scrollbar.hpp"
-#include <sfg/core/data/mutex.hpp>
+#include <sfg/core/data/fixed_vector.hpp>
 #include <sfg/core/data/string.hpp>
-#include <sfg/core/data/vector.hpp>
 
 namespace sfg
 {
-	enum class log_level;
-	enum class log_source_e : u8;
-}
+	struct editor_log_record_t;
 
-namespace sfg
-{
 	enum class log_source_filter_e : u8
 	{
 		all,
@@ -60,9 +55,9 @@ namespace sfg
 	{
 	public:
 		editor_panel_log_t();
-		~editor_panel_log_t() override							 = default;
-		editor_panel_log_t(const editor_panel_log_t&)			 = delete;
-		editor_panel_log_t& operator=(const editor_panel_log_t&) = delete;
+		~editor_panel_log_t() override								   = default;
+		editor_panel_log_t(const editor_panel_log_t& other)			   = delete;
+		editor_panel_log_t& operator=(const editor_panel_log_t& other) = delete;
 
 		// -----------------------------------------------------------------------------
 		// lifetime
@@ -70,7 +65,6 @@ namespace sfg
 
 		void init(ui::ui_context& ui, ui::widget_id_t parent) override;
 		void uninit() override;
-		static void uninit_log_storage();
 		void serialize(nlohmann::json& j) const override;
 		void deserialize(const nlohmann::json& j) override;
 		void make_visible(bool visible) override;
@@ -78,24 +72,13 @@ namespace sfg
 	private:
 		static constexpr u32 FILTER_BUTTON_COUNT = 4;
 
-		struct log_record_t
-		{
-			string_t	 text;
-			u64			 sequence = 0;
-			log_level	 level	  = {};
-			log_source_e source	  = {};
-		};
-
 		struct log_row_t
 		{
-			string_t		raw_text;
-			u64				hash   = 0;
-			ui::widget_id_t root   = NULL_WIDGET;
-			ui::widget_id_t icon   = NULL_WIDGET;
-			ui::widget_id_t text   = NULL_WIDGET;
-			u32				count  = 1;
-			log_source_e	source = {};
-			u8				flag   = 0;
+			u64				sequence = 0;
+			ui::widget_id_t root	 = NULL_WIDGET;
+			ui::widget_id_t icon	 = NULL_WIDGET;
+			ui::widget_id_t text	 = NULL_WIDGET;
+			bool			visible	 = false;
 		};
 
 		struct log_filter_button_data_t
@@ -108,26 +91,16 @@ namespace sfg
 		// impl
 		// -----------------------------------------------------------------------------
 
-		void		drain_pending_logs();
-		void		add_log_row(log_source_e source, log_level level, const char* text);
-		void		update_log_row_text(log_row_t& row);
-		void		move_log_row_to_bottom(size_t index);
-		void		collapse_existing_rows();
-		void		clear_log_rows();
-		void		clear_logs();
-		void		request_clear_logs();
-		void		request_collapse_rows();
-		void		refresh_log_filter_visibility();
-		void		set_log_row_visible(const log_row_t& row, bool visible);
-		void		trim_log_rows();
-		static void install_log_listener();
-		static void append_pending_logs_to_storage();
+		void refresh_rows();
+		void create_row(log_row_t& row);
+		void update_row(log_row_t& row, const editor_log_record_t& record, const char* text);
+		void set_row_visible(log_row_t& row, bool visible);
 
 		// -----------------------------------------------------------------------------
 		// queries
 		// -----------------------------------------------------------------------------
 
-		bool is_log_row_visible(const log_row_t& row) const;
+		bool is_record_visible(const editor_log_record_t& record, const char* text) const;
 		bool is_scrolled_to_end() const;
 
 		// -----------------------------------------------------------------------------
@@ -137,38 +110,26 @@ namespace sfg
 		static u16	get_selected_source(void* user_data);
 		static void on_source_pressed(u16 value, void* user_data);
 		static void on_filter_pressed(bool toggled, void* user_data);
-		static void on_collapse_pressed(bool toggled, void* user_data);
 		static void on_clear_pressed(bool toggled, void* user_data);
 		static void on_search_changed(void* user_data);
-		static void on_log(log_source_e source, log_level level, const char* msg, void* user_data);
+		static void on_log_row_clicked(ui::input_router_t& router, ui::widget_id_t id, const vec2f_t& pos, ui::mouse_button_e btn, void* user_data);
 		static void on_log_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
-		editor_dropdown_t		 _source_dropdown = {};
-		editor_input_field_t	 _search_input	  = {};
-		editor_scrollbar_t		 _scrollbar		  = {};
-		editor_icon_button_t	 _filter_buttons[FILTER_BUTTON_COUNT];
-		editor_icon_button_t	 _collapse_button = {};
-		editor_icon_button_t	 _clear_button	  = {};
-		log_filter_button_data_t _filter_button_data[FILTER_BUTTON_COUNT];
-		vector_t<log_row_t>		 _rows				 = {};
-		vector_t<log_record_t>	 _drained_logs		 = {};
-		string_t				 _search_text		 = {};
-		string_t				 _search_text_lower	 = {};
-		ui::widget_id_t			 _top_row			 = NULL_WIDGET;
-		ui::widget_id_t			 _body				 = NULL_WIDGET;
-		u64						 _next_log_sequence	 = 0;
-		u32						 _storage_generation = 0;
-		log_source_filter_e		 _source_filter		 = log_source_filter_e::all;
-		u8						 _log_filter_flags	 = log_level_filter_all;
-		bool					 _is_collapsed		 = false;
-		bool					 _is_visible		 = true;
-
-		static vector_t<log_record_t> _stored_logs;
-		static vector_t<log_record_t> _pending_logs;
-		static mutex_t				  _log_storage_mtx;
-		static u64					  _next_stored_log_sequence;
-		static u32					  _log_storage_generation;
-		static bool					  _log_listener_installed;
+		editor_dropdown_t		  _source_dropdown						   = {};
+		editor_input_field_t	  _search_input							   = {};
+		editor_scrollbar_t		  _scrollbar							   = {};
+		editor_icon_button_t	  _filter_buttons[FILTER_BUTTON_COUNT]	   = {};
+		editor_icon_button_t	  _clear_button							   = {};
+		log_filter_button_data_t  _filter_button_data[FILTER_BUTTON_COUNT] = {};
+		fixed_vector_t<log_row_t> _rows									   = {};
+		string_t				  _search_text							   = {};
+		u64						  _revision								   = 0;
+		ui::widget_id_t			  _top_row								   = NULL_WIDGET;
+		ui::widget_id_t			  _body									   = NULL_WIDGET;
+		log_source_filter_e		  _source_filter						   = log_source_filter_e::all;
+		u8						  _log_filter_flags						   = log_level_filter_all;
+		bool					  _filter_dirty							   = true;
+		bool					  _is_visible							   = true;
 	};
 }

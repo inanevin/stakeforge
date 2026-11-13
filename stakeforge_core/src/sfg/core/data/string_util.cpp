@@ -38,6 +38,17 @@ namespace sfg
 {
 	namespace string_util
 	{
+		bool contains_case_insensitive(const char* text, size_t text_size, const char* search, size_t search_size)
+		{
+			if (search_size == 0)
+				return true;
+			if (search_size > text_size)
+				return false;
+
+			const char* match = std::search(text, text + text_size, search, search + search_size, [](unsigned char left, unsigned char right) { return std::tolower(left) == std::tolower(right); });
+			return match != text + text_size;
+		}
+
 		wstring_t to_wstr(const string_t& string_t)
 		{
 			std::string												  str = string_t.c_str();
