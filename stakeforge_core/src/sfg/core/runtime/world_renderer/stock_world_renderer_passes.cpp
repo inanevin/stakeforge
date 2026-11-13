@@ -802,8 +802,8 @@ namespace sfg
 		backend.cmd_barrier(cmd, {.barriers = begin_barriers, .barrier_count = 2});
 
 		const vec2u16_t	  size				= ctx.get_size();
-		const u32		  half_width		= static_cast<u32>(size.x) / 2;
-		const u32		  half_height		= static_cast<u32>(size.y) / 2;
+		const u32		  half_width		= (static_cast<u32>(size.x) + 1) / 2;
+		const u32		  half_height		= (static_cast<u32>(size.y) + 1) / 2;
 		const gpu_index_t ssao_constants[5] = {
 			ctx.get_ssao_render_pass_data_index(frame_index),
 			ctx.get_depth_texture_index(frame_index),

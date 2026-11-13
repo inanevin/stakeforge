@@ -165,7 +165,7 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
         return;
 
     // Center
-    float2 uv_full = ((float2(pH) * 2.0f + 1.0f) * params.inv_full);
+    float2 uv_full = min(float2(pH) * 2.0f + 1.0f, float2(params.full_size) - 0.5f) * params.inv_full;
 
     //uint2 p = DTid.xy;
     //if (p.x >= params.full_size.x || p.y >= params.full_size.y) return;
@@ -191,7 +191,7 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
     // Tile the small noise over full-res UV
     Texture2D noise_tex = sfg_get_texture<Texture2D>(sfg_constant_rp3);
     float2 noiseUV = uv_full * (params.full_size / 8.0); // tile 8x8 across full-res
-    float2 noise = noise_tex.SampleLevel(smp_nearest_repeat, noiseUV, 0).xy;
+    float2 noise = noise_tex.SampleLevel(smp_nearest_repeat, noiseUV, 0).xy * 2.0f - 1.0f;
 
     float rot = atan2(noise.y, noise.x) * params.random_rot_strength ;
 
@@ -216,11 +216,11 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
         float max_horizon = 0.0;
         float jitter01 = frac(dot(noise, float2(12.9898, 78.233)) + d * 0.61803398875);
 
-        for (uint s = 1; s < steps; ++s)
+        for (uint s = 0; s < steps; ++s)
         {
             float stepLen = 1.0f / steps;
-            // center-of-bin (0.5) + jitter shift
-            float t = (s + 0.5 + jitter01) * stepLen;   // nominally (0,1+j/steps]
+            // jitter within each radial bin
+            float t = (s + jitter01) * stepLen;   // nominally [0,1)
             if (t >= 1.0f) break;                       // optional clamp/early-exit
 
             float dist = t * rad;
@@ -249,7 +249,7 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
             float alpha = atan2(h, r);
 
             // Weight by distance falloff 
-            float w = falloff(dist, rad);
+            float w = falloff(length(v), rad);
 
             // Raise the effective horizon
             alpha_max = max(alpha_max, alpha * w);
@@ -264,8 +264,8 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
     }
 
     // Normalize and shape
-    float maxAccum = (float)params.num_dirs * (float)params.num_steps;    // loose upper bound
-    float ao = ao_accum / (0.5f * maxAccum);               // heuristic normalization
+    float maxAccum = (float)params.num_dirs;    // loose upper bound
+    float ao = ao_accum / maxAccum;               // heuristic normalization
     ao = saturate(ao * intensity);
     ao = pow(1.0 - ao, power);
 

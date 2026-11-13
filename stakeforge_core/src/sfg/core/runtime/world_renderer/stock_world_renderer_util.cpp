@@ -1154,8 +1154,8 @@ namespace sfg
 		if (ctx.is_ssao_enabled())
 		{
 			const vec2u16_t size		= ctx.get_size();
-			const u32		half_width	= static_cast<u32>(size.x) / 2;
-			const u32		half_height = static_cast<u32>(size.y) / 2;
+			const u32		half_width	= (static_cast<u32>(size.x) + 1) / 2;
+			const u32		half_height = (static_cast<u32>(size.y) + 1) / 2;
 
 			const stock_world_renderer_render_pass_data_ssao_gpu_t ssao_render_pass_data = {
 				.proj				 = main_camera_view.proj,
@@ -1164,7 +1164,7 @@ namespace sfg
 				.full_size			 = {size.x, size.y},
 				.half_size			 = {half_width, half_height},
 				.inv_full			 = {1.0f / static_cast<f32>(size.x), 1.0f / static_cast<f32>(size.y)},
-				.inv_half			 = {1.0f / (static_cast<f32>(size.x) * 0.5f), 1.0f / (static_cast<f32>(size.y) * 0.5f)},
+				.inv_half			 = {1.0f / static_cast<f32>(half_width), 1.0f / static_cast<f32>(half_height)},
 				.z_near				 = main_camera_view.near_plane,
 				.z_far				 = main_camera_view.far_plane,
 				.radius_world		 = snapshot.post_process.ssao.radius_world,

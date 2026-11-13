@@ -154,7 +154,7 @@ void CSMain(uint3 DTid : SV_DispatchThreadID)
         float  aoH = AO_half.SampleLevel(smp_nearest, uvH, 0);
 
         // guidance at the corresponding FULL uv of this half texel
-        float2 uvH_asFull = (float2(qH) * 2.0 + 1.0) * params.inv_full;
+        float2 uvH_asFull = min(float2(qH) * 2.0f + 1.0f, float2(params.full_size) - 0.5f) * params.inv_full;
         float  zQ   = depth_full.SampleLevel(smp_nearest, uvH_asFull, 0);
         float3 pVQ  = view_pos_from_uv_depth(uvH_asFull, zQ, params.inv_proj);
         float3 nVQ  = fetch_view_normal(uvH_asFull, (float3x3)params.view_matrix);

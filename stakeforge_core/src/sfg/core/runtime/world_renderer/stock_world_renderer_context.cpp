@@ -877,7 +877,7 @@ namespace sfg
 		ao_desc.set_name("world_ao");
 
 		texture_desc_t ao_half_desc = ao_desc;
-		ao_half_desc.size			= {static_cast<u16>(size.x / 2), static_cast<u16>(size.y / 2)};
+		ao_half_desc.size			= {static_cast<u16>((size.x + 1) / 2), static_cast<u16>((size.y + 1) / 2)};
 		ao_half_desc.set_name("world_ao_half");
 
 		texture_desc_t bloom_downsample_desc = {};
