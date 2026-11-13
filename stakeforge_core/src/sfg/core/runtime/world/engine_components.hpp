@@ -305,21 +305,22 @@ namespace sfg
 	{
 		static inline constexpr const char* DEBUG_NAME = "component_light";
 
-		resource_handle_t cookie_texture	   = NULL_RESOURCE_HANDLE;
-		color_t			  color				   = color_t::white;
-		vec2f_t			  area_size			   = {1.0f, 1.0f};
-		f32				  intensity			   = 1.0f;
-		f32				  range				   = 10.0f;
-		f32				  inner_cone_degrees   = 30.0f;
-		f32				  outer_cone_degrees   = 45.0f;
-		f32				  shadow_near_plane	   = 0.1f;
-		f32				  shadow_bias		   = 0.001f;
-		f32				  shadow_normal_bias   = 0.01f;
-		u16				  shadow_resolution	   = 1024;
-		light_type_e	  type				   = light_type_e::point;
-		u8				  shadow_cascade_count = 4;
-		u8				  cast_shadows		   = 0;
-		u8				  two_sided			   = 0;
+		resource_handle_t cookie_texture		  = NULL_RESOURCE_HANDLE;
+		color_t			  color					  = color_t::white;
+		vec2f_t			  area_size				  = {1.0f, 1.0f};
+		f32				  intensity				  = 1.0f;
+		f32				  range					  = 10.0f;
+		f32				  inner_cone_degrees	  = 30.0f;
+		f32				  outer_cone_degrees	  = 45.0f;
+		f32				  area_shadow_fov_degrees = 150.0f;
+		f32				  shadow_near_plane		  = 0.1f;
+		f32				  shadow_bias			  = 0.001f;
+		f32				  shadow_normal_bias	  = 0.01f;
+		u16				  shadow_resolution		  = 1024;
+		light_type_e	  type					  = light_type_e::point;
+		u8				  shadow_cascade_count	  = 4;
+		u8				  cast_shadows			  = 0;
+		u8				  two_sided				  = 0;
 	};
 
 	SFG_DEFINE_TYPE_ID(component_light_t);

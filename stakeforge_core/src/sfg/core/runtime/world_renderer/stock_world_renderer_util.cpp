@@ -126,7 +126,7 @@ namespace sfg
 		{
 			const stock_world_renderer_light_t& light = snapshot.lights[light_index];
 
-			if (light.cast_shadows == 0 || light.type == static_cast<u8>(stock_world_renderer_light_type_e::area))
+			if (light.cast_shadows == 0)
 				continue;
 
 			const vec3f_t pos			  = vec3f_t::lerp(light.prev_pos, light.pos, interpolation_alpha);
@@ -163,7 +163,14 @@ namespace sfg
 			}
 
 			// figure out shadow faces & required texels.
-			const u8  layer_count	   = light.type == static_cast<u8>(stock_world_renderer_light_type_e::point) ? 6 : light.type == static_cast<u8>(stock_world_renderer_light_type_e::directional) ? math::min<u8>(light.shadow_cascade_count, 8) : 1;
+			u8 layer_count = 1;
+			if (light.type == static_cast<u8>(stock_world_renderer_light_type_e::point))
+				layer_count = 6;
+			else if (light.type == static_cast<u8>(stock_world_renderer_light_type_e::directional))
+				layer_count = math::min<u8>(light.shadow_cascade_count, 8);
+			else if (light.type == static_cast<u8>(stock_world_renderer_light_type_e::area) && (light.flags & 1u) != 0)
+				layer_count = 2;
+
 			const u64 requested_texels = static_cast<u64>(resolution) * resolution * layer_count;
 
 			if (shadow_texels + requested_texels > shadow_texel_budget || prep_data.shadow_views.size() + layer_count > shadow_view_max)
@@ -196,6 +203,13 @@ namespace sfg
 				{
 					light_view = mat4x4_t::look_at(pos, pos + STOCK_WORLD_RENDERER_CUBEMAP_FACE_DIRECTIONS[layer], STOCK_WORLD_RENDERER_CUBEMAP_FACE_UPS[layer]);
 					light_proj = mat4x4_t::perspective(90.0f, 1.0f, light.shadow_near_plane, light.range);
+				}
+				else if (light.type == static_cast<u8>(stock_world_renderer_light_type_e::area))
+				{
+					const vec3f_t forward = layer == 0 ? rot.get_forward() : -rot.get_forward();
+					const f32	  fov	  = math::clamp(light.area_shadow_fov_degrees, 10.0f, 175.0f);
+					light_view			  = mat4x4_t::look_at(pos, pos + forward, rot.get_up());
+					light_proj			  = mat4x4_t::perspective(fov, 1.0f, light.shadow_near_plane, light.range);
 				}
 				else
 				{
