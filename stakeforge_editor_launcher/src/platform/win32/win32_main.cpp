@@ -39,7 +39,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 	try
 	{
+#ifdef SFG_DEBUG
 		AllocConsole();
+#endif
 
 		sfg::editor_app_t& app = sfg::editor_app_t::get();
 
@@ -48,13 +50,17 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 			SFG_ERR("failed initializing editor app");
 			sfg::process::message_box("Stakeforge Editor", "Failed to initialize the editor. Check the error log.");
 			reporting.uninit();
+#ifdef SFG_DEBUG
 			FreeConsole();
+#endif
 			return 1;
 		}
 
 		app.uninit();
 		reporting.uninit();
+#ifdef SFG_DEBUG
 		FreeConsole();
+#endif
 		return 0;
 	}
 	catch (const std::exception& error)
