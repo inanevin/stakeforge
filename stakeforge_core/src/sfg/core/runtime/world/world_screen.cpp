@@ -82,9 +82,18 @@ namespace sfg
 	void world_screen_t::apply_cursor(window_runtime_t& runtime, bool enabled)
 	{
 		window_cursor_confinement_e confinement = enabled ? _cursor_confinement : window_cursor_confinement_e::none;
+		vec2i16_t					confinement_position = _cursor_confinement_position;
 		const bool					visible		= !enabled || _cursor_visible;
 
-		if (confinement == window_cursor_confinement_e::pointer)
+		if (confinement == window_cursor_confinement_e::center)
+		{
+			confinement_position = {
+				static_cast<i16>(_viewport_rect.x + _viewport_rect.z * 0.5f),
+				static_cast<i16>(_viewport_rect.y + _viewport_rect.w * 0.5f),
+			};
+			confinement = window_cursor_confinement_e::position;
+		}
+		else if (confinement == window_cursor_confinement_e::pointer)
 		{
 			if (_cursor_position_pending)
 			{
@@ -92,13 +101,14 @@ namespace sfg
 				_cursor_position_pending	 = false;
 			}
 
+			confinement_position = _cursor_confinement_position;
 			confinement = window_cursor_confinement_e::position;
 		}
 
 		if (confinement == window_cursor_confinement_e::position)
 		{
-			if (runtime.cursor_confinement != confinement || runtime.cursor_confinement_position != _cursor_confinement_position)
-				process::set_cursor_confinement_position(runtime.window_handle, _cursor_confinement_position);
+			if (runtime.cursor_confinement != confinement || runtime.cursor_confinement_position != confinement_position)
+				process::set_cursor_confinement_position(runtime.window_handle, confinement_position);
 		}
 		else if (runtime.cursor_confinement != confinement)
 			process::set_cursor_confinement(runtime.window_handle, confinement);

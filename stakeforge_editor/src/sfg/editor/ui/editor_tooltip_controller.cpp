@@ -207,6 +207,7 @@ namespace sfg
 		_asset_type_value	  = NULL_WIDGET;
 		_asset_thumbnail_guid = NULL_SID;
 		_hovered_owner		  = NULL_WIDGET;
+		_dismissed_hover	  = NULL_WIDGET;
 		_hover_seconds		  = 0.0f;
 		_mode				  = editor_tooltip_mode_e::invalid;
 		_visible			  = false;
@@ -261,6 +262,14 @@ namespace sfg
 		}
 	}
 
+	void editor_tooltip_controller_t::dismiss()
+	{
+		_dismissed_hover = _ui->get_input().get_hovered();
+		_hovered_owner = NULL_WIDGET;
+		_hover_seconds = 0.0f;
+		set_visible(false);
+	}
+
 	editor_tooltip_controller_t* editor_tooltip_controller_t::find(ui::ui_context& ui)
 	{
 		for (u32 i = 0; i < s_controller_count; ++i)
@@ -277,6 +286,12 @@ namespace sfg
 		ui::input_router_t& input = _ui->get_input();
 
 		const ui::widget_id_t  hovered = input.get_hovered();
+		if (hovered == _dismissed_hover && hovered != NULL_WIDGET)
+		{
+			set_visible(false);
+			return;
+		}
+		_dismissed_hover = NULL_WIDGET;
 		const tooltip_entry_t* entry   = find_entry(hovered);
 		if (entry == nullptr || input.is_popup_scope_active() || input.is_pressed(ui::mouse_button_e::left) != NULL_WIDGET)
 		{

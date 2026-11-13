@@ -26,6 +26,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor_surface_controller.hpp"
 #include "editor_world_controller.hpp"
 #include "assets/editor_asset_manager.hpp"
+#include "ui/editor_tooltip_controller.hpp"
 #include "ui/panels/editor_panel_entities.hpp"
 #include "ui/panels/editor_panel_inspector.hpp"
 #include "world/editor_world.hpp"
@@ -129,6 +130,9 @@ namespace sfg
 
 		_saved_world_dirty = worlds.is_main_world_dirty();
 		_state			   = state;
+
+		for (editor_surface_t& surface : editor_surface_controller_t::get())
+			surface.tooltip_controller->dismiss();
 
 		editor_command_system_t::get().begin_play_history();
 

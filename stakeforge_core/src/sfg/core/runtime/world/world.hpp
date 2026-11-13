@@ -121,6 +121,13 @@ namespace sfg
 		entity_id_t	  get_entity_parent(entity_id_t id) const;
 		entity_guid_t get_entity_guid(entity_id_t id) const;
 		entity_id_t	  find_by_guid(entity_guid_t guid) const;
+		entity_id_t	  find_by_name(const char* name) const;
+		entity_id_t	  find_by_tag(u32 tag_index) const;
+		entity_id_t	  find_by_component(sid_t type_id) const;
+		template <typename T> entity_id_t find_by_component() const
+		{
+			return find_by_component(type_id_t<T>::value);
+		}
 		void		  attach_to(entity_id_t id, entity_id_t parent);
 		void		  detach(entity_id_t id);
 		void		  sync_entity_hierarchy(entity_id_t id);

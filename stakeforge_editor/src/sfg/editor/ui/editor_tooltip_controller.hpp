@@ -77,6 +77,7 @@ namespace sfg
 		void set_tooltip(ui::widget_id_t owner, const editor_tooltip_desc_t& desc);
 		void set_asset_tooltip(ui::widget_id_t owner, const editor_asset_tooltip_desc_t& desc);
 		void clear_tooltip(ui::widget_id_t owner);
+		void dismiss();
 
 		static editor_tooltip_controller_t* find(ui::ui_context& ui);
 
@@ -122,6 +123,7 @@ namespace sfg
 		editor_widget_thumbnail_t* _asset_thumbnail		 = nullptr;
 		sid_t					   _asset_thumbnail_guid = NULL_SID;
 		ui::widget_id_t			   _hovered_owner		 = NULL_WIDGET;
+		ui::widget_id_t			   _dismissed_hover	 = NULL_WIDGET;
 		f32						   _hover_seconds		 = 0.0f;
 		editor_tooltip_mode_e	   _mode				 = editor_tooltip_mode_e::invalid;
 		bool					   _visible				 = false;

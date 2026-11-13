@@ -46,6 +46,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/world/world_init_config.hpp"
 #include "core/vendor/nhlohmann/json.hpp"
 #include <tracy/Tracy.hpp>
+#include <cstring>
 
 namespace sfg
 {
@@ -666,6 +667,66 @@ namespace sfg
 			if (g.guid == guid)
 				return row.id;
 		}
+
+		return NULL_ENTITY_ID;
+	}
+
+	entity_id_t world_t::find_by_name(const char* name) const
+	{
+		if (name == nullptr)
+			return NULL_ENTITY_ID;
+
+		const ecs_component_table_ref_t table_refs[] = {
+			_engine_components.alive_table->ref(),
+			_engine_components.name_table->ref(),
+		};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+		{
+			if (std::strcmp(row.get<component_name_t>(1).text, name) == 0)
+				return row.id;
+		}
+
+		return NULL_ENTITY_ID;
+	}
+
+	entity_id_t world_t::find_by_tag(u32 tag_index) const
+	{
+		if (tag_index >= ENTITY_TAG_MAX)
+			return NULL_ENTITY_ID;
+
+		const ecs_component_table_t* tags_table = find_component_table<component_entity_tags_t>();
+		if (tags_table == nullptr)
+			return NULL_ENTITY_ID;
+
+		const ecs_component_table_ref_t table_refs[] = {
+			_engine_components.alive_table->ref(),
+			tags_table->ref(),
+		};
+		const u64 tag_bit = 1ull << tag_index;
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+		{
+			if ((row.get<component_entity_tags_t>(1).tags & tag_bit) != 0)
+				return row.id;
+		}
+
+		return NULL_ENTITY_ID;
+	}
+
+	entity_id_t world_t::find_by_component(sid_t type_id) const
+	{
+		const ecs_component_table_t* component_table = find_component_table(type_id);
+		if (component_table == nullptr)
+			return NULL_ENTITY_ID;
+
+		const ecs_component_table_ref_t table_refs[] = {
+			_engine_components.alive_table->ref(),
+			component_table->ref(),
+		};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = table_refs, .size = std::size(table_refs)}))
+			return row.id;
 
 		return NULL_ENTITY_ID;
 	}
