@@ -33,6 +33,10 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	inline constexpr f32 EDITOR_CAMERA_SPEED_DEFAULT = 12.0f;
+	inline constexpr f32 EDITOR_CAMERA_SPEED_MIN	 = 0.1f;
+	inline constexpr f32 EDITOR_CAMERA_SPEED_MAX	 = 100.0f;
+
 	struct editor_project_runtime_t
 	{
 		string_t path;
@@ -53,12 +57,15 @@ namespace sfg
 	{
 		project_settings_t			 project_settings				  = {};
 		sid_t						 last_world_guid				  = NULL_SID;
+		f32							 editor_camera_speed			  = EDITOR_CAMERA_SPEED_DEFAULT;
 		editor_world_view_settings_t world_view_settings			  = {};
 		bool						 world_view_snapping_enabled	  = false;
 		bool						 world_view_grid_enabled		  = false;
 		bool						 world_view_aabb_enabled		  = false;
 		bool						 world_view_physics_debug_enabled = false;
 		bool						 world_view_perf_metrics_enabled  = false;
+
+		void normalize(const editor_project_settings_data_t* previous = nullptr);
 
 		bool operator==(const editor_project_settings_data_t&) const = default;
 	};

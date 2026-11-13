@@ -49,7 +49,6 @@ namespace sfg
 	editor_world_input_controller_t* editor_world_input_controller_t::s_active_drag_controller	 = nullptr;
 	window_runtime_t*				 editor_world_input_controller_t::s_event_runtime			 = nullptr;
 
-#define EDITOR_WORLD_INPUT_CAMERA_BASE_MOVE_SPEED  12.0f
 #define EDITOR_WORLD_INPUT_CAMERA_BOOST_MULTIPLIER 8.0f
 #define EDITOR_WORLD_INPUT_FOCUS_POINT_HALF_EXTENT 0.5f
 #define EDITOR_WORLD_INPUT_VISIBILITY_CAPACITY	   64
@@ -582,8 +581,9 @@ namespace sfg
 			input.direction_delta.y = -sign;
 		else if (ev.button == static_cast<u16>(input_code::key_lshift) || ev.button == static_cast<u16>(input_code::key_rshift))
 		{
+			const f32 base_speed = editor_project_t::get().settings.editor_camera_speed;
 			input.set_move_speed = true;
-			input.move_speed	 = ev.sub_type == window_event_sub_type_e::press ? EDITOR_WORLD_INPUT_CAMERA_BASE_MOVE_SPEED * EDITOR_WORLD_INPUT_CAMERA_BOOST_MULTIPLIER : EDITOR_WORLD_INPUT_CAMERA_BASE_MOVE_SPEED;
+			input.move_speed	 = ev.sub_type == window_event_sub_type_e::press ? base_speed * EDITOR_WORLD_INPUT_CAMERA_BOOST_MULTIPLIER : base_speed;
 		}
 		else
 			return false;

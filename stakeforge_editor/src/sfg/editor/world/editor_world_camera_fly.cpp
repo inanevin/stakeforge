@@ -20,6 +20,7 @@ in GAME-LINKING-EXCEPTION.md.
 */
 
 #include "editor/world/editor_world_camera_fly.hpp"
+#include "editor/editor_project.hpp"
 #include <sfg/core/math/aabb.hpp>
 #include <sfg/core/math/math.hpp>
 #include <sfg/core/memory/memory.hpp>
@@ -30,7 +31,6 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define EDITOR_WORLD_CAMERA_FLY_BASE_MOVE_SPEED	  12.0f
 #define EDITOR_WORLD_CAMERA_FLY_MOUSE_SENSITIVITY 0.2f
 
 	void editor_world_camera_fly_t::init(world_t& world)
@@ -48,7 +48,7 @@ namespace sfg
 		const vec3f_t euler	  = quat_t::to_euler(world.get_entity_rot_local(_camera_entity));
 		_camera_pitch_degrees = euler.x;
 		_camera_yaw_degrees	  = euler.y;
-		_current_move_speed	  = EDITOR_WORLD_CAMERA_FLY_BASE_MOVE_SPEED;
+		_current_move_speed	  = editor_project_t::get().settings.editor_camera_speed;
 	}
 
 	void editor_world_camera_fly_t::uninit(world_t& world)
@@ -62,7 +62,7 @@ namespace sfg
 		_mouse_delta		  = vec2f_t::zero;
 		_camera_yaw_degrees	  = 0.0f;
 		_camera_pitch_degrees = 0.0f;
-		_current_move_speed	  = EDITOR_WORLD_CAMERA_FLY_BASE_MOVE_SPEED;
+		_current_move_speed	  = EDITOR_CAMERA_SPEED_DEFAULT;
 	}
 
 	void editor_world_camera_fly_t::pass_input(world_t& world, const editor_world_camera_input_t& input)
@@ -82,7 +82,7 @@ namespace sfg
 		{
 			_direction_input	= vec3f_t::zero;
 			_mouse_delta		= vec2f_t::zero;
-			_current_move_speed = EDITOR_WORLD_CAMERA_FLY_BASE_MOVE_SPEED;
+			_current_move_speed = editor_project_t::get().settings.editor_camera_speed;
 
 			return;
 		}
@@ -138,7 +138,6 @@ namespace sfg
 			{"yaw_degrees", _camera_yaw_degrees},
 			{"pitch_degrees", _camera_pitch_degrees},
 			{"roll_degrees", _camera_roll_degrees},
-			{"move_speed", _current_move_speed},
 		};
 	}
 
@@ -172,7 +171,7 @@ namespace sfg
 		_camera_yaw_degrees	  = angles.y;
 		_camera_pitch_degrees = angles.x;
 		_camera_roll_degrees  = angles.z;
-		_current_move_speed	  = in_json.value<f32>("move_speed", EDITOR_WORLD_CAMERA_FLY_BASE_MOVE_SPEED);
+		_current_move_speed	  = editor_project_t::get().settings.editor_camera_speed;
 		_direction_input	  = vec3f_t::zero;
 		_mouse_delta		  = vec2f_t::zero;
 

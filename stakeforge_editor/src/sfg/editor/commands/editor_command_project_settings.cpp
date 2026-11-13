@@ -78,7 +78,7 @@ namespace sfg
 			string_t							   project_contents = {};
 			string_t							   editor_contents	= {};
 
-			normalized.project.project_settings.normalize();
+			normalized.project.normalize();
 			normalized.editor.normalize();
 
 			try
@@ -128,6 +128,7 @@ namespace sfg
 			const editor_command_edit_project_settings_payload_t& payload  = system.get_payload_as<editor_command_edit_project_settings_payload_t>(command);
 			editor_command_project_settings_data_t				  settings = editor_command_project_settings_t::read();
 			settings.project.last_world_guid							   = payload.previous_last_world_guid;
+			settings.project.editor_camera_speed						   = payload.previous_editor_camera_speed;
 
 			if (!read_reflected_from_aux(system, payload.previous_project_settings, settings.project.project_settings))
 				return false;
@@ -143,6 +144,7 @@ namespace sfg
 			const editor_command_edit_project_settings_payload_t& payload  = system.get_payload_as<editor_command_edit_project_settings_payload_t>(command);
 			editor_command_project_settings_data_t				  settings = editor_command_project_settings_t::read();
 			settings.project.last_world_guid							   = payload.post_last_world_guid;
+			settings.project.editor_camera_speed						   = payload.post_editor_camera_speed;
 
 			if (!read_reflected_from_aux(system, payload.post_project_settings, settings.project.project_settings))
 				return false;
@@ -180,7 +182,7 @@ namespace sfg
 	{
 		editor_project_t& project = editor_project_t::get();
 		project.settings		  = settings.project;
-		project.settings.project_settings.normalize();
+		project.settings.normalize();
 		engine_runtime_t::get().update_project_settings(project.settings.project_settings);
 
 		editor_settings_t::get().configurable = settings.editor;
@@ -197,12 +199,14 @@ namespace sfg
 
 		editor_command_system_t&					   system = editor_command_system_t::get();
 		editor_command_edit_project_settings_payload_t payload{
-			.previous_project_settings = copy_reflected_to_aux(system, previous.project.project_settings),
-			.post_project_settings	   = copy_reflected_to_aux(system, post.project.project_settings),
-			.previous_editor_settings  = copy_reflected_to_aux(system, previous.editor),
-			.post_editor_settings	   = copy_reflected_to_aux(system, post.editor),
-			.previous_last_world_guid  = previous.project.last_world_guid,
-			.post_last_world_guid	   = post.project.last_world_guid,
+			.previous_project_settings	  = copy_reflected_to_aux(system, previous.project.project_settings),
+			.post_project_settings		  = copy_reflected_to_aux(system, post.project.project_settings),
+			.previous_editor_settings	  = copy_reflected_to_aux(system, previous.editor),
+			.post_editor_settings		  = copy_reflected_to_aux(system, post.editor),
+			.previous_last_world_guid	  = previous.project.last_world_guid,
+			.post_last_world_guid		  = post.project.last_world_guid,
+			.previous_editor_camera_speed = previous.project.editor_camera_speed,
+			.post_editor_camera_speed	  = post.project.editor_camera_speed,
 		};
 
 		if (!payload.previous_project_settings || !payload.post_project_settings || !payload.previous_editor_settings || !payload.post_editor_settings)

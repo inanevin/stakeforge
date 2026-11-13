@@ -171,7 +171,7 @@ namespace sfg
 
 		const editor_command_project_settings_data_t previous = _project_edit_previous;
 
-		editor_project_t::get().settings.project_settings.normalize(&previous.project.project_settings);
+		editor_project_t::get().settings.normalize(&previous.project);
 		editor_settings_t::get().configurable.normalize();
 
 		const editor_command_project_settings_data_t post = editor_command_project_settings_t::read();

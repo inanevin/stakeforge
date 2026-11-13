@@ -41,12 +41,14 @@ namespace sfg
 
 	struct editor_command_edit_project_settings_payload_t
 	{
-		chunk_handle32_t previous_project_settings = {};
-		chunk_handle32_t post_project_settings	   = {};
-		chunk_handle32_t previous_editor_settings  = {};
-		chunk_handle32_t post_editor_settings	   = {};
-		sid_t			 previous_last_world_guid  = NULL_SID;
-		sid_t			 post_last_world_guid	   = NULL_SID;
+		chunk_handle32_t previous_project_settings	  = {};
+		chunk_handle32_t post_project_settings		  = {};
+		chunk_handle32_t previous_editor_settings	  = {};
+		chunk_handle32_t post_editor_settings		  = {};
+		sid_t			 previous_last_world_guid	  = NULL_SID;
+		sid_t			 post_last_world_guid		  = NULL_SID;
+		f32				 previous_editor_camera_speed = EDITOR_CAMERA_SPEED_DEFAULT;
+		f32				 post_editor_camera_speed	  = EDITOR_CAMERA_SPEED_DEFAULT;
 	};
 
 	class SFG_EDITOR_API editor_command_project_settings_t final

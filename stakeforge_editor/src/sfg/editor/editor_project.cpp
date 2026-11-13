@@ -25,6 +25,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include <sfg/core/data/string_util.hpp>
 #include <sfg/core/io/file_system.hpp>
 #include <sfg/core/io/log.hpp>
+#include <sfg/core/math/math.hpp>
 #include <sfg/core/platform/process.hpp>
 #include <sfg/core/reflection/reflection_registry.hpp>
 #include <sfg/core/runtime/engine/engine_runtime.hpp>
@@ -36,6 +37,12 @@ in GAME-LINKING-EXCEPTION.md.
 namespace sfg
 {
 	editor_project_reflection_t g_reflect_editor_project = {};
+
+	void editor_project_settings_data_t::normalize(const editor_project_settings_data_t* previous)
+	{
+		project_settings.normalize(previous != nullptr ? &previous->project_settings : nullptr);
+		editor_camera_speed = math::clamp(editor_camera_speed, EDITOR_CAMERA_SPEED_MIN, EDITOR_CAMERA_SPEED_MAX);
+	}
 
 	editor_project_t editor_project_t::make_default_project(const char* path)
 	{
@@ -125,7 +132,7 @@ namespace sfg
 			return false;
 		}
 
-		project.settings.project_settings.normalize();
+		project.settings.normalize();
 		project.refresh_runtime(path);
 		*this = std::move(project);
 
@@ -325,6 +332,17 @@ namespace sfg
 			.fields =
 				{
 					{.name = "last_world_guid", .display_name = "Last World GUID", .offset = offsetof(editor_project_settings_data_t, last_world_guid), .size = sizeof(sid_t), .flags = reflected_field_flag_no_ui, .type = reflected_value_type_e::u64},
+					{
+						.name		  = "editor_camera_speed",
+						.display_name = "Editor Camera Speed",
+						.tooltip	  = "Base movement speed of the editor fly camera in world units per second. Hold Shift to boost it.",
+						.offset		  = offsetof(editor_project_settings_data_t, editor_camera_speed),
+						.size		  = sizeof(f32),
+						.flags		  = reflected_field_flag_clamped,
+						.min_clamp	  = EDITOR_CAMERA_SPEED_MIN,
+						.max_clamp	  = EDITOR_CAMERA_SPEED_MAX,
+						.type		  = reflected_value_type_e::f32,
+					},
 					{
 						.name		  = "world_view_settings",
 						.display_name = "World View Settings",
