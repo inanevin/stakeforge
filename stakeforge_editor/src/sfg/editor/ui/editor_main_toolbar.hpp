@@ -80,6 +80,7 @@ namespace sfg
 		static void on_edit_mode_toggled(bool toggled, void* user_data);
 		static void on_debug_toggled(bool toggled, void* user_data);
 		static void on_step_pressed(bool toggled, void* user_data);
+		static void on_restart_emitters_pressed(bool toggled, void* user_data);
 		static void on_play_controls_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data);
 
 	private:
@@ -88,6 +89,7 @@ namespace sfg
 		editor_icon_button_t _step_button;
 		editor_icon_button_t _edit_button;
 		editor_icon_button_t _debug_button;
+		editor_icon_button_t _restart_emitters_button;
 		ui::ui_context*		 _ui					 = nullptr;
 		ui::widget_id_t		 _root					 = NULL_WIDGET;
 		ui::widget_id_t		 _play_frame			 = NULL_WIDGET;

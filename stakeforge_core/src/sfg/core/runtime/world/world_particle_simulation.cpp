@@ -136,6 +136,9 @@ namespace sfg
 
 	void world_particle_simulation_t::restart(entity_id_t entity)
 	{
+		if (!_world->get_component_table<component_system_particle_emitter_t>().has(entity))
+			alloc_for_entity(entity);
+
 		component_system_particle_emitter_t& system = _world->get_component_table<component_system_particle_emitter_t>().get_as<component_system_particle_emitter_t>(entity);
 
 		system.particle_count		= 0;

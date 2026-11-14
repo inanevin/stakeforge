@@ -27,7 +27,9 @@ in GAME-LINKING-EXCEPTION.md.
 #include "editor/ui/widgets/editor_widgets_icons.hpp"
 #include "editor/world/editor_world.hpp"
 
+#include <sfg/core/data/frame_vector.hpp>
 #include <sfg/core/runtime/ui/ui_context.hpp>
+#include <sfg/core/runtime/world/engine_components.hpp>
 #include <sfg/core/vendor/nhlohmann/json.hpp>
 
 namespace sfg
@@ -183,11 +185,29 @@ namespace sfg
 							   .toggle_enabled		= true,
 						   });
 
-		tree.in(_play_button.get_root()).size_mode_x  = ui::axis_mode_e::fixed;
-		tree.in(_pause_button.get_root()).size_mode_x = ui::axis_mode_e::fixed;
-		tree.in(_step_button.get_root()).size_mode_x  = ui::axis_mode_e::fixed;
-		tree.in(_edit_button.get_root()).size_mode_x  = ui::axis_mode_e::fixed;
-		tree.in(_debug_button.get_root()).size_mode_x = ui::axis_mode_e::fixed;
+		_restart_emitters_button.init(ui,
+									  _play_frame,
+									  {
+										  .frame_color	  = vec4f_t::zero,
+										  .hover_color	  = theme.color_panel_light1,
+										  .press_color	  = theme.color_frame_light,
+										  .icon_color	  = theme.color_text0,
+										  .disabled_color = theme.color_text_disabled,
+										  .icon			  = ICON_RESET,
+										  .tooltip		  = "Restart Selected Emitters",
+										  .on_clicked	  = on_restart_emitters_pressed,
+										  .user_data	  = this,
+										  .size			  = button_size,
+										  .icon_size	  = theme.text_big_px_size,
+										  .rounding		  = theme.item_rounding,
+									  });
+
+		tree.in(_play_button.get_root()).size_mode_x			 = ui::axis_mode_e::fixed;
+		tree.in(_pause_button.get_root()).size_mode_x			 = ui::axis_mode_e::fixed;
+		tree.in(_step_button.get_root()).size_mode_x			 = ui::axis_mode_e::fixed;
+		tree.in(_edit_button.get_root()).size_mode_x			 = ui::axis_mode_e::fixed;
+		tree.in(_debug_button.get_root()).size_mode_x			 = ui::axis_mode_e::fixed;
+		tree.in(_restart_emitters_button.get_root()).size_mode_x = ui::axis_mode_e::fixed;
 
 		refresh_play_controls();
 		ui.set_pre_layout_tick(_play_frame, on_play_controls_tick, this);
@@ -195,6 +215,7 @@ namespace sfg
 
 	void editor_main_toolbar_t::uninit()
 	{
+		_restart_emitters_button.uninit();
 		_debug_button.uninit();
 		_edit_button.uninit();
 		_pause_button.uninit();
@@ -272,6 +293,7 @@ namespace sfg
 		_edit_button.set_toggled(session.is_edit_mode_enabled());
 		_debug_button.set_toggled(editor_plugin_manager_t::get().is_debugger_attached());
 		_debug_button.set_disabled(!editor_plugin_manager_t::get().is_idle());
+		_restart_emitters_button.set_disabled(main_world.is_null() || world_controller.get_editor_world(main_world)->get_edit_context().get_selected_entities().size == 0);
 
 		_displayed_playing = session.is_playing();
 		_displayed_state   = state;
@@ -317,6 +339,50 @@ namespace sfg
 		world_controller.get_play_session().request_step();
 	}
 
+	void editor_main_toolbar_t::on_restart_emitters_pressed(bool toggled, void* user_data)
+	{
+		editor_world_controller_t&	world_controller = editor_world_controller_t::get();
+		const editor_world_handle_t main_world		 = world_controller.get_main_world_handle();
+		SFG_ASSERT(!main_world.is_null());
+
+		editor_world_t&					editor_world	= *world_controller.get_editor_world(main_world);
+		world_t&						world			= editor_world.get_world();
+		const span_t<const entity_id_t> selected		= editor_world.get_edit_context().get_selected_entities();
+		const ecs_component_table_t&	hierarchy_table = world.get_component_table<component_hierarchy_t>();
+		const ecs_component_table_t&	emitter_table	= world.get_component_table<component_particle_emitter_t>();
+		const ecs_component_table_t&	disabled_table	= world.get_component_table<component_disabled_t>();
+		frame_vector_t<entity_id_t>		pending			= {};
+		pending.reserve(selected.size);
+
+		for (const entity_id_t entity : selected)
+		{
+			bool has_selected_parent = false;
+			for (entity_id_t parent = world.get_entity_parent(entity); parent != NULL_ENTITY_ID; parent = world.get_entity_parent(parent))
+			{
+				if (std::find(selected.begin(), selected.end(), parent) != selected.end())
+				{
+					has_selected_parent = true;
+					break;
+				}
+			}
+			if (!has_selected_parent)
+				pending.push_back(entity);
+		}
+
+		while (!pending.empty())
+		{
+			const entity_id_t entity = pending.back();
+			pending.pop_back();
+
+			if (emitter_table.has(entity) && !disabled_table.has(entity))
+				world.get_particle_simulation().restart(entity);
+
+			const component_hierarchy_t& hierarchy = hierarchy_table.get_as_const<component_hierarchy_t>(entity);
+			for (entity_id_t child = hierarchy.first_child; child != NULL_ENTITY_ID; child = hierarchy_table.get_as_const<component_hierarchy_t>(child).next_sibling)
+				pending.push_back(child);
+		}
+	}
+
 	void editor_main_toolbar_t::on_play_controls_tick(ui::ui_context& ui, ui::widget_id_t id, f32 dt_seconds, void* user_data)
 	{
 		editor_main_toolbar_t&		toolbar			 = *static_cast<editor_main_toolbar_t*>(user_data);
@@ -332,6 +398,10 @@ namespace sfg
 		const bool debugger_busy_changed = ui.get_tree().is_disabled(toolbar._debug_button.get_root()) != debugger_disabled;
 		if (state_changed || options_changed || world_changed || debugger_busy_changed || toolbar._displayed_paused != session.is_paused())
 			toolbar.refresh_play_controls();
+
+		const bool restart_emitters_disabled = main_world.is_null() || world_controller.get_editor_world(main_world)->get_edit_context().get_selected_entities().size == 0;
+		if (ui.get_tree().is_disabled(toolbar._restart_emitters_button.get_root()) != restart_emitters_disabled)
+			toolbar._restart_emitters_button.set_disabled(restart_emitters_disabled);
 
 		if (main_world.is_null())
 			return;
