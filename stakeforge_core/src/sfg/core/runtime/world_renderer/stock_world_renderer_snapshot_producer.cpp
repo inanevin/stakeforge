@@ -46,6 +46,9 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
+	static_assert(component_line_renderer_t::MAX_POINTS == std::size(stock_world_renderer_line_t{}.points));
+	static_assert(component_line_renderer_t::MITER_LIMIT == stock_world_renderer_line_t::MITER_LIMIT);
+
 	namespace
 	{
 		u32 push_material_from_guid(frame_hash_map_t<resource_handle_t, u32>& material_guid_to_index, stock_world_renderer_snapshot_t& snapshot, resource_handle_t mat_handle)
@@ -216,6 +219,7 @@ namespace sfg
 		snapshot.sprite_draws.resize(0);
 		snapshot.particle_draws.resize(0);
 		snapshot.particles.resize(0);
+		snapshot.lines.resize(0);
 		snapshot.environment  = {};
 		snapshot.fog		  = {};
 		snapshot.post_process = {};
@@ -751,6 +755,85 @@ namespace sfg
 					.entity_index	= entity_index,
 					.pass_mask		= snapshot.materials[material_index].pass_mask,
 					.type			= stock_world_renderer_renderable_type_e::sprite,
+				});
+			}
+		}
+
+		// collect line paths
+		{
+			const ecs_component_table_t&	line_table = world.get_component_table<component_line_renderer_t>();
+			const ecs_component_table_ref_t refs[]	   = {transform_table.ref(), alive_table.ref(), line_table.ref(), !disabled_table.ref()};
+
+			for (const ecs_query_row_t& row : ecs_t::inner_join({.data = refs, .size = std::size(refs)}))
+			{
+				if (snapshot.lines.full() || snapshot.renderables.full())
+					break;
+
+				const component_line_renderer_t& line = row.get<component_line_renderer_t>(2);
+				if (line.positions.size() < 2)
+					continue;
+
+				const material_runtime_t* material = rm.find_runtime<material_runtime_t>(line.material);
+				if (material == nullptr)
+					continue;
+				const shader_runtime_t* shader = rm.find_runtime<shader_runtime_t>(material->shader_guid);
+				if (shader == nullptr)
+					continue;
+				if (shader->type != shader_type_e::line_shader)
+					continue;
+
+				const u32 material_index = push_material_from_guid(material_guid_to_index, snapshot, line.material);
+				if (material_index == UINT32_MAX)
+					continue;
+				const u32 entity_index = push_render_object(entity_to_render_id, snapshot, row.id, transform_table);
+				if (entity_index == UINT32_MAX)
+					continue;
+
+				const u32					 line_index = static_cast<u32>(snapshot.lines.size());
+				stock_world_renderer_line_t& draw		= snapshot.lines.emplace_back();
+				draw.start_color						= line.start_color.to_vector();
+				draw.end_color							= line.end_color.to_vector();
+				draw.start_width						= math::max(line.start_width, 0.0f);
+				draw.end_width							= math::max(line.end_width, 0.0f);
+				draw.texture_tiling						= line.texture_tiling;
+				draw.closed								= line.closed;
+				draw.entity_id							= row.id;
+				draw.entity_index						= line.world_space ? UINT32_MAX : entity_index;
+
+				for (const vec3f_t& point : line.positions)
+				{
+					if (draw.point_count != 0)
+					{
+						const vec4f_t& previous = draw.points[draw.point_count - 1];
+						if ((point - vec3f_t{previous.x, previous.y, previous.z}).magnitude_sqr() < 0.00000001f)
+							continue;
+					}
+					draw.points[draw.point_count++] = {point.x, point.y, point.z, 0.0f};
+				}
+
+				if (draw.closed != 0 && draw.point_count > 1)
+				{
+					const vec4f_t& first = draw.points[0];
+					const vec4f_t& last	 = draw.points[draw.point_count - 1];
+					if ((vec3f_t{first.x, first.y, first.z} - vec3f_t{last.x, last.y, last.z}).magnitude_sqr() < 0.00000001f)
+						--draw.point_count;
+				}
+
+				if (draw.point_count < 2)
+				{
+					snapshot.lines.pop_back();
+					continue;
+				}
+
+				snapshot.renderables.push_back({
+					.sort_key		= line.material,
+					.aabb			= aabb_table.get_as_const<component_system_aabb_t>(row.id).bounds,
+					.payload_index	= line_index,
+					.material_index = material_index,
+					.entity_index	= entity_index,
+					.pass_mask		= snapshot.materials[material_index].pass_mask & ~stock_world_renderer_pass_flags_shadow,
+					.type			= stock_world_renderer_renderable_type_e::line,
+					.flags			= stock_world_renderer_renderable_flag_world_space_aabb,
 				});
 			}
 		}

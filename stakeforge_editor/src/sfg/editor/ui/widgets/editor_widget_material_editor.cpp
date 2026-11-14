@@ -182,14 +182,20 @@ namespace sfg
 			append_property_row(row.row);
 		};
 
-		append_bool_property("Write Shadows", &material_def_t::write_shadows);
-		append_bool_property("Write Reflections", &material_def_t::write_reflections);
-		append_bool_property("Double Sided", &material_def_t::double_sided);
-		append_bool_property("Alpha Cutoff", &material_def_t::use_alpha_cutoff);
-
 		const editor_asset_t* shader_asset		 = _materials.empty() ? nullptr : editor_asset_manager_t::get().find_asset(_materials.front().shader);
 		const bool			  is_particle_shader = shader_asset != nullptr && shader_asset->asset_type == editor_asset_type_e::shader && shader_asset->sub_type == static_cast<u8>(shader_type_e::particle_shader);
-		vector_t<u8*>		  fields			 = {};
+		const bool			  is_line_shader	 = shader_asset != nullptr && shader_asset->asset_type == editor_asset_type_e::shader && shader_asset->sub_type == static_cast<u8>(shader_type_e::line_shader);
+
+		if (!is_line_shader)
+			append_bool_property("Write Shadows", &material_def_t::write_shadows);
+		append_bool_property("Write Reflections", &material_def_t::write_reflections);
+		if (!is_line_shader)
+		{
+			append_bool_property("Double Sided", &material_def_t::double_sided);
+			append_bool_property("Alpha Cutoff", &material_def_t::use_alpha_cutoff);
+		}
+
+		vector_t<u8*> fields = {};
 		fields.reserve(_materials.size());
 
 		for (material_def_t& material : _materials)
@@ -198,9 +204,10 @@ namespace sfg
 		const editor_property_row_t row		 = editor_misc_widgets_t::make_property_row_with_label(*_ui, _root, "Blend Mode");
 		editor_dropdown_t*			dropdown = new editor_dropdown_t();
 
-		if (is_particle_shader)
+		if (is_particle_shader || is_line_shader)
 		{
 			const editor_dropdown_item_t items[] = {
+				{.text = "Opaque", .value = static_cast<u64>(material_blend_mode_e::opaque)},
 				{.text = "Alpha", .value = static_cast<u64>(material_blend_mode_e::alpha)},
 				{.text = "Premultiplied Alpha", .value = static_cast<u64>(material_blend_mode_e::premultiplied_alpha)},
 				{.text = "Additive", .value = static_cast<u64>(material_blend_mode_e::additive)},
@@ -209,10 +216,10 @@ namespace sfg
 			dropdown->init(*_ui,
 						   row.right,
 						   {
-							   .items	   = items,
+							   .items	   = is_line_shader ? items : items + 1,
 							   .field	   = {.fields = {.data = fields.data(), .size = fields.size()}, .field_size = sizeof(material_blend_mode_e)},
 							   .callbacks  = callbacks,
-							   .item_count = static_cast<u16>(std::size(items)),
+							   .item_count = static_cast<u16>(std::size(items) - (is_line_shader ? 0 : 1)),
 							   .width	   = editor_dropdown_width_e::parent_relative,
 							   .pos_y	   = editor_dropdown_pos_y_e::center,
 						   });

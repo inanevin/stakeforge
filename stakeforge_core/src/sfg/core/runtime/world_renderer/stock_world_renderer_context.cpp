@@ -165,6 +165,20 @@ namespace sfg
 		sprite_instance_buffer_desc.flags			= resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
 		sprite_instance_buffer_desc.set_name("world_sprite_instance_buffer");
 
+		resource_desc_t line_buffer_desc = {};
+		line_buffer_desc.size			 = static_cast<u32>(sizeof(stock_world_renderer_line_t)) * std::max(config.line_max, 1u);
+		line_buffer_desc.structure_size	 = sizeof(stock_world_renderer_line_t);
+		line_buffer_desc.structure_count = std::max(config.line_max, 1u);
+		line_buffer_desc.flags			 = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
+		line_buffer_desc.set_name("stock_world_renderer_lines");
+
+		resource_desc_t line_instance_buffer_desc = {};
+		line_instance_buffer_desc.size			  = sizeof(u32) * get_line_instance_max();
+		line_instance_buffer_desc.structure_size  = sizeof(u32);
+		line_instance_buffer_desc.structure_count = get_line_instance_max();
+		line_instance_buffer_desc.flags			  = resource_flags::rf_storage_buffer | resource_flags::rf_cpu_visible;
+		line_instance_buffer_desc.set_name("stock_world_renderer_line_instances");
+
 		resource_desc_t particle_instance_buffer_desc = {};
 		const u32		particle_instance_count		  = get_particle_instance_max();
 		particle_instance_buffer_desc.size			  = static_cast<u32>(sizeof(stock_world_renderer_draw_particle_instance_gpu_t) * particle_instance_count);
@@ -367,8 +381,20 @@ namespace sfg
 			_pfd[i].mesh_instance_buffer			   = backend.create_resource(mesh_instance_buffer_desc);
 			_pfd[i].sprite_instance_buffer			   = backend.create_resource(sprite_instance_buffer_desc);
 			_pfd[i].particle_instance_buffer		   = backend.create_resource(particle_instance_buffer_desc);
-			_pfd[i].bone_buffer						   = backend.create_resource(bone_buffer_desc);
-			_pfd[i].light_buffer					   = backend.create_resource(light_buffer_desc);
+			_pfd[i].line_buffer						   = backend.create_resource(line_buffer_desc);
+			if (_pfd[i].line_buffer.is_null())
+			{
+				SFG_ERR("failed to create line rendering buffer");
+				throw std::runtime_error("Line rendering buffer allocation failed");
+			}
+			_pfd[i].line_instance_buffer = backend.create_resource(line_instance_buffer_desc);
+			if (_pfd[i].line_instance_buffer.is_null())
+			{
+				SFG_ERR("failed to create line rendering buffer");
+				throw std::runtime_error("Line rendering buffer allocation failed");
+			}
+			_pfd[i].bone_buffer	 = backend.create_resource(bone_buffer_desc);
+			_pfd[i].light_buffer = backend.create_resource(light_buffer_desc);
 
 			if (debug_draw_config.texture_max_count > 0)
 			{
@@ -404,6 +430,8 @@ namespace sfg
 			backend.map_resource(_pfd[i].mesh_instance_buffer, _pfd[i].mapped_mesh_instance_buffer);
 			backend.map_resource(_pfd[i].sprite_instance_buffer, _pfd[i].mapped_sprite_instance_buffer);
 			backend.map_resource(_pfd[i].particle_instance_buffer, _pfd[i].mapped_particle_instance_buffer);
+			backend.map_resource(_pfd[i].line_buffer, _pfd[i].mapped_line_buffer);
+			backend.map_resource(_pfd[i].line_instance_buffer, _pfd[i].mapped_line_instance_buffer);
 			backend.map_resource(_pfd[i].bone_buffer, _pfd[i].mapped_bone_buffer);
 			backend.map_resource(_pfd[i].light_buffer, _pfd[i].mapped_light_buffer);
 
@@ -416,6 +444,8 @@ namespace sfg
 			_pfd[i].mesh_instance_buffer_index				 = backend.get_resource_gpu_index(_pfd[i].mesh_instance_buffer);
 			_pfd[i].sprite_instance_buffer_index			 = backend.get_resource_gpu_index(_pfd[i].sprite_instance_buffer);
 			_pfd[i].particle_instance_buffer_index			 = backend.get_resource_gpu_index(_pfd[i].particle_instance_buffer);
+			_pfd[i].line_buffer_index						 = backend.get_resource_gpu_index(_pfd[i].line_buffer);
+			_pfd[i].line_instance_buffer_index				 = backend.get_resource_gpu_index(_pfd[i].line_instance_buffer);
 			_pfd[i].bone_buffer_index						 = backend.get_resource_gpu_index(_pfd[i].bone_buffer);
 			_pfd[i].light_buffer_index						 = backend.get_resource_gpu_index(_pfd[i].light_buffer);
 
@@ -547,6 +577,8 @@ namespace sfg
 			backend.destroy_resource(_pfd[i].mesh_instance_buffer);
 			backend.destroy_resource(_pfd[i].sprite_instance_buffer);
 			backend.destroy_resource(_pfd[i].particle_instance_buffer);
+			backend.destroy_resource(_pfd[i].line_buffer);
+			backend.destroy_resource(_pfd[i].line_instance_buffer);
 			backend.destroy_resource(_pfd[i].bone_buffer);
 			backend.destroy_resource(_pfd[i].light_buffer);
 
@@ -605,6 +637,8 @@ namespace sfg
 			_pfd[i].mesh_instance_buffer					  = {};
 			_pfd[i].sprite_instance_buffer					  = {};
 			_pfd[i].particle_instance_buffer				  = {};
+			_pfd[i].line_buffer								  = {};
+			_pfd[i].line_instance_buffer					  = {};
 			_pfd[i].debug_texture_buffer					  = {};
 			_pfd[i].bone_buffer								  = {};
 			_pfd[i].light_buffer							  = {};
@@ -623,6 +657,8 @@ namespace sfg
 			_pfd[i].mapped_mesh_instance_buffer				  = nullptr;
 			_pfd[i].mapped_sprite_instance_buffer			  = nullptr;
 			_pfd[i].mapped_particle_instance_buffer			  = nullptr;
+			_pfd[i].mapped_line_buffer						  = nullptr;
+			_pfd[i].mapped_line_instance_buffer				  = nullptr;
 			_pfd[i].mapped_debug_texture_buffer				  = nullptr;
 			_pfd[i].mapped_bone_buffer						  = nullptr;
 			_pfd[i].mapped_light_buffer						  = nullptr;
@@ -641,6 +677,8 @@ namespace sfg
 			_pfd[i].mesh_instance_buffer_index				  = NULL_GPU_INDEX;
 			_pfd[i].sprite_instance_buffer_index			  = NULL_GPU_INDEX;
 			_pfd[i].particle_instance_buffer_index			  = NULL_GPU_INDEX;
+			_pfd[i].line_buffer_index						  = NULL_GPU_INDEX;
+			_pfd[i].line_instance_buffer_index				  = NULL_GPU_INDEX;
 			_pfd[i].debug_texture_buffer_index				  = NULL_GPU_INDEX;
 			_pfd[i].bone_buffer_index						  = NULL_GPU_INDEX;
 			_pfd[i].light_buffer_index						  = NULL_GPU_INDEX;

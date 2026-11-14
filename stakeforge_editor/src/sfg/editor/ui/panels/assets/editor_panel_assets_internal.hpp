@@ -79,6 +79,8 @@ namespace sfg
 		assets_action_menu_create_sprite_unlit_material		 = 36,
 		assets_action_menu_create_particle_shader			 = 37,
 		assets_action_menu_create_particle_material			 = 38,
+		assets_action_menu_create_line_shader				 = 50,
+		assets_action_menu_create_line_material				 = 51,
 		assets_action_menu_create_ragdoll					 = 45,
 		assets_item_action_menu_check_integrity				 = 46,
 		assets_item_action_menu_create_ragdoll				 = 47,

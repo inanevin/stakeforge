@@ -1,0 +1,44 @@
+{
+    "version": 0,
+    "guid": 1051,
+    "asset_type": "material",
+    "sub_type": 8,
+    "embedded_source": {
+        "schema": "sfg.schema.material",
+        "write_shadows": false,
+        "write_reflections": true,
+        "blend_mode": "alpha",
+        "shader": 1050,
+        "textures": [
+            {
+                "name": "line",
+                "texture": 1002,
+                "type": "texture2d"
+            }
+        ],
+        "samplers": [
+            {
+                "name": "line",
+                "sampler": 1013
+            }
+        ],
+        "parameters": [
+            {
+                "name": "tint",
+                "type": "vec4",
+                "hint": "color_hdr",
+                "value": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ]
+            }
+        ],
+        "double_sided": true,
+        "use_alpha_cutoff": false
+    },
+    "cook_options": {},
+    "source_relative": "",
+    "source_type": "embedded"
+}

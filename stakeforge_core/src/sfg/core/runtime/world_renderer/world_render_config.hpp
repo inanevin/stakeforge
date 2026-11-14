@@ -34,6 +34,7 @@ namespace sfg
 		u32		  material_max			  = 0;
 		u32		  sprite_max			  = 0;
 		u32		  particle_max			  = 0;
+		u32		  line_max				  = 0;
 		u32		  bone_max				  = 0;
 		u32		  light_max				  = 0;
 		u32		  reflection_probe_max	  = 0;

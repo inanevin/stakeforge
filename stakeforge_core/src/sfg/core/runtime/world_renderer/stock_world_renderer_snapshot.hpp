@@ -297,6 +297,7 @@ namespace sfg
 		fixed_vector_t<stock_world_renderer_renderable_t>		renderables		  = {};
 		fixed_vector_t<stock_world_renderer_mesh_draw_t>		mesh_draws		  = {};
 		fixed_vector_t<stock_world_renderer_sprite_draw_t>		sprite_draws	  = {};
+		fixed_vector_t<stock_world_renderer_line_t>				lines			  = {};
 		fixed_vector_t<stock_world_renderer_particle_draw_t>	particle_draws	  = {};
 		fixed_vector_t<stock_world_renderer_particle_t>			particles		  = {};
 		engine_quality_level_e									quality_level	  = engine_quality_level_e::high;

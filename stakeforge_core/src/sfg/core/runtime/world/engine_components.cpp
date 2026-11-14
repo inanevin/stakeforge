@@ -506,6 +506,113 @@ namespace sfg
 			});
 		}
 
+		void register_component_line_renderer_reflection(reflection_registry_t& registry)
+		{
+			registry.register_type({
+				.name			 = "component_line_renderer",
+				.display_name	 = "Line Renderer",
+				.category		 = "Graphics",
+				.tooltip		 = "Renders a textured camera-facing ribbon through up to 16 points.",
+				.icon			 = ICON_COMPONENT_SPRITE_RENDERER,
+				.default_init_fn = [](void* ptr) { std::construct_at(static_cast<component_line_renderer_t*>(ptr), component_line_renderer_t{}); },
+				.fields =
+					{
+						{
+							.container_ops = reflection_container_ops_t::inplace_vector_ops<vec3f_t, component_line_renderer_t::MAX_POINTS>(reflected_value_type_e::object, type_id_t<vec3f_t>::value),
+							.name		   = "positions",
+							.display_name  = "Positions",
+							.tooltip	   = "Up to 16 ordered points. Add or remove points to change the path.",
+							.offset		   = offsetof(component_line_renderer_t, positions),
+							.size		   = sizeof(inplace_vector_t<vec3f_t, component_line_renderer_t::MAX_POINTS>),
+							.type		   = reflected_value_type_e::container,
+						},
+						{
+							.name		  = "material",
+							.display_name = "Material",
+							.tooltip	  = "Line shader material used to render this path.",
+							.sub_type_id  = SFG_REFLECTION_RESOURCE_SUB_TYPE_ID_MATERIAL,
+							.offset		  = offsetof(component_line_renderer_t, material),
+							.size		  = sizeof(resource_handle_t),
+							.type		  = reflected_value_type_e::u64,
+						},
+						{
+							.name		  = "start_color",
+							.display_name = "Start Color",
+							.tooltip	  = "Color at the beginning of the path.",
+							.sub_type_id  = type_id_t<color_t>::value,
+							.offset		  = offsetof(component_line_renderer_t, start_color),
+							.size		  = sizeof(color_t),
+							.type		  = reflected_value_type_e::object,
+						},
+						{
+							.name		  = "end_color",
+							.display_name = "End Color",
+							.tooltip	  = "Color at the end of the path.",
+							.sub_type_id  = type_id_t<color_t>::value,
+							.offset		  = offsetof(component_line_renderer_t, end_color),
+							.size		  = sizeof(color_t),
+							.type		  = reflected_value_type_e::object,
+						},
+						{
+							.name			   = "start_width",
+							.display_name	   = "Start Width",
+							.tooltip		   = "Full ribbon width in world units at the beginning.",
+							.offset			   = offsetof(component_line_renderer_t, start_width),
+							.size			   = sizeof(f32),
+							.flags			   = reflected_field_flag_clamped,
+							.min_clamp		   = 0.0f,
+							.max_clamp		   = 10000.0f,
+							.clamp_granularity = 0.01f,
+							.type			   = reflected_value_type_e::f32,
+						},
+						{
+							.name			   = "end_width",
+							.display_name	   = "End Width",
+							.tooltip		   = "Full ribbon width in world units at the end.",
+							.offset			   = offsetof(component_line_renderer_t, end_width),
+							.size			   = sizeof(f32),
+							.flags			   = reflected_field_flag_clamped,
+							.min_clamp		   = 0.0f,
+							.max_clamp		   = 10000.0f,
+							.clamp_granularity = 0.01f,
+							.type			   = reflected_value_type_e::f32,
+						},
+						{
+							.name			   = "texture_tiling",
+							.display_name	   = "Texture Tiling",
+							.tooltip		   = "Texture repetitions per world unit along the path.",
+							.offset			   = offsetof(component_line_renderer_t, texture_tiling),
+							.size			   = sizeof(f32),
+							.flags			   = reflected_field_flag_clamped,
+							.min_clamp		   = 0.0f,
+							.max_clamp		   = 10000.0f,
+							.clamp_granularity = 0.01f,
+							.type			   = reflected_value_type_e::f32,
+						},
+						{
+							.name		  = "world_space",
+							.display_name = "World Space",
+							.tooltip	  = "Use absolute world positions; otherwise points follow the entity transform. Width remains in world units.",
+							.offset		  = offsetof(component_line_renderer_t, world_space),
+							.size		  = sizeof(bool),
+							.type		  = reflected_value_type_e::boolean,
+						},
+						{
+							.name		  = "closed",
+							.display_name = "Closed",
+							.tooltip	  = "Connect the final point back to the first. Match endpoint colors and widths for a seamless loop.",
+							.offset		  = offsetof(component_line_renderer_t, closed),
+							.size		  = sizeof(bool),
+							.type		  = reflected_value_type_e::boolean,
+						},
+					},
+				.type_id   = type_id_t<component_line_renderer_t>::value,
+				.size	   = sizeof(component_line_renderer_t),
+				.alignment = alignof(component_line_renderer_t),
+				.flags	   = reflected_type_flag_component | reflected_type_flag_renderable,
+			});
+		}
+
 		void register_particle_reflection(reflection_registry_t& registry)
 		{
 			registry.register_type({
@@ -4082,6 +4189,7 @@ namespace sfg
 		register_component_canvas_reflection(registry);
 		register_component_mesh_renderer_reflection(registry);
 		register_component_sprite_renderer_reflection(registry);
+		register_component_line_renderer_reflection(registry);
 		register_particle_reflection(registry);
 		register_component_skinned_mesh_renderer_reflection(registry);
 		register_component_view_model_reflection(registry);

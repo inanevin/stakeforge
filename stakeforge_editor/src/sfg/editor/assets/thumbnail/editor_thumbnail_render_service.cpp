@@ -63,6 +63,7 @@ namespace sfg
 					.material_max  = 1024,
 					.sprite_max	   = 16,
 					.particle_max  = 0,
+					.line_max	   = 16,
 					.bone_max	   = 256,
 					.light_max	   = 4,
 					.enable_ssao   = 0,

@@ -673,6 +673,39 @@ namespace sfg
 		prep_data.view_model_queue.resize(0);
 		prep_data.visible_renderables_count = 0;
 
+		// upload line points and bound the interpolated paths
+		stock_world_renderer_line_t* mapped_lines = reinterpret_cast<stock_world_renderer_line_t*>(ctx.get_mapped_line_buffer(frame_index));
+		frame_vector_t<aabb_t>		 line_bounds  = {};
+		line_bounds.reserve(snapshot.lines.size());
+		for (u32 i = 0; i < snapshot.lines.size(); ++i)
+		{
+			stock_world_renderer_line_t line	 = snapshot.lines[i];
+			vec3f_t						previous = vec3f_t::zero;
+			vec3f_t						minimum	 = vec3f_t::zero;
+			vec3f_t						maximum	 = vec3f_t::zero;
+			for (u32 point_index = 0; point_index < line.point_count; ++point_index)
+			{
+				vec4f_t& point	  = line.points[point_index];
+				vec3f_t	 position = {point.x, point.y, point.z};
+				if (line.entity_index != UINT32_MAX)
+					position = entity_buffer[line.entity_index].model * position;
+				if (point_index != 0)
+					line.total_length += (position - previous).magnitude();
+				minimum	 = point_index == 0 ? position : vec3f_t::min(minimum, position);
+				maximum	 = point_index == 0 ? position : vec3f_t::max(maximum, position);
+				point	 = {position.x, position.y, position.z, line.total_length};
+				previous = position;
+			}
+
+			if (line.closed != 0)
+				line.total_length += (previous - vec3f_t{line.points[0].x, line.points[0].y, line.points[0].z}).magnitude();
+
+			const f32	  radius = math::max(line.start_width, line.end_width) * 0.5f * stock_world_renderer_line_t::MITER_LIMIT;
+			const vec3f_t extent = {radius, radius, radius};
+			line_bounds.push_back({minimum - extent, maximum + extent});
+			mapped_lines[i] = line;
+		}
+
 		// build and sort the queues for each view
 		for (u32 view_index = 0; view_index < prep_data.views.size(); ++view_index)
 		{
@@ -691,13 +724,14 @@ namespace sfg
 				const vec3f_t	position		 = model.get_translation();
 				const bool		world_space_aabb = (renderable.flags & stock_world_renderer_renderable_flag_world_space_aabb) != 0;
 
-				if (!renderable.aabb.is_empty() && (world_space_aabb ? frustum_t::test(view.frustum, renderable.aabb) : frustum_t::test(view.frustum, renderable.aabb, linear_model, position)) == frustum_result::outside)
+				const aabb_t& bounds = renderable.type == stock_world_renderer_renderable_type_e::line ? line_bounds[renderable.payload_index] : renderable.aabb;
+				if (!bounds.is_empty() && (world_space_aabb ? frustum_t::test(view.frustum, bounds) : frustum_t::test(view.frustum, bounds, linear_model, position)) == frustum_result::outside)
 					continue;
 
 				if (view_index == 0)
 					++prep_data.visible_renderables_count;
 
-				const vec3f_t							local_center = (renderable.aabb.bounds_min + renderable.aabb.bounds_max) * 0.5f;
+				const vec3f_t							local_center = (bounds.bounds_min + bounds.bounds_max) * 0.5f;
 				const vec3f_t							world_center = world_space_aabb ? local_center : model * local_center;
 				const vec4f_t							view_center	 = view.view * vec4f_t(world_center.x, world_center.y, world_center.z, 1.0f);
 				const stock_world_renderer_queue_item_t item		 = {
@@ -814,6 +848,25 @@ namespace sfg
 		append_mesh_instances(prep_data.visible_queue);
 		append_mesh_instances(prep_data.view_model_depth_queue);
 		append_mesh_instances(prep_data.view_model_queue);
+
+		u32*	   mapped_line_instances = reinterpret_cast<u32*>(ctx.get_mapped_line_instance_buffer(frame_index));
+		u32		   line_instance_count	 = 0;
+		const auto append_line_instances = [&](frame_vector_t<stock_world_renderer_queue_item_t>& queue) {
+			for (stock_world_renderer_queue_item_t& item : queue)
+			{
+				const stock_world_renderer_renderable_t& renderable = snapshot.renderables[item.renderable_index];
+				if (renderable.type != stock_world_renderer_renderable_type_e::line)
+					continue;
+
+				SFG_ASSERT(line_instance_count < ctx.get_line_instance_max());
+				item.instance_index							 = line_instance_count;
+				mapped_line_instances[line_instance_count++] = renderable.payload_index;
+			}
+		};
+		append_line_instances(prep_data.depth_queue);
+		append_line_instances(prep_data.opaque_queue);
+		append_line_instances(prep_data.transparent_queue);
+		append_line_instances(prep_data.visible_queue);
 
 		// build sprite instances
 		stock_world_renderer_draw_sprite_instance_gpu_t* mapped_instances = reinterpret_cast<stock_world_renderer_draw_sprite_instance_gpu_t*>(ctx.get_mapped_sprite_instance_buffer(frame_index));
@@ -989,6 +1042,37 @@ namespace sfg
 				packet.object_constants[0]	 = item.instance_index;
 				packet.object_constant_count = 1;
 				packet.element_count		 = 6;
+				packet.instance_count		 = run_end - draw_index;
+				break;
+			}
+			case stock_world_renderer_renderable_type_e::line: {
+				const stock_world_renderer_line_t&	   line		   = snapshot.lines[renderable.payload_index];
+				const stock_world_renderer_material_t& material	   = snapshot.materials[renderable.material_index];
+				const bool							   transparent = (renderable.pass_mask & stock_world_renderer_pass_flags_forward) != 0;
+				shader_handle									   = material.find_pso(!editor_pass && transparent ? material.particle_variant_flags : initial_variant_flags);
+				const u32 segment_count							   = line.point_count - (line.closed == 0 ? 1u : 0u);
+
+				while (run_end < draws.size)
+				{
+					const stock_world_renderer_queue_item_t& next_item = draws[run_end];
+					const stock_world_renderer_renderable_t& next	   = snapshot.renderables[next_item.renderable_index];
+					if (next.type != stock_world_renderer_renderable_type_e::line || next.material_index != renderable.material_index)
+						break;
+					if (next_item.instance_index != item.instance_index + run_end - draw_index)
+						break;
+					if (required_pass_mask != 0 && (next.pass_mask & required_pass_mask) != required_pass_mask)
+						break;
+					const stock_world_renderer_line_t& next_line = snapshot.lines[next.payload_index];
+					if (next_line.point_count - (next_line.closed == 0 ? 1u : 0u) != segment_count)
+						break;
+					++run_end;
+				}
+
+				packet.instance_buffer_index = ctx.get_line_buffer_index(frame_index);
+				packet.object_constants[0]	 = item.instance_index;
+				packet.object_constants[1]	 = ctx.get_line_instance_buffer_index(frame_index);
+				packet.object_constant_count = 2;
+				packet.element_count		 = segment_count * 12;
 				packet.instance_count		 = run_end - draw_index;
 				break;
 			}

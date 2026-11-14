@@ -1,6 +1,14 @@
 {
     "assets": [
         {
+            "name": "default_shader_line",
+            "template": "editor/templates/shaders/default_shader_line.sfg_asset"
+        },
+        {
+            "name": "default_line_material",
+            "template": "editor/templates/materials/default_line_material.sfg_asset"
+        },
+        {
             "name": "default_shader_lit",
             "template": "editor/templates/shaders/default_shader_lit.sfg_asset"
         },

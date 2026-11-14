@@ -64,6 +64,7 @@ namespace sfg
 		mesh,
 		sprite,
 		particle,
+		line,
 	};
 
 	enum stock_world_renderer_renderable_flags_e : u8
@@ -121,6 +122,26 @@ namespace sfg
 		vec2f_t		screen_offset = vec2f_t::zero;
 		u32			flags		  = 0;
 	};
+
+	struct stock_world_renderer_line_t
+	{
+		static inline constexpr f32 MITER_LIMIT = 2.0f;
+
+		vec4f_t points[16] = {
+			vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero, vec4f_t::zero};
+		vec4f_t start_color	   = vec4f_t::zero;
+		vec4f_t end_color	   = vec4f_t::zero;
+		f32		start_width	   = 0.0f;
+		f32		end_width	   = 0.0f;
+		f32		texture_tiling = 1.0f;
+		f32		total_length   = 0.0f;
+		u32		point_count	   = 0;
+		u32		closed		   = 0;
+		u32		entity_id	   = UINT32_MAX;
+		u32		entity_index   = UINT32_MAX;
+	};
+
+	static_assert(sizeof(stock_world_renderer_line_t) == 320);
 
 	struct stock_world_renderer_particle_t
 	{

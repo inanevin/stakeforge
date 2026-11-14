@@ -536,6 +536,10 @@ namespace sfg
 				return false;
 			}
 			break;
+		case shader_type_e::line_shader:
+			if (!shader_cook_variants_t::cook_line_shader(compile_source, include_paths, compiles, psos))
+				return false;
+			break;
 		case shader_type_e::particle_shader:
 			if (!shader_cook_variants_t::cook_particle_shader(compile_source, include_paths, compiles, psos))
 			{

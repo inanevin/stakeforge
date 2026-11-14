@@ -102,6 +102,25 @@ namespace sfg
 
 	SFG_DEFINE_TYPE_ID(component_sprite_renderer_t);
 
+	struct component_line_renderer_t
+	{
+		static inline constexpr const char* DEBUG_NAME	= "component_line_renderer";
+		static inline constexpr u32			MAX_POINTS	= 16;
+		static inline constexpr f32			MITER_LIMIT = 2.0f;
+
+		inplace_vector_t<vec3f_t, MAX_POINTS> positions		 = {vec3f_t::zero, vec3f_t{0.0f, 1.0f, 0.0f}};
+		resource_handle_t					  material		 = DEFAULT_LINE_MATERIAL_ASSET_GUID;
+		color_t								  start_color	 = color_t::white;
+		color_t								  end_color		 = color_t::white;
+		f32									  start_width	 = 0.1f;
+		f32									  end_width		 = 0.1f;
+		f32									  texture_tiling = 1.0f;
+		bool								  world_space	 = false;
+		bool								  closed		 = false;
+	};
+
+	SFG_DEFINE_TYPE_ID(component_line_renderer_t);
+
 	enum class particle_spawn_shape_e : u8
 	{
 		point,

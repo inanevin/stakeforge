@@ -684,6 +684,9 @@ namespace sfg
 		case assets_action_menu_create_sprite_unlit_shader:
 			text = "sprite_unlit_shader";
 			break;
+		case assets_action_menu_create_line_shader:
+			text = "line_shader";
+			break;
 		case assets_action_menu_create_particle_shader:
 			text = "particle_shader";
 			break;
@@ -719,6 +722,9 @@ namespace sfg
 			break;
 		case assets_action_menu_create_sprite_unlit_material:
 			text = "sprite_unlit_material";
+			break;
+		case assets_action_menu_create_line_material:
+			text = "line_material";
 			break;
 		case assets_action_menu_create_particle_material:
 			text = "particle_material";
@@ -888,6 +894,10 @@ namespace sfg
 			out_desc.asset_type = editor_asset_type_e::shader;
 			out_desc.sub_type	= static_cast<u8>(shader_type_e::sprite_unlit_shader);
 			return true;
+		case assets_action_menu_create_line_shader:
+			out_desc.asset_type = editor_asset_type_e::shader;
+			out_desc.sub_type	= static_cast<u8>(shader_type_e::line_shader);
+			return true;
 		case assets_action_menu_create_particle_shader:
 			out_desc.asset_type = editor_asset_type_e::shader;
 			out_desc.sub_type	= static_cast<u8>(shader_type_e::particle_shader);
@@ -932,6 +942,10 @@ namespace sfg
 		case assets_action_menu_create_sprite_unlit_material:
 			out_desc.asset_type = editor_asset_type_e::material;
 			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::sprite_unlit);
+			return true;
+		case assets_action_menu_create_line_material:
+			out_desc.asset_type = editor_asset_type_e::material;
+			out_desc.sub_type	= static_cast<u8>(editor_material_type_e::line);
 			return true;
 		case assets_action_menu_create_particle_material:
 			out_desc.asset_type = editor_asset_type_e::material;

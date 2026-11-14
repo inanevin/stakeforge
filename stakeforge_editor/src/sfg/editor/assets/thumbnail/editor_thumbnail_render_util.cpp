@@ -202,6 +202,17 @@ namespace sfg
 			return;
 		}
 
+		if (asset->sub_type == static_cast<u8>(editor_material_type_e::line))
+		{
+			thumbnail_world.display_entity	= world.create_entity("thumbnail_line");
+			component_line_renderer_t& line = world.get_component_table<component_line_renderer_t>().add_or_get_as<component_line_renderer_t>(thumbnail_world.display_entity);
+			line.material					= asset_guid;
+			line.positions					= {{-0.5f, -0.3f, 0.0f}, {-0.2f, 0.3f, 0.0f}, {0.2f, -0.2f, 0.0f}, {0.5f, 0.3f, 0.0f}};
+			world.scan_for_resources(thumbnail_world.display_entity, true);
+			world.set_entity_pos_local(thumbnail_world.camera_entity, {0.0f, 0.0f, 1.5f});
+			return;
+		}
+
 		thumbnail_world.display_entity = world.create_entity("thumbnail_material");
 
 		component_mesh_renderer_t& mesh_renderer = world.get_component_table(type_id_t<component_mesh_renderer_t>::value).add_or_get_as<component_mesh_renderer_t>(thumbnail_world.display_entity);

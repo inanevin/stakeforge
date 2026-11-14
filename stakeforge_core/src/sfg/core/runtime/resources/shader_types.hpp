@@ -42,6 +42,7 @@ namespace sfg
 		canvas_ui_texture,
 		editor_ui_texture,
 		custom_shader,
+		line_shader,
 		count,
 	};
 

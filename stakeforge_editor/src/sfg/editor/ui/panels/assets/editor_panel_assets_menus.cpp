@@ -49,6 +49,7 @@ namespace sfg
 			{.text = "Skybox Shader", .command = assets_action_menu_create_skybox_shader},
 			{.text = "Sprite Lit Shader", .command = assets_action_menu_create_sprite_lit_shader},
 			{.text = "Sprite Unlit Shader", .command = assets_action_menu_create_sprite_unlit_shader},
+			{.text = "Line Shader", .command = assets_action_menu_create_line_shader},
 			{.text = "Particle Shader", .command = assets_action_menu_create_particle_shader},
 			{
 				.text	 = "Custom Shader",
@@ -64,6 +65,7 @@ namespace sfg
 			{.text = "Skybox Material", .command = assets_action_menu_create_skybox_material},
 			{.text = "Sprite Lit Material", .command = assets_action_menu_create_sprite_lit_material},
 			{.text = "Sprite Unlit Material", .command = assets_action_menu_create_sprite_unlit_material},
+			{.text = "Line Material", .command = assets_action_menu_create_line_material},
 			{.text = "Particle Material", .command = assets_action_menu_create_particle_material},
 		};
 

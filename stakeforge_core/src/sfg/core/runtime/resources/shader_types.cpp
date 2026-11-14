@@ -58,6 +58,7 @@ namespace sfg
 						.name		  = "custom_shader",
 						.display_name = "Custom Shader",
 					},
+					{.name = "line_shader", .display_name = "Line Shader"},
 				},
 			.type_id   = type_id_t<shader_type_e>::value,
 			.size	   = sizeof(shader_type_e),

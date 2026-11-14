@@ -195,6 +195,7 @@ namespace sfg
 		case assets_action_menu_create_skybox_shader:
 		case assets_action_menu_create_sprite_lit_shader:
 		case assets_action_menu_create_sprite_unlit_shader:
+		case assets_action_menu_create_line_shader:
 		case assets_action_menu_create_particle_shader:
 		case assets_action_menu_create_custom_shader:
 		case assets_action_menu_create_texture_sampler:
@@ -207,6 +208,7 @@ namespace sfg
 		case assets_action_menu_create_skybox_material:
 		case assets_action_menu_create_sprite_lit_material:
 		case assets_action_menu_create_sprite_unlit_material:
+		case assets_action_menu_create_line_material:
 		case assets_action_menu_create_particle_material:
 		case assets_action_menu_create_physical_material:
 			panel._create_asset_popup_command = command;

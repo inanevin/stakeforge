@@ -321,12 +321,39 @@ namespace sfg
 		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = reset_refs, .size = std::size(reset_refs)}))
 			row.get_mutable<component_system_aabb_t>(1) = {};
 
+		const ecs_component_table_t&	line_table		= world.get_component_table<component_line_renderer_t>();
+		const ecs_component_table_t&	transform_table = world.get_component_table<component_system_transform_t>();
+		const ecs_component_table_ref_t line_refs[]		= {alive_table.ref(), aabb_table.ref(), line_table.ref(), transform_table.ref(), !disabled_table.ref()};
+
+		for (const ecs_query_row_t& row : ecs_t::inner_join({.data = line_refs, .size = std::size(line_refs)}))
+		{
+			const component_line_renderer_t& line = row.get<component_line_renderer_t>(2);
+			if (line.positions.empty())
+				continue;
+
+			const component_system_transform_t& transform = row.get<component_system_transform_t>(3);
+			vec3f_t								minimum	  = line.world_space ? line.positions[0] : transform.abs_mat * line.positions[0];
+			vec3f_t								maximum	  = minimum;
+			for (const vec3f_t& point : line.positions)
+			{
+				const vec3f_t position = line.world_space ? point : transform.abs_mat * point;
+				const vec3f_t previous = line.world_space ? point : transform.prev_abs_mat * point;
+				minimum				   = vec3f_t::min(minimum, vec3f_t::min(position, previous));
+				maximum				   = vec3f_t::max(maximum, vec3f_t::max(position, previous));
+			}
+
+			const f32	  radius						= std::max(std::max(line.start_width, line.end_width), 0.0f) * 0.5f * component_line_renderer_t::MITER_LIMIT;
+			const vec3f_t extent						= {radius, radius, radius};
+			row.get_mutable<component_system_aabb_t>(1) = {.bounds = {minimum - extent, maximum + extent}, .is_world_space = true};
+		}
+
 		const ecs_component_table_ref_t particle_refs[] = {
 			alive_table.ref(),
 			aabb_table.ref(),
 			system_particle_table.ref(),
 			particle_table.ref(),
 			!disabled_table.ref(),
+			!line_table.ref(),
 			!mesh_table.ref(),
 			!skinned_mesh_table.ref(),
 			!sprite_table.ref(),
@@ -345,6 +372,7 @@ namespace sfg
 			system_sprite_table.ref(),
 			sprite_table.ref(),
 			!disabled_table.ref(),
+			!line_table.ref(),
 			!particle_table.ref(),
 			!mesh_table.ref(),
 			!skinned_mesh_table.ref(),
@@ -365,6 +393,7 @@ namespace sfg
 			aabb_table.ref(),
 			mesh_table.ref(),
 			!disabled_table.ref(),
+			!line_table.ref(),
 			!particle_table.ref(),
 			!sprite_table.ref(),
 			!skinned_mesh_table.ref(),
@@ -386,6 +415,7 @@ namespace sfg
 			aabb_table.ref(),
 			skinned_mesh_table.ref(),
 			!disabled_table.ref(),
+			!line_table.ref(),
 			!particle_table.ref(),
 			!sprite_table.ref(),
 			!mesh_table.ref(),

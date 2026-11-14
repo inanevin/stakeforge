@@ -86,7 +86,7 @@ namespace sfg
 	{
 		const u32	 sprite_count		 = std::min(config.sprite_max, config.entity_max);
 		const u32	 particle_draw_count = std::min(config.particle_max, config.entity_max);
-		const size_t renderable_count	 = static_cast<size_t>(config.mesh_draw_max) + sprite_count + particle_draw_count;
+		const size_t renderable_count	 = static_cast<size_t>(config.mesh_draw_max) + sprite_count + particle_draw_count + std::min(config.line_max, config.entity_max);
 
 		SFG_ASSERT(renderable_count <= UINT32_MAX);
 
@@ -100,6 +100,7 @@ namespace sfg
 		sprite_draws.init(sprite_count);
 		particle_draws.init(particle_draw_count);
 		particles.init(config.particle_max);
+		lines.init(std::min(config.line_max, config.entity_max));
 
 		debug_draw.init(debug_draw_config);
 		canvas.init(config);
@@ -119,6 +120,7 @@ namespace sfg
 		sprite_draws.uninit();
 		particle_draws.uninit();
 		particles.uninit();
+		lines.uninit();
 
 		debug_draw.uninit();
 		canvas.uninit();

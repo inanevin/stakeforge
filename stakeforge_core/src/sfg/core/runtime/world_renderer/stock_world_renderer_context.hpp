@@ -293,6 +293,31 @@ namespace sfg
 			return _config.sprite_max == 0 ? 1 : _config.sprite_max * (4 + _config.shadow_view_max + STOCK_WORLD_RENDERER_REFLECTION_FACE_COUNT * 3);
 		}
 
+		inline u32 get_line_instance_max() const
+		{
+			return _config.line_max == 0 ? 1 : _config.line_max * (4 + STOCK_WORLD_RENDERER_REFLECTION_FACE_COUNT * 3);
+		}
+
+		inline u8* get_mapped_line_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_line_buffer;
+		}
+
+		inline u8* get_mapped_line_instance_buffer(u8 frame_index) const
+		{
+			return _pfd[frame_index].mapped_line_instance_buffer;
+		}
+
+		inline gpu_index_t get_line_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].line_buffer_index;
+		}
+
+		inline gpu_index_t get_line_instance_buffer_index(u8 frame_index) const
+		{
+			return _pfd[frame_index].line_instance_buffer_index;
+		}
+
 		inline u32 get_particle_max() const
 		{
 			return _config.particle_max;
@@ -871,6 +896,8 @@ namespace sfg
 			u8*			 mapped_mesh_instance_buffer										= nullptr;
 			u8*			 mapped_sprite_instance_buffer										= nullptr;
 			u8*			 mapped_particle_instance_buffer									= nullptr;
+			u8*			 mapped_line_instance_buffer										= nullptr;
+			u8*			 mapped_line_buffer													= nullptr;
 			u8*			 mapped_debug_texture_buffer										= nullptr;
 			u8*			 mapped_light_buffer												= nullptr;
 			u8*			 mapped_ssao_render_pass_data										= nullptr;
@@ -896,6 +923,8 @@ namespace sfg
 			gfx_handle_t mesh_instance_buffer												= {};
 			gfx_handle_t sprite_instance_buffer												= {};
 			gfx_handle_t particle_instance_buffer											= {};
+			gfx_handle_t line_instance_buffer												= {};
+			gfx_handle_t line_buffer														= {};
 			gfx_handle_t debug_texture_buffer												= {};
 			gfx_handle_t bone_buffer														= {};
 			gfx_handle_t light_buffer														= {};
@@ -953,6 +982,8 @@ namespace sfg
 			gpu_index_t	 mesh_instance_buffer_index											= NULL_GPU_INDEX;
 			gpu_index_t	 sprite_instance_buffer_index										= NULL_GPU_INDEX;
 			gpu_index_t	 particle_instance_buffer_index										= NULL_GPU_INDEX;
+			gpu_index_t	 line_instance_buffer_index											= NULL_GPU_INDEX;
+			gpu_index_t	 line_buffer_index													= NULL_GPU_INDEX;
 			gpu_index_t	 debug_texture_buffer_index											= NULL_GPU_INDEX;
 			gpu_index_t	 bone_buffer_index													= NULL_GPU_INDEX;
 			gpu_index_t	 light_buffer_index													= NULL_GPU_INDEX;

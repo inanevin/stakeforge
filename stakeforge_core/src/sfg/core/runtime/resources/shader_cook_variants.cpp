@@ -361,6 +361,39 @@ namespace sfg
 		return true;
 	}
 
+	bool shader_cook_variants_t::cook_line_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
+	{
+		out_compiles.reserve(8);
+		out_psos.reserve(8);
+		const char* defines[] = {"LINE_ALPHA", "LINE_PREMULTIPLIED_ALPHA", "LINE_ADDITIVE", "WRITE_ID", "USE_SELECTION", "USE_GBUFFER", "USE_ZPREPASS", "LINE_OPAQUE"};
+		const u32	flags[]	  = {shader_variant_flags_particle_alpha,
+								 shader_variant_flags_particle_premultiplied_alpha,
+								 shader_variant_flags_particle_additive,
+								 shader_variant_flags_id_write,
+								 shader_variant_flags_selection_outline,
+								 shader_variant_flags_gbuffer,
+								 shader_variant_flags_z_prepass,
+								 0};
+
+		for (u8 i = 0; i < std::size(defines); ++i)
+		{
+			if (!add_compile_variant(out_compiles, source, {defines[i]}, include_paths, true))
+				return false;
+
+			if (i < 5)
+				add_particle_pso(out_psos, i, flags[i]);
+			else
+				add_sprite_pso(out_psos, i, flags[i]);
+
+			if (i == 7)
+			{
+				out_psos.back().desc.attachments[0].blend_attachment = blend_attachments_t::get_none();
+				out_psos.back().desc.depth_stencil_desc.flags		 = dsf_depth_test | dsf_depth_write;
+			}
+		}
+		return true;
+	}
+
 	bool shader_cook_variants_t::cook_particle_shader(const string_t& source, const vector_t<string_t>& include_paths, vector_t<cook_compile_variant_t>& out_compiles, vector_t<cook_pso_variant_t>& out_psos)
 	{
 		out_compiles.reserve(5);

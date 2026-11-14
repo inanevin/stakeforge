@@ -78,6 +78,8 @@ namespace sfg
 				return EDITOR_TEMPLATE_MATERIALS "material_sprite_lit.sfg_asset";
 			case editor_material_type_e::sprite_unlit:
 				return EDITOR_TEMPLATE_MATERIALS "material_sprite_unlit.sfg_asset";
+			case editor_material_type_e::line:
+				return EDITOR_TEMPLATE_MATERIALS "material_line.sfg_asset";
 			case editor_material_type_e::particle:
 				return EDITOR_TEMPLATE_MATERIALS "material_particle.sfg_asset";
 			default:
@@ -103,6 +105,8 @@ namespace sfg
 				return COMMON_SHADERS "sprite/sprite_lit.hlsl";
 			case shader_type_e::sprite_unlit_shader:
 				return COMMON_SHADERS "sprite/sprite_unlit.hlsl";
+			case shader_type_e::line_shader:
+				return COMMON_SHADERS "line/line.hlsl";
 			case shader_type_e::particle_shader:
 				return COMMON_SHADERS "sprite/particle.hlsl";
 			case shader_type_e::custom_shader:
