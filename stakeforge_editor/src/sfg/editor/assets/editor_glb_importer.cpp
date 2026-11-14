@@ -1639,7 +1639,83 @@ namespace sfg
 				});
 			};
 
-			const auto traverse_node = [&](const auto& self, u32 node_index, entity_guid_t parent_guid, const mat4x3_t& omitted_parent_matrix) -> void {
+			const quat_t light_basis_rotation = quat_t::look_at(vec3f_t::zero, editor_glb_import_util_t::convert_vector(basis, vec3f_t::forward), editor_glb_import_util_t::convert_vector(basis, vec3f_t::up));
+
+			const auto add_light = [&](const tg3_node& node, entity_guid_t parent_guid, const mat4x3_t& local_matrix) -> void {
+				if (node.light < 0)
+					return;
+
+				const u32 light_index = static_cast<u32>(node.light);
+				if (light_index >= model.lights_count)
+				{
+					SFG_ERR("GLB light index is out of range: {0}", light_index);
+					prefab_valid = false;
+					return;
+				}
+
+				const tg3_light&	source		= model.lights[light_index];
+				const string_view_t source_type = source.type.data != nullptr ? string_view_t(source.type.data, source.type.len) : string_view_t{};
+				component_light_t	light		= {};
+				if (source_type == "directional")
+					light.type = light_type_e::directional;
+				else if (source_type == "point")
+					light.type = light_type_e::point;
+				else if (source_type == "spot")
+					light.type = light_type_e::spot;
+				else
+				{
+					SFG_ERR("GLB light {0} has an unsupported type", light_index);
+					prefab_valid = false;
+					return;
+				}
+
+				light.color		= {static_cast<f32>(source.color[0]), static_cast<f32>(source.color[1]), static_cast<f32>(source.color[2]), 1.0f};
+				light.intensity = static_cast<f32>(source.intensity);
+				light.range		= static_cast<f32>(source.range);
+				if (light.type == light_type_e::spot)
+				{
+					light.inner_cone_degrees = math::radians_to_degrees(static_cast<f32>(source.spot.inner_cone_angle));
+					light.outer_cone_degrees = math::radians_to_degrees(static_cast<f32>(source.spot.outer_cone_angle));
+				}
+
+				nlohmann::json light_json = nlohmann::json::object();
+				const bool	   serialized = serialize_reflected_to_json(light, light_json);
+				if (!serialized)
+				{
+					SFG_ERR("failed to serialize GLB light {0} for prefab", light_index);
+					prefab_valid = false;
+					return;
+				}
+
+				string_t light_name = get_asset_name(source.name);
+				if (light_name.empty())
+					light_name = get_asset_name(node.name);
+				if (light_name.empty())
+					light_name = "light_" + std::to_string(light_index);
+
+				vec3f_t local_pos	= vec3f_t::zero;
+				quat_t	local_rot	= quat_t::identity;
+				vec3f_t local_scale = vec3f_t::one;
+				local_matrix.decompose(local_pos, local_rot, local_scale);
+
+				const entity_guid_t light_guid = next_guid++;
+				prefab_json["local_entities"].push_back(world_cook_entity_header_t{
+					.guid		 = light_guid,
+					.parent_guid = parent_guid,
+					.name		 = light_name,
+					.local_pos	 = local_pos,
+					.local_rot	 = local_rot * light_basis_rotation,
+					.local_scale = vec3f_t::one,
+					.prefab		 = NULL_RESOURCE_HANDLE,
+				});
+				prefab_json["components"].push_back({
+					{"type", type_id_t<component_light_t>::value},
+					{"entity", light_guid},
+					{"data", std::move(light_json)},
+				});
+			};
+
+			const auto traverse_node = [&](const auto& self, u32 node_index, entity_guid_t parent_guid, const mat4x3_t& omitted_parent_matrix, bool lights_only) -> void {
 				if (!prefab_valid || node_index >= model.nodes_count || node_guids[node_index] != NULL_ENTITY_GUID)
 					return;
 
@@ -1648,7 +1724,7 @@ namespace sfg
 				node_guids[node_index] = root_guid;
 
 				if (joint_nodes[node_index] != 0)
-					return;
+					lights_only = true;
 
 				vec3f_t node_pos   = vec3f_t::zero;
 				quat_t	node_rot   = quat_t::identity;
@@ -1657,14 +1733,16 @@ namespace sfg
 
 				const mat4x3_t node_matrix = omitted_parent_matrix * mat4x3_t::transform(node_pos, node_rot, node_scale);
 
-				if (omitted_skin_nodes[node_index] != 0)
+				if (lights_only || omitted_skin_nodes[node_index] != 0)
 				{
+					add_light(node, parent_guid, node_matrix);
+
 					for (u32 child_i = 0; child_i < node.children_count; ++child_i)
 					{
 						const i32 child_index = node.children[child_i];
 
 						if (child_index >= 0)
-							self(self, static_cast<u32>(child_index), parent_guid, node_matrix);
+							self(self, static_cast<u32>(child_index), parent_guid, node_matrix, lights_only);
 					}
 
 					return;
@@ -1745,16 +1823,25 @@ namespace sfg
 					}
 				}
 
+				if (node.light >= 0)
+				{
+					mat4x3_t light_matrix = mat4x3_t::identity;
+					if (import_skinning && node.skin >= 0 && static_cast<u32>(node.skin) < skin_bind_corrections.size())
+						light_matrix = skin_bind_corrections[static_cast<u32>(node.skin)].inverse();
+					add_light(node, guid, light_matrix);
+				}
+
 				for (u32 child_i = 0; child_i < node.children_count; ++child_i)
 				{
 					const i32 child_index = node.children[child_i];
 
 					if (child_index >= 0)
-						self(self, static_cast<u32>(child_index), guid, mat4x3_t::identity);
+						self(self, static_cast<u32>(child_index), guid, mat4x3_t::identity, lights_only);
 				}
 			};
 
-			if (combined_mesh_guid != NULL_SID || combined_collision_guid != NULL_SID)
+			const bool combined_mesh = combined_mesh_guid != NULL_SID || combined_collision_guid != NULL_SID;
+			if (combined_mesh)
 			{
 				vector_t<resource_handle_t> materials = {};
 
@@ -1932,7 +2019,8 @@ namespace sfg
 						add_mesh_renderer(mesh_guid, combined_mesh_guid, materials);
 				}
 			}
-			else
+
+			if (!combined_mesh || model.lights_count != 0)
 			{
 				const tg3_scene* scene = nullptr;
 
@@ -1948,7 +2036,7 @@ namespace sfg
 						const i32 node_index = scene->nodes[i];
 
 						if (node_index >= 0)
-							traverse_node(traverse_node, static_cast<u32>(node_index), root_guid, mat4x3_t::identity);
+							traverse_node(traverse_node, static_cast<u32>(node_index), root_guid, mat4x3_t::identity, combined_mesh);
 					}
 				}
 				else
@@ -1972,7 +2060,7 @@ namespace sfg
 					for (u32 i = 0; i < model.nodes_count; ++i)
 					{
 						if (child_nodes[i] == 0)
-							traverse_node(traverse_node, i, root_guid, mat4x3_t::identity);
+							traverse_node(traverse_node, i, root_guid, mat4x3_t::identity, combined_mesh);
 					}
 				}
 			}
@@ -2323,7 +2411,9 @@ namespace sfg
 				}
 			}
 
-			if (result && model.meshes_count != 0 && (cook_config.combine_meshes || model.nodes_count != 0))
+			const bool has_prefab_meshes = model.meshes_count != 0 && (cook_config.combine_meshes || model.nodes_count != 0);
+			const bool has_prefab_lights = model.lights_count != 0 && model.nodes_count != 0;
+			if (result && (has_prefab_meshes || has_prefab_lights))
 			{
 				const sid_t prefab_mesh_guid	  = cook_config.combine_meshes ? combined_mesh_guid : NULL_SID;
 				const sid_t prefab_collision_guid = cook_config.combine_meshes ? combined_collision_guid : NULL_SID;
