@@ -54,6 +54,10 @@ namespace game
 	{
 	}
 
+	void game_world_t::tick_post(sfg::world_t& world, f32 dt)
+	{
+	}
+
 	void game_world_t::key_event(sfg::world_t& world, sfg::input_code key, u16 scan_code, sfg::input_action action)
 	{
 	}

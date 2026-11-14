@@ -71,7 +71,7 @@ namespace sfg
 
 		const bool lifecycle_complete = callbacks.register_types != nullptr && callbacks.load != nullptr && callbacks.unload != nullptr;
 		const bool play_complete	  = callbacks.begin_play != nullptr && callbacks.end_play != nullptr;
-		const bool ticks_complete	  = callbacks.editor_tick != nullptr && callbacks.tick_logic != nullptr && callbacks.tick_physics != nullptr && callbacks.tick_animation != nullptr;
+		const bool ticks_complete	  = callbacks.editor_tick != nullptr && callbacks.tick_logic != nullptr && callbacks.tick_physics != nullptr && callbacks.tick_animation != nullptr && callbacks.tick_post != nullptr;
 		const bool keyboard_complete  = callbacks.key_event != nullptr && callbacks.focus_event != nullptr;
 		const bool mouse_complete	  = callbacks.mouse_button_event != nullptr && callbacks.mouse_move_event != nullptr && callbacks.mouse_wheel_event != nullptr;
 		const bool events_complete	  = callbacks.physics_contact != nullptr && callbacks.animation_event != nullptr && callbacks.canvas_event != nullptr;
@@ -301,6 +301,12 @@ namespace sfg
 	{
 		if (_callbacks.tick_animation != nullptr)
 			_callbacks.tick_animation(world, dt);
+	}
+
+	void game_plugin_runtime_t::tick_post(world_t& world, f32 dt)
+	{
+		if (_callbacks.tick_post != nullptr)
+			_callbacks.tick_post(world, dt);
 	}
 
 	void game_plugin_runtime_t::key_event(world_t& world, input_code key, u16 scan_code, input_action action)

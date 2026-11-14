@@ -466,6 +466,9 @@ namespace sfg
 		_canvas_controller.tick(dt);
 		_canvas_controller.dispatch_events();
 		world_util_t::sync_reflection_probes(*this, _tick_count);
+
+		if (_is_playing)
+			game_plugin_runtime_t::get().tick_post(*this, scaled_dt);
 	}
 
 	void world_t::tick_finalize()

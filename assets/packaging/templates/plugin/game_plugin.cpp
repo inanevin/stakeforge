@@ -77,6 +77,7 @@ SFG_GAME_PLUGIN_ENTRY bool sfg_get_game_plugin_callbacks(u32 api_version, sfg::g
 		.physics_contact	= game::game_world_t::physics_contact,
 		.animation_event	= game::game_world_t::animation_event,
 		.canvas_event		= game::game_world_t::canvas_event,
+		.tick_post			= game::game_world_t::tick_post,
 	};
 
 	return true;

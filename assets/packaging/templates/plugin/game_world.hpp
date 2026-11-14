@@ -66,6 +66,8 @@ namespace game
 		// update gameplay during the animation tick.
 		static void tick_animation(sfg::world_t& world, f32 dt);
 
+		static void tick_post(sfg::world_t& world, f32 dt);
+
 		// -----------------------------------------------------------------------------
 		// input
 		// -----------------------------------------------------------------------------

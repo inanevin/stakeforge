@@ -66,6 +66,7 @@ namespace sfg
 		void (*physics_contact)(world_t& world, const physics_contact_event_t& contact)									   = nullptr;
 		void (*animation_event)(world_t& world, entity_id_t entity, sid_t event)										   = nullptr;
 		void (*canvas_event)(world_t& world, const canvas_event_t& event)												   = nullptr;
+		void (*tick_post)(world_t& world, f32 dt)																		   = nullptr;
 	};
 
 	using game_plugin_entry_fn = bool (*)(u32 api_version, game_plugin_callbacks_t& callbacks);

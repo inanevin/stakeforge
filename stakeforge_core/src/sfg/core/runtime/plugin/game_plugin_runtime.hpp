@@ -69,6 +69,7 @@ namespace sfg
 		void tick_logic(world_t& world, f32 dt);
 		void tick_physics(world_t& world, f32 dt);
 		void tick_animation(world_t& world, f32 dt);
+		void tick_post(world_t& world, f32 dt);
 		void key_event(world_t& world, input_code key, u16 scan_code, input_action action);
 		void mouse_button_event(world_t& world, input_code button, input_action action, f32 position_x, f32 position_y);
 		void mouse_move_event(world_t& world, f32 position_x, f32 position_y, f32 delta_x, f32 delta_y);
