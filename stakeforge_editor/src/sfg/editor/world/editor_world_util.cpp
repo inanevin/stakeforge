@@ -446,11 +446,6 @@ namespace sfg
 
 			if (particle_emitter != nullptr)
 			{
-				const aabb_t* bounds = world.get_particle_simulation().find_bounds(entity);
-
-				if (bounds != nullptr)
-					debug_draw.draw_aabb(*bounds, debug_color, 2.0f, debug_draw_depth_e::always_visible);
-
 				switch (particle_emitter->shape)
 				{
 				case particle_spawn_shape_e::point:

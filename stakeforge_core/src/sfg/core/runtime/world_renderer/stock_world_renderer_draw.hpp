@@ -48,7 +48,7 @@ namespace sfg
 		gfx_handle_t vertex_buffer		   = {};
 		gfx_handle_t index_buffer		   = {};
 		gpu_index_t	 instance_buffer_index = NULL_GPU_INDEX;
-		u32			 object_constants[8]   = {};
+		u32			 object_constants[9]   = {};
 		u32			 material_index		   = UINT32_MAX;
 		u32			 element_count		   = 0;
 		u32			 instance_count		   = 1;
@@ -135,12 +135,13 @@ namespace sfg
 
 	struct stock_world_renderer_particle_draw_t
 	{
-		vec2f_t uv_start	   = vec2f_t::zero;
-		vec2f_t uv_size		   = vec2f_t::zero;
-		u32		particle_start = 0;
-		u32		particle_count = 0;
-		f32		aspect		   = 1.0f;
-		u8		alignment	   = 0;
+		vec2f_t uv_start		 = vec2f_t::zero;
+		vec2f_t uv_size			 = vec2f_t::zero;
+		u32		particle_start	 = 0;
+		u32		particle_count	 = 0;
+		f32		aspect			 = 1.0f;
+		f32		velocity_stretch = 0.0f;
+		u8		alignment		 = 0;
 	};
 
 	struct stock_world_renderer_draw_particle_instance_gpu_t

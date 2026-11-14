@@ -452,7 +452,10 @@ namespace sfg
 		for (const stock_world_renderer_queue_item_t& item : visible_draws)
 		{
 			const stock_world_renderer_renderable_t& renderable = snapshot.renderables[item.renderable_index];
-			const stock_world_renderer_entity_t&	 entity		= snapshot.entities[renderable.entity_index];
+			if (renderable.type == stock_world_renderer_renderable_type_e::particle)
+				continue;
+
+			const stock_world_renderer_entity_t& entity = snapshot.entities[renderable.entity_index];
 
 			if (std::find(selected_entities.begin(), selected_entities.end(), entity.entity_id) != selected_entities.end())
 				selected_draws.push_back(item);

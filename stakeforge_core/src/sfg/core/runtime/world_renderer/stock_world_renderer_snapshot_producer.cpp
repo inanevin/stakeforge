@@ -854,12 +854,13 @@ namespace sfg
 					pass_mask |= stock_world_renderer_pass_flags_reflections;
 
 				snapshot.particle_draws.push_back({
-					.uv_start		= vec2f_t::zero,
-					.uv_size		= sprite_runtime->uv_size,
-					.particle_start = particle_start,
-					.particle_count = particle_count,
-					.aspect			= frame_width / frame_height,
-					.alignment		= static_cast<u8>(emitter.alignment),
+					.uv_start		  = vec2f_t::zero,
+					.uv_size		  = sprite_runtime->uv_size,
+					.particle_start	  = particle_start,
+					.particle_count	  = particle_count,
+					.aspect			  = frame_width / frame_height,
+					.velocity_stretch = math::max(emitter.velocity_stretch, 0.0f),
+					.alignment		  = static_cast<u8>(emitter.alignment),
 				});
 
 				snapshot.renderables.push_back({

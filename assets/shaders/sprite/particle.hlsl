@@ -32,6 +32,8 @@ SFG_MATERIAL_TEXTURE("sprite", sfg_sprite)
 SFG_MATERIAL_SAMPLER("sprite")
 SFG_MATERIAL_PARAM_VEC4("tint", sfg_color_hdr)
 
+#define PARTICLE_VELOCITY_MIN_LENGTH 0.05
+
 struct particle_instance
 {
     float3 position;
@@ -86,15 +88,30 @@ vs_output VSMain(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
     particle_instance instance = instance_buffer[sfg_constant_obj1 + instance_id];
 
     float rotation = radians(instance.rotation);
+    float particle_length = instance.size;
     float3 axis_x = normalize(mul(view_data.inv_view, float4(1.0, 0.0, 0.0, 0.0)).xyz);
     float3 axis_y = normalize(mul(view_data.inv_view, float4(0.0, 1.0, 0.0, 0.0)).xyz);
 
     if (sfg_constant_obj2 == 1)
     {
-        float2 view_velocity = mul(view_data.view, float4(instance.velocity, 0.0)).xy;
+        float3 view_velocity = mul(view_data.view, float4(instance.velocity, 0.0)).xyz;
+        float3 view_position = mul(view_data.view, float4(instance.position, 1.0)).xyz;
+        float speed_squared = dot(view_velocity, view_velocity);
+        float distance_squared = dot(view_position, view_position);
 
-        if (dot(view_velocity, view_velocity) > 0.000001)
-            rotation += atan2(view_velocity.x, view_velocity.y);
+        if (speed_squared > 0.000001 && distance_squared > 0.000001)
+        {
+            float3 motion_direction = view_velocity * rsqrt(speed_squared);
+            float3 view_direction = view_position * rsqrt(distance_squared);
+            float2 projected_motion = motion_direction.xy * -view_direction.z + view_direction.xy * motion_direction.z;
+
+            if (dot(projected_motion, projected_motion) > 0.000001)
+                rotation -= atan2(projected_motion.x, projected_motion.y);
+
+            float stretched_length = instance.size + sqrt(speed_squared) * asfloat(sfg_constant_obj9);
+            float foreshortening = saturate(length(cross(motion_direction, view_direction)));
+            particle_length = max(instance.size * PARTICLE_VELOCITY_MIN_LENGTH, stretched_length * foreshortening);
+        }
     }
     else if (sfg_constant_obj2 == 2)
     {
@@ -111,8 +128,8 @@ vs_output VSMain(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
         axis_y = float3(0.0, 0.0, -1.0);
     }
 
-    float2 local_position = rotate_particle_position(positions[vertex_id], rotation);
-    local_position *= float2(instance.size * asfloat(sfg_constant_obj8), instance.size);
+    float2 local_position = positions[vertex_id] * float2(instance.size * asfloat(sfg_constant_obj8), particle_length);
+    local_position = rotate_particle_position(local_position, rotation);
     float3 world_position = instance.position + axis_x * local_position.x + axis_y * local_position.y;
     float2 uv_start = float2(asfloat(sfg_constant_obj4), asfloat(sfg_constant_obj5));
     float2 uv_size = float2(asfloat(sfg_constant_obj6), asfloat(sfg_constant_obj7));

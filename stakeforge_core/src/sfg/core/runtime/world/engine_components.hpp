@@ -160,6 +160,7 @@ namespace sfg
 		f32							start_size_min			   = 0.1f;
 		f32							start_size_max			   = 0.2f;
 		f32							size_amplitude			   = 1.0f;
+		f32							velocity_stretch		   = 0.0f;
 		f32							opacity_amplitude		   = 1.0f;
 		f32							start_rotation_min		   = 0.0f;
 		f32							start_rotation_max		   = 0.0f;

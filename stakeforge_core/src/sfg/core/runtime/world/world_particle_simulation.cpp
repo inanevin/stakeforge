@@ -31,7 +31,9 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/math/math.hpp"
 #include "core/math/random.hpp"
 #include "core/runtime/resources/curve.hpp"
+#include "core/runtime/resources/material.hpp"
 #include "core/runtime/resources/resource_manager.hpp"
+#include "core/runtime/resources/sprite.hpp"
 
 #include <tracy/Tracy.hpp>
 
@@ -495,14 +497,29 @@ namespace sfg
 			return;
 		}
 
+		f32						  aspect   = 1.0f;
+		const material_runtime_t* material = resource_manager_t::get().find_runtime<material_runtime_t>(emitter.material);
+		if (material != nullptr && material->texture_count != 0)
+		{
+			if (material->texture_types[0] == shader_texture_type_e::sprite)
+			{
+				const sprite_runtime_t* sprite = resource_manager_t::get().find_runtime<sprite_runtime_t>(material->texture_guids[0]);
+				if (sprite != nullptr)
+					aspect = sprite->uv_size.x * static_cast<f32>(sprite->header.size.x) / (sprite->uv_size.y * static_cast<f32>(sprite->header.size.y));
+			}
+		}
+
+		const f32				velocity_stretch	  = emitter.alignment == particle_alignment_e::velocity ? math::max(emitter.velocity_stretch, 0.0f) : 0.0f;
 		const particle_state_t* particles			  = _particles.get<particle_state_t>(system.particles);
 		const particle_state_t& first				  = particles[0];
 		const curve_runtime_t*	size_curve			  = emitter.size_over_lifetime != NULL_RESOURCE_HANDLE ? resource_manager_t::get().find_runtime<curve_runtime_t>(emitter.size_over_lifetime) : nullptr;
 		const vec3f_t			first_position		  = emitter.simulation_space == particle_simulation_space_e::world ? first.position : transform.abs_mat * first.position;
 		const f32				first_normalized_age  = first.age / first.lifetime;
-		const f32				local_scale			  = emitter.simulation_space == particle_simulation_space_e::local ? math::max(math::abs(transform.abs_scale.x), math::max(math::abs(transform.abs_scale.y), math::abs(transform.abs_scale.z))) : 1.0f;
 		const f32				first_size_multiplier = (size_curve != nullptr ? size_curve->sample(first_normalized_age).x : 1.0f) * emitter.size_amplitude;
-		const f32				first_radius		  = first.start_size * math::max(first_size_multiplier, 0.0f) * local_scale * 0.5f;
+		const f32				first_size			  = first.start_size * math::max(first_size_multiplier, 0.0f);
+		const f32				first_width			  = first_size * aspect;
+		const f32				first_length		  = first_size + (velocity_stretch > 0.0f ? first.velocity.magnitude() * velocity_stretch : 0.0f);
+		const f32				first_radius		  = math::sqrt(first_width * first_width + first_length * first_length) * 0.5f;
 		vec3f_t					bounds_min			  = first_position - vec3f_t{first_radius, first_radius, first_radius};
 		vec3f_t					bounds_max			  = first_position + vec3f_t{first_radius, first_radius, first_radius};
 
@@ -512,7 +529,10 @@ namespace sfg
 			const vec3f_t			position		= emitter.simulation_space == particle_simulation_space_e::world ? particle.position : transform.abs_mat * particle.position;
 			const f32				normalized_age	= particle.age / particle.lifetime;
 			const f32				size_multiplier = (size_curve != nullptr ? size_curve->sample(normalized_age).x : 1.0f) * emitter.size_amplitude;
-			const f32				radius			= particle.start_size * math::max(size_multiplier, 0.0f) * local_scale * 0.5f;
+			const f32				size			= particle.start_size * math::max(size_multiplier, 0.0f);
+			const f32				width			= size * aspect;
+			const f32				length			= size + (velocity_stretch > 0.0f ? particle.velocity.magnitude() * velocity_stretch : 0.0f);
+			const f32				radius			= math::sqrt(width * width + length * length) * 0.5f;
 			const vec3f_t			extent			= {radius, radius, radius};
 
 			bounds_min = vec3f_t::min(bounds_min, position - extent);

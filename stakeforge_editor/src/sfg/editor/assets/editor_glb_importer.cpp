@@ -1509,6 +1509,7 @@ namespace sfg
 						   const tg3_model&						model,
 						   const glb_basis_conversion_t&		basis,
 						   bool									import_skinning,
+						   bool									import_lights,
 						   const hash_map_t<u32, sid_t>&		mesh_guid_map,
 						   const hash_map_t<u32, sid_t>&		skeleton_guid_map,
 						   const vector_t<mat4x3_t>&			skin_bind_corrections,
@@ -1642,7 +1643,7 @@ namespace sfg
 			const quat_t light_basis_rotation = quat_t::look_at(vec3f_t::zero, editor_glb_import_util_t::convert_vector(basis, vec3f_t::forward), editor_glb_import_util_t::convert_vector(basis, vec3f_t::up));
 
 			const auto add_light = [&](const tg3_node& node, entity_guid_t parent_guid, const mat4x3_t& local_matrix) -> void {
-				if (node.light < 0)
+				if (!import_lights || node.light < 0)
 					return;
 
 				const u32 light_index = static_cast<u32>(node.light);
@@ -1724,7 +1725,11 @@ namespace sfg
 				node_guids[node_index] = root_guid;
 
 				if (joint_nodes[node_index] != 0)
+				{
+					if (!import_lights)
+						return;
 					lights_only = true;
+				}
 
 				vec3f_t node_pos   = vec3f_t::zero;
 				quat_t	node_rot   = quat_t::identity;
@@ -1823,7 +1828,7 @@ namespace sfg
 					}
 				}
 
-				if (node.light >= 0)
+				if (import_lights && node.light >= 0)
 				{
 					mat4x3_t light_matrix = mat4x3_t::identity;
 					if (import_skinning && node.skin >= 0 && static_cast<u32>(node.skin) < skin_bind_corrections.size())
@@ -2020,7 +2025,7 @@ namespace sfg
 				}
 			}
 
-			if (!combined_mesh || model.lights_count != 0)
+			if (!combined_mesh || import_lights)
 			{
 				const tg3_scene* scene = nullptr;
 
@@ -2163,6 +2168,7 @@ namespace sfg
 			};
 
 			const bool import_skinning = cook_config.import_animations && model.skins_count != 0;
+			const bool import_lights   = cook_config.import_lights && model.lights_count != 0;
 
 			const u32 reserve_texture_count	  = cook_config.import_textures ? model.textures_count * 2 : 0;
 			const u32 reserve_skeleton_count  = import_skinning ? model.skins_count : 0;
@@ -2412,7 +2418,7 @@ namespace sfg
 			}
 
 			const bool has_prefab_meshes = model.meshes_count != 0 && (cook_config.combine_meshes || model.nodes_count != 0);
-			const bool has_prefab_lights = model.lights_count != 0 && model.nodes_count != 0;
+			const bool has_prefab_lights = import_lights && model.nodes_count != 0;
 			if (result && (has_prefab_meshes || has_prefab_lights))
 			{
 				const sid_t prefab_mesh_guid	  = cook_config.combine_meshes ? combined_mesh_guid : NULL_SID;
@@ -2423,6 +2429,7 @@ namespace sfg
 								   model,
 								   basis,
 								   import_skinning,
+								   import_lights,
 								   mesh_guid_map,
 								   skeleton_guid_map,
 								   skin_bind_corrections,
@@ -2506,6 +2513,13 @@ namespace sfg
 					{.name = "import_materials", .display_name = "Import Materials", .offset = offsetof(glb_cook_config_t, import_materials), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
 					{.name = "import_animations", .display_name = "Import Animations", .offset = offsetof(glb_cook_config_t, import_animations), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
 					{.name = "import_collisions", .display_name = "Import Collisions", .offset = offsetof(glb_cook_config_t, import_collisions), .size = sizeof(bool), .type = reflected_value_type_e::boolean},
+					{
+						.name		  = "import_lights",
+						.display_name = "Import Lights",
+						.offset		  = offsetof(glb_cook_config_t, import_lights),
+						.size		  = sizeof(bool),
+						.type		  = reflected_value_type_e::boolean,
+					},
 					{.name		   = "texture_payload_type",
 					 .display_name = "Texture Payload Type",
 					 .sub_type_id  = type_id_t<texture_payload_type_e>::value,

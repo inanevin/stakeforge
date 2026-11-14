@@ -54,6 +54,7 @@ namespace sfg
 		bool					   import_materials		= true;
 		bool					   import_animations	= true;
 		bool					   import_collisions	= true;
+		bool					   import_lights		= true;
 		bool					   combine_meshes		= false;
 		bool					   generate_mipmaps		= false;
 

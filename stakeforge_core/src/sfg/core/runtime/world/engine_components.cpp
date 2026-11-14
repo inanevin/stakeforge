@@ -547,7 +547,7 @@ namespace sfg
 				.fields =
 					{
 						{.name = "camera", .display_name = "Camera", .tooltip = "Faces the active camera."},
-						{.name = "velocity", .display_name = "Velocity", .tooltip = "Aligns the particle with its motion."},
+						{.name = "velocity", .display_name = "Velocity", .tooltip = "Faces the camera, follows projected motion, and shortens toward a dot when viewed along its velocity."},
 						{.name = "vertical", .display_name = "Vertical", .tooltip = "Faces the camera while preserving the world-up axis."},
 						{.name = "horizontal", .display_name = "Horizontal", .tooltip = "Places the particle on the local horizontal plane."},
 					},
@@ -691,6 +691,19 @@ namespace sfg
 								 .offset	   = offsetof(component_particle_emitter_t, alignment),
 								 .size		   = sizeof(particle_alignment_e),
 								 .type		   = reflected_value_type_e::u8},
+								{
+									.ui_definition	   = {.dependency_field = "alignment"_hs, .dependency_value = static_cast<u32>(particle_alignment_e::velocity), .dependency_type = reflected_field_dependency_type_e::show_if_equals},
+									.name			   = "velocity_stretch",
+									.display_name	   = "Velocity Stretch",
+									.tooltip		   = "Seconds of motion added to particle length: size + speed times stretch. Zero disables stretching; width stays unchanged.",
+									.offset			   = offsetof(component_particle_emitter_t, velocity_stretch),
+									.size			   = sizeof(f32),
+									.flags			   = reflected_field_flag_clamped,
+									.min_clamp		   = 0.0f,
+									.max_clamp		   = 100.0f,
+									.clamp_granularity = 0.01f,
+									.type			   = reflected_value_type_e::f32,
+								},
 								{.name				= "lifetime_min",
 								 .display_name		= "Lifetime Minimum",
 								 .tooltip			= "Shortest randomly selected particle lifetime in seconds.",

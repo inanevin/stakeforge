@@ -998,13 +998,13 @@ namespace sfg
 				const stock_world_renderer_entity_t&		entity	 = snapshot.entities[renderable.entity_index];
 				shader_handle										 = material.find_pso(editor_pass ? initial_variant_flags : material.particle_variant_flags);
 
-				const f32 geometry[5]		 = {draw.uv_start.x, draw.uv_start.y, draw.uv_size.x, draw.uv_size.y, draw.aspect};
+				const f32 geometry[6]		 = {draw.uv_start.x, draw.uv_start.y, draw.uv_size.x, draw.uv_size.y, draw.aspect, draw.velocity_stretch};
 				packet.instance_buffer_index = ctx.get_particle_instance_buffer_index(frame_index);
 				packet.object_constants[0]	 = item.instance_index;
 				packet.object_constants[1]	 = draw.alignment;
 				packet.object_constants[2]	 = entity.entity_id;
 				SFG_MEMCPY(packet.object_constants + 3, geometry, sizeof(geometry));
-				packet.object_constant_count = 8;
+				packet.object_constant_count = 9;
 				packet.element_count		 = 6;
 				packet.instance_count		 = draw.particle_count;
 				break;
