@@ -142,6 +142,7 @@ namespace sfg
 
 		void					switch_layer_state(animator_library_handle_t library, u32 layer_index, animator_state_handle_t state, f32 transition_duration);
 		animator_state_handle_t find_state_handle(animator_library_handle_t library, sid_t name_hash, u32 layer = UINT32_MAX);
+		bool set_layer_weight(animator_library_handle_t library, u32 layer_index, f32 weight);
 
 		inline void set_state_blend_value(animator_state_handle_t state, const vec2f_t& value)
 		{

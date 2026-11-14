@@ -35,6 +35,7 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/runtime/world/ecs.hpp"
 #include "core/runtime/world/engine_components.hpp"
 #include "core/runtime/world/system_components.hpp"
+#include <cmath>
 
 namespace sfg
 {
@@ -814,6 +815,31 @@ namespace sfg
 
 			renderer.needs_skinning = true;
 		}
+	}
+
+	bool animation_processor_t::set_layer_weight(animator_library_handle_t library, u32 layer_index, f32 weight)
+	{
+		if (!_libraries.is_valid(library))
+		{
+			SFG_ERR("library handle is not valid!");
+			return false;
+		}
+
+		animator_library_t& lib = _libraries.get(library);
+		if (layer_index == 0 || layer_index >= lib.layer_count)
+		{
+			SFG_ERR("layer index {0} is not a non-base layer in library with {1} layers", layer_index, lib.layer_count);
+			return false;
+		}
+
+		if (!std::isfinite(weight) || weight < 0.0f || weight > 1.0f)
+		{
+			SFG_ERR("layer weight must be a finite value between 0 and 1");
+			return false;
+		}
+
+		lib.layers[layer_index].weight = weight;
+		return true;
 	}
 
 	void animation_processor_t::switch_layer_state(animator_library_handle_t library, u32 layer_index, animator_state_handle_t state, f32 transition_duration)

@@ -1547,7 +1547,7 @@ namespace sfg
 				},
 			.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT,
 			.BufferCount = BACK_BUFFER_COUNT,
-			.SwapEffect	 = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
+			.SwapEffect	 = DXGI_SWAP_EFFECT_FLIP_DISCARD,
 			.Flags		 = swapchain_flags_t,
 		};
 
