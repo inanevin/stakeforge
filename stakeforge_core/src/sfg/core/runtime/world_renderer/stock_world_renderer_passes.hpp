@@ -39,6 +39,7 @@ namespace sfg
 	struct stock_world_renderer_prep_data_t;
 	struct world_renderer_view_t;
 	struct stock_world_renderer_reflection_allocation_t;
+	enum class stock_world_renderer_reflection_probe_capture_mode_e : u8;
 	struct stock_world_renderer_snapshot_t;
 	struct stock_world_renderer_draw_packet_t;
 	struct stock_world_renderer_draw_state_t;
@@ -84,7 +85,8 @@ namespace sfg
 								 gpu_index_t										 global_cbv_index,
 								 gfx_handle_t										 global_layout);
 		static void render_clustered_lighting(const stock_world_renderer_clustered_lighting_data_t& data, span_t<const stock_world_renderer_clustered_lighting_view_t> views);
-		static void render_prefilter_diffuse_sh(const stock_world_renderer_context_t& ctx, const stock_world_renderer_reflection_allocation_t& allocation, u8 frame_index, gpu_index_t global_cbv_index);
+		static void render_prefilter_diffuse_sh(
+			const stock_world_renderer_context_t& ctx, const stock_world_renderer_reflection_allocation_t& allocation, stock_world_renderer_reflection_probe_capture_mode_e capture_mode, u8 frame_index, gpu_index_t global_cbv_index);
 		static void render_ssao(const stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, const stock_world_renderer_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index);
 		static void render_lighting(const stock_world_renderer_context_t& ctx, const stock_world_renderer_snapshot_t& snapshot, const stock_world_renderer_prep_data_t& prep_data, u8 frame_index, gpu_index_t global_cbv_index, gfx_handle_t global_layout);
 		static void render_canvas(gfx_handle_t cmd, const stock_world_renderer_context_t& ctx, const world_canvas_draw_snapshot_t& canvas, ui::ui_renderer_t& renderer, gfx_handle_t target, u8 frame_index);

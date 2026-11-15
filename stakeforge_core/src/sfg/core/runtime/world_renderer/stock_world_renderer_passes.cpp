@@ -45,9 +45,10 @@ in GAME-LINKING-EXCEPTION.md.
 
 namespace sfg
 {
-#define STOCK_WORLD_RENDERER_PACKET_BATCH_SIZE				  128
-#define STOCK_WORLD_RENDERER_REFLECTION_SPECULAR_SAMPLE_COUNT 1024
-#define STOCK_WORLD_RENDERER_REFLECTION_SH_SAMPLE_COUNT		  4096
+#define STOCK_WORLD_RENDERER_PACKET_BATCH_SIZE						   128
+#define STOCK_WORLD_RENDERER_REFLECTION_SPECULAR_SAMPLE_COUNT		   1024
+#define STOCK_WORLD_RENDERER_REFLECTION_REALTIME_SPECULAR_SAMPLE_COUNT 128
+#define STOCK_WORLD_RENDERER_REFLECTION_SH_SAMPLE_COUNT				   4096
 
 	namespace
 	{
@@ -668,7 +669,8 @@ namespace sfg
 		backend.close_command_buffer(data.command_buffer);
 	}
 
-	void stock_world_renderer_passes_t::render_prefilter_diffuse_sh(const stock_world_renderer_context_t& ctx, const stock_world_renderer_reflection_allocation_t& allocation, u8 frame_index, gpu_index_t global_cbv_index)
+	void stock_world_renderer_passes_t::render_prefilter_diffuse_sh(
+		const stock_world_renderer_context_t& ctx, const stock_world_renderer_reflection_allocation_t& allocation, stock_world_renderer_reflection_probe_capture_mode_e capture_mode, u8 frame_index, gpu_index_t global_cbv_index)
 	{
 		const stock_world_renderer_reflection_context_t& reflection_context = ctx.get_reflection_context();
 		const gfx_handle_t								 command_buffer		= reflection_context.get_command_buffer_compute(frame_index);
@@ -704,6 +706,8 @@ namespace sfg
 		BEGIN_DEBUG_EVENT((&backend), command_buffer, "world_reflection_specular_prefilter");
 		backend.cmd_bind_pipeline_compute(command_buffer, {.pipeline = reflection_context.get_specular_prefilter_shader()});
 
+		const u32 sample_count = capture_mode == stock_world_renderer_reflection_probe_capture_mode_e::realtime ? STOCK_WORLD_RENDERER_REFLECTION_REALTIME_SPECULAR_SAMPLE_COUNT : STOCK_WORLD_RENDERER_REFLECTION_SPECULAR_SAMPLE_COUNT;
+
 		for (u8 mip = 0; mip < allocation.specular_mip_count; ++mip)
 		{
 			const u32 mip_size	= std::max<u32>(1, static_cast<u32>(allocation.resolution) >> mip);
@@ -721,7 +725,7 @@ namespace sfg
 				.source_texture_index	   = allocation.radiance_texture_index,
 				.destination_texture_index = allocation.specular_texture_uav_indices[mip],
 				.destination_size		   = mip_size,
-				.sample_count			   = STOCK_WORLD_RENDERER_REFLECTION_SPECULAR_SAMPLE_COUNT,
+				.sample_count			   = sample_count,
 				.roughness				   = roughness,
 				.source_size			   = allocation.resolution,
 			};

@@ -308,7 +308,7 @@ namespace sfg
 														frame_index,
 														global_cbv_index,
 														global_layout);
-			stock_world_renderer_passes_t::render_prefilter_diffuse_sh(ctx, *reflection_allocation, frame_index, global_cbv_index);
+			stock_world_renderer_passes_t::render_prefilter_diffuse_sh(ctx, *reflection_allocation, reflection_probe->capture_mode, frame_index, global_cbv_index);
 		});
 
 		const gfx_handle_t depth_gbuffer_commands[2] = {cmd_depth, cmd_gbuffer};

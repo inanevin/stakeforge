@@ -181,6 +181,16 @@ namespace sfg
 				return false;
 
 			append_dependency(library.skeleton, resource_type_e::skeleton, out_dependencies);
+
+			for (size_t layer_index = 0; layer_index < library.layer_count; ++layer_index)
+			{
+				const animation_library_layer_def_t& layer = library.layers[layer_index];
+
+				for (const animation_library_state_def_t& state : layer.states)
+					for (size_t clip_index = 0; clip_index < state.clip_count; ++clip_index)
+						append_dependency(state.clips[clip_index].animation_clip, resource_type_e::animation, out_dependencies);
+			}
+
 			break;
 		}
 		case editor_asset_type_e::ragdoll: {

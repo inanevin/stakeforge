@@ -96,6 +96,13 @@ void CSMain(uint3 dispatch_id : SV_DispatchThreadID)
     RWTexture2DArray<float4> destination = sfg_get_texture<RWTexture2DArray<float4> >(sfg_constant_rp1);
     const float2 uv = (float2(dispatch_id.xy) + 0.5) / float(destination_size);
     const float3 normal = cubemap_direction(dispatch_id.z, uv);
+
+    if (roughness == 0.0)
+    {
+        destination[dispatch_id] = float4(source.SampleLevel(smp_linear, normal, 0.0).rgb, 1.0);
+        return;
+    }
+
     const float3 view = normal;
     float3 color = 0.0;
     float weight = 0.0;
@@ -119,7 +126,7 @@ void CSMain(uint3 dispatch_id : SV_DispatchThreadID)
         const float pdf = max(distribution * ndoth / max(4.0 * hdotv, 1e-6), 1e-6);
         const float texel_solid_angle = 4.0 * PI / (6.0 * float(source_size * source_size));
         const float sample_solid_angle = 1.0 / (float(sample_count) * pdf);
-        const float mip_level = roughness <= 0.0001 ? 0.0 : 0.5 * log2(sample_solid_angle / texel_solid_angle);
+        const float mip_level = 0.5 * log2(sample_solid_angle / texel_solid_angle);
 
         color += source.SampleLevel(smp_linear, light, mip_level).rgb * ndotl;
         weight += ndotl;
