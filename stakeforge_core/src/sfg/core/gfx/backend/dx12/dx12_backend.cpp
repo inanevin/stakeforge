@@ -1551,9 +1551,9 @@ namespace sfg
 			.Flags		 = swapchain_flags_t,
 		};
 
-		ComPtr<IDXGISwapChain1> swapchain_t;
-
+		ComPtr<IDXGISwapChain1> swapchain_t = {};
 		throw_if_failed(_factory->CreateSwapChainForHwnd(_queues.get(_queue_graphics).ptr.Get(), (HWND)desc.window_t, &swapchain_desc_t, nullptr, nullptr, &swapchain_t));
+		throw_if_failed(_factory->MakeWindowAssociation((HWND)desc.window_t, DXGI_MWA_NO_ALT_ENTER));
 		throw_if_failed(swapchain_t.As(&swp.ptr));
 
 #ifdef SFG_ENABLE_MEMORY_TRACER
@@ -1565,7 +1565,7 @@ namespace sfg
 #endif
 
 #ifdef USE_WAITABLE_SWAPCHAIN
-		Microsoft::WRL::ComPtr<IDXGISwapChain2> sc2;
+		Microsoft::WRL::ComPtr<IDXGISwapChain2> sc2 = {};
 		if (SUCCEEDED(swp.ptr.As(&sc2)))
 		{
 			sc2->SetMaximumFrameLatency(FRAME_LATENCY);
