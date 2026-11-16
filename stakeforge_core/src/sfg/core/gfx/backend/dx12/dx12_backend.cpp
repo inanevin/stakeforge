@@ -40,11 +40,8 @@ in GAME-LINKING-EXCEPTION.md.
 #include "core/math/math_common.hpp"
 #include "core/runtime/engine/engine_threads.hpp"
 
-#ifdef SFG_DEBUG
+#ifdef SFG_PROFILE
 #include <WinPixEventRuntime/pix3.h>
-#endif
-
-#ifdef SFG_GFX_SERIALIZE_SHADERS_PDB
 #include <fstream>
 #endif
 
@@ -57,7 +54,7 @@ namespace sfg
 
 	Microsoft::WRL::ComPtr<IDxcLibrary> dx12_backend_t::s_idxcLib;
 
-#ifdef SFG_DEBUG
+#ifdef SFG_PROFILE
 #define NAME_DX12_OBJECT_CSTR(x, NAME)                                                                                                                                                                                                                             \
 	auto wcharConverted = string_util::char_to_wchar(NAME);                                                                                                                                                                                                        \
 	x->SetName(wcharConverted);                                                                                                                                                                                                                                    \
@@ -650,7 +647,7 @@ namespace sfg
 
 		UINT dxgiFactoryFlags = 0;
 
-#ifdef SFG_GFX_USE_DEBUG_LAYERS
+#ifdef SFG_PROFILE
 		ComPtr<ID3D12Debug> debugController = {};
 
 		if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController))))
@@ -680,7 +677,7 @@ namespace sfg
 			throw_if_failed(D3D12CreateDevice(_adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&_device)));
 		}
 
-#ifdef SFG_GFX_USE_DEBUG_LAYERS
+#ifdef SFG_PROFILE
 		// Dbg callback
 		{
 			ComPtr<ID3D12InfoQueue1> info_queue = {};
@@ -808,7 +805,7 @@ namespace sfg
 		_heap_gpu_buffer.uninit();
 		_heap_gpu_sampler.uninit();
 
-#ifdef SFG_GFX_USE_DEBUG_LAYERS
+#ifdef SFG_PROFILE
 		{
 			ComPtr<ID3D12InfoQueue1> info_queue = {};
 
@@ -1556,7 +1553,7 @@ namespace sfg
 		throw_if_failed(_factory->MakeWindowAssociation((HWND)desc.window_t, DXGI_MWA_NO_ALT_ENTER));
 		throw_if_failed(swapchain_t.As(&swp.ptr));
 
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 		swp.size = desc.size.x * desc.size.y * 4;
 		{
 			SFG_MEMTRACE_SCOPE("GPU");
@@ -1591,7 +1588,7 @@ namespace sfg
 			}
 		}
 
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 		{
 			SFG_MEMTRACE_SCOPE("GPU_TEXTURES");
 			SFG_MEMTRACE_ALLOC(swp.textures[0].Get(), swp.size);
@@ -1611,7 +1608,7 @@ namespace sfg
 		DXGI_SWAP_CHAIN_DESC swp_desc = {};
 		swp.ptr->GetDesc(&swp_desc);
 
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 		ID3D12Resource* old_swapchain_texture = swp.textures[0].Get();
 #endif
 
@@ -1631,7 +1628,7 @@ namespace sfg
 		else
 			swp.vsync = 0;
 
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 
 		const size_t new_size = desc.size.x * desc.size.y * 4;
 		{
@@ -1659,7 +1656,7 @@ namespace sfg
 		// Re-apply frame latency settings and refresh waitable object after resize
 		{
 #ifdef USE_WAITABLE_SWAPCHAIN
-			Microsoft::WRL::ComPtr<IDXGISwapChain2> sc2;
+			Microsoft::WRL::ComPtr<IDXGISwapChain2> sc2 = {};
 			if (SUCCEEDED(swp.ptr.As(&sc2)))
 			{
 				sc2->SetMaximumFrameLatency(FRAME_LATENCY);
@@ -1682,7 +1679,7 @@ namespace sfg
 			NAME_DX12_OBJECT_CSTR(swp.textures[i], "Swapchain RTV");
 		}
 
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 		{
 			SFG_MEMTRACE_SCOPE("GPU_TEXTURES");
 			SFG_MEMTRACE_ALLOC(swp.textures[0].Get(), new_size);
@@ -1699,7 +1696,7 @@ namespace sfg
 
 		swapchain_t& swp = _swapchains.get(id);
 
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 		{
 			SFG_MEMTRACE_SCOPE("GPU");
 			SFG_MEMTRACE_DEALLOC(swp.ptr.Get());
@@ -1815,8 +1812,10 @@ namespace sfg
 													 DXC_ARG_WARNINGS_ARE_ERRORS,
 													 L"-HV",
 													 L"2021",
-#ifdef SFG_DEBUG
+#ifdef SFG_PROFILE
 											  DXC_ARG_DEBUG,
+#endif
+#ifdef SFG_DEBUG
 											  DXC_ARG_PREFER_FLOW_CONTROL,
 											  DXC_ARG_SKIP_OPTIMIZATIONS
 #else
@@ -1870,7 +1869,7 @@ namespace sfg
 				}
 			}
 
-#if SFG_GFX_SERIALIZE_SHADERS_PDB
+#ifdef SFG_PROFILE
 			ComPtr<IDxcBlob>	  debug_data	  = {};
 			ComPtr<IDxcBlobUtf16> debug_data_path = {};
 			result->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(debug_data.GetAddressOf()), debug_data_path.GetAddressOf());
@@ -1972,8 +1971,10 @@ namespace sfg
 			arguments.push_back(include.c_str());
 		}
 
-#ifdef SFG_DEBUG
+#ifdef SFG_PROFILE
 		arguments.push_back(DXC_ARG_DEBUG);
+#endif
+#ifdef SFG_DEBUG
 		arguments.push_back(DXC_ARG_PREFER_FLOW_CONTROL);
 		arguments.push_back(DXC_ARG_SKIP_OPTIMIZATIONS);
 #else
@@ -2014,7 +2015,7 @@ namespace sfg
 			}
 		}
 
-#if SFG_GFX_SERIALIZE_SHADERS_PDB
+#ifdef SFG_PROFILE
 		ComPtr<IDxcBlob>	  debug_data	  = {};
 		ComPtr<IDxcBlobUtf16> debug_data_path = {};
 		result->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(debug_data.GetAddressOf()), debug_data_path.GetAddressOf());
@@ -3114,7 +3115,7 @@ namespace sfg
 	{
 		command_buffer_t&			buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
-#ifdef SFG_DEBUG
+#ifdef SFG_PROFILE
 		PIXBeginEvent(cmd_list, PIX_COLOR(120, 255, 100), "%s", label);
 #endif
 	}
@@ -3123,7 +3124,7 @@ namespace sfg
 	{
 		command_buffer_t&			buffer_t = _command_buffers.get(cmd_id);
 		ID3D12GraphicsCommandList4* cmd_list = buffer_t.ptr.Get();
-#ifdef SFG_DEBUG
+#ifdef SFG_PROFILE
 		PIXEndEvent(cmd_list);
 #endif
 	}

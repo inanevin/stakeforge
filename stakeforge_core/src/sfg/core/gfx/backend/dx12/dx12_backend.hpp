@@ -97,7 +97,7 @@ namespace sfg
 
 	struct command_bind_group_t;
 
-#ifdef SFG_DEBUG
+#ifdef SFG_PROFILE
 #define BEGIN_DEBUG_EVENT(backend, CMD_BUF, LABEL) backend->cmd_begin_event(CMD_BUF, LABEL)
 #define END_DEBUG_EVENT(backend, CMD_BUF)		   backend->cmd_end_event(CMD_BUF)
 #else
@@ -170,7 +170,7 @@ namespace sfg
 		{
 			Microsoft::WRL::ComPtr<IDXGISwapChain3> ptr = NULL;
 			Microsoft::WRL::ComPtr<ID3D12Resource>	textures[BACK_BUFFER_COUNT];
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 			u32 size = 0;
 #endif
 			gfx_handle_t rtv_indices[BACK_BUFFER_COUNT] = {};

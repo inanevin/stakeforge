@@ -23,7 +23,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "core/common/sfg_exports.hpp"
 
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 
 #include "core/memory/malloc_allocator_map.hpp"
 #include "core/memory/malloc_allocator_stl.hpp"

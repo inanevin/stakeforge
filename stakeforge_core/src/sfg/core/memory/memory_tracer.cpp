@@ -21,7 +21,7 @@ in GAME-LINKING-EXCEPTION.md.
 
 #include "core/memory/memory_tracer.hpp"
 
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 
 #include "core/memory/memory.hpp"
 #include "core/io/assert.hpp"

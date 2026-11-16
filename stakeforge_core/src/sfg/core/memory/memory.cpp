@@ -27,7 +27,7 @@ namespace sfg
 	void* malloc_traced(size_t size)
 	{
 		void* ptr = malloc(size);
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 		memory_tracer_t::get().on_allocation(ptr, size);
 #endif
 		return ptr;
@@ -35,7 +35,7 @@ namespace sfg
 
 	void free_traced(void* ptr)
 	{
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 		memory_tracer_t::get().on_free(ptr);
 #endif
 		free(ptr);
@@ -48,7 +48,7 @@ namespace sfg
 #else
 		void* ptr = std::aligned_alloc(alignment, size);
 #endif
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 		memory_tracer_t::get().on_allocation(ptr, size);
 #endif
 		return ptr;
@@ -56,7 +56,7 @@ namespace sfg
 
 	void aligned_free_traced(void* ptr)
 	{
-#ifdef SFG_ENABLE_MEMORY_TRACER
+#ifdef SFG_PROFILE
 		memory_tracer_t::get().on_free(ptr);
 #endif
 #ifdef SFG_COMPILER_MSVC
